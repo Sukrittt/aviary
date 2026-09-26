@@ -42,7 +42,16 @@ vi.mock('@/lib/ai/expenseContext', async (importOriginal) => {
   }
 })
 
-const routeChatMock = vi.fn<(message: string, caller?: unknown, earlier?: string[]) => Promise<{ onTopic: boolean; sections: string[]; decision?: boolean }>>(
+const allowanceMock = vi.fn<() => Promise<Response | null>>(async () => null)
+vi.mock('@/lib/ai/allowance', () => ({ aiAllowanceResponse: () => allowanceMock() }))
+
+const buildCaptureProposalMock = vi.fn()
+vi.mock('@/lib/ai/capture', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/ai/capture')>()
+  return { ...actual, buildCaptureProposal: (...args: unknown[]) => buildCaptureProposalMock(...args) }
+})
+
+const routeChatMock = vi.fn<(message: string, caller?: unknown, earlier?: string[]) => Promise<{ onTopic: boolean; sections: string[]; decision?: boolean; capture?: boolean }>>(
   async () => ({ onTopic: true, sections: ['header', 'envelopes', 'top10'] }),
 )
 vi.mock('@/lib/ai/chatRouter', () => ({
@@ -77,10 +86,10 @@ vi.mock('@/lib/http', async (importOriginal) => {
 
 const { POST } = await import('./route')
 
-function jsonRequest(body: unknown): Request {
+function jsonRequest(body: unknown, headers: Record<string, string> = {}): Request {
   return new Request('https://example.com/api/ai/chat', {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: { 'content-type': 'application/json', ...headers },
     body: JSON.stringify(body),
   })
 }
@@ -94,6 +103,9 @@ beforeEach(() => {
   sessionFindOneMock.mockClear()
   routeChatMock.mockReset()
   routeChatMock.mockResolvedValue({ onTopic: true, sections: ['header', 'envelopes', 'top10'] })
+  allowanceMock.mockReset()
+  allowanceMock.mockResolvedValue(null)
+  buildCaptureProposalMock.mockReset()
 })
 
 describe('POST /api/ai/chat (demo path)', () => {
@@ -273,5 +285,114 @@ describe('POST /api/ai/chat (Jev routing)', () => {
 
     expect(routeChatMock.mock.calls[0][0]).toBe("It's 12k.")
     expect(routeChatMock.mock.calls[0][2]).toEqual(['Can I afford a Kindle?'])
+  })
+})
+
+describe('POST /api/ai/chat (capture)', () => {
+  const CAPTURE = { 'x-aviary-capture': '1' }
+  const captureRoute = { onTopic: true, sections: [], decision: false, capture: true }
+  const proposal = {
+    id: '3f1c2a4e-8b7d-4c1e-9a2b-5d6e7f8a9b0c',
+    items: [
+      { id: 'r1', item: 'Auto', amount: 240, splitWays: 1, date: '2026-09-26', category: 'Travel', categoryConfidence: 1 },
+      { id: 'r2', item: 'Turf', amount: 1200, splitWays: 6, date: '2026-09-26', category: 'Sports', categoryConfidence: 0.88 },
+    ],
+    skipped: [],
+    unparsed: [],
+  }
+  const frames = (body: string) =>
+    body.split('\n\n').filter((f) => f.startsWith('data: ') && f !== 'data: [DONE]').map((f) => JSON.parse(f.slice(6)))
+  const overAllowance = () =>
+    new Response(JSON.stringify({ error: "You've used this month's AI allowance. It resets on the 1st.", code: 'AI_ALLOWANCE_EXCEEDED' }), { status: 429 })
+
+  beforeEach(() => {
+    getAuthMock.mockResolvedValue({ userId: 'user_a', readOnly: false, sessionId: 'sess_1' })
+    routeChatMock.mockResolvedValue(captureRoute)
+    buildCaptureProposalMock.mockResolvedValue(proposal)
+  })
+
+  it('sends the proposal, then one line, without calling the chat model', async () => {
+    const res = await POST(jsonRequest({ messages: [{ role: 'user', text: 'auto 240, turf 1200 split 6' }] }, CAPTURE))
+    const sent = frames(await res.text())
+
+    expect(buildCaptureProposalMock).toHaveBeenCalledWith(expect.objectContaining({ userId: 'user_a' }), 'auto 240, turf 1200 split 6')
+    const at = sent.findIndex((f) => f.proposal)
+    expect(sent[at].proposal).toEqual(proposal)
+    expect(sent.slice(at + 1).map((f) => f.delta).join('')).toBe("Here's what I got. Check it, then log.")
+    expect(streamTextMock).not.toHaveBeenCalled()
+  })
+
+  it('stores the proposal with the reply so a reopened chat can show it', async () => {
+    await (await POST(jsonRequest({ messages: [{ role: 'user', text: 'auto 240, turf 1200 split 6' }] }, CAPTURE))).text()
+
+    const [, modelUpdate] = sessionUpdateOneMock.mock.calls[1]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const stored = (modelUpdate as any).$push.messages.$each[0]
+    expect(stored).toMatchObject({ role: 'model', text: "Here's what I got. Check it, then log.", proposalId: proposal.id, proposalStatus: 'pending' })
+    expect(JSON.parse(stored.proposal)).toEqual(proposal)
+  })
+
+  it('tells a client that cannot show the card to use the + button, and reads nothing', async () => {
+    const body = await (await POST(jsonRequest({ messages: [{ role: 'user', text: 'auto 240' }] }))).text()
+
+    expect(frames(body).some((f) => f.proposal)).toBe(false)
+    expect(body).toContain('Add them with the + button')
+    expect(buildCaptureProposalMock).not.toHaveBeenCalled()
+  })
+
+  it('keeps logging off for the demo account', async () => {
+    getAuthMock.mockResolvedValue({ userId: 'demo', readOnly: true, sessionId: null })
+    const body = await (await POST(jsonRequest({ messages: [{ role: 'user', text: 'auto 240' }] }, CAPTURE))).text()
+
+    expect(body).toContain('Sign in to log your own spends.')
+    expect(buildCaptureProposalMock).not.toHaveBeenCalled()
+  })
+
+  it('explains when there was nothing to log, and stores no proposal', async () => {
+    buildCaptureProposalMock.mockResolvedValue({ ...proposal, items: [], unparsed: ['Coffee'] })
+    const sent = frames(await (await POST(jsonRequest({ messages: [{ role: 'user', text: 'coffee' }] }, CAPTURE))).text())
+
+    expect(sent.some((f) => f.proposal)).toBe(false)
+    expect(sent.map((f) => f.delta ?? '').join('')).toContain("I couldn't find any spends with amounts in that.")
+    const [, modelUpdate] = sessionUpdateOneMock.mock.calls[1]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((modelUpdate as any).$push.messages.$each[0].proposal).toBeUndefined()
+  })
+
+  it('sends a readable error when reading the message fails', async () => {
+    buildCaptureProposalMock.mockRejectedValue(new Error('Gemini 503 UNAVAILABLE'))
+    const body = await (await POST(jsonRequest({ messages: [{ role: 'user', text: 'auto 240' }] }, CAPTURE))).text()
+
+    expect(body).toContain("I couldn't read that one. Try again, or add it with the + button.")
+    expect(body).not.toContain('503')
+  })
+
+  it('still logs spends for a user over the AI allowance', async () => {
+    allowanceMock.mockResolvedValue(overAllowance())
+    const res = await POST(jsonRequest({ messages: [{ role: 'user', text: 'auto 240' }] }, CAPTURE))
+
+    expect(res.status).toBe(200)
+    expect(frames(await res.text()).some((f) => f.proposal)).toBe(true)
+    // Routed once, before anything was stored, and not again inside the stream.
+    expect(routeChatMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('refuses anything but a log over the allowance, and stores nothing', async () => {
+    allowanceMock.mockResolvedValue(overAllowance())
+    routeChatMock.mockResolvedValue({ onTopic: true, sections: ['header'], decision: false, capture: false })
+    const res = await POST(jsonRequest({ messages: [{ role: 'user', text: 'how much on food?' }] }, CAPTURE))
+
+    expect(res.status).toBe(429)
+    expect((await res.json()).code).toBe('AI_ALLOWANCE_EXCEEDED')
+    expect(sessionInsertOneMock).not.toHaveBeenCalled()
+    expect(sessionUpdateOneMock).not.toHaveBeenCalled()
+  })
+
+  it('answers the allowance 429 straight away for clients that cannot capture', async () => {
+    allowanceMock.mockResolvedValue(overAllowance())
+    const res = await POST(jsonRequest({ messages: [{ role: 'user', text: 'auto 240' }] }))
+
+    expect(res.status).toBe(429)
+    expect(routeChatMock).not.toHaveBeenCalled()
   })
 })

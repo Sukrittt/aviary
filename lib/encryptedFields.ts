@@ -9,8 +9,9 @@
  * it) and Node's loader can't resolve.
  *
  * `'messages.text'` means "the `text` field inside each element of the
- * `messages` array" — the one nested case, handled specially wherever this
- * map is consumed.
+ * `messages` array" — nested array fields are handled specially wherever this
+ * map is consumed. `messages.proposal` is a capture proposal stored as a JSON
+ * string (item names and amounts), encrypted for the same reason `text` is.
  *
  * Deliberately not encrypted, because each is a filter/sort/index key: on
  * `expenses` — date, category, payment_method, timestamp; on
@@ -33,7 +34,7 @@ export const ENCRYPTED_FIELDS: Record<string, string[]> = {
   recurring_detection: ['snapshot'],
   holdings: ['value', 'recurring_amount'],
   holding_events: ['amount', 'previous_value', 'new_value'],
-  chat_sessions: ['title', 'messages.text'],
+  chat_sessions: ['title', 'messages.text', 'messages.proposal'],
   bill_scans: ['merchant', 'total', 'my_share', 'items.name', 'items.price'],
 }
 

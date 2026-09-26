@@ -2,8 +2,18 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const settings = { aiMonthlyCostUsd: null as number | null }
 const aggregateMock = vi.fn()
+const pipelineMock = vi.fn()
 vi.mock('../systemSettings', () => ({ getSystemSettings: async () => settings }))
-vi.mock('../mongodb', () => ({ getDb: async () => ({ collection: () => ({ aggregate: () => ({ toArray: aggregateMock }) }) }) }))
+vi.mock('../mongodb', () => ({
+  getDb: async () => ({
+    collection: () => ({
+      aggregate: (pipeline: unknown) => {
+        pipelineMock(pipeline)
+        return { toArray: aggregateMock }
+      },
+    }),
+  }),
+}))
 
 const NOW = new Date('2026-10-15T12:00:00Z')
 const user = { userId: 'user_a', readOnly: false, sessionId: null }
@@ -42,6 +52,15 @@ describe('aiAllowanceResponse', () => {
     aggregateMock.mockResolvedValue([])
     const { aiAllowanceResponse } = await import('./allowance')
     expect(await aiAllowanceResponse(user, NOW)).toBeNull()
+  })
+
+  it('leaves logging spends out of the spend it counts', async () => {
+    settings.aiMonthlyCostUsd = 0.1
+    aggregateMock.mockResolvedValue([{ total: 0.01 }])
+    const { aiAllowanceResponse } = await import('./allowance')
+    await aiAllowanceResponse(user, NOW)
+    const [pipeline] = pipelineMock.mock.calls.at(-1) as [Array<{ $match?: { feature?: unknown } }>]
+    expect(pipeline[0].$match?.feature).toEqual({ $nin: ['capture'] })
   })
 
   it('never applies to the shared demo user', async () => {

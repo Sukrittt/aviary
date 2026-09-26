@@ -7,6 +7,10 @@
  *   BRAIN_EVAL=1 GEMINI_API_KEY=... AI_GATEWAY_API_KEY=... npx vitest run lib/ai/brainEval.test.ts
  *
  * Writes every reply to BRAIN_EVAL_OUT (default /tmp/brain-eval.md) for a human to judge.
+ * The capture eval (logging spends from chat) writes to BRAIN_EVAL_CAPTURE_OUT
+ * (default /tmp/brain-eval-capture.md), with the routing and amounts checked
+ * against what each message should produce, so CAPTURE_AT in chatRouter.ts can
+ * be tuned from it.
  */
 import { describe, it, vi } from 'vitest'
 import fs from 'node:fs'
@@ -21,6 +25,7 @@ const { summarizeExpenses, factsFor } = await import('./expenseContext')
 const { buildSystemPrompt, currencyInstruction, SCOPE_REFUSAL } = await import('./moneyBrainPrompt')
 const { routeChat } = await import('./chatRouter')
 const { streamText } = await import('./gemini')
+const { extractCapture } = await import('./capture')
 
 // --- Synthetic account: salaried, rent-heavy, eating out and shopping creeping up. ---
 const TODAY = '2026-09-25'
@@ -171,6 +176,58 @@ describe.skipIf(!process.env.BRAIN_EVAL)('money brain live eval', () => {
     }))
     for (const [id] of scenarios) out.push(results.get(id)!)
     fs.writeFileSync(OUT, out.join('\n'))
+  })
+})
+
+// --- Capture: logging spends by typing them. `capture` is what the router should decide
+// (omitted when either is fine); amounts/splits/dates are what extraction should return. ---
+const CAPTURE_SCENARIOS: Array<{ id: string; message: string; capture?: boolean; amounts?: number[]; splits?: number[]; dates?: string[] }> = [
+  { id: 'two-items', message: 'auto 240, lunch 150', capture: true, amounts: [240, 150] },
+  { id: 'k-suffix', message: 'sneakers 5k', capture: true, amounts: [5000] },
+  { id: 'lakh', message: 'laptop 1.2L', capture: true, amounts: [120000] },
+  { id: 'split', message: 'turf 1200 split 6', capture: true, amounts: [1200], splits: [6] },
+  { id: 'split-between', message: 'birthday dinner 3400 between 4 of us', capture: true, amounts: [3400], splits: [4] },
+  { id: 'hinglish', message: 'chai 20, dedh sau ka auto', capture: true, amounts: [20, 150] },
+  { id: 'hinglish-words', message: 'dhai sau ki sabzi aur do hazaar ka jacket', capture: true, amounts: [250, 2000] },
+  { id: 'skipped', message: 'skipped lunch, coffee 180', capture: true, amounts: [180] },
+  { id: 'yesterday', message: 'yesterday dinner 800', capture: true, amounts: [800], dates: ['2026-09-24'] },
+  { id: 'sentence', message: 'went to dmart and spent 1340 on groceries then took an uber home for 210', capture: true, amounts: [1340, 210] },
+  { id: 'no-amount', message: 'coffee', amounts: [] },
+  { id: 'salary', message: 'got my salary, 52000', capture: false },
+  { id: 'q-food', message: 'how much did I spend on food?', capture: false },
+  { id: 'q-afford', message: 'can I afford a 60k phone?', capture: false },
+  { id: 'q-considering', message: 'should I buy sneakers for 5k?', capture: false },
+  { id: 'q-judgement', message: 'bought sneakers for 5k, was that too much?', capture: false },
+  { id: 'off-topic', message: 'write me a poem', capture: false },
+]
+
+describe.skipIf(!process.env.BRAIN_EVAL)('money brain capture eval', () => {
+  it('routes and reads every capture scenario', { timeout: 600_000 }, async () => {
+    const routeCaller = { userId: 'eval', feature: 'chat' as const }
+    const captureCaller = { userId: 'eval', feature: 'capture' as const }
+    const captureCtx = { today: TODAY, currencyCode: 'INR', categories: categories.map((c) => c.name), words: {} }
+    const lines = [`# Capture eval ${new Date().toISOString()}\n`]
+    let passed = 0
+    for (const s of CAPTURE_SCENARIOS) {
+      const route = await routeChat(s.message, routeCaller)
+      const routeOk = s.capture === undefined || route.capture === s.capture
+      let readOk = true
+      let read = '(not read)'
+      if (route.capture && s.amounts) {
+        const proposal = await extractCapture(s.message, captureCtx, captureCaller)
+        const amounts = proposal.items.map((i) => i.amount)
+        readOk =
+          JSON.stringify(amounts) === JSON.stringify(s.amounts) &&
+          (!s.splits || JSON.stringify(proposal.items.map((i) => i.splitWays)) === JSON.stringify(s.splits)) &&
+          (!s.dates || JSON.stringify(proposal.items.map((i) => i.date)) === JSON.stringify(s.dates))
+        read = JSON.stringify({ items: proposal.items.map(({ item, amount, splitWays, date, category, categoryConfidence }) => ({ item, amount, splitWays, date, category, categoryConfidence })), skipped: proposal.skipped, unparsed: proposal.unparsed })
+      }
+      if (routeOk && readOk) passed++
+      lines.push(`## ${s.id} ${routeOk && readOk ? 'PASS' : 'FAIL'}\n\n**Message:** ${s.message}\n\n_capture=${route.capture} (want ${s.capture ?? 'either'}) route=${routeOk ? 'ok' : 'WRONG'} read=${readOk ? 'ok' : 'WRONG'}_\n\n${read}\n`)
+    }
+    lines.splice(1, 0, `${passed}/${CAPTURE_SCENARIOS.length} passed\n`)
+    fs.writeFileSync(process.env.BRAIN_EVAL_CAPTURE_OUT ?? '/tmp/brain-eval-capture.md', lines.join('\n'))
+    console.log(`capture eval: ${passed}/${CAPTURE_SCENARIOS.length} passed`)
   })
 })
 
