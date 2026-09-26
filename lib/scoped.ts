@@ -103,16 +103,22 @@ function encUpdate(update: Doc, fields: string[], userId: string, collectionName
   if (out.$push && typeof out.$push === 'object') {
     const push: Doc = {}
     for (const [key, rawValue] of Object.entries(out.$push as Doc)) {
-      const nestedField = `${key}.text`
-      if (!fields.includes(nestedField)) {
+      // Every encrypted field nested under the pushed array, e.g. 'messages.text' and 'messages.proposal'.
+      const subFields = fields.filter((f) => f.startsWith(`${key}.`)).map((f) => f.slice(key.length + 1))
+      if (subFields.length === 0) {
         push[key] = rawValue
         continue
       }
-      const aadStr = aad(userId, collectionName, nestedField)
-      const encItem = (item: unknown): unknown =>
-        item && typeof item === 'object' && typeof (item as Doc).text === 'string'
-          ? { ...(item as Doc), text: encrypt((item as Doc).text as string, aadStr) }
-          : item
+      const encItem = (item: unknown): unknown => {
+        if (!item || typeof item !== 'object') return item
+        const encrypted: Doc = { ...(item as Doc) }
+        for (const subField of subFields) {
+          if (typeof encrypted[subField] === 'string') {
+            encrypted[subField] = encrypt(encrypted[subField] as string, aad(userId, collectionName, `${key}.${subField}`))
+          }
+        }
+        return encrypted
+      }
       if (rawValue && typeof rawValue === 'object' && '$each' in (rawValue as Doc)) {
         const each = (rawValue as Doc).$each
         push[key] = { ...(rawValue as Doc), $each: Array.isArray(each) ? each.map(encItem) : each }

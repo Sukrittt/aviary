@@ -17,6 +17,11 @@ export const dynamic = 'force-dynamic'
 
 const SORT = { date: -1, timestamp: -1, _id: -1 } as const
 
+// Where a client says an expense came from. `text` is a row typed into the
+// money brain and confirmed on its review card (lib/ai/capture.ts). Server-side
+// sources (recurring, subscription) are set by their own jobs, never by a client.
+const CLIENT_SOURCES = new Set(['manual', 'text'])
+
 /**
  * `GET /api/expenses` — three modes, picked by `?page=` and `?from=`.
  *
@@ -184,6 +189,7 @@ export async function POST(req: Request) {
   if (!body.item || !body.amount_inr || !body.category) {
     return error('item, amount_inr, category required')
   }
+  if (body.source !== undefined && !CLIENT_SOURCES.has(String(body.source))) return error('invalid source')
 
   // The insert itself lives in `lib/createExpense.ts` so the recurring-expense
   // cron can reuse it verbatim instead of forking a simplified copy.
@@ -196,6 +202,7 @@ export async function POST(req: Request) {
     timestamp: body.timestamp === undefined ? undefined : String(body.timestamp),
     payment_method: body.payment_method === undefined ? undefined : String(body.payment_method),
     client_id: typeof body.client_id === 'string' ? body.client_id : undefined,
+    source: body.source === undefined ? undefined : String(body.source),
   })
 
   // The Get Started card is account state, not device state. Only the manual
