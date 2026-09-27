@@ -388,6 +388,11 @@ describe('POST /api/expenses — source', () => {
     expect(stores.expenses[0].source).toBe('text')
   })
 
+  it('records an estimate confirmed after a balance check as balance_gap', async () => {
+    await POST(req('POST', { item: 'Unlogged spends', amount_inr: '2000', category: 'Food', date: '2026-09-27', source: 'balance_gap' }))
+    expect(stores.expenses[0].source).toBe('balance_gap')
+  })
+
   it('defaults to manual', async () => {
     await POST(req('POST', { item: 'Tea', amount_inr: '50', category: 'Food', date: '2026-06-02' }))
     expect(stores.expenses[0].source).toBe('manual')

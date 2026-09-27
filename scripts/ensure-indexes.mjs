@@ -54,6 +54,8 @@ const INDEXES = {
   ],
   category_map_overrides: [[{ user_id: 1, word: 1 }, { unique: true }]],
   chat_sessions: [[{ user_id: 1, updatedAt: -1 }, {}]],
+  // Weekly balance checks: the latest one is read on every Home load.
+  balance_checks: [[{ user_id: 1, timestamp: -1 }, {}]],
   // TTL index: hits older than an hour (the longest window lib/rateLimit.ts
   // checks against) are garbage-collected automatically. Correctness never
   // depends on this running promptly — every check bounds by its own cutoff.

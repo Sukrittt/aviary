@@ -18,9 +18,11 @@ export const dynamic = 'force-dynamic'
 const SORT = { date: -1, timestamp: -1, _id: -1 } as const
 
 // Where a client says an expense came from. `text` is a row typed into the
-// money brain and confirmed on its review card (lib/ai/capture.ts). Server-side
-// sources (recurring, subscription) are set by their own jobs, never by a client.
-const CLIENT_SOURCES = new Set(['manual', 'text'])
+// money brain and confirmed on its review card (lib/ai/capture.ts);
+// `balance_gap` is an estimate confirmed after a weekly balance check
+// (lib/balanceCheck.ts). Server-side sources (recurring, subscription) are set
+// by their own jobs, never by a client.
+const CLIENT_SOURCES = new Set(['manual', 'text', 'balance_gap'])
 
 /**
  * `GET /api/expenses` — three modes, picked by `?page=` and `?from=`.
