@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { lockedReason, shouldWarnAboutTrial, trialRemainingLabel, formatDate } from './copy'
+import { lockedReason, shouldWarnAboutTrial, trialRemainingLabel, formatDate, formatPrice, planSummary, storeLabel, yearlySavingsPercent } from './copy'
 import type { BillingStatus } from '@/src/api/billing'
 
 const base: BillingStatus = {
@@ -83,5 +83,41 @@ describe('planSummary', () => {
     expect(planSummary({ ...base, mode: 'expired', productId: null })).toBe('Trial ended')
     expect(billingVisible({ ...base, enforced: false, purchaseEnabled: false })).toBe(false)
     expect(billingVisible(undefined)).toBe(false)
+  })
+})
+
+describe('web subscriptions', () => {
+  it('sends a web subscriber back to the plan picker, not to Google Play', () => {
+    const onHold = lockedReason({ ...base, mode: 'expired', renewalState: 'on_hold', store: 'web' })
+    expect(onHold).toContain('Pick a plan')
+    expect(onHold).not.toContain('Google Play')
+    expect(lockedReason({ ...base, mode: 'expired', renewalState: 'on_hold', store: 'play' })).toContain('Google Play')
+  })
+
+  it("doesn't point a web subscriber with a failed payment at Google Play", () => {
+    expect(planSummary({ ...base, mode: 'paid', renewalState: 'grace', store: 'web' })).toBe('Payment issue · retrying')
+    expect(planSummary({ ...base, mode: 'paid', renewalState: 'grace', store: 'play' })).toBe('Payment issue · fix in Google Play')
+  })
+
+  it('names where a purchase is managed', () => {
+    expect(storeLabel({ store: 'web' })).toBe('your Aviary account')
+    expect(storeLabel({ store: 'play' })).toBe('Google Play')
+    expect(storeLabel(undefined)).toBe('Google Play')
+  })
+})
+
+describe('formatPrice', () => {
+  it('turns paise into rupees, dropping decimals only when whole', () => {
+    expect(formatPrice(9900, 'INR')).toBe('₹99')
+    expect(formatPrice(9950, 'INR')).toBe('₹99.50')
+    expect(formatPrice(99900, 'INR')).toBe('₹999')
+  })
+})
+
+describe('yearlySavingsPercent', () => {
+  it('claims a saving only when there is one', () => {
+    expect(yearlySavingsPercent(9900, 99900)).toBe(15)
+    expect(yearlySavingsPercent(9900, 9900 * 12)).toBeNull()
+    expect(yearlySavingsPercent(0, 100)).toBeNull()
   })
 })

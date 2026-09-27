@@ -20,7 +20,17 @@ import {
 } from './records'
 import { pickSubscription, resolveAccess, trialWindow, type Access } from './access'
 import { ENTITLEMENT_ID, fetchSubscriber } from './revenuecat'
-import { projectSubscriber } from './projection'
+import { projectSubscriber, type ProjectedSubscription } from './projection'
+import {
+  cancelSubscription,
+  fetchSubscription,
+  periodOfPlan,
+  razorpayConfig,
+  razorpayEnvironment,
+  RazorpayError,
+  subscriptionUserId,
+} from './razorpay'
+import { projectRazorpaySubscription } from './razorpayProjection'
 
 /**
  * Start the 45-day clock, once, for good.
@@ -129,51 +139,159 @@ export async function completeOnboarding(
 }
 
 /**
- * Re-verify one account against RevenueCat and write down the result.
- *
- * Every write path goes through here — purchase, restore, webhook, and the
- * reconciliation job — so there is exactly one place where provider state
- * becomes our state, and exactly one place to get the ordering right.
- *
- * Throws `RevenueCatError` when the provider could not be reached. That is an
- * operational failure, not a cancellation: callers must leave the existing
- * projection alone rather than recording an absence of evidence as evidence
- * of absence.
+ * Write one verified purchase down. Insert-if-absent, then
+ * overwrite-only-if-older: two statements rather than one upsert because a
+ * webhook and a client sync routinely race, and a single `$set` upsert lets
+ * whichever *write* lands last win, which is not the same as whichever *read
+ * of the provider* was most recent. A slow in-flight fetch must never
+ * overwrite fresher access with stale.
  */
-export async function refreshFromProvider(userId: string, now: Date = new Date()): Promise<Access> {
+async function writeProjection(db: Db, userId: string, projected: ProjectedSubscription, now: Date): Promise<void> {
+  const { storeTransactionId, provider, environment, ...rest } = projected
+  // Keyed by the purchase, not the user: if the same store transaction ever
+  // resolves to a different account, that is a transfer to investigate, not
+  // two live entitlements to hand out.
+  const key = { provider, environment, storeTransactionId }
+  const coll = db.collection<BillingSubscriptionDoc>(BILLING_SUBSCRIPTIONS)
+  try {
+    await coll.updateOne(key, { $setOnInsert: { ...key, ...rest, userId, createdAt: now, updatedAt: now } }, { upsert: true })
+  } catch (err) {
+    // Two concurrent inserts for the same purchase: the unique index threw
+    // for the loser. The row now exists, so the conditional update below is
+    // exactly the right next step.
+    if ((err as { code?: number }).code !== 11000) throw err
+  }
+  await coll.updateOne({ ...key, verifiedAt: { $lt: now } }, { $set: { userId, ...rest, updatedAt: now } })
+}
+
+/** Google Play, through RevenueCat. Writes nothing when RevenueCat has never seen this user. */
+async function refreshRevenueCat(db: Db, userId: string, now: Date): Promise<void> {
   const subscriber = await fetchSubscriber(userId)
   const projected = subscriber ? projectSubscriber(subscriber, ENTITLEMENT_ID, now) : null
+  if (projected) await writeProjection(db, userId, projected, now)
+}
+
+/**
+ * Re-verify one Razorpay subscription and write it down under `userId`.
+ *
+ * Refuses a subscription whose `notes.userId` is someone else: the id arrives
+ * from a browser or a webhook, and neither is allowed to decide whose access
+ * it grants.
+ */
+export async function recordRazorpaySubscription(userId: string, subscriptionId: string, now: Date = new Date()): Promise<Access> {
   const db = await getDb()
+  await refreshRazorpayOne(db, userId, subscriptionId, now)
+  return finishRefresh(db, userId, now)
+}
 
-  if (projected) {
-    const { storeTransactionId, provider, environment, ...rest } = projected
-    // Keyed by the purchase, not the user: if the same store transaction ever
-    // resolves to a different account, that is a transfer to investigate, not
-    // two live entitlements to hand out.
-    const key = { provider, environment, storeTransactionId }
-    const coll = db.collection<BillingSubscriptionDoc>(BILLING_SUBSCRIPTIONS)
+async function refreshRazorpayOne(db: Db, userId: string, subscriptionId: string, now: Date): Promise<void> {
+  const config = razorpayConfig()
+  if (!config) throw new RazorpayError('Razorpay is not configured', 0)
+  const subscription = await fetchSubscription(subscriptionId)
+  const owner = subscriptionUserId(subscription)
+  if (owner !== userId) throw new RazorpaySubscriptionOwnerError(subscriptionId)
 
-    // Insert-if-absent, then overwrite-only-if-older. Two statements rather
-    // than one upsert because a webhook and a client sync routinely race, and
-    // a single `$set` upsert lets whichever *write* lands last win — which is
-    // not the same as whichever *read of the provider* was most recent. A
-    // slow in-flight fetch must never overwrite fresher access with stale.
-    try {
-      await coll.updateOne(key, { $setOnInsert: { ...key, ...rest, userId, createdAt: now, updatedAt: now } }, { upsert: true })
-    } catch (err) {
-      // Two concurrent inserts for the same purchase: the unique index threw
-      // for the loser. The row now exists, so the conditional update below is
-      // exactly the right next step.
-      if ((err as { code?: number }).code !== 11000) throw err
-    }
-    await coll.updateOne({ ...key, verifiedAt: { $lt: now } }, { $set: { userId, ...rest, updatedAt: now } })
-  }
+  const environment = razorpayEnvironment(config.keyId)
+  const existing = await db
+    .collection<BillingSubscriptionDoc>(BILLING_SUBSCRIPTIONS)
+    .findOne({ provider: 'razorpay', environment, storeTransactionId: subscription.id }, { projection: { cancelAtPeriodEnd: 1 } })
 
-  // A renewal clears any pending deletion: the account is in continuous use
-  // again, so the retention clock that was counting down no longer applies.
+  const projected = projectRazorpaySubscription({
+    subscription,
+    period: periodOfPlan(config, subscription.plan_id),
+    environment,
+    cancelAtPeriodEnd: existing?.cancelAtPeriodEnd ?? false,
+    fetchedAt: now,
+  })
+  await writeProjection(db, userId, projected, now)
+}
+
+/** Every Razorpay subscription we already hold for this user. New ones arrive through checkout verify or the webhook. */
+async function refreshRazorpay(db: Db, userId: string, now: Date): Promise<void> {
+  const rows = await db
+    .collection<BillingSubscriptionDoc>(BILLING_SUBSCRIPTIONS)
+    .find({ userId, provider: 'razorpay' }, { projection: { storeTransactionId: 1 } })
+    .toArray()
+  if (rows.length === 0) return
+  for (const row of rows) await refreshRazorpayOne(db, userId, row.storeTransactionId, now)
+}
+
+/** A renewal clears any pending deletion: the account is in continuous use again. */
+async function finishRefresh(db: Db, userId: string, now: Date): Promise<Access> {
   const access = await getAccess(userId, now)
   if (access.mode === 'paid' || access.mode === 'trial') {
     await db.collection<BillingAccountDoc>(BILLING_ACCOUNTS).updateOne({ _id: userId }, { $set: { retentionDeadline: null } })
   }
   return access
+}
+
+/**
+ * Re-verify one account against every provider and write down the result.
+ *
+ * Every write path goes through here: purchase, restore, webhook, and the
+ * reconciliation job. So there is exactly one place where provider state
+ * becomes our state, and exactly one place to get the ordering right.
+ *
+ * Both providers are asked even if one fails, so a RevenueCat outage can't
+ * hold up a web subscriber's renewal (or the other way round). Whatever did
+ * verify is written; then the first failure is thrown.
+ *
+ * Throws `BillingProviderError` when a provider could not be reached. That is
+ * an operational failure, not a cancellation: callers must leave the
+ * existing projection alone rather than recording an absence of evidence as
+ * evidence of absence.
+ */
+export async function refreshFromProvider(userId: string, now: Date = new Date()): Promise<Access> {
+  const db = await getDb()
+  const results = await Promise.allSettled([refreshRevenueCat(db, userId, now), refreshRazorpay(db, userId, now)])
+  const failed = results.find((r): r is PromiseRejectedResult => r.status === 'rejected')
+  if (failed) throw failed.reason
+  return finishRefresh(db, userId, now)
+}
+
+/**
+ * Stop every renewing web subscription this user has. Used by account
+ * deletion: unlike Google Play, a Razorpay subscription is ours to cancel, so
+ * deleting the account must not leave a mandate charging someone who has
+ * gone. Cancels at the end of the paid cycle; nothing already paid is taken
+ * back.
+ */
+export async function cancelWebSubscriptions(userId: string, now: Date = new Date()): Promise<number> {
+  const db = await getDb()
+  const coll = db.collection<BillingSubscriptionDoc>(BILLING_SUBSCRIPTIONS)
+  const live = await coll
+    .find({ userId, provider: 'razorpay', status: { $in: ['active', 'grace', 'pending', 'paused'] }, cancelAtPeriodEnd: { $ne: true } })
+    .toArray()
+  for (const row of live) await cancelRazorpayRow(db, row, now)
+  return live.length
+}
+
+/**
+ * Cancel one Razorpay subscription at the end of its cycle and record that
+ * it won't renew. The flag is written only after Razorpay accepted the
+ * cancel, so a failure leaves the row saying "renews", which is the truth.
+ */
+export async function cancelRazorpayRow(db: Db, row: BillingSubscriptionDoc, now: Date = new Date()): Promise<void> {
+  // Razorpay refuses a cycle-end cancel for a subscription with no paid
+  // cycle to end; those have nothing to keep, so they stop now.
+  const atCycleEnd = row.status === 'active' || row.status === 'grace'
+  await cancelSubscription(row.storeTransactionId, atCycleEnd)
+  await db
+    .collection<BillingSubscriptionDoc>(BILLING_SUBSCRIPTIONS)
+    .updateOne({ _id: row._id }, { $set: { cancelAtPeriodEnd: true, status: row.status === 'active' ? 'cancelled' : row.status, autoRenew: false, updatedAt: now } })
+  // The cancel itself has landed. A failed re-read only means the row's other
+  // fields are a little stale until the next refresh; it must not make the
+  // caller think the cancel failed and try again.
+  try {
+    await refreshRazorpayOne(db, row.userId, row.storeTransactionId, now)
+  } catch (err) {
+    console.error('billing: re-read after cancel failed for', row.storeTransactionId, (err as Error).message)
+  }
+}
+
+/** A subscription id that belongs to another account. Never written, never retried. */
+export class RazorpaySubscriptionOwnerError extends Error {
+  constructor(subscriptionId: string) {
+    super(`Razorpay subscription ${subscriptionId} doesn't belong to this account`)
+  }
 }

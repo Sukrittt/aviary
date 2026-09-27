@@ -28,7 +28,9 @@ vi.mock('@/lib/mongodb', () => ({
 }))
 
 const completeOnboardingMock = vi.fn(async () => ({ ok: true, onboardedAt: '2026-09-18T12:00:00.000Z', account: {} }))
-vi.mock('@/lib/billing/service', () => ({ completeOnboarding: completeOnboardingMock }))
+const cancelWebSubscriptionsMock = vi.fn(async (_userId: string) => 0)
+vi.mock('@/lib/billing/service', () => ({ completeOnboarding: completeOnboardingMock, cancelWebSubscriptions: cancelWebSubscriptionsMock }))
+const { BillingProviderError } = await import('@/lib/billing/providerError')
 
 const { DELETE, PATCH } = await import('./route')
 
@@ -76,6 +78,20 @@ describe('DELETE /api/user', () => {
     expect(deleteUserMock).not.toHaveBeenCalled()
     expect(usersDeleteOneMock).not.toHaveBeenCalled()
     expect(softDeleteMock).toHaveBeenCalledWith(expect.anything(), 'user_a')
+  })
+
+  it('cancels any web subscription before scheduling the deletion', async () => {
+    const res = await DELETE(deleteRequest({ email: 'real-owner@example.com' }))
+    expect(res.status).toBe(200)
+    expect(cancelWebSubscriptionsMock).toHaveBeenCalledWith('user_a')
+    expect(cancelWebSubscriptionsMock.mock.invocationCallOrder[0]).toBeLessThan(softDeleteMock.mock.invocationCallOrder[0])
+  })
+
+  it('refuses to delete when the web subscription could not be cancelled, so nobody is billed for a gone account', async () => {
+    cancelWebSubscriptionsMock.mockRejectedValueOnce(new BillingProviderError('Razorpay responded 502', 502))
+    const res = await DELETE(deleteRequest({ email: 'real-owner@example.com' }))
+    expect(res.status).toBe(503)
+    expect(softDeleteMock).not.toHaveBeenCalled()
   })
 
   it('no longer accepts the old confirm:true shortcut without an email', async () => {

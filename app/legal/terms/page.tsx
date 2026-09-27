@@ -6,7 +6,7 @@ export default function TermsPage() {
   return (
     <article className="legal-doc">
       <h1>Terms of Service</h1>
-      <p className="legal-updated">Last updated 4 September 2026</p>
+      <p className="legal-updated">Last updated 27 September 2026</p>
 
       <p>
         These terms cover your use of Aviary, a personal budgeting app. By creating an account or using the
@@ -36,31 +36,41 @@ export default function TermsPage() {
       <p>
         New accounts get a 45-day free trial that starts when you finish onboarding. No payment details are
         needed for the trial and it never charges you automatically. To keep using Aviary afterwards, you can
-        buy a monthly or yearly subscription in the Android app through Google Play. Prices are shown in the
-        app before you buy.
+        buy a monthly or yearly subscription in either of two places. Current prices are on our{' '}
+        <a href="/legal/pricing">pricing page</a> and are shown again before you pay.
       </p>
       <ul>
         <li>
+          <strong>On the website</strong>, paid through Razorpay with UPI or a card.
+        </li>
+        <li>
+          <strong>In the Android app</strong>, paid through Google Play.
+        </li>
+      </ul>
+      <p>Either one unlocks Aviary everywhere you sign in with the same account.</p>
+      <ul>
+        <li>
           <strong>Renewal.</strong> Subscriptions renew automatically at the end of each monthly or yearly
-          period until you cancel, and are charged to your Google Play account.
+          period until you cancel, charged the same way you first paid.
         </li>
         <li>
-          <strong>Cancelling.</strong> Cancel any time in the Google Play Store app: Profile &rarr; Payments
-          &amp; subscriptions &rarr; Subscriptions &rarr; Aviary &rarr; Cancel. You keep access until the end
-          of the period you&apos;ve paid for. Deleting your Aviary account does not cancel a Google Play
-          subscription.
+          <strong>Cancelling.</strong> A website subscription is cancelled on your account page:{' '}
+          Account &rarr; Subscription &rarr; Cancel renewal. A Google Play subscription is cancelled in the
+          Google Play Store app: Profile &rarr; Payments &amp; subscriptions &rarr; Subscriptions &rarr; Aviary
+          &rarr; Cancel. Either way, you keep access until the end of the period you&apos;ve paid for. Deleting
+          your Aviary account cancels a website subscription for you, but not a Google Play one.
         </li>
         <li>
-          <strong>Refunds.</strong> Payments are handled by Google Play, so refunds follow Google Play&apos;s
-          refund policy. You can also write to {SUPPORT_EMAIL}.
+          <strong>Refunds.</strong> See our <a href="/legal/refunds">refund and cancellation policy</a>. Google
+          Play purchases also follow Google Play&apos;s refund policy.
         </li>
         <li>
           <strong>If a subscription ends.</strong> Your data is kept for 12 months and you can export it at any
           time, including after your subscription ends.
         </li>
         <li>
-          <strong>Price changes.</strong> If the price changes, Google Play will notify you before your next
-          renewal.
+          <strong>Price changes.</strong> If the price changes, we&apos;ll tell you before your next renewal, and
+          you can cancel before it applies.
         </li>
       </ul>
 

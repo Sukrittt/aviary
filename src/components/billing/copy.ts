@@ -29,7 +29,7 @@ export function planSummary(status: BillingStatus): string {
     case 'trial':
       return `Free trial · ${trialRemainingLabel(status.trialDaysRemaining)}`
     case 'paid':
-      if (status.renewalState === 'grace') return 'Payment issue · fix in Google Play'
+      if (status.renewalState === 'grace') return status.store === 'web' ? 'Payment issue · retrying' : 'Payment issue · fix in Google Play'
       if (status.gifted) return `Gifted plan · ends ${formatDate(status.paidExpiresAt)}`
       return status.autoRenew ? `Renews ${formatDate(status.paidExpiresAt)}` : `Ends ${formatDate(status.paidExpiresAt)}`
     case 'expired':
@@ -52,6 +52,11 @@ export function trialRemainingLabel(daysRemaining: number): string {
  * on_hold" is not.
  */
 export function lockedReason(status: BillingStatus | undefined): string {
+  // A web plan is managed right here, so the fix is picking a plan again, not a trip to Play.
+  if (status?.store === 'web') {
+    if (status.renewalState === 'on_hold') return "Your subscription is on hold because a renewal payment didn't go through. Pick a plan below to carry on."
+    if (status.renewalState === 'paused') return 'Your subscription is paused. Pick a plan below to carry on.'
+  }
   switch (status?.renewalState) {
     case 'on_hold':
       return 'Your subscription is on hold because a payment did not go through. Updating your payment method in Google Play restores access.'
@@ -72,4 +77,27 @@ export function lockedReason(status: BillingStatus | undefined): string {
 export function formatDate(iso: string | null | undefined): string {
   if (!iso) return '—'
   return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })
+}
+
+/** Who to see about a purchase: the phrase for "manage it in ___". */
+export function storeLabel(status: Pick<BillingStatus, 'store'> | undefined): string {
+  return status?.store === 'web' ? 'your Aviary account' : 'Google Play'
+}
+
+/** A plan price from the smallest currency unit, e.g. 9900 INR → "₹99". Whole amounts drop the decimals. */
+export function formatPrice(amount: number, currency: string): string {
+  const major = amount / 100
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency,
+    minimumFractionDigits: Number.isInteger(major) ? 0 : 2,
+    maximumFractionDigits: 2,
+  }).format(major)
+}
+
+/** Whole-percent saving of yearly over twelve months of monthly, or null if there's no real saving to claim. Mirrors Mobile's. */
+export function yearlySavingsPercent(monthlyAmount: number, yearlyAmount: number): number | null {
+  if (monthlyAmount <= 0) return null
+  const pct = Math.floor((1 - yearlyAmount / (monthlyAmount * 12)) * 100)
+  return pct > 0 ? pct : null
 }

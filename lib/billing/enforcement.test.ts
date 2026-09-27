@@ -20,6 +20,7 @@ const OPEN: Record<string, string> = {
   'cron/gc': 'cron, CRON_SECRET',
   'notifications/run': 'cron, CRON_SECRET',
   'billing/webhooks/revenuecat': 'provider webhook, shared secret',
+  'billing/webhooks/razorpay': 'provider webhook, HMAC signature',
 
   // Signing in cannot require a subscription — that is how someone reaches
   // the screen that sells them one.
@@ -32,6 +33,10 @@ const OPEN: Record<string, string> = {
   // The purchase path itself, and the action that starts the trial.
   'billing/status': 'tells the client it needs to subscribe',
   'billing/sync': 'how a purchase is recognised',
+  'billing/razorpay/plans': 'public prices, shown before anyone buys',
+  'billing/razorpay/subscribe': 'how an expired account pays',
+  'billing/razorpay/verify': 'how a web purchase is recognised',
+  'billing/razorpay/cancel': 'stopping renewal must work while expired too',
   'onboarding/complete': 'starts the trial; gating it would need the trial it creates',
 
   // Account controls stay available to someone who has stopped paying.

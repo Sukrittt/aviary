@@ -6,7 +6,7 @@ export default function PrivacyPage() {
   return (
     <article className="legal-doc">
       <h1>Privacy Policy</h1>
-      <p className="legal-updated">Last updated 4 September 2026</p>
+      <p className="legal-updated">Last updated 27 September 2026</p>
 
       <p>
         Aviary (&ldquo;we&rdquo;, &ldquo;us&rdquo;) is an independently developed, personal budgeting app.
@@ -84,6 +84,14 @@ export default function PrivacyPage() {
         <li><strong>PostHog</strong> — product analytics, U.S.-hosted, toggleable off as described above.</li>
         <li><strong>Expo / Google Firebase</strong> — delivers push notifications.</li>
         <li><strong>Vercel</strong> — hosts the app and its API, and stores data exports you request.</li>
+        <li>
+          <strong>Razorpay</strong> — takes payment when you subscribe on the website. Your card or UPI details go
+          to Razorpay, not to us. We keep your subscription&apos;s id, plan and renewal dates.
+        </li>
+        <li>
+          <strong>Google Play and RevenueCat</strong> — take payment when you subscribe in the Android app. We
+          keep the purchase id, plan and renewal dates, never your payment details.
+        </li>
       </ul>
       <p>
         Some of these providers are located outside India, including in the United States, so using Aviary

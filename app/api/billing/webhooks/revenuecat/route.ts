@@ -3,7 +3,7 @@ import { json } from '@/lib/http'
 import { getDb } from '@/lib/mongodb'
 import { BILLING_EVENTS, type BillingEventDoc } from '@/lib/billing/records'
 import { refreshFromProvider } from '@/lib/billing/service'
-import { RevenueCatError } from '@/lib/billing/revenuecat'
+import { BillingProviderError } from '@/lib/billing/providerError'
 
 export const dynamic = 'force-dynamic'
 
@@ -107,7 +107,7 @@ export async function POST(req: Request) {
     await events.updateOne(filter, { $set: { state: 'processed', processedAt: new Date() }, $inc: { attempts: 1 } })
     return json({ ok: true })
   } catch (err) {
-    const message = err instanceof RevenueCatError ? `${err.message} (status ${err.status})` : (err as Error).message
+    const message = err instanceof BillingProviderError ? `${err.message} (status ${err.status})` : (err as Error).message
     console.error('billing webhook: re-verification failed for', userId, message)
     await events.updateOne(filter, { $set: { state: 'failed', error: message }, $inc: { attempts: 1 } })
     return json({ ok: true, deferred: true })

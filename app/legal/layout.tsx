@@ -14,6 +14,9 @@ export default function LegalLayout({ children }: { children: ReactNode }) {
         <nav className="legal-footer-nav" aria-label="Legal pages">
           <Link href="/legal/privacy">Privacy Policy</Link>
           <Link href="/legal/terms">Terms</Link>
+          <Link href="/legal/pricing">Pricing</Link>
+          <Link href="/legal/refunds">Refunds</Link>
+          <Link href="/legal/contact">Contact</Link>
           <Link href="/legal/delete-account">Delete your account</Link>
         </nav>
       </div>

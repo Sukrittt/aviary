@@ -10,6 +10,7 @@
  * lookup is needed, and it returns the computed `entitlements` map rather
  * than raw store receipts.
  */
+import { BillingProviderError } from './providerError'
 
 /** RevenueCat entitlement identifier, configured in the RevenueCat dashboard. */
 export const ENTITLEMENT_ID = process.env.REVENUECAT_ENTITLEMENT_ID ?? 'aviary_pro'
@@ -49,15 +50,7 @@ export interface RcSubscriber {
   management_url: string | null
 }
 
-export class RevenueCatError extends Error {
-  constructor(
-    message: string,
-    /** HTTP status, or 0 when the request never completed. A 0 or 5xx is an outage, not a cancellation. */
-    public status: number,
-  ) {
-    super(message)
-  }
-}
+export class RevenueCatError extends BillingProviderError {}
 
 function secretKey(): string {
   const key = process.env.REVENUECAT_SECRET_KEY

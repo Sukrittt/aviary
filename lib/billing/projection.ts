@@ -9,14 +9,14 @@
  * bugs get written. The individual flags are read only to explain *why*,
  * never to overrule the entitlement.
  */
-import type { SubscriptionStatus } from './records'
+import type { BillingProvider, BillingStore, SubscriptionStatus } from './records'
 import type { RcSubscriber, RcSubscription } from './revenuecat'
 
-/** Everything the projection writer needs, minus the keys the DB owns. */
+/** Everything the projection writer needs, minus the keys the DB owns. Shared by every provider's projection. */
 export interface ProjectedSubscription {
-  provider: 'revenuecat'
+  provider: BillingProvider
   environment: 'production' | 'sandbox'
-  store: 'play'
+  store: BillingStore
   productId: string
   basePlanId: string | null
   storeTransactionId: string
@@ -90,6 +90,8 @@ export function projectSubscriber(
   return {
     provider: 'revenuecat',
     environment: typedSub?.is_sandbox ? 'sandbox' : 'production',
+    // RevenueCat only fronts Google Play here: iOS is out of scope and web
+    // checkout goes through Razorpay directly (razorpayProjection.ts).
     store: 'play',
     productId,
     basePlanId: typedSub?.product_plan_identifier ?? entitlement?.product_plan_identifier ?? null,
