@@ -18,7 +18,8 @@ export function Bird() {
 export const BIRD_BODY_PATH = BIRD_PATH.slice(0, BIRD_PATH.indexOf(' M 287'))
 
 /**
- * Static twin of Mobile's splash/BirdLandingMark.tsx artwork, painted in currentColor.
+ * Static twin of Mobile's splash/BirdLandingMark.tsx artwork, painted in currentColor,
+ * with `.bird-depth`'s edge + soft shadow so it reads as a thick, solid token.
  * `flightTarget` marks it as a perch SignInFlight can land on; the perch and
  * bird are separate groups so the landing can squash one and dip the other.
  */
@@ -30,8 +31,9 @@ export function BirdMark({ size, flightTarget = false }: { size: number; flightT
       viewBox="0 0 512 512"
       fill="currentColor"
       aria-hidden="true"
+      className="bird-depth"
       data-flight-target={flightTarget || undefined}
-      style={flightTarget ? { overflow: 'visible' } : undefined}
+      style={{ '--bird-size': `${size}px`, ...(flightTarget ? { overflow: 'visible' } : {}) } as CSSProperties}
     >
       <g data-perch>
         <rect x="128" y="379" width="256" height="26" rx="13" />
@@ -46,7 +48,7 @@ export function BirdMark({ size, flightTarget = false }: { size: number; flightT
 /** Money Brain's "thinking" mark: the perched bird pecks twice, rests, repeats. Motion lives in `.brain-thinking` CSS. */
 export function BirdThinking({ size }: { size: number }) {
   return (
-    <svg className="brain-thinking" width={size} height={size} viewBox="0 0 512 512" fill="currentColor" role="img" aria-label="Thinking">
+    <svg className="brain-thinking bird-depth" width={size} height={size} viewBox="0 0 512 512" fill="currentColor" role="img" aria-label="Thinking" style={{ '--bird-size': `${size}px` } as CSSProperties}>
       <rect x="128" y="379" width="256" height="26" rx="13" />
       <g className="brain-thinking-bird"><Bird /></g>
     </svg>

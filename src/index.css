@@ -5,3 +5,13 @@ body,
   margin: 0;
   overflow-x: hidden;
 }
+
+/* Logo depth (BirdMark, BirdThinking, SignInFlight): a hard offset shadow
+   in a mid-tone of the logo's own color reads as the edge of a thick token,
+   and a soft shadow lifts it off the page. Both scale with --bird-size. */
+.bird-depth {
+  --bird-edge: color-mix(in srgb, currentColor 42%, var(--tk-bg));
+  filter:
+    drop-shadow(0 calc(var(--bird-size, 34px) * 0.045) 0 var(--bird-edge))
+    drop-shadow(0 calc(var(--bird-size, 34px) * 0.09) calc(var(--bird-size, 34px) * 0.07) rgba(0, 0, 0, 0.28));
+}
