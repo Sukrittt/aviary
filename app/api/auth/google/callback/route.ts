@@ -26,11 +26,21 @@ export async function GET(req: Request) {
   // attempt can be compared against it rather than blindly overwriting it.
   const before = isLink ? await getAuth(req) : null
 
-  const { user, accessToken, refreshToken } = await getWorkOSClient().userManagement.authenticateWithCode({
-    clientId: process.env.WORKOS_CLIENT_ID!,
-    code,
-    userAgent: req.headers.get('user-agent') ?? undefined,
-  })
+  let authed
+  try {
+    authed = await getWorkOSClient().userManagement.authenticateWithCode({
+      clientId: process.env.WORKOS_CLIENT_ID!,
+      code,
+      userAgent: req.headers.get('user-agent') ?? undefined,
+    })
+  } catch {
+    // Expired or already-used code (back button, double-submit): send the
+    // user back to sign-in with the error banner instead of a bare 500.
+    const res = NextResponse.redirect(new URL('/sign-in?authError=1', req.url))
+    clearStateCookie(res)
+    return res
+  }
+  const { user, accessToken, refreshToken } = authed
 
   if (isLink && before && !before.readOnly && user.id !== before.userId) {
     // A different Google account than the one signed in — WorkOS just created
