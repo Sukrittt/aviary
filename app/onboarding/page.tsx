@@ -3,7 +3,7 @@
 import { CurrencyPicker } from '@/src/components/CurrencyPicker'
 import { CurrencyScope, useCurrency } from '@/src/context/CurrencyContext'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import '../../src/expense-redesign.css'
@@ -15,6 +15,7 @@ import { addCategory } from '../../src/api/categories'
 import { updateUser } from '../../src/api/account'
 import { completeOnboarding } from '../../src/api/billing'
 import { DEFAULT_ALERT_PCTS } from '../../src/lib/alerts'
+import { startTimer, track } from '../../src/lib/analytics'
 import { AmountTicker } from '../../src/components/onboarding/AmountTicker'
 import { Confetti } from '../../src/components/onboarding/Confetti'
 
@@ -100,6 +101,9 @@ function groupWeight(gi: number, weighted: boolean): number {
   return 1.5
 }
 
+// Analytics names for the five steps, so a funnel reads 'groups' rather than '2'.
+const STEP_NAMES = ['currency', 'income', 'groups', 'categories', 'assign'] as const
+
 const TITLES: Record<number, [string, string]> = {
   0: ['Choose your currency', 'The currency you use for your budget. You can change it later in More.'],
   1: ['What lands each month?', 'Your take-home income. This becomes the pot you assign from. You can change it any month.'],
@@ -134,6 +138,24 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
   const [result, setResult] = useState<{ income: number; groupCount: number; categoryCount: number; assigned: number } | null>(null)
+
+  // Timing for the onboarding funnel, same as mobile's setup.tsx: the whole
+  // wizard, and each step. Refs, since no render depends on them.
+  const wizardTimer = useRef<() => number>(() => 0)
+  const stepTimer = useRef<() => number>(() => 0)
+  // Whether the user touched the suggested split on the assign step.
+  const editedSplit = useRef(false)
+
+  useEffect(() => {
+    wizardTimer.current = startTimer()
+    track('onboarding_started')
+  }, [])
+
+  useEffect(() => {
+    if (step > 4) return
+    stepTimer.current = startTimer()
+    track('onboarding_step_viewed', { step, step_name: STEP_NAMES[step] })
+  }, [step])
 
   const selectedGroups = groups.filter((g) => g.on && g.name.trim())
   const selectedCatCount = selectedGroups.reduce(
@@ -182,6 +204,31 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
             ? remainder() === 0 && assignedTotal() > 0
             : true
 
+  // What each step's choice was, as counts and flags. Never the income or the
+  // names typed in: those are the sensitive half of this app's data.
+  const stepDetails = (): Record<string, string | number | boolean> => {
+    if (step === 0) return { currency: currencyCode }
+    if (step === 1) return { used_quick_pick: QUICK_PICKS.includes(income) }
+    if (step === 2) {
+      const defaults = new Map(defaultGroups().map((g) => [g.id, g.name]))
+      return {
+        groups_selected: selectedGroups.length,
+        groups_added: selectedGroups.filter((g) => !defaults.has(g.id)).length,
+        groups_renamed: selectedGroups.filter((g) => defaults.has(g.id) && defaults.get(g.id) !== g.name.trim()).length,
+      }
+    }
+    if (step === 3) return { categories_selected: selectedCatCount }
+    return { edited_split: editedSplit.current }
+  }
+
+  const trackStepCompleted = () =>
+    track('onboarding_step_completed', {
+      step,
+      step_name: STEP_NAMES[step],
+      seconds_on_step: stepTimer.current(),
+      ...stepDetails(),
+    })
+
   const patchGroup = (id: string, patch: Partial<Item>) =>
     setGroups((gs) => gs.map((g) => (g.id === id ? { ...g, ...patch } : g)))
 
@@ -198,7 +245,10 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
     setCats((c) => ({ ...c, [groupId]: [...(c[groupId] ?? []), { id: makeId(), emoji: '🎁', name: '', on: true }] }))
   }
 
-  const setAmount = (key: string, v: number) => setAmounts((prev) => ({ ...prev, [key]: Math.max(0, v) }))
+  const setAmount = (key: string, v: number) => {
+    editedSplit.current = true
+    setAmounts((prev) => ({ ...prev, [key]: Math.max(0, v) }))
+  }
 
   const fillRemainder = (key: string) => {
     const cur = amounts[key] ?? 0
@@ -216,6 +266,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
   }
 
   const back = () => {
+    if (step > 0) track('onboarding_back_tapped', { from_step: step, step_name: STEP_NAMES[step] })
     setError('')
     setStep((s) => Math.max(0, s - 1))
   }
@@ -263,9 +314,17 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
       qc.setQueryData(['user'], user)
       await qc.invalidateQueries()
 
+      trackStepCompleted()
+      track('onboarding_completed', {
+        total_seconds: wizardTimer.current(),
+        groups_count: selectedGroups.length,
+        categories_count: categoryCount,
+        currency: currencyCode,
+      })
       setResult({ income: incomeValue, groupCount: selectedGroups.length, categoryCount, assigned: assignedTotal() })
       setStep(5)
     } catch {
+      track('onboarding_failed', { reason: 'save_failed' })
       setError('Something went wrong. Try again.')
     } finally {
       setPending(false)
@@ -274,6 +333,8 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
 
   const next = () => {
     if (!canAdvance) return
+    // The assign step reports itself once the save lands (see commit).
+    if (step < 4) trackStepCompleted()
     if (step === 3) {
       setAmounts((prev) => (Object.keys(prev).length ? prev : distribute(true)))
       setStep(4)

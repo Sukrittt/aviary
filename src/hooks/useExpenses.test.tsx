@@ -4,7 +4,8 @@ import type { ReactNode } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { renderHook, waitFor } from '@testing-library/react'
 import { getExpenses, postExpensePayload, updateExpense } from '@/src/api/expenses'
-import { useExpenses, useAddExpense, useUpdateExpense } from './useExpenses'
+import { track, trackFirst } from '@/src/lib/analytics'
+import { useExpenses, useAddExpense, useUpdateExpense, useDeleteExpense } from './useExpenses'
 
 vi.mock('@/src/api/expenses', () => ({
   getExpenses: vi.fn(),
@@ -13,6 +14,8 @@ vi.mock('@/src/api/expenses', () => ({
   updateExpense: vi.fn(),
   deleteExpense: vi.fn(),
 }))
+
+vi.mock('@/src/lib/analytics', () => ({ track: vi.fn(), trackFirst: vi.fn() }))
 
 
 
@@ -71,3 +74,24 @@ it('useUpdateExpense also invalidates the budgets query on success', async () =>
 
 // Mobile's "useAddExpense offline" block is deliberately absent: web has no
 // pending-expense queue, so a transport failure rejects rather than enqueuing.
+
+it('logs an expense without its category, and stamps first_expense_at', async () => {
+  ;(postExpensePayload as Mock).mockResolvedValue({ id: 'row-1', timestamp: '2026-01-01T10:00:00+05:30' })
+  const { result } = renderHook(() => useAddExpense(), { wrapper: wrapper(new QueryClient()) })
+  result.current.mutate({ item: 'Therapy', amount_inr: '2500', category: '🧠 Therapy', payment_method: 'bank', notes: 'weekly' })
+  await waitFor(() => expect(result.current.isSuccess).toBe(true))
+  expect(trackFirst).toHaveBeenCalledWith('expense_logged', 'first_expense_at', { payment_method: 'bank', has_notes: true })
+})
+
+it('names the edited fields, and counts a delete', async () => {
+  ;(updateExpense as Mock).mockResolvedValue({})
+  const edit = renderHook(() => useUpdateExpense(), { wrapper: wrapper(new QueryClient()) })
+  edit.result.current.mutate({ timestamp: 't', item: 'Coffee', amountInr: 150, updates: { new_item: 'Tea' } })
+  await waitFor(() => expect(edit.result.current.isSuccess).toBe(true))
+  expect(track).toHaveBeenCalledWith('expense_edited', { fields: 'new_item', changed_category: false })
+
+  const del = renderHook(() => useDeleteExpense(), { wrapper: wrapper(new QueryClient()) })
+  del.result.current.mutate({ timestamp: 't', item: 'Coffee', amountInr: 150 })
+  await waitFor(() => expect(del.result.current.isSuccess).toBe(true))
+  expect(track).toHaveBeenCalledWith('expense_deleted')
+})

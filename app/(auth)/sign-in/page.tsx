@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { BirdMark } from '@/src/components/BirdMark'
+import { TrackedLink } from '@/src/components/TrackedLink'
 
 export const metadata = { title: 'Sign in — Aviary' }
 
@@ -29,12 +30,12 @@ export default async function SignInPage({
       )}
 
       <div className="auth-actions">
-        <a href="/api/auth/google" className="auth-btn auth-btn--outline">
+        <TrackedLink href="/api/auth/google" className="auth-btn auth-btn--outline" event="sign_in_started" properties={{ method: 'google' }}>
           <span className="auth-google-mark" aria-hidden="true">
             G
           </span>
           Continue with Google
-        </a>
+        </TrackedLink>
         <Link href="/email" className="auth-btn auth-btn--primary">
           Continue with email
         </Link>
