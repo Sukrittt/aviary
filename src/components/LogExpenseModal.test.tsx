@@ -163,6 +163,30 @@ describe('LogExpenseModal category suggestion', () => {
     await waitFor(() => expect(category()).toBe('Rent'))
   })
 
+  it('shows it is picking while the model answers, then says it picked for you', async () => {
+    const reply = deferred<string>()
+    llm.mockReturnValueOnce(reply.promise)
+    render(<LogExpenseModal onClose={vi.fn()} onSaved={vi.fn()} />)
+    type('weekly shop')
+    await waitFor(() => expect(screen.getByText('Picking…')).toBeTruthy())
+    reply.resolve('Groceries')
+    await waitFor(() => expect(category()).toBe('Groceries'))
+    await waitFor(() => expect(screen.getByText('Picked for you')).toBeTruthy(), { timeout: 2000 })
+    fireEvent.click(screen.getByRole('button', { name: 'Choose Groceries' }))
+    await waitFor(() => expect(screen.queryByText('Picked for you')).toBeNull())
+  })
+
+  it('does not call the Miscellaneous fallback a pick', async () => {
+    llm.mockResolvedValue('')
+    render(<LogExpenseModal onClose={vi.fn()} onSaved={vi.fn()} />)
+    // Fresh text: answers are cached per text for the page's lifetime.
+    type('bus pass')
+    await waitFor(() => expect(llm).toHaveBeenCalled())
+    await new Promise((r) => setTimeout(r, 700))
+    expect(screen.queryByText('Picking…')).toBeNull()
+    expect(screen.queryByText('Picked for you')).toBeNull()
+  })
+
   it('reuses an earlier answer for the same text without another request', async () => {
     llm.mockResolvedValue('Eating out')
     render(<LogExpenseModal onClose={vi.fn()} onSaved={vi.fn()} />)
