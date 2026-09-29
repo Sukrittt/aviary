@@ -10114,6 +10114,55 @@ button.account-feature-card {
   color: var(--erd-text3);
 }
 
+/* Log expense: "Category" label + the auto-pick status beside it */
+.erd-log-label-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 22px;
+  margin-bottom: 8px;
+}
+.erd-log-card .erd-log-label-row .erd-log-label {
+  margin: 0;
+}
+.auto-pick {
+  display: inline-flex;
+}
+.auto-pick-pop {
+  display: inline-flex;
+}
+.auto-pick-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 22px;
+  padding: 0 9px 0 5px;
+  border-radius: 999px;
+  background: var(--gold-soft);
+  color: var(--gold-hover);
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.auto-pick-slot {
+  position: relative;
+  width: 17px;
+  height: 17px;
+  overflow: hidden;
+  flex: none;
+  font-size: 12px;
+}
+.auto-pick-slot > span {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  line-height: 1;
+}
+.auto-pick-label {
+  display: inline-block;
+}
+
 /* ── Sign-in flight (src/features/sign-in-flight) ───────────── */
 
 .erd-flight-scrim {
