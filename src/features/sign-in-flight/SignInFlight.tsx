@@ -68,6 +68,8 @@ export function SignInFlight() {
       if (flyer) {
         const half = geom.targetSize / 2
         flyer.style.width = flyer.style.height = `${geom.targetSize}px`
+        // Same depth as the logo it lands on; the filter scales with the flyer's transform.
+        flyer.style.setProperty('--bird-size', `${geom.targetSize}px`)
         flyer.style.opacity = String(f.flyer.opacity)
         flyer.style.transform = `translate(${f.flyer.x - half}px, ${f.flyer.y - half}px) rotate(${f.flyer.rotate}deg) scale(${f.flyer.scaleX}, ${f.flyer.scaleY})`
       }
@@ -105,7 +107,7 @@ export function SignInFlight() {
   return (
     <>
       <div ref={scrimRef} className="erd-flight-scrim" aria-hidden="true" />
-      <svg ref={flyerRef} className="erd-flight-bird" viewBox="0 0 512 512" fill="currentColor" aria-hidden="true" data-testid="sign-in-flight">
+      <svg ref={flyerRef} className="erd-flight-bird bird-depth" viewBox="0 0 512 512" fill="currentColor" aria-hidden="true" data-testid="sign-in-flight">
         <defs>
           {/* The eye is a mask hole so it stays see-through on either theme; blinking squashes it shut. */}
           <mask id={maskId} maskUnits="userSpaceOnUse" x="0" y="0" width="512" height="512">
