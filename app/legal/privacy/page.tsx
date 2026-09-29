@@ -46,11 +46,14 @@ export default function PrivacyPage() {
           them, and you can delete them at any time.
         </li>
         <li>
-          <strong>Product analytics.</strong> The mobile app sends your email and name, screen views, and a
-          handful of product events (e.g. logging an expense, moving money, scanning a bill) to PostHog, an
-          analytics provider based in the United States. No amounts or item text are included in these events.
+          <strong>Product analytics.</strong> The mobile app and the web app send your email and name, the
+          screens and pages you open, and product events (e.g. signing in, each step of setup, logging an
+          expense, moving money, scanning a bill, viewing plans) to PostHog, an analytics provider based in the
+          United States. No amounts, item text or envelope names are included in these events, and we don&apos;t
+          record your screen. On the website, visitors who aren&apos;t signed in are counted anonymously.
           Analytics is on by default. You can turn it off at any time in Settings &rarr; Your data &rarr;
-          Share usage analytics; turning it off stops new data from being sent.
+          Share usage analytics, on either app; turning it off stops new data from being sent from that device
+          or browser.
         </li>
         <li>
           <strong>Push notifications.</strong> A push token identifying your device, used to send budget alerts,

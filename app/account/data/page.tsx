@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { motion } from 'motion/react'
 import { LIST_SPRING } from '@/src/components/landing/mobile/kit'
 import { LoadingCaption } from '@/src/components/LoadingCaption'
+import { isAnalyticsEnabled, setAnalyticsEnabled, track } from '@/src/lib/analytics'
 
 interface Summary {
   transactionCount: number
@@ -43,6 +44,19 @@ export default function DataPage() {
   const [exportsLoadError, setExportsLoadError] = useState(false)
   const [starting, setStarting] = useState(false)
   const [exportError, setExportError] = useState<string | null>(null)
+  // Null until mounted: the opt-out lives in this browser's storage, which the
+  // server render can't see.
+  const [analyticsOn, setAnalyticsOn] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    setAnalyticsOn(isAnalyticsEnabled())
+  }, [])
+
+  function toggleAnalytics() {
+    const next = !analyticsOn
+    setAnalyticsEnabled(next)
+    setAnalyticsOn(next)
+  }
 
   useEffect(() => {
     void (async () => {
@@ -96,6 +110,7 @@ export default function DataPage() {
       setExportError('Could not start export. Try again.')
       return
     }
+    track('data_exported')
     void refreshExports()
   }
 
@@ -184,6 +199,22 @@ export default function DataPage() {
           </ul>
         ) : null}
       </div>
+
+      {analyticsOn !== null ? (
+        <div className="account-export-row">
+          <div className="account-export-title">Share usage analytics</div>
+          <div className="account-export-meta">
+            {analyticsOn
+              ? 'Sends which features you use. Never amounts or what you bought.'
+              : "Off. Nothing about how you use Aviary leaves this browser."}
+          </div>
+          <div className="account-export-actions">
+            <button type="button" onClick={toggleAnalytics} aria-pressed={analyticsOn}>
+              {analyticsOn ? 'Turn off' : 'Turn on'}
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       <button type="button" className="account-clear-btn" onClick={() => setConfirmingClear(true)}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 12 }}>

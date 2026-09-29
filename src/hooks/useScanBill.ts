@@ -6,9 +6,11 @@ import { track } from '@/src/lib/analytics'
 export function useScanBill() {
   return useMutation({
     mutationFn: scanBill,
+    onMutate: () => track('bill_scan_started'),
     // Fires when the OCR came back, not when the expense was saved. Pairing
-    // this against expense_logged on /modals/scan-bill is what shows how many
+    // this against expense_logged on the scan page is what shows how many
     // scans get abandoned at the review step.
     onSuccess: () => track('bill_scanned'),
+    onError: () => track('bill_scan_failed', { reason: 'error' }),
   })
 }

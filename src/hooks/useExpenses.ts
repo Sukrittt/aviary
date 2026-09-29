@@ -15,7 +15,7 @@ import {
 } from '@/src/api/expenses'
 import { currentMonthKey, shiftMonthKey } from '@/src/lib/envelope'
 import { budgetsKey } from '@/src/hooks/useBudgets'
-import { track } from '@/src/lib/analytics'
+import { track, trackFirst } from '@/src/lib/analytics'
 
 const key = ['expenses'] as const
 // Money Brain's brief is computed from expenses too, but keyed separately —
@@ -88,12 +88,13 @@ export function useAddExpense() {
     },
     onSuccess: (_data, row) => {
       // Both the manual screen and scan-bill's confirm land here, which is the
-      // point: one event for "an expense got saved". $screen_name splits them
-      // after the fact. No amount and no item name, only the two fields worth
-      // segmenting on.
-      track('expense_logged', {
-        category: row.category,
+      // point: one event for "an expense got saved". The pageview splits them
+      // after the fact. No amount, no item name and no category name either:
+      // categories are named by the user, and "Therapy" is as personal as an
+      // item. `first_expense_at` stamps the activation moment on the person.
+      trackFirst('expense_logged', 'first_expense_at', {
         payment_method: row.payment_method ?? 'unknown',
+        has_notes: !!row.notes?.trim(),
       })
       qc.invalidateQueries({ queryKey: key })
       qc.invalidateQueries({ queryKey: briefKey })
@@ -117,6 +118,14 @@ export function useUpdateExpense() {
       amountInr: number
       updates: Parameters<typeof updateExpense>[4]
     }) => updateExpense(params.id, params.timestamp, params.item, params.amountInr, params.updates, params.version),
+    onSuccess: (_data, params) => {
+      // Field names only. A category fix right after logging is the signal
+      // that auto-categorising got it wrong.
+      track('expense_edited', {
+        fields: Object.keys(params.updates ?? {}).sort().join(','),
+        changed_category: 'category' in (params.updates ?? {}),
+      })
+    },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: key })
       qc.invalidateQueries({ queryKey: briefKey })
@@ -132,6 +141,7 @@ export function useDeleteExpense() {
   return useMutation({
     mutationFn: (params: { id?: string; version?: number; timestamp: string; item: string; amountInr: number }) =>
       deleteExpense(params.id, params.timestamp, params.item, params.amountInr, params.version),
+    onSuccess: () => track('expense_deleted'),
     onSettled: () => {
       qc.invalidateQueries({ queryKey: key })
       qc.invalidateQueries({ queryKey: briefKey })
