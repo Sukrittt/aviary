@@ -24,6 +24,7 @@ import {
 import { ExpenseSidebar } from "../components/ExpenseSidebar";
 import { Scrim, Sheet } from "../components/MotionSheet";
 import { ExpensePageLoading } from "../components/ExpensePageLoading";
+import { SignInFlight } from "../features/sign-in-flight/SignInFlight";
 import {
   toExpensePanelData,
   type ExpensePanelData,
@@ -401,9 +402,13 @@ export function ExpensePage() {
 
       <header className="erd-mobile-header">
         <div className="erd-mobile-greet">
-          <BirdMark size={30} /> Aviary
+          <BirdMark size={30} flightTarget /> Aviary
         </div>
       </header>
+
+      {/* Mounted only once the dashboard has loaded, so the bird lands on the
+          real sidebar rather than the loading screen's copy of it. */}
+      <SignInFlight />
 
       <div className="erd-main">
         <ExpenseSidebar onBulkReturn={() => setShowBulkReturnConfirm(true)} />
