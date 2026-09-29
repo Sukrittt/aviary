@@ -51,3 +51,10 @@ scripts/tmp-purge-user.mjs
 
 # playwright-cli
 .playwright-cli/
+
+# Planning docs and business decisions: keep them on disk, out of the public repo.
+/plans/
+/docs/*-plan.md
+/PRODUCT.md
+/MEMORY.md
+/memory/
