@@ -14,12 +14,31 @@ export function Bird() {
   )
 }
 
-/** Static twin of Mobile's splash/BirdLandingMark.tsx artwork, painted in currentColor. */
-export function BirdMark({ size }: { size: number }) {
+/** The bird alone (no perch, eye left out) for SignInFlight, which cuts the eye with its own blinking mask. */
+export const BIRD_BODY_PATH = BIRD_PATH.slice(0, BIRD_PATH.indexOf(' M 287'))
+
+/**
+ * Static twin of Mobile's splash/BirdLandingMark.tsx artwork, painted in currentColor.
+ * `flightTarget` marks it as a perch SignInFlight can land on; the perch and
+ * bird are separate groups so the landing can squash one and dip the other.
+ */
+export function BirdMark({ size, flightTarget = false }: { size: number; flightTarget?: boolean }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 512 512" fill="currentColor" aria-hidden="true">
-      <rect x="128" y="379" width="256" height="26" rx="13" />
-      <Bird />
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 512 512"
+      fill="currentColor"
+      aria-hidden="true"
+      data-flight-target={flightTarget || undefined}
+      style={flightTarget ? { overflow: 'visible' } : undefined}
+    >
+      <g data-perch>
+        <rect x="128" y="379" width="256" height="26" rx="13" />
+      </g>
+      <g data-bird>
+        <Bird />
+      </g>
     </svg>
   )
 }
