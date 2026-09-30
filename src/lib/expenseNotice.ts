@@ -10,7 +10,7 @@ export function expenseNotice(status: number | undefined, action: 'edit' | 'dele
   }
   if (status === 409) return {
     title: 'This transaction was updated',
-    message: 'A newer version was saved elsewhere, so we haven’t deleted it. Go back to review the transaction before trying again.',
+    message: `A newer version was saved elsewhere, so we haven’t ${action === 'edit' ? 'saved your changes' : 'deleted it'}. Go back to review the transaction before trying again.`,
     backLabel,
   }
   if (status === 428) return {
@@ -19,7 +19,7 @@ export function expenseNotice(status: number | undefined, action: 'edit' | 'dele
     backLabel,
   }
   return {
-    title: 'We couldn’t confirm the deletion',
+    title: action === 'edit' ? 'We couldn’t save your changes' : 'We couldn’t confirm the deletion',
     message: 'Check your connection, then go back and refresh your transactions before trying again.',
     backLabel,
   }
