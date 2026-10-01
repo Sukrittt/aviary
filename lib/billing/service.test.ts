@@ -109,6 +109,7 @@ describe('completeOnboarding', () => {
     const result = await completeOnboarding(db, 'user_a', NOW)
     expect(result).toMatchObject({ ok: true, onboardedAt: NOW.toISOString() })
     expect(store.users[0].onboardedAt).toBe(NOW.toISOString())
+    expect(store.users[0].getStartedAt).toBe(NOW.toISOString())
     expect(store.billing_accounts).toHaveLength(1)
   })
 

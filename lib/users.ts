@@ -20,6 +20,10 @@ export interface UserDoc {
   avatarUrl: string | null
   createdAt: Date
   onboardedAt?: string | null
+  /** Server-owned milestones used by Mobile's finite Home "Get started" card. */
+  getStartedAt?: string | null
+  manualTransactionCompletedAt?: string | null
+  guidedTourCompletedAt?: string | null
   notifyCadence?: 'off' | 'weekly' | 'daily'
   /** Category limit alerts (threshold + overspent) — independent of `notifyCadence`, which only gates the digest. */
   notifyThresholds?: boolean
@@ -93,6 +97,15 @@ export async function ensureUserById(userId: string): Promise<void> {
 
   const user = await getWorkOSClient().userManagement.getUser(userId)
   await ensureUser(user)
+}
+
+/** Idempotently records the first expense explicitly created in the manual-entry flow. */
+export async function markManualTransactionComplete(userId: string): Promise<void> {
+  const db = await getDb()
+  await db.collection<UserDoc>('users').updateOne(
+    { _id: userId, manualTransactionCompletedAt: { $in: [null, undefined] } },
+    { $set: { manualTransactionCompletedAt: new Date().toISOString() } },
+  )
 }
 
 /**
