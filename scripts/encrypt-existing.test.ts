@@ -105,3 +105,14 @@ describe('verifyCollection (regression: AAD must match encryption, not the displ
     expect(failed).toBe(0)
   })
 })
+
+it('backfills nested numeric prices and preserves other already-encrypted item fields', async () => {
+  const buildUpdate = await getBuildUpdate()
+  const { encrypt, decrypt, isEncrypted } = await import('../lib/crypto')
+  const name = encrypt('Coffee', 'user_a:bill_scans:items.name')
+  const set = buildUpdate({ user_id: 'user_a', items: [{ name, price: 123.45 }] }, ['items.name', 'items.price'], 'bill_scans')
+  const item = (set!.items as { name: string; price: string }[])[0]
+  expect(item.name).toBe(name)
+  expect(isEncrypted(item.price)).toBe(true)
+  expect(decrypt(item.price, 'user_a:bill_scans:items.price')).toBe('123.45')
+})

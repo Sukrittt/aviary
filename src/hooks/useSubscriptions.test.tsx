@@ -44,7 +44,7 @@ it('useSubscriptions resolves the query with the API result', async () => {
   expect(result.current.data).toEqual([{ service: 'Netflix' }])
 })
 
-// Subscriptions feed Money Brain's brief (Web/lib/ai/expenseContext.ts) — every
+// Subscriptions feed Ask Aviary's brief (Web/lib/ai/expenseContext.ts) — every
 // mutation must bust ['ai-brief'] alongside ['subscriptions'] or the brief shows
 // stale numbers for up to its 15min staleTime.
 describe('every mutation invalidates both subscriptions and ai-brief', () => {

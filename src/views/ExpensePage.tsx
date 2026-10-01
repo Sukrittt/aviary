@@ -1,59 +1,74 @@
 import { useCurrency } from "@/src/context/CurrencyContext";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AnimatePresence } from "motion/react";
-import { ChevronRight } from "lucide-react";
+import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "motion/react";
+import { AmountText } from "../components/landing/mobile/kit";
+import { ChevronRight, Pencil } from "lucide-react";
 import { useAppearance } from "../../components/AppearanceProvider";
 
 import { FluidDemo } from "../components/FluidDemo";
 import { SubscriptionsPanel, type SubscriptionPanelItem } from "../components/SubscriptionsPanel";
 import { SubscriptionModal } from "../components/SubscriptionModal";
 import { BirdMark } from "../components/BirdMark";
+import { RecentActivity } from "../components/RecentActivity";
 import { EnvelopeGrid } from "../components/EnvelopeGrid";
 import {
   MoveMoneyScreen,
   EditAssignedScreen,
   EditReadyToAssignScreen,
   AssignMoneyScreen,
+  AddIncomeScreen,
+  EditMonthIncomeScreen,
 } from "../components/MoneyScreens";
 import { ExpenseSidebar } from "../components/ExpenseSidebar";
 import { Scrim, Sheet } from "../components/MotionSheet";
 import { ExpensePageLoading } from "../components/ExpensePageLoading";
+import { SignInFlight } from "../features/sign-in-flight/SignInFlight";
 import {
   toExpensePanelData,
   type ExpensePanelData,
 } from "../services/expensePanelAdapter";
 import { buildExpensePanel } from "../lib/expensePanel";
 import { EMPTY } from "../lib/constants";
-import { useBudgets, useAddBudget, useTransferBudget, useUpdateBudget } from "../hooks/useBudgets";
-import { useExpenses, useAddExpense } from "../hooks/useExpenses";
+import { useBudgets, useTransferBudget, useUpdateBudget } from "../hooks/useBudgets";
+import { useRecentExpenses, useLastSpent, useAddExpense } from "../hooks/useExpenses";
 import { useCategories } from "../hooks/useCategories";
 import { useGroups } from "../hooks/useGroups";
 import { useSubscriptions, useCancelSubscription, useReactivateSubscription } from "../hooks/useSubscriptions";
 import { useHideAmounts } from "../hooks/useHideAmounts";
-import { MonthRolloverBanner } from "../components/MonthRolloverBanner";
+import { GetStartedCard } from "../components/home/GetStartedCard";
+import { useUser } from "../hooks/useUser";
+import { usePersistentState } from "../hooks/usePersistentState";
 import { LogExpenseModal } from "../components/LogExpenseModal";
 import { SuccessButton, useButtonPhase } from "../components/SuccessButton";
-import type { BudgetRow, EnvelopeState } from "../types/expense";
-import { daysLeftInMonth, monthLabel } from "../lib/envelope";
+import type { EnvelopeState } from "../types/expense";
+import { computeEnvelopeState, currentMonthKey, daysLeftInMonth, monthLabel, prevMonthKey } from "../lib/envelope";
+
+const parseDismissed = (raw: string) => raw === "1";
+const serializeDismissed = (value: boolean) => value ? "1" : "0";
+const MotionLink = motion.create(Link);
+const HOME_LAYOUT_SPRING = { type: "spring", stiffness: 260, damping: 28 } as const;
 
 // type ExpenseTab = 'overview' | 'transactions' | 'insights'
 
 export function ExpensePage() {
   const router = useRouter();
+  const reduceMotion = useReducedMotion();
+  const homeTransition = { layout: reduceMotion ? { duration: 0 } : HOME_LAYOUT_SPRING };
   const { formatCurrency, currencyCode } = useCurrency();
 
   // One query per resource, as Mobile has, with the dashboard's derived panel
   // recomputed from them. The old single SWR fetcher both fetched and derived;
   // buildExpensePanel is the derivation half, now pure.
   const budgetsQuery = useBudgets();
-  const expensesQuery = useExpenses();
+  const expensesQuery = useRecentExpenses();
+  const lastSpent = useLastSpent().data;
   const categoriesQuery = useCategories();
   const groupsQuery = useGroups();
   const subscriptionsQuery = useSubscriptions();
+  const user = useUser().data;
 
-  const addBudgetM = useAddBudget();
   const updateBudgetM = useUpdateBudget();
   const transferBudgetM = useTransferBudget();
   const addExpenseM = useAddExpense();
@@ -81,6 +96,7 @@ export function ExpensePage() {
               currencyCode,
               budgets: budgetRows,
               expenses: expenseRows,
+              lastSpent,
               subscriptions: subscriptionRows,
               categories: categoryRows,
               groups: groupNames,
@@ -92,6 +108,7 @@ export function ExpensePage() {
       budgetRows,
       expenseRows,
       subscriptionRows,
+      lastSpent,
       categoryRows,
       groupNames,
       currencyCode,
@@ -108,13 +125,39 @@ export function ExpensePage() {
   );
   const [assignTarget, setAssignTarget] = useState<string | null>(null);
   const [editReady, setEditReady] = useState(false);
+  const [incomeScreen, setIncomeScreen] = useState<"add" | "monthly" | null>(null);
+  const [incomeMenuOpen, setIncomeMenuOpen] = useState(false);
+  const incomeMenuRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!incomeMenuOpen) return;
+    function onPointer(e: MouseEvent) {
+      if (!incomeMenuRef.current?.contains(e.target as Node)) setIncomeMenuOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setIncomeMenuOpen(false);
+    }
+    document.addEventListener("mousedown", onPointer);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onPointer);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [incomeMenuOpen]);
   const [showBulkReturnConfirm, setShowBulkReturnConfirm] = useState(false);
-  const [showRolloverBanner, setShowRolloverBanner] = useState(false);
-  const [rolloverData, setRolloverData] = useState<{
-    lastMonth: string;
-    lastIncome: number;
-    lastAssignments: Array<{ category: string; assigned: number }>;
-  } | null>(null);
+  const previousMonth = prevMonthKey(panel?.month ?? currentMonthKey());
+  const [leftoverDismissed, setLeftoverDismissed] = usePersistentState(
+    `rollover-dismissed-${previousMonth}`, false, parseDismissed, serializeDismissed,
+  );
+  const [getStartedSkipped, setGetStartedSkipped] = usePersistentState(
+    'rollover-dismissed-get-started', false, parseDismissed, serializeDismissed,
+  );
+  const previousState = useMemo(
+    () => computeEnvelopeState(budgetRows, expenseRows, previousMonth, categoryRows, groupNames),
+    [budgetRows, expenseRows, previousMonth, categoryRows, groupNames],
+  );
+  const previousLeftover = previousState.income - previousState.totalSpent;
+  const showGetStarted = !getStartedSkipped && !!user?.getStartedAt &&
+    !(user.manualTransactionCompletedAt && user.guidedTourCompletedAt);
   const [showFluidDemo, setShowFluidDemo] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   useEffect(() => {
@@ -250,110 +293,6 @@ export function ExpensePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [panel]);
 
-  function prevMonth(key: string): string {
-    const [y, m] = key.split("-");
-    const d = new Date(Number(y), Number(m) - 2, 1);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-  }
-
-  useEffect(() => {
-    if (!panel) return;
-    const storedMonth = localStorage.getItem("budget-active-month");
-    if (storedMonth === panel.month) return;
-    const p = panel;
-
-    async function checkRollover() {
-      // Already loaded by useBudgets — this used to be a second fetch.
-      const budgets: BudgetRow[] = budgetRows.map((r) => ({
-        month: r.month,
-        category: r.category,
-        assigned: Number(r.assigned),
-        rolledOver: Number(r.rolled_over),
-      }));
-
-      const hasCurrentMonthData = budgets.some(
-        (r) =>
-          r.month === p.month &&
-          (r.category === "__income__" || r.assigned > 0),
-      );
-      if (hasCurrentMonthData) {
-        localStorage.setItem("budget-active-month", p.month);
-        return;
-      }
-
-      const lastMonthKey = prevMonth(p.month);
-      const lastIncome =
-        budgets.find(
-          (r) => r.month === lastMonthKey && r.category === "__income__",
-        )?.assigned ?? 0;
-      const lastAssignments = budgets
-        .filter((r) => r.month === lastMonthKey && r.category !== "__income__")
-        .map((r) => ({ category: r.category, assigned: r.assigned }));
-      setRolloverData({ lastMonth: lastMonthKey, lastIncome, lastAssignments });
-      setShowRolloverBanner(true);
-    }
-    checkRollover();
-    // Deliberately keyed on `panel` alone: this asks once per month whether to
-    // offer a rollover. `panel` is null until every query has loaded, so
-    // budgetRows is already populated whenever this runs.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [panel]);
-
-  async function handleRolloverConfirm(income: number, copyAssigned: boolean) {
-    const p = panel;
-    if (!p) return;
-    const month = p.month;
-    const lastMonthKey = prevMonth(month);
-
-    const budgets: BudgetRow[] = budgetRows.map((r) => ({
-      month: r.month,
-      category: r.category,
-      assigned: Number(r.assigned),
-      rolledOver: Number(r.rolled_over),
-    }));
-    const categoryNames = categoryRows.map((c) => c.name);
-
-    const lastMonthRows = budgets.filter(
-      (b) => b.month === lastMonthKey && b.category !== "__income__",
-    );
-    let totalOverspent = 0;
-    for (const row of lastMonthRows) {
-      const lastExpenses = p.expenseRows.filter(
-        (e) => e.date.startsWith(lastMonthKey) && e.category === row.category,
-      );
-      const spent = lastExpenses.reduce((s, e) => s + e.amountInr, 0);
-      const available = row.assigned + row.rolledOver - spent;
-      if (available < 0) totalOverspent += Math.abs(available);
-    }
-
-    const effectiveIncome = Math.max(0, income - totalOverspent);
-    await addBudgetM
-      .mutateAsync({
-        month,
-        category: "__income__",
-        assigned: String(effectiveIncome),
-      })
-      .catch(() => {});
-
-    const allCategoryNames = [
-      ...new Set([...categoryNames, ...lastMonthRows.map((r) => r.category)]),
-    ];
-    for (const cat of allCategoryNames) {
-      const lastRow = lastMonthRows.find((r) => r.category === cat);
-      const assigned = copyAssigned && lastRow ? lastRow.assigned : 0;
-      await addBudgetM
-        .mutateAsync({ month, category: cat, assigned: String(assigned) })
-        .catch(() => {});
-    }
-
-    localStorage.setItem("budget-active-month", month);
-  }
-
-  function handleRolloverDismiss() {
-    setShowRolloverBanner(false);
-    setRolloverData(null);
-  }
-
   if (!panel) {
     return <ExpensePageLoading />;
   }
@@ -376,52 +315,134 @@ export function ExpensePage() {
 
       <header className="erd-mobile-header">
         <div className="erd-mobile-greet">
-          <BirdMark size={30} /> Aviary
+          <BirdMark size={30} flightTarget perched /> Aviary
         </div>
       </header>
 
+      {/* Mounted only once the dashboard has loaded, so the bird lands on the
+          real sidebar rather than the loading screen's copy of it. */}
+      <SignInFlight />
+
       <div className="erd-main">
         <ExpenseSidebar onBulkReturn={() => setShowBulkReturnConfirm(true)} />
-        <div className="erd-content">
-          <div className="erd-home">
+        <motion.div className="erd-content" layoutScroll>
+          <LayoutGroup id="home-onboarding">
+          <div className="erd-home" data-get-started={showGetStarted ? "true" : undefined}>
             <div className="erd-home-main">
+              {/* Income is entered from the menu top-right; RTA is often ₹0,
+                  so the hero alone doesn't say where money comes in. */}
               {envelopeState && (
-                <button
-                  type="button"
-                  className="erd-home-hero"
-                  aria-label="Edit Ready to Assign"
-                  onClick={() => setEditReady(true)}
-                >
-                  <span className="erd-home-hero-label">READY TO ASSIGN</span>
-                  <strong
-                    className={`erd-home-hero-amount ${envelopeState.readyToAssign < 0 ? "is-negative" : ""}`}
+                <article className="erd-card erd-home-hero-card">
+                  <div className="erd-home-hero">
+                    <span className="erd-home-hero-label">READY TO ASSIGN</span>
+                    <strong
+                      className={`erd-home-hero-amount ${envelopeState.readyToAssign < 0 ? "is-negative" : ""}`}
+                    >
+                      {hideAmounts ? (
+                        "---"
+                      ) : (
+                        <AmountText
+                          value={envelopeState.readyToAssign}
+                          animate
+                          id="ready-to-assign"
+                        />
+                      )}
+                    </strong>
+                    <span className="erd-home-hero-caption">
+                      {monthLabel(panel.month)} ·{" "}
+                      {daysLeftInMonth() === 0
+                        ? "Less than 24 hrs"
+                        : `${daysLeftInMonth()} days left`}
+                    </span>
+                  </div>
+                  <div className="env-action-wrap erd-home-hero-menu" ref={incomeMenuRef}>
+                    <button
+                      type="button"
+                      className="env-menu-trigger"
+                      aria-label="Income options"
+                      aria-haspopup="menu"
+                      aria-expanded={incomeMenuOpen}
+                      onClick={() => setIncomeMenuOpen((open) => !open)}
+                    >
+                      <Pencil size={15} aria-hidden="true" />
+                    </button>
+                    {incomeMenuOpen && (
+                      <div className="env-menu" role="menu">
+                        <button
+                          type="button"
+                          role="menuitem"
+                          className="env-menu-item"
+                          onClick={() => {
+                            setIncomeMenuOpen(false);
+                            setIncomeScreen("monthly");
+                          }}
+                        >
+                          Change income
+                        </button>
+                        <button
+                          type="button"
+                          role="menuitem"
+                          className="env-menu-item"
+                          onClick={() => {
+                            setIncomeMenuOpen(false);
+                            setIncomeScreen("add");
+                          }}
+                        >
+                          Add income
+                        </button>
+                        <button
+                          type="button"
+                          role="menuitem"
+                          className="env-menu-item"
+                          onClick={() => {
+                            setIncomeMenuOpen(false);
+                            setEditReady(true);
+                          }}
+                        >
+                          Set Ready to Assign
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </article>
+              )}
+
+              {!leftoverDismissed && previousLeftover > 0 && (
+                <article className="erd-card home-leftover-notice">
+                  <p>{formatCurrency(previousLeftover, hideAmounts)} left over from last month.</p>
+                  <button type="button" onClick={() => setLeftoverDismissed(true)}>Okay</button>
+                </article>
+              )}
+
+              <AnimatePresence mode="popLayout">
+                {showGetStarted && user && (
+                  <motion.div
+                    key="get-started"
+                    className="home-get-started-slot"
+                    // Cancel the column's 20px gap at zero height, then open
+                    // it with the card so even the first reveal moves smoothly.
+                    initial={reduceMotion ? false : { height: 0, opacity: 0, marginBottom: -20 }}
+                    animate={{ height: "auto", opacity: 1, marginBottom: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: reduceMotion ? 0 : 0.32, ease: [0.22, 1, 0.36, 1] }}
                   >
-                    {hideAmounts
-                      ? "---"
-                      : formatCurrency(envelopeState.readyToAssign)}
-                  </strong>
-                  <span className="erd-home-hero-caption">
-                    {monthLabel(panel.month)} ·{" "}
-                    {daysLeftInMonth() === 0
-                      ? "Less than 24 hrs"
-                      : `${daysLeftInMonth()} days left`}
-                  </span>
-                </button>
-              )}
-
-              {showRolloverBanner && rolloverData && (
-                <MonthRolloverBanner
-                  currentMonth={panel.month}
-                  lastMonth={rolloverData.lastMonth}
-                  lastIncome={rolloverData.lastIncome}
-                  lastAssignments={rolloverData.lastAssignments}
-                  onConfirm={handleRolloverConfirm}
-                  onDismiss={handleRolloverDismiss}
-                />
-              )}
+                    <GetStartedCard
+                      manualTransactionDone={!!user.manualTransactionCompletedAt}
+                      guidedTourDone={!!user.guidedTourCompletedAt}
+                      onAddTransaction={() => setShowLogModal(true)}
+                      onTakeTour={() => router.push('/account/guided-tour')}
+                      onSkip={() => setGetStartedSkipped(true)}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {envelopeState && (
-                <article className="erd-card erd-envelopes-panel">
+                <motion.article
+                  className="erd-card erd-envelopes-panel"
+                  layout={reduceMotion ? false : "position"}
+                  transition={homeTransition}
+                >
                   <EnvelopeGrid
                     envelopes={envelopeState.envelopes}
                     groups={envelopeState.groups}
@@ -432,14 +453,19 @@ export function ExpensePage() {
                     onSetAssigned={setEditAssignedTarget}
                     onPayCreditCard={handlePayCreditCard}
                   />
-                </article>
+                </motion.article>
               )}
 
-              <Link href="/insights" className="erd-home-insights-link">
+              <MotionLink
+                href="/insights"
+                className="erd-home-insights-link"
+                layout={reduceMotion ? false : "position"}
+                transition={homeTransition}
+              >
                 Trends and daily spend <ChevronRight size={16} />
-              </Link>
+              </MotionLink>
             </div>
-            <aside className="erd-home-rail" aria-label="Subscriptions">
+            <aside className="erd-home-rail" aria-label="Subscriptions and recent activity">
               <SubscriptionsPanel
                 active={panel.subscriptions.active}
                 cancelled={panel.subscriptions.cancelled}
@@ -453,9 +479,11 @@ export function ExpensePage() {
                 onReactivate={(service) => void changeSubscriptionStatus(service, "reactivate")}
                 homeRail
               />
+              <RecentActivity expenses={expenseRows} hideAmounts={hideAmounts} />
             </aside>
           </div>
-        </div>
+          </LayoutGroup>
+        </motion.div>
         <AnimatePresence>
           {editingSubscription !== undefined && (
             <SubscriptionModal
@@ -558,6 +586,16 @@ export function ExpensePage() {
           )}
           {editReady && (
             <EditReadyToAssignScreen onClose={() => setEditReady(false)} />
+          )}
+          {incomeScreen === "add" && (
+            <AddIncomeScreen onClose={() => setIncomeScreen(null)} />
+          )}
+          {incomeScreen === "monthly" && envelopeState && (
+            <EditMonthIncomeScreen
+              month={envelopeState.month}
+              initial={envelopeState.incomeBase}
+              onClose={() => setIncomeScreen(null)}
+            />
           )}
         </AnimatePresence>
         <AnimatePresence>

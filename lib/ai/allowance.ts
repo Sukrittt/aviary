@@ -25,7 +25,9 @@ async function monthlySpendUsd(userId: string, now: Date): Promise<number> {
   const [row] = await db
     .collection<AiUsageDoc>(AI_USAGE)
     .aggregate<{ total: number }>([
-      { $match: { user_id: userId, at: { $gte: monthStart(now) } } },
+      // Habit nudge copy is written for the user unasked, a few times ever: it
+      // shouldn't eat into what they can spend on chat and scans.
+      { $match: { user_id: userId, at: { $gte: monthStart(now) }, feature: { $ne: 'nudge' } } },
       { $group: { _id: null, total: { $sum: { $ifNull: ['$costUsd', 0] } } } },
     ])
     .toArray()

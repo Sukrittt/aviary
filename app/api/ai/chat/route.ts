@@ -18,6 +18,8 @@ export const maxDuration = 60
 
 const MAX_MESSAGE_LEN = 500
 const HISTORY_LIMIT = 8
+// Previous user turns the router sees, enough for "It's 12k." to read as the price of what came before.
+const ROUTING_CONTEXT_TURNS = 2
 // A session's persisted `messages` array is otherwise unbounded — a
 // long-lived session would eventually hit Mongo's 16MB document limit and
 // every further turn would fail. $slice keeps this atomic with the $push
@@ -76,9 +78,11 @@ function streamReply(
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(leadingEvent)}\n\n`))
         }
         const caller = { userId: auth.userId, feature: 'chat' as const }
-        // Routing reads the message only, so it costs no wall-clock time next to the database read.
-        const message = contents[contents.length - 1]?.parts[0]?.text ?? ''
-        const [route, ctx] = await Promise.all([routeChat(message, caller), buildExpenseContext(auth)])
+        // Routing reads the messages only, so it costs no wall-clock time next to the database read.
+        const userTurns = contents.filter((c) => c.role === 'user').map((c) => c.parts[0].text)
+        const message = userTurns.at(-1) ?? ''
+        const earlier = userTurns.slice(-ROUTING_CONTEXT_TURNS - 1, -1)
+        const [route, ctx] = await Promise.all([routeChat(message, caller, earlier), buildExpenseContext(auth)])
 
         if (!route.onTopic) {
           full = SCOPE_REFUSAL
@@ -88,8 +92,8 @@ function streamReply(
           return
         }
 
-        const systemPrompt = buildSystemPrompt(factsFor(ctx.sections, route.sections), ctx.currencyCode)
-        const geminiStream = await streamText(systemPrompt, contents, caller)
+        const systemPrompt = buildSystemPrompt(factsFor(ctx.sections, route.sections), ctx.currencyCode, route.decision)
+        const geminiStream = await streamText(systemPrompt, contents, caller, route.decision)
 
         const scrub = createEmDashScrubber()
         const emit = (text: string) => {
@@ -101,6 +105,8 @@ function streamReply(
           if (chunk.text) emit(scrub.push(chunk.text))
         }
         emit(scrub.flush())
+        // Rare, but a thinking-mode reply has come back with no text at all; a blank bubble helps nobody.
+        if (!full) throw new Error("Ask Aviary didn't come up with an answer. Try asking again.")
         controller.enqueue(encoder.encode('data: [DONE]\n\n'))
         await settle()
       } catch (err) {

@@ -4,10 +4,8 @@ vi.mock('@/lib/access', () => ({
   getAuth: vi.fn(async () => ({ userId: 'user_a', readOnly: false, sessionId: null })),
 }))
 
-const deleteManyMock = vi.fn(async () => ({ deletedCount: 0 }))
-vi.mock('@/lib/scoped', () => ({
-  scoped: vi.fn(() => ({ deleteMany: deleteManyMock })),
-}))
+const softDeleteMock = vi.fn(async () => '2026-09-26T00:00:00+05:30')
+vi.mock('@/lib/accountLifecycle', () => ({ softDeleteAccount: softDeleteMock }))
 
 const deleteUserMock = vi.fn(async () => undefined)
 const updateUserMock = vi.fn(async () => undefined)
@@ -77,11 +75,7 @@ describe('DELETE /api/user', () => {
     // are removed by the GC cron once the grace window passes, not here.
     expect(deleteUserMock).not.toHaveBeenCalled()
     expect(usersDeleteOneMock).not.toHaveBeenCalled()
-    expect(usersUpdateOneMock).toHaveBeenCalledWith(
-      { _id: 'user_a' },
-      { $set: { deleted_at: expect.any(String) } },
-    )
-    expect(deleteManyMock).toHaveBeenCalled()
+    expect(softDeleteMock).toHaveBeenCalledWith(expect.anything(), 'user_a')
   })
 
   it('no longer accepts the old confirm:true shortcut without an email', async () => {
@@ -100,6 +94,21 @@ describe('PATCH /api/user', () => {
 
   it('drops a non-boolean notifyWrapped instead of writing it', async () => {
     const res = await PATCH(patchRequest({ notifyWrapped: 'yes' }))
+    expect(res.status).toBe(400)
+    expect(usersUpdateOneMock).not.toHaveBeenCalled()
+  })
+
+  it('records guided-tour completion with the server clock', async () => {
+    const res = await PATCH(patchRequest({ guidedTourCompleted: true }))
+    expect(res.status).toBe(200)
+    expect(usersUpdateOneMock).toHaveBeenCalledWith(
+      { _id: 'user_a', guidedTourCompletedAt: { $in: [null, undefined] } },
+      { $set: { guidedTourCompletedAt: expect.any(String) } },
+    )
+  })
+
+  it('does not accept a client-supplied guided-tour timestamp', async () => {
+    const res = await PATCH(patchRequest({ guidedTourCompletedAt: '2000-01-01T00:00:00.000Z' }))
     expect(res.status).toBe(400)
     expect(usersUpdateOneMock).not.toHaveBeenCalled()
   })

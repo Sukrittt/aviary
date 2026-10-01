@@ -26,7 +26,7 @@ export const EXPENSE_HEADERS = [
 // change every export. Guarded by a partial unique index on
 // `{ user_id, client_id }` (scripts/ensure-indexes.mjs), optional on legacy rows.
 
-export const BUDGET_HEADERS = ['month', 'category', 'assigned', 'rolled_over']
+export const BUDGET_HEADERS = ['month', 'category', 'assigned', 'rolled_over', 'extra']
 
 export const CATEGORY_HEADERS = ['name', 'group']
 

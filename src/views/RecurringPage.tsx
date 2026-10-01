@@ -3,8 +3,8 @@
 import { useCurrency } from '@/src/context/CurrencyContext'
 
 import { useState } from 'react'
-import { AnimatePresence } from 'motion/react'
-import { Repeat2 } from 'lucide-react'
+import { AnimatePresence, motion } from 'motion/react'
+import { AmountText, popIn, staggerDelay } from '../components/landing/mobile/kit'
 import { AllocationBar, type AllocationSegment } from '../components/charts/AllocationBar'
 import { LoadingCaption } from '../components/LoadingCaption'
 import { RecurringSuggestions } from '../components/RecurringSuggestions'
@@ -16,6 +16,7 @@ import { splitEmoji } from '../lib/emoji'
 import { formatDateShort } from '../lib/format'
 import { CHART_COLORS } from '../theme/chartColors'
 import type { RecurringExpenseRow } from '../types'
+import { BirdEmptyState } from '../components/BirdEmptyState'
 
 const CADENCE_LABELS: Record<string, string> = {
   daily: 'Every day',
@@ -63,6 +64,8 @@ export function RecurringPage() {
   const [editing, setEditing] = useState<string | undefined>(undefined)
 
   const rows = recurringQ.data ?? []
+  const loading = recurringQ.isLoading
+  const loadError = recurringQ.isError
   const active = rows.filter((r) => r.status === 'active')
   const inactive = rows.filter((r) => r.status !== 'active')
   const monthlyTotal = active.reduce((sum, r) => sum + monthlyEquivalent(r), 0)
@@ -77,7 +80,8 @@ export function RecurringPage() {
     .map(([label, value], i) => ({ label, value, color: CHART_COLORS[i % CHART_COLORS.length] }))
   const categoryColor = new Map(segments.map((s) => [s.label, s.color]))
 
-  function section(title: string, list: RecurringExpenseRow[]) {
+  // `offset` continues the stagger across sections, as Mobile's row index does.
+  function section(title: string, list: RecurringExpenseRow[], offset: number) {
     if (list.length === 0) return null
     return (
       <div>
@@ -85,11 +89,11 @@ export function RecurringPage() {
           {title}
         </div>
         <ul className="account-card recurring-list" aria-label={title}>
-          {list.map((row) => {
+          {list.map((row, i) => {
             const isActive = row.status === 'active'
             const category = splitEmoji(row.category)
             return (
-              <li key={row.id}>
+              <motion.li key={row.id} {...popIn(staggerDelay(offset + i))}>
                 <button type="button" className="account-row" onClick={() => setEditing(row.id)}>
                   <span
                     className="recurring-dot"
@@ -112,7 +116,7 @@ export function RecurringPage() {
                     {formatCurrency(Number(row.amount_inr) || 0, hideAmounts)}
                   </strong>
                 </button>
-              </li>
+              </motion.li>
             )
           })}
         </ul>
@@ -136,29 +140,30 @@ export function RecurringPage() {
 
       <RecurringSuggestions />
 
-      {recurringQ.isLoading ? (
+      {loading ? (
         <LoadingCaption feature="recurring" placement="page" />
-      ) : recurringQ.isError ? (
+      ) : loadError ? (
         <div className="account-empty">
           <p className="account-row-meta">Couldn&apos;t load your recurring expenses. Check your connection and try again.</p>
         </div>
       ) : rows.length === 0 ? (
-        <div className="account-empty">
-          <Repeat2 size={30} strokeWidth={1.7} aria-hidden="true" />
-          <div className="account-empty-title">Set it once, forget it</div>
-          <p className="account-row-meta">
-            Rent, the gym, your maid. Add it here and we&apos;ll log it for you on every due date.
-          </p>
-        </div>
+        <BirdEmptyState
+          subject="recurring"
+          title="Set it once, forget it"
+          description="Rent, the gym, your maid. Add it here and we’ll log it for you on every due date."
+          action={{ label: 'Add a recurring expense', onClick: () => setEditing('') }}
+        />
       ) : (
         <>
           <div className="account-card recurring-hero">
             <div className="account-section-label">Committed each month</div>
-            <div className="recurring-hero-amount">{formatCurrency(monthlyTotal, hideAmounts)}</div>
+            <div className="recurring-hero-amount">
+              {hideAmounts ? formatCurrency(monthlyTotal, true) : <AmountText value={monthlyTotal} animate />}
+            </div>
             {segments.length > 0 && <AllocationBar segments={segments} />}
           </div>
-          {section('Active', active)}
-          {section('Paused and finished', inactive)}
+          {section('Active', active, 0)}
+          {section('Paused and finished', inactive, active.length)}
         </>
       )}
 

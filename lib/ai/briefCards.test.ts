@@ -9,6 +9,7 @@ function ctx(over: Partial<SummarizeExpensesResult> = {}): SummarizeExpensesResu
     highlights: {
       topItem: { item: 'Flight to Goa', amount: 7400, category: 'Travel', date: '2026-09-11' },
       riser: { category: 'Food', thisMonth: 6400, priorAverage: 4100 },
+      pace: null,
       subscriptionMonthlyBurn: 1290,
       investmentTotal: 120000,
     },
@@ -49,7 +50,7 @@ describe('buildBriefCandidates', () => {
   it('leaves out cards with nothing behind them', () => {
     const { cards } = buildBriefCandidates(
       ctx({
-        highlights: { topItem: null, riser: null, subscriptionMonthlyBurn: 0, investmentTotal: 0 },
+        highlights: { topItem: null, riser: null, pace: null, subscriptionMonthlyBurn: 0, investmentTotal: 0 },
         envelopes: [] as unknown as SummarizeExpensesResult['envelopes'],
       }),
       'INR',

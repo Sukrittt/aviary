@@ -19,7 +19,14 @@ export interface Envelope {
 
 export interface EnvelopeState {
   month: string
+  /** incomeBase + incomeExtra. */
   income: number
+  /** Monthly income. Carries into later months like any assignment. */
+  incomeBase: number
+  /** One-off income for this month only (a bonus, a refund, a top-up). Never
+   * carries, so it can't repeat next month. Can be negative when there's less
+   * than the monthly income this month. */
+  incomeExtra: number
   totalAssigned: number
   totalSpent: number
   readyToAssign: number
@@ -81,9 +88,10 @@ export function daysLeftInMonth(): number {
   return daysInMonth - d
 }
 
-/** Income to save so Ready to Assign (income - totalAssigned) lands on `targetReadyToAssign`. */
-export function incomeForReadyToAssign(totalAssigned: number, targetReadyToAssign: number): number {
-  return Math.round((targetReadyToAssign + totalAssigned) * 100) / 100
+/** This month's income extra that makes Ready to Assign land on
+ * `targetReadyToAssign` while leaving the monthly income alone. */
+export function extraForReadyToAssign(incomeBase: number, totalAssigned: number, targetReadyToAssign: number): number {
+  return Math.round((targetReadyToAssign + totalAssigned - incomeBase) * 100) / 100
 }
 
 function monthSpendingByCategory(expenses: ExpenseNum[], month: string): Map<string, number> {
@@ -95,8 +103,8 @@ function monthSpendingByCategory(expenses: ExpenseNum[], month: string): Map<str
   return map
 }
 
-function lastSpentByCategory(expenses: ExpenseNum[]): Map<string, string> {
-  const map = new Map<string, string>()
+function lastSpentByCategory(expenses: ExpenseNum[], known: Record<string, string> = {}): Map<string, string> {
+  const map = new Map<string, string>(Object.entries(known))
   for (const e of expenses) {
     if (!e.date) continue
     const current = map.get(e.category)
@@ -111,6 +119,9 @@ export function computeEnvelopeState(
   currentMonth: string,
   categoryRows: CategoryRow[],
   groupNames: string[],
+  // All-time last spend date per category, from `GET /api/expenses?from=`. Needed
+  // because `expenseRows` may only cover recent months.
+  lastSpent?: Record<string, string>,
 ): EnvelopeState {
   const budgets: BudgetNum[] = budgetRows.map((b) => ({
     month: b.month,
@@ -148,10 +159,13 @@ export function computeEnvelopeState(
     return prior?.assigned ?? 0
   }
 
-  const income = carriedAssigned(INCOME_CATEGORY)
+  const incomeBase = carriedAssigned(INCOME_CATEGORY)
+  const incomeRow = budgetRows.find((b) => b.month === currentMonth && b.category === INCOME_CATEGORY)
+  const incomeExtra = Number(incomeRow?.extra) || 0
+  const income = Math.round((incomeBase + incomeExtra) * 100) / 100
 
   const monthSpending = monthSpendingByCategory(expenses, currentMonth)
-  const lastSpentByCat = lastSpentByCategory(expenses)
+  const lastSpentByCat = lastSpentByCategory(expenses, lastSpent)
 
   const categoryGroup = new Map<string, string>()
   for (const c of categoryRows) categoryGroup.set(c.name, c.group ?? '')
@@ -205,6 +219,8 @@ export function computeEnvelopeState(
   return {
     month: currentMonth,
     income,
+    incomeBase,
+    incomeExtra,
     totalAssigned,
     totalSpent,
     readyToAssign,

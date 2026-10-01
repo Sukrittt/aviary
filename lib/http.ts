@@ -54,7 +54,8 @@ export type PageParams = { page: number; limit: number }
 
 /** Parse `?page=&limit=` off a URL, clamping limit to `[1, maxLimit]`. */
 export function parsePageParams(url: URL, opts: { defaultLimit: number; maxLimit: number }): PageParams {
-  const page = Math.max(1, Math.floor(Number(url.searchParams.get('page'))) || 1)
+  const rawPage = Number(url.searchParams.get('page'))
+  const page = Number.isSafeInteger(rawPage) ? Math.min(Math.floor(Number.MAX_SAFE_INTEGER / opts.maxLimit), Math.max(1, rawPage)) : 1
   const limit = Math.min(
     opts.maxLimit,
     Math.max(1, Math.floor(Number(url.searchParams.get('limit'))) || opts.defaultLimit),

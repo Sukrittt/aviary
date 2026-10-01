@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
+import { track } from '@/src/lib/analytics'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -19,6 +20,7 @@ export default function EmailPage() {
     }
     setPending(true)
     setError('')
+    track('sign_in_started', { method: 'email' })
     const res = await fetch('/api/auth/magic-auth/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -26,9 +28,11 @@ export default function EmailPage() {
     })
     setPending(false)
     if (!res.ok) {
+      track('sign_in_failed', { method: 'email', reason: 'code_send_failed' })
       setError('Could not send code. Check the address and try again.')
       return
     }
+    track('sign_in_code_sent')
     router.push(`/code?email=${encodeURIComponent(email)}`)
   }
 

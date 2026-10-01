@@ -1,3 +1,7 @@
+import { ObjectId } from 'mongodb'
+import { acquireLease } from '@/lib/resourceLease'
+import { isRateLimited } from '@/lib/rateLimit'
+import { validDate } from '@/lib/inputValidation'
 import { after } from 'next/server'
 import { json, error, readBody, getCollection, nowIST } from '@/lib/http'
 import { getAuth, readOnlyGuard } from '@/lib/access'
@@ -5,6 +9,7 @@ import { requireAccess } from '@/lib/billing/guard'
 import { storeBillScanImage } from '@/lib/billScan'
 
 export const dynamic = 'force-dynamic'
+export const maxDuration = 60
 
 const LIST_LIMIT = 50
 
@@ -104,29 +109,40 @@ export async function POST(req: Request) {
   if (!ALLOWED_MIME_TYPES.includes(mimeType)) return error('mimeType must be image/jpeg, image/png, or image/webp')
   if (!merchant || merchant.length > MAX_MERCHANT_LEN) return error('merchant required')
   if (!category) return error('category required')
-  if (!date) return error('date required')
+  if (!validDate(date)) return error('valid date required')
   if (!Number.isFinite(total) || total < 0) return error('total must be a non-negative number')
   if (!Number.isFinite(myShare) || myShare < 0) return error('my_share must be a non-negative number')
   if (!Number.isFinite(peopleCount) || peopleCount < 1) return error('people_count must be a positive number')
-  if (!expenseId) return error('expense_id required')
+  if (!ObjectId.isValid(expenseId)) return error('valid expense_id required')
   if (!items) return error('items must be a non-empty array of {name, price}')
 
-  const coll = await getCollection('bill_scans', auth)
-  const { insertedId } = await coll.insertOne({
-    merchant,
-    category,
-    date,
-    total: String(total),
-    my_share: String(myShare),
-    people_count: peopleCount,
-    items,
-    expense_id: expenseId,
-    image_url: null,
-    image_status: 'pending',
-    created_at: nowIST().timestamp,
-  })
-
-  after(() => storeBillScanImage(auth.userId, insertedId.toString(), image, mimeType))
-
-  return json({ id: insertedId.toString() }, { status: 202 })
+  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(image) || image.length % 4 !== 0) return error('invalid base64 image')
+  const bytes = Buffer.from(image, 'base64')
+  const matches = mimeType === 'image/png' ? bytes.subarray(0, 8).equals(Buffer.from([137,80,78,71,13,10,26,10]))
+    : mimeType === 'image/jpeg' ? bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255
+    : bytes.toString('ascii', 0, 4) === 'RIFF' && bytes.toString('ascii', 8, 12) === 'WEBP'
+  if (!matches) return error('image content does not match its format')
+  const expenses = await getCollection('expenses', auth)
+  if (!(await expenses.findOne({ _id: new ObjectId(expenseId) }, { projection: { _id: 1 } }))) return error('expense not found', 404)
+  const release = await acquireLease(`bills:${auth.userId}`)
+  if (!release) return error('A bill is being saved. Please retry.', 409)
+  try {
+    const coll = await getCollection('bill_scans', auth)
+    const existing = await coll.findOne({ expense_id: expenseId })
+    if (existing && existing.image_status !== 'failed') return json({ id: String(existing._id) }, { status: 202 })
+    if (await isRateLimited(`bill-upload:${auth.userId}`, [{ windowMs: 60_000, limit: 5 }, { windowMs: 3600_000, limit: 30 }])) return error('rate limited', 429)
+    // Count archived receipts too: their blobs remain until account cleanup.
+    if (!existing && await coll.countDocuments({}, {}, { includeDeleted: true }) >= 500) return error('Receipt storage limit reached (500 bills).', 429)
+    if (existing) {
+      await coll.updateOne({ _id: existing._id }, { $set: { image_status: 'pending' } })
+      after(() => storeBillScanImage(auth.userId, String(existing._id), image, mimeType))
+      return json({ id: String(existing._id) }, { status: 202 })
+    }
+    const { insertedId } = await coll.insertOne({
+      merchant, category, date, total: String(total), my_share: String(myShare), people_count: peopleCount,
+      items, expense_id: expenseId, image_url: null, image_status: 'pending', image_bytes: bytes.length, created_at: nowIST().timestamp,
+    })
+    after(() => storeBillScanImage(auth.userId, insertedId.toString(), image, mimeType))
+    return json({ id: insertedId.toString() }, { status: 202 })
+  } finally { await release() }
 }

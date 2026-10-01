@@ -1,9 +1,11 @@
 import { currencyInstruction } from '@/lib/ai/moneyBrainPrompt'
 import { getUserCurrency, nowForUser } from '@/lib/userCurrency'
 import { computeEnvelopeState } from '@/src/lib/envelope'
+import { savingsTrend } from '@/src/lib/monthly'
 import { getCollection } from '@/lib/http'
 import type { Auth } from '@/lib/access'
 import type { Envelope } from '@/src/lib/envelope'
+import { paceOutlier, type PaceOutlier } from '@/lib/notifications/pace'
 import type { BudgetRow as WireBudgetRow, ExpenseRow as WireExpenseRow } from '@/src/types'
 
 /**
@@ -51,6 +53,7 @@ export interface BudgetDocRow {
   category: string
   assigned: number
   rolled_over: number
+  extra?: number
 }
 
 export interface CategoryDocRow {
@@ -109,6 +112,8 @@ export interface FactHighlights {
   topItem: { item: string; amount: number; category: string; date: string } | null
   /** Category whose spend this month is furthest above its own recent average. */
   riser: { category: string; thisMonth: number; priorAverage: number } | null
+  /** Category furthest ahead of its usual month-to-date pace (lib/notifications/pace.ts). */
+  pace: PaceOutlier | null
   subscriptionMonthlyBurn: number
   investmentTotal: number
 }
@@ -216,6 +221,7 @@ export function summarizeExpenses(input: SummarizeExpensesInput): SummarizeExpen
     category: b.category,
     assigned: String(b.assigned ?? 0),
     rolled_over: String(b.rolled_over ?? 0),
+    extra: String(b.extra ?? 0),
     version: 0,
   }))
 
@@ -250,7 +256,11 @@ export function summarizeExpenses(input: SummarizeExpensesInput): SummarizeExpen
   const header = [
     `MONTH: ${currentMonth} (day ${daysElapsed} of ${totalDaysInMonth}, ${daysLeft} days left)`,
     '',
-    `INCOME: ${round(income)}`,
+    envelopeState.incomeExtra === 0
+      ? `INCOME: ${round(income)}`
+      : `INCOME: ${round(income)} (monthly ${round(envelopeState.incomeBase)}, recurs; plus one-off ${round(envelopeState.incomeExtra)} this month only)`,
+    `ASSIGNED THIS MONTH: ${round(envelopeState.totalAssigned)}`,
+    `READY TO ASSIGN: ${round(envelopeState.readyToAssign)} (income not given to any envelope yet; recurs every month unless assignments change)`,
     ccEnvelope
       ? `CREDIT CARD: assigned ${round(ccEnvelope.assigned)}, charged ${round(ccEnvelope.spent)} this month, available ${round(ccEnvelope.available)}`
       : 'CREDIT CARD: no activity',
@@ -263,6 +273,15 @@ export function summarizeExpenses(input: SummarizeExpensesInput): SummarizeExpen
       `${e.category}|${e.group ?? ''}|${round(e.assigned)}|${round(e.spent)}|${round(e.available)}|${e.isOverspent ? 'yes' : 'no'}`,
     )
   }
+  // Stated, not left to the model: flash-lite got these sums wrong.
+  const spendingEnvelopes = envelopeState.envelopes.filter((e) => !e.isCreditCardPayment)
+  const unspent = spendingEnvelopes.reduce((sum, e) => sum + Math.max(0, e.available), 0)
+  const overspent = spendingEnvelopes.reduce((sum, e) => sum + Math.max(0, -e.available), 0)
+  envelopeLines.push(
+    `TOTALS: assigned ${round(envelopeState.totalAssigned)}, spent ${round(envelopeState.totalSpent)}, available ${round(unspent - overspent)} (unspent ${round(unspent)}, overspent ${round(overspent)})`,
+    `LEFT THIS MONTH: ${round(unspent - overspent + envelopeState.readyToAssign)} (available plus ready to assign; answers "how much is left")`,
+    `FREE FOR NEW COSTS: ${round(envelopeState.readyToAssign - overspent)} (ready to assign minus overspent; unspent envelope money is already promised)`,
+  )
 
   // Trend: per-category totals for each of the last TREND_MONTHS months.
   const trendMonths = lastNMonths(currentMonth, TREND_MONTHS)
@@ -276,14 +295,39 @@ export function summarizeExpenses(input: SummarizeExpensesInput): SummarizeExpen
     catMap.set(month, (catMap.get(month) ?? 0) + (Number(e.amount_inr) || 0))
     trendCategoryTotals.set(e.category, catMap)
   }
+  // Average over full months only: the current month is partial, and months
+  // before the first expense aren't history (a new user would read as frugal).
+  const firstMonth = [...trendCategoryTotals.values()].flatMap((m) => [...m.keys()]).sort()[0] ?? currentMonth
+  const fullMonths = trendMonths.slice(0, -1).filter((m) => m >= firstMonth)
+  const trendRow = (label: string, amountFor: (month: string) => number) => {
+    const totals = trendMonths.map((m) => round(amountFor(m)))
+    const avg = fullMonths.length ? round(fullMonths.reduce((sum, m) => sum + amountFor(m), 0) / fullMonths.length) : 0
+    return { totals, line: `${label}|${totals.join('|')}|${avg}` }
+  }
   const trendLines = [
-    `TREND (category totals by month, last ${TREND_MONTHS} months):`,
-    `category|${trendMonths.join('|')}`,
+    `TREND (category totals by month, last ${TREND_MONTHS} months; avg excludes the current month):`,
+    `category|${trendMonths.join('|')}|avg full months`,
   ]
   for (const [category, monthMap] of [...trendCategoryTotals.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
-    const totals = trendMonths.map((m) => round(monthMap.get(m) ?? 0))
-    if (totals.every((v) => v === 0)) continue
-    trendLines.push(`${category}|${totals.join('|')}`)
+    const row = trendRow(category, (m) => monthMap.get(m) ?? 0)
+    if (row.totals.every((v) => v === 0)) continue
+    trendLines.push(row.line)
+  }
+  trendLines.push(
+    trendRow('TOTAL', (m) => [...trendCategoryTotals.values()].reduce((sum, monthMap) => sum + (monthMap.get(m) ?? 0), 0)).line,
+  )
+  // Envelopes reset every month, so this is the only record of money kept.
+  // Expenses are loaded for the trend window only, so the total starts there at the earliest.
+  const saved = savingsTrend(budgetRows, envelopeExpenseRows, realCategories, groupNames, currentMonth)
+  if (saved.since) {
+    const savedByMonth = new Map(saved.points.map((p) => [p.date, p.value]))
+    const savedFull = fullMonths.filter((m) => savedByMonth.has(m))
+    const savedAvg = savedFull.length ? round(savedFull.reduce((sum, m) => sum + savedByMonth.get(m)!, 0) / savedFull.length) : 0
+    const cells = trendMonths.map((m) => (savedByMonth.has(m) ? String(round(savedByMonth.get(m)!)) : '-'))
+    trendLines.push(`SAVED (income minus spending)|${cells.join('|')}|${savedAvg}`)
+    const from = saved.since > trendMonths[0] ? saved.since : trendMonths[0]
+    const total = saved.points.filter((p) => p.date >= from && p.date < currentMonth).reduce((sum, p) => sum + p.value, 0)
+    trendLines.push(`SAVED SINCE ${from}: ${round(total)} (finished months; the running savings, since unspent envelope money does not carry over)`)
   }
 
   // Top 10 items this month by amount.
@@ -334,6 +378,25 @@ export function summarizeExpenses(input: SummarizeExpensesInput): SummarizeExpen
   for (const e of recentTxns) {
     txnLines.push(`${e.date}|${e.item ?? ''}|${round(Number(e.amount_inr) || 0)}|${e.category}|${e.payment_method ?? ''}`)
   }
+  // "How much at Starbucks?" meant the model adding dozens of rows, and it got those sums wrong.
+  const merchants = new Map<string, { name: string; month: number; window: number; count: number }>()
+  // From the whole window, not the capped rows above, so a heavy month doesn't undercount.
+  for (const e of expenses) {
+    if (e.date < cutoffStr || e.date > today) continue
+    if (!e.item || e.category === SENTINEL_INCOME || e.category === SENTINEL_CREDIT_CARD) continue
+    const key = e.item.trim().toLowerCase()
+    const m = merchants.get(key) ?? { name: e.item.trim(), month: 0, window: 0, count: 0 }
+    const amount = Number(e.amount_inr) || 0
+    m.window += amount
+    m.count += 1
+    if (e.date.startsWith(currentMonth)) m.month += amount
+    merchants.set(key, m)
+  }
+  const repeatMerchants = [...merchants.values()].filter((m) => m.count > 1).sort((a, b) => b.window - a.window)
+  if (repeatMerchants.length) {
+    txnLines.push('', `REPEAT ITEMS (item|this month|last ${TXN_HISTORY_DAYS} days|count in ${TXN_HISTORY_DAYS} days):`)
+    for (const m of repeatMerchants) txnLines.push(`${m.name}|${round(m.month)}|${round(m.window)}|${m.count}`)
+  }
 
   const topExpense = top10[0]
   const riser = pickRiser(trendCategoryTotals, trendMonths)
@@ -363,6 +426,7 @@ export function summarizeExpenses(input: SummarizeExpensesInput): SummarizeExpen
           }
         : null,
       riser,
+      pace: paceOutlier(expenses, today),
       subscriptionMonthlyBurn: round(totalMonthlyBurn),
       investmentTotal: round(totalInvestmentValue),
     },
@@ -395,7 +459,13 @@ export function factsWindowStart(today: string): string {
  * carries its most recent prior assignment forward, however old that row is,
  * and those documents are one per month per category.
  */
-export async function buildExpenseContext(auth: Auth): Promise<SummarizeExpensesResult> {
+export async function buildExpenseContext(
+  auth: Auth,
+  // `monthOnly`: current month of expenses only. Envelopes, `meta` and the
+  // threshold levels built from them stay exact; the trend and transaction
+  // FACTS go thin, so only callers that never read `facts` should set it.
+  { monthOnly = false }: { monthOnly?: boolean } = {},
+): Promise<SummarizeExpensesResult> {
   const { date: today } = await nowForUser(auth.userId)
 
   const [expensesColl, budgetsColl, categoriesColl, groupsColl, subscriptionsColl, holdingsColl] = await Promise.all([
@@ -409,7 +479,7 @@ export async function buildExpenseContext(auth: Auth): Promise<SummarizeExpenses
 
   const [expenseDocs, budgetDocs, categoryDocs, groupDocs, subscriptionDocs, holdingDocs] = await Promise.all([
     // Indexed by { user_id: 1, date: -1 } (scripts/ensure-indexes.mjs).
-    expensesColl.find({ date: { $gte: factsWindowStart(today) } }).toArray(),
+    expensesColl.find({ date: { $gte: monthOnly ? `${today.slice(0, 7)}-01` : factsWindowStart(today) } }).toArray(),
     budgetsColl.find({}).toArray(),
     categoriesColl.find({}).toArray(),
     groupsColl.find({}).toArray(),
@@ -432,6 +502,7 @@ export async function buildExpenseContext(auth: Auth): Promise<SummarizeExpenses
     category: String(d.category ?? ''),
     assigned: Number(d.assigned) || 0,
     rolled_over: Number(d.rolled_over) || 0,
+    extra: Number(d.extra) || 0,
   }))
 
   const categories: CategoryDocRow[] = categoryDocs

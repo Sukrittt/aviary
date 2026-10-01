@@ -4,6 +4,7 @@ import { useCurrency } from '@/src/context/CurrencyContext'
 
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { AnimatePresence, motion, type TargetAndTransition, type Transition } from 'motion/react'
+import { Filter, ChartPie, Sparkles, Target, WifiOff, Zap, type LucideIcon } from 'lucide-react'
 
 import { PHONE, PhoneScreenContext, T, ease } from './mobile/kit'
 import { FloatingNav, type NavRoute } from './mobile/nav'
@@ -119,10 +120,9 @@ export function Playground() {
     <section id="play" className="lp-section">
       <div className="lp-play-head">
         <div>
-          <div className="lp-eyebrow">PLAYGROUND</div>
           <h2 className="lp-h2">This is the real thing. Poke it.</h2>
           <p className="lp-sub" style={{ maxWidth: 520 }}>
-            Not a video, not a GIF. The app&apos;s own screens, running right here on the page.
+            Not a video, not a GIF. The app’s own screens, running right here on the page.
           </p>
         </div>
         <div className="lp-pill-group" role="tablist">
@@ -201,15 +201,15 @@ export function Playground() {
           <div className="lp-play-copy">
             {tab === 'log' && (
               <>
-                <div className="lp-h3">Tap a number. That&apos;s the whole feature.</div>
+                <div className="lp-h3">Tap a number. That’s the whole feature.</div>
                 <p className="lp-body">
-                  The keypad is the first thing your thumb finds. Amount, category, one-word note. Logged before the UPI
+                  The keypad is the first thing your thumb finds. Amount, category, one-word note. Logged before the payment
                   confirmation screen has closed.
                 </p>
                 <div className="lp-points">
-                  <Point icon="⚡" title="Logged in seconds" body="Amount, note, done. No forms to fill." />
-                  <Point icon="🧠" title="It guesses the envelope" body={'Type "chai" or "uber" and watch the pill.'} />
-                  <Point icon="📴" title="Works with no signal" body="Logs queue locally and sync when you surface." />
+                  <Point icon={Zap} title="Logged in seconds" body="Amount, note, done. No forms to fill." />
+                  <Point icon={Sparkles} title="It guesses the envelope" body={'Type "coffee" or "uber" and watch the pill.'} />
+                  <Point icon={WifiOff} title="Works with no signal" body="Logs queue locally and sync when you surface." />
                 </div>
               </>
             )}
@@ -218,7 +218,7 @@ export function Playground() {
                 <div className="lp-h3">Your money has an address.</div>
                 <p className="lp-body">
                   Group them how your life actually works. House, Lifestyle, whatever. Expand, collapse, drag to reorder.
-                  The bar turns yellow before you&apos;re in trouble, not after.
+                  The bar turns yellow before you’re in trouble, not after.
                 </p>
                 <div className="lp-card lp-stat">
                   <div className="lp-stat-label">This month</div>
@@ -234,9 +234,9 @@ export function Playground() {
                 <div className="lp-h3">Where it actually went.</div>
                 <p className="lp-body">Tap a slice. Or a row. Same answer, no drilling through four menus.</p>
                 <div className="lp-points">
-                  <Point icon="🍩" title="Category or group" body="Flip the lens and the ring redraws itself." />
-                  <Point icon="🎯" title="Against the budget" body="Every bar is spend vs what you gave that envelope." />
-                  <Point icon="🧹" title="Filter the noise" body="Hide rent and investments to see the spend you control." />
+                  <Point icon={ChartPie} title="Category or group" body="Flip the lens and the ring redraws itself." />
+                  <Point icon={Target} title="Against the budget" body="Every bar is spend vs what you gave that envelope." />
+                  <Point icon={Filter} title="Filter the noise" body="Hide rent and investments to see the spend you control." />
                 </div>
               </>
             )}
@@ -262,10 +262,10 @@ export function Playground() {
   )
 }
 
-function Point({ icon, title, body }: { icon: string; title: string; body: string }) {
+function Point({ icon: Icon, title, body }: { icon: LucideIcon; title: string; body: string }) {
   return (
     <div className="lp-point">
-      <span className="lp-point-icon">{icon}</span>
+      <Icon className="lp-point-icon" size={18} aria-hidden="true" />
       <div>
         <div className="lp-point-title">{title}</div>
         <div className="lp-point-body">{body}</div>

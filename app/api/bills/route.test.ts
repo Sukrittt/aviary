@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { ObjectId } from 'mongodb'
 
+vi.mock('@/lib/resourceLease', () => ({ acquireLease: async () => async () => {} }))
+vi.mock('@/lib/rateLimit', () => ({ isRateLimited: async () => false }))
+
 const storeBillScanImage = vi.fn(async () => {})
 vi.mock('@/lib/billScan', () => ({
   storeBillScanImage: (...args: unknown[]) =>
@@ -28,7 +31,9 @@ vi.mock('@/lib/http', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/http')>()
   return {
     ...actual,
-    getCollection: vi.fn(async () => ({
+    getCollection: vi.fn(async (name: string) => ({
+      findOne: async (filter: Record<string, unknown>) => name === 'expenses' ? { _id: filter._id } : store.find(d => d.expense_id === filter.expense_id) ?? null,
+      countDocuments: async () => store.length,
       insertOne: async (doc: Record<string, unknown>) => {
         const withId = { ...doc, _id: new ObjectId() } as Doc
         store.push(withId)
@@ -48,7 +53,7 @@ vi.mock('@/lib/http', async (importOriginal) => {
 const { POST, GET } = await import('./route')
 
 const validBody = {
-  image: 'aGVsbG8=',
+  image: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a4AAAAABJRU5ErkJggg==',
   mimeType: 'image/png',
   merchant: 'Blinkit',
   category: 'Groceries',
@@ -56,7 +61,7 @@ const validBody = {
   total: 900,
   my_share: 880,
   people_count: 2,
-  expense_id: 'exp1',
+  expense_id: '507f1f77bcf86cd799439011',
   items: [
     { name: 'Milk', price: 60, qty: 1, divisor: 1 },
     { name: 'Pizza', price: 800, qty: 1, divisor: 1 },
@@ -90,7 +95,7 @@ describe('POST /api/bills', () => {
       category: 'Groceries',
       total: '900',
       my_share: '880',
-      expense_id: 'exp1',
+      expense_id: '507f1f77bcf86cd799439011',
       image_status: 'pending',
       image_url: null,
     })
@@ -198,4 +203,8 @@ describe('GET /api/bills', () => {
     const body = (await res.json()) as { bills: unknown[] }
     expect(body.bills).toEqual([])
   })
+})
+
+it('rejects base64 data that is not the declared image format', async () => {
+  expect((await POST(req({ ...validBody, image: 'aGVsbG8=' }))).status).toBe(400)
 })

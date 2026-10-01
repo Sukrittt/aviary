@@ -28,6 +28,7 @@ const LABELS: Record<string, string> = {
   'maintenance.on': 'Maintenance banner',
   'maintenance.message': 'Banner message',
   'appUpdate.android.latestVersion': 'Android latest version',
+  'appUpdate.android.minVersion': 'Android minimum version',
   'appUpdate.android.storeUrl': 'Play Store URL',
   'billing.enforced': 'Billing enforced',
   'billing.purchaseEnabled': 'Purchases enabled',

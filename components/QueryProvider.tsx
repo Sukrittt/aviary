@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { MotionConfig } from 'motion/react'
 
 /**
  * Mirrors Mobile/app/_layout.tsx's client config (`retry: 1`); per-query
@@ -19,5 +20,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
  */
 export function QueryProvider({ children }: { children: ReactNode }) {
   const [client] = useState(() => new QueryClient({ defaultOptions: { queries: { retry: 1 } } }))
-  return <QueryClientProvider client={client}>{children}</QueryClientProvider>
+  return (
+    <QueryClientProvider client={client}>
+      {/* App-wide: honour the OS reduce-motion setting in every motion component. */}
+      <MotionConfig reducedMotion="user">{children}</MotionConfig>
+    </QueryClientProvider>
+  )
 }

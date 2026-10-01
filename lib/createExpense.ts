@@ -1,3 +1,4 @@
+import { expenseInputError } from './inputValidation'
 import type { ClientSession } from 'mongodb'
 import { getCollection } from '@/lib/http'
 import { nowForUser } from '@/lib/userCurrency'
@@ -106,6 +107,8 @@ export async function adjustCreditCardEnvelope(
 }
 
 export async function createExpense(auth: Auth, input: CreateExpenseInput): Promise<CreateExpenseResult> {
+  const invalid = expenseInputError({ ...input })
+  if (invalid) throw new Error(invalid)
   const ist = await nowForUser(auth.userId)
   const date = String(input.date || ist.date)
   const timestamp = String(input.timestamp || `${date}T${ist.timestamp.slice(11)}`)

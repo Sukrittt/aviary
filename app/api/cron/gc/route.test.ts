@@ -95,3 +95,11 @@ describe('GET /api/cron/gc', () => {
     consoleError.mockRestore()
   })
 })
+
+it('purges account-only collections before discarding the account', async () => {
+  usersFindMock.mockReturnValue({ toArray: async () => [{ _id: 'user_a', deleted_at: '2020-01-01T00:00:00Z' }] })
+  await GET(req('test-secret'))
+  for (const name of ['chat_sessions', 'bill_scans', 'exports', 'holding_events', 'push_tokens']) {
+    expect(collectionDeleteMany(name)).toHaveBeenCalledWith({ user_id: 'user_a' })
+  }
+})

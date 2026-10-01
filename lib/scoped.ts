@@ -21,14 +21,14 @@ import type {
   UpdateResult,
   WithId,
 } from 'mongodb'
-import { encrypt, decrypt, isEncrypted } from './crypto'
+import { encrypt, decrypt } from './crypto'
 import { BRIEF_SOURCES, invalidateBrief } from './ai/briefCache'
 import { deferUntilCommit } from './mongodb'
 import { fieldsFor, fieldAad as aad } from './encryptedFields'
 
 type Doc = Record<string, unknown>
 
-/** Encrypts a doc's encrypted fields before insert/replace. Idempotent — skips a value already `enc:`. */
+/** Encrypts a doc's encrypted fields before insert/replace. Inputs are plaintext, including strings beginning with `enc:`. */
 function encDoc(doc: Doc, fields: string[], userId: string, collectionName: string): Doc {
   if (fields.length === 0) return doc
   const out: Doc = { ...doc }
@@ -40,15 +40,15 @@ function encDoc(doc: Doc, fields: string[], userId: string, collectionName: stri
       if (Array.isArray(out[arrayKey])) {
         const aadStr = aad(userId, collectionName, field)
         out[arrayKey] = (out[arrayKey] as Doc[]).map((el) =>
-          typeof el[subField] === 'string' && !isEncrypted(el[subField] as string)
-            ? { ...el, [subField]: encrypt(el[subField] as string, aadStr) }
+          (typeof el[subField] === 'string' || typeof el[subField] === 'number')
+            ? { ...el, [subField]: encrypt(String(el[subField]), aadStr) }
             : el,
         )
       }
       continue
     }
     const value = out[field]
-    if (typeof value === 'string' && !isEncrypted(value)) {
+    if (typeof value === 'string') {
       out[field] = encrypt(value, aad(userId, collectionName, field))
     }
   }
@@ -65,7 +65,7 @@ function decDoc(doc: Doc, fields: string[], userId: string, collectionName: stri
       if (Array.isArray(out[arrayKey])) {
         const aadStr = aad(userId, collectionName, field)
         out[arrayKey] = (out[arrayKey] as Doc[]).map((el) =>
-          typeof el[subField] === 'string' ? { ...el, [subField]: decrypt(el[subField] as string, aadStr) } : el,
+          typeof el[subField] === 'string' ? { ...el, [subField]: field === 'items.price' && collectionName === 'bill_scans' ? Number(decrypt(el[subField], aadStr)) : decrypt(el[subField], aadStr) } : el,
         )
       }
       continue
@@ -94,14 +94,8 @@ function encUpdate(update: Doc, fields: string[], userId: string, collectionName
   for (const op of ['$set', '$setOnInsert'] as const) {
     const opDoc = out[op]
     if (opDoc && typeof opDoc === 'object') {
-      const flat: Doc = { ...(opDoc as Doc) }
-      for (const field of fields) {
-        if (field.includes('.')) continue // handled via $push below
-        const value = flat[field]
-        if (typeof value === 'string' && !isEncrypted(value)) {
-          flat[field] = encrypt(value, aad(userId, collectionName, field))
-        }
-      }
+      const flat: Doc = encDoc(opDoc as Doc, fields, userId, collectionName)
+
       out[op] = flat
     }
   }
@@ -116,7 +110,7 @@ function encUpdate(update: Doc, fields: string[], userId: string, collectionName
       }
       const aadStr = aad(userId, collectionName, nestedField)
       const encItem = (item: unknown): unknown =>
-        item && typeof item === 'object' && typeof (item as Doc).text === 'string' && !isEncrypted((item as Doc).text)
+        item && typeof item === 'object' && typeof (item as Doc).text === 'string'
           ? { ...(item as Doc), text: encrypt((item as Doc).text as string, aadStr) }
           : item
       if (rawValue && typeof rawValue === 'object' && '$each' in (rawValue as Doc)) {

@@ -478,27 +478,41 @@ const clamp = (n: number) => Math.max(0, Math.min(100, n))
 const MIN_DELTA_PCT = 2.4
 const BASE_DELAY = 500
 const BASE_DURATION = 1000
-const DELTA_DELAY = BASE_DELAY + BASE_DURATION + 500
+export const DELTA_DELAY = BASE_DELAY + BASE_DURATION + 500
 const DELTA_DURATION = 1000
 const DELTA_EASE = [0.65, 0, 0.75, 1] as const
 const SNAP_EASE = [0.2, 0.9, 0.25, 1] as const
 const s = (ms: number) => ms / 1000
 
 /** Base fill grows to the pre-expense spot, a marker pins it, then the delta eases in on top. */
-function DeltaBar({ from, to, amount }: { from: number; to: number; amount: number }) {
+/** `tokens` defaults to the landing page's dark scheme; the app passes the live theme. */
+/** `pace` scales every delay and duration (0.5 = twice as fast); Mobile's timings are 1. */
+export function DeltaBar({
+  from,
+  to,
+  amount,
+  tokens = T,
+  pace = 1,
+}: {
+  from: number
+  to: number
+  amount: number
+  tokens?: ThemeTokens
+  pace?: number
+}) {
   const { formatMoney } = useCurrency()
 
   const fromPct = clamp(from)
   const toPct = clamp(to)
   const deltaPct = Math.max(toPct - fromPct, MIN_DELTA_PCT)
   const progress = useMotionValue(fromPct)
-  const fill = useStopColor(progress, fromPct, toPct, (p) => fillColor(p, T))
+  const fill = useStopColor(progress, fromPct, toPct, (p) => fillColor(p, tokens))
   const tag = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const controls = animate(progress, toPct, { delay: s(DELTA_DELAY), duration: s(DELTA_DURATION), ease: DELTA_EASE })
+    const controls = animate(progress, toPct, { delay: s(DELTA_DELAY * pace), duration: s(DELTA_DURATION * pace), ease: DELTA_EASE })
     return () => controls.stop()
-  }, [progress, toPct])
+  }, [progress, toPct, pace])
 
   // Clamp the pill inside the track once its own width is known.
   useLayoutEffect(() => {
@@ -518,12 +532,12 @@ function DeltaBar({ from, to, amount }: { from: number; to: number; amount: numb
   return (
     <div>
       <div style={{ height: 8, position: 'relative' }}>
-        <div style={{ position: 'absolute', inset: 0, borderRadius: 100, overflow: 'hidden', background: T.borderStrong }}>
+        <div style={{ position: 'absolute', inset: 0, borderRadius: 100, overflow: 'hidden', background: tokens.borderStrong }}>
           <motion.div
             style={{ ...segment, left: 0, width: `${fromPct}%`, opacity: 0.55 }}
             initial={{ scaleX: 0 }}
             animate={{ scaleX: 1 }}
-            transition={{ delay: s(BASE_DELAY), duration: s(BASE_DURATION), ease: DELTA_EASE }}
+            transition={{ delay: s(BASE_DELAY * pace), duration: s(BASE_DURATION * pace), ease: DELTA_EASE }}
           >
             <motion.div style={{ position: 'absolute', inset: 0, background: fill }} />
           </motion.div>
@@ -531,7 +545,7 @@ function DeltaBar({ from, to, amount }: { from: number; to: number; amount: numb
             style={{ ...segment, left: `${fromPct}%`, width: `${deltaPct}%` }}
             initial={{ scaleX: 0 }}
             animate={{ scaleX: 1 }}
-            transition={{ delay: s(DELTA_DELAY), duration: s(DELTA_DURATION), ease: DELTA_EASE }}
+            transition={{ delay: s(DELTA_DELAY * pace), duration: s(DELTA_DURATION * pace), ease: DELTA_EASE }}
           >
             <motion.div style={{ position: 'absolute', inset: 0, background: fill }} />
           </motion.div>
@@ -545,11 +559,11 @@ function DeltaBar({ from, to, amount }: { from: number; to: number; amount: numb
             height: 20,
             borderRadius: 2,
             opacity: 0.85,
-            background: T.text,
+            background: tokens.text,
           }}
           initial={{ scaleY: 0 }}
           animate={{ scaleY: 1 }}
-          transition={{ delay: s(DELTA_DELAY), duration: 0.3, ease: SNAP_EASE }}
+          transition={{ delay: s(DELTA_DELAY * pace), duration: 0.3 * pace, ease: SNAP_EASE }}
         />
       </div>
       <div style={{ height: 22, marginTop: space.xs, position: 'relative' }}>
@@ -558,10 +572,10 @@ function DeltaBar({ from, to, amount }: { from: number; to: number; amount: numb
           style={{ position: 'absolute', maxWidth: '100%' }}
           initial={{ opacity: 0, x: 4 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: s(DELTA_DELAY + 300), duration: 0.34, ease: SNAP_EASE }}
+          transition={{ delay: s((DELTA_DELAY + 300) * pace), duration: 0.34 * pace, ease: SNAP_EASE }}
         >
           <motion.div style={{ background: fill, borderRadius: radius.full, padding: '4px 9px', whiteSpace: 'nowrap' }}>
-            <span style={{ color: T.bg, ...font.bodySemiBold, fontSize: type.caption }}>
+            <span style={{ color: tokens.bg, ...font.bodySemiBold, fontSize: type.caption }}>
               {`+${formatMoney(Math.round(amount))}`}
             </span>
           </motion.div>
@@ -573,12 +587,13 @@ function DeltaBar({ from, to, amount }: { from: number; to: number; amount: numb
 
 // ─── ExpenseAddedScreen ──────────────────────────────────────────────────────
 
-const STAGGER = { headline: 220, detail: 300, card: 380, footer: 560, cardFooter: DELTA_DELAY + DELTA_DURATION + 150 }
+export const STAGGER = { headline: 220, detail: 300, card: 380, footer: 560, cardFooter: DELTA_DELAY + DELTA_DURATION + 150 }
 
 /** Reanimated FadeInDown: drops 25px into place while fading in. */
-function FadeInDown({ delay, duration, style, children }: { delay: number; duration: number; style?: CSSProperties; children: React.ReactNode }) {
+export function FadeInDown({ delay, duration, style, className, children }: { delay: number; duration: number; style?: CSSProperties; className?: string; children: React.ReactNode }) {
   return (
     <motion.div
+      className={className}
       style={style}
       initial={{ opacity: 0, y: -25 }}
       animate={{ opacity: 1, y: 0 }}
@@ -589,22 +604,34 @@ function FadeInDown({ delay, duration, style, children }: { delay: number; durat
   )
 }
 
-function AnimatedUsedPercentage({ from, to, categoryName }: { from: number; to: number; categoryName: string }) {
+export function AnimatedUsedPercentage({
+  from,
+  to,
+  categoryName,
+  tokens = T,
+  pace = 1,
+}: {
+  from: number
+  to: number
+  categoryName: string
+  tokens?: ThemeTokens
+  pace?: number
+}) {
   const progress = useMotionValue(from)
-  const foreground = useStopColor(progress, from, to, (p) => fillColor(p, T))
-  const background = useStopColor(progress, from, to, (p) => fillSoftColor(p, T))
+  const foreground = useStopColor(progress, from, to, (p) => fillColor(p, tokens))
+  const background = useStopColor(progress, from, to, (p) => fillSoftColor(p, tokens))
   const label = useTransform(progress, (v) => `${Math.round(v)}% used`)
 
   useEffect(() => {
-    const controls = animate(progress, to, { delay: s(DELTA_DELAY), duration: s(DELTA_DURATION), ease: DELTA_EASE })
+    const controls = animate(progress, to, { delay: s(DELTA_DELAY * pace), duration: s(DELTA_DURATION * pace), ease: DELTA_EASE })
     return () => controls.stop()
-  }, [progress, to])
+  }, [progress, to, pace])
 
   return (
     <div style={{ ...row, justifyContent: 'space-between' }}>
       <div style={{ ...row, gap: space.xs, minWidth: 0 }}>
         <motion.div style={{ width: 8, height: 8, borderRadius: 4, background: foreground, flexShrink: 0 }} />
-        <span style={{ color: T.text, ...font.bodyExtraBold, fontSize: type.caption }}>{categoryName}</span>
+        <span style={{ color: tokens.text, ...font.bodyExtraBold, fontSize: type.caption }}>{categoryName}</span>
       </div>
       <motion.div style={{ background, borderRadius: radius.full, paddingInline: space.sm, paddingBlock: 3 }}>
         <motion.span style={{ color: foreground, ...font.bodyExtraBold, fontSize: type.caption }}>{label}</motion.span>

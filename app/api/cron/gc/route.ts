@@ -1,7 +1,7 @@
 import { timingSafeEqual, createHash } from 'node:crypto'
 import { json } from '@/lib/http'
 import { getDb } from '@/lib/mongodb'
-import { getWorkOSClient } from '@/lib/workosClient'
+import { purgeAccountNow } from '@/lib/accountLifecycle'
 import { ARCHIVABLE_COLLECTIONS, GRACE_DAYS } from '@/lib/archive'
 import type { UserDoc } from '@/lib/users'
 import { recordCronRun, triggerOf } from '@/lib/cronRuns'
@@ -63,9 +63,7 @@ async function purgeExpired(): Promise<{ purged: number; accountsPurged: number 
     try {
       // WorkOS first: if it fails, the local row stays intact and this user
       // is retried on the next run instead of being orphaned in WorkOS.
-      await getWorkOSClient().userManagement.deleteUser(user._id)
-      await db.collection('billing_accounts').deleteOne({ _id: user._id as never })
-      await db.collection<UserDoc>('users').deleteOne({ _id: user._id })
+      await purgeAccountNow(db, user._id)
       accountsPurged++
     } catch (err) {
       console.error('cron/gc: account purge failed for', user._id, err)

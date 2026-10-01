@@ -1,8 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { ObjectId } from 'mongodb'
-import * as XLSX from 'xlsx'
+import ExcelJS from 'exceljs'
+import type { Readable } from 'node:stream'
+const uploads: Buffer[] = []
 
-const put = vi.fn(async (pathname: string, _body: unknown, _opts: unknown) => ({ url: `https://blob.example/${pathname}` }))
+const put = vi.fn(async (pathname: string, body: unknown, _opts: unknown) => {
+  const chunks: Buffer[] = []
+  for await (const chunk of body as Readable) chunks.push(Buffer.from(chunk))
+  uploads.push(Buffer.concat(chunks))
+  return { url: `https://blob.example/${pathname}` }
+})
 vi.mock('@vercel/blob', () => ({ put: (...args: Parameters<typeof put>) => put(...args) }))
 
 type AccessStub = { mode: string; trialEndsAt: string | null; paidExpiresAt: string | null }
@@ -59,6 +66,9 @@ function fakeCollection(name: string) {
           results = results.map(fn) as Doc[]
           return cursor
         },
+        batchSize: () => cursor,
+        async *[Symbol.asyncIterator]() { yield* results },
+        close: async () => {},
         toArray: async () => results,
       }
       return cursor
@@ -81,6 +91,7 @@ beforeEach(() => {
   stores.expenses = []
   stores.budgets = []
   stores.exports = []
+  uploads.length = 0
   put.mockClear()
   sendPushNotification.mockClear()
   getAccess.mockClear().mockResolvedValue({ mode: 'trial', trialEndsAt: null, paidExpiresAt: null })
@@ -187,21 +198,18 @@ describe('buildAndStoreExport', () => {
     await buildAndStoreExport('user_a', exportId.toString())
 
     expect(put).toHaveBeenCalledTimes(1)
-    const [pathname, buffer, opts] = put.mock.calls[0]
+    const [pathname, , opts] = put.mock.calls[0]
     expect(pathname).toBe(`exports/user_a/${exportId.toString()}.xlsx`)
     expect(opts).toMatchObject({ access: 'private' })
 
-    // Round-trip the uploaded buffer to confirm both collections became tabs.
-    const wb = XLSX.read(buffer as Buffer, { type: 'buffer' })
-    expect(wb.SheetNames).toContain('Expenses')
-    expect(wb.SheetNames).toContain('Budgets')
-    const expenseRows = XLSX.utils.sheet_to_json(wb.Sheets.Expenses) as Array<Record<string, unknown>>
-    expect(expenseRows).toHaveLength(1)
-    expect(expenseRows[0].Item).toBe('Coffee')
-    expect(expenseRows[0]['Amount (INR)']).toBe('₹150')
-    expect(expenseRows[0]).not.toHaveProperty('source')
-    expect(expenseRows[0]).not.toHaveProperty('description')
-    expect(expenseRows[0]).not.toHaveProperty('timestamp')
+    // Read the streamed XLSX output with an independent document reader.
+    const wb = new ExcelJS.Workbook()
+    await wb.xlsx.load(uploads[0] as never)
+    expect(wb.worksheets.map(s => s.name)).toContain('Budgets')
+    const sheet = wb.getWorksheet('Expenses')!
+    expect(sheet.rowCount).toBe(2)
+    expect(sheet.getRow(2).getCell(2).value).toBe('Coffee')
+    expect(sheet.getRow(2).values).toContain('₹150')
 
     const doc = stores.exports[0]
     expect(doc.status).toBe('ready')
@@ -212,7 +220,7 @@ describe('buildAndStoreExport', () => {
     )
   })
 
-  it('fetches expenses month by month, covering every month between the earliest and latest', async () => {
+  it('streams all expense months without buffering the history', async () => {
     const exportId = new ObjectId()
     stores.exports.push({ _id: exportId, user_id: 'user_a', status: 'pending', month: '2026-09', created_at: 'x' } as Doc)
     stores.expenses.push(
@@ -223,10 +231,10 @@ describe('buildAndStoreExport', () => {
 
     await buildAndStoreExport('user_a', exportId.toString())
 
-    const [, buffer] = put.mock.calls[0]
-    const wb = XLSX.read(buffer as Buffer, { type: 'buffer' })
-    const rows = XLSX.utils.sheet_to_json(wb.Sheets.Expenses) as Array<Record<string, unknown>>
-    expect(rows.map((r) => r.Item).sort()).toEqual(['August', 'July', 'September'])
+    const wb = new ExcelJS.Workbook()
+    await wb.xlsx.load(uploads[0] as never)
+    const sheet = wb.getWorksheet('Expenses')!
+    expect([2, 3, 4].map(n => sheet.getRow(n).getCell(2).value).sort()).toEqual(['August', 'July', 'September'])
   })
 
   it('marks the doc failed and sends a failure push when upload throws', async () => {

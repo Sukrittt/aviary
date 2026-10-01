@@ -20,6 +20,7 @@ describe('system settings', () => {
       appUpdate: {
         android: {
           latestVersion: '',
+          minVersion: '',
           storeUrl: 'https://play.google.com/store/apps/details?id=com.sukrit04.envelope',
         },
       },

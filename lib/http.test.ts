@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { EMAIL_RE, escapeRegExp, nowIn, nowIST, isValidTimezone } from './http'
+import { EMAIL_RE, escapeRegExp, nowIn, nowIST, isValidTimezone, parsePageParams } from './http'
 
 describe('EMAIL_RE', () => {
   it('accepts ordinary addresses', () => {
@@ -52,4 +52,12 @@ describe('isValidTimezone', () => {
     expect(isValidTimezone(5)).toBe(false)
     expect(isValidTimezone('')).toBe(false)
   })
+})
+
+it('never passes nonfinite pagination values to Mongo', () => {
+  for (const value of ['Infinity', '1e100', '-Infinity']) {
+    const result = parsePageParams(new URL(`https://example.com/?page=${value}&limit=${value}`), { defaultLimit: 10, maxLimit: 100 })
+    expect(Number.isSafeInteger(result.page)).toBe(true)
+    expect(result.page * result.limit).toBeLessThanOrEqual(Number.MAX_SAFE_INTEGER)
+  }
 })

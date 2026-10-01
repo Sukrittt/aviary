@@ -25,6 +25,11 @@ export function useButtonPhase(duration = 1100) {
       clearTimeout(timer.current)
       setPhase('idle')
     },
+    /** Back to idle without the success beat, for a caller that shows its own. */
+    reset: () => {
+      clearTimeout(timer.current)
+      setPhase('idle')
+    },
   }
 }
 

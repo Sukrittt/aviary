@@ -1,6 +1,7 @@
 {
   "name": "aviary-web",
   "private": true,
+  "license": "AGPL-3.0-only",
   "version": "1.1.0",
   "type": "module",
   "scripts": {
@@ -32,15 +33,16 @@
     "@workos-inc/authkit-nextjs": "^4.3.1",
     "@workos-inc/node": "^10.10.0",
     "ai": "^7.0.107",
+    "exceljs": "^4.4.0",
     "jose": "^6.2.9",
     "lucide-react": "^0.577.0",
     "mongodb": "^6.21.0",
     "motion": "^13.0.0",
-    "next": "^15.5.22",
+    "next": "^15.5.26",
+    "posthog-js": "^1.434.18",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
-    "swr": "^2.5.1",
-    "xlsx": "^0.18.5"
+    "swr": "^2.5.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
@@ -52,7 +54,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.1.0",
     "eslint": "^9.39.4",
-    "eslint-config-next": "^15.5.22",
+    "eslint-config-next": "^15.5.26",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.4.0",
@@ -61,5 +63,13 @@
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.56.1",
     "vitest": "^4.1.11"
+  },
+  "overrides": {
+    "next": {
+      "postcss": "^8.5.26"
+    },
+    "exceljs": {
+      "uuid": "^11.1.1"
+    }
   }
 }

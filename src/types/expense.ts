@@ -21,6 +21,8 @@ export interface Envelope {
 export interface EnvelopeState {
   month: string
   income: number
+  incomeBase: number
+  incomeExtra: number
   totalAssigned: number
   totalSpent: number
   readyToAssign: number

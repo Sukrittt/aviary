@@ -25,7 +25,8 @@ function isAppPath(pathname: string): boolean {
 
 /**
  * Refreshes the sealed AuthKit session cookie, and sends signed-out visitors on
- * app routes (APP_PATHS) to this app's own /sign-in page.
+ * app routes (APP_PATHS) to this app's own /sign-in page. Signed-in visitors
+ * on the public home page go straight to /expense.
  *
  * This app never uses WorkOS's hosted AuthKit UI — Google goes straight to
  * Google's consent screen and email uses magic-auth codes, both via
@@ -60,8 +61,11 @@ export default async function middleware(request: NextRequest, event: NextFetchE
   // authkit() is the same session refresh authkitMiddleware runs, but hands back
   // the session so we can redirect. Only one of the two runs per request: a
   // second refresh would spend the same refresh token twice.
-  if (isAppPath(pathname)) {
+  if (pathname === '/' || isAppPath(pathname)) {
     const { session, headers } = await authkit(request)
+    if (pathname === '/') {
+      return handleAuthkitProxy(request, headers, session.user ? { redirect: '/expense' } : undefined)
+    }
     return handleAuthkitProxy(request, headers, session.user ? undefined : { redirect: '/sign-in' })
   }
 

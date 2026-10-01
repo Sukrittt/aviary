@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { monthRange, categoryBreakdown, withDelta, leftoverFor, monthTotals, monthComparison, fixedCategories } from './monthly'
+import { monthRange, categoryBreakdown, withDelta, leftoverFor, monthTotals, monthComparison, fixedCategories, savingsTrend } from './monthly'
 import { CREDIT_CARD_CATEGORY, INCOME_CATEGORY, currentMonthKey, prevMonthKey } from './envelope'
 import type { BudgetRow, CategoryRow, ExpenseRow } from '@/src/types'
 
@@ -323,5 +323,80 @@ describe('leftoverFor', () => {
     const categories: CategoryRow[] = [{ name: '🍔 Food', group: 'Living' }]
     const groups = ['Living']
     expect(leftoverFor(budgets, expenses, categories, groups, '2026-07')).toBe(10000 - 600)
+  })
+})
+
+describe('savingsTrend', () => {
+  const categories: CategoryRow[] = [{ name: '🍔 Food', group: 'Living' }]
+  const groups = ['Living']
+
+  it('saves income minus spending each month, carrying income forward and counting a top-up', () => {
+    // 1 lakh set in July carries into August; September gets a 10k top-up.
+    const budgets = [budget('2026-07', INCOME_CATEGORY, '100000'), budget('2026-09', INCOME_CATEGORY, '110000')]
+    const expenses = [
+      expense('2026-07-05', '🍔 Food', '60000'),
+      expense('2026-08-05', '🍔 Food', '70000'),
+      expense('2026-09-05', '🍔 Food', '50000'),
+    ]
+    const { points } = savingsTrend(budgets, expenses, categories, groups, '2026-09')
+    expect(points).toEqual([
+      { date: '2026-07', value: 40000 },
+      { date: '2026-08', value: 30000 },
+      { date: '2026-09', value: 60000 },
+    ])
+  })
+
+  it('keeps a month that spent more than it earned negative', () => {
+    const budgets = [budget('2026-08', INCOME_CATEGORY, '50000')]
+    const expenses = [expense('2026-08-05', '🍔 Food', '65000')]
+    expect(savingsTrend(budgets, expenses, categories, groups, '2026-09').points[0]).toEqual({ date: '2026-08', value: -15000 })
+  })
+
+  it('starts at the first month with income, not the first expense', () => {
+    // Expenses logged in June before any income was set had nothing to save from.
+    const budgets = [budget('2026-08', INCOME_CATEGORY, '50000')]
+    const expenses = [expense('2026-06-05', '🍔 Food', '9000'), expense('2026-08-05', '🍔 Food', '10000')]
+    const result = savingsTrend(budgets, expenses, categories, groups, '2026-09')
+    expect(result.points.map((p) => p.date)).toEqual(['2026-08', '2026-09'])
+    expect(result.since).toBe('2026-08')
+  })
+
+  it('totals finished months only, since the current month is still moving', () => {
+    const budgets = [budget('2026-07', INCOME_CATEGORY, '100000')]
+    const expenses = [
+      expense('2026-07-05', '🍔 Food', '60000'),
+      expense('2026-08-05', '🍔 Food', '110000'),
+      expense('2026-09-05', '🍔 Food', '1000'),
+    ]
+    // July +40000, August -10000; September's 99000 so far is left out.
+    expect(savingsTrend(budgets, expenses, categories, groups, '2026-09').total).toBe(30000)
+  })
+
+  it('does not count a credit card payment as spending twice', () => {
+    const budgets = [budget('2026-08', INCOME_CATEGORY, '50000')]
+    const expenses = [expense('2026-08-05', '🍔 Food', '10000'), expense('2026-08-20', CREDIT_CARD_CATEGORY, '10000')]
+    expect(savingsTrend(budgets, expenses, categories, groups, '2026-09').points[0].value).toBe(40000)
+  })
+
+  it('is empty until an income is set', () => {
+    const result = savingsTrend([], [expense('2026-08-05', '🍔 Food', '10000')], categories, groups, '2026-09')
+    expect(result).toEqual({ points: [], total: 0, since: null, missingIncome: ['2026-08'] })
+  })
+
+  it('lists months with spending but no income, so the user can backfill them', () => {
+    // Past expenses logged for June and August, income only set from September.
+    const budgets = [budget('2026-09', INCOME_CATEGORY, '100000')]
+    const expenses = [
+      expense('2026-06-05', '🍔 Food', '9000'),
+      expense('2026-08-05', '🍔 Food', '8000'),
+      expense('2026-09-05', '🍔 Food', '7000'),
+    ]
+    expect(savingsTrend(budgets, expenses, categories, groups, '2026-09').missingIncome).toEqual(['2026-06', '2026-08'])
+  })
+
+  it('ignores income-only and credit card payment rows when looking for spending', () => {
+    const budgets = [budget('2026-09', INCOME_CATEGORY, '100000')]
+    const expenses = [expense('2026-07-05', CREDIT_CARD_CATEGORY, '5000'), expense('2026-07-01', INCOME_CATEGORY, '90000')]
+    expect(savingsTrend(budgets, expenses, categories, groups, '2026-09').missingIncome).toEqual([])
   })
 })

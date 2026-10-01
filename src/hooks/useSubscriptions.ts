@@ -10,7 +10,7 @@ import {
 
 export const subscriptionsKey = ['subscriptions'] as const
 const key = subscriptionsKey
-// Money Brain's brief is computed from subscriptions too, but keyed separately —
+// Ask Aviary's brief is computed from subscriptions too, but keyed separately —
 // an edit here must bust it or it shows stale numbers for up to its 15min staleTime.
 const briefKey = ['ai-brief'] as const
 

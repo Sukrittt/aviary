@@ -1,6 +1,6 @@
-export const metadata = { title: 'Delete your account — Aviary' }
+import { pageMetadata } from '@/lib/seo'
 
-const SUPPORT_EMAIL = '[your support email]'
+const SUPPORT_EMAIL = 'support@useaviary.com'
 
 export default function DeleteAccountPage() {
   return (
@@ -42,3 +42,5 @@ export default function DeleteAccountPage() {
     </article>
   )
 }
+
+export const metadata = pageMetadata('/legal/delete-account')

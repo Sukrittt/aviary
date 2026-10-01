@@ -36,7 +36,7 @@ describe('conflicting transaction drafts', () => {
     fireEvent.change(screen.getByLabelText('Description'), { target: { value: 'Dinner' } })
     fireEvent.click(screen.getByText('Save changes'))
     await screen.findByText('This transaction was updated')
-    expect(screen.getByRole('region', { name: 'This transaction was updated' })).toHaveFocus()
+    await waitFor(() => expect(screen.getByRole('region', { name: 'This transaction was updated' })).toHaveFocus())
     expect(screen.queryByText('Date')).not.toBeInTheDocument()
     fireEvent.click(screen.getByText('Use latest instead'))
     expect(screen.getByLabelText('Description')).toHaveValue('Lunch')

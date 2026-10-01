@@ -450,3 +450,23 @@ describe('scoped() field encryption', () => {
     expect(isEncrypted(ops[0].insertOne.document.item)).toBe(true)
   })
 })
+
+describe('untrusted encrypted-field inputs', () => {
+  it('round trips literal ciphertext-looking text rather than trusting its prefix', async () => {
+    process.env.FIELD_KEY_V1 = randomBytes(32).toString('base64')
+    const coll = fakeMongoCollection('expenses')
+    const view = scoped(coll as never, 'a')
+    await view.insertOne({ item: 'enc:v1:hello', notes: 'enc:unknown:abc' })
+    expect(await view.findOne({})).toMatchObject({ item: 'enc:v1:hello', notes: 'enc:unknown:abc' })
+    await view.updateOne({}, { $set: { item: 'enc:v1:world' } })
+    expect(await view.findOne({})).toMatchObject({ item: 'enc:v1:world' })
+  })
+  it('encrypts numeric bill prices and returns their numeric API type', async () => {
+    const coll = fakeMongoCollection('bill_scans')
+    const view = scoped(coll as never, 'a')
+    await view.insertOne({ items: [{ name: 'Coffee', price: 123.45 }] })
+    const stored = coll.store[0].items as { price: unknown }[]
+    expect(isEncrypted(stored[0].price)).toBe(true)
+    expect(await view.findOne({})).toMatchObject({ items: [{ name: 'Coffee', price: 123.45 }] })
+  })
+})

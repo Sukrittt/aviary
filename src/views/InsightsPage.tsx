@@ -3,6 +3,7 @@
 import { useCurrency } from "@/src/context/CurrencyContext";
 import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { AnimatePresence } from "motion/react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -14,6 +15,7 @@ import {
 import { useAppearance } from "@/components/AppearanceProvider";
 import { ExpenseSidebar } from "@/src/components/ExpenseSidebar";
 import { LoadingCaption } from "@/src/components/LoadingCaption";
+import { EditMonthIncomeScreen } from "@/src/components/MoneyScreens";
 import { CategoryBreakdown } from "@/src/components/charts/CategoryBreakdown";
 import { Heatmap, type HeatmapCell } from "@/src/components/charts/Heatmap";
 import {
@@ -46,9 +48,11 @@ import {
   leftoverFor,
   monthComparison,
   monthTotals,
+  savingsTrend,
   withDelta,
 } from "@/src/lib/monthly";
 import { EMPTY } from "@/src/lib/constants";
+import { BirdEmptyState } from "@/src/components/BirdEmptyState";
 
 const TREND_MONTHS = 12;
 const HEATMAP_WEEKS = 12;
@@ -58,6 +62,20 @@ function monthsBack(month: string, currentMonth: string) {
   const [y1, m1] = month.split("-").map(Number);
   const [y2, m2] = currentMonth.split("-").map(Number);
   return (y2 - y1) * 12 + (m2 - m1);
+}
+
+/** "Jun, Jul and Aug have spending but no income, so they aren't counted. Tap one to add it." */
+function missingIncomeNote(months: string[]) {
+  const names = months.map(monthAbbrev);
+  const list =
+    names.length > 3
+      ? `${names.length} months`
+      : names.length === 1
+        ? names[0]
+        : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
+  return months.length === 1
+    ? `${list} has spending but no income, so it isn't counted. Tap it to add income.`
+    : `${list} have spending but no income, so they aren't counted. Tap one to add income.`;
 }
 
 export function InsightsPage() {
@@ -86,6 +104,8 @@ export function InsightsPage() {
     string | null
   >(null);
   const [heatmapView, setHeatmapView] = useState<"month" | "weeks">("month");
+  const [trendView, setTrendView] = useState<"spending" | "saved">("spending");
+  const [incomeMonth, setIncomeMonth] = useState<string | null>(null);
 
   const scopeRef = useRef(`${insightMonth}|${breakdownMode}`);
   const scope = `${insightMonth}|${breakdownMode}`;
@@ -130,10 +150,38 @@ export function InsightsPage() {
   );
   const trendData: TrendPoint[] = useMemo(() => {
     const totals = monthTotals(expenses, trendMonths);
-    return trendMonths
-      .map((date) => ({ date, value: totals.get(date) ?? 0 }))
-      .filter((point) => point.value > 0);
+    const points = trendMonths.map((date) => ({ date, value: totals.get(date) ?? 0 }));
+    // Start at the first month with spend; later empty months stay as gaps.
+    const first = points.findIndex((point) => point.value > 0);
+    return first === -1 ? [] : points.slice(first);
   }, [expenses, trendMonths]);
+
+  // Full history (Insights loads every expense), so the running total is exact.
+  const savings = useMemo(
+    () => savingsTrend(budgets, expenses, categories, groups, currentMonth),
+    [budgets, expenses, categories, groups, currentMonth],
+  );
+  // Months with spending but no income stay on the chart as placeholders the
+  // user can tap to backfill, instead of silently dropping out.
+  const missingInView = useMemo(
+    () => savings.missingIncome.filter((month) => month >= trendMonths[0]),
+    [savings, trendMonths],
+  );
+  const savedData: TrendPoint[] = useMemo(
+    () =>
+      [
+        ...savings.points.filter((point) => point.date >= trendMonths[0]),
+        ...missingInView.map((date) => ({ date, value: 0, missing: true })),
+      ].sort((a, b) => a.date.localeCompare(b.date)),
+    [savings, missingInView, trendMonths],
+  );
+  // Mean of the finished months in view (the in-progress month and income
+  // placeholders would drag it down). Needs 2+ months, like the spending avg.
+  const savedBaseline = useMemo(() => {
+    const done = savedData.filter((point) => !point.missing && point.date < currentMonth);
+    return done.length >= 2 ? done.reduce((sum, point) => sum + point.value, 0) / done.length : null;
+  }, [savedData, currentMonth]);
+  const showSaved = trendView === "saved";
 
   const comparison = useMemo(
     () => monthComparison(expenses, insightMonth, today),
@@ -190,8 +238,9 @@ export function InsightsPage() {
   );
 
   const trendSummary = useMemo(() => {
-    if (trendData.length >= 3) return null;
-    if (trendData.length <= 1) return { kind: "first" as const };
+    const monthsWithSpend = trendData.filter((point) => point.value > 0).length;
+    if (monthsWithSpend >= 3) return null;
+    if (monthsWithSpend <= 1) return { kind: "first" as const };
     const previous = prevMonthKey(insightMonth);
     const totals = monthTotals(expenses, [insightMonth, previous]);
     const current = totals.get(insightMonth) ?? 0;
@@ -203,7 +252,7 @@ export function InsightsPage() {
       previous,
       deltaPct: prior > 0 ? ((current - prior) / prior) * 100 : null,
     };
-  }, [trendData.length, expenses, insightMonth]);
+  }, [trendData, expenses, insightMonth]);
 
   function matchesSelection(category: string) {
     if (!selectedBreakdownKey) return true;
@@ -424,46 +473,77 @@ export function InsightsPage() {
           ) : (
             <div className="insights-grid">
               <article
-                className={`erd-card ins-card ins-trend-card${trendSummary ? " is-strip" : ""}`}
+                className="erd-card ins-card ins-trend-card"
               >
                 <div className="ins-card-heading">
                   <div>
-                    <h2>Spending trend</h2>
-                    <p>Last 12 months</p>
+                    <h2>{showSaved ? "Saved per month" : "Spending trend"}</h2>
+                    <p>
+                      {showSaved && savings.since && savings.since < currentMonth
+                        ? `${formatCurrency(savings.total, hideAmounts)} saved since ${monthLabel(savings.since)}`
+                        : "Last 12 months"}
+                    </p>
                   </div>
-                  {trendSummary?.kind === "compare" &&
-                    trendSummary.deltaPct != null && (
-                      <span
-                        className={
-                          trendSummary.deltaPct > 0
-                            ? "ins-head-delta is-up"
-                            : "ins-head-delta is-down"
-                        }
+                  <div className="ins-head-actions">
+                    {!showSaved &&
+                      trendSummary?.kind === "compare" &&
+                      trendSummary.deltaPct != null && (
+                        <span
+                          className={
+                            trendSummary.deltaPct > 0
+                              ? "ins-head-delta is-up"
+                              : "ins-head-delta is-down"
+                          }
+                        >
+                          {trendSummary.deltaPct > 0 ? (
+                            <TrendingUp size={14} />
+                          ) : (
+                            <TrendingDown size={14} />
+                          )}
+                          {Math.abs(trendSummary.deltaPct).toFixed(0)}%
+                        </span>
+                      )}
+                    <div className="ins-segmented" aria-label="Trend view">
+                      <button
+                        type="button"
+                        className={showSaved ? "" : "is-active"}
+                        onClick={() => setTrendView("spending")}
                       >
-                        {trendSummary.deltaPct > 0 ? (
-                          <TrendingUp size={14} />
-                        ) : (
-                          <TrendingDown size={14} />
-                        )}
-                        {Math.abs(trendSummary.deltaPct).toFixed(0)}%
-                      </span>
-                    )}
+                        Spending
+                      </button>
+                      <button
+                        type="button"
+                        className={showSaved ? "is-active" : ""}
+                        onClick={() => setTrendView("saved")}
+                      >
+                        Saved
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                {trendSummary ? (
-                  <p className="ins-trend-summary">
-                    {trendSummary.kind === "first" ? (
-                      "First month tracked."
-                    ) : (
-                      <>
-                        <strong>
-                          {formatCurrency(trendSummary.current, hideAmounts)}
-                        </strong>{" "}
-                        in {monthLabel(insightMonth)} vs{" "}
-                        {formatCurrency(trendSummary.prior, hideAmounts)} in{" "}
-                        {monthLabel(trendSummary.previous)}
-                      </>
+                {showSaved ? (
+                  <>
+                    <TrendChart
+                      data={savedData}
+                      baseline={savedBaseline}
+                      selectedKey={insightMonth}
+                      hideAmounts={hideAmounts}
+                      onSelect={(month) =>
+                        missingInView.includes(month)
+                          ? setIncomeMonth(month)
+                          : setInsightMonth(month)
+                      }
+                      partialKey={currentMonth}
+                      partialNote={`${monthAbbrev(currentMonth)}, ${Number(today.slice(8, 10))} days in`}
+                      emptyNote="Set your income to see what you save each month"
+                      ariaLabel="Income minus spending over the last 12 months"
+                    />
+                    {missingInView.length > 0 && (
+                      <p className="ins-trend-missing-note">
+                        {missingIncomeNote(missingInView)}
+                      </p>
                     )}
-                  </p>
+                  </>
                 ) : (
                   <TrendChart
                     data={trendData}
@@ -488,9 +568,17 @@ export function InsightsPage() {
                           : monthLabel(insightMonth)}
                       </p>
                     </div>
+                    <Link href="/expense/transactions" className="erd-manage-btn ins-view-all">
+                      View all
+                    </Link>
                   </div>
                   {topSpends.length === 0 ? (
-                    <p className="ins-top-empty">Nothing logged yet.</p>
+                    <BirdEmptyState
+                      compact
+                      subject="expenses"
+                      title="Nothing logged yet"
+                      description="Your biggest spends will line up here once you start logging."
+                    />
                   ) : (
                     <div className="ins-top-list">
                       {topSpends.map((spend, index) => (
@@ -602,6 +690,14 @@ export function InsightsPage() {
           <span>More</span>
         </Link>
       </nav>
+      <AnimatePresence>
+        {incomeMonth && (
+          <EditMonthIncomeScreen
+            month={incomeMonth}
+            onClose={() => setIncomeMonth(null)}
+          />
+        )}
+      </AnimatePresence>
     </section>
   );
 }

@@ -12,7 +12,7 @@ import { LoadingCaption } from './LoadingCaption'
 import { AmountText, CheckIcon, cssEase, ease, type as typeScale } from './landing/mobile/kit'
 import { useBudgets, useFreshBudgets, useTransferBudget, useUpdateBudget } from '../hooks/useBudgets'
 import { useCategories } from '../hooks/useCategories'
-import { useExpenses } from '../hooks/useExpenses'
+import { useRecentExpenses } from '../hooks/useExpenses'
 import { useGroups } from '../hooks/useGroups'
 import { useHideAmounts } from '../hooks/useHideAmounts'
 import { EMPTY } from '../lib/constants'
@@ -22,7 +22,7 @@ import type { BudgetRow } from '../types'
 import {
   computeEnvelopeState,
   currentMonthKey,
-  incomeForReadyToAssign,
+  extraForReadyToAssign,
   INCOME_CATEGORY,
   monthLabel,
   prevMonthKey,
@@ -54,7 +54,7 @@ const CARD_SPRING = { type: 'spring', bounce: 0, duration: 0.35 } as const
 
 function useMoneyData() {
   const budgetsQ = useBudgets()
-  const expensesQ = useExpenses()
+  const expensesQ = useRecentExpenses()
   const categoriesQ = useCategories()
   const groupsQ = useGroups()
   return {
@@ -260,7 +260,7 @@ function HeroAmount({ amountText, onChange, children }: {
           <span aria-hidden="true">{currencySymbol}</span>
           <input aria-label="Amount" inputMode="decimal" autoComplete="off" placeholder="0"
             value={amountText}
-            style={{ width: `${Math.max(1, amountText.length)}ch`, maxWidth: '100%' }}
+            style={{ width: `calc(${Math.max(1, amountText.length)}ch + 0.2em)`, maxWidth: '100%' }}
             onChange={(e) => {
               const value = e.target.value
               if (/^\d{0,9}(\.\d{0,2})?$/.test(value)) onChange(value)
@@ -899,10 +899,149 @@ function EditAssignedBody({
   )
 }
 
+// ─── Income for a past month ─────────────────────────────────────────────────
+
+/** Opened from Insights' Saved view on a month with spending but no income, so
+ * that month can be counted. Later months carry it forward until one has its
+ * own income, same as income set anywhere else. */
+export function EditMonthIncomeScreen({ month, onClose, initial }: { month: string; onClose: () => void; initial?: number }) {
+  const budgets = useBudgets().data ?? EMPTY
+  const updateBudget = useUpdateBudget()
+  const phase = useButtonPhase()
+  const busy = phase.saving || phase.success
+  // The current month's income is the monthly figure later months carry.
+  const isCurrent = month === currentMonthKey()
+  const [amountText, setAmountText] = useState(initial ? String(initial) : '')
+  const [error, setError] = useState('')
+  const value = Number(amountText) || 0
+
+  async function submit() {
+    if (busy || value <= 0) return
+    phase.start()
+    setError('')
+    try {
+      // A zero-income row can already exist; PUT needs its version, or 0 to create one.
+      const version = budgets.find((b) => b.month === month && b.category === INCOME_CATEGORY)?.version ?? 0
+      await updateBudget.mutateAsync({ month, category: INCOME_CATEGORY, version, updates: { assigned: String(value) } })
+      phase.succeed(onClose)
+    } catch {
+      phase.fail()
+      setError("Couldn't save. Check your connection and try again.")
+    }
+  }
+
+  return (
+    <Screen title={isCurrent ? 'Monthly income' : `Income for ${monthLabel(month)}`} onClose={onClose} busy={busy} showHeader={false}>
+      <div className="money-body">
+        <div className="money-month-row">
+          <span className="money-label">{monthLabel(month).toUpperCase()}</span>
+          <button type="button" className="money-head-btn" aria-label="Close" onClick={onClose} disabled={busy}>
+            <X size={16} />
+          </button>
+        </div>
+        {isCurrent ? (
+          <SubjectCard emoji="💰" label="EDITING" name="Monthly income" detail="What comes in every month, like your salary" />
+        ) : (
+          <SubjectCard emoji="💰" label="ADDING" name="Income" detail={`What came in during ${monthLabel(month)}`} />
+        )}
+        <HeroAmount amountText={amountText} onChange={setAmountText}>
+          <p className="money-hint">{isCurrent ? 'Carries into next month until you change it' : 'Counts toward what you saved that month'}</p>
+        </HeroAmount>
+        {error !== '' && <p role="alert" className="money-error">{error}</p>}
+      </div>
+      <div className="money-foot">
+        <Cta label={phase.saving ? 'Saving…' : 'Save'} enabled={value > 0} saving={phase.saving} success={phase.success} onPress={submit} checkSize={16} />
+      </div>
+    </Screen>
+  )
+}
+
+// ─── Add income ──────────────────────────────────────────────────────────────
+
+/** Opened from "+ Add income" under the Ready to Assign hero. Adds a one-off
+ * amount to this month's income extra, so Ready to Assign goes up by exactly
+ * that much and next month doesn't repeat it. */
+export function AddIncomeScreen({ onClose }: { onClose: () => void }) {
+  const { formatCurrency } = useCurrency()
+  const [hideAmounts] = useHideAmounts()
+  const data = useMoneyData()
+  const fetchFreshBudgets = useFreshBudgets()
+  const updateBudget = useUpdateBudget()
+  const phase = useButtonPhase()
+  const busy = phase.saving || phase.success
+  const [amountText, setAmountText] = useState('')
+  const [error, setError] = useState('')
+  const value = Number(amountText) || 0
+
+  if (data.isLoading) return <Screen title="Add income" onClose={onClose} busy={false}><LoadingCaption /></Screen>
+  const month = currentMonthKey()
+  const state = computeEnvelopeState(data.budgets, data.expenses, month, data.categories, data.groups)
+
+  async function submit() {
+    if (busy || value <= 0) return
+    phase.start()
+    setError('')
+    // Adding is order-independent, so a save that lost a race to another
+    // device just re-reads the row and adds on top of it.
+    let budgets = data.budgets
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const row = budgets.find((b) => b.month === month && b.category === INCOME_CATEGORY)
+      try {
+        await updateBudget.mutateAsync({
+          month,
+          category: INCOME_CATEGORY,
+          version: row?.version ?? 0,
+          updates: { extra: String(cents((Number(row?.extra) || 0) + value)) },
+        })
+        phase.succeed(onClose)
+        return
+      } catch (err) {
+        if (attempt === 0 && err instanceof BudgetWriteError && err.status === 409) {
+          budgets = await fetchFreshBudgets().catch(() => budgets)
+          continue
+        }
+        break
+      }
+    }
+    phase.fail()
+    setError("Couldn't save. Check your connection and try again.")
+  }
+
+  const detail = state.incomeExtra === 0
+    ? `${formatCurrency(state.incomeBase, hideAmounts)} monthly`
+    : `${formatCurrency(state.incomeBase, hideAmounts)} monthly · ${formatCurrency(state.incomeExtra, hideAmounts)} extra`
+
+  return (
+    <Screen title="Add income" onClose={onClose} busy={busy} showHeader={false}>
+      <div className="money-body">
+        <div className="money-month-row">
+          <span className="money-label">{monthLabel(month).toUpperCase()}</span>
+          <button type="button" className="money-head-btn" aria-label="Close" onClick={onClose} disabled={busy}>
+            <X size={16} />
+          </button>
+        </div>
+        <SubjectCard emoji="💰" label="ADDING" name="Income" detail={detail} />
+        <HeroAmount amountText={amountText} onChange={setAmountText}>
+          <motion.p key={value > 0 ? 'impact' : 'hint'} className="money-hint" {...FADE_IN}>
+            {value > 0
+              ? `Ready to Assign ${formatCurrency(state.readyToAssign + value, hideAmounts)} · this month only`
+              : 'What came in on top of your monthly income'}
+          </motion.p>
+        </HeroAmount>
+        {error !== '' && <p role="alert" className="money-error">{error}</p>}
+      </div>
+      <div className="money-foot">
+        <Cta label={phase.saving ? 'Saving…' : 'Add'} enabled={value > 0} saving={phase.saving} success={phase.success} onPress={submit} checkSize={16} />
+      </div>
+    </Screen>
+  )
+}
+
 // ─── Edit Ready to Assign ────────────────────────────────────────────────────
 
 /** Opened by tapping the Ready to Assign hero. The user types the RTA they actually
- * have, and this month's income is backed out from it. */
+ * have, and the difference lands in this month's income extra: the monthly
+ * income stays as is, so next month doesn't inherit a one-off correction. */
 export function EditReadyToAssignScreen({ onClose }: { onClose: () => void }) {
   const data = useMoneyData()
   const fetchFreshBudgets = useFreshBudgets()
@@ -910,7 +1049,7 @@ export function EditReadyToAssignScreen({ onClose }: { onClose: () => void }) {
   const month = currentMonthKey()
   const state = computeEnvelopeState(data.budgets, data.expenses, month, data.categories, data.groups)
   const incomeBudget = data.budgets.find((b) => b.month === month && b.category === INCOME_CATEGORY)
-  // Income is saved as target RTA + what's assigned, so the assigned total must
+  // The extra is saved as target RTA + what's assigned - monthly income, so the assigned total must
   // be current at save time: another device may have assigned money since load.
   const latestTotalAssigned = async () => {
     const budgets = await fetchFreshBudgets()
@@ -920,6 +1059,7 @@ export function EditReadyToAssignScreen({ onClose }: { onClose: () => void }) {
     <EditReadyToAssignBody
       month={month}
       income={state.income}
+      incomeBase={state.incomeBase}
       totalAssigned={state.totalAssigned}
       latestTotalAssigned={latestTotalAssigned}
       readyToAssign={state.readyToAssign}
@@ -932,6 +1072,7 @@ export function EditReadyToAssignScreen({ onClose }: { onClose: () => void }) {
 function EditReadyToAssignBody({
   month,
   income,
+  incomeBase: initialIncomeBase,
   totalAssigned,
   latestTotalAssigned,
   readyToAssign,
@@ -940,6 +1081,7 @@ function EditReadyToAssignBody({
 }: {
   month: string
   income: number
+  incomeBase: number
   totalAssigned: number
   latestTotalAssigned: () => Promise<number>
   readyToAssign: number
@@ -956,11 +1098,12 @@ function EditReadyToAssignBody({
   const [amountText, setAmountText] = useState(String(Math.max(0, readyToAssign)))
   const [error, setError] = useState('')
   const [baseIncome, setBaseIncome] = useState(income)
+  const [incomeBase, setIncomeBase] = useState(initialIncomeBase)
   const [expectedVersion, setExpectedVersion] = useState(version)
   const [conflict, setConflict] = useState<BudgetRow | null>(null)
 
   const value = Number(amountText) || 0
-  const newIncome = incomeForReadyToAssign(totalAssigned, value)
+  const newIncome = cents(incomeBase + extraForReadyToAssign(incomeBase, totalAssigned, value))
   const delta = Math.round((newIncome - baseIncome) * 100) / 100
   const impactText = delta === 0 ? "Type what's left to assign" : `Income ${formatCurrency(newIncome, hideAmounts)}`
 
@@ -970,9 +1113,9 @@ function EditReadyToAssignBody({
     setError('')
     try {
       // ponytail: a transfer landing between this read and the PUT still slips through; an atomic server-side set-RTA would close it.
-      const incomeToSave = incomeForReadyToAssign(await latestTotalAssigned(), value)
-      // PUT upserts, so this creates the month's income row when it's still carried from last month.
-      await updateBudget.mutateAsync({ month, category: INCOME_CATEGORY, version: expectedVersion, updates: { assigned: String(incomeToSave) } })
+      const extra = extraForReadyToAssign(incomeBase, await latestTotalAssigned(), value)
+      // PUT upserts, so this creates the month's income row (keeping the carried monthly income) when there isn't one yet.
+      await updateBudget.mutateAsync({ month, category: INCOME_CATEGORY, version: expectedVersion, updates: { extra: String(extra) } })
       phase.succeed(onClose)
     } catch (err) {
       phase.fail()
@@ -987,7 +1130,9 @@ function EditReadyToAssignBody({
 
   function reviewLatest(keepDraft: boolean) {
     if (!conflict) return
-    const latestIncome = Number(conflict.assigned) || 0
+    const latestBase = Number(conflict.assigned) || 0
+    const latestIncome = cents(latestBase + (Number(conflict.extra) || 0))
+    setIncomeBase(latestBase)
     setBaseIncome(latestIncome)
     setExpectedVersion(conflict.version)
     if (!keepDraft) setAmountText(String(Math.max(0, latestIncome - totalAssigned)))
@@ -1011,7 +1156,7 @@ function EditReadyToAssignBody({
             heading="Ready to Assign was updated"
             description="A newer amount was saved elsewhere. Your amount is still here."
             label="Ready to Assign"
-            saved={formatCurrency((Number(conflict.assigned) || 0) - totalAssigned, hideAmounts)}
+            saved={formatCurrency((Number(conflict.assigned) || 0) + (Number(conflict.extra) || 0) - totalAssigned, hideAmounts)}
             next={formatCurrency(value, hideAmounts)}
             guidance="Continue with your amount or use the latest saved value. You can review it before saving."
             onContinue={() => reviewLatest(true)}

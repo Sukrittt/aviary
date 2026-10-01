@@ -1,6 +1,8 @@
 'use client'
 
 import { useCurrency } from '@/src/context/CurrencyContext'
+import { motion } from 'motion/react'
+import { STAGGER, popIn, staggerDelay } from '@/src/components/landing/mobile/kit'
 
 import { useState } from 'react'
 import { CategoryPicker } from '@/src/components/CategoryPicker'
@@ -60,7 +62,7 @@ export function ScanReview(s: ScanBillState) {
             <li className="scan-empty">No items match &quot;{s.query}&quot;</li>
           )}
           {s.visibleItems.map((it, i) => (
-            <li key={it.key} className="scan-item" style={{ animationDelay: `${100 + Math.min(i, 6) * 45}ms` }}>
+            <motion.li key={it.key} className="scan-item" {...popIn(staggerDelay(i, STAGGER.mount + 2 * STAGGER.block))}>
               <div className="scan-item-top">
                 <input
                   type="checkbox"
@@ -115,7 +117,7 @@ export function ScanReview(s: ScanBillState) {
                   </button>
                 </div>
               </div>
-            </li>
+            </motion.li>
           ))}
         </ul>
 

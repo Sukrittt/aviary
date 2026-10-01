@@ -3,6 +3,7 @@ import type { Envelope } from '@/src/types/expense'
 import type { CategoryDocRow, SubscriptionDocRow, SummarizeExpensesMeta } from '@/lib/ai/expenseContext'
 import { getEffectiveDueDate, renewalDays, INACTIVE_STATUSES, MONTH_NAMES, formatReadableDate } from '@/lib/subscriptions'
 import type { UserDoc } from '@/lib/users'
+import type { PaceOutlier } from './pace'
 
 /**
  * Pure decision logic for Smart Notifications: given a user's current
@@ -30,7 +31,7 @@ export const DEFAULT_ALERT_PCTS = [50, 90, 100]
 /** Sentinel level for an overspent envelope — always above any realistic alertPct, since `spentPct` is capped at 100. */
 export const OVER_LEVEL = 101
 
-export type NotificationKind = 'threshold' | 'overspent' | 'bill' | 'digest' | 'coach' | 'wrapped'
+export type NotificationKind = 'threshold' | 'overspent' | 'bill' | 'digest' | 'coach' | 'pace' | 'wrapped'
 
 export interface Notification {
   /** Dedupe key claimed in `notification_log`; stable across runs until the underlying fact changes. */
@@ -194,6 +195,35 @@ function coachNotification(
 }
 
 /**
+ * "Spending faster than usual" nudge for the category `paceOutlier` picked.
+ * Budgeted and on track to overshoot: project the month (spend so far plus
+ * the usual rest of the month) and suggest covering the gap from the envelope
+ * with the most slack. Otherwise just compare with the usual amount by now.
+ * Keyed per category per month, so one hot category pushes once.
+ */
+function paceNotification(pace: PaceOutlier, envelopes: Envelope[], prefs: NotificationPrefs, month: string): Notification | null {
+  if (!prefs.coach) return null
+  const money = (n: number) => formatMoney(Math.round(n), prefs.currencyCode)
+  const real = envelopes.filter((e) => !e.isCreditCardPayment)
+  const env = real.find((e) => e.category === pace.category)
+  const projected = pace.spent + pace.usualRest
+  const budget = env && env.assigned > 0 ? env.spent + env.available : 0
+  const base = { key: `pace:${month}:${pace.category}`, kind: 'pace' as const, title: `${pace.category} is running hot` }
+
+  if (budget <= 0 || projected <= budget) {
+    return { ...base, body: `${money(pace.spent)} so far vs ${money(pace.usual)} you usually spend by now.` }
+  }
+
+  let body = `${money(pace.spent)} so far, about ${pace.ratio}× your usual pace. At this rate you'll hit ${money(projected)} vs ${money(budget)} budgeted.`
+  const donor = real
+    .filter((e) => e.category !== pace.category && e.available > 0)
+    .sort((a, b) => b.available - a.available)[0]
+  if (!donor) return { ...base, body }
+  body += ` Move ${money(Math.min(projected - budget, donor.available))} from ${donor.category}?`
+  return { ...base, body, data: { route: '/modals/move-money', category: pace.category } }
+}
+
+/**
  * The monthly Wrapped-unlock nudge. Run as its own pass by the cron route
  * (`app/api/notifications/run`), not folded into `buildNotifications` — that
  * function's caller only fetches expense-context data for users with
@@ -221,8 +251,9 @@ export function buildNotifications(input: {
   prefs: NotificationPrefs
   today: string // 'YYYY-MM-DD'
   month: string // 'YYYY-MM'
+  pace?: PaceOutlier | null
 }): Notification[] {
-  const { envelopes, subscriptions, categories, meta, prefs, today, month } = input
+  const { envelopes, subscriptions, categories, meta, prefs, today, month, pace } = input
 
   const notifications: Notification[] = []
   if (prefs.thresholds) notifications.push(...thresholdNotifications(envelopes, categories, month, prefs.currencyCode))
@@ -238,6 +269,9 @@ export function buildNotifications(input: {
 
     const coach = coachNotification(envelopes, meta, prefs, today)
     if (coach) notifications.push(coach)
+
+    const paceNudge = pace ? paceNotification(pace, envelopes, prefs, month) : null
+    if (paceNudge) notifications.push(paceNudge)
   }
 
   return notifications

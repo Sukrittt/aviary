@@ -3,8 +3,9 @@
 import { useCurrency } from '@/src/context/CurrencyContext'
 
 import { useState } from 'react'
-import { AnimatePresence } from 'motion/react'
-import { ChevronRight, Eye, EyeOff, Receipt, X } from 'lucide-react'
+import { AnimatePresence, motion } from 'motion/react'
+import { AmountText, STAGGER, popIn, staggerDelay } from '../components/landing/mobile/kit'
+import { ChevronRight, Eye, EyeOff, X } from 'lucide-react'
 import { LoadingCaption } from '../components/LoadingCaption'
 import { Scrim, Sheet } from '../components/MotionSheet'
 import { useBillScan, useBillScans } from '../hooks/useBillScans'
@@ -14,6 +15,7 @@ import { formatDate, formatDateShort } from '../lib/format'
 import { feeDiff, groupByDivisor, isFeeLine, round2 } from '../lib/split'
 import { CHART_COLORS } from '../theme/chartColors'
 import type { BillScanItem } from '../api/bills'
+import { BirdEmptyState } from '../components/BirdEmptyState'
 
 /** `/account/bill-scans`. Twin of Mobile's account/bill-scans.tsx + modals/bill-scan.tsx. */
 export function BillScansPage() {
@@ -23,6 +25,8 @@ export function BillScansPage() {
   const [openId, setOpenId] = useState<string | null>(null)
 
   const rows = scansQ.data ?? []
+  const loading = scansQ.isLoading
+  const loadError = scansQ.isError
   const shareTotal = rows.reduce((sum, row) => sum + row.my_share, 0)
   const itemCount = rows.reduce((sum, row) => sum + row.item_count, 0)
   const labelOf = (category: string) => splitEmoji(category).text || category
@@ -38,28 +42,30 @@ export function BillScansPage() {
         <div>
           <div className="account-section-label">Bills Scanned</div>
           <div className="account-row-meta" style={{ padding: '2px 4px 0' }}>
-            {scansQ.isLoading ? 'Fetching your bills' : rows.length === 0 ? 'Nothing scanned yet' : `${rows.length} scanned`}
+            {loading ? 'Fetching your bills' : rows.length === 0 ? 'Nothing scanned yet' : `${rows.length} scanned`}
           </div>
         </div>
       </div>
 
-      {scansQ.isLoading ? (
+      {loading ? (
         <LoadingCaption feature="billScans" placement="page" />
-      ) : scansQ.isError ? (
+      ) : loadError ? (
         <div className="account-empty">
           <p className="account-row-meta">Couldn&apos;t load your scans. Check your connection and try again.</p>
         </div>
       ) : rows.length === 0 ? (
-        <div className="account-empty">
-          <Receipt size={28} aria-hidden="true" style={{ color: 'var(--erd-text3)' }} />
-          <div className="account-empty-title">No scans yet</div>
-          <p className="account-row-meta">Scan a bill from the sidebar and it&apos;ll show up here, photo and all.</p>
-        </div>
+        <BirdEmptyState
+          subject="scans"
+          title="No scans yet"
+          description="Scan a bill from the sidebar and it’ll show up here, photo and all."
+        />
       ) : (
         <>
           <div className="account-card recurring-hero">
             <div className="account-section-label">Your share logged</div>
-            <div className="recurring-hero-amount">{formatCurrency(shareTotal, hideAmounts)}</div>
+            <div className="recurring-hero-amount">
+              {hideAmounts ? formatCurrency(shareTotal, true) : <AmountText value={shareTotal} animate />}
+            </div>
             <div className="account-row-meta">
               {rows.length === 50 ? 'Latest 50 bills' : `${rows.length} ${rows.length === 1 ? 'bill' : 'bills'}`} · {itemCount}{' '}
               {itemCount === 1 ? 'item' : 'items'}
@@ -67,8 +73,8 @@ export function BillScansPage() {
           </div>
 
           <ul className="account-card recurring-list" aria-label="Scanned bills">
-            {rows.map((row) => (
-              <li key={row.id}>
+            {rows.map((row, i) => (
+              <motion.li key={row.id} {...popIn(staggerDelay(i))}>
                 <button type="button" className="account-row" onClick={() => setOpenId(row.id)}>
                   <span
                     className="recurring-dot"
@@ -84,7 +90,7 @@ export function BillScansPage() {
                   <strong>{formatCurrency(row.my_share, hideAmounts)}</strong>
                   <ChevronRight size={16} className="account-row-arrow" aria-hidden="true" />
                 </button>
-              </li>
+              </motion.li>
             ))}
           </ul>
         </>
@@ -135,7 +141,8 @@ function BillScanDetail({ id, onClose }: { id: string; onClose: () => void }) {
           <p className="account-row-meta">Couldn&apos;t find that scan.</p>
         ) : (
           <>
-            <button
+            <motion.button
+              {...popIn(STAGGER.mount)}
               type="button"
               className="bill-scan-preview-chip"
               disabled={!photoReady}
@@ -150,13 +157,13 @@ function BillScanDetail({ id, onClose }: { id: string; onClose: () => void }) {
                   : showPhoto
                     ? 'Hide bill'
                     : 'Preview bill'}
-            </button>
+            </motion.button>
             {showPhoto && scan.image_url && (
               // eslint-disable-next-line @next/next/no-img-element -- short-lived signed URL, nothing for next/image to optimize
               <img className="bill-scan-photo" src={scan.image_url} alt="Scanned bill" />
             )}
 
-            <div className="account-card bill-scan-hero">
+            <motion.div className="account-card bill-scan-hero" {...popIn(STAGGER.mount + STAGGER.item)}>
               <div className="bill-scan-heading">
                 <span className="bill-scan-icon" aria-hidden="true">
                   {category.icon || '🧾'}
@@ -196,14 +203,23 @@ function BillScanDetail({ id, onClose }: { id: string; onClose: () => void }) {
                   </dd>
                 </div>
               </dl>
-            </div>
+            </motion.div>
 
-            <div className="account-section-label" style={{ margin: '18px 0 10px' }}>
+            <motion.div
+              className="account-section-label"
+              style={{ margin: '18px 0 10px' }}
+              {...popIn(STAGGER.mount + 2 * STAGGER.item)}
+            >
               Inside the bill · {scan.items.length}
-            </div>
+            </motion.div>
             <ul className="account-card recurring-list">
               {scan.items.map((item, i) => (
-                <ItemRow key={`${item.name}-${i}`} item={item} hideAmounts={hideAmounts} />
+                <ItemRow
+                  key={`${item.name}-${i}`}
+                  item={item}
+                  hideAmounts={hideAmounts}
+                  delay={staggerDelay(i, STAGGER.mount + 2 * STAGGER.item)}
+                />
               ))}
             </ul>
           </>
@@ -213,13 +229,13 @@ function BillScanDetail({ id, onClose }: { id: string; onClose: () => void }) {
   )
 }
 
-function ItemRow({ item, hideAmounts }: { item: BillScanItem; hideAmounts: boolean }) {
+function ItemRow({ item, hideAmounts, delay }: { item: BillScanItem; hideAmounts: boolean; delay: number }) {
   const { formatCurrency } = useCurrency()
   const tone = item.divisor === null ? 'none' : item.divisor > 1 ? 'split' : 'mine'
   const label = item.divisor === null ? 'Not yours' : item.divisor > 1 ? `Split ÷${item.divisor}` : 'Yours'
 
   return (
-    <li className="account-row" style={{ cursor: 'default' }}>
+    <motion.li className="account-row" style={{ cursor: 'default' }} {...popIn(delay)}>
       <span style={{ flex: 1, minWidth: 0 }}>
         <span className="account-row-label" style={{ display: 'block' }}>
           {item.name}
@@ -230,6 +246,6 @@ function ItemRow({ item, hideAmounts }: { item: BillScanItem; hideAmounts: boole
         </span>
       </span>
       <strong>{formatCurrency(item.price, hideAmounts)}</strong>
-    </li>
+    </motion.li>
   )
 }

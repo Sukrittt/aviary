@@ -4,8 +4,9 @@ import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { ChevronsDownUp } from 'lucide-react'
 import { SpringChevron, SpringCollapse } from './SpringCollapse'
-import { categoryEmoji, groupEmoji, splitEmoji } from '../lib/emoji'
+import { avatarColorFor, categoryEmoji, groupEmoji, splitEmoji } from '../lib/emoji'
 import type { Envelope } from '../types/expense'
+import { BirdEmptyState } from './BirdEmptyState'
 
 /** Web twin of Mobile's app/(tabs)/index.tsx envelopes card (EnvelopeGroup + EnvelopeRow). */
 
@@ -32,16 +33,20 @@ function usedPctLabel(e: Envelope): string {
   return e.spent > 0 ? '∞' : '—'
 }
 
+// Local calendar day as YYYY-MM-DD (en-CA formats that way); toISOString would give the UTC day.
+const localDay = (d: Date) => d.toLocaleDateString('en-CA')
+
 function lastSpentLabel(iso: string | undefined): string {
   if (!iso) return '—'
-  const d = new Date(iso)
+  // Parse the YYYY-MM-DD as local midnight, not UTC midnight.
+  const d = new Date(`${iso.slice(0, 10)}T00:00`)
   if (Number.isNaN(d.getTime())) return '—'
   const today = new Date()
-  const todayStr = today.toISOString().slice(0, 10)
-  if (iso === todayStr) return 'Today'
+  if (iso.slice(0, 10) === localDay(today)) return 'Today'
   const yesterday = new Date(today)
   yesterday.setDate(yesterday.getDate() - 1)
-  if (iso === yesterday.toISOString().slice(0, 10)) return 'Yesterday'
+  if (iso.slice(0, 10) === localDay(yesterday)) return 'Yesterday'
+  today.setHours(0, 0, 0, 0)
   const days = Math.round((today.getTime() - d.getTime()) / 86400000)
   if (days >= 1 && days <= 31) return `${days}d ago`
   return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
@@ -73,8 +78,15 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
       if (menuPortalRef.current?.contains(target)) return
       closeMenu()
     }
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') closeMenu()
+    }
     document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
+    document.addEventListener('keydown', handleKey)
+    return () => {
+      document.removeEventListener('mousedown', handleClick)
+      document.removeEventListener('keydown', handleKey)
+    }
   }, [menuCategory])
 
   // Portaled to <body> with viewport-fixed coordinates so the menu escapes
@@ -133,10 +145,10 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
           aria-expanded={isMenuOpen}
         >
           <span className="env2-row-top">
-            <span className="env2-emoji">{isCC ? '💳' : categoryEmoji(e.category, group)}</span>
+            <span className="env2-emoji env2-category-icon" style={{ background: avatarColorFor(name) }} aria-hidden="true">{isCC ? '💳' : categoryEmoji(e.category, group)}</span>
             <span className="env2-name">{name}</span>
             <span className="env2-spent-of">
-              {money(e.spent)}/{money(e.assigned)}
+              <span className="env2-spent-label">Spent</span> {money(e.spent)} <span className="env2-spent-label">of</span> {money(e.assigned)}
             </span>
           </span>
           <span className="env-bar-track env2-bar">
@@ -148,7 +160,10 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
             </span>
           )}
         </button>
-        <span className={`env2-available ${e.isOverspent ? 'is-neg' : ''}`}>{money(e.available)}</span>
+        <span className={`env2-available ${e.isOverspent ? 'is-neg' : ''}`}>
+          <span className="env2-balance-label">{e.isOverspent ? 'Overspent' : 'Left'}</span>
+          {money(e.available)}
+        </span>
 
         {isMenuOpen && menuAnchor && createPortal(
           <div
@@ -207,14 +222,12 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
       </div>
 
       {!envelopes.length ? (
-        <div className="account-empty">
-          <span aria-hidden="true">🗂️</span>
-          <div className="account-empty-title">No envelopes yet</div>
-          <p className="account-row-meta">Envelopes hold your money for each kind of spending.</p>
-          <button type="button" className="action-button is-active erd-accent-action" onClick={onManage}>
-            Add your first envelope
-          </button>
-        </div>
+        <BirdEmptyState
+          subject="envelopes"
+          title="Your envelopes are waiting"
+          description="Give every kind of spending a place to land."
+          action={{ label: 'Add your first envelope', onClick: onManage }}
+        />
       ) : (
         <div className="env2-list">
           {grouped.map(({ label, items }) => {
@@ -228,7 +241,7 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
                     <span className="env2-emoji">{groupEmoji(label)}</span>
                     <span>{splitEmoji(label).text}</span>
                   </span>
-                  <span className={`env2-group-left ${totalAvailable < 0 ? 'is-neg' : ''}`}>{money(totalAvailable)} left</span>
+                  <span className={`env2-group-left ${totalAvailable < 0 ? 'is-neg' : ''}`}><span className="env2-balance-label">Left in group</span>{money(totalAvailable)}</span>
                 </button>
                 <SpringCollapse open={expanded}>
                   <div className="env2-group-rows">{items.map((e) => renderRow(e, label))}</div>

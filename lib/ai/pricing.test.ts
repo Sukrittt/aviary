@@ -7,7 +7,7 @@ describe('estimateCostUsd', () => {
     expect(estimateCostUsd('gemini-3.1-flash-lite', { inputTokens: 1_000_000, outputTokens: 500_000, thinkingTokens: 500_000 })).toBeCloseTo(1.75, 10)
   })
 
-  it('prices the money brain model at its published rates', () => {
+  it('prices the Ask Aviary model at its published rates', () => {
     // 1M input × $0.30 + (500k output + 500k thinking) × $2.50
     expect(estimateCostUsd('gemini-3.5-flash-lite', { inputTokens: 1_000_000, outputTokens: 500_000, thinkingTokens: 500_000 })).toBeCloseTo(2.8, 10)
   })

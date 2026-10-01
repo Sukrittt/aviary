@@ -34,6 +34,7 @@ vi.mock('@/lib/ai/expenseContext', async (importOriginal) => {
       highlights: {
         topItem: { item: 'Flight to Goa', amount: 7400, category: 'Travel', date: '2026-09-11' },
         riser: null,
+        pace: null,
         subscriptionMonthlyBurn: 1290,
         investmentTotal: 0,
       },

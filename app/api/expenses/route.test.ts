@@ -21,6 +21,11 @@ vi.mock('@/lib/notifications/instant', () => ({
   notifyThresholdCrossed: vi.fn(async () => {}),
 }))
 
+const markManualTransactionCompleteMock = vi.fn(async () => {})
+vi.mock('@/lib/users', () => ({
+  markManualTransactionComplete: markManualTransactionCompleteMock,
+}))
+
 // withTx just runs the callback with an undefined "session" — fakeCollection
 // below accepts and ignores an options argument, so this is enough to
 // exercise the same code paths without a real Mongo transaction.
@@ -57,7 +62,7 @@ function fakeCollection(base: string) {
   // resolveCategoryName) starts empty rather than undefined.
   const store = (stores[base] ??= [])
   return {
-    find: (filter: Record<string, unknown> = {}) => {
+    find: (filter: Record<string, unknown> = {}, opts?: { projection?: Record<string, number> }) => {
       let rows = store.filter((d) => matches(d, filter))
       const cursor = {
         sort: () => cursor,
@@ -69,10 +74,27 @@ function fakeCollection(base: string) {
           rows = rows.slice(0, n)
           return cursor
         },
-        toArray: async () => rows,
+        batchSize: () => cursor,
+        close: async () => {},
+        async *[Symbol.asyncIterator]() { yield* rows },
+        toArray: async () => {
+          if (opts?.projection?.amount_inr) throw new Error('Totals must not buffer the whole history')
+          return rows
+        },
       }
       return cursor
     },
+    // Only the one pipeline the route runs: latest `date` per `category`.
+    aggregate: () => ({
+      toArray: async () => {
+        const last = new Map<string, string>()
+        for (const d of store) {
+          const cat = String(d.category)
+          if (String(d.date) > (last.get(cat) ?? '')) last.set(cat, String(d.date))
+        }
+        return [...last].map(([_id, last]) => ({ _id, last }))
+      },
+    }),
     countDocuments: async (filter: Record<string, unknown> = {}) => store.filter((d) => matches(d, filter)).length,
     findOne: async (filter: Record<string, unknown>) => store.find((d) => matches(d, filter)) ?? null,
     insertOne: async (doc: Record<string, unknown>) => {
@@ -260,8 +282,8 @@ describe('GET/PUT/DELETE /api/expenses — id-based addressing (C2)', () => {
   })
 
   it('PUT updates by id even when two rows share the same timestamp/item/amount', async () => {
-    await POST(req('POST', { item: 'Coffee', amount_inr: '150', category: 'Food', timestamp: 'dup', date: '2026-06-01' }))
-    await POST(req('POST', { item: 'Coffee', amount_inr: '150', category: 'Food', timestamp: 'dup', date: '2026-06-01' }))
+    await POST(req('POST', { item: 'Coffee', amount_inr: '150', category: 'Food', timestamp: '2026-06-01T12:00:00Z', date: '2026-06-01' }))
+    await POST(req('POST', { item: 'Coffee', amount_inr: '150', category: 'Food', timestamp: '2026-06-01T12:00:00Z', date: '2026-06-01' }))
     const [first, second] = stores.expenses
 
     const res = await PUT(req('PUT', { id: second._id.toString(), category: 'Dining' }))
@@ -293,6 +315,15 @@ describe('GET/PUT/DELETE /api/expenses — id-based addressing (C2)', () => {
 })
 
 describe('POST /api/expenses — client_id idempotency (offline sync §5)', () => {
+  it('records the manual-entry milestone, but not an ordinary or scanned create', async () => {
+    await POST(req('POST', { item: 'Coffee', amount_inr: '150', category: 'Food', source: 'manual' }))
+    await POST(req('POST', { item: 'Tea', amount_inr: '50', category: 'Food' }))
+    await POST(req('POST', { item: 'Receipt item', amount_inr: '100', category: 'Food', source: 'scan' }))
+
+    expect(markManualTransactionCompleteMock).toHaveBeenCalledTimes(1)
+    expect(markManualTransactionCompleteMock).toHaveBeenCalledWith('user_a')
+  })
+
   it('a repeated client_id returns the same id, inserts nothing, and leaves the CC envelope unchanged', async () => {
     const body = {
       item: 'Flight',
@@ -361,6 +392,18 @@ describe('GET /api/expenses — server-side pagination (opt-in via ?page=)', () 
     expect(body.total).toBeUndefined()
   })
 
+  it('?from= returns only rows on/after it, plus each category\'s all-time last spend date', async () => {
+    await POST(req('POST', { item: 'Rent', amount_inr: '5000', category: 'Housing', date: '2026-01-05' }))
+    await POST(req('POST', { item: 'Old coffee', amount_inr: '100', category: 'Food', date: '2026-02-01' }))
+    await POST(req('POST', { item: 'Coffee', amount_inr: '150', category: 'Food', date: '2026-06-01' }))
+
+    const res = await GET(new Request('https://example.com/api/expenses?from=2026-05-01'))
+    const body = (await res.json()) as { rows: Array<{ item: string }>; lastSpent: Record<string, string>; total?: number }
+    expect(body.rows.map((r) => r.item)).toEqual(['Coffee'])
+    expect(body.lastSpent).toEqual({ Housing: '2026-01-05', Food: '2026-06-01' })
+    expect(body.total).toBeUndefined()
+  })
+
   it('?page=&limit= returns a page, a matching total, and pageCount', async () => {
     for (let i = 0; i < 3; i++) {
       await POST(req('POST', { item: `Item ${i}`, amount_inr: '100', category: 'Food', date: '2026-06-01' }))
@@ -407,4 +450,24 @@ describe('GET /api/expenses — server-side pagination (opt-in via ?page=)', () 
     expect(body.total).toBe(1)
     expect(body.rows[0].item).toBe('Grocery run')
   })
+})
+
+it.each([
+  { amount_inr: 'Infinity' }, { amount_inr: 'NaN' }, { amount_inr: '-1' },
+  { date: '2026-02-30' }, { date: 'not-a-date' }, { payment_method: 'not-a-method' },
+])('rejects invalid expense data before writing: %j', async (invalid) => {
+  const res = await POST(req('POST', { item: 'Coffee', amount_inr: '150', category: 'Food', ...invalid }))
+  expect(res.status).toBe(400)
+})
+
+it('rejects malformed timestamps and non-text update values before writing', async () => {
+  expect((await POST(req('POST', { item: 'Coffee', amount_inr: '1', category: 'Food', timestamp: 'junk' }))).status).toBe(400)
+  await POST(req('POST', { item: 'Coffee', amount_inr: '1', category: 'Food' }))
+  expect((await PUT(req('PUT', { id: String(stores.expenses[0]._id), new_item: { bad: true } }))).status).toBe(400)
+})
+
+it('lets an edit correct an amount to zero, matching the transaction editor', async () => {
+  await POST(req('POST', { item: 'Coffee', amount_inr: '100', category: 'Food' }))
+  const res = await PUT(req('PUT', { id: String(stores.expenses[0]._id), new_amount_inr: '0' }))
+  expect(res.status).toBe(200)
 })

@@ -1,6 +1,6 @@
 import { it, expect, vi } from 'vitest'
 import type { Mock } from 'vitest'
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
@@ -38,6 +38,6 @@ it('orders by purge date, and restore all keeps what collided', async () => {
   await userEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Restore all' }))
 
   expect(await screen.findByRole('status')).toHaveTextContent('1 restored, 1 skipped')
-  expect(within(list).queryByText('Momo')).not.toBeInTheDocument()
+  await waitFor(() => expect(within(list).queryByText('Momo')).not.toBeInTheDocument())
   expect(within(list).getByText('Pets')).toBeInTheDocument()
 })

@@ -1,6 +1,26 @@
-# Aviary (Web)
+# Aviary
 
-The web frontend for Aviary, alongside the Expo app in `Sukrittt/envelope-mobile`. A personal finance dashboard — a YNAB-style alternative for envelope budgeting, expense tracking, subscriptions, and investments. Built with Next.js and MongoDB, with WorkOS AuthKit for sign-in.
+**Open-source envelope budgeting, built for rupees.** Give every rupee a job, log a spend in three taps, and see what's safe to spend at a glance — on the web and Android.
+
+[Web app](https://ynab-replacement.vercel.app) · [Android (Google Play)](https://play.google.com/store/apps/details?id=com.sukrit04.envelope) · [Mobile repo](https://github.com/Sukrittt/aviary-mobile)
+
+<p align="center">
+  <img src="public/landing/home.jpeg" width="200" alt="Home" />
+  <img src="public/landing/envelopes.jpeg" width="200" alt="Envelopes" />
+  <img src="public/landing/log-expense.jpeg" width="200" alt="Log expense" />
+  <img src="public/landing/insights.jpeg" width="200" alt="Insights" />
+</p>
+
+## Why Aviary
+
+- **YNAB-style method, priced for India.** Envelope budgeting with Ready to Assign, rollovers, and moving money between envelopes — in INR, without a dollar subscription.
+- **Mobile-first.** A native Android app, not a PWA, sharing one account with the web dashboard.
+- **AI that knows your spending.** Ask Aviary chat, daily briefs, anomaly alerts, and a year-end Wrapped recap.
+- **Open source.** Every line that touches your financial data is public and auditable.
+
+## About this repo
+
+The web frontend and API for Aviary, alongside the Expo app in [`Sukrittt/aviary-mobile`](https://github.com/Sukrittt/aviary-mobile). A personal finance dashboard for envelope budgeting, expense tracking, subscriptions, and investments. Built with Next.js and MongoDB, with WorkOS AuthKit for sign-in.
 
 ## Highlights
 
@@ -10,7 +30,7 @@ The web frontend for Aviary, alongside the Expo app in `Sukrittt/envelope-mobile
 - **Spending insights** — daily/weekly/monthly trend charts, a heatmap, sparklines, and a subscription timeline.
 - **Subscriptions** — track services and amounts, cancel/reactivate, and see next-due dates.
 - **Investments** — holdings and net worth, market updates, contributions/withdrawals, and an event log.
-- **AI (Money Brain)** — Gemini-powered chat about your spending (`/api/ai/chat`, streamed), daily brief cards (`/api/ai/brief`), and a cron transaction scan that flags anomalies and sends push notifications.
+- **AI (Ask Aviary)** — Gemini-powered chat about your spending (`/api/ai/chat`, streamed), daily brief cards (`/api/ai/brief`), and a cron transaction scan that flags anomalies and sends push notifications.
 - **Push notifications** — Expo push tokens registered per device; weekly spend digest and AI scan alerts.
 - **Wrapped recap** — `/api/wrapped` computes the year-in-review payload the mobile Wrapped screen renders.
 - **Account & security** — email change with 6-digit verification, linked identities (Google/email), active-session list with remote revoke, delete account, data export (CSV/JSON).
@@ -90,7 +110,7 @@ resolves its owning user id (real or demo) via `lib/access.ts::getAuth`.
 | `/api/data/clear-transactions` | POST | Wipe transactions, keep envelopes |
 | `/api/wrapped` | GET | Year-in-review recap payload (mobile Wrapped screen) |
 | `/api/ai/brief` | POST | AI daily brief cards from recent spending |
-| `/api/ai/chat` | POST | Money Brain chat (streamed, rate-limited) |
+| `/api/ai/chat` | POST | Ask Aviary chat (streamed, rate-limited) |
 | `/api/notifications/register` | POST | Store an Expo push token for a device |
 | `/api/notifications/run` | GET | Cron-only (`CRON_SECRET`); Smart Notifications — envelope thresholds, bill reminders, digest, AI coaching nudge |
 | `/api/auth/google`, `/api/auth/magic-auth/*` | GET/POST | Sign-in |
@@ -160,3 +180,7 @@ Deploy to Vercel. `vercel.json` pins the framework preset to `nextjs`, so the Ne
 
 - `npm run db:migrate` — seed MongoDB from local CSVs (`scripts/migrate-to-mongo.mjs`)
 - `npm run sync:expenses` — sync the expense CSVs (`scripts/sync_expenses.mjs`)
+
+## License
+
+Copyright (c) 2026 Sukrit Saha. Licensed under the [GNU Affero General Public License v3.0](LICENSE). If you run a modified version of Aviary as a service, you must publish your source code under the same license.

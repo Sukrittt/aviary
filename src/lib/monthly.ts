@@ -175,6 +175,50 @@ export function leftoverFor(
   return state.income - state.totalSpent
 }
 
+export interface SavingsTrend {
+  /** Income minus spending, one point per month from `since` to the current month. */
+  points: { date: string; value: number }[]
+  /** Sum over finished months; the current month's figure still moves. */
+  total: number
+  /** First month with income on record, or null before any is set. */
+  since: string | null
+  /** Months with spending but no income on record (before `since`), oldest
+   *  first. Not guessed from later income: the user backfills them instead. */
+  missingIncome: string[]
+}
+
+/** What each month actually kept: its income (carried forward, top-ups
+ *  included) minus its spending. Envelopes reset every month, so this is the
+ *  only running record of money saved. Starts at the first month with income,
+ *  since spending logged before that had nothing to save from. */
+export function savingsTrend(
+  budgetRows: BudgetRow[],
+  expenseRows: ExpenseRow[],
+  categoryRows: CategoryRow[],
+  groupNames: string[],
+  currentMonth: string,
+): SavingsTrend {
+  const since = budgetRows
+    .filter((b) => b.category === INCOME_CATEGORY && Number(b.assigned) + (Number(b.extra) || 0) > 0 && b.month <= currentMonth)
+    .reduce<string | null>((first, b) => (first == null || b.month < first ? b.month : first), null)
+  const missingIncome = [
+    ...new Set(
+      expenseRows
+        .filter((e) => !isExcluded(e.category) && (Number(e.amount_inr) || 0) > 0)
+        .map((e) => e.date.slice(0, 7))
+        .filter((month) => month <= currentMonth && (since == null || month < since)),
+    ),
+  ].sort()
+  if (since == null) return { points: [], total: 0, since: null, missingIncome }
+
+  const points: SavingsTrend['points'] = []
+  for (let month = since; month <= currentMonth; month = shiftMonthKey(month, 1)) {
+    points.push({ date: month, value: leftoverFor(budgetRows, expenseRows, categoryRows, groupNames, month) })
+  }
+  const total = points.filter((p) => p.date < currentMonth).reduce((sum, p) => sum + p.value, 0)
+  return { points, total, since, missingIncome }
+}
+
 /** Total spend per month key (CC/income excluded), for the trend chart and
  *  monthComparison's baseline — the one place both read from, so they can't
  *  disagree on what a month's total was. */

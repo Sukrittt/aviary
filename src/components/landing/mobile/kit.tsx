@@ -39,6 +39,8 @@ export const MOTION_SLOW = 380
 /** Reanimated `withSpring` configs; motion runs the same spring physics. */
 export const spring = { type: 'spring', damping: 15, stiffness: 180, mass: 1 } as const
 export const springTight = { type: 'spring', damping: 18, stiffness: 260, mass: 1 } as const
+/** Mobile's `LinearTransition.springify().damping(90).stiffness(900)`: rows sliding into a gap. */
+export const LIST_SPRING = { type: 'spring', damping: 90, stiffness: 900, mass: 1 } as const
 
 /** RN `Easing` presets as cubic-bezier tuples. */
 export const ease = {
@@ -96,6 +98,43 @@ export function useShake<E extends HTMLElement>() {
   return [ref, shake] as const
 }
 
+/**
+ * Mobile's Nudge, as a hook: each time `trigger` changes while `active`, the
+ * element wiggles sideways (-7, 7, -4, 0 over 295ms) and pops to 1.05 before
+ * springing back. Points at a field the user skipped; the caller draws the
+ * highlight. Uses the independent `translate`/`scale` properties, so it never
+ * fights a CSS `transform`.
+ */
+export function useNudge<E extends HTMLElement>(trigger: number, active: boolean) {
+  const ref = useRef<E>(null)
+  useEffect(() => {
+    const el = ref.current
+    if (trigger === 0 || !active || !el || typeof el.animate !== 'function') return
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return
+    el.animate(
+      [
+        { translate: '0' },
+        { translate: '-7px', offset: 55 / 295 },
+        { translate: '7px', offset: 145 / 295 },
+        { translate: '-4px', offset: 225 / 295 },
+        { translate: '0' },
+      ],
+      { duration: 295 },
+    )
+    el.animate([{ scale: '1' }, { scale: '1.05' }], { duration: 110 }).finished.then(
+      () => el.animate([{ scale: '1.05' }, { scale: '1' }], { duration: 765, easing: NUDGE_SPRING_EASE }),
+      () => {},
+    )
+    // Only a new trigger replays it, same as Mobile.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trigger])
+  return ref
+}
+
+/** withSpring(1, { damping: 12, stiffness: 220 }), sampled as CSS linear(). */
+const NUDGE_SPRING_EASE =
+  'linear(0, 0.1, 0.33, 0.61, 0.87, 1.07, 1.2, 1.25, 1.24, 1.18, 1.12, 1.05, 0.99, 0.96, 0.94, 0.94, 0.95, 0.97, 0.98, 1, 1.01, 1.01, 1.02, 1.01, 1)'
+
 // ─── AmountText ──────────────────────────────────────────────────────────────
 
 const lastSeen = new Map<string, { text: string; value: number }>()
@@ -111,7 +150,8 @@ export function AmountText({
   style,
 }: {
   value: number
-  size: number
+  /** Omit to inherit font, size and colour from the surrounding CSS. */
+  size?: number
   color?: string
   weight?: keyof typeof font
   animate?: boolean
@@ -123,28 +163,23 @@ export function AmountText({
 
   const text = rawText ?? formatCurrency(value)
   const textStyle: CSSProperties = {
-    fontSize: size,
-    color,
-    ...font[weight],
+    ...(size === undefined ? null : { fontSize: size, color, ...font[weight], letterSpacing: -0.5 }),
     fontVariantNumeric: 'tabular-nums',
-    letterSpacing: -0.5,
     whiteSpace: 'pre',
     ...style,
   }
   if (!animate) return <span style={textStyle}>{text}</span>
-  return <Odometer text={text} value={value} size={size} textStyle={textStyle} id={id} />
+  return <Odometer text={text} value={value} textStyle={textStyle} id={id} />
 }
 
 function Odometer({
   text,
   value,
-  size,
   textStyle,
   id,
 }: {
   text: string
   value: number
-  size: number
   textStyle: CSSProperties
   id?: string
 }) {
@@ -163,13 +198,14 @@ function Odometer({
     if (id) lastSeen.set(id, { text, value })
   }, [text, value, id])
 
-  const rowHeight = Math.round(size * 1.2)
+  // em, not px, so the roll also works when the font size comes from CSS.
+  const rowHeight = 1.2
   const chars = text.split('')
   const prevChars = shown.text.split('')
   const lengthChanged = chars.length !== prevChars.length
 
   return (
-    <span aria-label={text} style={{ display: 'inline-flex', alignItems: 'flex-end' }}>
+    <span aria-label={text} style={{ ...textStyle, display: 'inline-flex', alignItems: 'flex-end' }}>
       {chars.map((ch, i) => {
         const prevIndex = prevChars.length - (chars.length - i)
         return (
@@ -178,7 +214,6 @@ function Odometer({
             oldChar={prevIndex >= 0 ? prevChars[prevIndex] : ''}
             newChar={ch}
             rowHeight={rowHeight}
-            textStyle={textStyle}
             direction={direction}
             lengthChanged={lengthChanged}
           />
@@ -194,14 +229,12 @@ function Digit({
   oldChar,
   newChar,
   rowHeight,
-  textStyle,
   direction,
   lengthChanged,
 }: {
   oldChar: string
   newChar: string
   rowHeight: number
-  textStyle: CSSProperties
   direction: 'up' | 'down'
   lengthChanged: boolean
 }) {
@@ -209,10 +242,11 @@ function Digit({
   const stack = useRef<HTMLSpanElement>(null)
   const from = direction === 'down' ? -rowHeight : 0
   const to = direction === 'down' ? 0 : -rowHeight
+  const h = `${rowHeight}em`
 
   useLayoutEffect(() => {
     if (!changed || typeof stack.current?.animate !== 'function') return
-    stack.current.animate([{ transform: `translateY(${from}px)` }, { transform: `translateY(${to}px)` }], {
+    stack.current.animate([{ transform: `translateY(${from}em)` }, { transform: `translateY(${to}em)` }], {
       duration: MOTION_SLOW,
       easing: cssEase(ease.outCubic),
       fill: 'forwards',
@@ -221,12 +255,12 @@ function Digit({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [oldChar, newChar, direction])
 
-  const charStyle: CSSProperties = { ...textStyle, display: 'block', height: rowHeight, lineHeight: `${rowHeight}px` }
+  const charStyle: CSSProperties = { display: 'block', height: h, lineHeight: h }
   // Keyed so a finished roll's fill-forwards transform can never be inherited
   // by a static glyph (or a later roll) that React would otherwise reuse the node for.
   if (!changed) {
     return (
-      <span style={{ height: rowHeight, display: 'block' }}>
+      <span style={{ height: h, display: 'block' }}>
         <span key="static" style={charStyle}>
           {newChar}
         </span>
@@ -234,11 +268,14 @@ function Digit({
     )
   }
   return (
-    <span style={{ height: rowHeight, overflow: 'hidden', display: 'block' }}>
+    // Clip only above and below, where the other digit scrolls past. Clipping
+    // the sides too shaved bold glyphs that overhang their slot under
+    // negative letter-spacing (Home's Ready to Assign).
+    <span style={{ height: h, clipPath: 'inset(0 -0.25em)', display: 'block' }}>
       <span
         key={`${oldChar}${newChar}${direction}`}
         ref={stack}
-        style={{ display: 'block', transform: `translateY(${to}px)` }}
+        style={{ display: 'block', transform: `translateY(${to}em)` }}
       >
         <span style={charStyle}>{direction === 'down' ? newChar : oldChar}</span>
         <span style={charStyle}>{direction === 'down' ? oldChar : newChar}</span>
@@ -514,6 +551,19 @@ export function CheckIcon({ color, size = 20 }: { color: string; size?: number }
 }
 
 const POP_SPRING = { type: 'spring', mass: 0.7, damping: 12, stiffness: 160 } as const
+
+/** Mobile's list reveal: first item at 100ms, then 45ms apart, capped at the 7th. */
+export const STAGGER = { mount: 100, block: 90, item: 45, cap: 6 } as const
+export const staggerDelay = (index: number, base: number = STAGGER.mount) =>
+  base + Math.min(index, STAGGER.cap) * STAGGER.item
+
+/** PopIn as props, for spreading onto any motion element (`<motion.li {...popIn(ms)}>`). */
+export const popIn = (delay: number) =>
+  ({
+    initial: { opacity: 0, scale: 0.92, y: 6 },
+    animate: { opacity: 1, scale: 1, y: 0 },
+    transition: { ...POP_SPRING, delay: delay / 1000 },
+  }) as const
 
 /** PopIn: mount-only fade + scale + rise on a bouncy spring. */
 export function PopIn({

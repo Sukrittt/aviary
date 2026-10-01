@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { MoneyLesson } from './MoneyLesson'
+import { flightAt, MoneyLesson } from './MoneyLesson'
 
 afterEach(() => vi.useRealTimers())
 describe('budgeting lesson controls', () => {
@@ -32,5 +32,12 @@ describe('budgeting lesson controls', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
     act(() => vi.advanceTimersByTime(10000))
     expect(screen.getByRole('status')).toHaveTextContent('₹1,000 unassigned.')
+  })
+  it('bird flight curve starts at the old perch and ends on the new one', () => {
+    const s: [number, number] = [300, -120], c: [number, number] = [135, -190]
+    expect(flightAt(0, s, c)).toMatchObject({ x: 300, y: -120 })
+    const end = flightAt(1, s, c)
+    expect(Math.abs(end.x) + Math.abs(end.y)).toBe(0)
+    expect(flightAt(0.3, s, c).y).toBeLessThan(-120) // climbs before gliding down
   })
 })

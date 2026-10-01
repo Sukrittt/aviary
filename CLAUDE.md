@@ -50,3 +50,5 @@ Write test first (red-green-refactor) when touching:
 - any bug fix (failing test reproducing bug, then fix)
 
 Everything else (UI, screens, navigation, styling, CRUD scaffolding): feature first, tests after, or skip if trivial.
+
+When a step doesn't need my input, keep going. Put status notes in the same message as the next action. Stop and ask only when you can't continue without me, before anything destructive (deleting data, force pushing, or changing anything outside this repository).

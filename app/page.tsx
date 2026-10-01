@@ -1,11 +1,27 @@
-import type { Metadata } from 'next'
+import { pageMetadata, pages, SITE_URL } from '@/lib/seo'
 import { LandingPage } from '../src/views/LandingPage'
 
-export const metadata: Metadata = {
-  title: 'Aviary · Envelope budgeting in your currency',
-  description: 'Give your money a job before you spend it. Free, open source envelope budgeting in your currency.',
-}
 
 export default function Home() {
-  return <LandingPage />
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: 'Aviary',
+    applicationCategory: 'FinanceApplication',
+    operatingSystem: 'Android, Web',
+    url: SITE_URL.href,
+    image: new URL('/icon.png', SITE_URL).href,
+    description: pages['/'].description,
+    downloadUrl: 'https://play.google.com/store/apps/details?id=com.sukrit04.envelope',
+  }
+
+  return <>
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, '\\u003c') }}
+    />
+    <LandingPage />
+  </>
 }
+
+export const metadata = pageMetadata('/')

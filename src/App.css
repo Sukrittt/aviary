@@ -61,6 +61,15 @@
   --dur-fast: 120ms;
   --dur-med: 180ms;
   --dur-slow: 240ms;
+  /* Mobile's press spring (damping 15, stiffness 180, mass 1), sampled as linear(). */
+  --ease-press: linear(0, 0.07, 0.236, 0.441, 0.644, 0.819, 0.954, 1.046, 1.099, 1.119, 1.116, 1.1, 1.076, 1.051, 1.029, 1.011, 0.998, 0.99, 0.986, 0.986, 0.987, 0.99, 0.993, 0.996, 1);
+  --dur-press: 725ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-press: 0ms;
+  }
 }
 
 * {
@@ -1299,7 +1308,8 @@ input[type="date"],
     background-color var(--dur-fast) var(--ease-standard),
     color var(--dur-fast) var(--ease-standard),
     border-color var(--dur-fast) var(--ease-standard),
-    transform var(--dur-fast) var(--ease-standard);
+    transform var(--dur-fast) var(--ease-standard),
+    scale var(--dur-press) var(--ease-press);
 }
 
 /* Pointer-down feedback + touch responsiveness for the rest of the
@@ -1342,7 +1352,44 @@ input[type="date"]:hover {
 
 .action-button:active,
 .inline-link:active {
-  transform: scale(0.96);
+  scale: 0.96;
+}
+
+/* Mobile's Button: every CTA springs to 0.96 while pressed. `scale`, not
+   `transform`, so hover lifts keep working underneath. */
+.account-pill-btn,
+.account-danger-btn,
+.account-compact-btn,
+.account-confirm-cancel,
+.account-signout-btn,
+.setup-cta,
+.setup-split-btn,
+.setup-add-pill,
+.scan-link-btn,
+.erd-accent-action,
+.txn-review-primary,
+.txn-review-secondary,
+.subp-add-button,
+.tour-try-real,
+.tour-skip {
+  transition: scale var(--dur-press) var(--ease-press);
+}
+.account-pill-btn:active:not(:disabled),
+.account-danger-btn:active:not(:disabled),
+.account-compact-btn:active:not(:disabled),
+.account-confirm-cancel:active:not(:disabled),
+.account-signout-btn:active:not(:disabled),
+.setup-cta:active:not(:disabled),
+.setup-split-btn:active:not(:disabled),
+.setup-add-pill:active:not(:disabled),
+.scan-link-btn:active:not(:disabled),
+.erd-accent-action:active:not(:disabled),
+.txn-review-primary:active:not(:disabled),
+.txn-review-secondary:active:not(:disabled),
+.subp-add-button:active:not(:disabled),
+.tour-try-real:active:not(:disabled),
+.tour-skip:active:not(:disabled) {
+  scale: 0.96;
 }
 
 .module-pill:active,
@@ -2635,95 +2682,6 @@ input[type="date"]:hover {
 .rta-ok {
   font-size: var(--fs-12, 0.75rem);
   color: var(--ok-fg, #5ee6a8);
-}
-
-.rollover-banner {
-  border-radius: 0;
-  border: 1px solid var(--expense-border, var(--border));
-  border-left: 4px solid var(--chart-2, #58b9ff);
-  background: var(--expense-panel, var(--panel));
-  padding: 16px 20px;
-}
-
-.rollover-banner-main {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.rollover-banner-text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.rollover-banner-title {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--expense-text, var(--text));
-}
-
-.rollover-banner-sub {
-  font-size: var(--fs-13, 0.8125rem);
-  color: var(--expense-muted, var(--muted));
-}
-
-.rollover-banner-fields {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.rollover-banner-field {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: var(--fs-13, 0.8125rem);
-  color: var(--expense-text, var(--text));
-}
-
-.rollover-banner-input {
-  width: 140px;
-  min-height: 28px;
-  font-size: var(--fs-13, 0.8125rem);
-  border: 1px solid var(--expense-border, var(--border));
-  border-radius: var(--radius-control);
-  background: var(--input-bg, var(--bg));
-  color: var(--expense-text, var(--text));
-  padding: 0 8px;
-}
-
-.rollover-banner-hint {
-  font-size: var(--fs-11, 0.6875rem);
-  color: var(--expense-muted, var(--muted));
-}
-
-.rollover-banner-check {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: var(--fs-13, 0.8125rem);
-  color: var(--expense-text, var(--text));
-  cursor: pointer;
-}
-
-.rollover-banner-check input {
-  accent-color: var(--chart-2, #58b9ff);
-}
-
-.rollover-banner-preview {
-  font-size: var(--fs-12, 0.75rem);
-  color: var(--expense-muted, var(--muted));
-}
-
-.rollover-banner-preview-label {
-  color: var(--expense-text, var(--text));
-}
-
-.rollover-banner-actions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
 }
 
 .rta-breakdown {
@@ -4505,25 +4463,6 @@ summary:focus-visible,
   .category-manager-modal {
     max-width: calc(100vw - 32px);
     max-height: calc(100vh - 80px);
-  }
-
-  /* Rollover banner mobile */
-  .rollover-banner {
-    padding: 12px;
-  }
-
-  .rollover-banner-main {
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .rollover-banner-actions {
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .rollover-banner-actions button {
-    width: 100%;
   }
 
   /* App header mobile */

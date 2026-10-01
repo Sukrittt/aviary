@@ -74,7 +74,7 @@ describe('RecurringPage', () => {
       ),
     })
 
-    expect(await screen.findByText('₹1,300')).toBeInTheDocument()
+    expect(await screen.findByLabelText('₹1,300')).toBeInTheDocument()
     expect(screen.getByText('2 active')).toBeInTheDocument()
     expect(screen.getByRole('list', { name: 'Paused and finished' })).toHaveTextContent('Maid')
     expect(screen.getByRole('list', { name: 'Paused and finished' })).toHaveTextContent('Paused')

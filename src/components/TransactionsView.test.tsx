@@ -22,6 +22,17 @@ it('opens the transaction actions when the row is clicked', () => {
   expect(screen.getByText('Delete transaction')).toBeInTheDocument()
 })
 
+it('opens transaction deletion in a modal dialog instead of the row menu', () => {
+  render(<TransactionsView />)
+  fireEvent.click(screen.getByRole('button', { name: 'Open actions for Lunch' }))
+  fireEvent.click(screen.getByText('Delete transaction'))
+
+  expect(screen.getByRole('alertdialog', { name: 'Delete this transaction?' })).toBeInTheDocument()
+  expect(screen.getByText('“Lunch” will move to Archive. You can restore it for 7 days.')).toBeInTheDocument()
+  expect(screen.queryByText(/can't be undone/i)).not.toBeInTheDocument()
+  expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+})
+
 it('separates filters from date-grouped transaction rows', () => {
   render(<TransactionsView />)
 
@@ -83,4 +94,27 @@ it('deletes the newer duplicate with a saving state and a tick, then closes', as
   // The refetch has already dropped the pair; the tick still plays on it.
   duplicates.data = []
   await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument(), { timeout: 2000 })
+})
+
+it('drops a deleted row right after its sweep, without waiting for the request', async () => {
+  // A request that never settles: the row must still leave the list.
+  remove.mockReset().mockReturnValue(new Promise(() => {}))
+  render(<TransactionsView />)
+  fireEvent.click(screen.getByRole('button', { name: 'Open actions for Lunch' }))
+  fireEvent.click(screen.getByText('Delete transaction'))
+  fireEvent.click(screen.getByText('Remove'))
+
+  await waitFor(() => expect(remove).toHaveBeenCalledOnce())
+  await waitFor(() => expect(screen.queryByText('Lunch')).not.toBeInTheDocument())
+})
+
+it('puts a row back when its delete fails', async () => {
+  remove.mockReset().mockRejectedValueOnce(new Error('offline'))
+  render(<TransactionsView />)
+  fireEvent.click(screen.getByRole('button', { name: 'Open actions for Lunch' }))
+  fireEvent.click(screen.getByText('Delete transaction'))
+  fireEvent.click(screen.getByText('Remove'))
+
+  await waitFor(() => expect(remove).toHaveBeenCalledOnce())
+  expect(await screen.findByRole('button', { name: 'Open actions for Lunch' })).toBeInTheDocument()
 })

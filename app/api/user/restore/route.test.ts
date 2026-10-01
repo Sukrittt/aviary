@@ -4,9 +4,9 @@ vi.mock('@/lib/access', () => ({
   getAuth: vi.fn(async () => ({ userId: 'user_a', readOnly: false, sessionId: null })),
 }))
 
-const restoreMock = vi.fn(async () => ({ matchedCount: 1 }))
-vi.mock('@/lib/scoped', () => ({
-  scoped: vi.fn(() => ({ restore: restoreMock })),
+const restoreMock = vi.fn(async () => {})
+vi.mock('@/lib/accountLifecycle', async importOriginal => ({
+  ...await importOriginal<typeof import('@/lib/accountLifecycle')>(), restoreAccount: restoreMock,
 }))
 
 const usersFindOneMock = vi.fn(async (): Promise<{ deleted_at: string | null }> => ({ deleted_at: '2026-01-01T00:00:00+05:30' }))
@@ -38,7 +38,6 @@ describe('POST /api/user/restore', () => {
   it('restores every collection and clears deleted_at on the account when scheduled for deletion', async () => {
     const res = await POST(new Request('https://example.com/api/user/restore', { method: 'POST' }))
     expect(res.status).toBe(200)
-    expect(restoreMock).toHaveBeenCalledWith({})
-    expect(usersUpdateOneMock).toHaveBeenCalledWith({ _id: 'user_a' }, { $set: { deleted_at: null } })
+    expect(restoreMock).toHaveBeenCalledWith(expect.anything(), 'user_a')
   })
 })

@@ -353,7 +353,8 @@
   cursor: pointer;
   transition:
     transform 0.15s ease,
-    background 0.15s ease;
+    background 0.15s ease,
+    scale var(--dur-press) var(--ease-press);
 }
 .erd-side-cta.is-secondary {
   background: var(--erd-sidebar-box);
@@ -364,7 +365,7 @@
   transform: translateY(-1px);
 }
 .erd-side-cta:active {
-  transform: scale(0.97);
+  scale: 0.96;
 }
 .erd-sidebar.is-collapsed .erd-side-cta {
   padding: 0;
@@ -409,6 +410,9 @@
 .erd-nav-item svg {
   flex-shrink: 0;
 }
+.erd-nav-item:not(.is-active):not(:hover) svg {
+  color: var(--erd-text3);
+}
 .erd-nav-item:hover {
   background: var(--erd-border);
   color: var(--erd-text);
@@ -426,6 +430,12 @@
   margin-top: auto;
   padding-top: 12px;
   border-top: 1px solid var(--erd-border);
+}
+
+.erd-mobile-topbar,
+.erd-mobile-scrim,
+.erd-mobile-close-btn {
+  display: none;
 }
 
 /* ── Main column ────────────────────────────────────────────── */
@@ -480,18 +490,58 @@
   gap: 20px;
   min-width: 0;
 }
+.erd-home-main { position: relative; }
+.erd-home-main > .home-get-started-slot { flex-shrink: 0; overflow: hidden; }
 @media (min-width: 1280px) {
   .erd-home {
-    grid-template-columns: minmax(0, 1fr) clamp(340px, 28%, 440px);
+    grid-template-columns: minmax(0, 1fr) clamp(300px, 27%, 400px);
   }
+  /* Dashboard fits the viewport: columns take the full height and the
+     envelopes list, subscriptions and recent activity scroll inside their
+     own cards instead of the page. */
+  .erd-content:has(> .erd-home) {
+    padding-bottom: 32px;
+  }
+  .erd-home {
+    min-height: 0;
+    grid-template-rows: minmax(0, 1fr);
+    align-items: stretch;
+  }
+  .erd-home-main,
   .erd-home-rail {
-    position: sticky;
-    top: 0;
+    min-height: 0;
   }
-  .erd-subs-panel {
+  /* The onboarding runway keeps its natural height, like Mobile's Home.
+     Scroll the page while it is present so no step is squeezed out. */
+  .erd-home[data-get-started="true"] {
+    flex: 0 0 auto;
+    grid-template-rows: auto;
+    align-items: start;
+  }
+  .erd-envelopes-panel {
     display: flex;
     flex-direction: column;
-    max-height: calc(100dvh - 40px);
+    flex: 1 1 0;
+    min-height: 240px;
+  }
+  .erd-envelopes-panel .env2-list {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    /* Room for rows' negative-margin hover backgrounds, which the scroll
+       container would otherwise clip. */
+    margin-inline: -8px;
+    padding-inline: 8px;
+  }
+  .erd-subs-panel,
+  .home-recent {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .home-recent .ins-top-list {
+    min-height: 0;
+    overflow-y: auto;
   }
   .subp-scroll {
     flex: 1;
@@ -500,13 +550,31 @@
   }
 }
 
+.erd-card.erd-home-hero-card {
+  position: relative;
+  background: none;
+  border: 0;
+  box-shadow: none;
+}
 .erd-home-hero {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  padding: 28px 0 20px;
+  padding: 8px 0;
   text-align: center;
+}
+/* Doubled class: .env-action-wrap's position: relative is later in the file. */
+.expense-redesign .env-action-wrap.erd-home-hero-menu {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+}
+.expense-redesign .erd-home-hero-menu .env-menu-trigger {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--erd-border-strong);
+  color: var(--erd-text);
 }
 .erd-home-hero-label {
   font-size: 11px;
@@ -539,17 +607,13 @@
   gap: 4px;
   padding: 14px;
   border-radius: var(--tk-radius-lg);
-  color: var(--erd-text2);
+  background: var(--erd-card-solid);
+  border: 1px solid var(--erd-border);
+  box-shadow: none;
+  color: var(--erd-text);
   font-size: 13px;
   font-weight: 600;
   text-decoration: none;
-  transition:
-    background 0.15s ease,
-    color 0.15s ease;
-}
-.erd-home-insights-link:hover {
-  background: var(--erd-border);
-  color: var(--erd-text);
 }
 
 .env2-head {
@@ -570,7 +634,7 @@
   border-radius: 50%;
   border: none;
   background: none;
-  color: var(--gold-ink);
+  color: var(--erd-text3);
   cursor: pointer;
 }
 .env2-icon-btn:hover {
@@ -585,15 +649,15 @@
   margin-top: 6px;
 }
 .env2-group {
+  padding-block: 6px;
   border-top: 1px solid var(--erd-border);
-  padding-block: 8px;
 }
-.env2-group-head {
+.expense-redesign .env2-group-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 6px 4px;
+  padding: 4px 8px 4px 4px;
   border: none;
   border-radius: 10px;
   background: none;
@@ -615,6 +679,8 @@
   color: var(--erd-text2);
 }
 .env2-group-left {
+  flex-shrink: 0;
+  text-align: right;
   font-size: 13px;
   font-weight: 600;
   color: var(--mint);
@@ -627,22 +693,26 @@
 .env2-group-rows {
   margin-left: 11px;
   padding-left: 14px;
-  padding-bottom: 6px;
   border-left: 1px solid var(--erd-border);
 }
 .env2-row {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 10px 8px;
+  gap: 10px;
+  padding: 7px 8px;
   margin-left: -8px;
-  border-radius: 12px;
+  border-radius: 0;
   transition: background 0.15s ease;
 }
-.env2-row + .env2-row {
+.env2-group-rows .env2-row {
+  margin-left: -14px;
+  padding-left: 22px;
   border-top: 1px solid var(--erd-border);
-  border-radius: 0 0 12px 12px;
+  border-radius: 0;
+}
+.env2-group-rows .env2-row:first-child {
+  border-top: none;
 }
 .env2-row:hover,
 .env2-row.is-open {
@@ -652,7 +722,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 2px;
   min-width: 0;
   padding: 0;
   border: none;
@@ -681,6 +751,7 @@
   text-overflow: ellipsis;
 }
 .env2-spent-of {
+  align-self: flex-end;
   margin-left: auto;
   font-size: 13px;
   font-weight: 500;
@@ -696,7 +767,7 @@
 .env2-meta {
   font-size: 11px;
   font-weight: 500;
-  color: var(--erd-text3);
+  color: var(--erd-text2);
 }
 .env2-available {
   min-width: 84px;
@@ -705,6 +776,37 @@
   font-weight: 600;
   color: var(--mint);
   font-variant-numeric: tabular-nums;
+}
+.env2-category-icon {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 10px;
+}
+.env2-spent-label {
+  font-size: 11px;
+}
+.env2-balance-label {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--erd-text2);
+  font-size: 10px;
+  font-weight: 500;
+}
+.env2-row-main:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+@media (max-width: 600px) {
+  .env2-row { gap: 8px; }
+  .env2-row-top { flex-wrap: wrap; }
+  .env2-spent-of {
+    flex-basis: 100%;
+    margin-left: 0;
+    font-size: 11px;
+  }
+  .env2-available { min-width: 64px; font-size: 13px; }
 }
 .env2-menu-title {
   padding: 8px 12px 4px;
@@ -723,6 +825,69 @@
   font-weight: 700;
   letter-spacing: 0.06em;
   color: var(--gold-ink);
+}
+
+/* ── Reveal on load ─────────────────────────────────────────────
+   Home blocks rise in one after another, then envelope groups, then
+   the bars fill. `backwards` fill so nothing is pinned after the run
+   (hover transforms etc. still apply). */
+@keyframes erd-barFill {
+  from {
+    transform: scaleX(0);
+  }
+}
+.erd-home-main > *,
+.erd-home-rail > *,
+.env2-group,
+.env-page > .env-group-list > .env-group {
+  animation: erd-fadeUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+.erd-home-main > :nth-child(2),
+.erd-home-rail > :nth-child(1) {
+  animation-delay: 0.06s;
+}
+.erd-home-main > :nth-child(3),
+.erd-home-rail > :nth-child(2) {
+  animation-delay: 0.12s;
+}
+.erd-home-main > :nth-child(n + 4) {
+  animation-delay: 0.18s;
+}
+/* Motion owns these transforms so the onboarding insert/remove can move
+   its siblings without the dashboard entrance animation fighting it. */
+.erd-home-main > .home-get-started-slot,
+.erd-home-main > .erd-envelopes-panel,
+.erd-home-main > .erd-home-insights-link {
+  animation: none;
+}
+.env2-group:nth-child(1),
+.env-group:nth-child(1) {
+  animation-delay: 0.14s;
+}
+.env2-group:nth-child(2),
+.env-group:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.env2-group:nth-child(3),
+.env-group:nth-child(3) {
+  animation-delay: 0.26s;
+}
+.env2-group:nth-child(n + 4),
+.env-group:nth-child(n + 4) {
+  animation-delay: 0.32s;
+}
+.env2-bar .env-bar-fill {
+  transform-origin: left;
+  animation: erd-barFill 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.35s backwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .erd-home-main > *,
+  .erd-home-rail > *,
+  .env2-group,
+  .env-page > .env-group-list > .env-group,
+  .env2-bar .env-bar-fill {
+    animation: none;
+  }
 }
 
 .erd-dashboard-link-row {
@@ -758,6 +923,11 @@
   border: 1px solid var(--erd-border);
   border-radius: var(--tk-radius-lg);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.erd-subs-panel,
+.home-recent {
+  box-shadow: none;
 }
 
 /* ── Hero row ───────────────────────────────────────────────── */
@@ -897,7 +1067,9 @@
   font-size: 13px;
   cursor: pointer;
   font-family: var(--font-fredoka);
-  transition: transform 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    scale var(--dur-press) var(--ease-press);
   white-space: nowrap;
   flex: 0 0 auto;
 }
@@ -905,7 +1077,7 @@
   transform: translateY(-2px);
 }
 .erd-log-btn:active {
-  transform: scale(0.95);
+  scale: 0.96;
 }
 .erd-custom-dates {
   display: flex;
@@ -1191,7 +1363,8 @@
 /* ── Envelopes ──────────────────────────────────────────────── */
 
 .erd-envelopes-panel {
-  padding: 24px 28px 12px;
+  padding: 20px 24px 10px;
+  box-shadow: none;
 }
 .erd-panel-head-sub {
   font-size: 12px;
@@ -1302,6 +1475,12 @@
   min-width: 0;
   padding-right: 14px;
 }
+.env-cat-actions {
+  margin-left: 14px;
+  padding-left: 14px;
+  border-left: 1px solid var(--erd-border);
+}
+
 .env-cat-name {
   display: flex;
   align-items: center;
@@ -1846,12 +2025,6 @@
   color: var(--erd-text3);
   cursor: pointer;
 }
-.subp-section-head svg {
-  transition: transform 0.2s;
-}
-.subp-section-head.is-open svg {
-  transform: rotate(90deg);
-}
 
 /* ── Mobile (header / stats / tabbar) ───────────────────────── */
 
@@ -1869,22 +2042,148 @@
   .expense-redesign {
     display: block;
   }
+
+  .erd-mobile-topbar {
+    position: fixed;
+    inset: max(10px, env(safe-area-inset-top)) 12px auto;
+    z-index: 120;
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    min-height: 52px;
+    padding: 5px 7px;
+    border: 1px solid var(--erd-border-strong);
+    border-radius: 17px;
+    background: color-mix(in oklab, var(--erd-bg) 86%, transparent);
+    box-shadow: 0 14px 34px -22px oklch(0% 0 0 / 0.65);
+    backdrop-filter: blur(22px) saturate(1.2);
+  }
+  .erd-mobile-menu-btn,
+  .erd-mobile-close-btn {
+    width: 40px;
+    height: 40px;
+    place-items: center;
+    border: 1px solid var(--erd-border);
+    border-radius: 12px;
+    background: var(--erd-sidebar-box);
+    color: var(--erd-text);
+    cursor: pointer;
+  }
+  .erd-mobile-menu-btn {
+    display: grid;
+  }
+  .erd-mobile-brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: max-content;
+    color: var(--erd-text);
+    font: 700 18px/1 var(--font-fredoka);
+    letter-spacing: -0.02em;
+    text-decoration: none;
+  }
+  .erd-mobile-page {
+    overflow: hidden;
+    max-width: 108px;
+    padding: 6px 10px;
+    border: 1px solid var(--erd-border);
+    border-radius: 999px;
+    color: var(--erd-text2);
+    background: var(--erd-pill-bg);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .erd-mobile-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 128;
+    display: block;
+    visibility: hidden;
+    border: 0;
+    padding: 0;
+    background: oklch(0% 0 0 / 0.46);
+    opacity: 0;
+    cursor: default;
+    transition:
+      opacity 180ms ease,
+      visibility 180ms step-end;
+  }
+  .erd-mobile-scrim.is-open {
+    visibility: visible;
+    opacity: 1;
+    transition:
+      opacity 180ms ease,
+      visibility 0s;
+  }
+
   .erd-sidebar {
+    position: fixed;
+    inset: max(10px, env(safe-area-inset-top)) auto max(10px, env(safe-area-inset-bottom)) 10px;
+    z-index: 130;
+    display: flex;
+    visibility: hidden;
+    width: min(330px, calc(100vw - 20px));
+    height: auto;
+    padding: 16px 14px;
+    border: 1px solid var(--erd-border-strong);
+    border-radius: 22px;
+    background: color-mix(in oklab, var(--erd-bg) 96%, var(--erd-card));
+    box-shadow: 0 28px 80px -24px oklch(0% 0 0 / 0.8);
+    opacity: 0;
+    transform: translateX(calc(-100% - 24px));
+    transition:
+      transform 240ms cubic-bezier(0.16, 1, 0.3, 1),
+      opacity 180ms ease,
+      visibility 240ms step-end;
+  }
+  .erd-sidebar.is-mobile-open {
+    visibility: visible;
+    opacity: 1;
+    transform: translateX(0);
+    transition:
+      transform 240ms cubic-bezier(0.16, 1, 0.3, 1),
+      opacity 180ms ease,
+      visibility 0s;
+  }
+  .erd-sidebar.is-collapsed {
+    width: min(330px, calc(100vw - 20px));
+  }
+  .erd-sidebar.is-collapsed .erd-side-label {
+    display: inline;
+  }
+  .erd-sidebar.is-collapsed .erd-brand {
+    flex-direction: row;
+    padding-left: 6px;
+    gap: 6px;
+  }
+  .erd-sidebar.is-collapsed .erd-side-cta {
+    padding: 0 14px;
+  }
+  .erd-sidebar.is-collapsed .erd-nav-item {
+    justify-content: flex-start;
+    padding: 0 12px;
+  }
+  .erd-collapse-btn {
     display: none;
   }
+  .erd-mobile-close-btn {
+    display: grid;
+  }
+  .erd-brand {
+    padding-right: 1px;
+  }
   .erd-main {
-    padding: 0 0 110px;
+    padding: calc(72px + env(safe-area-inset-top)) 0 0;
   }
 
   .erd-mobile-header {
-    display: block;
-    position: sticky;
-    top: 0;
-    z-index: 40;
-    padding: 18px 18px 14px;
-    background: var(--erd-header-bg);
-    backdrop-filter: blur(20px);
-    border-bottom: 1px solid var(--erd-border);
+    display: none !important;
   }
   .erd-mobile-greet {
     font-size: 20px;
@@ -1958,9 +2257,6 @@
     order: 1;
     flex-direction: column;
   }
-  .expense-redesign .rollover-banner {
-    order: 2;
-  }
   .erd-scopebar {
     order: 3;
   }
@@ -1988,19 +2284,7 @@
   }
 
   .erd-tabbar {
-    display: flex;
-    position: fixed;
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: min(428px, 100vw);
-    justify-content: space-around;
-    align-items: center;
-    padding: 10px 8px calc(10px + env(safe-area-inset-bottom));
-    background: var(--erd-tabbar-bg);
-    backdrop-filter: blur(24px);
-    border-top: 1px solid var(--erd-border-strong);
-    z-index: 80;
+    display: none !important;
   }
   .erd-tab {
     display: flex;
@@ -2018,8 +2302,11 @@
   .erd-tab span {
     font-size: 10px;
   }
+  .erd-tab:not(.is-active) svg {
+    color: var(--erd-text3);
+  }
   .erd-tab.is-active {
-    color: var(--gold-hover);
+    color: var(--gold-ink);
   }
   .erd-tab-fab {
     display: flex;
@@ -2035,15 +2322,16 @@
     margin-top: -22px;
     box-shadow: 0 10px 24px -6px oklch(65% 0.1 255 / 0.5);
     cursor: pointer;
-    transition: transform 0.15s ease;
+    transition: scale var(--dur-press) var(--ease-press);
   }
   .erd-tab-fab:active {
-    transform: scale(0.9);
+    scale: 0.9;
   }
   .erd-theme-toggle {
-    top: auto;
-    bottom: 86px;
-    right: 14px;
+    display: none;
+  }
+  .erd-action-error {
+    top: calc(76px + env(safe-area-inset-top));
   }
 
   .expense-redesign .env-row-nested .env-cell-cat {
@@ -2332,6 +2620,21 @@
   font-size: 13px;
   margin: 10px 0 0;
 }
+.erd-amount-field.is-warn {
+  border-bottom-color: var(--warn);
+}
+.erd-log-warning {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 0;
+  color: var(--erd-text2);
+  font-size: 13px;
+}
+.erd-log-warning svg {
+  flex: 0 0 auto;
+  color: var(--warn);
+}
 
 /* ── Log expense modal — compact, uniform-rhythm layout ─────────
    Card becomes a column: pinned header + footer, body scrolls. */
@@ -2348,6 +2651,8 @@
 .erd-log-card .erd-log-body {
   overflow-y: auto;
   min-height: 0;
+  /* overflow clips at the padding box; without this the last chip row's bottom border is cut off. */
+  padding-bottom: 4px;
 }
 /* Uniform 24px between sections (8px base system), 8px label → field. */
 .erd-log-card .erd-log-section + .erd-log-section {
@@ -2356,8 +2661,23 @@
 .erd-log-card .erd-log-label {
   margin: 0 0 8px;
 }
-.erd-log-card #erd-log-item {
+.erd-log-item-field {
+  position: relative;
   margin-top: 8px;
+  border-radius: 16px;
+}
+.erd-log-card .erd-log-item-field #erd-log-item {
+  margin-top: 0;
+}
+.erd-log-item-field:has(.auto-pick-pop) .erd-log-input {
+  padding-right: 164px;
+}
+.erd-log-item-field .auto-pick {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
 }
 .erd-log-card .erd-log-input {
   margin-top: 0;
@@ -2366,6 +2686,56 @@
 }
 .erd-log-card .category-picker {
   margin-top: 0;
+}
+
+/* Blocked save: Mobile's Nudge highlight on each skipped field. */
+.erd-log-card .erd-log-label {
+  width: fit-content;
+}
+.erd-log-card .erd-log-label.is-missing {
+  color: var(--tk-accent);
+}
+.erd-log-card .erd-log-input.is-missing,
+.erd-amount-field.is-missing {
+  border-color: var(--tk-accent);
+}
+
+/* Toast (Toast.tsx): a pill dropped in from the top of the screen, above dialogs. */
+.erd-toast {
+  position: fixed;
+  top: 16px;
+  left: 0;
+  right: 0;
+  z-index: 300;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+.erd-toast-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  max-width: min(86%, 480px);
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: var(--tk-card-solid);
+  color: var(--tk-text);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.15);
+  font: 700 15px/1.3 var(--font-nunito);
+}
+.erd-toast-pill.has-icon {
+  padding-left: 6px;
+}
+.erd-toast-badge {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--tk-accent);
 }
 
 /* Amount — the primary input: big, left-aligned, borderless with a bottom divider. */
@@ -2728,7 +3098,9 @@
   font-weight: 600;
   cursor: pointer;
   font-family: var(--font-fredoka);
-  transition: all 0.2s ease;
+  transition:
+    all 0.2s ease,
+    scale var(--dur-press) var(--ease-press);
 }
 .expense-redesign .action-button:hover {
   transform: translateY(-1px);
@@ -3086,6 +3458,7 @@
 }
 
 .expense-redesign .txn-timeline-list {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 26px;
@@ -3125,6 +3498,8 @@
   white-space: nowrap;
 }
 .expense-redesign .txn-day-rows {
+  /* AnimatePresence popLayout lifts a removed row out of flow against this. */
+  position: relative;
   display: flex;
   flex-direction: column;
 }
@@ -3225,25 +3600,6 @@
 .expense-redesign .txn-actions .env-menu {
   top: 10px;
 }
-.txn-kebab-confirm {
-  padding: 9px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.txn-kebab-confirm-label {
-  font-size: 12px;
-  color: var(--erd-text2);
-}
-.txn-kebab-confirm-actions {
-  display: flex;
-  gap: 6px;
-}
-.txn-kebab-confirm-actions .env-menu-item {
-  flex: 1;
-  text-align: center;
-}
-
 .expense-redesign .txn-timeline-footer {
   display: flex;
   align-items: center;
@@ -3582,7 +3938,8 @@
   text-decoration: none;
   transition:
     transform 0.15s ease,
-    background-color 0.15s ease;
+    background-color 0.15s ease,
+    scale var(--dur-press) var(--ease-press);
 }
 
 .auth-btn:hover {
@@ -3590,7 +3947,7 @@
 }
 
 .auth-btn:active {
-  transform: scale(0.98);
+  scale: 0.96;
 }
 
 .auth-btn:disabled {
@@ -3615,31 +3972,136 @@
   background: var(--gold-hover);
 }
 
-.auth-google-mark {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: var(--erd-input-bg);
-  border: 1px solid var(--erd-border-strong);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-fredoka);
-  font-size: 13px;
-  color: var(--gold-ink);
-  flex-shrink: 0;
-}
-
 .auth-legal {
   font-size: 11px;
   color: var(--erd-text3);
   text-align: center;
   line-height: 1.6;
-  margin: 6px 0 0;
+  margin: 0 auto;
+  max-width: 280px;
 }
 
 .auth-legal a {
   color: var(--gold-ink);
+  text-decoration: none;
+}
+
+/* Brand panel + main column: hidden/stacked on mobile, split screen on desktop. */
+.auth-brand {
+  display: none;
+}
+
+.auth-main {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+@media (min-width: 1024px) {
+  .auth-page {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    padding: 0;
+  }
+
+  .auth-backdrop {
+    display: none;
+  }
+
+  .auth-brand {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 100vh;
+    padding: 48px clamp(40px, 6vw, 96px);
+    background:
+      radial-gradient(circle at 85% 15%, oklch(100% 0 0 / 0.18), transparent 45%),
+      linear-gradient(160deg, var(--gold), var(--gold-hover));
+    color: var(--erd-on-accent);
+    overflow: hidden;
+  }
+
+  .auth-brand-mark {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font-fredoka);
+    font-size: 24px;
+    font-weight: 600;
+  }
+
+  .auth-brand-headline {
+    font-family: var(--font-fredoka);
+    font-size: clamp(46px, 5vw, 72px);
+    font-weight: 500;
+    line-height: 1.05;
+    letter-spacing: -0.035em;
+    margin: 0 0 24px;
+    max-width: 12ch;
+  }
+
+  /* Same hand-drawn underline as the landing hero's "learns" (.lp-learns). */
+  .auth-brand-learns {
+    position: relative;
+    display: inline-block;
+  }
+
+  .auth-brand-learns svg {
+    position: absolute;
+    left: -2%;
+    bottom: -0.08em;
+    width: 104%;
+    height: 0.2em;
+    overflow: visible;
+  }
+
+  .auth-brand-learns path {
+    fill: none;
+    stroke: var(--erd-on-accent);
+    stroke-width: 5;
+    stroke-linecap: round;
+    stroke-dasharray: 260;
+    stroke-dashoffset: 260;
+    animation: auth-draw 900ms cubic-bezier(0.65, 0, 0.35, 1) 350ms forwards;
+    vector-effect: non-scaling-stroke;
+  }
+
+  @keyframes auth-draw {
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .auth-brand-learns path {
+      animation: none;
+      stroke-dashoffset: 0;
+    }
+  }
+
+  .auth-main {
+    align-items: center;
+    padding: 48px;
+    background: var(--erd-bg);
+  }
+
+  .auth-card {
+    max-width: 400px;
+    background: none;
+    border: none;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    padding: 0;
+  }
+
+  /* Brand panel already carries the bird. */
+  .auth-logo {
+    display: none;
+  }
 }
 
 .auth-field {
@@ -5862,7 +6324,8 @@ button.account-feature-card {
    on hover, because a pointer can reveal them without a gesture. */
 
 .expense-redesign .erd-content.env-page {
-  padding: 32px 20px 56px;
+  padding: 28px 32px 56px;
+  gap: 0;
 }
 @media (max-width: 900px) {
   .expense-redesign .erd-content.env-page {
@@ -5885,12 +6348,12 @@ button.account-feature-card {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 16px;
 }
 
 .env-group {
   border: 1px solid var(--erd-border);
-  border-radius: 16px;
+  border-radius: 18px;
   background: var(--erd-card);
   overflow: hidden;
 }
@@ -5899,7 +6362,8 @@ button.account-feature-card {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 12px;
+  padding: 10px 18px;
+  background: color-mix(in oklab, var(--erd-text) 3%, transparent);
 }
 
 .expense-redesign .env-group-toggle {
@@ -5924,7 +6388,9 @@ button.account-feature-card {
 
 .expense-redesign .env-group-name {
   font-family: var(--font-fredoka);
-  font-size: 0.95rem;
+  font-size: 1.05rem;
+  letter-spacing: 0;
+  text-transform: none;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -5946,10 +6412,14 @@ button.account-feature-card {
 }
 
 .env-icon-btn {
+  text-decoration: none;
   display: grid;
   place-items: center;
-  width: 26px;
-  height: 26px;
+  width: 34px;
+  height: 34px;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease;
   border: 0;
   border-radius: 8px;
   background: none;
@@ -5970,7 +6440,7 @@ button.account-feature-card {
 .env-cat-list {
   list-style: none;
   margin: 0;
-  padding: 0 12px 8px 12px;
+  padding: 0 18px;
   display: flex;
   flex-direction: column;
 }
@@ -5978,13 +6448,16 @@ button.account-feature-card {
 .env-cat {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 7px 4px;
+  gap: 14px;
+  min-height: 64px;
+  padding: 10px 0;
+  transition: background-color 150ms ease;
   border-top: 1px solid var(--erd-border);
-  font-size: 0.85rem;
+  font-size: 15px;
 }
 
 .env-cat-name {
+  font-weight: 650;
   flex: 1;
   min-width: 0;
   white-space: nowrap;
@@ -6000,23 +6473,175 @@ button.account-feature-card {
 
 .env-cat-alerts {
   display: inline-flex;
-  align-items: center;
+  align-items: flex-start;
   flex-shrink: 0;
-  gap: 4px;
+  gap: 9px;
   white-space: nowrap;
   font-size: 0.7rem;
   font-variant-numeric: tabular-nums;
-  color: var(--erd-text3);
+  color: var(--erd-text2);
   background: none;
   border: 1px solid transparent;
-  border-radius: 999px;
-  padding: 3px 9px;
+  border-radius: 10px;
+  padding: 7px 12px;
+  text-align: left;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease;
   cursor: pointer;
+}
+
+.env-cat-alerts > svg {
+  margin-top: 10px;
 }
 
 .env-cat-alerts:hover {
   color: var(--gold-ink);
   border-color: var(--erd-border);
+}
+
+/* Match Activity's reading width, hierarchy, and category colors. */
+.env-page > .env-page-header,
+.env-page > .env-page-toolbar,
+.env-page > .env-group-list {
+  width: min(100%, 1280px);
+  margin-inline: auto;
+}
+.expense-redesign .env-page-header {
+  padding-bottom: 24px;
+}
+.env-page-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 4px;
+  margin-bottom: 16px;
+  border-block: 1px solid var(--erd-border);
+}
+.env-page-summary {
+  margin: 0;
+  font-size: 13px;
+  color: var(--erd-text2);
+}
+.env-page-summary strong {
+  color: var(--erd-text);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.env-page-summary > span {
+  margin-inline: 10px;
+  color: var(--erd-text3);
+}
+.env-cat-icon {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  font-size: 17px;
+}
+.env-alert-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.env-alert-label {
+  font-size: 10px;
+  color: var(--erd-text2);
+}
+.env-alert-values {
+  color: var(--erd-text);
+  font-size: 12px;
+  font-weight: 600;
+}
+.env-cat:hover {
+  background: color-mix(in oklab, var(--erd-text) 2%, transparent);
+}
+.env-page button:focus-visible,
+.env-page a:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+.env-page .env-group-toggle {
+  min-height: 34px;
+}
+@media (max-width: 600px) {
+  .expense-redesign .env-page-header {
+    align-items: flex-start;
+    gap: 16px;
+    padding-bottom: 24px;
+  }
+  .env-page-header .txn-page-heading p {
+    max-width: 28ch;
+  }
+  .env-page-header .txn-page-log-btn {
+    padding-inline: 14px;
+    white-space: nowrap;
+  }
+  .env-page-toolbar {
+    gap: 8px;
+  }
+  .env-page-summary > span {
+    margin-inline: 4px;
+  }
+  .env-group-head {
+    padding: 10px;
+  }
+  .env-cat-list {
+    padding-inline: 10px;
+  }
+  .env-cat {
+    display: grid;
+    grid-template-columns: 38px minmax(0, 1fr) auto;
+    gap: 2px 10px;
+    padding-block: 10px;
+  }
+  .env-cat-icon {
+    grid-row: span 2;
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+  }
+  .env-cat-name {
+    grid-column: 2;
+  }
+  .env-cat-alerts {
+    grid-column: 2;
+    grid-row: 2;
+    align-items: center;
+    justify-self: start;
+    padding: 2px 0;
+    gap: 5px;
+  }
+  .env-cat-alerts > svg {
+    margin-top: 0;
+  }
+  .env-alert-copy {
+    flex-direction: row;
+    gap: 5px;
+  }
+  .env-alert-label {
+    display: none;
+  }
+  .env-alert-values {
+    font-size: 11px;
+    color: var(--erd-text2);
+  }
+  .env-cat-actions {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+    margin-left: 0;
+    padding-left: 6px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .env-page .env-cat,
+  .env-page .env-icon-btn,
+  .env-page .env-cat-alerts {
+    transition: none;
+  }
 }
 
 .env-input {
@@ -6283,7 +6908,106 @@ button.account-feature-card {
   }
 }
 
-/* Money Brain */
+/* Alerts sheet: builds on the rename sheet's header/actions */
+.env-sheet--alerts .env-sheet-rename-head {
+  margin-bottom: 16px;
+}
+
+.env-sheet--alerts .env-sheet-copy {
+  margin-bottom: 18px;
+  line-height: 1.45;
+}
+
+.env-sheet--alerts .env-pct-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin-top: 0;
+}
+
+.env-sheet--alerts .env-pct {
+  height: 40px;
+  padding: 0;
+  font-weight: 700;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.env-sheet--alerts .env-pct:hover:not(:disabled):not(.is-on) {
+  border-color: var(--erd-text3);
+  color: var(--erd-text);
+}
+
+.env-sheet--alerts .env-pct-custom {
+  position: relative;
+  display: block;
+  margin-top: 14px;
+}
+
+.env-sheet--alerts .env-pct-custom .env-input {
+  padding-right: 76px;
+}
+
+/* hide native number spinners */
+.env-sheet--alerts .env-input[type="number"] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+.env-sheet--alerts .env-input[type="number"]::-webkit-inner-spin-button,
+.env-sheet--alerts .env-input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.env-pct-add {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  bottom: 6px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--gold);
+  color: var(--erd-on-accent);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.env-pct-add:hover:not(:disabled) {
+  background: var(--gold-hover);
+}
+
+.env-pct-add:disabled {
+  background: transparent;
+  color: var(--erd-text3);
+  cursor: not-allowed;
+}
+
+.env-sheet--alerts .env-sheet-hint {
+  margin-top: 10px;
+}
+
+.env-sheet--alerts .env-sheet-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 16px;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.env-sheet--alerts .env-sheet-actions {
+  margin-top: 20px;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.env-sheet--alerts .env-sheet-action {
+  flex: 1;
+}
+
+/* Ask Aviary */
 .brain-scrim {
   position: fixed;
   inset: 0;
@@ -6550,29 +7274,28 @@ button.account-feature-card {
   gap: 10px;
   margin-top: 24px;
 }
+/* Mirrors the mobile app's bubbles (Mobile/app/modals/money-brain.tsx). */
 .brain-bubble {
-  max-width: 86%;
-  padding: 11px 14px;
-  border-radius: 18px;
+  max-width: 85%;
+  padding: 10px 14px;
+  border-radius: 16px;
   font-size: 0.86rem;
   line-height: 1.55;
   white-space: pre-wrap;
 }
 .brain-bubble--user {
   align-self: flex-end;
-  color: #332815;
-  background: var(--gold);
-  border-bottom-right-radius: 5px;
+  color: var(--erd-text);
+  background: var(--gold-soft);
+  font-weight: 500;
 }
 .brain-bubble--model {
   align-self: flex-start;
   background: var(--erd-card);
   border: 1px solid var(--erd-border);
-  border-bottom-left-radius: 5px;
-  box-shadow: var(--erd-shadow-sm);
 }
 
-/* Money Brain answers: the markdown subset from src/lib/chatMarkdown.ts. */
+/* Ask Aviary answers: the markdown subset from src/lib/chatMarkdown.ts. */
 .brain-md {
   display: grid;
   gap: 8px;
@@ -6696,10 +7419,10 @@ button.account-feature-card {
   background: var(--erd-card);
   text-align: left;
   cursor: pointer;
+  transition: border-color 180ms ease;
 }
 .brain-history-list button:hover {
   border-color: var(--gold);
-  transform: translateX(-2px);
 }
 .brain-history-list strong {
   font-size: 0.83rem;
@@ -7243,6 +7966,24 @@ button.account-feature-card {
 /* ─────────────────────────────────────────────────────────────
    Guided tour (/account/guided-tour) — hub, chapter demos, recap
    ───────────────────────────────────────────────────────────── */
+
+.tour-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: var(--tk-space-md);
+  min-height: 64px;
+  padding-block: var(--tk-space-sm);
+  border-bottom: 1px solid var(--erd-border);
+  background: var(--erd-bg);
+}
+.tour-header-copy { flex: 1; min-width: 0; }
+.tour-header-copy h1 { margin: 0; font-family: var(--font-fredoka); font-size: 17px; font-weight: 600; }
+.tour-header-copy p { margin: 2px 0 0; color: var(--erd-text3); font-size: 11px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tour-header .tour-back { display: grid; place-items: center; flex-shrink: 0; background: var(--erd-card); }
+.tour-header .tour-skip { min-width: 44px; min-height: 44px; }
 
 .tour-hub {
   display: flex;
@@ -8330,7 +9071,7 @@ button.account-feature-card {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Phase 6: recurring, archive, feedback, scan a bill
+   Phase 6: recurring, archive, scan a bill
    ───────────────────────────────────────────────────────────── */
 
 .account-empty {
@@ -8421,6 +9162,10 @@ button.account-feature-card {
   list-style: none;
   margin: 0;
   padding: 0;
+}
+.recurring-list {
+  /* AnimatePresence popLayout lifts a removed row out of flow against this. */
+  position: relative;
 }
 .recurring-list > li + li {
   border-top: 1px solid var(--erd-border);
@@ -8737,18 +9482,6 @@ button.account-feature-card {
   color: var(--erd-on-accent);
 }
 
-/* Feedback */
-.feedback-form {
-  display: flex;
-  flex-direction: column;
-  padding: 18px 20px 20px;
-}
-.feedback-textarea {
-  min-height: 130px;
-  line-height: 1.5;
-  resize: vertical;
-}
-
 /* Scan a bill */
 .expense-redesign .erd-modal-card.scan-modal {
   width: 560px;
@@ -8989,7 +9722,6 @@ button.account-feature-card {
   border: 1px solid var(--erd-border);
   border-radius: 16px;
   background: var(--erd-card);
-  animation: erd-fadeUp 0.35s ease both;
 }
 .scan-item:focus-within {
   border-color: var(--erd-border-strong);
@@ -9202,7 +9934,6 @@ button.account-feature-card {
   align-items: center;
   gap: 12px;
   padding: 14px 16px;
-  animation: erd-fadeUp 0.35s ease both;
 }
 .scan-bucket + .scan-bucket {
   border-top: 1px solid var(--erd-border);
@@ -9559,4 +10290,318 @@ button.account-feature-card {
 
 .expense-redesign .txn-review.txn-review-notice {
   padding-top: 4px;
+}
+
+/* ── Expense added (ExpenseAdded.tsx, inside the log dialog) ───────────────
+   Mobile's app/modals/expense-added.tsx: one centred column, tick, headline,
+   item, the envelope card, then Undo / Done. */
+.erd-added {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+.erd-added-receipt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.erd-added-tick {
+  width: 200px;
+  height: 200px;
+}
+.erd-added-headline {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 8px;
+  margin-top: -26px;
+  font: 700 40px/1.2 var(--font-fredoka);
+  color: var(--erd-text);
+}
+.erd-added-subtitle {
+  margin-top: 8px;
+  font: 800 17px/1.3 var(--font-nunito);
+  color: var(--erd-text2);
+  text-align: center;
+}
+.erd-added-card {
+  align-self: stretch;
+  margin-top: 32px;
+  padding: 20px;
+  border-radius: 20px;
+  background: var(--erd-card);
+}
+.erd-added-left {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin-top: 12px;
+  font: 700 32px/1.2 var(--font-fredoka);
+  color: var(--erd-text);
+}
+.erd-added-left > span:last-child {
+  font: 700 13px/1.3 var(--font-nunito);
+  color: var(--erd-text2);
+}
+.erd-added-bar {
+  margin-top: 16px;
+}
+.erd-added-pace {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 32px;
+  padding-top: 12px;
+  border-top: 1px solid var(--erd-border);
+  font: 800 13px/1.3 var(--font-nunito);
+  color: var(--erd-text3);
+}
+.erd-added-pace strong {
+  font-weight: 800;
+  color: var(--erd-text);
+}
+.erd-added-footer {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 28px;
+}
+.erd-added-actions {
+  display: flex;
+  gap: 12px;
+}
+.erd-added-actions .erd-added-undo {
+  flex: 0 0 132px;
+  min-height: 54px;
+}
+.erd-added-actions .erd-added-done {
+  flex: 1;
+  margin: 0;
+}
+.erd-added-stamp {
+  text-align: center;
+  font: 800 13px/1.3 var(--font-nunito);
+  color: var(--erd-text3);
+}
+
+/* Log expense: category label and the status pill inside the item input. */
+.erd-log-label-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 22px;
+  margin-bottom: 8px;
+}
+.erd-log-card .erd-log-label-row .erd-log-label {
+  margin: 0;
+}
+.auto-pick {
+  display: inline-flex;
+  justify-content: flex-end;
+  width: 140px;
+}
+.auto-pick-pop {
+  display: inline-flex;
+  position: relative;
+  transform-origin: right center;
+}
+.auto-pick-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  box-sizing: border-box;
+  overflow: hidden;
+  transform-origin: right center;
+  height: 22px;
+  padding: 0 9px 0 5px;
+  border-radius: 999px;
+  background: var(--gold-soft);
+  color: var(--gold-ink);
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.auto-pick-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex: none;
+}
+.auto-pick-slot {
+  position: relative;
+  width: 17px;
+  height: 17px;
+  overflow: hidden;
+  flex: none;
+  font-size: 12px;
+}
+.auto-pick-slot > span {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  line-height: 1;
+}
+.auto-pick-label {
+  display: inline-block;
+  max-width: 105px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.auto-pick-burst {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  pointer-events: none;
+  color: var(--gold-ink);
+}
+.auto-pick-burst > span {
+  position: absolute;
+}
+.auto-pick-burst > span > span {
+  position: absolute;
+  left: -1px;
+  top: -4px;
+  width: 2px;
+  height: 8px;
+  border-radius: 1px;
+  background: currentColor;
+}
+
+/* ── Sign-in flight (src/features/sign-in-flight) ───────────── */
+
+.erd-flight-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  background: color-mix(in srgb, var(--erd-bg) 62%, transparent);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  opacity: 0;
+  pointer-events: none;
+}
+.erd-flight-bird {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 151;
+  width: 34px;
+  height: 34px;
+  color: var(--erd-text);
+  opacity: 0;
+  overflow: visible;
+  transform-origin: 50% 50%;
+  will-change: transform, opacity;
+  pointer-events: none;
+}
+
+/* Mobile's month-end heads-up and optional onboarding milestones. */
+.expense-redesign .home-leftover-notice {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 22px;
+}
+.expense-redesign .home-leftover-notice p { flex: 1; margin: 0; color: var(--erd-text2); }
+.expense-redesign .home-leftover-notice button {
+  border: 0;
+  background: transparent;
+  color: var(--gold-ink);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  min-height: 44px;
+  padding: 4px 8px;
+}
+.expense-redesign .home-get-started {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--tk-space-md);
+  padding: 20px 24px;
+  overflow: hidden;
+  /* Step springs own the reveal; avoid the dashboard's second entrance. */
+  animation: none;
+}
+.expense-redesign .get-started-heading { display: flex; align-items: flex-start; gap: 12px; }
+.expense-redesign .get-started-heading > div { flex: 1; min-width: 0; }
+.expense-redesign .get-started-heading h2 { margin: 0; font-family: var(--font-fredoka); font-size: 17px; font-weight: 600; }
+.expense-redesign .get-started-heading p { margin: 2px 0 0; color: var(--erd-text3); font-size: 11px; font-weight: 600; line-height: 1.5; }
+.expense-redesign .get-started-skip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: var(--erd-input-bg);
+  color: var(--erd-text2);
+  border: 0;
+  border-radius: 99px;
+  padding: 6px 12px;
+  min-height: 28px;
+  font: inherit;
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 800;
+  cursor: pointer;
+}
+/* Mobile uses hitSlop: keep the pill compact with a 44px-tall tap area. */
+.expense-redesign .get-started-skip::after { content: ""; position: absolute; inset: -8px -6px; }
+.expense-redesign .get-started-skip:active { opacity: 0.6; }
+.expense-redesign .get-started-progress { display: flex; align-items: center; gap: 10px; font-size: 11px; font-weight: 800; color: var(--erd-text2); }
+.expense-redesign .get-started-segments { display: flex; flex: 1; gap: 6px; }
+.expense-redesign .get-started-segment { flex: 1; height: 6px; background: var(--erd-input-bg); border-radius: 99px; overflow: hidden; }
+.expense-redesign .get-started-segment > span { display: block; height: 100%; background: var(--gold); border-radius: inherit; }
+.expense-redesign .get-started-steps { display: grid; gap: var(--tk-space-xs); }
+.expense-redesign .get-started-step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  width: 100%;
+  padding: 8px 10px;
+  background: var(--erd-input-bg);
+  border: 1px solid transparent;
+  border-radius: var(--tk-radius-md);
+  color: var(--erd-text);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.expense-redesign .get-started-step.is-next { border-color: var(--gold-soft); }
+.expense-redesign .get-started-step.is-done { background: transparent; color: var(--erd-text3); cursor: default; }
+.expense-redesign .get-started-icon { display: grid; place-items: center; width: 32px; height: 32px; flex-shrink: 0; border-radius: 50%; background: var(--erd-card); }
+.expense-redesign .is-next .get-started-icon { background: var(--gold-ink); color: var(--erd-on-accent); }
+.expense-redesign .is-done .get-started-icon { background: var(--mint-soft); color: var(--mint); }
+.expense-redesign .get-started-step-copy { display: grid; gap: 1px; flex: 1; min-width: 0; }
+.expense-redesign .get-started-step-copy strong { font-size: 13px; font-weight: 800; }
+.expense-redesign .get-started-step.is-done strong { font-weight: 600; }
+.expense-redesign .get-started-step-copy > span { color: var(--erd-text3); font-size: 11px; font-weight: 600; }
+.expense-redesign .get-started-step > svg { color: var(--erd-text3); }
+.expense-redesign .get-started-step.is-next > svg { color: var(--gold-ink); }
+.expense-redesign .get-started-step:focus-visible,
+.expense-redesign .get-started-skip:focus-visible,
+.expense-redesign .home-leftover-notice button:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+@media (max-width: 600px) {
+  .expense-redesign .home-get-started { padding: var(--tk-space-lg); }
+  .expense-redesign .home-leftover-notice { padding: 12px 16px; }
+}
+
+.setup-top { justify-content: space-between; }
+.setup-dots { flex: none; }
+.setup-back, .setup-add-row, .setup-add-pill { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.setup-pick-check-icon { opacity: 0; transform: scaleX(0); transform-origin: left; transition: opacity 140ms, transform 140ms; }
+.setup-pick-check.is-on .setup-pick-check-icon { opacity: 1; transform: scaleX(1); }
+.setup-pick-row { transition: transform 140ms, border-color 140ms, background-color 140ms; }
+.setup-pick-row:has(.setup-pick-check:active) { transform: scale(0.985); }
+.setup-pick-check:active { transform: scale(0.9); }
+.setup-cta:enabled:active, .setup-add-row:active, .setup-add-pill:active { transform: scale(0.98); }
+.home-get-started, .home-leftover-notice { box-shadow: none; }
+@media (prefers-reduced-motion: reduce) {
+  .setup-pick-row, .setup-pick-check-icon { transition: none; }
+  .setup-pick-row:has(.setup-pick-check:active), .setup-pick-check:active,
+  .setup-cta:enabled:active, .setup-add-row:active, .setup-add-pill:active { transform: none; }
 }

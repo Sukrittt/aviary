@@ -71,7 +71,7 @@ export function Heatmap({ cells, todayDate, hideAmounts = false, onSelectDate }:
               className={interactive ? 'ins-heatmap-cell is-interactive' : 'ins-heatmap-cell'}
               style={{
                 transformOrigin: `${x + CELL / 2}px ${y + CELL / 2}px`,
-                animationDelay: `${260 + col * 70 + row * 15}ms`,
+                animationDelay: `${150 + col * 70 + row * 15}ms`,
               }}
               onClick={() => interactive && onSelectDate?.(cell.date)}
               onKeyDown={(event) => {

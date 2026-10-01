@@ -1,6 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { ObjectId } from 'mongodb'
 
+let leased = false
+vi.mock('@/lib/resourceLease', () => ({ acquireLease: async () => {
+  if (leased) return null
+  leased = true
+  return async () => { leased = false }
+} }))
+vi.mock('@/lib/rateLimit', () => ({ isRateLimited: async () => false }))
+
 const exportAllowance = vi.fn(async () => ({ usedThisMonth: 0, limit: 3, allowed: true, exitExport: false }))
 const buildAndStoreExport = vi.fn(async () => {})
 
@@ -49,6 +57,7 @@ function req(): Request {
 }
 
 beforeEach(() => {
+  leased = false
   store.length = 0
   queuedAfter.length = 0
   exportAllowance.mockClear().mockResolvedValue({ usedThisMonth: 0, limit: 3, allowed: true, exitExport: false })
@@ -97,4 +106,10 @@ describe('POST /api/data/export', () => {
     expect(res.status).toBe(403)
     expect(store).toHaveLength(0)
   })
+})
+
+it('does not schedule another workbook while the first is pending', async () => {
+  expect((await POST(req())).status).toBe(202)
+  expect((await POST(req())).status).toBe(409)
+  expect(queuedAfter).toHaveLength(1)
 })

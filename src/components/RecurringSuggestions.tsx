@@ -1,7 +1,8 @@
 "use client";
 import { useState } from "react";
 import { ArrowRight, Check, LoaderCircle, Repeat2 } from "lucide-react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
+import { popIn, staggerDelay } from "./landing/mobile/kit";
 import "./RecurringSuggestions.css";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -55,7 +56,6 @@ export function RecurringSuggestions({ kind = "other_recurring" }: { kind?: Sugg
       );
     },
   });
-  const reduceMotion = useReducedMotion();
   const data = query.data;
   const suggestions =
     data?.suggestions.filter((s) => s.kind === kind && !accepted.includes(s.id)) ?? [];
@@ -203,15 +203,8 @@ export function RecurringSuggestions({ kind = "other_recurring" }: { kind?: Sugg
               <motion.li
                 key={s.id}
                 layout
-                initial={reduceMotion ? false : { opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={reduceMotion ? undefined : { opacity: 0, y: -6 }}
-                transition={{
-                  type: "tween",
-                  duration: 0.2,
-                  ease: "easeOut",
-                  delay: reduceMotion ? 0 : i * 0.05,
-                }}
+                {...popIn(staggerDelay(i))}
+                exit={{ opacity: 0, transition: { duration: 0.12 } }}
               >
                 <div className="recurring-suggestion-details">
                   <div className="recurring-suggestion-title">

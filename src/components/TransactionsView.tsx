@@ -3,13 +3,15 @@ import { ExpenseWriteError } from '../lib/expenseConflict';
 import { useCurrency } from "@/src/context/CurrencyContext";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { Copy, Plus, ReceiptText, Search } from "lucide-react";
+import { Copy, Plus, Search } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { toTransactions, type Transaction } from "../lib/expenseTransactions";
 import { useBudgets } from "../hooks/useBudgets";
 import { useCategories } from "../hooks/useCategories";
 import { useExpensesPage, useDeleteExpense, useDuplicates } from "../hooks/useExpenses";
 import { DuplicateReviewDialog } from "./DuplicateReviewDialog";
+import { ConfirmDialog } from "./ConfirmDialog";
+import { DeletingRow, ROW_SPRING } from "./DeletingRow";
 import { EMPTY } from "../lib/constants";
 import { orderWithRecents } from "../lib/recentCategories";
 import { useRecentCategories } from "../hooks/useRecentCategories";
@@ -21,6 +23,7 @@ import { DatePicker } from "./DatePicker";
 import { Select } from "./Select";
 import { avatarColorFor, categoryEmoji, splitEmoji } from "../lib/emoji";
 import { formatShortDate } from "../lib/format";
+import { BirdEmptyState } from "./BirdEmptyState";
 
 type PeriodKey = "week" | "month" | "custom";
 
@@ -60,6 +63,9 @@ function formatTransactionTime(timestamp: string): string {
     minute: "2-digit",
   });
 }
+
+/** Stable per-row identity for the optimistic removal set. */
+const txnKey = (t: Transaction) => t.id || `${t.timestamp}-${t.item}-${t.amountInr}`;
 
 export function TransactionsView({
   hideAmounts = false,
@@ -111,8 +117,15 @@ export function TransactionsView({
     [budgetsQuery.data],
   );
   const [editingTxn, setEditingTxn] = useState<Transaction | null>(null);
-  const [deleteKey, setDeleteKey] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState(false);
+  const [deleteTxn, setDeleteTxn] = useState<Transaction | null>(null);
+  // Remove clicked: held until the dialog has finished closing, so the sweep
+  // isn't hidden behind its fade. Then it becomes pendingDelete.
+  const queuedDelete = useRef<Transaction | null>(null);
+  // Drives the row's coral sweep.
+  const [pendingDelete, setPendingDelete] = useState<Transaction | null>(null);
+  // Rows dropped from the list the moment their sweep ends, before the delete
+  // settles, so the rows below spring up at once. A failed delete puts one back.
+  const [removedKeys, setRemovedKeys] = useState<ReadonlySet<string>>(() => new Set());
   const [deleteNotice, setDeleteNotice] = useState<{ status?: number } | null>(null);
   const [showLogModal, setShowLogModal] = useState(false);
   const [actionsKey, setActionsKey] = useState<string | null>(null);
@@ -127,7 +140,6 @@ export function TransactionsView({
         !actionsMenuRef.current.contains(e.target as Node)
       ) {
         setActionsKey(null);
-        setDeleteKey(null);
       }
     }
     document.addEventListener("mousedown", handleClick);
@@ -223,6 +235,7 @@ export function TransactionsView({
     const byDate = new Map<string, (typeof groups)[number]>();
 
     for (const transaction of pageTransactions) {
+      if (removedKeys.has(txnKey(transaction))) continue;
       let group = byDate.get(transaction.date);
       if (!group) {
         group = { date: transaction.date, total: 0, transactions: [] };
@@ -234,7 +247,7 @@ export function TransactionsView({
     }
 
     return groups;
-  }, [pageTransactions]);
+  }, [pageTransactions, removedKeys]);
 
   useEffect(() => {
     // Reset pagination whenever any filter changes.
@@ -269,15 +282,13 @@ export function TransactionsView({
   function refreshTransactions() {}
 
   function toggleActions(rowKey: string) {
-    setActionsKey((key) => {
-      setDeleteKey(null);
-      return key === rowKey ? null : rowKey;
-    });
+    setActionsKey((key) => key === rowKey ? null : rowKey);
   }
 
   async function handleDelete(t: Transaction) {
-    if (deleting) return;
-    setDeleting(true);
+    const key = txnKey(t);
+    setRemovedKeys((keys) => new Set(keys).add(key));
+    setPendingDelete(null);
     setDeleteNotice(null);
     try {
       await deleteExpenseM.mutateAsync({
@@ -287,16 +298,18 @@ export function TransactionsView({
         item: t.item,
         amountInr: t.amountInr,
       });
-      setDeleteKey(null);
       setActionsKey(null);
       await refreshTransactions();
     } catch (err) {
-      // A conflict requires a new confirmation after reviewing the refreshed row.
-      setDeleteKey(null);
+      // Back into the list; a conflict requires a new confirmation after reviewing the refreshed row.
+      setRemovedKeys((keys) => {
+        const next = new Set(keys);
+        next.delete(key);
+        return next;
+      });
       setActionsKey(null);
       setDeleteNotice({ status: err instanceof ExpenseWriteError ? err.status : undefined });
     }
-    setDeleting(false);
   }
 
   const hasActiveFilters =
@@ -427,28 +440,16 @@ export function TransactionsView({
           Couldn&apos;t load transactions. {error}
         </div>
       ) : totalCount === 0 ? (
-        <div className="account-empty txn-timeline-empty">
-          <span aria-hidden="true">
-            <ReceiptText size={30} strokeWidth={1.8} />
-          </span>
-          {search || selectedCategory ? (
-            <>
-              <div className="account-empty-title">Nothing matches</div>
-              <p className="account-row-meta">No transactions for this filter.</p>
-              <button type="button" className="action-button is-active erd-accent-action" onClick={resetFilters}>
-                Reset filters
-              </button>
-            </>
-          ) : (
-            <>
-              <div className="account-empty-title">No transactions yet</div>
-              <p className="account-row-meta">Log an expense and it shows up here.</p>
-              <button type="button" className="action-button is-active erd-accent-action" onClick={() => setShowLogModal(true)}>
-                Log your first expense
-              </button>
-            </>
-          )}
-        </div>
+        <BirdEmptyState
+          className="txn-timeline-empty"
+          mood={search || selectedCategory ? 'searching' : 'snoozing'}
+          subject="expenses"
+          title={search || selectedCategory ? 'Nothing turned up' : 'Your story starts here'}
+          description={search || selectedCategory ? 'No transactions for this filter.' : 'Log your first expense and we’ll keep the little details here.'}
+          action={search || selectedCategory
+            ? { label: 'Reset filters', onClick: resetFilters }
+            : { label: 'Log your first expense', onClick: () => setShowLogModal(true) }}
+        />
       ) : (
         <motion.div
           key={page}
@@ -457,8 +458,15 @@ export function TransactionsView({
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: "tween", duration: 0.15, ease: "easeOut" }}
         >
+          <AnimatePresence mode="popLayout" initial={false}>
           {transactionGroups.map((group) => (
-            <section className="txn-day-group" key={group.date}>
+            <motion.section
+              className="txn-day-group"
+              key={group.date}
+              layout="position"
+              transition={{ layout: ROW_SPRING }}
+              exit={{ opacity: 0, transition: { duration: 0.12 } }}
+            >
               <header className="txn-timeline-header">
                 <div>
                   <h2 className="txn-timeline-header-label">
@@ -474,15 +482,18 @@ export function TransactionsView({
               </header>
 
               <div className="txn-day-rows">
+                <AnimatePresence mode="popLayout" initial={false}>
                 {group.transactions.map((t, i) => {
                   const isIncome = INCOME_CATEGORIES.has(t.category);
                   const rowKey = `${t.timestamp}-${t.item}-${t.amountInr}`;
                   const categoryName = splitEmoji(t.category).text;
                   const time = formatTransactionTime(t.timestamp);
                   return (
-                    <div
+                    <DeletingRow
                       key={t.id || `t-${t.timestamp}-${i}`}
                       className={`txn-timeline-row${actionsKey === rowKey ? " is-open" : ""}`}
+                      active={pendingDelete?.id === t.id && pendingDelete?.timestamp === t.timestamp}
+                      onDone={() => void handleDelete(t)}
                     >
                       <button
                         type="button"
@@ -520,61 +531,38 @@ export function TransactionsView({
                         <div className="env-action-wrap">
                           {actionsKey === rowKey && (
                             <div className="env-menu" ref={actionsMenuRef} role="menu">
-                              {deleteKey === rowKey ? (
-                                <div className="txn-kebab-confirm">
-                                  <span className="txn-kebab-confirm-label">
-                                    Delete this transaction?
-                                  </span>
-                                  <div className="txn-kebab-confirm-actions">
-                                    <button
-                                      type="button"
-                                      className="env-menu-item env-menu-item-danger"
-                                      disabled={deleting}
-                                      onClick={() => handleDelete(t)}
-                                    >
-                                      {deleting ? "Removing…" : "Remove"}
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className="env-menu-item"
-                                      disabled={deleting}
-                                      onClick={() => setDeleteKey(null)}
-                                    >
-                                      Cancel
-                                    </button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <>
-                                  <button
-                                    type="button"
-                                    className="env-menu-item"
-                                    onClick={() => {
-                                      setEditingTxn(t);
-                                      setActionsKey(null);
-                                    }}
-                                  >
-                                    Edit transaction
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="env-menu-item env-menu-item-danger"
-                                    onClick={() => setDeleteKey(rowKey)}
-                                  >
-                                    Delete transaction
-                                  </button>
-                                </>
-                              )}
+                              <button
+                                type="button"
+                                className="env-menu-item"
+                                onClick={() => {
+                                  setEditingTxn(t);
+                                  setActionsKey(null);
+                                }}
+                              >
+                                Edit transaction
+                              </button>
+                              <button
+                                type="button"
+                                className="env-menu-item env-menu-item-danger"
+                                onClick={() => {
+                                  setDeleteTxn(t);
+                                  setActionsKey(null);
+                                }}
+                              >
+                                Delete transaction
+                              </button>
                             </div>
                           )}
                         </div>
                       </span>
-                    </div>
+                    </DeletingRow>
                   );
                 })}
+                </AnimatePresence>
               </div>
-            </section>
+            </motion.section>
           ))}
+          </AnimatePresence>
         </motion.div>
       )}
 
@@ -610,7 +598,33 @@ export function TransactionsView({
         </div>
       )}
 
-      <AnimatePresence>
+      <AnimatePresence
+        onExitComplete={() => {
+          if (!queuedDelete.current) return;
+          setPendingDelete(queuedDelete.current);
+          queuedDelete.current = null;
+        }}
+      >
+        {deleteTxn && (
+          <ConfirmDialog
+            title="Delete this transaction?"
+            body={`“${deleteTxn.item}” will move to Archive. You can restore it for 7 days.`}
+            cancelLabel="Cancel"
+            onCancel={() => setDeleteTxn(null)}
+          >
+            <button
+              type="button"
+              className="account-danger-btn"
+              style={{ marginTop: 0 }}
+              onClick={() => {
+                queuedDelete.current = deleteTxn;
+                setDeleteTxn(null);
+              }}
+            >
+              Remove
+            </button>
+          </ConfirmDialog>
+        )}
         {editingTxn && (
           <TransactionEditModal
             id={editingTxn.id}

@@ -42,16 +42,16 @@ vi.mock('@/lib/ai/expenseContext', async (importOriginal) => {
   }
 })
 
-const routeChatMock = vi.fn<(message: string) => Promise<{ onTopic: boolean; sections: string[] }>>(
+const routeChatMock = vi.fn<(message: string, caller?: unknown, earlier?: string[]) => Promise<{ onTopic: boolean; sections: string[]; decision?: boolean }>>(
   async () => ({ onTopic: true, sections: ['header', 'envelopes', 'top10'] }),
 )
 vi.mock('@/lib/ai/chatRouter', () => ({
-  routeChat: (...args: unknown[]) => routeChatMock(...(args as [string])),
+  routeChat: (...args: unknown[]) => routeChatMock(...(args as [string, unknown, string[]])),
 }))
 
 type ModelContents = Array<{ role: string; parts: [{ text: string }] }>
 
-const streamTextMock = vi.fn(async function* (_systemInstruction: string, _contents: ModelContents) {
+const streamTextMock = vi.fn(async function* (_systemInstruction: string, _contents: ModelContents, _caller?: unknown, _reason?: boolean) {
   yield { text: 'ok' }
 })
 
@@ -146,6 +146,16 @@ describe('POST /api/ai/chat (demo path)', () => {
     expect(reply).toBe('Food is high, mostly takeout.')
   })
 
+  it('sends an error instead of a blank reply when Gemini returns no text', async () => {
+    // Seen once in the live eval: a thinking-mode reply came back with no text at all.
+    streamTextMock.mockImplementationOnce(async function* () {
+      yield { text: '' }
+    })
+    const body = await (await POST(jsonRequest({ messages: [{ role: 'user', text: 'Why am I overspending?' }] }))).text()
+    expect(body).toContain('"error"')
+    expect(body).not.toContain('[DONE]')
+  })
+
   it('rejects once the client-supplied history exceeds the session message cap', async () => {
     const messages = Array.from({ length: 41 }, (_, i) => ({ role: 'user' as const, text: `msg ${i}` }))
     const res = await POST(jsonRequest({ messages }))
@@ -230,5 +240,38 @@ describe('POST /api/ai/chat (Jev routing)', () => {
     await (await POST(jsonRequest({ messages: [{ role: 'user', text: 'what did I buy on the 4th?' }] }))).text()
 
     expect(streamTextMock.mock.calls[0][0]).toContain('Swiggy dinner')
+  })
+
+  it('turns on the decision playbook and model thinking for decision questions', async () => {
+    routeChatMock.mockResolvedValue({ onTopic: true, sections: ['header', 'envelopes'], decision: true })
+
+    await (await POST(jsonRequest({ messages: [{ role: 'user', text: 'can I afford a 7K subscription?' }] }))).text()
+
+    expect(streamTextMock.mock.calls[0][0]).toContain('DECISIONS:')
+    expect(streamTextMock.mock.calls[0][3]).toBe(true)
+  })
+
+  it('keeps plain questions on the fast path', async () => {
+    await (await POST(jsonRequest({ messages: [{ role: 'user', text: 'how much on food?' }] }))).text()
+
+    expect(streamTextMock.mock.calls[0][0]).not.toContain('DECISIONS:')
+    expect(streamTextMock.mock.calls[0][3]).toBeFalsy()
+  })
+
+  it('routes a follow-up with the previous user turns as context', async () => {
+    await (
+      await POST(
+        jsonRequest({
+          messages: [
+            { role: 'user', text: 'Can I afford a Kindle?' },
+            { role: 'model', text: 'How much is it?' },
+            { role: 'user', text: "It's 12k." },
+          ],
+        }),
+      )
+    ).text()
+
+    expect(routeChatMock.mock.calls[0][0]).toBe("It's 12k.")
+    expect(routeChatMock.mock.calls[0][2]).toEqual(['Can I afford a Kindle?'])
   })
 })

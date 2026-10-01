@@ -22,7 +22,7 @@ export function AllocationBar({ segments }: { segments: AllocationSegment[] }) {
     <div className="ins-allocation">
       <svg viewBox="0 0 100 10" preserveAspectRatio="none" role="img" aria-label="Allocation by category">
         <rect width="100" height="10" rx="5" fill="var(--erd-border)" />
-        {laidOut.map((segment, index) => (
+        {laidOut.map((segment) => (
           <rect
             key={segment.label}
             x={segment.x}
@@ -30,7 +30,6 @@ export function AllocationBar({ segments }: { segments: AllocationSegment[] }) {
             height="10"
             fill={segment.color}
             className="ins-allocation-segment"
-            style={{ animationDelay: `${100 + index * 45}ms` }}
           >
             <title>{segment.label} · {segment.width.toFixed(1)}%</title>
           </rect>

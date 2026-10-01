@@ -34,17 +34,17 @@ function buildUpdate(doc, fields, collectionName) {
   let changed = false
 
   for (const field of fields) {
-    if (field === 'messages.text') {
-      if (Array.isArray(doc.messages)) {
-        const next = doc.messages.map((m) =>
-          m && typeof m.text === 'string' && !isEncrypted(m.text)
-            ? { ...m, text: encrypt(m.text, aad(userId, collectionName, field)) }
-            : m,
-        )
-        if (next.some((m, i) => m !== doc.messages[i])) {
-          set.messages = next
-          changed = true
-        }
+    if (field.includes('.')) {
+      const [arrayKey, subField] = field.split('.')
+      const source = set[arrayKey] ?? doc[arrayKey]
+      if (Array.isArray(source)) {
+        const next = source.map(item => {
+          const value = item?.[subField]
+          return (typeof value === 'string' || typeof value === 'number') && !isEncrypted(value)
+            ? { ...item, [subField]: encrypt(String(value), aad(userId, collectionName, field)) }
+            : item
+        })
+        if (next.some((item, i) => item !== source[i])) { set[arrayKey] = next; changed = true }
       }
       continue
     }
@@ -110,9 +110,10 @@ async function verifyCollection(db, collectionName, fields) {
 
   for await (const doc of db.collection(collectionName).find({})) {
     for (const field of fields) {
-      if (field === 'messages.text') {
-        if (Array.isArray(doc.messages)) {
-          for (const m of doc.messages) checkValue(m?.text, doc._id, field, 'messages[].text', doc.user_id)
+      if (field.includes('.')) {
+        const [arrayKey, subField] = field.split('.')
+        if (Array.isArray(doc[arrayKey])) {
+          for (const item of doc[arrayKey]) checkValue(item?.[subField], doc._id, field, field, doc.user_id)
         }
         continue
       }

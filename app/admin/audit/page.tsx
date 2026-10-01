@@ -1,3 +1,4 @@
+import { pageMetadata } from '@/lib/seo'
 import Link from 'next/link'
 import type { Filter } from 'mongodb'
 import { getDb } from '@/lib/mongodb'
@@ -210,3 +211,5 @@ export default async function AdminAudit({ searchParams }: { searchParams: Param
     </>
   )
 }
+
+export const metadata = pageMetadata('/admin/audit')

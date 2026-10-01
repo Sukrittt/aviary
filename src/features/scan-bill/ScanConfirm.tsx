@@ -1,6 +1,8 @@
 'use client'
 
 import { useCurrency } from '@/src/context/CurrencyContext'
+import { motion } from 'motion/react'
+import { STAGGER, popIn, staggerDelay } from '@/src/components/landing/mobile/kit'
 
 import { SuccessButton } from '@/src/components/SuccessButton'
 import { formatDate } from '@/src/lib/format'
@@ -27,7 +29,7 @@ export function ScanConfirm(s: ScanBillState) {
         <div className="scan-micro">Where it came from</div>
         <ul className="scan-card scan-buckets" aria-label="Where your share came from">
           {s.buckets.map((b, i) => (
-            <li key={b.divisor} className="scan-bucket" style={{ animationDelay: `${190 + Math.min(i, 6) * 45}ms` }}>
+            <motion.li key={b.divisor} className="scan-bucket" {...popIn(staggerDelay(i, STAGGER.mount + STAGGER.block))}>
               <span className={`scan-badge ${b.divisor === 1 ? '' : 'is-accent'}`}>{b.divisor === 1 ? '1' : `÷${b.divisor}`}</span>
               <div className="scan-bucket-body">
                 <strong>{b.divisor === 1 ? 'Fully mine' : `Split ${b.divisor} ways`}</strong>
@@ -44,10 +46,10 @@ export function ScanConfirm(s: ScanBillState) {
                 <strong>{formatMoney(b.share)}</strong>
                 <span className="scan-meta">of {formatMoney(b.gross)}</span>
               </div>
-            </li>
+            </motion.li>
           ))}
           {s.hasFee && (
-            <li className="scan-bucket">
+            <motion.li className="scan-bucket" {...popIn(staggerDelay(s.buckets.length, STAGGER.mount + STAGGER.block))}>
               <span className="scan-badge is-accent">{currencySymbol}</span>
               <div className="scan-bucket-body">
                 <strong>Fees &amp; discount, reconciled</strong>
@@ -58,7 +60,7 @@ export function ScanConfirm(s: ScanBillState) {
               <div className="scan-bucket-amount">
                 <strong>{formatMoney(s.feeShare)}</strong>
               </div>
-            </li>
+            </motion.li>
           )}
         </ul>
       </div>

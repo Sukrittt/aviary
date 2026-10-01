@@ -43,6 +43,73 @@ describe('summarizeExpenses sections', () => {
     expect(sections.envelopes).not.toContain('__income__')
     expect(sections.header).toContain('INCOME: 90000')
   })
+
+  it('states the unassigned money, so the model can tell spare income from a real shortfall', () => {
+    const { sections } = summarizeExpenses(input)
+    // 90000 income, 8000 + 2000 assigned.
+    expect(sections.header).toContain('ASSIGNED THIS MONTH: 10000')
+    expect(sections.header).toContain('READY TO ASSIGN: 80000')
+  })
+
+  it('reports ready to assign as negative when more is assigned than earned', () => {
+    const { sections } = summarizeExpenses({
+      ...input,
+      budgets: [...input.budgets.filter((b) => b.category !== 'Food'), { month: '2026-09', category: 'Food', assigned: 95000, rolled_over: 0 }],
+    })
+    expect(sections.header).toContain('READY TO ASSIGN: -7000')
+  })
+})
+
+describe('summarizeExpenses precomputed totals', () => {
+  // Flash-lite got long sums wrong (a merchant over 90 days, a month's total), so FACTS states them.
+  it('totals the envelopes, splitting spare money from overspending', () => {
+    const { sections } = summarizeExpenses(input)
+    // Food 8000 - 640 = 7360, Travel 2000 - 300 = 1700.
+    expect(sections.envelopes).toContain('TOTALS: assigned 10000, spent 940, available 9060 (unspent 9060, overspent 0)')
+  })
+
+  it('states money left this month and money free for a new cost', () => {
+    // Food assigned 8000, 640 spent; Travel assigned 2000 but 2300 spent (300 over). Income 90000.
+    const { sections } = summarizeExpenses({
+      ...input,
+      expenses: [...input.expenses, { date: '2026-09-05', item: 'Train', amount_inr: 2000, category: 'Travel' }],
+    })
+    // Ready to assign 80000. Left: available (7360 - 300) + 80000. Free: 80000 - 300.
+    expect(sections.envelopes).toContain('LEFT THIS MONTH: 87060')
+    expect(sections.envelopes).toContain('FREE FOR NEW COSTS: 79700')
+  })
+
+  it('adds a total row and an average of the full months to the trend', () => {
+    const { sections } = summarizeExpenses(input)
+    expect(sections.trend).toMatch(/category\|.*\|avg full months/)
+    // Food: 420 in August, 640 so far in September. The current month is partial and
+    // months before the first expense aren't history, so the average is August alone.
+    expect(sections.trend).toContain('Food|0|0|0|0|420|640|420')
+    expect(sections.trend).toContain('TOTAL|0|0|0|0|420|940|420')
+  })
+
+  it('reports what each month saved and the running total, since envelopes reset monthly', () => {
+    const { sections } = summarizeExpenses({
+      ...input,
+      budgets: [...input.budgets, { month: '2026-08', category: '__income__', assigned: 80000, rolled_over: 0 }],
+    })
+    // August: 80000 - 420. September so far: 90000 - 940. Months before any income show '-'.
+    expect(sections.trend).toContain('SAVED (income minus spending)|-|-|-|-|79580|89060|79580')
+    expect(sections.trend).toContain('SAVED SINCE 2026-08: 79580')
+  })
+
+  it('totals repeat merchants over the transaction window', () => {
+    const { sections } = summarizeExpenses({
+      ...input,
+      expenses: [
+        ...input.expenses,
+        { date: '2026-09-10', item: 'Swiggy dinner', amount_inr: 100, category: 'Food' },
+      ],
+    })
+    // "Swiggy dinner" twice this month (640 + 100), "Swiggy lunch" once is not repeated.
+    expect(sections.transactions).toContain('Swiggy dinner|740|740|2')
+    expect(sections.transactions).not.toMatch(/Swiggy lunch\|\d+\|\d+\|\d+$/m)
+  })
 })
 
 describe('factsFor', () => {

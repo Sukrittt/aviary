@@ -1,9 +1,14 @@
 import { getUserCurrency } from '@/lib/userCurrency'
 import { ObjectId } from 'mongodb'
 import { put, issueSignedToken, presignUrl } from '@vercel/blob'
-import * as XLSX from 'xlsx'
+import ExcelJS from 'exceljs'
+import { createReadStream } from 'node:fs'
+import { mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { setImmediate as yieldToIO } from 'node:timers/promises'
 import { getDb } from '@/lib/mongodb'
-import { scoped, type ScopedCollection } from '@/lib/scoped'
+import { scoped } from '@/lib/scoped'
 import { getCollection, nowIST } from '@/lib/http'
 import { sendPushNotification } from '@/lib/push'
 import type { Auth } from '@/lib/access'
@@ -16,36 +21,6 @@ export const EXPORT_LIMIT = 3
 /** 'YYYY-MM' for the current instant, IST — same convention as lib/wrapped.ts. */
 export function currentMonthKey(): string {
   return nowIST().date.slice(0, 7)
-}
-
-function nextMonthKey(ym: string): string {
-  const [y, m] = ym.split('-').map(Number)
-  const d = new Date(Date.UTC(y, m, 1)) // m is 1-indexed 'YYYY-MM', so this already rolls to next month
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`
-}
-
-/**
- * Expenses are the only collection that grows unbounded (months/years of
- * transactions), so fetch them one calendar month at a time instead of a
- * single `find({}).toArray()` that scans and buffers the whole history.
- * Every other collection (categories, budgets, holdings, ...) stays small
- * and bounded, so it keeps the plain single-query fetch.
- */
-async function fetchExpensesByMonth(coll: ScopedCollection): Promise<Record<string, unknown>[]> {
-  const [earliest] = await coll.find({}).sort({ date: 1 }).limit(1).toArray()
-  if (!earliest) return []
-  const [latest] = await coll.find({}).sort({ date: -1 }).limit(1).toArray()
-
-  const docs: Record<string, unknown>[] = []
-  let ym = String(earliest.date).slice(0, 7)
-  const lastYm = String(latest.date).slice(0, 7)
-  while (ym <= lastYm) {
-    const nextYm = nextMonthKey(ym)
-    const batch = await coll.find({ date: { $gte: `${ym}-01`, $lt: `${nextYm}-01` } }).toArray()
-    docs.push(...batch)
-    ym = nextYm
-  }
-  return docs
 }
 
 export async function countReadyExportsThisMonth(auth: Auth): Promise<number> {
@@ -139,8 +114,12 @@ export async function buildAndStoreExport(userId: string, exportId: string): Pro
   const db = await getDb()
   const exportsColl = scoped(db.collection(COLLECTIONS.exports), userId)
 
+  let directory: string | undefined
+  let output: ReturnType<typeof createReadStream> | undefined
   try {
-    const wb = XLSX.utils.book_new()
+    directory = await mkdtemp(join(tmpdir(), 'aviary-export-'))
+    const filename = join(directory, 'export.xlsx')
+    const wb = new ExcelJS.stream.xlsx.WorkbookWriter({ filename, useStyles: false, useSharedStrings: false })
 
     const columnsByCollection = exportColumns(await getUserCurrency(userId))
     for (const [key, name] of Object.entries(COLLECTIONS) as [keyof typeof COLLECTIONS, string][]) {
@@ -148,17 +127,32 @@ export async function buildAndStoreExport(userId: string, exportId: string): Pro
       if (!columns) continue
 
       const coll = scoped(db.collection(name), userId)
-      const docs = key === 'expenses' ? await fetchExpensesByMonth(coll) : await coll.find({}).toArray()
-      const headerRow = columns.map((c) => c.label)
-      const dataRows = docs.map((d) => columns.map((c) => (c.format ? c.format(d[c.key]) : String(d[c.key] ?? ''))))
-      const sheet = XLSX.utils.aoa_to_sheet([headerRow, ...dataRows])
-      XLSX.utils.book_append_sheet(wb, sheet, readableSheetName(name).slice(0, 31)) // Excel tab-name length limit
+      const headerRow = columns.map(c => c.label)
+      let tab = 1
+      let sheet = wb.addWorksheet(readableSheetName(name).slice(0, 27))
+      sheet.addRow(headerRow).commit()
+      let count = 0
+      const cursor = coll.find({}).batchSize(250)
+      try {
+        for await (const doc of cursor) {
+          if (count > 0 && count % 1_000_000 === 0) {
+            sheet.commit()
+            sheet = wb.addWorksheet(`${readableSheetName(name).slice(0, 24)} ${++tab}`)
+            sheet.addRow(headerRow).commit()
+          }
+          sheet.addRow(columns.map(c => c.format ? c.format(doc[c.key]) : String(doc[c.key] ?? ''))).commit()
+          if (++count % 100 === 0) await yieldToIO()
+        }
+      } finally { await cursor.close() }
+      sheet.commit()
     }
-
-    const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }) as Buffer
-    const blob = await put(`exports/${userId}/${exportId}.xlsx`, buffer, {
+    await wb.commit()
+    output = createReadStream(filename)
+    const blob = await put(`exports/${userId}/${exportId}.xlsx`, output, {
       access: 'private',
       contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      addRandomSuffix: false,
+      allowOverwrite: true,
     })
 
     await exportsColl.updateOne(
@@ -178,6 +172,9 @@ export async function buildAndStoreExport(userId: string, exportId: string): Pro
       data: { route: '/account/data' },
     }).catch((pushErr) => console.error('export: failure push failed for', userId, exportId, pushErr))
     return
+  } finally {
+    output?.destroy()
+    if (directory) await rm(directory, { recursive: true, force: true })
   }
 
   await sendPushNotification({

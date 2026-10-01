@@ -55,6 +55,7 @@ const buildExpenseContextMock = vi.fn(async () => ({
   ],
   subscriptions: [],
   categories: [],
+  highlights: { topItem: null, riser: null, pace: null, subscriptionMonthlyBurn: 0, investmentTotal: 0 },
 }))
 vi.mock('@/lib/ai/expenseContext', () => ({
   buildExpenseContext: buildExpenseContextMock,

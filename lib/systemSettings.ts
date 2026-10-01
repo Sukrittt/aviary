@@ -13,8 +13,11 @@ export interface SystemSettings {
   aiMonthlyCostUsd: number | null
   /** Banner shown across the web app and exposed at GET /api/system/status for clients. */
   maintenance: { on: boolean; message: string }
-  /** Latest store release advertised to Android clients on the More screen. Empty disables the prompt. */
-  appUpdate: { android: { latestVersion: string; storeUrl: string } }
+  /**
+   * Store releases advertised to Android clients. `latestVersion` shows a quiet link on the More screen;
+   * `minVersion` shows a Home banner on older installs, for native builds OTA updates can't reach. Empty disables each.
+   */
+  appUpdate: { android: { latestVersion: string; minVersion: string; storeUrl: string } }
   /**
    * Subscription launch switches, flagged independently so each can be rolled
    * back on its own (see payment-subscriptions-plan.md, "Controlled launch").
@@ -53,6 +56,7 @@ const DEFAULTS: SystemSettings = {
   appUpdate: {
     android: {
       latestVersion: '',
+      minVersion: '',
       storeUrl: 'https://play.google.com/store/apps/details?id=com.sukrit04.envelope',
     },
   },

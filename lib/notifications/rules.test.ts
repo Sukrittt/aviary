@@ -370,3 +370,56 @@ it('uses each user’s display currency for thresholds and digests', () => {
   expect(usd.find(n => n.kind === 'digest')?.body).toContain('$500')
   expect(input.envelopes[0].spent).toBe(500)
 })
+
+describe('buildNotifications — pace', () => {
+  const pace = { category: 'Food', spent: 6200, usual: 3000, usualRest: 9300, ratio: 2.1 }
+  const run = (over: Partial<Parameters<typeof buildNotifications>[0]> = {}) =>
+    buildNotifications({
+      envelopes: [envelope({ category: 'Food', assigned: 8000, spent: 6200, available: 1800, spentPct: 78 })],
+      subscriptions: [],
+      categories: [],
+      meta: meta(),
+      prefs: prefs({ thresholds: false, bills: false, cadence: 'weekly' }),
+      today: TODAY,
+      month: MONTH,
+      pace,
+      ...over,
+    }).filter((n) => n.kind === 'pace')
+
+  it('projects the month and suggests the envelope with the most slack', () => {
+    const [n] = run({
+      envelopes: [
+        envelope({ category: 'Food', assigned: 8000, spent: 6200, available: 1800, spentPct: 78 }),
+        envelope({ category: 'Shopping', assigned: 5000, spent: 1600, available: 3400, spentPct: 32 }),
+        envelope({ category: 'Fuel', assigned: 2000, spent: 1000, available: 1000, spentPct: 50 }),
+      ],
+    })
+    expect(n).toMatchObject({ key: `pace:${MONTH}:Food`, title: 'Food is running hot' })
+    // 6,200 + 9,300 usual rest = 15,500 vs 8,000 budget: 7,500 short, capped at Shopping's 3,400.
+    expect(n.body).toBe("₹6,200 so far, about 2.1× your usual pace. At this rate you'll hit ₹15,500 vs ₹8,000 budgeted. Move ₹3,400 from Shopping?")
+    expect(n.data).toEqual({ route: '/modals/move-money', category: 'Food' })
+  })
+
+  it('compares with the usual amount when the category has no budget', () => {
+    const [n] = run({ envelopes: [envelope({ category: 'Food', assigned: 0, spent: 6200, available: -6200 })] })
+    expect(n.body).toBe("₹6,200 so far vs ₹3,000 you usually spend by now.")
+    expect(n.data).toBeUndefined()
+  })
+
+  it('skips the projection when the budget still covers the usual rest of the month', () => {
+    const [n] = run({ envelopes: [envelope({ category: 'Food', assigned: 20000, spent: 6200, available: 13800 })] })
+    expect(n.body).toBe("₹6,200 so far vs ₹3,000 you usually spend by now.")
+  })
+
+  it('projects without a suggestion when no envelope has slack', () => {
+    const [n] = run()
+    expect(n.body).toBe("₹6,200 so far, about 2.1× your usual pace. At this rate you'll hit ₹15,500 vs ₹8,000 budgeted.")
+    expect(n.data).toBeUndefined()
+  })
+
+  it('rides on the coach pref and the digest cadence', () => {
+    expect(run({ prefs: prefs({ coach: false }) })).toHaveLength(0)
+    expect(run({ prefs: prefs({ cadence: 'off' }) })).toHaveLength(0)
+    expect(run({ pace: null })).toHaveLength(0)
+  })
+})

@@ -12,6 +12,8 @@ export interface BudgetRow {
   category: string
   assigned: string
   rolled_over: string
+  /** Only on the income row: one-off income for that month. See EnvelopeState.incomeExtra. */
+  extra?: string
   version: number
 }
 

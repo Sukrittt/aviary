@@ -1,6 +1,6 @@
-export const metadata = { title: 'Privacy Policy — Aviary' }
+import { pageMetadata } from '@/lib/seo'
 
-const SUPPORT_EMAIL = '[your support email]'
+const SUPPORT_EMAIL = 'support@useaviary.com'
 
 export default function PrivacyPage() {
   return (
@@ -40,27 +40,26 @@ export default function PrivacyPage() {
           afterward.
         </li>
         <li>
-          <strong>Money Brain / AI chat.</strong> If you ask our AI assistant a question, we send it your recent
+          <strong>Ask Aviary / AI chat.</strong> If you ask our AI assistant a question, we send it your recent
           transactions, envelope balances, and subscription and investment summaries so it can answer
           accurately, along with the text you type. Conversations are stored in our database so you can revisit
           them, and you can delete them at any time.
         </li>
         <li>
-          <strong>Product analytics.</strong> The mobile app sends your email and name, screen views, and a
-          handful of product events (e.g. logging an expense, moving money, scanning a bill) to PostHog, an
-          analytics provider based in the United States. No amounts or item text are included in these events.
-          You can turn this off in Settings &rarr; Your data &rarr; Analytics; turning it off stops new data
-          from being sent.
+          <strong>Product analytics.</strong> The mobile app and the web app send your email and name, the
+          screens and pages you open, and product events (e.g. signing in, each step of setup, logging an
+          expense, moving money, scanning a bill, viewing plans) to PostHog, an analytics provider based in the
+          United States. No amounts, item text or envelope names are included in these events, and we don&apos;t
+          record your screen. On the website, visitors who aren&apos;t signed in are counted anonymously.
+          Analytics is on by default. You can turn it off at any time in Settings &rarr; Your data &rarr;
+          Share usage analytics, on either app; turning it off stops new data from being sent from that device
+          or browser.
         </li>
         <li>
           <strong>Push notifications.</strong> A push token identifying your device, used to send budget alerts,
           bill reminders, and digests. Notification text can include category names and amounts (e.g.
           &ldquo;You&apos;ve overspent &#8377;500 in Food&rdquo;), delivered through Google&apos;s and
           Apple&apos;s push services.
-        </li>
-        <li>
-          <strong>Diagnostics you choose to send.</strong> If you report a bug or send feedback, we include your
-          app version and device model to help us reproduce it.
         </li>
       </ul>
 
@@ -76,8 +75,9 @@ export default function PrivacyPage() {
       <ul>
         <li><strong>WorkOS</strong> — sign-in and account identity.</li>
         <li><strong>MongoDB Atlas</strong> — where your data is stored, with the encryption described above.</li>
+        <li><strong>UserJot</strong> — the external feedback board, when you choose to open it and submit feedback.</li>
         <li>
-          <strong>Google Gemini</strong> — receives transaction and budget context for Money Brain and AI
+          <strong>Google Gemini</strong> — receives transaction and budget context for Ask Aviary and AI
           briefs, and receipt photos for bill scanning. Google does not use this data to train its models under
           our API agreement with them.
         </li>
@@ -136,3 +136,5 @@ export default function PrivacyPage() {
     </article>
   )
 }
+
+export const metadata = pageMetadata('/legal/privacy')

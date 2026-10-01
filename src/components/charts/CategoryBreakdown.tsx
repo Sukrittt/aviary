@@ -10,6 +10,7 @@ import type { BreakdownRow, MonthComparison } from '@/src/lib/monthly'
 import { CHART_COLORS } from '@/src/theme/chartColors'
 import { DonutChart, type DonutSegment } from './DonutChart'
 import { AutoHeight, PopIn, ease } from '@/src/components/landing/mobile/kit'
+import { BirdEmptyState } from '../BirdEmptyState'
 
 interface Props {
   rows: BreakdownRow[]
@@ -24,6 +25,7 @@ interface Props {
   leftover: number
   monthLabel: string
   hideAmounts?: boolean
+  loading?: boolean
 }
 
 const VISIBLE_ROWS = 6
@@ -99,7 +101,7 @@ function buildSegments(rows: BreakdownRow[], colors: Map<string, string>): Donut
   return segments
 }
 
-export function CategoryBreakdown({ rows, categoryRows, groupRows, categoryGroupMap, mode, onModeChange, selectedKey, onSelectKey, comparison, leftover, monthLabel, hideAmounts = false }: Props) {
+export function CategoryBreakdown({ rows, categoryRows, groupRows, categoryGroupMap, mode, onModeChange, selectedKey, onSelectKey, comparison, leftover, monthLabel, hideAmounts = false, loading = false }: Props) {
   const { currencySymbol, formatCurrency } = useCurrency()
 
   const [expanded, setExpanded] = useState(false)
@@ -259,10 +261,18 @@ export function CategoryBreakdown({ rows, categoryRows, groupRows, categoryGroup
       </div>
 
       {displayRows.length === 0 ? (
-        <div className="ins-chart-empty">No spending in {monthLabel}</div>
+        <div className="ins-breakdown-empty" aria-busy={loading}>
+          {!loading && (
+            <BirdEmptyState
+              subject="expenses"
+              title="Nothing spent yet"
+              description="Log an expense and it'll land here."
+            />
+          )}
+        </div>
       ) : (
         <>
-          <div style={{ opacity: revealReady ? 1 : 0 }}>
+          <div className="ins-breakdown-content" style={{ opacity: revealReady ? 1 : 0 }}>
             <div className="ins-breakdown-visuals">
               <DonutChart key={revealKey} revealKey={revealKey} segments={segments} selectedKey={selectedDonutKey} onSelect={(key) => onSelectKey(key === '__other__' ? null : key)}>
                 {play && (

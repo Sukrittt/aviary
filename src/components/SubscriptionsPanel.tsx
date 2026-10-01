@@ -2,12 +2,14 @@
 
 import { useCurrency } from "@/src/context/CurrencyContext";
 import { useState } from "react";
-import { ChevronRight, Plus, Repeat2 } from "lucide-react";
+import { ChevronRight, Plus } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import { getEffectiveDueDate } from "@/lib/subscriptions";
 import { AllocationBar, type AllocationSegment } from "./charts/AllocationBar";
 import { CHART_COLORS } from "../theme/chartColors";
 import { formatDateShort } from "../lib/format";
 import { LoadingCaption } from "./LoadingCaption";
+import { BirdEmptyState } from "./BirdEmptyState";
 
 export interface SubscriptionPanelItem {
   timestamp: string;
@@ -251,16 +253,13 @@ export function SubscriptionsPanel({
           Couldn&apos;t load subscriptions.
         </p>
       ) : active.length === 0 && cancelled.length === 0 ? (
-        <div className="account-empty">
-          <span aria-hidden="true">
-            <Repeat2 size={30} strokeWidth={1.8} />
-          </span>
-          <div className="account-empty-title">No subscriptions yet</div>
-          <p className="account-row-meta">Track renewals so bills never surprise you.</p>
-          <button type="button" className="action-button is-active erd-accent-action" onClick={onAdd}>
-            Add a subscription
-          </button>
-        </div>
+        <BirdEmptyState
+          compact={homeRail}
+          subject="subscriptions"
+          title="Keep tabs on your repeats"
+          description="Track renewals so bills never surprise you."
+          action={{ label: 'Add a subscription', onClick: onAdd }}
+        />
       ) : (
         <>
           <div className="subp-eyebrow">RECURRING / MONTH</div>
@@ -293,14 +292,27 @@ export function SubscriptionsPanel({
                   onClick={() => setShowCancelled((v) => !v)}
                   aria-expanded={showCancelled}
                 >
-                  <ChevronRight size={14} />
+                  <motion.span
+                    style={{ display: "inline-flex" }}
+                    animate={{ rotate: showCancelled ? 90 : 0 }}
+                    transition={{ type: "spring", damping: 64, stiffness: 600 }}
+                  >
+                    <ChevronRight size={14} />
+                  </motion.span>
                   CANCELLED ({cancelled.length})
                 </button>
-                {showCancelled && (
-                  <ul className="subp-list">
-                    {cancelled.map((sub, i) => row(sub, i, false))}
-                  </ul>
-                )}
+                <AnimatePresence initial={false}>
+                  {showCancelled && (
+                    <motion.ul
+                      className="subp-list"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1, transition: { duration: 0.15 } }}
+                      exit={{ opacity: 0, transition: { duration: 0.12 } }}
+                    >
+                      {cancelled.map((sub, i) => row(sub, i, false))}
+                    </motion.ul>
+                  )}
+                </AnimatePresence>
               </div>
             )}
           </div>

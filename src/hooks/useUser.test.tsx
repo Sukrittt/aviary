@@ -3,11 +3,12 @@ import type { Mock } from 'vitest'
 import type { ReactNode } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { renderHook, waitFor } from '@testing-library/react'
-import { getUser, updateUser, restoreAccount, type UserProfile } from '@/src/api/account'
-import { useUser, useUpdateUser, useRestoreAccount, userKey } from './useUser'
+import { getUser, updateUser, restoreAccount, completeGuidedTour, type UserProfile } from '@/src/api/account'
+import { useUser, useUpdateUser, useRestoreAccount, useCompleteGuidedTour, userKey } from './useUser'
 
 vi.mock('@/src/api/account', () => ({
   getUser: vi.fn(),
+  completeGuidedTour: vi.fn(),
   updateUser: vi.fn(),
   restoreAccount: vi.fn(),
   getSessions: vi.fn(),
@@ -100,5 +101,18 @@ it('rolls back a failed currency change without changing any amounts', async () 
   expect(queryClient.getQueryData<UserProfile>(userKey)?.currencyCode).toBe('INR')
   expect(queryClient.getQueryData(['expenses'])).toEqual([{ amount_inr: '500' }])
   unmount()
+  queryClient.clear()
+})
+
+
+it('refreshes the user milestone immediately when the guided tour completes', async () => {
+  const profile = { email: 'a@b.com', emailVerified: true, guidedTourCompletedAt: '2026-10-01' }
+  vi.mocked(completeGuidedTour).mockResolvedValue(profile)
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  queryClient.setQueryData(userKey, { email: 'a@b.com', emailVerified: true })
+  const { result } = renderHook(() => useCompleteGuidedTour(), { wrapper: wrapper(queryClient) })
+  result.current.mutate()
+  await waitFor(() => expect(result.current.isSuccess).toBe(true))
+  expect(queryClient.getQueryData(userKey)).toEqual(profile)
   queryClient.clear()
 })

@@ -10,6 +10,18 @@ export async function getExpenses(): Promise<ExpenseRow[]> {
   return data.rows
 }
 
+export type RecentExpenses = { rows: ExpenseRow[]; lastSpent: Record<string, string> }
+
+/** Rows dated on/after `from`, plus each category's all-time last spend date. */
+export async function getRecentExpenses(from: string): Promise<RecentExpenses> {
+  const resp = await apiFetch(`/api/expenses?from=${encodeURIComponent(from)}`)
+  if (!resp.ok) throw new Error(`Failed to load expenses: ${resp.status}`)
+  const data: CsvResponse<ExpenseRow> & { lastSpent?: Record<string, string> } = await resp.json()
+  // An older server ignores `from` and sends everything, with no `lastSpent`;
+  // the full rows already carry every last spend date, so {} is correct there.
+  return { rows: data.rows, lastSpent: data.lastSpent ?? {} }
+}
+
 export type ExpensesPageParams = {
   page: number
   limit: number
@@ -48,6 +60,8 @@ export type NewExpenseRow = {
   date?: string
   notes?: string
   payment_method?: string
+  /** Only manual entry completes the getting started milestone. */
+  source?: 'manual' | 'scan'
 }
 
 /** The exact body a POST /api/expenses create sends, `client_id` included. */

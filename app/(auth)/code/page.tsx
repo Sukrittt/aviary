@@ -2,6 +2,8 @@
 
 import { Suspense, useState, type CSSProperties, type FormEvent } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { markSignInFlight } from '@/src/features/sign-in-flight/pending'
+import { track } from '@/src/lib/analytics'
 
 function CodeForm() {
   const router = useRouter()
@@ -24,13 +26,17 @@ function CodeForm() {
     }).catch(() => null)
     setPending(false)
     if (!res?.ok) {
+      track('sign_in_failed', { method: 'email', reason: res ? 'wrong_code' : 'network' })
       setError('Wrong or expired code.')
       setCode('')
       // New key on the boxes row replays the shake/drop on every failure.
       setAttempt((a) => a + 1)
       return
     }
+    track('sign_in_completed', { method: 'email' })
     setDone(true)
+    // /expense plays the bird's flight to the sidebar once, on arrival.
+    markSignInFlight()
     // Full navigation: AuthKitProvider and the rest of the app read the
     // session cookie fresh, same as the old AuthGate's post-verify reload.
     // Delay lets the success animation play, matching mobile's 1100ms.

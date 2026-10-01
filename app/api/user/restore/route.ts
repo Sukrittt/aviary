@@ -1,7 +1,7 @@
 import { json, error } from '@/lib/http'
 import { getAuth } from '@/lib/access'
 import { getDb } from '@/lib/mongodb'
-import { restoreAccount } from '@/lib/accountLifecycle'
+import { restoreAccount, LegacyAccountRecoveryError } from '@/lib/accountLifecycle'
 import type { UserDoc } from '@/lib/users'
 
 export const dynamic = 'force-dynamic'
@@ -21,7 +21,12 @@ export async function POST(req: Request) {
   const account = await db.collection<UserDoc>('users').findOne({ _id: auth.userId })
   if (!account?.deleted_at) return error('account is not scheduled for deletion', 404)
 
-  await restoreAccount(db, auth.userId)
+  try {
+    await restoreAccount(db, auth.userId)
+  } catch (err) {
+    if (err instanceof LegacyAccountRecoveryError) return error(err.message, 409)
+    throw err
+  }
 
   return json({ ok: true })
 }

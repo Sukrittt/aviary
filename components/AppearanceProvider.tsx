@@ -26,15 +26,15 @@ const AppearanceContext = createContext<AppearanceValue | null>(null)
 // Same key and same default as Mobile's src/theme/pref.ts.
 const PREF_KEY = 'mc-theme-pref'
 const LEGACY_KEY = 'mc-theme'
+const DEFAULT_THEME_PREFERENCE: ThemePreference = 'light'
 
 function parsePreference(raw: string): ThemePreference {
-  return raw === 'light' || raw === 'dark' || raw === 'system' ? raw : 'system'
+  return raw === 'light' || raw === 'dark' || raw === 'system' ? raw : DEFAULT_THEME_PREFERENCE
 }
 
 /**
  * The OS colour scheme as an external store, so it participates in rendering
- * without an effect and gives a `null` server snapshot — which is what lets
- * the first paint carry no theme class at all.
+ * without an effect. Only an explicitly saved 'system' choice uses it.
  */
 function subscribeSystemScheme(onChange: () => void): () => void {
   const query = window.matchMedia('(prefers-color-scheme: dark)')
@@ -49,7 +49,7 @@ function systemSchemeSnapshot(): Theme {
 export function AppearanceProvider({ children }: { children: ReactNode }) {
   const [preference, setPreference] = usePersistentState<ThemePreference>(
     PREF_KEY,
-    'system',
+    DEFAULT_THEME_PREFERENCE,
     parsePreference,
     (value) => value,
   )
@@ -62,15 +62,13 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
 
   const systemScheme = useSyncExternalStore(subscribeSystemScheme, systemSchemeSnapshot, () => null)
 
-  // Before the browser answers — server render and React's hydration pass —
-  // this is null and AppShell renders no theme class, so the media query in
-  // src/theme/tokens.css paints the right scheme on the very first frame.
-  // Stamping a default would flash the wrong one at every system-light user.
+  // Light is the first-paint default. Stored choices are restored by the
+  // preference store; an explicit 'system' choice follows the device.
   const theme: Theme | null = preference === 'system' ? systemScheme : preference
 
   // One-time migration off the old two-value key, which had no 'system' and
   // defaulted to dark. Without this, everyone who ever toggled the theme is
-  // silently moved to 'system' on this release.
+  // silently moved to the default on this release.
   useEffect(() => {
     const legacy = readPref(LEGACY_KEY)
     if (!legacy) return

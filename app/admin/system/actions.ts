@@ -13,6 +13,7 @@ export async function saveSettingsAction(_prev: ActionResult, form: FormData): P
   const adminId = await requireAdmin()
   const message = String(form.get('maintenanceMessage') ?? '').trim().slice(0, MESSAGE_MAX)
   const latestVersion = String(form.get('androidLatestVersion') ?? '').trim().slice(0, 32)
+  const minVersion = String(form.get('androidMinVersion') ?? '').trim().slice(0, 32)
   const storeUrl = String(form.get('androidStoreUrl') ?? '').trim().slice(0, 500)
   const capRaw = String(form.get('aiMonthlyCostUsd') ?? '').trim()
   const cap = capRaw === '' ? null : Number(capRaw)
@@ -21,7 +22,7 @@ export async function saveSettingsAction(_prev: ActionResult, form: FormData): P
     aiDisabled: form.get('aiDisabled') === 'on',
     aiMonthlyCostUsd: cap,
     maintenance: { on: form.get('maintenanceOn') === 'on', message },
-    appUpdate: { android: { latestVersion, storeUrl } },
+    appUpdate: { android: { latestVersion, minVersion, storeUrl } },
     // Two independent switches, on purpose: purchase entry can go live for a
     // test cohort while nobody is locked out yet, and enforcement can be
     // rolled back without hiding the way to pay. See
@@ -35,7 +36,9 @@ export async function saveSettingsAction(_prev: ActionResult, form: FormData): P
   }
   if (next.maintenance.on && !message) return { ok: false, message: 'Add a banner message before turning it on' }
   if (latestVersion && !VERSION_RE.test(latestVersion)) return { ok: false, message: 'Use an Android version like 2.3.0' }
-  if (latestVersion && !storeUrl.startsWith('https://')) return { ok: false, message: 'Add a valid HTTPS Play Store URL' }
+  if (minVersion && !VERSION_RE.test(minVersion)) return { ok: false, message: 'Use a minimum version like 2.3.0' }
+  if (minVersion && !latestVersion) return { ok: false, message: 'Set the latest version too when setting a minimum' }
+  if ((latestVersion || minVersion) && !storeUrl.startsWith('https://')) return { ok: false, message: 'Add a valid HTTPS Play Store URL' }
 
   const before = await getSystemSettings()
   await saveSystemSettings(next)

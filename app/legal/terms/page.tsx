@@ -1,6 +1,6 @@
-export const metadata = { title: 'Terms — Aviary' }
+import { pageMetadata } from '@/lib/seo'
 
-const SUPPORT_EMAIL = '[your support email]'
+const SUPPORT_EMAIL = 'support@useaviary.com'
 
 export default function TermsPage() {
   return (
@@ -19,12 +19,50 @@ export default function TermsPage() {
         use. It&apos;s developed and operated by an individual, not a company, and offered as-is.
       </p>
 
+      <h2>Eligibility</h2>
+      <p>
+        You must be 18 or older to use Aviary. By creating an account or using the app, you confirm that you
+        are. If we learn that someone under 18 has an account, we may close it.
+      </p>
+
       <h2>Your account</h2>
       <p>
         You need an account to use Aviary. You&apos;re responsible for keeping the device and email you sign
         in with secure. Tell us at {SUPPORT_EMAIL} if you believe your account has been accessed without your
         permission.
       </p>
+
+      <h2>Subscriptions and billing</h2>
+      <p>
+        New accounts get a 45-day free trial that starts when you finish onboarding. No payment details are
+        needed for the trial and it never charges you automatically. To keep using Aviary afterwards, you can
+        buy a monthly or yearly subscription in the Android app through Google Play. Prices are shown in the
+        app before you buy.
+      </p>
+      <ul>
+        <li>
+          <strong>Renewal.</strong> Subscriptions renew automatically at the end of each monthly or yearly
+          period until you cancel, and are charged to your Google Play account.
+        </li>
+        <li>
+          <strong>Cancelling.</strong> Cancel any time in the Google Play Store app: Profile &rarr; Payments
+          &amp; subscriptions &rarr; Subscriptions &rarr; Aviary &rarr; Cancel. You keep access until the end
+          of the period you&apos;ve paid for. Deleting your Aviary account does not cancel a Google Play
+          subscription.
+        </li>
+        <li>
+          <strong>Refunds.</strong> Payments are handled by Google Play, so refunds follow Google Play&apos;s
+          refund policy. You can also write to {SUPPORT_EMAIL}.
+        </li>
+        <li>
+          <strong>If a subscription ends.</strong> Your data is kept for 12 months and you can export it at any
+          time, including after your subscription ends.
+        </li>
+        <li>
+          <strong>Price changes.</strong> If the price changes, Google Play will notify you before your next
+          renewal.
+        </li>
+      </ul>
 
       <h2>Acceptable use</h2>
       <p>Don&apos;t use Aviary to:</p>
@@ -37,7 +75,7 @@ export default function TermsPage() {
 
       <h2>AI features</h2>
       <p>
-        Money Brain, bill scanning, and AI-written notifications use a third-party AI model and are best-effort.
+        Ask Aviary, bill scanning, and AI-written notifications use a third-party AI model and are best-effort.
         They can be wrong, so double-check anything that matters before you act on it. Nothing Aviary generates
         is financial, tax, legal, or investment advice.
       </p>
@@ -87,3 +125,5 @@ export default function TermsPage() {
     </article>
   )
 }
+
+export const metadata = pageMetadata('/legal/terms')

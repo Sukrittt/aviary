@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { computeEnvelopeState, currentMonthKey, prevMonthKey, incomeForReadyToAssign, CREDIT_CARD_CATEGORY, INCOME_CATEGORY } from './envelope'
+import { computeEnvelopeState, currentMonthKey, prevMonthKey, extraForReadyToAssign, CREDIT_CARD_CATEGORY, INCOME_CATEGORY } from './envelope'
 import type { BudgetRow, CategoryRow, ExpenseRow } from '@/src/types'
 
 function budget(month: string, category: string, assigned: string, rolled_over = '0'): BudgetRow {
@@ -153,34 +153,88 @@ it('preserves paise in ready to assign', () => {
  expect(state.readyToAssign).toBe(399.75)
 })
 
-describe('incomeForReadyToAssign', () => {
+describe('income extra (one-off income this month)', () => {
+  function income(month: string, assigned: string, extra: string): BudgetRow {
+    return { ...budget(month, INCOME_CATEGORY, assigned), extra }
+  }
+
+  it('adds this month\'s extra on top of the monthly income', () => {
+    const state = computeEnvelopeState([income('2026-08', '100000', '10000')], [], '2026-08', [], [])
+    expect(state.incomeBase).toBe(100000)
+    expect(state.incomeExtra).toBe(10000)
+    expect(state.income).toBe(110000)
+    expect(state.readyToAssign).toBe(110000)
+  })
+
+  it('does not carry the extra into the next month, only the monthly income', () => {
+    const state = computeEnvelopeState([income('2026-08', '100000', '10000')], [], '2026-09', [], [])
+    expect(state.incomeExtra).toBe(0)
+    expect(state.income).toBe(100000)
+  })
+
+  it('treats a row without an extra as no extra', () => {
+    const state = computeEnvelopeState([budget('2026-08', INCOME_CATEGORY, '5000')], [], '2026-08', [], [])
+    expect(state.incomeExtra).toBe(0)
+    expect(state.income).toBe(5000)
+  })
+})
+
+describe('extraForReadyToAssign', () => {
   const month = '2026-09'
   const prev = '2026-08'
 
-  function rtaAfterSaving(rows: BudgetRow[], target: number): number {
+  function afterSaving(rows: BudgetRow[], target: number) {
     const before = computeEnvelopeState(rows, [], month, [], [])
-    const income = incomeForReadyToAssign(before.totalAssigned, target)
-    const saved = [...rows.filter((r) => !(r.month === month && r.category === INCOME_CATEGORY)), budget(month, INCOME_CATEGORY, String(income))]
-    return computeEnvelopeState(saved, [], month, [], []).readyToAssign
+    const extra = extraForReadyToAssign(before.incomeBase, before.totalAssigned, target)
+    const saved = [
+      ...rows.filter((r) => !(r.month === month && r.category === INCOME_CATEGORY)),
+      { ...budget(month, INCOME_CATEGORY, String(before.incomeBase)), extra: String(extra) },
+    ]
+    return {
+      now: computeEnvelopeState(saved, [], month, [], []),
+      next: computeEnvelopeState(saved, [], '2026-10', [], []),
+    }
   }
 
-  it('overrides income carried from last month so RTA lands on the typed amount', () => {
+  it('lands RTA on the typed amount without touching the monthly income', () => {
     const rows = [budget(prev, INCOME_CATEGORY, '50000'), budget(prev, 'Food', '8000'), budget(prev, 'Rent', '20000')]
-    expect(rtaAfterSaving(rows, 5000)).toBe(5000)
+    const { now, next } = afterSaving(rows, 5000)
+    expect(now.readyToAssign).toBe(5000)
+    expect(now.incomeBase).toBe(50000)
+    expect(next.income).toBe(50000)
   })
 
-  it('replaces an explicit current-month income row', () => {
+  it('goes negative when there is less than the monthly income this month', () => {
     const rows = [budget(month, INCOME_CATEGORY, '40000'), budget(month, 'Food', '12000')]
-    expect(rtaAfterSaving(rows, 30000)).toBe(30000)
+    expect(extraForReadyToAssign(40000, 12000, 18000)).toBe(-10000)
+    expect(afterSaving(rows, 18000).now.readyToAssign).toBe(18000)
   })
 
   it('round-trips paise', () => {
     const rows = [budget(month, INCOME_CATEGORY, '10000'), budget(month, 'Food', '1234.56')]
-    expect(rtaAfterSaving(rows, 99.99)).toBe(99.99)
-    expect(incomeForReadyToAssign(1234.56, 99.99)).toBe(1334.55)
+    expect(afterSaving(rows, 99.99).now.readyToAssign).toBe(99.99)
+  })
+})
+
+describe('computeEnvelopeState: lastSpent from a bounded expense fetch', () => {
+  const cats: CategoryRow[] = [
+    { name: 'Food', group: 'Needs' },
+    { name: 'Rent', group: 'Needs' },
+  ]
+  const budgets = [budget('2026-06', 'Food', '1000'), budget('2026-06', 'Rent', '5000')]
+
+  it('fills lastSpentDate from the server map for categories outside the fetched window', () => {
+    const state = computeEnvelopeState(budgets, [expense('2026-06-03', 'Food', '100')], '2026-06', cats, ['Needs'], {
+      Rent: '2026-01-05',
+      Food: '2026-05-30',
+    })
+    const byCat = Object.fromEntries(state.envelopes.map((e) => [e.category, e.lastSpentDate]))
+    // A fetched row newer than the map wins (the map can lag a just-logged expense).
+    expect(byCat).toEqual({ Food: '2026-06-03', Rent: '2026-01-05' })
   })
 
-  it('sets income to exactly what is assigned when RTA is 0', () => {
-    expect(incomeForReadyToAssign(28000, 0)).toBe(28000)
+  it('without a map, behaves as before', () => {
+    const state = computeEnvelopeState(budgets, [expense('2026-06-03', 'Food', '100')], '2026-06', cats, ['Needs'])
+    expect(state.envelopes.find((e) => e.category === 'Rent')?.lastSpentDate).toBeUndefined()
   })
 })

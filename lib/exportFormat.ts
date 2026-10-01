@@ -88,6 +88,7 @@ export function exportColumns(currencyCode: string = 'INR'): Partial<Record<keyo
     { key: 'category', label: 'Category' },
     { key: 'assigned', label: 'Assigned', format: money },
     { key: 'rolled_over', label: 'Rolled over', format: money },
+    { key: 'extra', label: 'Extra income', format: money },
   ],
   categories: [
     { key: 'name', label: 'Name' },

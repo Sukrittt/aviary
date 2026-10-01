@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { useCategories } from '../hooks/useCategories'
-import { useExpenses } from '../hooks/useExpenses'
+import { useRecentExpenses } from '../hooks/useExpenses'
 import { useRecentCategories } from '../hooks/useRecentCategories'
 import { deriveRecentsFromExpenses } from '../lib/recentCategories'
 import { categoryEmoji, splitEmoji } from '../lib/emoji'
@@ -82,7 +82,7 @@ function rankCategories(
  */
 export function CategoryPicker({ value, onChange }: Props) {
   const categoriesQ = useCategories()
-  const expensesQ = useExpenses()
+  const expensesQ = useRecentExpenses()
   const { recents, record } = useRecentCategories()
   const [search, setSearch] = useState('')
 

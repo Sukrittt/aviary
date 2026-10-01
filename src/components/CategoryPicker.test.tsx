@@ -9,7 +9,7 @@ vi.mock('../hooks/useCategories', () => ({
   useCategories: vi.fn(),
 }))
 vi.mock('../hooks/useExpenses', () => ({
-  useExpenses: () => ({ data: [] }),
+  useRecentExpenses: () => ({ data: [] }),
 }))
 vi.mock('../hooks/useRecentCategories', () => ({
   useRecentCategories: (): { recents: string[]; record: (n: string) => void } => ({

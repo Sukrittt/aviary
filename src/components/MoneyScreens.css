@@ -384,18 +384,6 @@
 .money-empty {
   padding: 24px;
 }
-.expense-redesign button.erd-home-hero {
-  width: 100%;
-  background: none;
-  border: 0;
-  font: inherit;
-  cursor: pointer;
-}
-.expense-redesign button.erd-home-hero:focus-visible {
-  outline: 2px solid var(--tk-accent);
-  outline-offset: -4px;
-  border-radius: 20px;
-}
 @media (max-width: 600px) {
   .money-overlay {
     padding: 16px;

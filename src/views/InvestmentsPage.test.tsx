@@ -3,10 +3,11 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { updateHolding } from '@/src/api/holdings'
+import { deleteHolding, getHoldings, updateHolding } from '@/src/api/holdings'
+import { getHoldingEvents } from '@/src/api/holdingEvents'
 import { HoldingWriteError } from '@/src/lib/holdingConflict'
 import type { HoldingRow } from '@/src/types'
-import { HoldingModal } from './InvestmentsPage'
+import { HoldingModal, InvestmentsPage } from './InvestmentsPage'
 
 vi.mock('@/src/api/holdings', () => ({
   getHoldings: vi.fn(),
@@ -15,6 +16,7 @@ vi.mock('@/src/api/holdings', () => ({
   deleteHolding: vi.fn(),
   performHoldingAction: vi.fn(),
 }))
+vi.mock('@/src/api/holdingEvents', () => ({ getHoldingEvents: vi.fn() }))
 
 // The sidebar reads the WorkOS session, which drags @workos-inc/authkit-nextjs
 // (and next/cache) into a jsdom run. It is chrome, not what this file tests.
@@ -50,6 +52,36 @@ function renderModal(row: HoldingRow) {
     },
   )
 }
+
+function renderPage() {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  return render(<InvestmentsPage />, {
+    wrapper: ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    ),
+  })
+}
+
+describe('InvestmentsPage deletion', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(getHoldings).mockResolvedValue([holding()])
+    vi.mocked(getHoldingEvents).mockResolvedValue([])
+    vi.mocked(deleteHolding).mockResolvedValue()
+  })
+
+  it('explains that a deleted holding can be restored from Archive', async () => {
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: /Stocks/ }))
+    await user.click(screen.getByRole('button', { name: 'Delete' }))
+
+    const dialog = screen.getByRole('alertdialog', { name: 'Delete Stocks?' })
+    expect(dialog).toHaveTextContent('It will move to Archive. You can restore it for 7 days.')
+    expect(dialog).not.toHaveTextContent(/can't be undone/i)
+  })
+})
 
 describe('HoldingModal concurrency review', () => {
   beforeEach(() => vi.clearAllMocks())

@@ -33,10 +33,11 @@ async function runForUser(db: Db, user: UserDoc): Promise<number> {
   if (prefs.cadence === 'off') return 0
 
   const auth: Auth = { userId: user._id, readOnly: false, sessionId: null }
-  const { facts, meta, envelopes, subscriptions, categories } = await buildExpenseContext(auth)
+  const { facts, meta, envelopes, subscriptions, categories, highlights } = await buildExpenseContext(auth)
   const { date: today } = nowIn(user.timezone)
 
   const notifications = buildNotifications({
+    pace: highlights.pace,
     envelopes,
     subscriptions,
     categories,

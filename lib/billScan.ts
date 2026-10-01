@@ -34,6 +34,8 @@ export async function storeBillScanImage(
     const blob = await put(`bills/${userId}/${billId}.${ext}`, buffer, {
       access: 'private',
       contentType: mimeType,
+      addRandomSuffix: false,
+      allowOverwrite: true,
     })
     await coll.updateOne(
       { _id: new ObjectId(billId) },

@@ -1,4 +1,4 @@
-import { GoogleGenAI, type GenerateContentResponse, type Schema } from '@google/genai'
+import { GoogleGenAI, ThinkingLevel, type GenerateContentResponse, type Schema } from '@google/genai'
 import { logAiUsage, type AiCaller } from './usage'
 import { AI_DISABLED_MESSAGE, getSystemSettings } from '../systemSettings'
 
@@ -10,7 +10,7 @@ import { AI_DISABLED_MESSAGE, getSystemSettings } from '../systemSettings'
 // Measured 2026-09-24, same prompt back to back: 3.1-flash-lite streamed its
 // first token in ~2.8s median (and 503'd repeatedly), 3.5-flash-lite in
 // ~0.8s. Costs more per token ($0.30/$2.50 vs $0.25/$1.50 per 1M) but the
-// money brain's replies are tens of tokens, so the latency wins outright.
+// Ask Aviary's replies are tens of tokens, so the latency wins outright.
 const MODEL = 'gemini-3.5-flash-lite'
 // Gemini answers 503 UNAVAILABLE ("experiencing high demand") in bursts. One
 // retry clears most of them, and nothing has been streamed to the client yet
@@ -121,7 +121,7 @@ export async function streamText(
   systemInstruction: string,
   contents: Array<{ role: 'user' | 'model'; parts: [{ text: string }] }>,
   caller: AiCaller,
-  maxOutputTokens = 700,
+  reason = false,
 ) {
   await assertAiEnabled()
   const ai = getGeminiClient()
@@ -134,7 +134,9 @@ export async function streamText(
       config: {
         systemInstruction,
         temperature: 0.4,
-        maxOutputTokens,
+        // Thinking tokens count against maxOutputTokens: at 700 a reasoning
+        // reply got cut off mid-sentence, so the budget grows with it.
+        ...(reason ? { maxOutputTokens: 4000, thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } } : { maxOutputTokens: 700 }),
       },
     }))
   } catch (err) {

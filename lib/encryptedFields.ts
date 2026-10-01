@@ -27,7 +27,7 @@
  */
 export const ENCRYPTED_FIELDS: Record<string, string[]> = {
   expenses: ['item', 'notes', 'description', 'amount_inr', 'amount'],
-  budgets: ['assigned', 'rolled_over'],
+  budgets: ['assigned', 'rolled_over', 'extra'],
   subscriptions: ['amount_inr', 'notes'],
   recurring_expenses: ['item', 'notes', 'amount_inr'],
   recurring_detection: ['snapshot'],

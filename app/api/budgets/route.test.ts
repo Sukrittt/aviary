@@ -89,6 +89,11 @@ describe('POST /api/budgets (C4)', () => {
     )
   })
 
+  it('accepts a negative assignment, which transfers can leave behind', async () => {
+    const res = await PUT(req({ month: '2026-01', category: 'Groceries', assigned: '-10', version: 0 }, 'PUT'))
+    expect(res.status).toBe(200)
+  })
+
   it('reconciles the affected category after an assignment update', async () => {
     const res = await PUT(req({ month: '2026-01', category: 'Groceries', assigned: '8000', version: 0 }, 'PUT'))
     expect(res.status).toBe(200)
@@ -110,6 +115,22 @@ describe('POST /api/budgets (C4)', () => {
     const res = await PUT(req({ month: '2026-01', category: 'Groceries', rolled_over: '20', version: 0 }, 'PUT'))
     expect(res.status).toBe(200)
     expect(insertOneMock.mock.calls[0][0]).toMatchObject({ assigned: '5000', rolled_over: '20' })
+  })
+
+  it('adds income extra to a month still carrying last month\'s income, keeping that income', async () => {
+    findOneMock.mockResolvedValueOnce(null)
+    findMock.mockReturnValueOnce({ toArray: async () => [{ month: '2025-12', category: '__income__', assigned: '100000' }] })
+    insertOneMock.mockResolvedValueOnce({ insertedId: '1' })
+
+    const res = await PUT(req({ month: '2026-01', category: '__income__', extra: '10000', version: 0 }, 'PUT'))
+    expect(res.status).toBe(200)
+    expect(insertOneMock.mock.calls[0][0]).toMatchObject({ assigned: '100000', extra: '10000' })
+  })
+
+  it('updates income extra on an existing row', async () => {
+    const res = await PUT(req({ month: '2026-01', category: '__income__', extra: '2500', version: 0 }, 'PUT'))
+    expect(res.status).toBe(200)
+    expect(updateOneMock.mock.calls[0][1]).toMatchObject({ $set: { extra: '2500' } })
   })
 
   it('reconciles the affected category after an assignment is deleted', async () => {

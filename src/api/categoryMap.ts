@@ -14,16 +14,21 @@ export async function getCategoryMap(): Promise<CategoryMap> {
  */
 export async function suggestCategoryLLM(item: string, categories: string[]): Promise<string | null> {
   if (!item.trim()) return ''
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 5000)
   try {
     const resp = await apiFetch('/api/category-map/suggest', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ item, categories }),
+      signal: controller.signal,
     })
     if (!resp.ok) return null
     const data: { category?: string } = await resp.json()
     return data.category ?? ''
   } catch {
     return null
+  } finally {
+    clearTimeout(timeout)
   }
 }

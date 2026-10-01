@@ -18,16 +18,35 @@ vi.mock('@/lib/http', async (importOriginal) => {
   return {
     ...actual,
     getCollection: vi.fn(async () => ({
-      find: () => ({
-        sort: () => ({
-          toArray: async () => [...sessions].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
-        }),
-      }),
+      countDocuments: async () => sessions.length,
+      find: (_filter: unknown, options: { projection: Record<string, unknown> }) => {
+        if (options.projection.messages) throw new Error('History must not load transcripts')
+        let rows = [...sessions].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+        const cursor = {
+          sort: () => cursor, batchSize: () => cursor, close: async () => {},
+          limit: (n: number) => { rows = rows.slice(0, n); return cursor },
+          async *[Symbol.asyncIterator]() { yield* rows },
+        }
+        return cursor
+      },
+      aggregate: (pipeline: Record<string, unknown>[]) => ({ toArray: async () => {
+        let rows = [...sessions].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+        for (const stage of pipeline) {
+          if (stage.$skip !== undefined) rows = rows.slice(Number(stage.$skip))
+          if (stage.$limit !== undefined) rows = rows.slice(0, Number(stage.$limit))
+          if (stage.$match) {
+            const ids = (stage.$match as { _id: { $in: string[] } })._id.$in
+            rows = rows.filter(r => ids.includes(r._id))
+          }
+        }
+        return rows.map(r => ({ ...r, messageCount: r.messages.length, messages: r.messages.slice(-1) }))
+      } }),
     })),
   }
 })
 
 const { GET } = await import('./route')
+const SEARCH_SCAN_LIMIT = 1000 // mirrors route.ts
 
 function req(qs = ''): Request {
   return new Request(`https://example.com/api/ai/chat/sessions${qs}`)
@@ -85,6 +104,13 @@ describe('GET /api/ai/chat/sessions', () => {
     expect(page2.sessions).toHaveLength(2)
     expect(page1.sessions[0].id).not.toBe(page2.sessions[0].id)
     expect(page1.pageCount).toBe(3)
+  })
+
+  it('bounds a title search to the newest sessions', async () => {
+    sessions = Array.from({ length: SEARCH_SCAN_LIMIT + 1 }, (_, i) =>
+      session(`s${i}`, 'Budget', `2026-01-01T00:00:${String(i).padStart(6, '0')}`, []))
+    const body = await (await GET(req('?q=budget'))).json()
+    expect(body.total).toBe(SEARCH_SCAN_LIMIT)
   })
 
   it('handles a session with no messages without throwing', async () => {

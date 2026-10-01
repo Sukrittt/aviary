@@ -1,7 +1,10 @@
 import type { Db } from 'mongodb'
 import { del, list } from '@vercel/blob'
 import { nowIST } from './http'
-import { scoped } from './scoped'
+import { withTx } from './mongodb'
+import { invalidate } from './cache'
+import { invalidateCategoryMap } from './categoryMap'
+import { invalidateBrief } from './ai/briefCache'
 import { COLLECTIONS } from './models'
 import type { UserDoc } from './users'
 import { getWorkOSClient } from './workosClient'
@@ -12,20 +15,52 @@ import { getWorkOSClient } from './workosClient'
  * WorkOS user, once `GRACE_DAYS` pass. Returns the deletion timestamp.
  */
 export async function softDeleteAccount(db: Db, userId: string): Promise<string> {
-  for (const name of Object.values(COLLECTIONS)) {
-    await scoped(db.collection(name), userId).deleteMany({})
-  }
   const deletedAt = nowIST().timestamp
-  await db.collection<UserDoc>('users').updateOne({ _id: userId }, { $set: { deleted_at: deletedAt } })
-  return deletedAt
+  const result = await withTx(async session => {
+    const users = db.collection<UserDoc>('users')
+    const user = await users.findOne({ _id: userId }, { session })
+    if (user?.deleted_at) return user.deleted_at
+    for (const name of Object.values(COLLECTIONS)) {
+      await db.collection(name).updateMany(
+        { user_id: userId, deleted_at: null },
+        { $set: { deleted_at: deletedAt, account_deleted_at: deletedAt }, ...(name === 'expenses' ? { $inc: { version: 1 } } : {}) },
+        { session },
+      )
+    }
+    await users.updateOne({ _id: userId }, { $set: { deleted_at: deletedAt, account_deletion_version: 1 } }, { session })
+    return deletedAt
+  })
+  await invalidateAccount(userId)
+  return result
 }
 
-/** Undoes `softDeleteAccount` within the grace window. */
+export class LegacyAccountRecoveryError extends Error {
+  constructor() { super('This older account deletion needs support-assisted recovery. Your account has not been marked restored.') }
+}
+
+/** Restore only rows archived by this account deletion, never older archives. */
 export async function restoreAccount(db: Db, userId: string): Promise<void> {
-  for (const name of Object.values(COLLECTIONS)) {
-    await scoped(db.collection(name), userId).restore({})
-  }
-  await db.collection<UserDoc>('users').updateOne({ _id: userId }, { $set: { deleted_at: null } })
+  await withTx(async session => {
+    const users = db.collection<UserDoc>('users')
+    const user = await users.findOne({ _id: userId }, { session })
+    if (!user?.deleted_at) return
+    if (user.account_deletion_version !== 1) throw new LegacyAccountRecoveryError()
+    for (const name of Object.values(COLLECTIONS)) {
+      await db.collection(name).updateMany(
+        { user_id: userId, account_deleted_at: user.deleted_at },
+        { $set: { deleted_at: null }, $unset: { account_deleted_at: '' } },
+        { session },
+      )
+    }
+    await users.updateOne({ _id: userId }, { $set: { deleted_at: null } }, { session })
+  })
+  await invalidateAccount(userId)
+}
+
+async function invalidateAccount(userId: string): Promise<void> {
+  for (const name of ['expenses', 'budgets', 'wrapped']) invalidate(name, userId)
+  invalidateCategoryMap(userId)
+  await invalidateBrief(userId)
 }
 
 /** Per-user collections outside COLLECTIONS that still carry `user_id`. */

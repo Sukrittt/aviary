@@ -1,8 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { AnimatePresence } from "motion/react";
 import {
+  ReceiptText,
   Bell,
   ChevronsDownUp,
   Pencil,
@@ -37,10 +39,11 @@ import {
   ARCHIVED_GROUP,
   OTHER_LABEL,
 } from "../lib/envelopeGroups";
-import { splitEmoji, groupEmoji, categoryEmoji } from "../lib/emoji";
+import { splitEmoji, groupEmoji, categoryEmoji, avatarColorFor } from "../lib/emoji";
 import { DEFAULT_ALERT_PCTS } from "../lib/alerts";
 import { EMPTY } from "../lib/constants";
 import type { CategoryRow } from "../types";
+import { BirdEmptyState } from "../components/BirdEmptyState";
 
 /** A pending rename or creation, in whichever place the row sits. */
 type Draft =
@@ -241,16 +244,30 @@ export function EnvelopesPage() {
       <div className="erd-main">
         <ExpenseSidebar />
         <div className="erd-content env-page">
-          <div className="erd-panel-head">
-            <div>
-              <div className="erd-panel-title env-page-title">Envelopes</div>
-              <div className="erd-panel-head-sub">
-                {categories.length}{" "}
-                {categories.length === 1 ? "category" : "categories"} in{" "}
-                {groups.length} {groups.length === 1 ? "group" : "groups"}
-              </div>
+          <header className="txn-page-header env-page-header">
+            <div className="txn-page-heading">
+              <span className="txn-page-eyebrow">Your spending, organized</span>
+              <h1>Envelopes</h1>
+              <p>A place for every category. A heads-up before you overspend.</p>
             </div>
-            <div className="erd-panel-tools">
+            <div className="txn-page-actions">
+              <button
+                type="button"
+                className="erd-log-btn txn-page-log-btn"
+                onClick={() => beginDraft({ kind: "new-group" })}
+              >
+                <Plus size={14} aria-hidden="true" />
+                New group
+              </button>
+            </div>
+          </header>
+
+          <div className="env-page-toolbar">
+            <p className="env-page-summary">
+              <strong>{categories.length}</strong> {categories.length === 1 ? "category" : "categories"}
+              <span aria-hidden="true"> / </span>
+              <strong>{groups.length}</strong> {groups.length === 1 ? "group" : "groups"}
+            </p>
               <button
                 type="button"
                 className="erd-manage-btn env-collapse-btn"
@@ -263,15 +280,6 @@ export function EnvelopesPage() {
                 <ChevronsDownUp size={14} aria-hidden="true" />
                 {allCollapsed ? "Expand all" : "Collapse all"}
               </button>
-              <button
-                type="button"
-                className="erd-log-btn"
-                onClick={() => beginDraft({ kind: "new-group" })}
-              >
-                <Plus size={14} aria-hidden="true" />
-                New group
-              </button>
-            </div>
           </div>
 
           {error && (
@@ -283,9 +291,12 @@ export function EnvelopesPage() {
           {loading && <LoadingCaption placement="page" />}
 
           {!loading && grouped.length === 0 && (
-            <p className="env-empty">
-              No groups yet. Make one and start filling it.
-            </p>
+            <BirdEmptyState
+              subject="envelopes"
+              title="Your envelopes are waiting"
+              description="Make a group, add a category, and give every rupee a place to land."
+              action={{ label: 'Create your first group', onClick: () => beginDraft({ kind: 'new-group' }) }}
+            />
           )}
 
           <ul className="env-group-list" aria-label="Envelope groups">
@@ -327,6 +338,7 @@ export function EnvelopesPage() {
                           })
                         }
                         aria-label={`Add a category to ${text}`}
+                                title="Add category"
                       >
                         <Plus size={14} aria-hidden="true" />
                       </button>
@@ -341,6 +353,7 @@ export function EnvelopesPage() {
                             )
                           }
                           aria-label={`Rename ${text}`}
+                                title="Rename group"
                         >
                           <Pencil size={14} aria-hidden="true" />
                         </button>
@@ -356,6 +369,7 @@ export function EnvelopesPage() {
                             })
                           }
                           aria-label={`Delete ${text}`}
+                                title="Delete group"
                         >
                           <Trash2 size={14} aria-hidden="true" />
                         </button>
@@ -372,7 +386,11 @@ export function EnvelopesPage() {
                           : DEFAULT_ALERT_PCTS;
                         return (
                           <li key={category.name} className="env-cat">
-                            <span className="env-cat-icon" aria-hidden="true">
+                            <span
+                              className="env-cat-icon"
+                              style={{ background: avatarColorFor(parts.text) }}
+                              aria-hidden="true"
+                            >
                               {categoryEmoji(category.name)}
                             </span>
                             <span className="env-cat-name">{parts.text}</span>
@@ -386,11 +404,21 @@ export function EnvelopesPage() {
                               title="Get notified when spending in this envelope reaches these points"
                               aria-label={`Spending alerts for ${parts.text}: ${thresholds.map((p) => `${p}%`).join(", ")}`}
                             >
-                              <Bell size={11} aria-hidden="true" />
-                              Alerts at{" "}
-                              {thresholds.map((p) => `${p}%`).join(" · ")}
+                              <Bell size={14} aria-hidden="true" />
+                              <span className="env-alert-copy">
+                                <span className="env-alert-label">Spending alerts</span>
+                                <span className="env-alert-values">{thresholds.map((p) => `${p}%`).join(" · ")}</span>
+                              </span>
                             </button>
                             <div className="env-cat-actions">
+                              <Link
+                                className="env-icon-btn"
+                                href={`/expense/transactions?category=${encodeURIComponent(category.name)}`}
+                                aria-label={`View transactions for ${parts.text}`}
+                                title="View transactions"
+                              >
+                                <ReceiptText size={14} aria-hidden="true" />
+                              </Link>
                               <button
                                 type="button"
                                 className="env-icon-btn"
@@ -405,6 +433,7 @@ export function EnvelopesPage() {
                                   )
                                 }
                                 aria-label={`Rename ${parts.text}`}
+                                title="Rename category"
                               >
                                 <Pencil size={14} aria-hidden="true" />
                               </button>
@@ -418,6 +447,7 @@ export function EnvelopesPage() {
                                   })
                                 }
                                 aria-label={`Delete ${parts.text}`}
+                                title="Delete category"
                               >
                                 <Trash2 size={14} aria-hidden="true" />
                               </button>
@@ -440,8 +470,8 @@ export function EnvelopesPage() {
         </div>
       </div>
 
-      {draft && (
-        <AnimatePresence>
+      <AnimatePresence>
+        {draft && (
           <Scrim
             key="scrim"
             className="erd-modal-overlay"
@@ -602,27 +632,31 @@ export function EnvelopesPage() {
               </div>
             </Sheet>
           </Scrim>
-        </AnimatePresence>
-      )}
+        )}
+      </AnimatePresence>
 
-      {editing && (
-        <AlertThresholdPicker
-          categoryName={splitEmoji(editing.name).text}
-          value={draftPcts}
-          onChange={setDraftPcts}
-          onClose={() => setEditing(null)}
-          onSave={() => void saveThresholds()}
-        />
-      )}
+      <AnimatePresence>
+        {editing && (
+          <AlertThresholdPicker
+            key="alerts"
+            categoryName={splitEmoji(editing.name).text}
+            value={draftPcts}
+            onChange={setDraftPcts}
+            onClose={() => setEditing(null)}
+            onSave={() => void saveThresholds()}
+          />
+        )}
+      </AnimatePresence>
 
-      {deleteTarget && (
-        <AnimatePresence>
+      <AnimatePresence>
+        {deleteTarget && (
           <ConfirmDialog
+            key="delete"
             title={`Delete ${splitEmoji(deleteTarget.name).text}?`}
             body={
               deleteTarget.kind === "group"
-                ? "Its categories are moved into Archived first. This can't be undone."
-                : "It disappears from your budget. This can't be undone."
+                ? "Its categories move to the Archived group. You can restore the group from Archive for 7 days."
+                : "It will move to Archive. You can restore it for 7 days."
             }
             cancelLabel="Cancel"
             onCancel={() => setDeleteTarget(null)}
@@ -636,8 +670,8 @@ export function EnvelopesPage() {
               Delete
             </button>
           </ConfirmDialog>
-        </AnimatePresence>
-      )}
+        )}
+      </AnimatePresence>
 
       <EnvelopeTabbar />
     </section>

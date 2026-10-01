@@ -1,3 +1,4 @@
+import { expenseInputError } from '@/lib/inputValidation'
 import { ObjectId } from 'mongodb'
 import { json, error, readBody, getCollection, parsePageParams, pageMeta } from '@/lib/http'
 import { getAuth, readOnlyGuard } from '@/lib/access'
@@ -10,18 +11,19 @@ import { withTx } from '@/lib/mongodb'
 import { createExpense, adjustCreditCardEnvelope } from '@/lib/createExpense'
 import { resolveCategoryName } from '@/lib/categoryName'
 import { flagIfDuplicate } from '@/lib/duplicates'
+import { markManualTransactionComplete } from '@/lib/users'
 
 export const dynamic = 'force-dynamic'
 
 const SORT = { date: -1, timestamp: -1, _id: -1 } as const
 
 /**
- * `GET /api/expenses` — two modes, picked by whether `?page=` is present.
+ * `GET /api/expenses` — three modes, picked by `?page=` and `?from=`.
  *
- * No `page`: legacy behavior, unchanged. Every other caller of
- * useExpenses()/getExpenses() (budget math, insights, category autosuggest,
- * widgets, ~18 call sites total) needs the full set for correct aggregates,
- * so this path must stay byte-for-byte identical.
+ * No `page`, no `from`: legacy full list, unchanged — Insights needs all history,
+ * and older clients still call it. Kept byte-for-byte identical.
+ *
+ * `from` (no `page`): recent rows plus `lastSpent`, see below.
  *
  * `page` present: real pagination for the Activity screens. `category` and
  * `from`/`to` (on `date`) filter in Mongo — both are plaintext fields
@@ -38,6 +40,24 @@ export async function GET(req: Request) {
   if (gate) return gate
   const coll = await getCollection('expenses', auth)
   const url = new URL(req.url)
+
+  // `from` without `page`: only rows dated on/after `from`, for the screens that
+  // need just recent months (envelopes, widgets, log-expense hints). Envelopes
+  // also show each category's last spend date, which can be older than `from`,
+  // so `lastSpent` carries that from a $group over plaintext fields — no rows
+  // fetched or decrypted for it.
+  const recentFrom = url.searchParams.get('from')
+  if (recentFrom && !url.searchParams.has('page')) {
+    const [docs, last] = await Promise.all([
+      coll.find({ date: { $gte: recentFrom } }).toArray(),
+      coll.aggregate<{ _id: string; last: string }>([{ $group: { _id: '$category', last: { $max: '$date' } } }]).toArray(),
+    ])
+    return json({
+      headers: EXPENSE_HEADERS,
+      rows: docs.map((d) => expenseRow(d)),
+      lastSpent: Object.fromEntries(last.map((d) => [d._id, d.last])),
+    })
+  }
 
   if (!url.searchParams.has('page')) {
     const docs = await coll.find({}).toArray()
@@ -69,32 +89,45 @@ export async function GET(req: Request) {
   let totalAmount: number
 
   if (q) {
-    const matched = (await coll.find(mongoFilter).sort(SORT).toArray()).filter((d) => {
-      const item = String(d.item ?? '').toLowerCase()
-      const notes = String(d.notes ?? '').toLowerCase()
-      return item.includes(q) || notes.includes(q)
-    })
-    total = matched.length
-    totalAmount = matched.reduce((s, d) => s + (Number(d.amount_inr) || 0), 0)
+    const cursor = coll.find(mongoFilter).sort(SORT).batchSize(250)
     const start = (page - 1) * limit
-    pageDocs = matched.slice(start, start + limit)
+    pageDocs = []
+    total = 0
+    totalAmount = 0
+    try {
+      for await (const doc of cursor) {
+        if (!String(doc.item ?? '').toLowerCase().includes(q) && !String(doc.notes ?? '').toLowerCase().includes(q)) continue
+        if (total >= start && pageDocs.length < limit) pageDocs.push(doc)
+        total++
+        totalAmount += Number(doc.amount_inr) || 0
+      }
+    } finally {
+      await cursor.close()
+    }
   } else {
-    // `total` used to come from a separate countDocuments() call; the
-    // amount_inr-only fetch below already visits every matching doc, so its
-    // length is the same count for free. Running it alongside the page fetch
-    // (instead of after, sequentially) turns 3 round trips into 2 concurrent ones.
-    const [pageResult, forTotal] = await Promise.all([
-      coll
-        .find(mongoFilter)
-        .sort(SORT)
-        .skip((page - 1) * limit)
-        .limit(limit)
-        .toArray(),
-      coll.find(mongoFilter, { projection: { amount_inr: 1 } }).toArray(),
+    // Encrypted amounts cannot be summed by Mongo. Stream only that field so
+    // the total does not retain the user's entire history in request memory.
+    const sum = async () => {
+      const cursor = coll.find(mongoFilter, { projection: { amount_inr: 1 } }).batchSize(250)
+      let count = 0
+      let amount = 0
+      try {
+        for await (const doc of cursor) {
+          count++
+          amount += Number(doc.amount_inr) || 0
+        }
+      } finally {
+        await cursor.close()
+      }
+      return { count, amount }
+    }
+    const [rows, totals] = await Promise.all([
+      coll.find(mongoFilter).sort(SORT).skip((page - 1) * limit).limit(limit).toArray(),
+      sum(),
     ])
-    pageDocs = pageResult
-    total = forTotal.length
-    totalAmount = forTotal.reduce((s, d) => s + (Number(d.amount_inr) || 0), 0)
+    pageDocs = rows
+    total = totals.count
+    totalAmount = totals.amount
   }
 
   return json({
@@ -146,6 +179,8 @@ export async function POST(req: Request) {
   if (guard) return guard
 
   const body = await readBody(req)
+  const invalid = expenseInputError(body)
+  if (invalid) return error(invalid)
   if (!body.item || !body.amount_inr || !body.category) {
     return error('item, amount_inr, category required')
   }
@@ -162,6 +197,11 @@ export async function POST(req: Request) {
     payment_method: body.payment_method === undefined ? undefined : String(body.payment_method),
     client_id: typeof body.client_id === 'string' ? body.client_id : undefined,
   })
+
+  // The Get Started card is account state, not device state. Only the manual
+  // entry screen sends this source marker; scans and recurring charges do not
+  // accidentally complete the step. Idempotent replays keep the first instant.
+  if (body.source === 'manual') await markManualTransactionComplete(auth.userId)
 
   // Replays were checked on their first attempt. Mobile's offline queue lands
   // here too, which is where accidental double entries mostly come from.
@@ -199,14 +239,18 @@ export async function PUT(req: Request) {
   if (precondition) return precondition
   const coll = await getCollection('expenses', auth)
 
-  const update: Record<string, string> = {}
-  if (body.category !== undefined) update.category = String(body.category)
-  if (body.new_item !== undefined) update.item = String(body.new_item)
-  if (body.new_amount_inr !== undefined) update.amount_inr = String(body.new_amount_inr)
-  if (body.new_date !== undefined) update.date = String(body.new_date)
-  if (body.new_notes !== undefined) update.notes = String(body.new_notes)
-  if (body.new_payment_method !== undefined) update.payment_method = String(body.new_payment_method)
-  if (Object.keys(update).length === 0) return error('no fields to update')
+  const rawUpdate: Record<string, unknown> = {}
+  if (body.category !== undefined) rawUpdate.category = body.category
+  if (body.new_item !== undefined) rawUpdate.item = body.new_item
+  if (body.new_amount_inr !== undefined) rawUpdate.amount_inr = body.new_amount_inr
+  if (body.new_date !== undefined) rawUpdate.date = body.new_date
+  if (body.new_notes !== undefined) rawUpdate.notes = body.new_notes
+  if (body.new_payment_method !== undefined) rawUpdate.payment_method = body.new_payment_method
+  if (Object.keys(rawUpdate).length === 0) return error('no fields to update')
+  const invalid = expenseInputError(rawUpdate, true)
+  if (invalid) return error(invalid)
+
+  const update: Record<string, string> = Object.fromEntries(Object.entries(rawUpdate).map(([key, value]) => [key, String(value)]))
 
   let outcome: { category: string; affectsCC: boolean; version: number }
   try {

@@ -28,6 +28,8 @@ export function buildExpensePanel(input: {
   currencyCode?: string
   budgets: BudgetRow[]
   expenses: ExpenseRow[]
+  // All-time last spend date per category; see computeEnvelopeState.
+  lastSpent?: Record<string, string>
   subscriptions: SubscriptionRow[]
   categories: CategoryRow[]
   groups: string[]
@@ -65,7 +67,7 @@ export function buildExpensePanel(input: {
     .map(([date, amountInr]) => ({ date, amountInr }))
     .sort((a, b) => a.date.localeCompare(b.date))
 
-  const envelopeState = computeEnvelopeState(budgets, expenses, month, categories, groups)
+  const envelopeState = computeEnvelopeState(budgets, expenses, month, categories, groups, input.lastSpent)
 
   const alerts: string[] = []
   if (envelopeState.isOverAssigned) {

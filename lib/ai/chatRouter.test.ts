@@ -10,7 +10,7 @@ function answers(probabilities: Record<string, number>) {
   return Object.fromEntries(Object.entries(probabilities).map(([k, probability]) => [k, { type: 'boolean', probability }]))
 }
 
-const onTopicOnly = { onTopic: 0.98, needsTransactions: 0.02, needsTrend: 0.05, needsSubscriptions: 0.01, needsInvestments: 0.01 }
+const onTopicOnly = { onTopic: 0.98, needsTransactions: 0.02, needsTrend: 0.05, needsSubscriptions: 0.01, needsInvestments: 0.01, isDecision: 0.03 }
 
 beforeEach(() => vi.clearAllMocks())
 
@@ -19,6 +19,13 @@ describe('routeChat', () => {
     runJev.mockResolvedValue(answers(onTopicOnly))
     await routeChat('how much on food?', caller)
     expect(runJev.mock.calls[0][0]).toEqual({ message: 'how much on food?' })
+  })
+
+  it('gives Jev the earlier user turns so a follow-up keeps its context', async () => {
+    runJev.mockResolvedValue(answers(onTopicOnly))
+    await routeChat("It's 12k.", caller, ['Can I afford a Kindle?'])
+    expect(runJev.mock.calls[0][0]).toEqual({ message: "It's 12k.", earlierMessages: ['Can I afford a Kindle?'] })
+    expect(runJev.mock.calls[0][1].isDecision.instructions).toContain('earlierMessages')
   })
 
   it('always keeps the cheap sections, whatever Jev says', async () => {
@@ -38,6 +45,18 @@ describe('routeChat', () => {
     runJev.mockResolvedValue(answers({ ...onTopicOnly, needsTrend: 0.8, needsSubscriptions: 0.7, needsInvestments: 0.6 }))
     const route = await routeChat('how do my subs and holdings compare to last month?', caller)
     expect(route.sections).toEqual(expect.arrayContaining(['trend', 'subscriptions', 'investments']))
+  })
+
+  it('sends every section and flags a decision for affordability questions', async () => {
+    runJev.mockResolvedValue(answers({ ...onTopicOnly, isDecision: 0.9 }))
+    const route = await routeChat('can I afford a 7K subscription?', caller)
+    expect(route.decision).toBe(true)
+    expect(route.sections).toEqual(expect.arrayContaining(['transactions', 'trend', 'subscriptions', 'investments']))
+  })
+
+  it('does not flag a plain lookup as a decision', async () => {
+    runJev.mockResolvedValue(answers(onTopicOnly))
+    expect((await routeChat('how much on food?', caller)).decision).toBe(false)
   })
 
   it('refuses only when Jev is confident the message is off topic', async () => {

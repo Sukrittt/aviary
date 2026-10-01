@@ -113,27 +113,13 @@
 }
 
 .ins-card {
+  box-shadow: none;
   animation: ins-card-rise 420ms cubic-bezier(.2,.8,.2,1) both;
 }
 
 .ins-trend-card {
   grid-column: 1 / -1;
 }
-
-/* Under 3 months of data the card holds a single sentence, not a chart —
-   shrink it to a strip so it stops reserving chart-sized height. */
-.ins-trend-card.is-strip {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px 20px;
-  padding: 14px 20px;
-}
-
-.ins-trend-card.is-strip .ins-card-heading { flex: none; gap: 10px; align-items: center; }
-.ins-trend-card.is-strip .ins-card-heading p { display: none; }
-.ins-trend-card.is-strip .ins-trend-summary { margin: 0; }
 
 .ins-left-col {
   display: flex;
@@ -144,11 +130,14 @@
 
 .ins-breakdown-card {
   animation-delay: 70ms;
-  align-self: start;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
 }
 
 .ins-heatmap-card {
   animation-delay: 190ms;
+  flex: 1;
 }
 
 .ins-top-card {
@@ -181,6 +170,21 @@
   cursor: pointer;
   animation: ins-row-slide 340ms cubic-bezier(.2,.8,.2,1) both;
   transition: background 160ms ease;
+}
+
+/* Inset dividers align with the card content, as in Subscriptions. */
+.expense-redesign .ins-top-row + .ins-top-row {
+  position: relative;
+}
+.expense-redesign .ins-top-row + .ins-top-row::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 8px;
+  right: 8px;
+  height: 1px;
+  background: var(--erd-border);
+  pointer-events: none;
 }
 
 .expense-redesign .ins-top-row:hover { background: var(--erd-input-bg); }
@@ -394,7 +398,8 @@
 .ins-allocation-segment {
   transform-box: fill-box;
   transform-origin: left center;
-  animation: ins-allocation-grow 520ms cubic-bezier(.2,.8,.2,1) both;
+  /* Mobile AllocationBar: every segment grows at once, 120ms in, 550ms out-cubic. */
+  animation: ins-allocation-grow 550ms cubic-bezier(0.33, 1, 0.68, 1) 120ms both;
 }
 
 .ins-allocation-legend {
@@ -548,6 +553,10 @@
   font-size: 13px;
 }
 
+.ins-breakdown-content {
+  flex: 1;
+}
+
 .ins-axis-row {
   display: flex;
   justify-content: space-between;
@@ -565,8 +574,26 @@
 
 .ins-trend-baseline {
   stroke: var(--erd-text3);
+  stroke-opacity: 0.5;
   stroke-width: 1.5;
   stroke-dasharray: 4 5;
+  /* Wipes in left to right after the bars (clip, not scaleX, so dashes don't squash). */
+  animation: ins-baseline-draw 500ms cubic-bezier(0.33, 1, 0.68, 1) var(--ins-baseline-delay, 0ms) both;
+}
+
+.ins-trend-baseline-group { pointer-events: none; }
+
+/* Card-coloured halo keeps the label legible where it crosses a bar. */
+.ins-trend-baseline-label {
+  fill: var(--erd-text2);
+  font-family: var(--font-nunito);
+  font-size: 10px;
+  font-weight: 700;
+  paint-order: stroke;
+  stroke: var(--erd-card-solid);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+  animation: ins-fade-in 250ms ease calc(var(--ins-baseline-delay, 0ms) + 250ms) both;
 }
 
 .ins-trend-column {
@@ -578,8 +605,39 @@
   fill: var(--gold);
   transform-box: fill-box;
   transform-origin: center bottom;
-  animation: ins-bar-rise 390ms cubic-bezier(.2,.8,.2,1) both;
+  /* Mobile TrendChart: 350ms out-cubic, 30ms apart (delay set inline). */
+  animation: ins-bar-rise 350ms cubic-bezier(0.33, 1, 0.68, 1) both;
   transition: opacity 150ms ease, filter 150ms ease;
+}
+
+.ins-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ins-trend-bar.is-negative {
+  fill: var(--coral);
+  transform-origin: center top;
+}
+
+.ins-trend-bar.is-missing {
+  fill: transparent;
+  stroke: var(--erd-text3);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 5;
+}
+
+.ins-trend-missing-note {
+  margin: 8px 0 0;
+  color: var(--erd-text3);
+  font-size: 12px;
+}
+
+.ins-trend-zero {
+  stroke: var(--erd-text3);
+  stroke-width: 1;
+  opacity: 0.5;
 }
 
 .ins-trend-column:hover .ins-trend-bar,
@@ -614,14 +672,6 @@
   color: var(--erd-text2);
   font-size: 14px;
 }
-
-.ins-trend-summary {
-  margin: 32px 0 0;
-  color: var(--erd-text2);
-  font-size: 14px;
-}
-
-.ins-trend-summary strong { color: var(--erd-text); }
 
 .ins-head-delta { font-size: 11px; }
 
@@ -659,7 +709,8 @@
 /* transform-origin comes per-cell from the component (view-box coordinates)
    — `fill-box` on an SVG group is not dependable across browsers. */
 .ins-heatmap-cell {
-  animation: ins-cell-pop 620ms cubic-bezier(.34, 1.56, .64, 1) both;
+  /* Mobile Heatmap: withSpring(1, { mass: 0.7, damping: 12, stiffness: 160 }), sampled. */
+  animation: ins-cell-pop 560ms linear(0, 0.05, 0.19, 0.36, 0.54, 0.71, 0.85, 0.96, 1.04, 1.09, 1.11, 1.11, 1.11, 1.09, 1.07, 1.05, 1.03, 1.01, 1, 0.99, 0.99, 0.99, 0.99, 0.99, 1) both;
 }
 
 .ins-heatmap-cell rect {
@@ -759,7 +810,9 @@
 @keyframes ins-allocation-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @keyframes ins-card-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 @keyframes ins-row-slide { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: none; } }
-@keyframes ins-cell-pop { from { opacity: 0; transform: scale(0); } to { opacity: 1; transform: scale(1); } }
+@keyframes ins-baseline-draw { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0); } }
+@keyframes ins-fade-in { from { opacity: 0; } }
+@keyframes ins-cell-pop { from { transform: scale(0); } to { transform: scale(1); } }
 
 @media (max-width: 1120px) {
   .insights-grid { grid-template-columns: 1fr; }
@@ -767,8 +820,8 @@
 }
 
 @media (max-width: 900px) {
-  .insights-page .erd-main { padding: 0 0 96px; }
-  .ins-mobile-header { display: flex; align-items: center; gap: 13px; }
+  .insights-page .erd-main { padding: calc(72px + env(safe-area-inset-top)) 0 0; }
+  .ins-mobile-header { display: none; }
   .ins-mobile-header .ins-back-btn { flex: none; }
   .ins-content { padding: 16px; overflow-y: auto; }
   .ins-period-header { justify-content: center; }
@@ -789,8 +842,69 @@
   .ins-top-row,
   .ins-allocation-segment,
   .ins-trend-bar,
+  .ins-trend-baseline,
+  .ins-trend-baseline-label,
   .ins-heatmap-cell,
   .ins-filter-dialog {
     animation: none !important;
   }
+}
+
+/* Recent activity uses the same row typography and circular avatars as Biggest spends. */
+.expense-redesign .home-recent .ins-top-list {
+  /* Keep the rows aligned with the heading while giving their negative
+     margins, hover background and focus ring room inside the scroller. */
+  margin-inline: calc(-1 * var(--tk-space-lg));
+  padding-inline: var(--tk-space-lg);
+  padding-block: 6px;
+}
+.expense-redesign .home-recent a {
+  text-decoration: none;
+}
+.expense-redesign .home-recent .erd-manage-btn {
+  font-size: 12px;
+}
+.expense-redesign .home-recent a:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+
+.expense-redesign .ins-view-all {
+  font-size: 12px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.expense-redesign .ins-view-all:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+
+.expense-redesign .home-recent .ins-top-icon {
+  border-radius: 10px;
+}
+
+.ins-breakdown-empty {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 240px;
+  padding: 24px 12px;
+  text-align: center;
+  color: var(--erd-text);
+}
+.ins-breakdown-empty strong { margin-top: 8px; font-family: var(--font-fredoka); font-size: 18px; font-weight: 600; }
+.ins-breakdown-empty p { margin: 4px 0 0; color: var(--erd-text2); font-size: 13px; }
+.snoozing-bird-head { transform-origin: 250px 340px; animation: snoozing-nod 3.2s ease-in-out infinite alternate; }
+.snoozing-bird-z { transform-box: fill-box; transform-origin: center; animation: snoozing-drift 2.4s ease-out infinite; }
+.snoozing-bird-z.is-small { animation-delay: -1.2s; }
+@keyframes snoozing-nod { to { transform: rotate(7deg) translateY(1px); } }
+@keyframes snoozing-drift {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.6); }
+  20%, 70% { opacity: 1; }
+  100% { opacity: 0; transform: translate(18px, -55px) scale(1.1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .snoozing-bird-head, .snoozing-bird-z { animation: none; }
 }
