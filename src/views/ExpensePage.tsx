@@ -612,7 +612,7 @@ export function ExpensePage() {
                   onClick={() => setShowBulkReturnConfirm(false)}
                 >
                   <Sheet
-                    className="move-money-modal"
+                    className="move-money-modal bulk-return-modal"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <div className="move-money-header">
@@ -664,7 +664,7 @@ export function ExpensePage() {
                           </button>
                           <SuccessButton
                             type="button"
-                            className="is-active"
+                            className="is-active erd-accent-action"
                             disabled={
                               bulkReturnPhase.saving || bulkReturnPhase.success
                             }
