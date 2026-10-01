@@ -59,7 +59,7 @@ function SearchingBird({ size }: { size: number }) {
         <path d={BIRD_BODY_PATH} />
       </g>
       <circle cx="306" cy="216" r="19" fill="var(--erd-card-solid)" />
-      <g fill="none" stroke="var(--gold)" strokeLinecap="round">
+      <g className={styles.searchLens} fill="none" stroke="var(--gold)" strokeLinecap="round">
         <circle cx="306" cy="216" r="42" strokeWidth="14" />
         <path d="M 337 247 L 378 288" strokeWidth="18" />
       </g>
@@ -92,20 +92,24 @@ export function BirdEmptyState({
 
   return (
     <div className={`${styles.root} ${compact ? styles.compact : ''} ${className}`.trim()} style={style}>
-      <div className={`${styles.scene} ${styles[`subject_${subject}`]}`} aria-hidden="true">
+      <div className={`${styles.scene} ${styles[`subject_${subject}`]} ${styles[`mood_${resolvedMood}`]}`} aria-hidden="true">
         <div className={styles.halo} />
         <div className={styles.orbit} />
         <div className={styles.ground} />
         <div className={styles.bird}>
-          {resolvedMood === 'searching' ? (
-            <SearchingBird size={birdSize} />
-          ) : resolvedMood === 'clear' ? (
-            <BirdMark size={birdSize} />
-          ) : (
-            <SnoozingBird size={birdSize} />
-          )}
+          <div className={styles.birdMotion}>
+            {resolvedMood === 'searching' ? (
+              <SearchingBird size={birdSize} />
+            ) : resolvedMood === 'clear' ? (
+              <BirdMark size={birdSize} />
+            ) : (
+              <SnoozingBird size={birdSize} />
+            )}
+          </div>
         </div>
-        <div className={`${styles.prop} ${styles[`prop_${subject}`]}`}><SubjectIcon strokeWidth={1.8} /></div>
+        <div className={`${styles.prop} ${styles[`prop_${subject}`]}`}>
+          <span className={styles.propMotion}><SubjectIcon strokeWidth={1.8} /></span>
+        </div>
         <div className={`${styles.dot} ${styles.dotOne}`} />
         <div className={`${styles.dot} ${styles.dotTwo}`} />
       </div>
