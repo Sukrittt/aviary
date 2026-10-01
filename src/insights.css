@@ -113,6 +113,7 @@
 }
 
 .ins-card {
+  box-shadow: none;
   animation: ins-card-rise 420ms cubic-bezier(.2,.8,.2,1) both;
 }
 
@@ -129,11 +130,14 @@
 
 .ins-breakdown-card {
   animation-delay: 70ms;
-  align-self: start;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
 }
 
 .ins-heatmap-card {
   animation-delay: 190ms;
+  flex: 1;
 }
 
 .ins-top-card {
@@ -549,6 +553,10 @@
   font-size: 13px;
 }
 
+.ins-breakdown-content {
+  flex: 1;
+}
+
 .ins-axis-row {
   display: flex;
   justify-content: space-between;
@@ -866,4 +874,30 @@
 
 .expense-redesign .home-recent .ins-top-icon {
   border-radius: 10px;
+}
+
+.ins-breakdown-empty {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 240px;
+  padding: 24px 12px;
+  text-align: center;
+  color: var(--erd-text);
+}
+.ins-breakdown-empty strong { margin-top: 8px; font-family: var(--font-fredoka); font-size: 18px; font-weight: 600; }
+.ins-breakdown-empty p { margin: 4px 0 0; color: var(--erd-text2); font-size: 13px; }
+.snoozing-bird-head { transform-origin: 250px 340px; animation: snoozing-nod 3.2s ease-in-out infinite alternate; }
+.snoozing-bird-z { transform-box: fill-box; transform-origin: center; animation: snoozing-drift 2.4s ease-out infinite; }
+.snoozing-bird-z.is-small { animation-delay: -1.2s; }
+@keyframes snoozing-nod { to { transform: rotate(7deg) translateY(1px); } }
+@keyframes snoozing-drift {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.6); }
+  20%, 70% { opacity: 1; }
+  100% { opacity: 0; transform: translate(18px, -55px) scale(1.1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .snoozing-bird-head, .snoozing-bird-z { animation: none; }
 }

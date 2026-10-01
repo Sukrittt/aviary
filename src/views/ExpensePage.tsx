@@ -31,17 +31,22 @@ import {
 } from "../services/expensePanelAdapter";
 import { buildExpensePanel } from "../lib/expensePanel";
 import { EMPTY } from "../lib/constants";
-import { useBudgets, useAddBudget, useTransferBudget, useUpdateBudget } from "../hooks/useBudgets";
+import { useBudgets, useTransferBudget, useUpdateBudget } from "../hooks/useBudgets";
 import { useRecentExpenses, useLastSpent, useAddExpense } from "../hooks/useExpenses";
 import { useCategories } from "../hooks/useCategories";
 import { useGroups } from "../hooks/useGroups";
 import { useSubscriptions, useCancelSubscription, useReactivateSubscription } from "../hooks/useSubscriptions";
 import { useHideAmounts } from "../hooks/useHideAmounts";
-import { MonthRolloverBanner } from "../components/MonthRolloverBanner";
+import { GetStartedCard } from "../components/home/GetStartedCard";
+import { useUser } from "../hooks/useUser";
+import { usePersistentState } from "../hooks/usePersistentState";
 import { LogExpenseModal } from "../components/LogExpenseModal";
 import { SuccessButton, useButtonPhase } from "../components/SuccessButton";
-import type { BudgetRow, EnvelopeState } from "../types/expense";
-import { daysLeftInMonth, monthLabel } from "../lib/envelope";
+import type { EnvelopeState } from "../types/expense";
+import { computeEnvelopeState, currentMonthKey, daysLeftInMonth, monthLabel, prevMonthKey } from "../lib/envelope";
+
+const parseDismissed = (raw: string) => raw === "1";
+const serializeDismissed = (value: boolean) => value ? "1" : "0";
 
 // type ExpenseTab = 'overview' | 'transactions' | 'insights'
 
@@ -58,8 +63,8 @@ export function ExpensePage() {
   const categoriesQuery = useCategories();
   const groupsQuery = useGroups();
   const subscriptionsQuery = useSubscriptions();
+  const user = useUser().data;
 
-  const addBudgetM = useAddBudget();
   const updateBudgetM = useUpdateBudget();
   const transferBudgetM = useTransferBudget();
   const addExpenseM = useAddExpense();
@@ -135,12 +140,20 @@ export function ExpensePage() {
     };
   }, [incomeMenuOpen]);
   const [showBulkReturnConfirm, setShowBulkReturnConfirm] = useState(false);
-  const [showRolloverBanner, setShowRolloverBanner] = useState(false);
-  const [rolloverData, setRolloverData] = useState<{
-    lastMonth: string;
-    lastIncome: number;
-    lastAssignments: Array<{ category: string; assigned: number }>;
-  } | null>(null);
+  const previousMonth = prevMonthKey(panel?.month ?? currentMonthKey());
+  const [leftoverDismissed, setLeftoverDismissed] = usePersistentState(
+    `rollover-dismissed-${previousMonth}`, false, parseDismissed, serializeDismissed,
+  );
+  const [getStartedSkipped, setGetStartedSkipped] = usePersistentState(
+    'rollover-dismissed-get-started', false, parseDismissed, serializeDismissed,
+  );
+  const previousState = useMemo(
+    () => computeEnvelopeState(budgetRows, expenseRows, previousMonth, categoryRows, groupNames),
+    [budgetRows, expenseRows, previousMonth, categoryRows, groupNames],
+  );
+  const previousLeftover = previousState.income - previousState.totalSpent;
+  const showGetStarted = !getStartedSkipped && !!user?.getStartedAt &&
+    !(user.manualTransactionCompletedAt && user.guidedTourCompletedAt);
   const [showFluidDemo, setShowFluidDemo] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   useEffect(() => {
@@ -276,110 +289,6 @@ export function ExpensePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [panel]);
 
-  function prevMonth(key: string): string {
-    const [y, m] = key.split("-");
-    const d = new Date(Number(y), Number(m) - 2, 1);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-  }
-
-  useEffect(() => {
-    if (!panel) return;
-    const storedMonth = localStorage.getItem("budget-active-month");
-    if (storedMonth === panel.month) return;
-    const p = panel;
-
-    async function checkRollover() {
-      // Already loaded by useBudgets — this used to be a second fetch.
-      const budgets: BudgetRow[] = budgetRows.map((r) => ({
-        month: r.month,
-        category: r.category,
-        assigned: Number(r.assigned),
-        rolledOver: Number(r.rolled_over),
-      }));
-
-      const hasCurrentMonthData = budgets.some(
-        (r) =>
-          r.month === p.month &&
-          (r.category === "__income__" || r.assigned > 0),
-      );
-      if (hasCurrentMonthData) {
-        localStorage.setItem("budget-active-month", p.month);
-        return;
-      }
-
-      const lastMonthKey = prevMonth(p.month);
-      const lastIncome =
-        budgets.find(
-          (r) => r.month === lastMonthKey && r.category === "__income__",
-        )?.assigned ?? 0;
-      const lastAssignments = budgets
-        .filter((r) => r.month === lastMonthKey && r.category !== "__income__")
-        .map((r) => ({ category: r.category, assigned: r.assigned }));
-      setRolloverData({ lastMonth: lastMonthKey, lastIncome, lastAssignments });
-      setShowRolloverBanner(true);
-    }
-    checkRollover();
-    // Deliberately keyed on `panel` alone: this asks once per month whether to
-    // offer a rollover. `panel` is null until every query has loaded, so
-    // budgetRows is already populated whenever this runs.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [panel]);
-
-  async function handleRolloverConfirm(income: number, copyAssigned: boolean) {
-    const p = panel;
-    if (!p) return;
-    const month = p.month;
-    const lastMonthKey = prevMonth(month);
-
-    const budgets: BudgetRow[] = budgetRows.map((r) => ({
-      month: r.month,
-      category: r.category,
-      assigned: Number(r.assigned),
-      rolledOver: Number(r.rolled_over),
-    }));
-    const categoryNames = categoryRows.map((c) => c.name);
-
-    const lastMonthRows = budgets.filter(
-      (b) => b.month === lastMonthKey && b.category !== "__income__",
-    );
-    let totalOverspent = 0;
-    for (const row of lastMonthRows) {
-      const lastExpenses = p.expenseRows.filter(
-        (e) => e.date.startsWith(lastMonthKey) && e.category === row.category,
-      );
-      const spent = lastExpenses.reduce((s, e) => s + e.amountInr, 0);
-      const available = row.assigned + row.rolledOver - spent;
-      if (available < 0) totalOverspent += Math.abs(available);
-    }
-
-    const effectiveIncome = Math.max(0, income - totalOverspent);
-    await addBudgetM
-      .mutateAsync({
-        month,
-        category: "__income__",
-        assigned: String(effectiveIncome),
-      })
-      .catch(() => {});
-
-    const allCategoryNames = [
-      ...new Set([...categoryNames, ...lastMonthRows.map((r) => r.category)]),
-    ];
-    for (const cat of allCategoryNames) {
-      const lastRow = lastMonthRows.find((r) => r.category === cat);
-      const assigned = copyAssigned && lastRow ? lastRow.assigned : 0;
-      await addBudgetM
-        .mutateAsync({ month, category: cat, assigned: String(assigned) })
-        .catch(() => {});
-    }
-
-    localStorage.setItem("budget-active-month", month);
-  }
-
-  function handleRolloverDismiss() {
-    setShowRolloverBanner(false);
-    setRolloverData(null);
-  }
-
   if (!panel) {
     return <ExpensePageLoading />;
   }
@@ -402,7 +311,7 @@ export function ExpensePage() {
 
       <header className="erd-mobile-header">
         <div className="erd-mobile-greet">
-          <BirdMark size={30} flightTarget /> Aviary
+          <BirdMark size={30} flightTarget perched /> Aviary
         </div>
       </header>
 
@@ -493,16 +402,24 @@ export function ExpensePage() {
                 </article>
               )}
 
-              {showRolloverBanner && rolloverData && (
-                <MonthRolloverBanner
-                  currentMonth={panel.month}
-                  lastMonth={rolloverData.lastMonth}
-                  lastIncome={rolloverData.lastIncome}
-                  lastAssignments={rolloverData.lastAssignments}
-                  onConfirm={handleRolloverConfirm}
-                  onDismiss={handleRolloverDismiss}
-                />
+              {!leftoverDismissed && previousLeftover > 0 && (
+                <article className="erd-card home-leftover-notice">
+                  <p>{formatCurrency(previousLeftover, hideAmounts)} left over from last month.</p>
+                  <button type="button" onClick={() => setLeftoverDismissed(true)}>Okay</button>
+                </article>
               )}
+
+              <AnimatePresence initial={false}>
+                {showGetStarted && user && (
+                  <GetStartedCard
+                    manualTransactionDone={!!user.manualTransactionCompletedAt}
+                    guidedTourDone={!!user.guidedTourCompletedAt}
+                    onAddTransaction={() => setShowLogModal(true)}
+                    onTakeTour={() => router.push('/account/guided-tour')}
+                    onSkip={() => setGetStartedSkipped(true)}
+                  />
+                )}
+              </AnimatePresence>
 
               {envelopeState && (
                 <article className="erd-card erd-envelopes-panel">

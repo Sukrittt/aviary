@@ -117,6 +117,7 @@ it('saves through the expense mutation so Activity is invalidated immediately', 
   fireEvent.click(screen.getByRole('button', { name: 'Save expense' }))
 
   await waitFor(() => expect(addExpenseMutation).toHaveBeenCalledWith(expect.objectContaining({
+    source: 'manual',
     item: 'Milk',
     amount_inr: '450',
     category: 'Groceries',

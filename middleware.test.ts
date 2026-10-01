@@ -37,3 +37,17 @@ it('lets a signed-in user through to the app', async () => {
  expect(response?.status).toBe(200)
  expect(response?.headers.get('location')).toBeNull()
 })
+
+it.each(['/', '/?utm_source=email'])('sends a signed-in visitor on %s to their expense page', async path => {
+ signedIn.value = true
+ const response = await middleware(new NextRequest('https://example.com'+path), {} as NextFetchEvent)
+ expect(response?.status).toBe(307)
+ expect(response?.headers.get('location')).toBe('https://example.com/expense')
+})
+
+it('keeps public legal pages accessible to signed-in visitors', async () => {
+ signedIn.value = true
+ const response = await middleware(new NextRequest('https://example.com/legal/privacy'), {} as NextFetchEvent)
+ expect(response?.status).toBe(200)
+ expect(response?.headers.get('location')).toBeNull()
+})

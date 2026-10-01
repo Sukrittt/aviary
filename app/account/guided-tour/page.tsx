@@ -1,7 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useCompleteGuidedTour } from '@/src/hooks/useUser'
+import { track } from '@/src/lib/analytics'
 import { useTourProgress } from '../../../src/hooks/useTourProgress'
 import { useMoneyBrain } from '../../../components/MoneyBrainProvider'
 import { useTourContent } from '@/src/components/tour/useTourContent'
@@ -33,6 +35,22 @@ export default function GuidedTourPage() {
   const [done, setDone] = useTourProgress()
   const [view, setView] = useState<View3>('hub')
   const [chapter, setChapter] = useState(0)
+  const { mutate: markTourComplete } = useCompleteGuidedTour()
+
+  useEffect(() => { track('tour_started', { fresh: false }) }, [])
+  useEffect(() => {
+    if (view === 'chapter') track('tour_step_viewed', { chapter })
+    if (view === 'done') {
+      track('tour_completed', { fresh: false })
+      markTourComplete()
+    }
+  }, [view, chapter, markTourComplete])
+
+  function exitTour() {
+    if (view !== 'done') track('tour_skipped', { fresh: false, chapters_done: done.size })
+    router.replace('/expense')
+  }
+
 
   const doneCount = done.size
   const firstOpen = CHAPTERS.findIndex((_, i) => !done.has(i))
@@ -55,6 +73,9 @@ export default function GuidedTourPage() {
 
   return (
     <>
+      {view !== 'done' && (
+        <button type="button" className="tour-center-link" onClick={exitTour}>Back to my money</button>
+      )}
       {view === 'hub' && (
         <Hub
           doneCount={doneCount}
@@ -146,10 +167,7 @@ export default function GuidedTourPage() {
             setChapter(i)
             setView('chapter')
           }}
-          // Fresh onboarding links here with ?fresh=1 so the trial notice shows
-          // once, right before the app's first real screen. Reopening the tour
-          // later from the account page has no param and exits straight back.
-          onFinish={() => router.push(new URLSearchParams(window.location.search).has('fresh') ? '/account/trial-notice' : '/account')}
+          onFinish={exitTour}
           onStartOver={() => {
             setDone(new Set())
             setChapter(0)

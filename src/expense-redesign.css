@@ -410,6 +410,9 @@
 .erd-nav-item svg {
   flex-shrink: 0;
 }
+.erd-nav-item:not(.is-active):not(:hover) svg {
+  color: var(--erd-text3);
+}
 .erd-nav-item:hover {
   background: var(--erd-border);
   color: var(--erd-text);
@@ -591,7 +594,7 @@
   border-radius: var(--tk-radius-lg);
   background: var(--erd-card-solid);
   border: 1px solid var(--erd-border);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  box-shadow: none;
   color: var(--erd-text);
   font-size: 13px;
   font-weight: 600;
@@ -616,7 +619,7 @@
   border-radius: 50%;
   border: none;
   background: none;
-  color: var(--gold-ink);
+  color: var(--erd-text3);
   cursor: pointer;
 }
 .env2-icon-btn:hover {
@@ -632,8 +635,6 @@
 }
 .env2-group {
   padding-block: 6px;
-}
-.env2-list > .env2-group:first-child {
   border-top: 1px solid var(--erd-border);
 }
 .expense-redesign .env2-group-head {
@@ -899,6 +900,11 @@
   border: 1px solid var(--erd-border);
   border-radius: var(--tk-radius-lg);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.erd-subs-panel,
+.home-recent {
+  box-shadow: none;
 }
 
 /* ── Hero row ───────────────────────────────────────────────── */
@@ -1335,6 +1341,7 @@
 
 .erd-envelopes-panel {
   padding: 20px 24px 10px;
+  box-shadow: none;
 }
 .erd-panel-head-sub {
   font-size: 12px;
@@ -2101,9 +2108,6 @@
     order: 1;
     flex-direction: column;
   }
-  .expense-redesign .rollover-banner {
-    order: 2;
-  }
   .erd-scopebar {
     order: 3;
   }
@@ -2161,8 +2165,11 @@
   .erd-tab span {
     font-size: 10px;
   }
+  .erd-tab:not(.is-active) svg {
+    color: var(--erd-text3);
+  }
   .erd-tab.is-active {
-    color: var(--gold-hover);
+    color: var(--gold-ink);
   }
   .erd-tab-fab {
     display: flex;
@@ -10127,22 +10134,35 @@ button.account-feature-card {
 }
 .auto-pick {
   display: inline-flex;
+  justify-content: flex-end;
+  width: 140px;
 }
 .auto-pick-pop {
   display: inline-flex;
+  position: relative;
+  transform-origin: right center;
 }
 .auto-pick-pill {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  justify-content: flex-end;
+  box-sizing: border-box;
+  overflow: hidden;
+  transform-origin: right center;
   height: 22px;
   padding: 0 9px 0 5px;
   border-radius: 999px;
   background: var(--gold-soft);
-  color: var(--gold-hover);
+  color: var(--gold-ink);
   font-size: 11px;
   font-weight: 800;
   white-space: nowrap;
+}
+.auto-pick-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex: none;
 }
 .auto-pick-slot {
   position: relative;
@@ -10161,6 +10181,28 @@ button.account-feature-card {
 }
 .auto-pick-label {
   display: inline-block;
+  max-width: 105px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.auto-pick-burst {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  pointer-events: none;
+  color: var(--gold-ink);
+}
+.auto-pick-burst > span {
+  position: absolute;
+}
+.auto-pick-burst > span > span {
+  position: absolute;
+  left: -1px;
+  top: -4px;
+  width: 2px;
+  height: 8px;
+  border-radius: 1px;
+  background: currentColor;
 }
 
 /* ── Sign-in flight (src/features/sign-in-flight) ───────────── */
@@ -10188,4 +10230,100 @@ button.account-feature-card {
   transform-origin: 50% 50%;
   will-change: transform, opacity;
   pointer-events: none;
+}
+
+/* Mobile's month-end heads-up and optional onboarding milestones. */
+.expense-redesign .home-leftover-notice {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 22px;
+}
+.expense-redesign .home-leftover-notice p { flex: 1; margin: 0; color: var(--erd-text2); }
+.expense-redesign .home-leftover-notice button {
+  border: 0;
+  background: transparent;
+  color: var(--gold-ink);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  min-height: 44px;
+  padding: 4px 8px;
+}
+.expense-redesign .home-get-started { padding: 22px; overflow: hidden; }
+.expense-redesign .get-started-heading { display: flex; align-items: flex-start; gap: 12px; }
+.expense-redesign .get-started-heading > div { flex: 1; }
+.expense-redesign .get-started-heading h2 { margin: 0; font-family: var(--font-fredoka); font-size: 22px; font-weight: 600; }
+.expense-redesign .get-started-heading p { margin: 5px 0 0; color: var(--erd-text3); font-size: 13px; line-height: 1.5; }
+.expense-redesign .get-started-skip {
+  background: var(--erd-input-bg);
+  color: var(--erd-text2);
+  border: 0;
+  border-radius: 99px;
+  padding: 8px 14px;
+  min-height: 44px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.expense-redesign .get-started-skip:active { opacity: 0.6; }
+.expense-redesign .get-started-progress { display: flex; align-items: center; gap: 10px; margin: 18px 0; font-size: 13px; font-weight: 800; color: var(--erd-text2); }
+.expense-redesign .get-started-segments { display: flex; flex: 1; gap: 6px; }
+.expense-redesign .get-started-segment { flex: 1; height: 6px; background: var(--erd-input-bg); border-radius: 99px; overflow: hidden; }
+.expense-redesign .get-started-segment > span { display: block; height: 100%; background: var(--gold); border-radius: inherit; }
+.expense-redesign .get-started-steps { display: grid; gap: 8px; }
+.expense-redesign .get-started-step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+  width: 100%;
+  padding: 12px;
+  background: var(--erd-input-bg);
+  border: 1px solid transparent;
+  border-radius: 16px;
+  color: var(--erd-text);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.expense-redesign .get-started-step.is-next { border-color: var(--gold-soft); }
+.expense-redesign .get-started-step.is-done { background: transparent; color: var(--erd-text3); cursor: default; }
+.expense-redesign .get-started-icon { display: grid; place-items: center; width: 32px; height: 32px; flex-shrink: 0; border-radius: 50%; background: var(--erd-card); }
+.expense-redesign .is-next .get-started-icon { background: var(--gold-ink); color: var(--erd-on-accent); }
+.expense-redesign .is-done .get-started-icon { background: var(--mint-soft); color: var(--mint); }
+.expense-redesign .get-started-step-copy { display: grid; gap: 2px; flex: 1; }
+.expense-redesign .get-started-step-copy strong { font-size: 14px; }
+.expense-redesign .get-started-step-copy > span { color: var(--erd-text3); font-size: 12px; }
+.expense-redesign .get-started-step > svg { color: var(--erd-text3); }
+.expense-redesign .get-started-step.is-next > svg { color: var(--gold-ink); }
+.expense-redesign .get-started-step:focus-visible,
+.expense-redesign .get-started-skip:focus-visible,
+.expense-redesign .home-leftover-notice button:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+@media (max-width: 600px) {
+  .expense-redesign .home-get-started { padding: 16px; }
+  .expense-redesign .home-leftover-notice { padding: 12px 16px; }
+}
+
+/* Perched Home mark: motion sits inside the sign-in flight's landing group. */
+.bird-idle-head { transform-origin: 250px 340px; animation: bird-idle-nod 3.2s ease-in-out infinite; }
+.bird-idle-eyelid { transform-origin: 306px 216px; transform: scaleY(0); animation: bird-idle-blink 3.38s infinite; }
+@keyframes bird-idle-nod { 0%, 56.25%, 100% { transform: rotate(0deg); } 28.125% { transform: rotate(6deg); } }
+@keyframes bird-idle-blink { 0%, 94.67%, 100% { transform: scaleY(0); } 96.75% { transform: scaleY(1); } }
+.setup-top { justify-content: space-between; }
+.setup-dots { flex: none; }
+.setup-back, .setup-add-row, .setup-add-pill { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.setup-pick-check-icon { opacity: 0; transform: scaleX(0); transform-origin: left; transition: opacity 140ms, transform 140ms; }
+.setup-pick-check.is-on .setup-pick-check-icon { opacity: 1; transform: scaleX(1); }
+.setup-pick-row { transition: transform 140ms, border-color 140ms, background-color 140ms; }
+.setup-pick-row:has(.setup-pick-check:active) { transform: scale(0.985); }
+.setup-pick-check:active { transform: scale(0.9); }
+.setup-cta:enabled:active, .setup-add-row:active, .setup-add-pill:active { transform: scale(0.98); }
+.home-get-started, .home-leftover-notice { box-shadow: none; }
+@media (prefers-reduced-motion: reduce) {
+  .bird-idle-head, .bird-idle-eyelid { animation: none; }
+  .setup-pick-row, .setup-pick-check-icon { transition: none; }
+  .setup-pick-row:has(.setup-pick-check:active), .setup-pick-check:active,
+  .setup-cta:enabled:active, .setup-add-row:active, .setup-add-pill:active { transform: none; }
 }

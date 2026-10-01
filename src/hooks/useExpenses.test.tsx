@@ -46,6 +46,7 @@ it('useAddExpense invalidates both the expenses and ai-brief queries on success'
   expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['expenses'] })
   expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['ai-brief'] })
   expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['category-map'] })
+  expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['user'] })
 })
 
 

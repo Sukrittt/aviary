@@ -61,7 +61,7 @@ export function removePref(key: string): void {
  * a user who had picked Light on a dark-mode device into dark mid-sign-out.
  * Theme belongs to the browser, not the account.
  */
-const KEEP_ON_LOGOUT = new Set(['mc-theme', 'mc-density'])
+const KEEP_ON_LOGOUT = new Set(['mc-theme', 'mc-theme-pref', 'mc-density'])
 
 export function clearLocalPrefs(): void {
   try {

@@ -3,17 +3,19 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import SetupWizardPage from './page'
 import { completeOnboarding } from '@/src/api/billing'
+import { getUser } from '@/src/api/account'
 import { track } from '@/src/lib/analytics'
 
 vi.mock('@/src/lib/analytics', () => ({ track: vi.fn(), startTimer: () => () => 7 }))
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }))
+const { replace } = vi.hoisted(() => ({ replace: vi.fn() }))
+vi.mock('next/navigation', () => ({ useRouter: () => ({ replace }) }))
 vi.mock('@/src/api/budgets', () => ({
   getBudgets: vi.fn(async () => []),
   updateBudget: vi.fn(async () => ({})),
 }))
 vi.mock('@/src/api/groups', () => ({ addGroup: vi.fn(async () => ({})) }))
 vi.mock('@/src/api/categories', () => ({ addCategory: vi.fn(async () => ({})) }))
-vi.mock('@/src/api/account', () => ({ updateUser: vi.fn(async (patch) => patch) }))
+vi.mock('@/src/api/account', () => ({ updateUser: vi.fn(async (patch) => patch), getUser: vi.fn(async () => ({ onboardedAt: null })) }))
 vi.mock('@/src/api/billing', () => ({
   completeOnboarding: vi.fn(async () => ({ onboardedAt: '2026-09-18T12:00:00.000Z', user: { currencyCode: 'USD' }, access: {} })),
 }))
@@ -29,7 +31,7 @@ function walkToFinish() {
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
   fireEvent.click(screen.getByRole('button', { name: '$50,000' }))
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
-  fireEvent.click(screen.getByRole('button', { name: '←' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Back' }))
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
@@ -38,7 +40,7 @@ function walkToFinish() {
 }
 
 describe('onboarding analytics', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => { vi.clearAllMocks(); vi.mocked(getUser).mockResolvedValue({ email: 'test@example.com', emailVerified: true, onboardedAt: null }) })
 
   it('reports every step, the back tap, and the finish, matching mobile', async () => {
     const client = walkToFinish()
@@ -55,6 +57,9 @@ describe('onboarding analytics', () => {
     expect(completed[1]).toMatchObject({ used_quick_pick: true })
     expect(completed[5]).toMatchObject({ step_name: 'assign', edited_split: false })
     expect(eventsNamed('onboarding_completed')[0]).toMatchObject({ total_seconds: 7, groups_count: 2, currency: 'USD' })
+    expect(screen.queryByText('Assigned')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+    expect(replace).toHaveBeenCalledWith('/account/trial-notice')
     client.clear()
   })
 
@@ -66,4 +71,14 @@ describe('onboarding analytics', () => {
     expect(eventsNamed('onboarding_step_completed').map((p) => p?.step_name)).not.toContain('assign')
     client.clear()
   })
+  it('recovers a lost completion response after the server saved onboarding', async () => {
+    vi.mocked(completeOnboarding).mockRejectedValueOnce(new Error('Response lost'))
+    vi.mocked(getUser).mockResolvedValueOnce({ email: 'test@example.com', emailVerified: true, onboardedAt: '2026-10-01', currencyCode: 'USD' })
+    const client = walkToFinish()
+    expect(await screen.findByRole('heading', { name: 'Your budget is ready to go.' })).toBeInTheDocument()
+    expect(eventsNamed('onboarding_failed')).toHaveLength(0)
+    expect(eventsNamed('onboarding_completed')).toEqual([expect.objectContaining({ recovered_after_error: true })])
+    client.clear()
+  })
+
 })

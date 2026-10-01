@@ -22,7 +22,7 @@ export const BIRD_BODY_PATH = BIRD_PATH.slice(0, BIRD_PATH.indexOf(' M 287'))
  * `flightTarget` marks it as a perch SignInFlight can land on; the perch and
  * bird are separate groups so the landing can squash one and dip the other.
  */
-export function BirdMark({ size, flightTarget = false }: { size: number; flightTarget?: boolean }) {
+export function BirdMark({ size, flightTarget = false, perched = false }: { size: number; flightTarget?: boolean; perched?: boolean }) {
   return (
     <svg
       width={size}
@@ -37,7 +37,16 @@ export function BirdMark({ size, flightTarget = false }: { size: number; flightT
         <rect x="128" y="379" width="256" height="26" rx="13" />
       </g>
       <g data-bird>
-        <Bird />
+        {perched ? (
+          <>
+            <rect x="224" y="340" width="17" height="46" rx="8.5" />
+            <rect x="259" y="340" width="17" height="46" rx="8.5" />
+            <g className="bird-idle-head">
+              <path fillRule="evenodd" d={BIRD_PATH} />
+              <rect className="bird-idle-eyelid" x="287" y="197" width="38" height="38" rx="19" />
+            </g>
+          </>
+        ) : <Bird />}
       </g>
     </svg>
   )

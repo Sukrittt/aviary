@@ -7,7 +7,7 @@ import { useBillingStatus } from '@/src/hooks/useBillingStatus'
 import { formatDate } from '@/src/components/billing/copy'
 
 /**
- * Shown once, right after the guided tour finishes a fresh onboarding, and again from the account page's Plan & billing row before billing is live. Twin of
+ * Shown once, right after budget setup finishes onboarding, and again from the account page's Plan & billing row before billing is live. Twin of
  * Mobile's app/account/trial-notice.tsx: sets expectations about the trial
  * instead of leaving the new user to find out on day 45.
  */

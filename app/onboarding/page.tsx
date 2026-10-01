@@ -4,6 +4,8 @@ import { CurrencyPicker } from '@/src/components/CurrencyPicker'
 import { CurrencyScope, useCurrency } from '@/src/context/CurrencyContext'
 
 import { useEffect, useRef, useState } from 'react'
+import { motion, useReducedMotion } from 'motion/react'
+import { ArrowLeft, Check, FolderOpen, Plus, Tags, WalletCards } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import '../../src/expense-redesign.css'
@@ -12,7 +14,7 @@ import { currentMonthKey, INCOME_CATEGORY } from '../../src/lib/envelope'
 import { getBudgets, updateBudget } from '../../src/api/budgets'
 import { addGroup } from '../../src/api/groups'
 import { addCategory } from '../../src/api/categories'
-import { updateUser } from '../../src/api/account'
+import { getUser, updateUser } from '../../src/api/account'
 import { completeOnboarding } from '../../src/api/billing'
 import { DEFAULT_ALERT_PCTS } from '../../src/lib/alerts'
 import { startTimer, track } from '../../src/lib/analytics'
@@ -122,6 +124,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
   const { formatMoney } = useCurrency()
 
   const router = useRouter()
+  const reduceMotion = useReducedMotion()
   const qc = useQueryClient()
 
   const [step, setStep] = useState(0)
@@ -137,7 +140,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
   const [amounts, setAmounts] = useState<Record<string, number>>({})
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
-  const [result, setResult] = useState<{ income: number; groupCount: number; categoryCount: number; assigned: number } | null>(null)
+  const [result, setResult] = useState<{ income: number; groupCount: number; categoryCount: number } | null>(null)
 
   // Timing for the onboarding funnel, same as mobile's setup.tsx: the whole
   // wizard, and each step. Refs, since no render depends on them.
@@ -275,57 +278,65 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
     if (pending) return
     setPending(true)
     setError('')
-    try {
-      const month = currentMonthKey()
-      const incomeValue = Math.round(Number(income)) || 0
-      // Capture one coherent revision snapshot immediately before writing.
-      // Missing rows are conceptual version 0 and are created conditionally.
-      const budgetVersions = new Map(
-        (await getBudgets()).map((row) => [`${row.month}\u0000${row.category}`, row.version]),
-      )
-      const versionFor = (category: string) => budgetVersions.get(`${month}\u0000${category}`) ?? 0
-      await updateBudget(month, INCOME_CATEGORY, { assigned: String(incomeValue), rolled_over: '0' }, versionFor(INCOME_CATEGORY))
-
-      for (const g of selectedGroups) {
-        await addGroup(label(g)).catch(ignoreConflict)
-      }
-
-      let categoryCount = 0
-      const items = liveCats()
-      for (const g of selectedGroups) {
-        const groupLabel = label(g)
-        const rows = (cats[g.id] ?? []).filter((c) => c.on && c.name.trim())
-        for (const c of rows) {
-          await addCategory(label(c), groupLabel).catch(ignoreConflict)
-          categoryCount += 1
-        }
-      }
-
-      for (const item of items) {
-        const catLabel = `${item.emoji} ${item.name.trim()}`
-        await updateBudget(month, catLabel, { assigned: String(amounts[item.key] ?? 0), rolled_over: '0' }, versionFor(catLabel))
-      }
-
-      // Two calls rather than one: the currency is an ordinary profile field,
-      // but completing onboarding starts the 45-day trial, so its instant is
-      // the server's — the browser's clock has no say in when the trial ends.
-      await updateUser({ currencyCode })
-      const { user } = await completeOnboarding()
-      qc.setQueryData(['user'], user)
-      await qc.invalidateQueries()
-
+    const incomeValue = Math.round(Number(income)) || 0
+    const categories = selectedGroups.flatMap((g) =>
+      (cats[g.id] ?? []).filter((c) => c.on && c.name.trim()).map((c) => ({ name: label(c), group: label(g) })),
+    )
+    const categoryCount = categories.length
+    const finishSetup = (recoveredAfterError = false) => {
       trackStepCompleted()
       track('onboarding_completed', {
         total_seconds: wizardTimer.current(),
         groups_count: selectedGroups.length,
         categories_count: categoryCount,
         currency: currencyCode,
+        ...(recoveredAfterError ? { recovered_after_error: true } : {}),
       })
-      setResult({ income: incomeValue, groupCount: selectedGroups.length, categoryCount, assigned: assignedTotal() })
+      setResult({ income: incomeValue, groupCount: selectedGroups.length, categoryCount })
       setStep(5)
+    }
+    try {
+      const month = currentMonthKey()
+      const budgetVersions = new Map(
+        (await getBudgets()).map((row) => [`${row.month}\u0000${row.category}`, row.version]),
+      )
+      const versionFor = (category: string) => budgetVersions.get(`${month}\u0000${category}`) ?? 0
+      // Keep ordering within each collection while independent writes run
+      // together, matching mobile. Completion waits for every setup write.
+      await Promise.all([
+        (async () => {
+          for (const g of selectedGroups) await addGroup(label(g)).catch(ignoreConflict)
+        })(),
+        (async () => {
+          for (const c of categories) await addCategory(c.name, c.group).catch(ignoreConflict)
+        })(),
+        updateBudget(month, INCOME_CATEGORY, { assigned: String(incomeValue), rolled_over: '0' }, versionFor(INCOME_CATEGORY)),
+        ...liveCats().map((item) => {
+          const catLabel = `${item.emoji} ${item.name.trim()}`
+          return updateBudget(month, catLabel, { assigned: String(amounts[item.key] ?? 0), rolled_over: '0' }, versionFor(catLabel))
+        }),
+      ])
+      await updateUser({ currencyCode })
+      const { user } = await completeOnboarding()
+      qc.setQueryData(['user'], user)
+      void qc.invalidateQueries()
+      finishSetup()
     } catch {
+      // The response may be lost after completion committed. Check the
+      // server-owned flag before asking the user to retry.
+      try {
+        const user = await getUser()
+        if (user.onboardedAt) {
+          qc.setQueryData(['user'], user)
+          void qc.invalidateQueries()
+          finishSetup(true)
+          return
+        }
+      } catch {
+        // A retry stays available when confirmation also fails.
+      }
       track('onboarding_failed', { reason: 'save_failed' })
-      setError('Something went wrong. Try again.')
+      setError("Couldn't confirm your setup. Check your connection and try again. If it already saved, reopening the app will continue to your budget.")
     } finally {
       setPending(false)
     }
@@ -350,7 +361,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
   if (step === 5 && result) {
     return (
       <div className="expense-redesign setup-page">
-        <SetupDone result={result} onFinish={() => router.push('/account/guided-tour?fresh=1')} />
+        <SetupDone result={result} onFinish={() => router.replace('/account/trial-notice')} />
       </div>
     )
   }
@@ -382,15 +393,14 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
   return (
     <div className="expense-redesign setup-page">
       <div className="setup-top">
-        <button type="button" className="setup-back" onClick={back} disabled={step === 0}>
-          ←
+        <button type="button" className="setup-back" onClick={back} disabled={step === 0} aria-label="Back">
+          <ArrowLeft size={16} aria-hidden="true" />
         </button>
-        <div className="setup-dots">
+        <div className="setup-dots" role="img" aria-label={`Step ${step + 1} of 5`}>
           {[0, 1, 2, 3, 4].map((n) => (
             <span key={n} className={`setup-dot ${n <= step ? 'is-active' : ''}`} />
           ))}
         </div>
-        <span className="setup-step-counter">{step + 1}/5</span>
       </div>
 
       <h1 className="setup-title">{title}</h1>
@@ -415,14 +425,15 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
           <p className="setup-amount-hint">{income ? '' : 'Type an amount, or pick one below'}</p>
           <div className="setup-quick-row">
             {QUICK_PICKS.map((v) => (
-              <button
+              <motion.button
+                whileTap={reduceMotion ? undefined : { scale: 0.96 }}
                 key={v}
                 type="button"
                 className={`setup-chip ${income === v ? 'is-active' : ''}`}
                 onClick={() => changeIncome(v, true)}
               >
                 {formatMoney(Number(v))}
-              </button>
+              </motion.button>
             ))}
           </div>
         </div>
@@ -443,7 +454,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
             />
           ))}
           <button type="button" className="setup-add-row" onClick={addGroupRow}>
-            + Add your own group
+            <Plus size={16} aria-hidden="true" /> Add your own group
           </button>
           <p className="setup-micro-hint">tap a name to rename · tap the emoji to change it</p>
         </div>
@@ -473,14 +484,14 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
                   />
                 ))}
                 <button type="button" className="setup-add-pill" onClick={() => addCatRow(g.id)}>
-                  + Add category
+                  <Plus size={14} aria-hidden="true" /> Add category
                 </button>
               </div>
             )
           })}
           {selectedCatCount > 0 && (
             <p className="setup-micro-hint">
-              🔔 Alerts at {DEFAULT_ALERT_PCTS.join(' · ')}% by default. Change any category&apos;s alerts later from Envelopes.
+              Default alerts: {DEFAULT_ALERT_PCTS.map((pct) => `${pct}%`).join(' · ')}
             </p>
           )}
         </div>
@@ -493,12 +504,12 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
             <span className="setup-rem-value">{formatMoney(Math.abs(rem))}</span>
           </div>
           <div className="setup-split-row">
-            <button type="button" className="setup-split-btn" onClick={() => setAmounts(distribute(true))}>
+            <motion.button whileTap={reduceMotion ? undefined : { scale: 0.97 }} type="button" className="setup-split-btn" onClick={() => setAmounts(distribute(true))}>
               Suggested split
-            </button>
-            <button type="button" className="setup-split-btn" onClick={() => setAmounts(distribute(false))}>
+            </motion.button>
+            <motion.button whileTap={reduceMotion ? undefined : { scale: 0.97 }} type="button" className="setup-split-btn" onClick={() => setAmounts(distribute(false))}>
               Split evenly
-            </button>
+            </motion.button>
           </div>
           <div className="setup-section-list">
             {selectedGroups.map((g) => {
@@ -580,8 +591,8 @@ function PickRow({
         value={name}
         onChange={(e) => onChangeName(e.target.value)}
       />
-      <button type="button" className={`setup-pick-check ${on ? 'is-on' : ''}`} onClick={onToggle} aria-label={on ? 'Included' : 'Excluded'}>
-        {on ? '✓' : ''}
+      <button type="button" className={`setup-pick-check ${on ? 'is-on' : ''}`} onClick={onToggle} role="checkbox" aria-checked={on} aria-label={`${on ? 'Deselect' : 'Select'} ${name || placeholder}`}>
+        <Check size={16} strokeWidth={3} aria-hidden="true" className="setup-pick-check-icon" />
       </button>
     </div>
   )
@@ -591,35 +602,34 @@ function SetupDone({
   result,
   onFinish,
 }: {
-  result: { income: number; groupCount: number; categoryCount: number; assigned: number }
+  result: { income: number; groupCount: number; categoryCount: number }
   onFinish: () => void
 }) {
-  const { currencySymbol, formatMoney } = useCurrency()
+  const { formatMoney } = useCurrency()
 
   const summary = [
-    { icon: currencySymbol, label: 'Monthly income', value: formatMoney(result.income) },
-    { icon: '📁', label: 'Groups', value: String(result.groupCount) },
-    { icon: '✉️', label: 'Categories', value: String(result.categoryCount) },
-    { icon: '✓', label: 'Assigned', value: formatMoney(result.assigned) },
+    { icon: WalletCards, label: 'Monthly income', value: formatMoney(result.income) },
+    { icon: FolderOpen, label: 'Groups', value: String(result.groupCount) },
+    { icon: Tags, label: 'Categories', value: String(result.categoryCount) },
   ]
 
   return (
     <div className="setup-done">
       <Confetti />
-      <div className="setup-done-badge">✓</div>
+      <div className="setup-done-badge"><Check size={30} strokeWidth={2.4} aria-hidden="true" /></div>
       <h1 className="setup-done-title">Your budget is ready to go.</h1>
       <p className="setup-done-blurb">Everything below can be changed later from Envelopes.</p>
       <div className="setup-done-list">
         {summary.map((s) => (
           <div key={s.label} className="setup-done-row">
-            <span className="setup-done-icon">{s.icon}</span>
+            <span className="setup-done-icon"><s.icon size={16} strokeWidth={2.2} aria-hidden="true" /></span>
             <span className="setup-done-label">{s.label}</span>
             <span className="setup-done-value">{s.value}</span>
           </div>
         ))}
       </div>
       <button type="button" className="setup-cta" onClick={onFinish}>
-        Show me how it works
+        Continue
       </button>
     </div>
   )

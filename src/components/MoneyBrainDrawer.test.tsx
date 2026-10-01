@@ -3,7 +3,8 @@ import { render, screen } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MoneyBrainDrawer } from './MoneyBrainDrawer'
 
-const state = vi.hoisted(() => ({ hidden: false }))
+const state = vi.hoisted(() => ({ hidden: false, theme: 'light' as 'light' | 'dark' | null }))
+vi.mock('@/components/AppearanceProvider', () => ({ useAppearance: () => ({ theme: state.theme }) }))
 vi.mock('../hooks/useBudgets', () => ({ useBudgets: () => ({ data: [] }) }))
 vi.mock('../hooks/useExpenses', () => ({ useRecentExpenses: () => ({ data: [] }) }))
 vi.mock('../hooks/useCategories', () => ({ useCategories: () => ({ data: [] }) }))
@@ -15,10 +16,25 @@ vi.mock('../hooks/useMoneyBrief', () => ({ useMoneyBrief: () => ({ data: {
   cards: [{ title: 'Monthly Rent', subtitle: 'Largest single spend', icon: '🏠', amount: 12000, valueLabel: 'INR', tone: 'violet' }],
 } }) }))
 vi.mock('@/src/api/ai', () => ({ getChatSession: vi.fn(), streamChat: vi.fn() }))
-beforeEach(() => { state.hidden = false; Element.prototype.scrollTo = vi.fn() })
+beforeEach(() => { state.hidden = false; state.theme = 'light'; Element.prototype.scrollTo = vi.fn() })
 function show() {
   return render(<QueryClientProvider client={new QueryClient()}><MoneyBrainDrawer onClose={vi.fn()} /></QueryClientProvider>)
 }
+it('follows the selected app theme outside the page shell and updates while open', () => {
+  const client = new QueryClient()
+  const drawer = () => <QueryClientProvider client={client}><MoneyBrainDrawer onClose={vi.fn()} /></QueryClientProvider>
+  const { rerender } = render(drawer())
+  expect(screen.getByRole('dialog').closest('.theme-light')).not.toBeNull()
+  state.theme = 'dark'
+  rerender(drawer())
+  expect(screen.getByRole('dialog').closest('.theme-dark')).not.toBeNull()
+  expect(screen.getByRole('dialog').closest('.theme-light')).toBeNull()
+})
+it('lets the system palette paint before the app theme resolves', () => {
+  state.theme = null
+  show()
+  expect(screen.getByRole('dialog').closest('.theme-light, .theme-dark')).toBeNull()
+})
 it('renders the actual insight amount alongside its label', () => {
   show()
   expect(screen.getByText('₹12,000')).toBeInTheDocument()

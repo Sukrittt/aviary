@@ -30,6 +30,15 @@ it('lands a dictionary hit straight away, without the picking state', () => {
   expect(screen.getByText(PICKED_LABEL)).toBeTruthy()
 })
 
+it('keeps the selected category visible after a hand pick', () => {
+  const { rerender } = render(<AutoPickStatus thinking={false} picked={groceries} selected={groceries} rollEmojis={rollEmojis} />)
+  const rent = { emoji: '🏠', name: 'Rent' }
+  rerender(<AutoPickStatus thinking={false} picked={null} selected={rent} rollEmojis={rollEmojis} />)
+  expect(screen.getByText('Rent')).toBeInTheDocument()
+  expect(screen.getByRole('status').textContent).toContain('🏠')
+  expect(screen.queryByText(PICKED_LABEL)).toBeNull()
+})
+
 it('goes away when the AI finds nothing or the user picks by hand', async () => {
   const { rerender } = render(<AutoPickStatus thinking picked={null} rollEmojis={rollEmojis} />)
   rerender(<AutoPickStatus thinking={false} picked={null} rollEmojis={rollEmojis} />)

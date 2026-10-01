@@ -102,9 +102,9 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
     () => [...new Set((categoriesQ.data ?? EMPTY).map((c) => categoryEmoji(c.name, c.group)).filter(Boolean))],
     [categoriesQ.data],
   )
-  const autoPickedRow = autoPicked ? (categoriesQ.data ?? EMPTY).find((c) => c.name === category) : undefined
-  const autoPickedCategory = autoPickedRow
-    ? { emoji: categoryEmoji(autoPickedRow.name, autoPickedRow.group), name: splitEmoji(autoPickedRow.name).text }
+  const selectedRow = (categoriesQ.data ?? EMPTY).find((c) => c.name === category)
+  const selectedCategory = selectedRow
+    ? { emoji: categoryEmoji(selectedRow.name, selectedRow.group), name: splitEmoji(selectedRow.name).text }
     : null
 
   // Bumped on each blocked save; 0 means nothing is highlighted yet.
@@ -252,6 +252,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
         amount_inr: String(Math.round(parsed)),
         category: effectiveCategory,
         date: date || undefined,
+        source: 'manual',
       })
       onSaved()
       reset()
@@ -384,7 +385,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
                   <div ref={categoryNudgeRef} className={`erd-log-label${flag('category') ? ' is-missing' : ''}`}>
                     Category
                   </div>
-                  <AutoPickStatus thinking={suggesting} picked={autoPickedCategory} rollEmojis={rollEmojis} />
+                  <AutoPickStatus thinking={suggesting} picked={autoPicked ? selectedCategory : null} selected={selectedCategory} rollEmojis={rollEmojis} />
                 </div>
                 <CategoryPicker value={effectiveCategory} onChange={handleCategoryPick} />
               </section>

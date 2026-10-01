@@ -1,6 +1,7 @@
 'use client'
 
 import { useCurrency } from '@/src/context/CurrencyContext'
+import { useAppearance } from '@/components/AppearanceProvider'
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
@@ -46,6 +47,7 @@ function timeAgo(iso: string) {
 
 export function MoneyBrainDrawer({ initialSessionId = null, openChat, onClose }: Props) {
   const { formatCurrency } = useCurrency()
+  const { theme } = useAppearance()
 
   const reduceMotion = useReducedMotion()
   const queryClient = useQueryClient()
@@ -195,7 +197,8 @@ export function MoneyBrainDrawer({ initialSessionId = null, openChat, onClose }:
 
   return (
     <motion.div
-      className="expense-redesign brain-scrim"
+      // The drawer is a sibling of AppShell, so it needs its own theme scope.
+      className={`expense-redesign brain-scrim${theme ? ` theme-${theme}` : ''}`}
       initial={reduceMotion ? false : { opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
