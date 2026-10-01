@@ -101,7 +101,7 @@ export default function ChatHistoryPage() {
       {sessions === null ? (
         loadError ? <div className="account-row-meta" role="alert">Couldn&apos;t load chat history.</div> : <LoadingCaption placement="page" />
       ) : sessions.length === 0 ? (
-        <div className="account-row-meta">No past chats yet. Start a conversation with Money Brain.</div>
+        <div className="account-row-meta">No past chats yet. Start a conversation with Ask Aviary.</div>
       ) : (
         <div className="account-card">
           {sessions.map((s) => (

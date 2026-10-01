@@ -1,6 +1,7 @@
 'use client'
 
 import { useCurrency } from '@/src/context/CurrencyContext'
+import { useAppearance } from '@/components/AppearanceProvider'
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
@@ -46,6 +47,7 @@ function timeAgo(iso: string) {
 
 export function MoneyBrainDrawer({ initialSessionId = null, openChat, onClose }: Props) {
   const { formatCurrency } = useCurrency()
+  const { theme } = useAppearance()
 
   const reduceMotion = useReducedMotion()
   const queryClient = useQueryClient()
@@ -195,7 +197,8 @@ export function MoneyBrainDrawer({ initialSessionId = null, openChat, onClose }:
 
   return (
     <motion.div
-      className="expense-redesign brain-scrim"
+      // The drawer is a sibling of AppShell, so it needs its own theme scope.
+      className={`expense-redesign brain-scrim${theme ? ` theme-${theme}` : ''}`}
       initial={reduceMotion ? false : { opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -205,7 +208,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, openChat, onClose }:
         className="brain-drawer"
         role="dialog"
         aria-modal="true"
-        aria-label="Money Brain"
+        aria-label="Ask Aviary"
         initial={reduceMotion ? false : { x: '100%' }}
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
@@ -218,7 +221,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, openChat, onClose }:
             </button>
           ) : <span className="brain-orbit" aria-hidden="true"><BirdMark size={26} /></span>}
           <div className="brain-heading">
-            <h2>{view === 'history' ? 'Chat history' : 'Money Brain'}</h2>
+            <h2>{view === 'history' ? 'Chat history' : 'Ask Aviary'}</h2>
             <p>{view === 'history' ? 'Pick up where you left off' : brief.data ? `Reading ${brief.data.meta.txnCountThisMonth} transactions` : 'Reading your budget…'}</p>
           </div>
           <div className="brain-head-actions">
@@ -230,7 +233,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, openChat, onClose }:
             <button className="brain-pill-btn brain-pill-btn--accent" type="button" onClick={startNewChat} aria-label="New chat">
               <Plus size={15} /><span>New</span>
             </button>
-            <button className="brain-icon-btn" type="button" onClick={onClose} aria-label="Close Money Brain">
+            <button className="brain-icon-btn" type="button" onClick={onClose} aria-label="Close Ask Aviary">
               <X size={18} />
             </button>
           </div>
@@ -341,7 +344,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, openChat, onClose }:
                   }
                 }}
                 placeholder="Ask about your money…"
-                aria-label="Ask Money Brain"
+                aria-label="Ask Aviary"
               />
               <button type="submit" disabled={sending || !input.trim()} aria-label="Send question"><ArrowUp size={18} /></button>
             </form>

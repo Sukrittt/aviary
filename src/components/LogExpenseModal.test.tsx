@@ -24,6 +24,7 @@ vi.mock('./CategoryPicker', () => ({
     <>
       <output aria-label="Category">{value}</output>
       <button type="button" onClick={() => onChange(history.rows.length ? '🛒 Groceries' : 'Groceries')}>Choose Groceries</button>
+      <button type="button" onClick={() => onChange('Eating out')}>Choose Eating out</button>
     </>
   ),
 }))
@@ -117,6 +118,7 @@ it('saves through the expense mutation so Activity is invalidated immediately', 
   fireEvent.click(screen.getByRole('button', { name: 'Save expense' }))
 
   await waitFor(() => expect(addExpenseMutation).toHaveBeenCalledWith(expect.objectContaining({
+    source: 'manual',
     item: 'Milk',
     amount_inr: '450',
     category: 'Groceries',
@@ -125,6 +127,46 @@ it('saves through the expense mutation so Activity is invalidated immediately', 
 })
 
 describe('LogExpenseModal category suggestion', () => {
+  it('predicts again after editing a name with a manually selected category', async () => {
+    const reply = deferred<string>()
+    llm.mockReturnValueOnce(reply.promise)
+    render(<LogExpenseModal onClose={vi.fn()} onSaved={vi.fn()} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Choose Eating out' }))
+    expect(category()).toBe('Eating out')
+
+    type('house rent')
+    expect(category()).toBe('')
+    await waitFor(() => expect(llm).toHaveBeenCalledWith('house rent', ['Groceries', 'Rent', 'Eating out']))
+    reply.resolve('Rent')
+    await waitFor(() => expect(category()).toBe('Rent'))
+  })
+
+  it('clears an earlier auto-pick while predicting a different transaction name', async () => {
+    const reply = deferred<string>()
+    llm.mockResolvedValueOnce('Eating out').mockReturnValueOnce(reply.promise)
+    render(<LogExpenseModal onClose={vi.fn()} onSaved={vi.fn()} />)
+    type('cafe breakfast')
+    await waitFor(() => expect(category()).toBe('Eating out'))
+
+    type('apartment lease renewal')
+    expect(category()).toBe('')
+    await waitFor(() => expect(llm).toHaveBeenCalledTimes(2))
+    reply.resolve('Rent')
+    await waitFor(() => expect(category()).toBe('Rent'))
+  })
+
+  it('keeps a manual choice made during prediction until the name changes again', async () => {
+    const reply = deferred<string>()
+    llm.mockReturnValueOnce(reply.promise)
+    render(<LogExpenseModal onClose={vi.fn()} onSaved={vi.fn()} />)
+    type('dinner with friends')
+    await waitFor(() => expect(llm).toHaveBeenCalledTimes(1))
+    fireEvent.click(screen.getByRole('button', { name: 'Choose Groceries' }))
+    reply.resolve('Eating out')
+    await new Promise((r) => setTimeout(r, 50))
+    expect(category()).toBe('Groceries')
+  })
+
   it('leaves the category empty when nothing fits, instead of defaulting to the first one', async () => {
     llm.mockResolvedValue('')
     render(<LogExpenseModal onClose={vi.fn()} onSaved={vi.fn()} />)
@@ -137,9 +179,9 @@ describe('LogExpenseModal category suggestion', () => {
     const old = deferred<string>()
     llm.mockReturnValueOnce(old.promise).mockResolvedValueOnce('Rent')
     render(<LogExpenseModal onClose={vi.fn()} onSaved={vi.fn()} />)
-    type('house')
+    type('lease')
     await waitFor(() => expect(llm).toHaveBeenCalledTimes(1))
-    type('house rent')
+    type('lease rent')
     await waitFor(() => expect(category()).toBe('Rent'))
     old.resolve('Groceries')
     await new Promise((r) => setTimeout(r, 50))
@@ -172,8 +214,18 @@ describe('LogExpenseModal category suggestion', () => {
     reply.resolve('Groceries')
     await waitFor(() => expect(category()).toBe('Groceries'))
     await waitFor(() => expect(screen.getByText('Picked for you')).toBeTruthy(), { timeout: 2000 })
+    const field = screen.getByLabelText('What was it for?').parentElement!
+    await waitFor(() => expect(field.querySelector('.auto-pick-burst')).toBeTruthy())
+    const autoBurst = field.querySelector('.auto-pick-burst')
+    expect(autoBurst).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Choose Groceries' }))
     await waitFor(() => expect(screen.queryByText('Picked for you')).toBeNull())
+    await waitFor(() => expect(field.querySelector('.auto-pick-burst')).toBeTruthy())
+    const manualBurst = field.querySelector('.auto-pick-burst')
+    expect(manualBurst).not.toBe(autoBurst)
+    fireEvent.click(screen.getByRole('button', { name: 'Choose Groceries' }))
+    await waitFor(() => expect(field.querySelector('.auto-pick-burst')).toBeTruthy())
+    expect(field.querySelector('.auto-pick-burst')).not.toBe(manualBurst)
   })
 
   it('does not call the Miscellaneous fallback a pick', async () => {

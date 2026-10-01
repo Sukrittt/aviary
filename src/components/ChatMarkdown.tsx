@@ -5,7 +5,7 @@ function Runs({ runs }: { runs: Run[] }) {
   return runs.map((run, i) => (run.bold ? <strong key={i}>{run.text}</strong> : run.text))
 }
 
-/** Renders a Money Brain answer: paragraphs, bullet/numbered lists, bold runs. */
+/** Renders an Ask Aviary answer: paragraphs, bullet/numbered lists, bold runs. */
 export function ChatMarkdown({ text }: { text: string }) {
   const blocks = useMemo(() => parseChatMarkdown(text), [text])
   return (

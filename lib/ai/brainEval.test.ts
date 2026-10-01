@@ -124,10 +124,10 @@ const HISTORY_LIMIT = 8
 const OUT = process.env.BRAIN_EVAL_OUT ?? '/tmp/brain-eval.md'
 const ONLY = process.env.BRAIN_EVAL_ONLY?.split(',')
 
-describe.skipIf(!process.env.BRAIN_EVAL)('money brain live eval', () => {
+describe.skipIf(!process.env.BRAIN_EVAL)('Ask Aviary live eval', () => {
   it('runs every scenario', { timeout: 1_800_000 }, async () => {
     const caller = { userId: 'eval', feature: 'chat' as const }
-    const out: string[] = [`# Money brain eval ${new Date().toISOString()}\n`]
+    const out: string[] = [`# Ask Aviary eval ${new Date().toISOString()}\n`]
     const scenarios = SCENARIOS.filter(([id]) => !ONLY || ONLY.includes(id))
     const results = new Map<string, string>()
     const queue = [...scenarios]

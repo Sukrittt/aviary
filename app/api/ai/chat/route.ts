@@ -106,7 +106,7 @@ function streamReply(
         }
         emit(scrub.flush())
         // Rare, but a thinking-mode reply has come back with no text at all; a blank bubble helps nobody.
-        if (!full) throw new Error("The money brain didn't come up with an answer. Try asking again.")
+        if (!full) throw new Error("Ask Aviary didn't come up with an answer. Try asking again.")
         controller.enqueue(encoder.encode('data: [DONE]\n\n'))
         await settle()
       } catch (err) {

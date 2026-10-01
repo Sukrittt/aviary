@@ -15,10 +15,11 @@ import {
 } from '@/src/api/expenses'
 import { currentMonthKey, shiftMonthKey } from '@/src/lib/envelope'
 import { budgetsKey } from '@/src/hooks/useBudgets'
+import { userKey } from '@/src/hooks/useUser'
 import { track, trackFirst } from '@/src/lib/analytics'
 
 const key = ['expenses'] as const
-// Money Brain's brief is computed from expenses too, but keyed separately —
+// Ask Aviary's brief is computed from expenses too, but keyed separately —
 // an edit here must bust it or it shows stale numbers for up to its 15min staleTime.
 const briefKey = ['ai-brief'] as const
 // The autosuggest word->category map is built from expense item/category text —
@@ -103,6 +104,8 @@ export function useAddExpense() {
       // stale balance for up to its 30s staleTime.
       qc.invalidateQueries({ queryKey: budgetsKey })
       qc.invalidateQueries({ queryKey: categoryMapKey })
+      // Manual creates complete a server-owned getting started milestone.
+      qc.invalidateQueries({ queryKey: userKey })
     },
   })
 }

@@ -58,7 +58,7 @@ export type AppEvent =
   | 'bill_scan_started'
   | 'bill_scanned'
   | 'bill_scan_failed'
-  // Money Brain
+  // Ask Aviary
   | 'money_brain_opened'
   | 'money_brain_query'
   | 'money_brain_answered'
@@ -87,7 +87,6 @@ export type AppEvent =
   // Account
   | 'data_exported'
   | 'account_deleted'
-  | 'feedback_sent'
   // Web only: the landing page's way into the app store
   | 'store_cta_clicked'
 

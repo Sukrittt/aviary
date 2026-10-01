@@ -5,7 +5,7 @@ export const SITE_URL = new URL('https://useaviary.com')
 // Only public content belongs in search results. Auth, personal finance and
 // admin pages still get descriptive browser titles without exposing user data.
 export const pages = {
-  '/': { title: 'Envelope Budgeting & Expense Tracking', description: 'Give your money a job with Aviary. Plan envelopes, track expenses, subscriptions and investments in your currency, on Android and the web.', index: true },
+  '/': { title: 'The Budgeting App That Learns Your Spending', description: 'Aviary learns your spending habits and nudges you to log them in one tap. Envelope budgeting without bank sync, on Android and the web.', index: true },
   '/legal/privacy': { title: 'Privacy Policy', description: 'Learn how Aviary stores and processes your data, including encryption, AI features, analytics, and your options to export or delete it.', index: true },
   '/legal/terms': { title: 'Terms of Service', description: 'Read the terms for using Aviary, including account requirements, acceptable use, subscriptions, and your responsibilities.', index: true },
   '/legal/delete-account': { title: 'Delete Your Account', description: 'Learn how to delete your Aviary account and personal data from the app, or request account deletion through support.', index: true },
@@ -22,9 +22,8 @@ export const pages = {
   '/account': { title: 'Account & Settings', description: 'Manage your Aviary profile, currency, appearance, and account preferences.' },
   '/account/archive': { title: 'Archived Entries', description: 'Review and restore your archived Aviary transactions and entries.' },
   '/account/bill-scans': { title: 'Bill Scans', description: 'Review your scanned receipts and the expenses created from them in Aviary.' },
-  '/account/chat-history': { title: 'Money Brain Chat History', description: 'Browse your past Money Brain conversations about your Aviary budget and spending.' },
+  '/account/chat-history': { title: 'Ask Aviary Chat History', description: 'Browse your past Ask Aviary conversations about your Aviary budget and spending.' },
   '/account/data': { title: 'Data & Privacy', description: 'Manage analytics preferences, export your Aviary data, and review your data controls.' },
-  '/account/feedback': { title: 'Feedback & Ideas', description: 'Report an issue or share an idea to improve Aviary.' },
   '/account/guided-tour': { title: 'Guided Tour', description: 'Learn how to assign money, log expenses, and use your budget with Aviary’s guided tour.' },
   '/account/help': { title: 'Help & Support', description: 'Learn how Aviary envelopes work and find help with your budget and account.' },
   '/account/recurring': { title: 'Recurring Expenses', description: 'Manage recurring expenses and reminders for regular purchases in your Aviary budget.' },
@@ -34,7 +33,6 @@ export const pages = {
   '/admin': { title: 'Admin Overview', description: 'Aviary administration overview for authorized administrators.' },
   '/admin/ai': { title: 'Admin AI Usage', description: 'Review Aviary AI usage and processing costs.' },
   '/admin/audit': { title: 'Admin Audit Log', description: 'Review audited administrative actions in Aviary.' },
-  '/admin/feedback': { title: 'Admin Feedback Inbox', description: 'Review and triage Aviary user feedback.' },
   '/admin/jobs': { title: 'Admin Jobs', description: 'Review scheduled Aviary jobs and their recent runs.' },
   '/admin/subscriptions': { title: 'Admin Billing & Subscriptions', description: 'Manage Aviary billing accounts and subscription access.' },
   '/admin/system': { title: 'Admin System Settings', description: 'Manage Aviary system settings and service availability.' },

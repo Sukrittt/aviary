@@ -6,12 +6,25 @@ body,
   overflow-x: hidden;
 }
 
-/* Logo depth (BirdMark, BirdThinking, SignInFlight): a hard offset shadow
-   in a mid-tone of the logo's own color reads as the edge of a thick token,
-   and a soft shadow lifts it off the page. Both scale with --bird-size. */
-.bird-depth {
-  --bird-edge: color-mix(in srgb, currentColor 42%, var(--tk-bg));
-  filter:
-    drop-shadow(0 calc(var(--bird-size, 34px) * 0.045) 0 var(--bird-edge))
-    drop-shadow(0 calc(var(--bird-size, 34px) * 0.09) calc(var(--bird-size, 34px) * 0.07) rgba(0, 0, 0, 0.28));
+/* Every resting Aviary mark idly nods and blinks; motion-sensitive users get the settled pose. */
+.bird-idle-head {
+  transform-origin: 250px 340px;
+  animation: bird-idle-nod 3.2s ease-in-out infinite;
+}
+.bird-idle-eyelid {
+  transform-origin: 306px 216px;
+  transform: scaleY(0);
+  animation: bird-idle-blink 3.38s infinite;
+}
+@keyframes bird-idle-nod {
+  0%, 56.25%, 100% { transform: rotate(0deg); }
+  28.125% { transform: rotate(6deg); }
+}
+@keyframes bird-idle-blink {
+  0%, 94.67%, 100% { transform: scaleY(0); }
+  96.75% { transform: scaleY(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bird-idle-head,
+  .bird-idle-eyelid { animation: none; }
 }

@@ -135,7 +135,7 @@ export default function AccountPage() {
             external
             locked
           />
-          <FeatureCard icon={Brain} tone="gold" label="Money Brain" blurb="Ask about your spending" onClick={() => openMoneyBrain()} />
+          <FeatureCard icon={Brain} tone="gold" label="Ask Aviary" blurb="Ask about your spending" onClick={() => openMoneyBrain()} />
           <FeatureCard icon={TrendingUp} tone="mint" label="Investments" blurb="Portfolio at a glance" href="/investments" />
           <FeatureCard icon={ScanLine} tone="mint" label="Scan a bill" blurb="Split a cart or receipt" onClick={() => setShowScan(true)} />
           <FeatureCard icon={Repeat} tone="violet" label="Recurring expenses" blurb="Plan upcoming payments" href="/account/recurring" />

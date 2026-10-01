@@ -120,10 +120,9 @@ export function Playground() {
     <section id="play" className="lp-section">
       <div className="lp-play-head">
         <div>
-          <div className="lp-eyebrow">Playground</div>
           <h2 className="lp-h2">This is the real thing. Poke it.</h2>
           <p className="lp-sub" style={{ maxWidth: 520 }}>
-            Not a video, not a GIF. The app&apos;s own screens, running right here on the page.
+            Not a video, not a GIF. The app’s own screens, running right here on the page.
           </p>
         </div>
         <div className="lp-pill-group" role="tablist">
@@ -202,7 +201,7 @@ export function Playground() {
           <div className="lp-play-copy">
             {tab === 'log' && (
               <>
-                <div className="lp-h3">Tap a number. That&apos;s the whole feature.</div>
+                <div className="lp-h3">Tap a number. That’s the whole feature.</div>
                 <p className="lp-body">
                   The keypad is the first thing your thumb finds. Amount, category, one-word note. Logged before the payment
                   confirmation screen has closed.
@@ -219,7 +218,7 @@ export function Playground() {
                 <div className="lp-h3">Your money has an address.</div>
                 <p className="lp-body">
                   Group them how your life actually works. House, Lifestyle, whatever. Expand, collapse, drag to reorder.
-                  The bar turns yellow before you&apos;re in trouble, not after.
+                  The bar turns yellow before you’re in trouble, not after.
                 </p>
                 <div className="lp-card lp-stat">
                   <div className="lp-stat-label">This month</div>

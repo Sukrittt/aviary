@@ -40,7 +40,7 @@ export default function PrivacyPage() {
           afterward.
         </li>
         <li>
-          <strong>Money Brain / AI chat.</strong> If you ask our AI assistant a question, we send it your recent
+          <strong>Ask Aviary / AI chat.</strong> If you ask our AI assistant a question, we send it your recent
           transactions, envelope balances, and subscription and investment summaries so it can answer
           accurately, along with the text you type. Conversations are stored in our database so you can revisit
           them, and you can delete them at any time.
@@ -61,10 +61,6 @@ export default function PrivacyPage() {
           &ldquo;You&apos;ve overspent &#8377;500 in Food&rdquo;), delivered through Google&apos;s and
           Apple&apos;s push services.
         </li>
-        <li>
-          <strong>Diagnostics you choose to send.</strong> If you report a bug or send feedback, we include your
-          app version and device model to help us reproduce it.
-        </li>
       </ul>
 
       <h2>How we use it</h2>
@@ -79,8 +75,9 @@ export default function PrivacyPage() {
       <ul>
         <li><strong>WorkOS</strong> — sign-in and account identity.</li>
         <li><strong>MongoDB Atlas</strong> — where your data is stored, with the encryption described above.</li>
+        <li><strong>UserJot</strong> — the external feedback board, when you choose to open it and submit feedback.</li>
         <li>
-          <strong>Google Gemini</strong> — receives transaction and budget context for Money Brain and AI
+          <strong>Google Gemini</strong> — receives transaction and budget context for Ask Aviary and AI
           briefs, and receipt photos for bill scanning. Google does not use this data to train its models under
           our API agreement with them.
         </li>

@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react'
 
-/** Mobile's splash/BirdLandingMark.tsx outline, shared by the static and thinking marks. */
+/** Mobile's splash/BirdLandingMark.tsx outline, shared by the idle and thinking marks. */
 export const BIRD_PATH =
   'M 352 212 L 404 248 L 352 284 A 110 110 0 0 1 146 288 L 86 164 L 162 178 A 110 110 0 0 1 352 212 Z M 287 216 A 19 19 0 1 1 325 216 A 19 19 0 1 1 287 216 Z'
 
@@ -18,12 +18,11 @@ export function Bird() {
 export const BIRD_BODY_PATH = BIRD_PATH.slice(0, BIRD_PATH.indexOf(' M 287'))
 
 /**
- * Static twin of Mobile's splash/BirdLandingMark.tsx artwork, painted in currentColor,
- * with `.bird-depth`'s edge + soft shadow so it reads as a thick, solid token.
+ * Idle twin of Mobile's splash/BirdLandingMark.tsx artwork, painted in currentColor.
  * `flightTarget` marks it as a perch SignInFlight can land on; the perch and
  * bird are separate groups so the landing can squash one and dip the other.
  */
-export function BirdMark({ size, flightTarget = false }: { size: number; flightTarget?: boolean }) {
+export function BirdMark({ size, flightTarget = false, perched = true }: { size: number; flightTarget?: boolean; perched?: boolean }) {
   return (
     <svg
       width={size}
@@ -31,24 +30,32 @@ export function BirdMark({ size, flightTarget = false }: { size: number; flightT
       viewBox="0 0 512 512"
       fill="currentColor"
       aria-hidden="true"
-      className="bird-depth"
       data-flight-target={flightTarget || undefined}
-      style={{ '--bird-size': `${size}px`, ...(flightTarget ? { overflow: 'visible' } : {}) } as CSSProperties}
+      style={flightTarget ? { overflow: 'visible' } : undefined}
     >
       <g data-perch>
         <rect x="128" y="379" width="256" height="26" rx="13" />
       </g>
       <g data-bird>
-        <Bird />
+        {perched ? (
+          <>
+            <rect x="224" y="340" width="17" height="46" rx="8.5" />
+            <rect x="259" y="340" width="17" height="46" rx="8.5" />
+            <g className="bird-idle-head">
+              <path fillRule="evenodd" d={BIRD_PATH} />
+              <rect className="bird-idle-eyelid" x="287" y="197" width="38" height="38" rx="19" />
+            </g>
+          </>
+        ) : <Bird />}
       </g>
     </svg>
   )
 }
 
-/** Money Brain's "thinking" mark: the perched bird pecks twice, rests, repeats. Motion lives in `.brain-thinking` CSS. */
+/** Ask Aviary's "thinking" mark: the perched bird pecks twice, rests, repeats. Motion lives in `.brain-thinking` CSS. */
 export function BirdThinking({ size }: { size: number }) {
   return (
-    <svg className="brain-thinking bird-depth" width={size} height={size} viewBox="0 0 512 512" fill="currentColor" role="img" aria-label="Thinking" style={{ '--bird-size': `${size}px` } as CSSProperties}>
+    <svg className="brain-thinking" width={size} height={size} viewBox="0 0 512 512" fill="currentColor" role="img" aria-label="Thinking">
       <rect x="128" y="379" width="256" height="26" rx="13" />
       <g className="brain-thinking-bird"><Bird /></g>
     </svg>

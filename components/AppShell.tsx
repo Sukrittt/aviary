@@ -14,9 +14,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <main
-      // No theme class until the browser resolves one: src/theme/tokens.css
-      // paints from prefers-color-scheme meanwhile, so a system-light user
-      // never sees a dark first frame.
+      // Light is the default; resolved saved choices override it.
       className={`mc-page ${theme ? `theme-${theme}` : ''} density-${density} ${isExpenseRoute ? 'expense-shell' : ''}`}
     >
       <div className="mc-layout">
