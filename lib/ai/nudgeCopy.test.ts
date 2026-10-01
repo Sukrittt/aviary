@@ -18,6 +18,12 @@ describe('cleanCopy', () => {
     expect(cleanCopy({ title: 'Hi?', bodies })?.bodies).toEqual(['a', 'b', 'c', 'd'])
   })
 
+  it('drops lines that mention money or use emoji', () => {
+    expect(cleanCopy({ title: 'Snack time?', bodies: ['Log your $5 treat', 'Log your ₹200 run', 'Cookie break 🍪', '3 coffees today?', 'Log it while it’s fresh.'] })?.bodies)
+      .toEqual(['Log it while it’s fresh.'])
+    expect(cleanCopy({ title: 'Snack time? 🍪', bodies: ['ok'] })).toBeNull()
+  })
+
   it('gives up without a usable title or body', () => {
     expect(cleanCopy({ title: 'x'.repeat(41), bodies: ['ok'] })).toBeNull()
     expect(cleanCopy({ title: 'Hi?', bodies: [] })).toBeNull()

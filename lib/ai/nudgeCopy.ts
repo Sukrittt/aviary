@@ -27,7 +27,9 @@ function clean(s: unknown, max: number): string {
   if (typeof s !== 'string') return ''
   // The app's copy rules: no em or en dashes, single-glyph ellipsis.
   const t = s.replace(/\s*[—–]\s*/g, ', ').replace(/\.\.\./g, '…').replace(/\s+/g, ' ').trim()
-  return t.length > max ? '' : t
+  // The prompt bans amounts and emoji; a line that ignores it is dropped, not
+  // shipped. Any digit counts: the phone puts the amount on the button.
+  return t.length > max || /\p{Sc}|\d|\p{Extended_Pictographic}/u.test(t) ? '' : t
 }
 
 /** Drops anything that breaks the app's copy rules or runs long. Null when nothing usable is left. */
