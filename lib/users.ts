@@ -3,6 +3,10 @@ import { getWorkOSClient } from './workosClient'
 import { resolveCurrency } from '@/src/lib/currencies'
 import { purgesAt } from './archive'
 
+/** Features a user can hide from Mobile's More page for a simpler app. Hiding removes entry points only; data is untouched. */
+export const HIDEABLE_FEATURES = ['askAviary', 'investments', 'billScan', 'recurring', 'subscriptions', 'insights', 'wrapped'] as const
+export type HideableFeature = (typeof HIDEABLE_FEATURES)[number]
+
 export interface UserDoc {
   currencyCode?: string
   /** IANA zone (e.g. `America/New_York`) reported by the client. Absent = IST, which is what every pre-existing account was. */
@@ -32,6 +36,7 @@ export interface UserDoc {
   notifyCoach?: boolean
   /** Push when a new monthly Wrapped edition unlocks — independent of `notifyCadence`. */
   notifyWrapped?: boolean
+  hiddenFeatures?: HideableFeature[]
   /** Legacy fields from before the flat `name` field — read via `displayName`, never written. */
   firstName?: string | null
   lastName?: string | null

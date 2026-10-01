@@ -114,6 +114,24 @@ describe('PATCH /api/user', () => {
     expect(usersUpdateOneMock).not.toHaveBeenCalled()
   })
 
+  it('writes a valid hiddenFeatures list, deduplicated', async () => {
+    const res = await PATCH(patchRequest({ hiddenFeatures: ['insights', 'wrapped', 'insights'] }))
+    expect(res.status).toBe(200)
+    expect(usersUpdateOneMock).toHaveBeenCalledWith({ _id: 'user_a' }, { $set: { hiddenFeatures: ['insights', 'wrapped'] } })
+  })
+
+  it('accepts an empty hiddenFeatures list to show everything again', async () => {
+    const res = await PATCH(patchRequest({ hiddenFeatures: [] }))
+    expect(res.status).toBe(200)
+    expect(usersUpdateOneMock).toHaveBeenCalledWith({ _id: 'user_a' }, { $set: { hiddenFeatures: [] } })
+  })
+
+  it('rejects unknown or non-array hiddenFeatures', async () => {
+    expect((await PATCH(patchRequest({ hiddenFeatures: ['envelopes'] }))).status).toBe(400)
+    expect((await PATCH(patchRequest({ hiddenFeatures: 'insights' }))).status).toBe(400)
+    expect(usersUpdateOneMock).not.toHaveBeenCalled()
+  })
+
   it('records guided-tour completion with the server clock', async () => {
     const res = await PATCH(patchRequest({ guidedTourCompleted: true }))
     expect(res.status).toBe(200)

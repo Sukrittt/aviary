@@ -3,7 +3,7 @@ import { json, error, readBody, isValidTimezone } from '@/lib/http'
 import { getAuth } from '@/lib/access'
 import { getDb } from '@/lib/mongodb'
 import { getWorkOSClient } from '@/lib/workosClient'
-import { serializeUser, type UserDoc } from '@/lib/users'
+import { serializeUser, HIDEABLE_FEATURES, type HideableFeature, type UserDoc } from '@/lib/users'
 import { purgesAt } from '@/lib/archive'
 import { softDeleteAccount } from '@/lib/accountLifecycle'
 import { cancelWebSubscriptions, completeOnboarding } from '@/lib/billing/service'
@@ -40,6 +40,7 @@ export async function PATCH(req: Request) {
       | 'notifyBillLeadDays'
       | 'notifyCoach'
       | 'notifyWrapped'
+      | 'hiddenFeatures'
     >
   > = {}
   if ('currencyCode' in body) {
@@ -61,6 +62,11 @@ export async function PATCH(req: Request) {
   }
   if (typeof body.notifyCoach === 'boolean') updates.notifyCoach = body.notifyCoach
   if (typeof body.notifyWrapped === 'boolean') updates.notifyWrapped = body.notifyWrapped
+  if ('hiddenFeatures' in body) {
+    const list = body.hiddenFeatures
+    if (!Array.isArray(list) || !list.every((f) => HIDEABLE_FEATURES.includes(f))) return error('invalid hiddenFeatures')
+    updates.hiddenFeatures = [...new Set(list as HideableFeature[])]
+  }
   const completingGuidedTour = body.guidedTourCompleted === true
 
   // `onboardedAt` is no longer a client-writable profile field: completing
