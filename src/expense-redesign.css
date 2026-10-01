@@ -8793,7 +8793,7 @@ button.account-feature-card {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Phase 6: recurring, archive, feedback, scan a bill
+   Phase 6: recurring, archive, scan a bill
    ───────────────────────────────────────────────────────────── */
 
 .account-empty {
@@ -9202,18 +9202,6 @@ button.account-feature-card {
   border-color: var(--gold);
   background: var(--gold);
   color: var(--erd-on-accent);
-}
-
-/* Feedback */
-.feedback-form {
-  display: flex;
-  flex-direction: column;
-  padding: 18px 20px 20px;
-}
-.feedback-textarea {
-  min-height: 130px;
-  line-height: 1.5;
-  resize: vertical;
 }
 
 /* Scan a bill */

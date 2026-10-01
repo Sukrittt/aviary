@@ -17,7 +17,7 @@ import { TrialBanner } from '@/src/components/billing/TrialBanner'
  *
  * Everything else stays open on purpose: the landing page, sign-in,
  * onboarding, /admin, and the /account pages an expired user has to keep:
- * data (export), security (sign out, delete), help, feedback and the tour.
+ * data (export), security (sign out, delete), help and the tour.
  * The /account hub itself is gated: it's a menu into budgeting features, and
  * the lock screen lists those exit routes instead.
  */

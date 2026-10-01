@@ -87,7 +87,6 @@ export type AppEvent =
   // Account
   | 'data_exported'
   | 'account_deleted'
-  | 'feedback_sent'
   // Web only: the landing page's way into the app store
   | 'store_cta_clicked'
 
