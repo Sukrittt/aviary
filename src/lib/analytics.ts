@@ -4,9 +4,9 @@
 // `platform`.
 //
 // Differences from mobile, all deliberate:
-// - No key means no analytics, not a thrown error. Preview deploys and local
-//   runs without the env var should keep working, and nothing here is worth
-//   breaking a page over.
+// - No key or a non-production deploy means no analytics, not a thrown error.
+//   Preview deploys and local runs should keep working, and nothing here is
+//   worth breaking a page over.
 // - Autocapture is off. It records the text of whatever was clicked, and on
 //   this app that's amounts, item names and envelope names.
 // - Pageviews carry the path only. Query strings can hold dates and ids, so
@@ -15,6 +15,10 @@ import posthog from 'posthog-js'
 
 const KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY ?? ''
 const HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST ?? 'https://us.i.posthog.com'
+// Vercel sets this on every deploy: 'production', 'preview' (staging and PR
+// branches) or unset locally. Only production reports, so test clicks never
+// land in real funnels.
+const IS_PRODUCTION = process.env.NEXT_PUBLIC_VERCEL_ENV === 'production'
 
 /**
  * Every product event the app sends. A union rather than a bare string so a
@@ -98,10 +102,10 @@ function active(): boolean {
 
 /**
  * Start the client. Called once from AnalyticsProvider on mount; a second call
- * is a no-op. Does nothing on the server or without a key.
+ * is a no-op. Does nothing on the server, without a key, or outside production.
  */
 export function initAnalytics(): void {
-  if (ready || typeof window === 'undefined' || !KEY) return
+  if (ready || typeof window === 'undefined' || !KEY || !IS_PRODUCTION) return
   posthog.init(KEY, {
     api_host: HOST,
     // Next's router moves with pushState, which a plain page-load capture

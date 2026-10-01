@@ -14,11 +14,12 @@ vi.mock('posthog-js', () => ({
   },
 }))
 
-// The key is read when the module loads, so each test gets a fresh copy.
-async function load(key: string | undefined) {
+// The key and environment are read when the module loads, so each test gets a fresh copy.
+async function load(key: string | undefined, vercelEnv = 'production') {
   vi.resetModules()
   if (key === undefined) vi.stubEnv('NEXT_PUBLIC_POSTHOG_KEY', '')
   else vi.stubEnv('NEXT_PUBLIC_POSTHOG_KEY', key)
+  vi.stubEnv('NEXT_PUBLIC_VERCEL_ENV', vercelEnv)
   return import('./analytics')
 }
 
@@ -37,6 +38,16 @@ describe('without a key', () => {
     expect(posthog.capture).not.toHaveBeenCalled()
     expect(posthog.identify).not.toHaveBeenCalled()
     expect(a.isAnalyticsEnabled()).toBe(false)
+  })
+})
+
+describe('outside production', () => {
+  it.each(['preview', ''])('never starts PostHog when VERCEL_ENV is %j', async (env) => {
+    const a = await load('phc_test', env)
+    a.initAnalytics()
+    a.track('expense_logged')
+    expect(posthog.init).not.toHaveBeenCalled()
+    expect(posthog.capture).not.toHaveBeenCalled()
   })
 })
 
