@@ -24,6 +24,13 @@ describe('cleanCopy', () => {
     expect(cleanCopy({ title: 'Snack time? 🍪', bodies: ['ok'] })).toBeNull()
   })
 
+  it('keeps digits that are part of the habit name', () => {
+    expect(cleanCopy({ title: '5K run time?', bodies: ['Lace up for your 5k run, then log it.', 'Log your $5 snack'] }, '5K Run')).toEqual({
+      title: '5K run time?',
+      bodies: ['Lace up for your 5k run, then log it.'],
+    })
+  })
+
   it('gives up without a usable title or body', () => {
     expect(cleanCopy({ title: 'x'.repeat(41), bodies: ['ok'] })).toBeNull()
     expect(cleanCopy({ title: 'Hi?', bodies: [] })).toBeNull()
