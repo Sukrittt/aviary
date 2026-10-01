@@ -1,6 +1,6 @@
 export const metadata = { title: 'Privacy Policy — Aviary' }
 
-const SUPPORT_EMAIL = 'aviary.playreview@gmail.com'
+const SUPPORT_EMAIL = 'support@useaviary.com'
 
 export default function PrivacyPage() {
   return (

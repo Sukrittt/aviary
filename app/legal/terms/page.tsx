@@ -1,6 +1,6 @@
 export const metadata = { title: 'Terms — Aviary' }
 
-const SUPPORT_EMAIL = 'aviary.playreview@gmail.com'
+const SUPPORT_EMAIL = 'support@useaviary.com'
 
 export default function TermsPage() {
   return (
