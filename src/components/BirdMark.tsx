@@ -69,13 +69,25 @@ const MOTES = [
   { cx: 256, cy: 372, r: 5.5, dx: 14, dy: -72, delay: 1.04 },
 ]
 
-/** Web twin of Mobile's BirdLandingMark: perch grows in, bird swoops down and lands, motes pop, then it breathes. Motion lives in `.bird-landing` CSS. */
-export function BirdLanding({ size }: { size: number }) {
+/**
+ * Web twin of Mobile's BirdLandingMark: perch grows in, bird swoops down and lands, motes pop, then it breathes. Motion lives in `.bird-landing` CSS.
+ * `alive` keeps it company once landed: the same head tilt and blink as `perched`, on pages that load the `.bird-idle-*` CSS.
+ */
+export function BirdLanding({ size, alive = false }: { size: number; alive?: boolean }) {
   return (
     <svg className="bird-landing" width={size} height={size} viewBox="0 0 512 512" fill="currentColor" aria-hidden="true">
       <circle className="bird-landing-ring" cx="256" cy="392" r="58" fill="none" stroke="currentColor" strokeWidth="7" />
       <g className="bird-landing-dip"><rect className="bird-landing-bar" x="128" y="379" width="256" height="26" rx="13" /></g>
-      <g className="bird-landing-swoop"><g className="bird-landing-squash"><g className="bird-landing-breathe"><Bird /></g></g></g>
+      <g className="bird-landing-swoop"><g className="bird-landing-squash"><g className="bird-landing-breathe">
+        {alive ? <>
+          <rect x="224" y="340" width="17" height="46" rx="8.5" />
+          <rect x="259" y="340" width="17" height="46" rx="8.5" />
+          <g className="bird-idle-head">
+            <path fillRule="evenodd" d={BIRD_PATH} />
+            <rect className="bird-idle-eyelid" x="287" y="197" width="38" height="38" rx="19" />
+          </g>
+        </> : <Bird />}
+      </g></g></g>
       {MOTES.map((m) => (
         <circle key={m.cx} className="bird-landing-mote" cx={m.cx} cy={m.cy} r={m.r}
           style={{ '--dx': `${m.dx}px`, '--dy': `${m.dy}px`, animationDelay: `${m.delay}s` } as CSSProperties} />

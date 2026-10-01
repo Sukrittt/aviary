@@ -29,6 +29,7 @@ import {
   useAmountEntry,
 } from './kit'
 import { DAYS_LEFT, WORDS, toEnvelope, type DemoCategory } from './demo'
+import { AutoCategoryPill } from './AutoCategoryPill'
 
 /** Twins of Mobile's app/modals/log-expense.tsx, expense-added.tsx, CategoryPickerSheet and DeltaBar. */
 
@@ -50,6 +51,8 @@ export interface LoggedExpense {
 
 /** Stands in for the POST round-trip, so the nav circle's load phase gets seen. */
 const FAKE_SAVE_MS = 900
+/** Stands in for Mobile's AI lookup, so the pill's reel gets a beat to spin. */
+const FAKE_LOOKUP_MS = 900
 
 function suggestCategory(item: string, categories: string[]): string {
   if (!item.trim()) return ''
@@ -102,19 +105,33 @@ export function LogExpenseScreen({
   const [pickerOpen, setPickerOpen] = useState(false)
   const pending = useRef<LoggedExpense | null>(null)
 
+  const [thinking, setThinking] = useState(false)
   useEffect(() => {
     if (categoryTouched || !item.trim()) return
+    let lookup = 0
     const timer = setTimeout(() => {
       const suggested = suggestCategory(
         item,
         categories.map((c) => c.name),
       )
-      if (suggested) setCategory(suggested)
+      if (!suggested || suggested === category) return
+      setThinking(true)
+      lookup = window.setTimeout(() => {
+        setCategory(suggested)
+        setThinking(false)
+      }, FAKE_LOOKUP_MS)
     }, 300)
-    return () => clearTimeout(timer)
+    return () => {
+      clearTimeout(timer)
+      clearTimeout(lookup)
+      setThinking(false)
+    }
+    // Re-runs per keystroke only; the current pick is read at lookup time.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [item, categories, categoryTouched])
 
   const selectedCategory = categories.find((c) => c.name === category)
+  const rollEmojis = useMemo(() => categories.map((c) => categoryEmoji(c.name, c.group)), [categories])
   const parsedAmount = Number(amount)
   const canSubmit = item.trim() !== '' && category !== '' && !Number.isNaN(parsedAmount) && parsedAmount > 0
 
@@ -188,7 +205,7 @@ export function LogExpenseScreen({
             style={{
               width: '100%',
               padding: 14,
-              paddingRight: 110,
+              paddingRight: 150,
               background: FIELD_BG,
               borderRadius: radius.md,
               color: '#ffffff',
@@ -196,32 +213,14 @@ export function LogExpenseScreen({
               fontSize: type.bodyLg,
             }}
           />
-          <button
-            type="button"
-            onClick={() => setPickerOpen(true)}
-            style={{
-              ...pressable,
-              ...row,
-              position: 'absolute',
-              right: 6,
-              top: '50%',
-              transform: 'translateY(-50%)',
-              maxWidth: 108,
-              padding: '7px 12px',
-              background: 'rgba(255, 255, 255, 0.3)',
-              borderRadius: radius.full,
-              color: T.onAccent,
-            }}
-          >
-            {selectedCategory ? (
-              <>
-                <span style={{ fontSize: type.caption }}>{categoryEmoji(selectedCategory.name, selectedCategory.group)}</span>
-                <span style={{ ...pillText, marginLeft: space.xs }}>{splitEmoji(selectedCategory.name).text}</span>
-              </>
-            ) : (
-              <span style={pillText}>Category</span>
-            )}
-          </button>
+          <div style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)' }}>
+            <AutoCategoryPill
+              selected={selectedCategory ? { emoji: categoryEmoji(selectedCategory.name, selectedCategory.group), name: splitEmoji(selectedCategory.name).text } : null}
+              thinking={thinking}
+              rollEmojis={rollEmojis}
+              onPress={() => setPickerOpen(true)}
+            />
+          </div>
         </div>
 
         <Numpad onDigit={pushDigit} onBackspace={handleBackspace} onClear={() => setAmount('')} extraKey="." />
@@ -280,14 +279,6 @@ export function LogExpenseScreen({
   )
 }
 
-const pillText: CSSProperties = {
-  ...font.bodySemiBold,
-  fontSize: 12,
-  whiteSpace: 'nowrap',
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
-  minWidth: 0,
-}
 const fieldLabel: CSSProperties = { color: T.text3, ...font.bodySemiBold, fontSize: 12 }
 
 // ─── CategoryPickerSheet ─────────────────────────────────────────────────────
@@ -645,12 +636,15 @@ export function ExpenseAddedScreen({
   before,
   onUndo,
   onDone,
+  muted = false,
 }: {
   expense: LoggedExpense
   /** The category as it stood before this expense was charged to it. */
   before: DemoCategory | undefined
   onUndo: () => void
   onDone: () => void
+  /** The landing's self-playing demo loops this screen; it shouldn't chime every pass. */
+  muted?: boolean
 }) {
   const { formatMoney } = useCurrency()
 
@@ -675,7 +669,9 @@ export function ExpenseAddedScreen({
 
   // Logging an expense is the app's one verb that chimes.
   useEffect(() => {
-    new Audio('/landing/success.m4a').play().catch(() => {})
+    if (!muted) new Audio('/landing/success.m4a').play().catch(() => {})
+    // Once per mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const categoryName = splitEmoji(category).text
