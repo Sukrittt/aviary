@@ -23,6 +23,18 @@ beforeEach(() => {
 })
 
 describe('ExpenseSidebar', () => {
+  it('opens and closes the mobile navigation accessibly', () => {
+    render(<ExpenseSidebar />)
+    const menu = screen.getByRole('button', { name: 'Open navigation' })
+    expect(menu.getAttribute('aria-expanded')).toBe('false')
+
+    fireEvent.click(menu)
+    expect(menu.getAttribute('aria-expanded')).toBe('true')
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(menu.getAttribute('aria-expanded')).toBe('false')
+  })
+
   it('opens the log dialog when the account has access', () => {
     render(<ExpenseSidebar />)
     fireEvent.click(screen.getByText('Log expense'))

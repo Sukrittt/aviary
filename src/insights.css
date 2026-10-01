@@ -820,8 +820,8 @@
 }
 
 @media (max-width: 900px) {
-  .insights-page .erd-main { padding: 0 0 96px; }
-  .ins-mobile-header { display: flex; align-items: center; gap: 13px; }
+  .insights-page .erd-main { padding: calc(72px + env(safe-area-inset-top)) 0 0; }
+  .ins-mobile-header { display: none; }
   .ins-mobile-header .ins-back-btn { flex: none; }
   .ins-content { padding: 16px; overflow-y: auto; }
   .ins-period-header { justify-content: center; }
