@@ -2,7 +2,6 @@
 
 import { Suspense, useState, type CSSProperties, type FormEvent } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { markSignInFlight } from '@/src/features/sign-in-flight/pending'
 import { track } from '@/src/lib/analytics'
 
 function CodeForm() {
@@ -35,8 +34,6 @@ function CodeForm() {
     }
     track('sign_in_completed', { method: 'email' })
     setDone(true)
-    // /expense plays the bird's flight to the sidebar once, on arrival.
-    markSignInFlight()
     // Full navigation: AuthKitProvider and the rest of the app read the
     // session cookie fresh, same as the old AuthGate's post-verify reload.
     // Delay lets the success animation play, matching mobile's 1100ms.

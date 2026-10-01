@@ -19,7 +19,6 @@ vi.mock('../components/ExpenseSidebar', () => ({ ExpenseSidebar: () => null }))
 vi.mock('../components/EnvelopeGrid', () => ({ EnvelopeGrid: () => <div>Envelope content</div> }))
 vi.mock('../components/RecentActivity', () => ({ RecentActivity: () => null }))
 vi.mock('../components/FluidDemo', () => ({ FluidDemo: () => null }))
-vi.mock('../features/sign-in-flight/SignInFlight', () => ({ SignInFlight: () => null }))
 vi.mock('../components/LogExpenseModal', () => ({ LogExpenseModal: () => { openLog(); return <div>Manual expense form</div> } }))
 
 const month = currentMonthKey()

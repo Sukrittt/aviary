@@ -10475,33 +10475,6 @@ button.account-feature-card {
   background: currentColor;
 }
 
-/* ── Sign-in flight (src/features/sign-in-flight) ───────────── */
-
-.erd-flight-scrim {
-  position: fixed;
-  inset: 0;
-  z-index: 150;
-  background: color-mix(in srgb, var(--erd-bg) 62%, transparent);
-  backdrop-filter: blur(3px);
-  -webkit-backdrop-filter: blur(3px);
-  opacity: 0;
-  pointer-events: none;
-}
-.erd-flight-bird {
-  position: fixed;
-  left: 0;
-  top: 0;
-  z-index: 151;
-  width: 34px;
-  height: 34px;
-  color: var(--erd-text);
-  opacity: 0;
-  overflow: visible;
-  transform-origin: 50% 50%;
-  will-change: transform, opacity;
-  pointer-events: none;
-}
-
 /* Mobile's month-end heads-up and optional onboarding milestones. */
 .expense-redesign .home-leftover-notice {
   display: flex;
