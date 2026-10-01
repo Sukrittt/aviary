@@ -6,7 +6,7 @@ beforeEach(() => {
   vi.stubGlobal('Audio', class { play() { return Promise.resolve() } })
   vi.stubGlobal('IntersectionObserver', class {
     constructor(private cb: IntersectionObserverCallback) {}
-    observe() { this.cb([{ isIntersecting: true } as IntersectionObserverEntry], this as unknown as IntersectionObserver) }
+    observe() { this.cb([{ isIntersecting: true, intersectionRatio: 1 } as IntersectionObserverEntry], this as unknown as IntersectionObserver) }
     disconnect() {}
   })
 })

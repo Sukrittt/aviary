@@ -187,8 +187,6 @@ html:has(.lp) { scroll-behavior: smooth; }
 .lp .lp-tick:active { transform: scale(.95); }
 .lp .lp-tick.is-done { background: #008435; color: #fff; }
 .lp-tick span { display: inline-flex; align-items: center; gap: 8px; }
-.lp-tick svg path { fill: none; stroke: currentColor; stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 24; stroke-dashoffset: 24; animation: lp-tick-draw 380ms cubic-bezier(.65, 0, .35, 1) 60ms forwards; }
-@keyframes lp-tick-draw { to { stroke-dashoffset: 0; } }
 .lp-win-left { margin-top: auto; padding: 18px; border-radius: 20px; background: var(--surface); }
 .lp-win-left > div:first-child { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-weight: 800; }
 .lp-win-left strong { font-family: var(--font-fredoka), sans-serif; font-weight: 500; font-size: 22px; }
@@ -199,7 +197,7 @@ html:has(.lp) { scroll-behavior: smooth; }
 
 /* Playground on the light page */
 .lp-play-head .lp-h2 { font-size: clamp(32px, 3.8vw, 48px); }
-.lp-tab.is-on { background: var(--ink); color: #fff; }
+.lp .lp-tab.is-on { background: var(--ink); color: #fff; }
 
 /* Founder */
 .lp-founder { display: grid; grid-template-columns: 1.1fr .9fr; gap: 56px; align-items: center; padding: 64px 72px; border-radius: 36px; background: var(--card); box-shadow: 0 1px 2px rgb(40 30 20 / 4%), 0 40px 80px -40px rgb(60 40 20 / 28%); }
@@ -305,7 +303,7 @@ html:has(.lp) { scroll-behavior: smooth; }
 }
 @media (prefers-reduced-motion: reduce) {
   .lp *, .lp *::before, .lp *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
-  .lp-learns path, .lp-tick svg path { stroke-dashoffset: 0; }
+  .lp-learns path { stroke-dashoffset: 0; }
 }
 
 /* Kept for the parked money lesson and the playground. */

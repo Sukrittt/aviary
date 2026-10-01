@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useReducedMotion } from 'motion/react'
 import { Check, Pause, Play } from 'lucide-react'
 import { BirdMark } from '../BirdMark'
+import { CheckIcon } from './mobile/kit'
 
 /**
  * The landing page's "Aviary learns your spending" demos. Every amount, date and
@@ -13,16 +14,31 @@ import { BirdMark } from '../BirdMark'
 
 const HABITS = ['4pm chai', 'Friday cab home', 'Sunday groceries', 'morning metro']
 
+/** True while at least `ratio` of the element is in view, so off-screen demos stop ticking. */
+function useOnScreen<E extends HTMLElement>(ratio: number) {
+  const ref = useRef<E>(null)
+  const [visible, setVisible] = useState(false)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const io = new IntersectionObserver(([e]) => setVisible(e.isIntersecting && e.intersectionRatio >= ratio), { threshold: [0, ratio] })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [ratio])
+  return { ref, visible }
+}
+
 /** The hero's rotating habit. Screen readers get the first one as plain text. */
 export function RotatingHabit() {
   const reduced = useReducedMotion()
+  const { ref, visible } = useOnScreen<HTMLSpanElement>(0)
   const [i, setI] = useState(0)
   useEffect(() => {
-    if (reduced) return
+    if (reduced || !visible) return
     const id = setInterval(() => setI((n) => (n + 1) % HABITS.length), 2600)
     return () => clearInterval(id)
-  }, [reduced])
-  return <span className="lp-rotor">
+  }, [reduced, visible])
+  return <span className="lp-rotor" ref={ref}>
     <span className="lp-sr-only">{HABITS[0]}</span>
     <span className="lp-rotor-word" key={i} aria-hidden="true">{HABITS[i]}</span>
   </span>
@@ -32,18 +48,10 @@ export function RotatingHabit() {
 const STEP_MS = [1400, 2600, 700, 3800]
 const LEFT_BEFORE = 240
 
-/** Runs the hero loop while it's on screen and not paused. */
+/** Runs the hero loop while a quarter of it is on screen and it isn't paused. */
 function useLoop(paused: boolean) {
-  const ref = useRef<HTMLDivElement>(null)
+  const { ref, visible } = useOnScreen<HTMLDivElement>(0.25)
   const [step, setStep] = useState(0)
-  const [visible, setVisible] = useState(false)
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    const io = new IntersectionObserver(([e]) => setVisible(e.isIntersecting), { threshold: 0.25 })
-    io.observe(el)
-    return () => io.disconnect()
-  }, [])
   useEffect(() => {
     if (paused || !visible) return
     const id = setTimeout(() => setStep((s) => (s + 1) % STEP_MS.length), STEP_MS[step])
@@ -105,7 +113,7 @@ export function HeroStage() {
   </div>
 }
 
-/** The app's one success moment, on a button: check draws on, mint fill, chime, label swaps, then it resets. */
+/** The app's one success moment (Mobile's CheckIcon pattern): check draws on, mint fill, buzz, chime, label swaps, then it resets. */
 export function TickButton() {
   const [done, setDone] = useState(false)
   useEffect(() => {
@@ -116,8 +124,9 @@ export function TickButton() {
   return <button type="button" className={`lp-tick${done ? ' is-done' : ''}`} onClick={() => {
     if (done) return
     setDone(true)
+    navigator.vibrate?.(15)
     new Audio('/landing/success.m4a').play().catch(() => {})
   }}>
-    <span aria-live="polite">{done ? <><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>Logged</> : 'Log ₹20'}</span>
+    <span aria-live="polite">{done ? <><span aria-hidden="true"><CheckIcon color="currentColor" size={20} /></span>Logged</> : 'Log ₹20'}</span>
   </button>
 }
