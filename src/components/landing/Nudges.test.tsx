@@ -1,44 +1,56 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { HeroStage, TickButton } from './Nudges'
+import { HeroStage, NoticeSplit } from './Nudges'
 
+let now = 0
 beforeEach(() => {
+  now = 0
   vi.stubGlobal('Audio', class { play() { return Promise.resolve() } })
   vi.stubGlobal('IntersectionObserver', class {
     constructor(private cb: IntersectionObserverCallback) {}
     observe() { this.cb([{ isIntersecting: true, intersectionRatio: 1 } as IntersectionObserverEntry], this as unknown as IntersectionObserver) }
     disconnect() {}
   })
+  // Drive the hero's rAF clock by hand.
+  vi.spyOn(performance, 'now').mockImplementation(() => now)
+  vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => setTimeout(() => cb(now), 16) as unknown as number)
+  vi.stubGlobal('cancelAnimationFrame', (id: number) => clearTimeout(id))
 })
 afterEach(() => {
   vi.useRealTimers()
   vi.unstubAllGlobals()
+  vi.restoreAllMocks()
 })
 
-describe('landing nudge demos', () => {
-  it('tick button logs, then resets after the success beat', () => {
-    vi.useFakeTimers()
-    render(<TickButton />)
-    fireEvent.click(screen.getByRole('button', { name: 'Log ₹20' }))
-    expect(screen.getByRole('button', { name: 'Logged' })).toBeInTheDocument()
-    act(() => { vi.advanceTimersByTime(1100) })
-    expect(screen.getByRole('button', { name: 'Log ₹20' })).toBeInTheDocument()
-  })
+const advance = (ms: number) => act(() => { for (let t = 0; t < ms; t += 16) { now += 16; vi.advanceTimersByTime(16) } })
 
-  it('hero loop answers the nudge and updates the envelope, and pause stops it', () => {
+describe('landing demos', () => {
+  it('hero answers the nudge, then moves on to the next chapter; pause holds it', () => {
     vi.useFakeTimers()
     const { container } = render(<HeroStage />)
     const stage = container.querySelector('.lp-stage')!
-    expect(stage).toHaveAttribute('data-step', '0')
-    act(() => { vi.advanceTimersByTime(1400) })
-    act(() => { vi.advanceTimersByTime(2600) })
-    act(() => { vi.advanceTimersByTime(700) })
+    expect(stage).toHaveAttribute('data-chapter', 'learns')
+    advance(5000)
     expect(stage).toHaveAttribute('data-step', '3')
     expect(stage).toHaveTextContent('Logged ₹20')
-    expect(stage).toHaveTextContent('₹220')
+    advance(4200)
+    expect(stage).toHaveAttribute('data-chapter', 'scan')
 
     fireEvent.click(screen.getByRole('button', { name: 'Pause the demo' }))
-    act(() => { vi.advanceTimersByTime(10_000) })
-    expect(stage).toHaveAttribute('data-step', '3')
+    advance(20_000)
+    expect(stage).toHaveAttribute('data-chapter', 'scan')
+
+    fireEvent.click(screen.getByRole('button', { name: /Ask Aviary/ }))
+    expect(stage).toHaveAttribute('data-chapter', 'ask')
+  })
+
+  it('split runs its steps once in view, then replays', () => {
+    vi.useFakeTimers()
+    const { container } = render(<NoticeSplit />)
+    expect(container).toHaveTextContent('Aviary is on it')
+    for (let i = 0; i < 40; i++) act(() => { vi.advanceTimersByTime(150) })
+    expect(container).toHaveTextContent('Aviary is done')
+    fireEvent.click(screen.getByRole('button', { name: 'Replay' }))
+    expect(container).toHaveTextContent('Aviary is on it')
   })
 })
