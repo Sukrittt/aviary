@@ -28,14 +28,20 @@ describe('WebPlanPicker', () => {
   it('shows both live prices and the yearly saving, with yearly picked by default', () => {
     render(<WebPlanPicker />)
     expect(screen.getByText('Save 15%')).toBeTruthy()
-    fireEvent.click(screen.getByText('Subscribe for ₹999'))
+    fireEvent.click(screen.getByText('Subscribe yearly · ₹999'))
     expect(mutate).toHaveBeenCalledWith('yearly')
+  })
+
+  it('lists what the plan includes and the per-month cost of yearly', () => {
+    render(<WebPlanPicker />)
+    expect(screen.getByText('No ads. Ever.')).toBeTruthy()
+    expect(screen.getByText('₹83.25/month, billed yearly')).toBeTruthy()
   })
 
   it('buys the plan the user picked', () => {
     render(<WebPlanPicker />)
     fireEvent.click(screen.getByText('Monthly'))
-    fireEvent.click(screen.getByText('Subscribe for ₹99'))
+    fireEvent.click(screen.getByText('Subscribe monthly · ₹99'))
     expect(mutate).toHaveBeenCalledWith('monthly')
   })
 

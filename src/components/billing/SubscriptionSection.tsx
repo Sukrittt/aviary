@@ -143,7 +143,7 @@ export function SubscriptionSection() {
 function describePlan(data: { mode: string; trialEndsAt: string | null; paidExpiresAt: string | null; autoRenew: boolean; basePlanId: string | null; gifted?: boolean }): string {
   if (data.mode === 'trial') return `Free trial ends ${formatDate(data.trialEndsAt)}`
   if (data.mode === 'paid') {
-    const plan = data.basePlanId ? `${data.basePlanId} · ` : ''
+    const plan = data.basePlanId ? `${data.basePlanId[0].toUpperCase()}${data.basePlanId.slice(1)} · ` : ''
     // "Renews" and "ends" are not interchangeable. Someone who cancelled needs
     // to see the date their access stops, not a renewal that is not coming.
     return `${plan}${data.autoRenew ? 'Renews' : 'Ends'} ${formatDate(data.paidExpiresAt)}`

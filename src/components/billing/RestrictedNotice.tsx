@@ -58,16 +58,7 @@ export function RestrictedNotice() {
         }}
       >
         {status?.purchaseEnabled ? (
-          <>
-            <div>
-              <strong style={{ color: 'var(--tk-text)' }}>Pick a plan</strong>
-              <p style={{ margin: '6px 0 0', color: 'var(--tk-text2)', fontSize: 14, lineHeight: 1.5 }}>
-                Subscribe here and it unlocks the Android app too. Prefer paying on your phone? Subscribe in the app
-                through Google Play instead.
-              </p>
-            </div>
-            <WebPlanPicker />
-          </>
+          <WebPlanPicker />
         ) : (
           <div>
             <strong style={{ color: 'var(--tk-text)' }}>Subscribe in the Android app</strong>

@@ -1,10 +1,25 @@
 'use client'
 
 import { useState } from 'react'
+import { Check } from 'lucide-react'
 import type { PlanPeriod } from '@/src/api/billing'
 import { useWebCheckout, useWebPlans } from '@/src/hooks/useBillingStatus'
 import { useUser } from '@/src/hooks/useUser'
 import { formatPrice, yearlySavingsPercent } from './copy'
+
+/**
+ * What a subscription gets you. Mirrors Mobile's PlanPicker BENEFITS; there's
+ * no free tier, so this is the whole app. Nothing here promises unlimited AI.
+ */
+export const BENEFITS = [
+  'As many envelopes and expenses as you like',
+  'Snap a bill instead of typing it in',
+  'Ask Aviary where your money went',
+  'Monthly Wrapped and spending insights',
+  'Track bills, subscriptions and investments',
+  'The web app, plus Android with home screen widgets',
+  'No ads. Ever.',
+]
 
 /**
  * Monthly or yearly, paid on the web through Razorpay. Twin of Mobile's
@@ -27,65 +42,122 @@ export function WebPlanPicker() {
   const saving = monthly && yearly ? yearlySavingsPercent(monthly.amount, yearly.amount) : null
   const selected = plans.data.find((p) => p.period === period)
   const outcome = checkout.data
+  const isYearly = period === 'yearly'
 
   return (
-    <div style={{ display: 'grid', gap: 12 }}>
-      <div role="radiogroup" aria-label="Plan" style={{ display: 'grid', gap: 10, gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))' }}>
-        {[yearly, monthly].map((plan) =>
-          plan ? (
+    <div style={{ display: 'grid', gap: 18 }}>
+      <div style={{ display: 'grid', gap: 4 }}>
+        <span style={{ fontSize: 11, letterSpacing: 1.2, fontWeight: 800, color: 'var(--tk-accent-ink)' }}>AVIARY PRO</span>
+        <h3 style={{ margin: 0, fontFamily: 'var(--font-fredoka)', fontWeight: 600, fontSize: 22, color: 'var(--tk-text)' }}>
+          Keep your budget going
+        </h3>
+        <p style={{ ...note, fontWeight: 500 }}>One plan. Everything&apos;s included, here and in the Android app.</p>
+      </div>
+
+      <div role="radiogroup" aria-label="Plan" style={{ display: 'grid', gap: 8 }}>
+        {[yearly, monthly].map((plan) => {
+          if (!plan) return null
+          const on = period === plan.period
+          const y = plan.period === 'yearly'
+          return (
             <button
               key={plan.period}
               type="button"
               role="radio"
-              aria-checked={period === plan.period}
+              aria-checked={on}
               onClick={() => setPeriod(plan.period)}
               disabled={checkout.isPending}
               style={{
-                textAlign: 'left',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
                 padding: 14,
-                borderRadius: 14,
-                cursor: 'pointer',
-                background: 'var(--tk-card-solid)',
-                border: `2px solid ${period === plan.period ? 'var(--tk-accent)' : 'var(--tk-border)'}`,
+                borderRadius: 16,
+                font: 'inherit',
+                textAlign: 'left',
+                cursor: checkout.isPending ? 'not-allowed' : 'pointer',
+                opacity: checkout.isPending && !on ? 0.55 : 1,
                 color: 'var(--tk-text)',
-                display: 'grid',
-                gap: 4,
+                border: `1.5px solid ${on ? 'var(--tk-accent)' : 'var(--tk-border)'}`,
+                background: on ? 'var(--tk-accent-soft)' : 'var(--tk-input-bg)',
+                transition: 'background 150ms, border-color 150ms',
               }}
             >
-              <strong>{plan.period === 'yearly' ? 'Yearly' : 'Monthly'}</strong>
-              <span style={{ fontSize: 20, fontWeight: 700 }}>
-                {formatPrice(plan.amount, plan.currency)}
-                <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--tk-text2)' }}> / {plan.period === 'yearly' ? 'year' : 'month'}</span>
+              <span
+                aria-hidden
+                style={{
+                  width: 20,
+                  height: 20,
+                  flexShrink: 0,
+                  borderRadius: 10,
+                  border: `2px solid ${on ? 'var(--tk-accent)' : 'var(--tk-border-strong)'}`,
+                  display: 'grid',
+                  placeItems: 'center',
+                }}
+              >
+                {on ? <span style={{ width: 10, height: 10, borderRadius: 5, background: 'var(--tk-accent)' }} /> : null}
               </span>
-              {plan.period === 'yearly' && saving ? (
-                <span style={{ fontSize: 13, color: 'var(--tk-accent-ink)', fontWeight: 700 }}>Save {saving}%</span>
-              ) : null}
+              <span style={{ flex: 1, display: 'grid', gap: 2 }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <strong style={{ fontSize: 15, fontWeight: 800 }}>{y ? 'Yearly' : 'Monthly'}</strong>
+                  {y && saving ? (
+                    <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: 0.3, padding: '2px 8px', borderRadius: 999, background: 'var(--tk-mint-soft)', color: 'var(--tk-mint)' }}>
+                      Save {saving}%
+                    </span>
+                  ) : null}
+                </span>
+                <span style={{ fontSize: 12, color: 'var(--tk-text2)', fontWeight: 500 }}>
+                  {y ? `${formatPrice(Math.round(plan.amount / 12), plan.currency)}/month, billed yearly` : 'Billed monthly'}
+                </span>
+              </span>
+              <strong style={{ fontSize: 15, fontWeight: 800 }}>
+                {formatPrice(plan.amount, plan.currency)}/{y ? 'year' : 'month'}
+              </strong>
             </button>
-          ) : null,
-        )}
+          )
+        })}
       </div>
 
-      <button
-        type="button"
-        onClick={() => checkout.mutate(period)}
-        disabled={checkout.isPending || !selected}
-        style={{
-          padding: '12px 18px',
-          borderRadius: 999,
-          border: 'none',
-          background: 'var(--tk-accent)',
-          color: 'var(--tk-on-accent)',
-          fontWeight: 700,
-          fontSize: 15,
-          cursor: checkout.isPending ? 'default' : 'pointer',
-        }}
-      >
-        {checkout.isPending ? 'Opening checkout…' : selected ? `Subscribe for ${formatPrice(selected.amount, selected.currency)}` : 'Subscribe'}
-      </button>
+      <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 10 }}>
+        {BENEFITS.map((b) => (
+          <li key={b} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 13, lineHeight: '19px', fontWeight: 600, color: 'var(--tk-text)' }}>
+            <span aria-hidden style={{ width: 20, height: 20, flexShrink: 0, borderRadius: 10, display: 'grid', placeItems: 'center', background: 'var(--tk-mint-soft)', color: 'var(--tk-mint)' }}>
+              <Check size={12} strokeWidth={3} />
+            </span>
+            {b}
+          </li>
+        ))}
+      </ul>
 
-      <p style={note}>
-        Renews every {period === 'yearly' ? 'year' : 'month'} until you cancel. Pay with UPI or card. Cancel anytime from your account page.
-      </p>
+      <div style={{ display: 'grid', gap: 8 }}>
+        <button
+          type="button"
+          onClick={() => checkout.mutate(period)}
+          disabled={checkout.isPending || !selected}
+          style={{
+            font: 'inherit',
+            padding: '13px 18px',
+            borderRadius: 999,
+            border: 'none',
+            background: 'var(--tk-accent)',
+            color: 'var(--tk-on-accent)',
+            fontWeight: 800,
+            fontSize: 15,
+            opacity: checkout.isPending || !selected ? 0.55 : 1,
+            cursor: checkout.isPending || !selected ? 'not-allowed' : 'pointer',
+            transition: 'opacity 150ms',
+          }}
+        >
+          {checkout.isPending
+            ? 'Opening checkout…'
+            : selected
+              ? `Subscribe ${isYearly ? 'yearly' : 'monthly'} · ${formatPrice(selected.amount, selected.currency)}`
+              : 'Subscribe'}
+        </button>
+        <p style={{ ...note, fontSize: 11, lineHeight: '16px', textAlign: 'center', color: 'var(--tk-text3)' }}>
+          Renews every {isYearly ? 'year' : 'month'} until you cancel. Pay with UPI or card. Cancel anytime from your account page.
+        </p>
+      </div>
 
       {checkout.isError ? <p style={{ ...note, color: 'var(--tk-warn)' }}>Checkout didn&apos;t open. Check your connection and try again.</p> : null}
       {outcome?.status === 'pending' ? (
