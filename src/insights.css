@@ -120,21 +120,6 @@
   grid-column: 1 / -1;
 }
 
-/* Under 3 months of data the card holds a single sentence, not a chart —
-   shrink it to a strip so it stops reserving chart-sized height. */
-.ins-trend-card.is-strip {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px 20px;
-  padding: 14px 20px;
-}
-
-.ins-trend-card.is-strip .ins-card-heading { flex: none; gap: 10px; align-items: center; }
-.ins-trend-card.is-strip .ins-card-heading p { display: none; }
-.ins-trend-card.is-strip .ins-trend-summary { margin: 0; }
-
 .ins-left-col {
   display: flex;
   flex-direction: column;
@@ -679,14 +664,6 @@
   color: var(--erd-text2);
   font-size: 14px;
 }
-
-.ins-trend-summary {
-  margin: 32px 0 0;
-  color: var(--erd-text2);
-  font-size: 14px;
-}
-
-.ins-trend-summary strong { color: var(--erd-text); }
 
 .ins-head-delta { font-size: 11px; }
 

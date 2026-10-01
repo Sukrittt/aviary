@@ -472,7 +472,7 @@ export function InsightsPage() {
           ) : (
             <div className="insights-grid">
               <article
-                className={`erd-card ins-card ins-trend-card${trendSummary && !showSaved ? " is-strip" : ""}`}
+                className="erd-card ins-card ins-trend-card"
               >
                 <div className="ins-card-heading">
                   <div>
@@ -543,21 +543,6 @@ export function InsightsPage() {
                       </p>
                     )}
                   </>
-                ) : trendSummary ? (
-                  <p className="ins-trend-summary">
-                    {trendSummary.kind === "first" ? (
-                      "First month tracked."
-                    ) : (
-                      <>
-                        <strong>
-                          {formatCurrency(trendSummary.current, hideAmounts)}
-                        </strong>{" "}
-                        in {monthLabel(insightMonth)} vs{" "}
-                        {formatCurrency(trendSummary.prior, hideAmounts)} in{" "}
-                        {monthLabel(trendSummary.previous)}
-                      </>
-                    )}
-                  </p>
                 ) : (
                   <TrendChart
                     data={trendData}

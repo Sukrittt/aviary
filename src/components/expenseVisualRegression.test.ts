@@ -29,12 +29,6 @@ describe('expense screen visual regressions', () => {
     expect(expenseCss).toMatch(/\.erd-log-btn\s*{[\s\S]*?flex:\s*0 0 auto/)
   })
 
-  it('lets a one-line trend summary determine its own height', () => {
-    const rule = insightsCss.match(/\.ins-trend-summary\s*{([\s\S]*?)}/)?.[1] ?? ''
-    expect(rule).not.toContain('min-height')
-    expect(rule).not.toContain('padding: 62px')
-  })
-
   it('keeps biggest-spend rows isolated from Activity transaction styles', () => {
     expect(insights).not.toContain('txn-timeline-list ins-top-list')
     expect(insights).not.toContain('txn-timeline-row ins-top-row')
