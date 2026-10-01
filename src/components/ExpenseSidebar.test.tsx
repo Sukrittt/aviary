@@ -35,7 +35,7 @@ describe('ExpenseSidebar', () => {
     render(<ExpenseSidebar />)
     fireEvent.click(screen.getByText('Log expense'))
     fireEvent.click(screen.getByText('Scan a bill'))
-    fireEvent.click(screen.getByText('Money Brain'))
+    fireEvent.click(screen.getByText('Ask Aviary'))
     expect(screen.queryByText('log-expense-dialog')).toBeNull()
     expect(screen.queryByText('scan-dialog')).toBeNull()
     expect(openMoneyBrain).not.toHaveBeenCalled()

@@ -58,7 +58,7 @@ export type AppEvent =
   | 'bill_scan_started'
   | 'bill_scanned'
   | 'bill_scan_failed'
-  // Money Brain
+  // Ask Aviary
   | 'money_brain_opened'
   | 'money_brain_query'
   | 'money_brain_answered'

@@ -22,7 +22,7 @@ export const pages = {
   '/account': { title: 'Account & Settings', description: 'Manage your Aviary profile, currency, appearance, and account preferences.' },
   '/account/archive': { title: 'Archived Entries', description: 'Review and restore your archived Aviary transactions and entries.' },
   '/account/bill-scans': { title: 'Bill Scans', description: 'Review your scanned receipts and the expenses created from them in Aviary.' },
-  '/account/chat-history': { title: 'Money Brain Chat History', description: 'Browse your past Money Brain conversations about your Aviary budget and spending.' },
+  '/account/chat-history': { title: 'Ask Aviary Chat History', description: 'Browse your past Ask Aviary conversations about your Aviary budget and spending.' },
   '/account/data': { title: 'Data & Privacy', description: 'Manage analytics preferences, export your Aviary data, and review your data controls.' },
   '/account/guided-tour': { title: 'Guided Tour', description: 'Learn how to assign money, log expenses, and use your budget with Aviary’s guided tour.' },
   '/account/help': { title: 'Help & Support', description: 'Learn how Aviary envelopes work and find help with your budget and account.' },

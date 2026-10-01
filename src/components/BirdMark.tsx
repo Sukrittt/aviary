@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react'
 
-/** Mobile's splash/BirdLandingMark.tsx outline, shared by the static and thinking marks. */
+/** Mobile's splash/BirdLandingMark.tsx outline, shared by the idle and thinking marks. */
 export const BIRD_PATH =
   'M 352 212 L 404 248 L 352 284 A 110 110 0 0 1 146 288 L 86 164 L 162 178 A 110 110 0 0 1 352 212 Z M 287 216 A 19 19 0 1 1 325 216 A 19 19 0 1 1 287 216 Z'
 
@@ -18,11 +18,11 @@ export function Bird() {
 export const BIRD_BODY_PATH = BIRD_PATH.slice(0, BIRD_PATH.indexOf(' M 287'))
 
 /**
- * Static twin of Mobile's splash/BirdLandingMark.tsx artwork, painted in currentColor.
+ * Idle twin of Mobile's splash/BirdLandingMark.tsx artwork, painted in currentColor.
  * `flightTarget` marks it as a perch SignInFlight can land on; the perch and
  * bird are separate groups so the landing can squash one and dip the other.
  */
-export function BirdMark({ size, flightTarget = false, perched = false }: { size: number; flightTarget?: boolean; perched?: boolean }) {
+export function BirdMark({ size, flightTarget = false, perched = true }: { size: number; flightTarget?: boolean; perched?: boolean }) {
   return (
     <svg
       width={size}
@@ -52,7 +52,7 @@ export function BirdMark({ size, flightTarget = false, perched = false }: { size
   )
 }
 
-/** Money Brain's "thinking" mark: the perched bird pecks twice, rests, repeats. Motion lives in `.brain-thinking` CSS. */
+/** Ask Aviary's "thinking" mark: the perched bird pecks twice, rests, repeats. Motion lives in `.brain-thinking` CSS. */
 export function BirdThinking({ size }: { size: number }) {
   return (
     <svg className="brain-thinking" width={size} height={size} viewBox="0 0 512 512" fill="currentColor" role="img" aria-label="Thinking">

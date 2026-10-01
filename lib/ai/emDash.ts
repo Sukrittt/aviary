@@ -1,6 +1,6 @@
 /**
  * The em dash is the loudest AI-writing tell, and the prompt asking Gemini to
- * avoid it is a request, not a guarantee. Every Money Brain reply goes through
+ * avoid it is a request, not a guarantee. Every Ask Aviary reply goes through
  * here so none reach the user. En dashes (ranges like 1,000–2,000) are left alone.
  */
 export function scrubEmDashes(text: string): string {

@@ -65,7 +65,7 @@ export function ExpenseSidebar({ onBulkReturn }: Props) {
       <nav className={`erd-sidebar ${collapsed ? "is-collapsed" : ""}`} aria-label="Primary">
         <div className="erd-brand">
           <Link href="/expense" className="erd-brand-link" aria-label="Aviary home">
-            <BirdMark size={34} flightTarget perched={pathname === "/expense"} />
+            <BirdMark size={34} flightTarget />
             <span className="erd-side-label">Aviary</span>
           </Link>
           <button
@@ -103,9 +103,9 @@ export function ExpenseSidebar({ onBulkReturn }: Props) {
               <span className="erd-side-label">{label}</span>
             </Link>
           ))}
-          <button type="button" className="erd-nav-item" onClick={gated(() => openMoneyBrain())} title={tip("Money Brain")}>
+          <button type="button" className="erd-nav-item" onClick={gated(() => openMoneyBrain())} title={tip("Ask Aviary")}>
             <Sparkles size={18} />
-            <span className="erd-side-label">Money Brain</span>
+            <span className="erd-side-label">Ask Aviary</span>
           </button>
         </div>
 

@@ -6779,7 +6779,7 @@ button.account-feature-card {
   flex: 1;
 }
 
-/* Money Brain */
+/* Ask Aviary */
 .brain-scrim {
   position: fixed;
   inset: 0;
@@ -7067,7 +7067,7 @@ button.account-feature-card {
   border: 1px solid var(--erd-border);
 }
 
-/* Money Brain answers: the markdown subset from src/lib/chatMarkdown.ts. */
+/* Ask Aviary answers: the markdown subset from src/lib/chatMarkdown.ts. */
 .brain-md {
   display: grid;
   gap: 8px;
@@ -10362,11 +10362,6 @@ button.account-feature-card {
   .expense-redesign .home-leftover-notice { padding: 12px 16px; }
 }
 
-/* Perched Home mark: motion sits inside the sign-in flight's landing group. */
-.bird-idle-head { transform-origin: 250px 340px; animation: bird-idle-nod 3.2s ease-in-out infinite; }
-.bird-idle-eyelid { transform-origin: 306px 216px; transform: scaleY(0); animation: bird-idle-blink 3.38s infinite; }
-@keyframes bird-idle-nod { 0%, 56.25%, 100% { transform: rotate(0deg); } 28.125% { transform: rotate(6deg); } }
-@keyframes bird-idle-blink { 0%, 94.67%, 100% { transform: scaleY(0); } 96.75% { transform: scaleY(1); } }
 .setup-top { justify-content: space-between; }
 .setup-dots { flex: none; }
 .setup-back, .setup-add-row, .setup-add-pill { display: flex; align-items: center; justify-content: center; gap: 8px; }
@@ -10378,7 +10373,6 @@ button.account-feature-card {
 .setup-cta:enabled:active, .setup-add-row:active, .setup-add-pill:active { transform: scale(0.98); }
 .home-get-started, .home-leftover-notice { box-shadow: none; }
 @media (prefers-reduced-motion: reduce) {
-  .bird-idle-head, .bird-idle-eyelid { animation: none; }
   .setup-pick-row, .setup-pick-check-icon { transition: none; }
   .setup-pick-row:has(.setup-pick-check:active), .setup-pick-check:active,
   .setup-cta:enabled:active, .setup-add-row:active, .setup-add-pill:active { transform: none; }

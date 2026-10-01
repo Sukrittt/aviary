@@ -19,7 +19,7 @@ import { userKey } from '@/src/hooks/useUser'
 import { track, trackFirst } from '@/src/lib/analytics'
 
 const key = ['expenses'] as const
-// Money Brain's brief is computed from expenses too, but keyed separately —
+// Ask Aviary's brief is computed from expenses too, but keyed separately —
 // an edit here must bust it or it shows stale numbers for up to its 15min staleTime.
 const briefKey = ['ai-brief'] as const
 // The autosuggest word->category map is built from expense item/category text —

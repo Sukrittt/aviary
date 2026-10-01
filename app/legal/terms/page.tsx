@@ -75,7 +75,7 @@ export default function TermsPage() {
 
       <h2>AI features</h2>
       <p>
-        Money Brain, bill scanning, and AI-written notifications use a third-party AI model and are best-effort.
+        Ask Aviary, bill scanning, and AI-written notifications use a third-party AI model and are best-effort.
         They can be wrong, so double-check anything that matters before you act on it. Nothing Aviary generates
         is financial, tax, legal, or investment advice.
       </p>

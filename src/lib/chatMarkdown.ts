@@ -1,5 +1,5 @@
 /**
- * Parser for the small markdown subset Money Brain is allowed to write (see
+ * Parser for the small markdown subset Ask Aviary is allowed to write (see
  * OUTPUT FORMAT in lib/ai/moneyBrainPrompt.ts): paragraphs, "- " and "1. "
  * lists, and **bold**. Anything else passes through as text. Runs on every
  * streamed delta, so half-written input must parse too. Mirrored in

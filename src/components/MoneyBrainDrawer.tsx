@@ -208,7 +208,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, openChat, onClose }:
         className="brain-drawer"
         role="dialog"
         aria-modal="true"
-        aria-label="Money Brain"
+        aria-label="Ask Aviary"
         initial={reduceMotion ? false : { x: '100%' }}
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
@@ -221,7 +221,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, openChat, onClose }:
             </button>
           ) : <span className="brain-orbit" aria-hidden="true"><BirdMark size={26} /></span>}
           <div className="brain-heading">
-            <h2>{view === 'history' ? 'Chat history' : 'Money Brain'}</h2>
+            <h2>{view === 'history' ? 'Chat history' : 'Ask Aviary'}</h2>
             <p>{view === 'history' ? 'Pick up where you left off' : brief.data ? `Reading ${brief.data.meta.txnCountThisMonth} transactions` : 'Reading your budget…'}</p>
           </div>
           <div className="brain-head-actions">
@@ -233,7 +233,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, openChat, onClose }:
             <button className="brain-pill-btn brain-pill-btn--accent" type="button" onClick={startNewChat} aria-label="New chat">
               <Plus size={15} /><span>New</span>
             </button>
-            <button className="brain-icon-btn" type="button" onClick={onClose} aria-label="Close Money Brain">
+            <button className="brain-icon-btn" type="button" onClick={onClose} aria-label="Close Ask Aviary">
               <X size={18} />
             </button>
           </div>
@@ -344,7 +344,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, openChat, onClose }:
                   }
                 }}
                 placeholder="Ask about your money…"
-                aria-label="Ask Money Brain"
+                aria-label="Ask Aviary"
               />
               <button type="submit" disabled={sending || !input.trim()} aria-label="Send question"><ArrowUp size={18} /></button>
             </form>

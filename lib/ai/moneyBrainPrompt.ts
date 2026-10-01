@@ -1,6 +1,6 @@
 import { currencyPrefix, resolveCurrency } from '@/src/lib/currencies'
 /**
- * System prompt for the "Money brain" AI feature (brief + chat). Carries the
+ * System prompt for the "Ask Aviary" AI feature (brief + chat). Carries the
  * guardrails: scope lock, grounding, prompt-injection defense, no prompt
  * disclosure, and the advice boundary. Keep the refusal line exact: the
  * chat/brief UIs may match against it. No em dashes anywhere in here, even in

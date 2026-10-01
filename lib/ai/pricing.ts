@@ -11,7 +11,7 @@ export interface TokenCounts {
  * Ignores the audio rate and implicit-cache discounts, so estimates run slightly high.
  */
 const PRICES: Record<string, { input: number; output: number }> = {
-  // Kept for historical ai_usage rows written before the money brain moved off it.
+  // Kept for historical ai_usage rows written before Ask Aviary moved off it.
   'gemini-3.1-flash-lite': { input: 0.25, output: 1.5 },
   'gemini-3.5-flash-lite': { input: 0.3, output: 2.5 },
   // https://vercel.com/ai-gateway/models/jev, checked 2026-09-19: input only, no output charge.

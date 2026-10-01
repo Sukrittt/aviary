@@ -15,7 +15,7 @@
 
 - **YNAB-style method, priced for India.** Envelope budgeting with Ready to Assign, rollovers, and moving money between envelopes — in INR, without a dollar subscription.
 - **Mobile-first.** A native Android app, not a PWA, sharing one account with the web dashboard.
-- **AI that knows your spending.** Money Brain chat, daily briefs, anomaly alerts, and a year-end Wrapped recap.
+- **AI that knows your spending.** Ask Aviary chat, daily briefs, anomaly alerts, and a year-end Wrapped recap.
 - **Open source.** Every line that touches your financial data is public and auditable.
 
 ## About this repo
@@ -30,7 +30,7 @@ The web frontend and API for Aviary, alongside the Expo app in [`Sukrittt/aviary
 - **Spending insights** — daily/weekly/monthly trend charts, a heatmap, sparklines, and a subscription timeline.
 - **Subscriptions** — track services and amounts, cancel/reactivate, and see next-due dates.
 - **Investments** — holdings and net worth, market updates, contributions/withdrawals, and an event log.
-- **AI (Money Brain)** — Gemini-powered chat about your spending (`/api/ai/chat`, streamed), daily brief cards (`/api/ai/brief`), and a cron transaction scan that flags anomalies and sends push notifications.
+- **AI (Ask Aviary)** — Gemini-powered chat about your spending (`/api/ai/chat`, streamed), daily brief cards (`/api/ai/brief`), and a cron transaction scan that flags anomalies and sends push notifications.
 - **Push notifications** — Expo push tokens registered per device; weekly spend digest and AI scan alerts.
 - **Wrapped recap** — `/api/wrapped` computes the year-in-review payload the mobile Wrapped screen renders.
 - **Account & security** — email change with 6-digit verification, linked identities (Google/email), active-session list with remote revoke, delete account, data export (CSV/JSON).
@@ -110,7 +110,7 @@ resolves its owning user id (real or demo) via `lib/access.ts::getAuth`.
 | `/api/data/clear-transactions` | POST | Wipe transactions, keep envelopes |
 | `/api/wrapped` | GET | Year-in-review recap payload (mobile Wrapped screen) |
 | `/api/ai/brief` | POST | AI daily brief cards from recent spending |
-| `/api/ai/chat` | POST | Money Brain chat (streamed, rate-limited) |
+| `/api/ai/chat` | POST | Ask Aviary chat (streamed, rate-limited) |
 | `/api/notifications/register` | POST | Store an Expo push token for a device |
 | `/api/notifications/run` | GET | Cron-only (`CRON_SECRET`); Smart Notifications — envelope thresholds, bill reminders, digest, AI coaching nudge |
 | `/api/auth/google`, `/api/auth/magic-auth/*` | GET/POST | Sign-in |
