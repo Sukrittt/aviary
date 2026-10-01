@@ -3,7 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { AnimatePresence, animate as animateValue, motion, useAnimate, useMotionValue, useReducedMotion, type Transition } from 'motion/react'
 
-// Sits next to the "Category" label in the log-expense modal. While the AI
+// Sits inside the description input in the log-expense modal. While the AI
 // fallback looks for a category, a small pill rolls through the user's own
 // category emojis next to "Picking…", then slows down and springs onto the
 // pick and reads "Picked for you". Hand picks show the selected category
@@ -29,24 +29,29 @@ interface Props {
   picked: { emoji: string; name: string } | null
   /** Current selection, including hand picks and the Miscellaneous fallback. */
   selected?: { emoji: string; name: string } | null
+  /** Bumped on each category chip tap, including taps on the current selection. */
+  pickTick?: number
   rollEmojis: string[]
 }
 
-export function AutoPickStatus({ thinking, picked, selected = picked, rollEmojis }: Props) {
+export function AutoPickStatus({ thinking, picked, selected = picked, pickTick = 0, rollEmojis }: Props) {
   const reduceMotion = useReducedMotion() ?? false
   const pickedKey = selected ? `${selected.emoji}|${selected.name}` : ''
   const [phase, setPhase] = useState<Phase>(thinking ? 'rolling' : 'idle')
   const [prevThinking, setPrevThinking] = useState(thinking)
   const [prevPickedKey, setPrevPickedKey] = useState(pickedKey)
+  const [prevPickTick, setPrevPickTick] = useState(pickTick)
   const [rollIndex, setRollIndex] = useState(0)
   const [stepMs, setStepMs] = useState(ROLL_STEP_MS)
   const [popTick, setPopTick] = useState(0)
+  const [burstTick, setBurstTick] = useState(0)
 
   // React to prop changes during render (React's "adjusting state when a prop
   // changes" pattern) so the first frame after thinking ends already knows
   // whether to settle the roll or show the answer.
-  if (thinking !== prevThinking || pickedKey !== prevPickedKey) {
+  if (thinking !== prevThinking || pickedKey !== prevPickedKey || pickTick !== prevPickTick) {
     const landed = pickedKey !== prevPickedKey && !!selected
+    const handPick = !thinking && !!selected && (pickTick !== prevPickTick || (landed && !picked))
     let next = phase
     if (thinking !== prevThinking) {
       if (thinking) {
@@ -56,10 +61,13 @@ export function AutoPickStatus({ thinking, picked, selected = picked, rollEmojis
         next = phase === 'rolling' && landed && !reduceMotion ? 'settling' : 'idle'
       }
     }
+    // Hand picks take over immediately, even during an auto-pick's deceleration.
+    if (handPick) next = 'idle'
     setPrevThinking(thinking)
     setPrevPickedKey(pickedKey)
+    setPrevPickTick(pickTick)
     if (next !== phase) setPhase(next)
-    if (landed && next === 'idle') setPopTick((t) => t + 1)
+    if ((landed || handPick) && next === 'idle') setPopTick((t) => t + 1)
   }
 
   useEffect(() => {
@@ -98,15 +106,20 @@ export function AutoPickStatus({ thinking, picked, selected = picked, rollEmojis
   const width = useMotionValue(0)
   useLayoutEffect(() => {
     if (!visible || !labelRef.current) return
+    let cancelled = false
+    const finish = () => {
+      if (!cancelled && popTick > 0 && !busy && pickedKey && !reduceMotion) setBurstTick(popTick)
+    }
     // Content stays at the right edge while the pill's left edge glides.
     const target = Math.min(PILL_MAX_WIDTH, Math.ceil(labelRef.current.scrollWidth) + 35)
     if (width.get() === 0 || reduceMotion) {
       width.set(target)
-      return
+      finish()
+      return () => { cancelled = true }
     }
-    const animation = animateValue(width, target, WIDTH)
-    return () => animation.stop()
-  }, [label, visible, width, reduceMotion])
+    const animation = animateValue(width, target, { ...WIDTH, onComplete: finish })
+    return () => { cancelled = true; animation.stop() }
+  }, [label, visible, width, reduceMotion, popTick, busy, pickedKey])
   const step: Transition = reduceMotion
     ? { duration: 0 }
     : busy
@@ -152,19 +165,22 @@ export function AutoPickStatus({ thinking, picked, selected = picked, rollEmojis
               </motion.span>
               </span>
             </motion.span>
-            {popTick > 0 && !reduceMotion && (
-              <span key={popTick} className="auto-pick-burst" aria-hidden="true">
-                {BURST_ANGLES.map((angle) => (
-                  <span key={angle} style={{ transform: `rotate(${angle}deg)` }}>
-                    <motion.span
-                      initial={{ opacity: 0, y: -6, scaleY: 1 }}
-                      animate={{ opacity: [0, 1, 0], y: -15, scaleY: 0.4 }}
-                      transition={{ duration: 0.52, ease: 'easeOut', times: [0, 0.15, 1] }}
-                    />
-                  </span>
-                ))}
-              </span>
-            )}
+            {/* The splash must enter even when the pill skipped its initial animation. */}
+            <AnimatePresence>
+              {burstTick > 0 && burstTick === popTick && !busy && !reduceMotion && (
+                <span key={burstTick} className="auto-pick-burst" aria-hidden="true">
+                  {BURST_ANGLES.map((angle) => (
+                    <span key={angle} style={{ transform: `rotate(${angle}deg)` }}>
+                      <motion.span
+                        initial={{ opacity: 0, y: -6, scaleY: 1 }}
+                        animate={{ opacity: [0, 1, 0], y: -15, scaleY: 0.4 }}
+                        transition={{ duration: 0.52, ease: 'easeOut', times: [0, 0.15, 1] }}
+                      />
+                    </span>
+                  ))}
+                </span>
+              )}
+            </AnimatePresence>
           </motion.span>
         )}
       </AnimatePresence>

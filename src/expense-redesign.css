@@ -2523,8 +2523,23 @@
 .erd-log-card .erd-log-label {
   margin: 0 0 8px;
 }
-.erd-log-card #erd-log-item {
+.erd-log-item-field {
+  position: relative;
   margin-top: 8px;
+  border-radius: 16px;
+}
+.erd-log-card .erd-log-item-field #erd-log-item {
+  margin-top: 0;
+}
+.erd-log-item-field:has(.auto-pick-pop) .erd-log-input {
+  padding-right: 164px;
+}
+.erd-log-item-field .auto-pick {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
 }
 .erd-log-card .erd-log-input {
   margin-top: 0;
@@ -10109,7 +10124,7 @@ button.account-feature-card {
   color: var(--erd-text3);
 }
 
-/* Log expense: "Category" label + the auto-pick status beside it */
+/* Log expense: category label and the status pill inside the item input. */
 .erd-log-label-row {
   display: flex;
   align-items: center;
