@@ -851,6 +851,13 @@
 }
 
 /* Recent activity uses the same row typography and circular avatars as Biggest spends. */
+.expense-redesign .home-recent .ins-top-list {
+  /* Keep the rows aligned with the heading while giving their negative
+     margins, hover background and focus ring room inside the scroller. */
+  margin-inline: calc(-1 * var(--tk-space-lg));
+  padding-inline: var(--tk-space-lg);
+  padding-block: 6px;
+}
 .expense-redesign .home-recent a {
   text-decoration: none;
 }

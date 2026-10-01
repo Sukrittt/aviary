@@ -1,5 +1,5 @@
 import { beforeEach, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ExpensePage } from './ExpensePage'
 import { getBudgets, addBudget, updateBudget } from '@/src/api/budgets'
@@ -16,7 +16,7 @@ vi.mock('@/src/api/categories', () => ({ getCategories: vi.fn(async () => [{ nam
 vi.mock('@/src/api/groups', () => ({ getGroups: vi.fn(async () => ['Essentials']) }))
 vi.mock('@/src/api/subscriptions', () => ({ getSubscriptions: vi.fn(async () => []), cancelSubscription: vi.fn(), reactivateSubscription: vi.fn() }))
 vi.mock('../components/ExpenseSidebar', () => ({ ExpenseSidebar: () => null }))
-vi.mock('../components/EnvelopeGrid', () => ({ EnvelopeGrid: () => null }))
+vi.mock('../components/EnvelopeGrid', () => ({ EnvelopeGrid: () => <div>Envelope content</div> }))
 vi.mock('../components/RecentActivity', () => ({ RecentActivity: () => null }))
 vi.mock('../components/FluidDemo', () => ({ FluidDemo: () => null }))
 vi.mock('../features/sign-in-flight/SignInFlight', () => ({ SignInFlight: () => null }))
@@ -76,6 +76,27 @@ it('keeps getting started out of the way for existing or finished users', async 
   const client = renderPage()
   await waitFor(() => expect(screen.getByLabelText('₹15,000')).toBeInTheDocument())
   await waitFor(() => expect(screen.queryByRole('heading', { name: 'Get started' })).not.toBeInTheDocument())
+  client.clear()
+})
+
+it('preserves the cards below when getting started arrives after the dashboard and is dismissed', async () => {
+  let resolveUser!: (user: Awaited<ReturnType<typeof getUser>>) => void
+  vi.mocked(getUser).mockReturnValueOnce(new Promise((resolve) => { resolveUser = resolve }))
+  const client = renderPage()
+  const envelopes = await screen.findByText('Envelope content')
+  const trends = screen.getByRole('link', { name: 'Trends and daily spend' })
+  expect(screen.queryByRole('heading', { name: 'Get started' })).not.toBeInTheDocument()
+
+  await act(async () => resolveUser({ ...baseUser, getStartedAt: '2026-09-01', manualTransactionCompletedAt: '2026-09-02' }))
+  expect(await screen.findByRole('heading', { name: 'Get started' })).toBeInTheDocument()
+  expect(screen.getByRole('progressbar', { name: 'Getting started' })).toHaveAttribute('aria-valuenow', '2')
+  expect(screen.getByText('Envelope content')).toBe(envelopes)
+  expect(screen.getByRole('link', { name: 'Trends and daily spend' })).toBe(trends)
+
+  fireEvent.click(screen.getByRole('button', { name: 'Skip getting started' }))
+  await waitFor(() => expect(screen.queryByRole('heading', { name: 'Get started' })).not.toBeInTheDocument())
+  expect(screen.getByText('Envelope content')).toBe(envelopes)
+  expect(screen.getByRole('link', { name: 'Trends and daily spend' })).toBe(trends)
   client.clear()
 })
 

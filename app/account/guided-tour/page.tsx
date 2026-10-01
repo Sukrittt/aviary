@@ -8,6 +8,7 @@ import { useTourProgress } from '../../../src/hooks/useTourProgress'
 import { useMoneyBrain } from '../../../components/MoneyBrainProvider'
 import { useTourContent } from '@/src/components/tour/useTourContent'
 import { motion, useReducedMotion } from 'motion/react'
+import { ArrowLeft, X } from 'lucide-react'
 import { FadeIn, PopIn } from '@/src/components/tour/parts'
 
 import { AssignDemo } from '../../../src/components/tour/demos/AssignDemo'
@@ -56,6 +57,9 @@ export default function GuidedTourPage() {
   const firstOpen = CHAPTERS.findIndex((_, i) => !done.has(i))
   const current = CHAPTERS[chapter]
   const isLast = chapter === CHAPTERS.length - 1
+  const headerSub = view === 'hub'
+    ? doneCount ? `${doneCount} of ${CHAPTERS.length} chapters done` : 'The whole app in 3 minutes'
+    : view === 'done' ? 'Tour complete' : current.title
 
   function complete(index: number) {
     setDone((prev) => (prev.has(index) ? prev : new Set(prev).add(index)))
@@ -73,9 +77,16 @@ export default function GuidedTourPage() {
 
   return (
     <>
-      {view !== 'done' && (
-        <button type="button" className="tour-center-link" onClick={exitTour}>Back to my money</button>
-      )}
+      <header className="tour-header">
+        <button type="button" className="tour-back" aria-label={view === 'chapter' ? 'Back to chapters' : 'Close'} onClick={() => view === 'chapter' ? setView('hub') : exitTour()}>
+          {view === 'chapter' ? <ArrowLeft size={18} aria-hidden="true" /> : <X size={18} aria-hidden="true" />}
+        </button>
+        <div className="tour-header-copy">
+          <h1>How this works</h1>
+          <p>{headerSub}</p>
+        </div>
+        {view !== 'done' && <button type="button" className="tour-skip" onClick={exitTour}>Skip</button>}
+      </header>
       {view === 'hub' && (
         <Hub
           doneCount={doneCount}
@@ -98,16 +109,10 @@ export default function GuidedTourPage() {
       {view === 'chapter' && (
         <div className="tour-chapter">
           <div className="tour-chapter-head">
-            <button type="button" className="tour-back" onClick={() => setView('hub')} aria-label="Back to chapters">
-              ←
-            </button>
             <div className="tour-chapter-head-text">
               <p className="tour-kicker">{current.kicker}</p>
               <h2 className="tour-chapter-title">{current.title}</h2>
             </div>
-            <button type="button" className="tour-skip" onClick={() => setView('done')}>
-              Skip
-            </button>
           </div>
 
           <p className="tour-chapter-lede">{current.lede}</p>

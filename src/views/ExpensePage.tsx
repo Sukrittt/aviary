@@ -2,7 +2,7 @@ import { useCurrency } from "@/src/context/CurrencyContext";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AnimatePresence } from "motion/react";
+import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "motion/react";
 import { AmountText } from "../components/landing/mobile/kit";
 import { ChevronRight, Pencil } from "lucide-react";
 import { useAppearance } from "../../components/AppearanceProvider";
@@ -47,11 +47,15 @@ import { computeEnvelopeState, currentMonthKey, daysLeftInMonth, monthLabel, pre
 
 const parseDismissed = (raw: string) => raw === "1";
 const serializeDismissed = (value: boolean) => value ? "1" : "0";
+const MotionLink = motion.create(Link);
+const HOME_LAYOUT_SPRING = { type: "spring", stiffness: 260, damping: 28 } as const;
 
 // type ExpenseTab = 'overview' | 'transactions' | 'insights'
 
 export function ExpensePage() {
   const router = useRouter();
+  const reduceMotion = useReducedMotion();
+  const homeTransition = { layout: reduceMotion ? { duration: 0 } : HOME_LAYOUT_SPRING };
   const { formatCurrency, currencyCode } = useCurrency();
 
   // One query per resource, as Mobile has, with the dashboard's derived panel
@@ -321,8 +325,9 @@ export function ExpensePage() {
 
       <div className="erd-main">
         <ExpenseSidebar onBulkReturn={() => setShowBulkReturnConfirm(true)} />
-        <div className="erd-content">
-          <div className="erd-home">
+        <motion.div className="erd-content" layoutScroll>
+          <LayoutGroup id="home-onboarding">
+          <div className="erd-home" data-get-started={showGetStarted ? "true" : undefined}>
             <div className="erd-home-main">
               {/* Income is entered from the menu top-right; RTA is often ₹0,
                   so the hero alone doesn't say where money comes in. */}
@@ -409,20 +414,35 @@ export function ExpensePage() {
                 </article>
               )}
 
-              <AnimatePresence initial={false}>
+              <AnimatePresence mode="popLayout">
                 {showGetStarted && user && (
-                  <GetStartedCard
-                    manualTransactionDone={!!user.manualTransactionCompletedAt}
-                    guidedTourDone={!!user.guidedTourCompletedAt}
-                    onAddTransaction={() => setShowLogModal(true)}
-                    onTakeTour={() => router.push('/account/guided-tour')}
-                    onSkip={() => setGetStartedSkipped(true)}
-                  />
+                  <motion.div
+                    key="get-started"
+                    className="home-get-started-slot"
+                    // Cancel the column's 20px gap at zero height, then open
+                    // it with the card so even the first reveal moves smoothly.
+                    initial={reduceMotion ? false : { height: 0, opacity: 0, marginBottom: -20 }}
+                    animate={{ height: "auto", opacity: 1, marginBottom: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: reduceMotion ? 0 : 0.32, ease: [0.22, 1, 0.36, 1] }}
+                  >
+                    <GetStartedCard
+                      manualTransactionDone={!!user.manualTransactionCompletedAt}
+                      guidedTourDone={!!user.guidedTourCompletedAt}
+                      onAddTransaction={() => setShowLogModal(true)}
+                      onTakeTour={() => router.push('/account/guided-tour')}
+                      onSkip={() => setGetStartedSkipped(true)}
+                    />
+                  </motion.div>
                 )}
               </AnimatePresence>
 
               {envelopeState && (
-                <article className="erd-card erd-envelopes-panel">
+                <motion.article
+                  className="erd-card erd-envelopes-panel"
+                  layout={reduceMotion ? false : "position"}
+                  transition={homeTransition}
+                >
                   <EnvelopeGrid
                     envelopes={envelopeState.envelopes}
                     groups={envelopeState.groups}
@@ -433,12 +453,17 @@ export function ExpensePage() {
                     onSetAssigned={setEditAssignedTarget}
                     onPayCreditCard={handlePayCreditCard}
                   />
-                </article>
+                </motion.article>
               )}
 
-              <Link href="/insights" className="erd-home-insights-link">
+              <MotionLink
+                href="/insights"
+                className="erd-home-insights-link"
+                layout={reduceMotion ? false : "position"}
+                transition={homeTransition}
+              >
                 Trends and daily spend <ChevronRight size={16} />
-              </Link>
+              </MotionLink>
             </div>
             <aside className="erd-home-rail" aria-label="Subscriptions and recent activity">
               <SubscriptionsPanel
@@ -457,7 +482,8 @@ export function ExpensePage() {
               <RecentActivity expenses={expenseRows} hideAmounts={hideAmounts} />
             </aside>
           </div>
-        </div>
+          </LayoutGroup>
+        </motion.div>
         <AnimatePresence>
           {editingSubscription !== undefined && (
             <SubscriptionModal

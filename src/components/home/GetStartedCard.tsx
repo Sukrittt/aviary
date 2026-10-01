@@ -21,13 +21,9 @@ export function GetStartedCard({ manualTransactionDone, guidedTourDone, onAddTra
   const next = steps.find((step) => !step.done)?.key
 
   return (
-    <motion.article
+    <article
       className="erd-card home-get-started"
       aria-labelledby="get-started-heading"
-      initial={reduce ? false : { opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-      transition={{ duration: reduce ? 0 : 0.25 }}
     >
       <div className="get-started-heading">
         <div>
@@ -50,25 +46,29 @@ export function GetStartedCard({ manualTransactionDone, guidedTourDone, onAddTra
         {steps.map((step, i) => {
           const Icon = step.done ? Check : step.icon
           return (
-            <motion.button
+            <motion.div
               key={step.key}
-              type="button"
-              className={`get-started-step${step.done ? ' is-done' : ''}${step.key === next ? ' is-next' : ''}`}
-              aria-label={`${step.label}${step.done ? ', complete' : ''}`}
-              disabled={step.done}
-              onClick={step.onClick}
-              whileTap={reduce || step.done ? undefined : { scale: 0.98 }}
               initial={reduce ? false : { opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={reduce ? { duration: 0 } : { type: 'spring', damping: 20, stiffness: 220, delay: 0.14 + i * 0.07 }}
             >
-              <span className="get-started-icon"><Icon size={16} aria-hidden="true" /></span>
-              <span className="get-started-step-copy"><strong>{step.label}</strong><span>{step.done ? 'Done' : step.hint}</span></span>
-              {!step.done && <ChevronRight size={17} aria-hidden="true" />}
-            </motion.button>
+              <motion.button
+                type="button"
+                className={`get-started-step${step.done ? ' is-done' : ''}${step.key === next ? ' is-next' : ''}`}
+                aria-label={`${step.label}${step.done ? ', complete' : ''}`}
+                disabled={step.done}
+                onClick={step.onClick}
+                whileTap={reduce || step.done ? undefined : { scale: 0.98 }}
+                transition={{ duration: reduce ? 0 : 0.14 }}
+              >
+                <span className="get-started-icon"><Icon size={16} aria-hidden="true" /></span>
+                <span className="get-started-step-copy"><strong>{step.label}</strong><span>{step.done ? 'Done' : step.hint}</span></span>
+                {!step.done && <ChevronRight size={17} aria-hidden="true" />}
+              </motion.button>
+            </motion.div>
           )
         })}
       </div>
-    </motion.article>
+    </article>
   )
 }

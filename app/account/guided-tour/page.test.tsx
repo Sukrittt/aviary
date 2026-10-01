@@ -30,7 +30,17 @@ function renderTour() {
 
 it('lets users leave the optional tour without completing its milestone', () => {
   const client = renderTour()
-  fireEvent.click(screen.getByRole('button', { name: 'Back to my money' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+  expect(replace).toHaveBeenCalledWith('/expense')
+  expect(completeGuidedTour).not.toHaveBeenCalled()
+  expect(track).toHaveBeenCalledWith('tour_skipped', { fresh: false, chapters_done: 0 })
+  client.clear()
+})
+
+it('exits from a chapter when skipped without completing the tour', () => {
+  const client = renderTour()
+  fireEvent.click(screen.getByRole('button', { name: 'Start the tour' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Skip' }))
   expect(replace).toHaveBeenCalledWith('/expense')
   expect(completeGuidedTour).not.toHaveBeenCalled()
   expect(track).toHaveBeenCalledWith('tour_skipped', { fresh: false, chapters_done: 0 })
