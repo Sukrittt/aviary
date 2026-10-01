@@ -180,6 +180,33 @@ describe('notifyThresholdCrossed', () => {
     expect(sendPushNotificationMock.mock.calls[1][0]).toMatchObject({ data: { category: 'Food', level: 90 } })
   })
 
+  it('silently syncs every donor envelope raised by a budget transfer', async () => {
+    const auth = { userId: 'user_a', readOnly: false, sessionId: null }
+
+    // Pulling assigned money out of Food raises its spent percentage from 40%
+    // to 95%, and pulling too much from Laundry makes it appear overspent, but
+    // no spending occurred. Record both new baselines silently so this
+    // allocation change neither sends now nor backfills on the next write.
+    buildExpenseContextMock.mockResolvedValueOnce({
+      facts: 'FACTS',
+      meta: { txnCountThisMonth: 2, totalSpent: 1550, totalAssigned: 1500, daysLeft: 5, daysElapsed: 25, totalDaysInMonth: 30 },
+      envelopes: [
+        { category: 'Food', group: '', assigned: 1000, spent: 950, available: 50, rolledOver: 0, isOverspent: false, spentPct: 95 },
+        { category: 'Laundry', group: '', assigned: 500, spent: 600, available: -100, rolledOver: 0, isOverspent: true, spentPct: 100 },
+      ],
+      subscriptions: [],
+      categories: [
+        { name: 'Food', alertPcts: [50, 75, 90] },
+        { name: 'Laundry', alertPcts: [50, 90, 100] },
+      ],
+    })
+
+    await reconcileThresholdLevels(auth, ['Food', 'Laundry'])
+
+    expect(sendPushNotificationMock).not.toHaveBeenCalled()
+    expect(new Set(thresholdStateStore.values())).toEqual(new Set([90, 101]))
+  })
+
   it('swallows errors rather than throwing, since it must never break the expense write', async () => {
     usersFindOneMock.mockRejectedValue(new Error('mongo down'))
     await expect(
