@@ -6,6 +6,7 @@ import { ChevronsDownUp } from 'lucide-react'
 import { SpringChevron, SpringCollapse } from './SpringCollapse'
 import { avatarColorFor, categoryEmoji, groupEmoji, splitEmoji } from '../lib/emoji'
 import type { Envelope } from '../types/expense'
+import { BirdEmptyState } from './BirdEmptyState'
 
 /** Web twin of Mobile's app/(tabs)/index.tsx envelopes card (EnvelopeGroup + EnvelopeRow). */
 
@@ -221,14 +222,12 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
       </div>
 
       {!envelopes.length ? (
-        <div className="account-empty">
-          <span aria-hidden="true">🗂️</span>
-          <div className="account-empty-title">No envelopes yet</div>
-          <p className="account-row-meta">Envelopes hold your money for each kind of spending.</p>
-          <button type="button" className="action-button is-active erd-accent-action" onClick={onManage}>
-            Add your first envelope
-          </button>
-        </div>
+        <BirdEmptyState
+          subject="envelopes"
+          title="Your envelopes are waiting"
+          description="Give every kind of spending a place to land."
+          action={{ label: 'Add your first envelope', onClick: onManage }}
+        />
       ) : (
         <div className="env2-list">
           {grouped.map(({ label, items }) => {

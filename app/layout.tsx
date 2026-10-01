@@ -6,6 +6,7 @@ import '../src/theme/scale.css'
 import '../src/index.css'
 import '../src/App.css'
 import { ClientProviders } from '../components/ClientProviders'
+import { pageMetadata, SITE_URL } from '@/lib/seo'
 
 // Loaded once, app-wide, on <body> — every route reads --font-fredoka /
 // --font-nunito, including ones that used to load neither (/investments,
@@ -17,9 +18,18 @@ const fredoka = Fredoka({ subsets: ['latin'], variable: '--font-fredoka', displa
 const nunito = Nunito({ subsets: ['latin'], variable: '--font-nunito', display: 'swap' })
 
 export const metadata: Metadata = {
-  title: 'Aviary',
-  description: 'Aviary — envelope budgeting, expenses, subscriptions and investments in one place',
-  icons: { icon: '/favicon.svg' },
+  ...pageMetadata('/'),
+  metadataBase: SITE_URL,
+  applicationName: 'Aviary',
+  // New routes remain private until explicitly given public metadata.
+  robots: { index: false, follow: false },
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: '16x16 32x32 48x48', type: 'image/x-icon' },
+      { url: '/favicon.svg?v=2', sizes: 'any', type: 'image/svg+xml' },
+    ],
+    apple: { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+  },
 }
 
 export const viewport = {

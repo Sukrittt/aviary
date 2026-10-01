@@ -1,11 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useCompleteGuidedTour } from '@/src/hooks/useUser'
+import { track } from '@/src/lib/analytics'
 import { useTourProgress } from '../../../src/hooks/useTourProgress'
 import { useMoneyBrain } from '../../../components/MoneyBrainProvider'
 import { useTourContent } from '@/src/components/tour/useTourContent'
 import { motion, useReducedMotion } from 'motion/react'
+import { ArrowLeft, X } from 'lucide-react'
 import { FadeIn, PopIn } from '@/src/components/tour/parts'
 
 import { AssignDemo } from '../../../src/components/tour/demos/AssignDemo'
@@ -33,11 +36,30 @@ export default function GuidedTourPage() {
   const [done, setDone] = useTourProgress()
   const [view, setView] = useState<View3>('hub')
   const [chapter, setChapter] = useState(0)
+  const { mutate: markTourComplete } = useCompleteGuidedTour()
+
+  useEffect(() => { track('tour_started', { fresh: false }) }, [])
+  useEffect(() => {
+    if (view === 'chapter') track('tour_step_viewed', { chapter })
+    if (view === 'done') {
+      track('tour_completed', { fresh: false })
+      markTourComplete()
+    }
+  }, [view, chapter, markTourComplete])
+
+  function exitTour() {
+    if (view !== 'done') track('tour_skipped', { fresh: false, chapters_done: done.size })
+    router.replace('/expense')
+  }
+
 
   const doneCount = done.size
   const firstOpen = CHAPTERS.findIndex((_, i) => !done.has(i))
   const current = CHAPTERS[chapter]
   const isLast = chapter === CHAPTERS.length - 1
+  const headerSub = view === 'hub'
+    ? doneCount ? `${doneCount} of ${CHAPTERS.length} chapters done` : 'The whole app in 3 minutes'
+    : view === 'done' ? 'Tour complete' : current.title
 
   function complete(index: number) {
     setDone((prev) => (prev.has(index) ? prev : new Set(prev).add(index)))
@@ -55,6 +77,16 @@ export default function GuidedTourPage() {
 
   return (
     <>
+      <header className="tour-header">
+        <button type="button" className="tour-back" aria-label={view === 'chapter' ? 'Back to chapters' : 'Close'} onClick={() => view === 'chapter' ? setView('hub') : exitTour()}>
+          {view === 'chapter' ? <ArrowLeft size={18} aria-hidden="true" /> : <X size={18} aria-hidden="true" />}
+        </button>
+        <div className="tour-header-copy">
+          <h1>How this works</h1>
+          <p>{headerSub}</p>
+        </div>
+        {view !== 'done' && <button type="button" className="tour-skip" onClick={exitTour}>Skip</button>}
+      </header>
       {view === 'hub' && (
         <Hub
           doneCount={doneCount}
@@ -77,16 +109,10 @@ export default function GuidedTourPage() {
       {view === 'chapter' && (
         <div className="tour-chapter">
           <div className="tour-chapter-head">
-            <button type="button" className="tour-back" onClick={() => setView('hub')} aria-label="Back to chapters">
-              ←
-            </button>
             <div className="tour-chapter-head-text">
               <p className="tour-kicker">{current.kicker}</p>
               <h2 className="tour-chapter-title">{current.title}</h2>
             </div>
-            <button type="button" className="tour-skip" onClick={() => setView('done')}>
-              Skip
-            </button>
           </div>
 
           <p className="tour-chapter-lede">{current.lede}</p>
@@ -146,10 +172,7 @@ export default function GuidedTourPage() {
             setChapter(i)
             setView('chapter')
           }}
-          // Fresh onboarding links here with ?fresh=1 so the trial notice shows
-          // once, right before the app's first real screen. Reopening the tour
-          // later from the account page has no param and exits straight back.
-          onFinish={() => router.push(new URLSearchParams(window.location.search).has('fresh') ? '/account/trial-notice' : '/account')}
+          onFinish={exitTour}
           onStartOver={() => {
             setDone(new Set())
             setChapter(0)

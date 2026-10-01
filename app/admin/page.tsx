@@ -1,3 +1,4 @@
+import { pageMetadata } from '@/lib/seo'
 import { ObjectId } from 'mongodb'
 import { getDb } from '@/lib/mongodb'
 import { COLLECTIONS } from '@/lib/models'
@@ -174,3 +175,5 @@ export default async function AdminOverview({ searchParams }: { searchParams: Pr
 function objectIdAt(date: Date) {
   return ObjectId.createFromTime(Math.floor(date.getTime() / 1000))
 }
+
+export const metadata = pageMetadata('/admin')

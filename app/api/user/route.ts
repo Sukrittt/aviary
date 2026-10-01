@@ -61,6 +61,7 @@ export async function PATCH(req: Request) {
   }
   if (typeof body.notifyCoach === 'boolean') updates.notifyCoach = body.notifyCoach
   if (typeof body.notifyWrapped === 'boolean') updates.notifyWrapped = body.notifyWrapped
+  const completingGuidedTour = body.guidedTourCompleted === true
 
   // `onboardedAt` is no longer a client-writable profile field: completing
   // onboarding is what starts the 45-day trial clock, so its instant has to
@@ -69,7 +70,7 @@ export async function PATCH(req: Request) {
   // is discarded — and routed through the same server-owned action as
   // POST /api/onboarding/complete. See lib/billing/service.ts.
   const completing = 'onboardedAt' in body
-  if (!completing && Object.keys(updates).length === 0) return error('no valid fields')
+  if (!completing && !completingGuidedTour && Object.keys(updates).length === 0) return error('no valid fields')
 
   if (name !== undefined) {
     await getWorkOSClient().userManagement.updateUser({ userId: auth.userId, name: name || undefined })
@@ -78,6 +79,13 @@ export async function PATCH(req: Request) {
   const db = await getDb()
   if (Object.keys(updates).length > 0) {
     await db.collection<UserDoc>('users').updateOne({ _id: auth.userId }, { $set: updates })
+  }
+  if (completingGuidedTour) {
+    // A boolean intent keeps the timestamp server-owned and makes retries safe.
+    await db.collection<UserDoc>('users').updateOne(
+      { _id: auth.userId, guidedTourCompletedAt: { $in: [null, undefined] } },
+      { $set: { guidedTourCompletedAt: new Date().toISOString() } },
+    )
   }
   if (completing) {
     // Lenient on purpose — see completeOnboarding. This is the path released

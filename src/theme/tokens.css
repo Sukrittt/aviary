@@ -3,118 +3,75 @@
 
    Three theme states, matching Mobile's 'light' | 'dark' | 'system'.
 
-   The :root pair below is what paints before the browser has resolved a
-   scheme — server render and React's hydration pass, when AppShell stamps no
-   theme class at all. That is why prefers-color-scheme is honoured here and
-   not left to the classes: a system-light user would otherwise get a dark
-   first frame. Once resolved, .theme-light / .theme-dark is authoritative
-   (later in the file, so it wins at equal specificity), which also keeps the
-   handful of '.theme-light .foo' rules elsewhere working under 'system'. */
+   Light is the default, including the first paint before saved preferences
+   are restored. Once resolved, .theme-light / .theme-dark is authoritative.
+   An explicitly saved 'system' choice resolves to one of those classes in
+   AppearanceProvider. */
 
 :root {
-  --tk-bg: #000000;
-  --tk-text: #f5f5f5;
-  --tk-text2: #8f8f8f;
-  --tk-text3: #5d5d5d;
-  --tk-on-accent: #1a0500;
-  --tk-card: rgba(3, 3, 3, 0.7);
-  --tk-card-solid: #0e0e0e;
-  --tk-sidebar-box: rgba(2, 2, 2, 0.6);
-  --tk-input-bg: #020202;
-  --tk-pill-bg: rgba(6, 6, 6, 0.9);
-  --tk-modal-bg: rgba(2, 2, 2, 0.98);
-  --tk-modal-strong: rgba(4, 4, 4, 0.95);
-  --tk-tabbar-bg: rgba(1, 1, 1, 0.92);
-  --tk-header-bg: rgba(0, 0, 0, 0.9);
-  --tk-hero-a: rgba(54, 26, 14, 0.5);
-  --tk-hero-b: rgba(29, 22, 18, 0.6);
-  --tk-border: rgba(255, 255, 255, 0.1);
-  --tk-border-strong: rgba(255, 255, 255, 0.16);
-  --tk-chip-active-bg: #161616;
-  --tk-accent: #f4511e;
-  --tk-accent-ink: #ff8f66;
-  --tk-accent-soft: rgba(255, 112, 67, 0.22);
-  --tk-accent-hover: #ff855a;
-  --tk-mint: #26e085;
-  --tk-mint-soft: rgba(38, 224, 133, 0.22);
-  --tk-coral: #ff646f;
-  --tk-coral-soft: rgba(255, 100, 111, 0.22);
-  --tk-range: rgba(255, 112, 67, 0.16);
-  --tk-violet: #e76edf;
-  --tk-violet-soft: rgba(231, 110, 223, 0.22);
-  --tk-blue: #00c5df;
-  --tk-blue-soft: rgba(0, 197, 223, 0.22);
-  --tk-warn: #facc15;
-  --tk-warn-ink: #fde047;
-  --tk-warn-soft: rgba(250, 204, 21, 0.22);
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-      --tk-bg: #ffffff;
-      --tk-text: #060606;
-      --tk-text2: #424242;
-      --tk-text3: #717171;
-      --tk-on-accent: #ffffff;
-      --tk-card: rgba(245, 245, 245, 0.85);
-      --tk-card-solid: #f5f5f5;
-      --tk-sidebar-box: rgba(238, 238, 238, 0.7);
-      --tk-input-bg: #eeeeee;
-      --tk-pill-bg: rgba(255, 255, 255, 0.9);
-      --tk-modal-bg: rgba(252, 252, 252, 0.98);
-      --tk-modal-strong: rgba(248, 248, 248, 0.96);
-      --tk-tabbar-bg: rgba(252, 252, 252, 0.92);
-      --tk-header-bg: rgba(255, 255, 255, 0.92);
-      --tk-hero-a: rgba(255, 232, 220, 0.65);
-      --tk-hero-b: rgba(245, 238, 234, 0.7);
-      --tk-border: rgba(0, 0, 0, 0.09);
-      --tk-border-strong: rgba(0, 0, 0, 0.16);
-      --tk-chip-active-bg: #dedede;
-      --tk-accent: #f4511e;
-      --tk-accent-ink: #c2410c;
-      --tk-accent-soft: rgba(244, 81, 30, 0.18);
-      --tk-accent-hover: #dd4514;
-      --tk-mint: #008435;
-      --tk-mint-soft: rgba(0, 132, 53, 0.18);
-      --tk-coral: #d70e3a;
-      --tk-coral-soft: rgba(215, 14, 58, 0.18);
-      --tk-range: rgba(244, 81, 30, 0.11);
-      --tk-violet: #af25a9;
-      --tk-violet-soft: rgba(175, 37, 169, 0.18);
-      --tk-blue: #007d98;
-      --tk-blue-soft: rgba(0, 125, 152, 0.18);
-      --tk-warn: #eab308;
-      --tk-warn-ink: #a16207;
-      --tk-warn-soft: rgba(234, 179, 8, 0.18);
-  }
-}
-
-.theme-light {
-  --tk-bg: #ffffff;
+  --tk-bg: #faf8f5;
   --tk-text: #060606;
   --tk-text2: #424242;
   --tk-text3: #717171;
   --tk-on-accent: #ffffff;
-  --tk-card: rgba(245, 245, 245, 0.85);
-  --tk-card-solid: #f5f5f5;
-  --tk-sidebar-box: rgba(238, 238, 238, 0.7);
-  --tk-input-bg: #eeeeee;
+  --tk-card: #ffffff;
+  --tk-card-solid: #ffffff;
+  --tk-sidebar-box: rgba(242, 238, 232, 0.7);
+  --tk-input-bg: #f2eee8;
   --tk-pill-bg: rgba(255, 255, 255, 0.9);
-  --tk-modal-bg: rgba(252, 252, 252, 0.98);
-  --tk-modal-strong: rgba(248, 248, 248, 0.96);
-  --tk-tabbar-bg: rgba(252, 252, 252, 0.92);
-  --tk-header-bg: rgba(255, 255, 255, 0.92);
+  --tk-modal-bg: rgba(250, 248, 245, 0.98);
+  --tk-modal-strong: rgba(250, 248, 245, 0.96);
+  --tk-tabbar-bg: rgba(250, 248, 245, 0.92);
+  --tk-header-bg: rgba(250, 248, 245, 0.92);
   --tk-hero-a: rgba(255, 232, 220, 0.65);
   --tk-hero-b: rgba(245, 238, 234, 0.7);
-  --tk-border: rgba(0, 0, 0, 0.09);
-  --tk-border-strong: rgba(0, 0, 0, 0.16);
-  --tk-chip-active-bg: #dedede;
+  --tk-border: rgba(60, 40, 20, 0.08);
+  --tk-border-strong: rgba(60, 40, 20, 0.13);
+  --tk-chip-active-bg: #ebe5dd;
   --tk-accent: #f4511e;
   --tk-accent-ink: #c2410c;
   --tk-accent-soft: rgba(244, 81, 30, 0.18);
   --tk-accent-hover: #dd4514;
-  --tk-mint: #008435;
-  --tk-mint-soft: rgba(0, 132, 53, 0.18);
+  --tk-mint: #1f7a4d;
+  --tk-mint-soft: rgba(31, 122, 77, 0.18);
+  --tk-coral: #d70e3a;
+  --tk-coral-soft: rgba(215, 14, 58, 0.18);
+  --tk-range: rgba(244, 81, 30, 0.11);
+  --tk-violet: #af25a9;
+  --tk-violet-soft: rgba(175, 37, 169, 0.18);
+  --tk-blue: #007d98;
+  --tk-blue-soft: rgba(0, 125, 152, 0.18);
+  --tk-warn: #eab308;
+  --tk-warn-ink: #a16207;
+  --tk-warn-soft: rgba(234, 179, 8, 0.18);
+}
+
+.theme-light {
+  --tk-bg: #faf8f5;
+  --tk-text: #060606;
+  --tk-text2: #424242;
+  --tk-text3: #717171;
+  --tk-on-accent: #ffffff;
+  --tk-card: #ffffff;
+  --tk-card-solid: #ffffff;
+  --tk-sidebar-box: rgba(242, 238, 232, 0.7);
+  --tk-input-bg: #f2eee8;
+  --tk-pill-bg: rgba(255, 255, 255, 0.9);
+  --tk-modal-bg: rgba(250, 248, 245, 0.98);
+  --tk-modal-strong: rgba(250, 248, 245, 0.96);
+  --tk-tabbar-bg: rgba(250, 248, 245, 0.92);
+  --tk-header-bg: rgba(250, 248, 245, 0.92);
+  --tk-hero-a: rgba(255, 232, 220, 0.65);
+  --tk-hero-b: rgba(245, 238, 234, 0.7);
+  --tk-border: rgba(60, 40, 20, 0.08);
+  --tk-border-strong: rgba(60, 40, 20, 0.13);
+  --tk-chip-active-bg: #ebe5dd;
+  --tk-accent: #f4511e;
+  --tk-accent-ink: #c2410c;
+  --tk-accent-soft: rgba(244, 81, 30, 0.18);
+  --tk-accent-hover: #dd4514;
+  --tk-mint: #1f7a4d;
+  --tk-mint-soft: rgba(31, 122, 77, 0.18);
   --tk-coral: #d70e3a;
   --tk-coral-soft: rgba(215, 14, 58, 0.18);
   --tk-range: rgba(244, 81, 30, 0.11);

@@ -1,3 +1,4 @@
+import { pageMetadata } from '@/lib/seo'
 import Link from 'next/link'
 import {
   CalendarClock,
@@ -473,3 +474,5 @@ function Mix({ title, rows, total, money }: { title: string; rows: MixRow[]; tot
     </div>
   )
 }
+
+export const metadata = pageMetadata('/admin/revenue')

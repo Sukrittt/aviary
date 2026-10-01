@@ -52,6 +52,7 @@ import {
   withDelta,
 } from "@/src/lib/monthly";
 import { EMPTY } from "@/src/lib/constants";
+import { BirdEmptyState } from "@/src/components/BirdEmptyState";
 
 const TREND_MONTHS = 12;
 const HEATMAP_WEEKS = 12;
@@ -472,7 +473,7 @@ export function InsightsPage() {
           ) : (
             <div className="insights-grid">
               <article
-                className={`erd-card ins-card ins-trend-card${trendSummary && !showSaved ? " is-strip" : ""}`}
+                className="erd-card ins-card ins-trend-card"
               >
                 <div className="ins-card-heading">
                   <div>
@@ -543,21 +544,6 @@ export function InsightsPage() {
                       </p>
                     )}
                   </>
-                ) : trendSummary ? (
-                  <p className="ins-trend-summary">
-                    {trendSummary.kind === "first" ? (
-                      "First month tracked."
-                    ) : (
-                      <>
-                        <strong>
-                          {formatCurrency(trendSummary.current, hideAmounts)}
-                        </strong>{" "}
-                        in {monthLabel(insightMonth)} vs{" "}
-                        {formatCurrency(trendSummary.prior, hideAmounts)} in{" "}
-                        {monthLabel(trendSummary.previous)}
-                      </>
-                    )}
-                  </p>
                 ) : (
                   <TrendChart
                     data={trendData}
@@ -587,7 +573,12 @@ export function InsightsPage() {
                     </Link>
                   </div>
                   {topSpends.length === 0 ? (
-                    <p className="ins-top-empty">Nothing logged yet.</p>
+                    <BirdEmptyState
+                      compact
+                      subject="expenses"
+                      title="Nothing logged yet"
+                      description="Your biggest spends will line up here once you start logging."
+                    />
                   ) : (
                     <div className="ins-top-list">
                       {topSpends.map((spend, index) => (

@@ -1,4 +1,5 @@
-export const metadata = { title: 'Refunds and cancellation — Aviary' }
+import { pageMetadata } from '@/lib/seo'
+export const metadata = pageMetadata('/legal/refunds')
 
 const SUPPORT_EMAIL = 'aviary.playreview@gmail.com'
 

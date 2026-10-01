@@ -10,7 +10,7 @@ import {
 
 export const recurringExpensesKey = ['recurring-expenses'] as const
 const key = recurringExpensesKey
-// Same reasoning as useSubscriptions: Money Brain's brief factors these in but
+// Same reasoning as useSubscriptions: Ask Aviary's brief factors these in but
 // is keyed separately, so an edit here must bust it or the brief shows stale
 // numbers for up to its 15min staleTime.
 const briefKey = ['ai-brief'] as const

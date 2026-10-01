@@ -1,6 +1,7 @@
 'use client'
 
 import { useCurrency } from '@/src/context/CurrencyContext'
+import { useAppearance } from '@/components/AppearanceProvider'
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
@@ -21,6 +22,7 @@ import { track } from '@/src/lib/analytics'
 import { LoadingCaption } from './LoadingCaption'
 import { BirdMark, BirdThinking } from './BirdMark'
 import { ChatMarkdown } from './ChatMarkdown'
+import { BirdEmptyState } from './BirdEmptyState'
 
 export interface OpenChat {
   sessionId: string | null
@@ -46,6 +48,7 @@ function timeAgo(iso: string) {
 
 export function MoneyBrainDrawer({ initialSessionId = null, openChat, onClose }: Props) {
   const { formatCurrency } = useCurrency()
+  const { theme } = useAppearance()
 
   const reduceMotion = useReducedMotion()
   const queryClient = useQueryClient()
@@ -72,6 +75,8 @@ export function MoneyBrainDrawer({ initialSessionId = null, openChat, onClose }:
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
   const history = useChatSessions(view === 'history', { page, query: debouncedQuery })
+  const historySessions = history.data?.sessions ?? []
+  const historyPageCount = history.data?.pageCount ?? 1
   const envelope = useMemo(
     () => computeEnvelopeState(
       budgets.data ?? [],
@@ -195,7 +200,8 @@ export function MoneyBrainDrawer({ initialSessionId = null, openChat, onClose }:
 
   return (
     <motion.div
-      className="expense-redesign brain-scrim"
+      // The drawer is a sibling of AppShell, so it needs its own theme scope.
+      className={`expense-redesign brain-scrim${theme ? ` theme-${theme}` : ''}`}
       initial={reduceMotion ? false : { opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -205,7 +211,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, openChat, onClose }:
         className="brain-drawer"
         role="dialog"
         aria-modal="true"
-        aria-label="Money Brain"
+        aria-label="Ask Aviary"
         initial={reduceMotion ? false : { x: '100%' }}
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
@@ -218,7 +224,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, openChat, onClose }:
             </button>
           ) : <span className="brain-orbit" aria-hidden="true"><BirdMark size={26} /></span>}
           <div className="brain-heading">
-            <h2>{view === 'history' ? 'Chat history' : 'Money Brain'}</h2>
+            <h2>{view === 'history' ? 'Chat history' : 'Ask Aviary'}</h2>
             <p>{view === 'history' ? 'Pick up where you left off' : brief.data ? `Reading ${brief.data.meta.txnCountThisMonth} transactions` : 'Reading your budget…'}</p>
           </div>
           <div className="brain-head-actions">
@@ -230,7 +236,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, openChat, onClose }:
             <button className="brain-pill-btn brain-pill-btn--accent" type="button" onClick={startNewChat} aria-label="New chat">
               <Plus size={15} /><span>New</span>
             </button>
-            <button className="brain-icon-btn" type="button" onClick={onClose} aria-label="Close Money Brain">
+            <button className="brain-icon-btn" type="button" onClick={onClose} aria-label="Close Ask Aviary">
               <X size={18} />
             </button>
           </div>
@@ -242,9 +248,9 @@ export function MoneyBrainDrawer({ initialSessionId = null, openChat, onClose }:
               <Search size={16} aria-hidden="true" />
               <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search your chats…" />
             </label>
-            {history.isLoading && !history.data ? <LoadingCaption /> : history.data?.sessions.length ? (
+            {history.isLoading && !history.data ? <LoadingCaption /> : historySessions.length ? (
               <div className="brain-history-list">
-                {history.data.sessions.map((item, i) => (
+                {historySessions.map((item, i) => (
                   <motion.button
                     key={item.id}
                     type="button"
@@ -259,13 +265,19 @@ export function MoneyBrainDrawer({ initialSessionId = null, openChat, onClose }:
                 ))}
               </div>
             ) : (
-              <div className="brain-empty">{query ? `No chats match “${query}”.` : 'No past chats yet.'}</div>
+              <BirdEmptyState
+                compact
+                mood={query ? 'searching' : 'snoozing'}
+                subject="chat"
+                title={query ? 'Nothing turned up' : 'No past chats yet'}
+                description={query ? `No chats match “${query}”.` : 'Start a conversation and it’ll wait for you here.'}
+              />
             )}
-            {(history.data?.pageCount ?? 1) > 1 && (
+            {historyPageCount > 1 && (
               <div className="brain-pager">
                 <button type="button" disabled={page <= 1} onClick={() => setPage((value) => value - 1)}>Previous</button>
-                <span>{page} of {history.data?.pageCount}</span>
-                <button type="button" disabled={page >= (history.data?.pageCount ?? 1)} onClick={() => setPage((value) => value + 1)}>Next</button>
+                <span>{page} of {historyPageCount}</span>
+                <button type="button" disabled={page >= historyPageCount} onClick={() => setPage((value) => value + 1)}>Next</button>
               </div>
             )}
           </div>
@@ -341,7 +353,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, openChat, onClose }:
                   }
                 }}
                 placeholder="Ask about your money…"
-                aria-label="Ask Money Brain"
+                aria-label="Ask Aviary"
               />
               <button type="submit" disabled={sending || !input.trim()} aria-label="Send question"><ArrowUp size={18} /></button>
             </form>

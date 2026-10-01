@@ -21,6 +21,11 @@ vi.mock('@/lib/notifications/instant', () => ({
   notifyThresholdCrossed: vi.fn(async () => {}),
 }))
 
+const markManualTransactionCompleteMock = vi.fn(async () => {})
+vi.mock('@/lib/users', () => ({
+  markManualTransactionComplete: markManualTransactionCompleteMock,
+}))
+
 // withTx just runs the callback with an undefined "session" — fakeCollection
 // below accepts and ignores an options argument, so this is enough to
 // exercise the same code paths without a real Mongo transaction.
@@ -310,6 +315,15 @@ describe('GET/PUT/DELETE /api/expenses — id-based addressing (C2)', () => {
 })
 
 describe('POST /api/expenses — client_id idempotency (offline sync §5)', () => {
+  it('records the manual-entry milestone, but not an ordinary or scanned create', async () => {
+    await POST(req('POST', { item: 'Coffee', amount_inr: '150', category: 'Food', source: 'manual' }))
+    await POST(req('POST', { item: 'Tea', amount_inr: '50', category: 'Food' }))
+    await POST(req('POST', { item: 'Receipt item', amount_inr: '100', category: 'Food', source: 'scan' }))
+
+    expect(markManualTransactionCompleteMock).toHaveBeenCalledTimes(1)
+    expect(markManualTransactionCompleteMock).toHaveBeenCalledWith('user_a')
+  })
+
   it('a repeated client_id returns the same id, inserts nothing, and leaves the CC envelope unchanged', async () => {
     const body = {
       item: 'Flight',

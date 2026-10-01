@@ -11,6 +11,7 @@ import { withTx } from '@/lib/mongodb'
 import { createExpense, adjustCreditCardEnvelope } from '@/lib/createExpense'
 import { resolveCategoryName } from '@/lib/categoryName'
 import { flagIfDuplicate } from '@/lib/duplicates'
+import { markManualTransactionComplete } from '@/lib/users'
 
 export const dynamic = 'force-dynamic'
 
@@ -196,6 +197,11 @@ export async function POST(req: Request) {
     payment_method: body.payment_method === undefined ? undefined : String(body.payment_method),
     client_id: typeof body.client_id === 'string' ? body.client_id : undefined,
   })
+
+  // The Get Started card is account state, not device state. Only the manual
+  // entry screen sends this source marker; scans and recurring charges do not
+  // accidentally complete the step. Idempotent replays keep the first instant.
+  if (body.source === 'manual') await markManualTransactionComplete(auth.userId)
 
   // Replays were checked on their first attempt. Mobile's offline queue lands
   // here too, which is where accidental double entries mostly come from.

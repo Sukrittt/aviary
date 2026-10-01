@@ -10,12 +10,14 @@ import { CurrencyProvider } from './CurrencyProvider'
 import { MoneyBrainProvider } from './MoneyBrainProvider'
 import { MaintenanceBanner } from './MaintenanceBanner'
 import { SubscriptionGate } from './SubscriptionGate'
+import { AnalyticsProvider } from './AnalyticsProvider'
 
 // No AuthGate: signed-out visitors use the API's read-only demo account, while
 // AuthKitProvider upgrades the same public pages when a real session exists.
 export function ClientProviders({ children }: { children: ReactNode }) {
   return (
     <AuthKitProvider>
+      <AnalyticsProvider>
       <MaintenanceBanner />
       <QueryProvider>
         <CurrencyProvider><AppearanceProvider>
@@ -30,6 +32,7 @@ export function ClientProviders({ children }: { children: ReactNode }) {
           </MoneyBrainProvider>
         </AppearanceProvider></CurrencyProvider>
       </QueryProvider>
+      </AnalyticsProvider>
     </AuthKitProvider>
   )
 }

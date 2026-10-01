@@ -1,3 +1,4 @@
+import { pageMetadata } from '@/lib/seo'
 import Link from 'next/link'
 import { getDb } from '@/lib/mongodb'
 import { AI_USAGE, type AiUsageDoc } from '@/lib/ai/usage'
@@ -158,3 +159,5 @@ export default async function AdminAi({ searchParams }: { searchParams: Promise<
     </>
   )
 }
+
+export const metadata = pageMetadata('/admin/ai')

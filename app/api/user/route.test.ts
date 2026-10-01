@@ -113,6 +113,21 @@ describe('PATCH /api/user', () => {
     expect(res.status).toBe(400)
     expect(usersUpdateOneMock).not.toHaveBeenCalled()
   })
+
+  it('records guided-tour completion with the server clock', async () => {
+    const res = await PATCH(patchRequest({ guidedTourCompleted: true }))
+    expect(res.status).toBe(200)
+    expect(usersUpdateOneMock).toHaveBeenCalledWith(
+      { _id: 'user_a', guidedTourCompletedAt: { $in: [null, undefined] } },
+      { $set: { guidedTourCompletedAt: expect.any(String) } },
+    )
+  })
+
+  it('does not accept a client-supplied guided-tour timestamp', async () => {
+    const res = await PATCH(patchRequest({ guidedTourCompletedAt: '2000-01-01T00:00:00.000Z' }))
+    expect(res.status).toBe(400)
+    expect(usersUpdateOneMock).not.toHaveBeenCalled()
+  })
 })
 
 describe('PATCH /api/user currency', () => {

@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'node:crypto'
 import { NextResponse } from 'next/server'
 import { saveSession } from '@workos-inc/authkit-nextjs'
 import { getWorkOSClient } from '@/lib/workosClient'
@@ -13,6 +14,20 @@ const PER_IP_LIMIT = 30
 const BURST_WINDOW_MS = 60 * 1000
 const BURST_PER_EMAIL_LIMIT = 5
 const BURST_PER_IP_LIMIT = 10
+
+/**
+ * Payment-gateway reviewers (Razorpay KYC) can't read our emailed codes, so one
+ * allowlisted email may sign in with a fixed code instead. Off unless both env
+ * vars are set; point it at a throwaway account and unset after review.
+ */
+function isReviewLogin(email: string, code: string): boolean {
+  const reviewEmail = process.env.REVIEW_LOGIN_EMAIL?.trim().toLowerCase()
+  const reviewCode = process.env.REVIEW_LOGIN_CODE?.trim()
+  if (!reviewEmail || !reviewCode || email !== reviewEmail) return false
+  const a = Buffer.from(code)
+  const b = Buffer.from(reviewCode)
+  return a.length === b.length && timingSafeEqual(a, b)
+}
 
 /**
  * Shared by both clients: web relies on the cookie saveSession() sets;
@@ -43,10 +58,13 @@ export async function POST(req: Request) {
   const userAgent = typeof device === 'string' && device ? device : req.headers.get('user-agent') ?? undefined
 
   try {
-    const { user, accessToken, refreshToken } = await getWorkOSClient().userManagement.authenticateWithMagicAuth({
+    const workos = getWorkOSClient().userManagement
+    // WorkOS still issues the session: mint a real code and redeem it at once.
+    const realCode = isReviewLogin(email, code) ? (await workos.createMagicAuth({ email })).code : code
+    const { user, accessToken, refreshToken } = await workos.authenticateWithMagicAuth({
       clientId: process.env.WORKOS_CLIENT_ID!,
       email,
-      code,
+      code: realCode,
       userAgent,
     })
     await ensureUser(user)

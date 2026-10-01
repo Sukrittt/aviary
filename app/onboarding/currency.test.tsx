@@ -5,7 +5,7 @@ import SetupWizardPage from './page'
 import { updateUser } from '@/src/api/account'
 import { completeOnboarding } from '@/src/api/billing'
 
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }))
+vi.mock('next/navigation', () => ({ useRouter: () => ({ replace: vi.fn() }) }))
 vi.mock('@/src/api/budgets', () => ({
   getBudgets: vi.fn(async () => []),
   updateBudget: vi.fn(async () => ({})),
@@ -31,7 +31,7 @@ describe('currency onboarding', () => {
     fireEvent.click(screen.getByRole('button', { name: /US Dollar/ }))
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     expect(screen.getByRole('img', { name: '$0' })).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: '←' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }))
     expect(screen.getByRole('button', { name: /US Dollar/ }).getAttribute('aria-pressed')).toBe('true')
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     fireEvent.click(screen.getByRole('button', { name: '$50,000' }))

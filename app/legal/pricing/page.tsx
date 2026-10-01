@@ -1,7 +1,8 @@
+import { pageMetadata } from '@/lib/seo'
 import { getPlanPrices, type PlanPrice } from '@/lib/billing/razorpay'
 import { formatPrice, yearlySavingsPercent } from '@/src/components/billing/copy'
 
-export const metadata = { title: 'Pricing — Aviary' }
+export const metadata = pageMetadata('/legal/pricing')
 // Read from Razorpay (cached in-process), so the page always shows the price that's actually charged.
 export const dynamic = 'force-dynamic'
 

@@ -1,6 +1,9 @@
-import { redirect } from 'next/navigation'
+import { pageMetadata } from '@/lib/seo'
+import { permanentRedirect } from 'next/navigation'
 
 /** Backwards-compatible public URL used by the published privacy-policy link. */
 export default function PrivacyPolicyAliasPage() {
-  redirect('/legal/privacy')
+  permanentRedirect('/legal/privacy')
 }
+
+export const metadata = pageMetadata('/legal/privacy')

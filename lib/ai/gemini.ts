@@ -10,7 +10,7 @@ import { AI_DISABLED_MESSAGE, getSystemSettings } from '../systemSettings'
 // Measured 2026-09-24, same prompt back to back: 3.1-flash-lite streamed its
 // first token in ~2.8s median (and 503'd repeatedly), 3.5-flash-lite in
 // ~0.8s. Costs more per token ($0.30/$2.50 vs $0.25/$1.50 per 1M) but the
-// money brain's replies are tens of tokens, so the latency wins outright.
+// Ask Aviary's replies are tens of tokens, so the latency wins outright.
 const MODEL = 'gemini-3.5-flash-lite'
 // Gemini answers 503 UNAVAILABLE ("experiencing high demand") in bursts. One
 // retry clears most of them, and nothing has been streamed to the client yet

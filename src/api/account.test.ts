@@ -3,6 +3,7 @@ import type { Mock } from 'vitest'
 import { apiFetch } from './client'
 import {
   getUser,
+  completeGuidedTour,
   updateUser,
   changeEmail,
   startExport,
@@ -144,5 +145,17 @@ describe('startExport / getExports', () => {
     })
     const result = await getExports()
     expect(result).toEqual({ exports: [], usedThisMonth: 1, limit: 3 })
+  })
+})
+
+
+it('completes the tour using a server-owned timestamp and returns the profile', async () => {
+  const profile = { email: 'a@b.com', guidedTourCompletedAt: '2026-10-01' }
+  mockedApiFetch.mockResolvedValue({ ok: true, json: async () => profile })
+  expect(await completeGuidedTour()).toEqual(profile)
+  expect(mockedApiFetch).toHaveBeenCalledWith('/api/user', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ guidedTourCompleted: true }),
   })
 })

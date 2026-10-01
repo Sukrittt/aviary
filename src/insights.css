@@ -113,27 +113,13 @@
 }
 
 .ins-card {
+  box-shadow: none;
   animation: ins-card-rise 420ms cubic-bezier(.2,.8,.2,1) both;
 }
 
 .ins-trend-card {
   grid-column: 1 / -1;
 }
-
-/* Under 3 months of data the card holds a single sentence, not a chart —
-   shrink it to a strip so it stops reserving chart-sized height. */
-.ins-trend-card.is-strip {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px 20px;
-  padding: 14px 20px;
-}
-
-.ins-trend-card.is-strip .ins-card-heading { flex: none; gap: 10px; align-items: center; }
-.ins-trend-card.is-strip .ins-card-heading p { display: none; }
-.ins-trend-card.is-strip .ins-trend-summary { margin: 0; }
 
 .ins-left-col {
   display: flex;
@@ -144,11 +130,14 @@
 
 .ins-breakdown-card {
   animation-delay: 70ms;
-  align-self: start;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
 }
 
 .ins-heatmap-card {
   animation-delay: 190ms;
+  flex: 1;
 }
 
 .ins-top-card {
@@ -564,6 +553,10 @@
   font-size: 13px;
 }
 
+.ins-breakdown-content {
+  flex: 1;
+}
+
 .ins-axis-row {
   display: flex;
   justify-content: space-between;
@@ -679,14 +672,6 @@
   color: var(--erd-text2);
   font-size: 14px;
 }
-
-.ins-trend-summary {
-  margin: 32px 0 0;
-  color: var(--erd-text2);
-  font-size: 14px;
-}
-
-.ins-trend-summary strong { color: var(--erd-text); }
 
 .ins-head-delta { font-size: 11px; }
 
@@ -835,8 +820,8 @@
 }
 
 @media (max-width: 900px) {
-  .insights-page .erd-main { padding: 0 0 96px; }
-  .ins-mobile-header { display: flex; align-items: center; gap: 13px; }
+  .insights-page .erd-main { padding: calc(72px + env(safe-area-inset-top)) 0 0; }
+  .ins-mobile-header { display: none; }
   .ins-mobile-header .ins-back-btn { flex: none; }
   .ins-content { padding: 16px; overflow-y: auto; }
   .ins-period-header { justify-content: center; }
@@ -866,6 +851,13 @@
 }
 
 /* Recent activity uses the same row typography and circular avatars as Biggest spends. */
+.expense-redesign .home-recent .ins-top-list {
+  /* Keep the rows aligned with the heading while giving their negative
+     margins, hover background and focus ring room inside the scroller. */
+  margin-inline: calc(-1 * var(--tk-space-lg));
+  padding-inline: var(--tk-space-lg);
+  padding-block: 6px;
+}
 .expense-redesign .home-recent a {
   text-decoration: none;
 }
@@ -889,4 +881,30 @@
 
 .expense-redesign .home-recent .ins-top-icon {
   border-radius: 10px;
+}
+
+.ins-breakdown-empty {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 240px;
+  padding: 24px 12px;
+  text-align: center;
+  color: var(--erd-text);
+}
+.ins-breakdown-empty strong { margin-top: 8px; font-family: var(--font-fredoka); font-size: 18px; font-weight: 600; }
+.ins-breakdown-empty p { margin: 4px 0 0; color: var(--erd-text2); font-size: 13px; }
+.snoozing-bird-head { transform-origin: 250px 340px; animation: snoozing-nod 3.2s ease-in-out infinite alternate; }
+.snoozing-bird-z { transform-box: fill-box; transform-origin: center; animation: snoozing-drift 2.4s ease-out infinite; }
+.snoozing-bird-z.is-small { animation-delay: -1.2s; }
+@keyframes snoozing-nod { to { transform: rotate(7deg) translateY(1px); } }
+@keyframes snoozing-drift {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.6); }
+  20%, 70% { opacity: 1; }
+  100% { opacity: 0; transform: translate(18px, -55px) scale(1.1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .snoozing-bird-head, .snoozing-bird-z { animation: none; }
 }

@@ -360,7 +360,7 @@ function SecurityContent() {
           </div>
           <div className="account-card account-proof-card">
             <p className="account-proof-copy">
-              Before an expense, budget number or Money Brain chat reaches our database, we encrypt
+              Before an expense, budget number or Ask Aviary chat reaches our database, we encrypt
               it with AES-256-GCM. A leaked database backup or an open connection string only turns
               up ciphertext, never your amounts, item names or notes.
             </p>
@@ -369,7 +369,7 @@ function SecurityContent() {
             </p>
             <p className="account-proof-copy">
               This isn&apos;t end-to-end encryption, and we won&apos;t call it that. Our server still
-              decrypts your data to run your budget, digests and Money Brain, so it protects you if
+              decrypts your data to run your budget, digests and Ask Aviary, so it protects you if
               the database leaks, not if the app server itself is compromised.
             </p>
             <button

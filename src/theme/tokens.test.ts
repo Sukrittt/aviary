@@ -7,6 +7,12 @@ import { darkTokens, lightTokens } from './tokens'
 // forgets `npm run gen:tokens`, every stylesheet keeps the old colours while
 // tokens.ts claims the new ones — silently, since nothing else reads the .ts.
 describe('tokens.css', () => {
+  it('uses light for the initial page palette before preferences are restored', () => {
+    const css = readFileSync('src/theme/tokens.css', 'utf8')
+    const root = css.match(/:root\s*\{([^}]+)\}/)?.[1]
+    expect(root).toContain(`--tk-bg: ${lightTokens.bg};`)
+    expect(root).toContain(`--tk-text: ${lightTokens.text};`)
+  })
   it('is in sync with tokens.ts', () => {
     const before = readFileSync('src/theme/tokens.css', 'utf8')
     execFileSync('node', ['scripts/generate-tokens.mjs'], { stdio: 'pipe' })

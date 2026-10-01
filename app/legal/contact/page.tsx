@@ -1,4 +1,5 @@
-export const metadata = { title: 'Contact — Aviary' }
+import { pageMetadata } from '@/lib/seo'
+export const metadata = pageMetadata('/legal/contact')
 
 const SUPPORT_EMAIL = 'aviary.playreview@gmail.com'
 

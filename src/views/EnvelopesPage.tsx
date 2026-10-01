@@ -43,6 +43,7 @@ import { splitEmoji, groupEmoji, categoryEmoji, avatarColorFor } from "../lib/em
 import { DEFAULT_ALERT_PCTS } from "../lib/alerts";
 import { EMPTY } from "../lib/constants";
 import type { CategoryRow } from "../types";
+import { BirdEmptyState } from "../components/BirdEmptyState";
 
 /** A pending rename or creation, in whichever place the row sits. */
 type Draft =
@@ -290,9 +291,12 @@ export function EnvelopesPage() {
           {loading && <LoadingCaption placement="page" />}
 
           {!loading && grouped.length === 0 && (
-            <p className="env-empty">
-              No groups yet. Make one and start filling it.
-            </p>
+            <BirdEmptyState
+              subject="envelopes"
+              title="Your envelopes are waiting"
+              description="Make a group, add a category, and give every rupee a place to land."
+              action={{ label: 'Create your first group', onClick: () => beginDraft({ kind: 'new-group' }) }}
+            />
           )}
 
           <ul className="env-group-list" aria-label="Envelope groups">

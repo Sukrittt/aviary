@@ -13,7 +13,9 @@ import { CategoryPicker } from './CategoryPicker'
 import { useCategories } from '../hooks/useCategories'
 import { useAddExpense, useDeleteExpense, useRecentExpenses } from '../hooks/useExpenses'
 import { unusualAmount } from '../lib/unusualAmount'
-import { splitEmoji } from '../lib/emoji'
+import { categoryEmoji, splitEmoji } from '../lib/emoji'
+import { createThinkingGate, type ThinkingGate } from '../lib/thinkingGate'
+import { AutoPickStatus } from '../features/log-expense/AutoPickStatus'
 import { EMPTY } from '../lib/constants'
 import { missingFields, missingFieldsMessage } from '../features/log-expense/missingFields'
 import { Toast } from './Toast'
@@ -68,8 +70,17 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
   const deleteExpenseM = useDeleteExpense()
   const [undoError, setUndoError] = useState('')
   const [categoryWords, setCategoryWords] = useState<Record<string, string>>({})
-  const [categoryTouched, setCategoryTouched] = useState(false)
-  const categoryTouchedRef = useRef(categoryTouched)
+  const [categoryPickTick, setCategoryPickTick] = useState(0)
+  // True while the category is one we picked, not one the user chose (the
+  // Miscellaneous fallback doesn't count). Drives the "Picked for you" status.
+  const [autoPicked, setAutoPicked] = useState(false)
+  // "Picking…" is only shown for the slow AI fallback, and only once it's been
+  // pending long enough to be worth showing (see thinkingGate.ts).
+  const [suggesting, setSuggesting] = useState(false)
+  const gateRef = useRef<ThinkingGate | null>(null)
+  if (gateRef.current == null) gateRef.current = createThinkingGate(setSuggesting)
+  // A manual choice wins for this name; editing the name starts prediction again.
+  const categoryTouchedRef = useRef(false)
   const llmDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   // The item text the latest keystroke produced; a model reply for any other text is stale.
   const latestItemRef = useRef('')
@@ -88,6 +99,15 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
   const warning = unusual && unusualWarnedFor === warnKey ? unusual : null
   const [unusualNudge, setUnusualNudge] = useState(0)
 
+  const rollEmojis = useMemo(
+    () => [...new Set((categoriesQ.data ?? EMPTY).map((c) => categoryEmoji(c.name, c.group)).filter(Boolean))],
+    [categoriesQ.data],
+  )
+  const selectedRow = (categoriesQ.data ?? EMPTY).find((c) => c.name === category)
+  const selectedCategory = selectedRow
+    ? { emoji: categoryEmoji(selectedRow.name, selectedRow.group), name: splitEmoji(selectedRow.name).text }
+    : null
+
   // Bumped on each blocked save; 0 means nothing is highlighted yet.
   const [nudge, setNudge] = useState(0)
   const missing = missingFields({ amount, item, category: effectiveCategory })
@@ -103,14 +123,11 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
       .catch(() => {})
   }, [])
 
-  useEffect(() => {
-    categoryTouchedRef.current = categoryTouched
-  }, [categoryTouched])
-
   // Cancel any pending debounced LLM lookup on unmount.
   useEffect(() => {
     return () => {
       if (llmDebounceRef.current) clearTimeout(llmDebounceRef.current)
+      gateRef.current?.cancel()
     }
   }, [])
 
@@ -118,6 +135,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
     if (categoryTouchedRef.current || latestItemRef.current !== value) return
     if (llmCategory && categories.includes(llmCategory)) {
       setCategory(llmCategory)
+      setAutoPicked(true)
       // Mirror the server's word overrides so the same words match locally, instantly, next time.
       const learned = Object.fromEntries(
         value.toLowerCase().split(/\s+/).filter((w) => w.length >= 2).map((w) => [w, llmCategory]),
@@ -127,6 +145,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
     }
     const misc = categories.find((c) => c.toLowerCase().includes('miscellaneous'))
     setCategory(misc ?? '')
+    setAutoPicked(false)
   }
 
   function handleItemChange(value: string) {
@@ -136,7 +155,11 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
       clearTimeout(llmDebounceRef.current)
       llmDebounceRef.current = null
     }
-    if (categoryTouched) return
+    const gate = gateRef.current!
+    gate.cancel()
+    categoryTouchedRef.current = false
+    setCategory('')
+    setAutoPicked(false)
     const words = value.toLowerCase().split(/\s+/)
     for (const word of words) {
       const match = categoryWords[word]
@@ -145,23 +168,32 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
         ? match
         : categories.find((c) => c.toLowerCase().includes(match.toLowerCase()))
       if (live) {
-        setCategory(live)
+        gate.finish(() => {
+          setCategory(live)
+          setAutoPicked(true)
+        })
         return
       }
     }
     const key = value.trim().toLowerCase()
-    if (key.length < MIN_LLM_CHARS) return
+    if (key.length < MIN_LLM_CHARS) {
+      gate.cancel()
+      return
+    }
     const known = llmAnswers.get(key)
     if (known !== undefined) {
-      applyLlmAnswer(value, known)
+      gate.finish(() => applyLlmAnswer(value, known))
       return
     }
 
     // No local match — debounce an LLM fallback lookup instead of firing per keystroke.
     llmDebounceRef.current = setTimeout(() => {
+      gate.start()
       suggestCategoryLLM(value, categories).then((llmCategory) => {
         if (llmCategory !== null) llmAnswers.set(key, llmCategory)
-        applyLlmAnswer(value, llmCategory ?? '')
+        // A reply for text the user has since changed must not end the newer lookup's thinking.
+        if (categoryTouchedRef.current || latestItemRef.current !== value) return
+        gate.finish(() => applyLlmAnswer(value, llmCategory ?? ''))
       })
     }, 200)
   }
@@ -176,8 +208,15 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
   }
 
   function handleCategoryPick(c: string) {
+    if (llmDebounceRef.current) {
+      clearTimeout(llmDebounceRef.current)
+      llmDebounceRef.current = null
+    }
+    gateRef.current?.cancel()
     setCategory(c)
-    setCategoryTouched(true)
+    setCategoryPickTick((tick) => tick + 1)
+    categoryTouchedRef.current = true
+    setAutoPicked(false)
   }
 
   function handleDatePick(value: string) {
@@ -191,7 +230,9 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
     setCategory('')
     setDate(toDateInputValue(new Date()))
     setShowCalendar(false)
-    setCategoryTouched(false)
+    categoryTouchedRef.current = false
+    setAutoPicked(false)
+    gateRef.current?.cancel()
     onClose()
   }
 
@@ -216,6 +257,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
         amount_inr: String(Math.round(parsed)),
         category: effectiveCategory,
         date: date || undefined,
+        source: 'manual',
       })
       onSaved()
       reset()
@@ -333,19 +375,24 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
                 <label className="erd-log-label" htmlFor="erd-log-item">
                   What was it for?
                 </label>
-                <input
-                  ref={itemNudgeRef}
-                  id="erd-log-item"
-                  className={`erd-log-input${flag('item') ? ' is-missing' : ''}`}
-                  placeholder="e.g. Bike repair"
-                  value={item}
-                  onChange={(e) => handleItemChange(e.target.value)}
-                />
+                <div className="erd-log-item-field">
+                  <input
+                    ref={itemNudgeRef}
+                    id="erd-log-item"
+                    className={`erd-log-input${flag('item') ? ' is-missing' : ''}`}
+                    placeholder="e.g. Bike repair"
+                    value={item}
+                    onChange={(e) => handleItemChange(e.target.value)}
+                  />
+                  <AutoPickStatus thinking={suggesting} picked={autoPicked ? selectedCategory : null} selected={selectedCategory} pickTick={categoryPickTick} rollEmojis={rollEmojis} />
+                </div>
               </section>
 
               <section className="erd-log-section">
-                <div ref={categoryNudgeRef} className={`erd-log-label${flag('category') ? ' is-missing' : ''}`}>
-                  Category
+                <div className="erd-log-label-row">
+                  <div ref={categoryNudgeRef} className={`erd-log-label${flag('category') ? ' is-missing' : ''}`}>
+                    Category
+                  </div>
                 </div>
                 <CategoryPicker value={effectiveCategory} onChange={handleCategoryPick} />
               </section>

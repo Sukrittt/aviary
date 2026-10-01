@@ -54,8 +54,7 @@ const OPEN: Record<string, string> = {
   'data/exports': 'exit route (pricing.md)',
   'data/exports/[id]/download': 'exit route (pricing.md)',
 
-  // Support, and the two reads an expired user is still entitled to.
-  feedback: 'support channel',
+  // The two reads an expired user is still entitled to.
   'privacy/proof': 'shows how their data is stored; no budgeting content',
   'system/status': 'public; maintenance banner and update prompt',
   'notifications/register': 'a device must be able to register to receive the "your trial ended" push',

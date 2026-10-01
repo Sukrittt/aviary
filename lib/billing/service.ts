@@ -132,7 +132,13 @@ export async function completeOnboarding(
   // already showed the user, or reorder them in the admin list.
   const onboardedAt = now.toISOString()
   const users = db.collection<UserDoc>('users')
-  await users.updateOne({ _id: userId, onboardedAt: { $in: [null, undefined] } }, { $set: { onboardedAt } })
+  // `getStartedAt` is intentionally stamped in the same first-time write. Old
+  // accounts already have onboardedAt, so a deploy never back-enables the card
+  // for people who completed setup before this flow existed.
+  await users.updateOne(
+    { _id: userId, onboardedAt: { $in: [null, undefined] } },
+    { $set: { onboardedAt, getStartedAt: onboardedAt } },
+  )
   const user = await users.findOne({ _id: userId }, { projection: { onboardedAt: 1 } })
 
   return { ok: true, onboardedAt: user?.onboardedAt ?? onboardedAt, account }

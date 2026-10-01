@@ -1,3 +1,4 @@
+import { pageMetadata } from '@/lib/seo'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { CURRENCIES, resolveCurrency } from '@/src/lib/currencies'
@@ -290,3 +291,5 @@ export default async function AdminUserDetail({ params }: { params: Promise<{ id
     </>
   )
 }
+
+export const metadata = pageMetadata('/admin/users/[id]')

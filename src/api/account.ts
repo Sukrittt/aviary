@@ -16,6 +16,9 @@ export interface UserProfile {
   name?: string | null
   avatarUrl?: string | null
   onboardedAt?: string | null
+  getStartedAt?: string | null
+  manualTransactionCompletedAt?: string | null
+  guidedTourCompletedAt?: string | null
   notifyCadence?: 'off' | 'weekly' | 'daily'
   notifyThresholds?: boolean
   notifyBills?: boolean
@@ -47,6 +50,17 @@ export async function updateUser(patch: Partial<UserProfile>): Promise<UserProfi
     body: JSON.stringify(patch),
   })
   if (!resp.ok) throw new Error(`Failed to update user: ${resp.status}`)
+  return resp.json()
+}
+
+/** The server stamps this milestone once; replaying the tour is safe. */
+export async function completeGuidedTour(): Promise<UserProfile> {
+  const resp = await apiFetch('/api/user', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ guidedTourCompleted: true }),
+  })
+  if (!resp.ok) throw new Error(`Failed to complete guided tour: ${resp.status}`)
   return resp.json()
 }
 

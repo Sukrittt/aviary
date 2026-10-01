@@ -1,6 +1,8 @@
+import { pageMetadata } from '@/lib/seo'
 import Link from 'next/link'
 
 const REPO_URL = 'https://github.com/Sukrittt/aviary-mobile'
+const FEEDBACK_BOARD_URL = 'https://aviary.userjot.com'
 
 export default function HelpPage() {
   return (
@@ -29,24 +31,15 @@ export default function HelpPage() {
             →
           </span>
         </Link>
-        <Link href="/account/feedback?type=bug" className="account-row">
-          <span className="account-row-icon" aria-hidden="true">
-            🐛
-          </span>
-          <span className="account-row-label">Report a bug</span>
-          <span className="account-row-arrow" aria-hidden="true">
-            →
-          </span>
-        </Link>
-        <Link href="/account/feedback?type=idea" className="account-row">
+        <a href={FEEDBACK_BOARD_URL} target="_blank" rel="noreferrer" className="account-row">
           <span className="account-row-icon" aria-hidden="true">
             💬
           </span>
-          <span className="account-row-label">Send feedback</span>
+          <span className="account-row-label">Feedback board</span>
           <span className="account-row-arrow" aria-hidden="true">
             →
           </span>
-        </Link>
+        </a>
         <a href={REPO_URL} target="_blank" rel="noreferrer" className="account-row">
           <span className="account-row-icon" aria-hidden="true">
             ⭐
@@ -60,3 +53,5 @@ export default function HelpPage() {
     </>
   )
 }
+
+export const metadata = pageMetadata('/account/help')

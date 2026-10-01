@@ -9,23 +9,40 @@ import { syncLevel } from './thresholdState'
 
 /**
  * Reconciles the recorded threshold level for every category changed by one
- * write. A budget transfer can affect several envelopes at once, so this
- * batches the expensive context build while still applying each category's
- * level independently.
+ * write. Budget changes only sync the new baseline: shrinking an envelope can
+ * raise its spent percentage without any new spending, so it must never send
+ * a threshold or overspending notification. Falling levels still re-arm every
+ * threshold above the new level for a later expense.
  *
- * Rising levels send the highest currently crossed threshold. Falling levels
- * only update state, re-arming every threshold above the new level. When a
- * budget mutation supplies `changedMonth`, historical edits are ignored so
- * they cannot alter the current month's notification state.
- *
- * Never throws — notification work must not fail the money write that caused
- * it. Awaiting is still important because a serverless function may suspend as
- * soon as its response is sent.
+ * A budget transfer can affect several envelopes at once, so this batches the
+ * expensive context build while still applying each category's level
+ * independently. When a budget mutation supplies `changedMonth`, historical
+ * edits are ignored so they cannot alter the current month's notification
+ * state.
  */
 export async function reconcileThresholdLevels(
   auth: Auth,
   changedCategories: string[],
   changedMonth?: string,
+): Promise<void> {
+  await reconcile(auth, changedCategories, changedMonth, false)
+}
+
+/** Expense writes may send when the newly recorded level rises. */
+export async function notifyThresholdCrossed(auth: Auth, category: string): Promise<void> {
+  await reconcile(auth, [category], undefined, true)
+}
+
+/**
+ * Never throws — notification work must not fail the money write that caused
+ * it. Awaiting is still important because a serverless function may suspend as
+ * soon as its response is sent.
+ */
+async function reconcile(
+  auth: Auth,
+  changedCategories: string[],
+  changedMonth: string | undefined,
+  sendOnRise: boolean,
 ): Promise<void> {
   try {
     const affected = [...new Set(changedCategories.filter(Boolean))]
@@ -44,6 +61,13 @@ export async function reconcileThresholdLevels(
 
     // Threshold notifications never read `facts`, so skip the 6-month AI window.
     const { facts, meta, envelopes, subscriptions, categories } = await buildExpenseContext(auth, { monthOnly: true })
+
+    if (!sendOnRise) {
+      for (const category of affected) {
+        await syncLevel(db, user._id, month, category, categoryLevel(envelopes, categories, category))
+      }
+      return
+    }
 
     const notifications = buildNotifications({
       envelopes,
@@ -70,9 +94,4 @@ export async function reconcileThresholdLevels(
   } catch (err) {
     console.error('notifications: instant threshold reconciliation failed for', auth.userId, changedCategories, err)
   }
-}
-
-/** Reconciles one category after an expense is logged, edited, or deleted. */
-export async function notifyThresholdCrossed(auth: Auth, category: string): Promise<void> {
-  await reconcileThresholdLevels(auth, [category])
 }

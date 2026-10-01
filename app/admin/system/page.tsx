@@ -1,3 +1,4 @@
+import { pageMetadata } from '@/lib/seo'
 import { getSystemSettings } from '@/lib/systemSettings'
 import { ActionForm, SubmitButton } from '../ActionForm'
 import { saveSettingsAction } from './actions'
@@ -19,7 +20,7 @@ export default async function AdminSystem() {
               <input type="checkbox" name="aiDisabled" defaultChecked={settings.aiDisabled} style={{ marginTop: 4 }} />
               <span>
                 <strong>Disable AI features</strong>
-                <div className="adm-sub">Money Brain chat, daily brief, bill scan and category suggestions answer 503. Coach pushes fall back to their plain text.</div>
+                <div className="adm-sub">Ask Aviary chat, daily brief, bill scan and category suggestions answer 503. Coach pushes fall back to their plain text.</div>
               </span>
             </label>
 
@@ -120,3 +121,5 @@ export default async function AdminSystem() {
     </>
   )
 }
+
+export const metadata = pageMetadata('/admin/system')

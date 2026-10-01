@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useMoneyBrain } from '../../../components/MoneyBrainProvider'
 import { LoadingCaption } from '@/src/components/LoadingCaption'
+import { BirdEmptyState } from '@/src/components/BirdEmptyState'
 
 interface SessionSummary {
   id: string
@@ -101,7 +102,12 @@ export default function ChatHistoryPage() {
       {sessions === null ? (
         loadError ? <div className="account-row-meta" role="alert">Couldn&apos;t load chat history.</div> : <LoadingCaption placement="page" />
       ) : sessions.length === 0 ? (
-        <div className="account-row-meta">No past chats yet. Start a conversation with Money Brain.</div>
+        <BirdEmptyState
+          subject="chat"
+          title="No past chats yet"
+          description="Ask Aviary about your spending and the conversation will wait for you here."
+          action={{ label: 'Start a conversation', onClick: () => openMoneyBrain(null) }}
+        />
       ) : (
         <div className="account-card">
           {sessions.map((s) => (

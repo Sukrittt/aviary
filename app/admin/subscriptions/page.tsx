@@ -1,3 +1,4 @@
+import { pageMetadata } from '@/lib/seo'
 import Link from 'next/link'
 import { ArrowUpRight, Ban, CalendarClock, FlaskConical, Gift, RefreshCw, ShieldCheck, ShieldOff, ShoppingBag, TriangleAlert, UserPlus } from 'lucide-react'
 import { getDb } from '@/lib/mongodb'
@@ -545,3 +546,5 @@ function ManageBody({ row: { account, user, access, state, endsAt, daysLeft } }:
     </>
   )
 }
+
+export const metadata = pageMetadata('/admin/subscriptions')

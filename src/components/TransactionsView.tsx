@@ -3,7 +3,7 @@ import { ExpenseWriteError } from '../lib/expenseConflict';
 import { useCurrency } from "@/src/context/CurrencyContext";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { Copy, Plus, ReceiptText, Search } from "lucide-react";
+import { Copy, Plus, Search } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { toTransactions, type Transaction } from "../lib/expenseTransactions";
 import { useBudgets } from "../hooks/useBudgets";
@@ -23,6 +23,7 @@ import { DatePicker } from "./DatePicker";
 import { Select } from "./Select";
 import { avatarColorFor, categoryEmoji, splitEmoji } from "../lib/emoji";
 import { formatShortDate } from "../lib/format";
+import { BirdEmptyState } from "./BirdEmptyState";
 
 type PeriodKey = "week" | "month" | "custom";
 
@@ -439,28 +440,16 @@ export function TransactionsView({
           Couldn&apos;t load transactions. {error}
         </div>
       ) : totalCount === 0 ? (
-        <div className="account-empty txn-timeline-empty">
-          <span aria-hidden="true">
-            <ReceiptText size={30} strokeWidth={1.8} />
-          </span>
-          {search || selectedCategory ? (
-            <>
-              <div className="account-empty-title">Nothing matches</div>
-              <p className="account-row-meta">No transactions for this filter.</p>
-              <button type="button" className="action-button is-active erd-accent-action" onClick={resetFilters}>
-                Reset filters
-              </button>
-            </>
-          ) : (
-            <>
-              <div className="account-empty-title">No transactions yet</div>
-              <p className="account-row-meta">Log an expense and it shows up here.</p>
-              <button type="button" className="action-button is-active erd-accent-action" onClick={() => setShowLogModal(true)}>
-                Log your first expense
-              </button>
-            </>
-          )}
-        </div>
+        <BirdEmptyState
+          className="txn-timeline-empty"
+          mood={search || selectedCategory ? 'searching' : 'snoozing'}
+          subject="expenses"
+          title={search || selectedCategory ? 'Nothing turned up' : 'Your story starts here'}
+          description={search || selectedCategory ? 'No transactions for this filter.' : 'Log your first expense and we’ll keep the little details here.'}
+          action={search || selectedCategory
+            ? { label: 'Reset filters', onClick: resetFilters }
+            : { label: 'Log your first expense', onClick: () => setShowLogModal(true) }}
+        />
       ) : (
         <motion.div
           key={page}

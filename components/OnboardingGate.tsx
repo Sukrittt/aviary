@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 
 // Pages that exist outside the "logged in and onboarded" app proper — never
 // bounce these to /onboarding even if the onboarding check would otherwise fire.
-// '/' is the public landing page, shown to everyone.
+// '/' is public; middleware sends signed-in visitors straight to /expense.
 const ONBOARDING_EXEMPT_PATHS = ['/', '/sign-in', '/email', '/code', '/onboarding']
 
 /**
