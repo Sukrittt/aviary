@@ -1,7 +1,11 @@
 import type { ReactNode } from 'react'
+import { BirdMark } from '@/src/components/BirdMark'
 import '../../src/expense-redesign.css'
 
-/** Shared chrome for /sign-in, /email, /code: a centered card over two soft drifting blobs. */
+/**
+ * Shared chrome for /sign-in, /email, /code. Under 1024px: a centered card over
+ * soft drifting blobs. Desktop: a split screen, brand panel left, form right.
+ */
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
     <div className="expense-redesign auth-page">
@@ -11,7 +15,24 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         <div className="auth-blob auth-blob--gold-2" />
         <div className="auth-blob auth-blob--mint-2" />
       </div>
-      {children}
+      <aside className="auth-brand">
+        <div className="auth-brand-mark">
+          <BirdMark size={34} /> Aviary
+        </div>
+        <div className="auth-brand-body">
+          <p className="auth-brand-headline">
+            Envelope budgeting that{' '}
+            <span className="auth-brand-learns">
+              learns
+              <svg viewBox="0 0 200 14" preserveAspectRatio="none" aria-hidden="true">
+                <path d="M3 10 C 40 3, 70 3, 100 8 S 160 13, 197 5" />
+              </svg>
+            </span>{' '}
+            your spending.
+          </p>
+        </div>
+      </aside>
+      <div className="auth-main">{children}</div>
     </div>
   )
 }
