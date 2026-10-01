@@ -367,6 +367,30 @@ describe('POST /api/expenses — client_id idempotency (offline sync §5)', () =
   })
 })
 
+describe('POST /api/expenses — source', () => {
+  it('records a row confirmed from the money brain as text', async () => {
+    const res = await POST(req('POST', { item: 'Auto', amount_inr: '240', category: 'Travel', date: '2026-09-26', source: 'text' }))
+    expect(res.status).toBe(200)
+    expect(stores.expenses[0].source).toBe('text')
+  })
+
+  it('records an estimate confirmed after a balance check as balance_gap', async () => {
+    await POST(req('POST', { item: 'Unlogged spends', amount_inr: '2000', category: 'Food', date: '2026-09-27', source: 'balance_gap' }))
+    expect(stores.expenses[0].source).toBe('balance_gap')
+  })
+
+  it('defaults to manual', async () => {
+    await POST(req('POST', { item: 'Tea', amount_inr: '50', category: 'Food', date: '2026-06-02' }))
+    expect(stores.expenses[0].source).toBe('manual')
+  })
+
+  it('refuses a source only a server job may set', async () => {
+    const res = await POST(req('POST', { item: 'Rent', amount_inr: '20000', category: 'Rent', date: '2026-06-01', source: 'recurring' }))
+    expect(res.status).toBe(400)
+    expect(stores.expenses).toHaveLength(0)
+  })
+})
+
 describe('GET /api/expenses — server-side pagination (opt-in via ?page=)', () => {
   it('with no ?page= keeps the legacy full-list shape', async () => {
     await POST(req('POST', { item: 'Coffee', amount_inr: '150', category: 'Food', date: '2026-06-01' }))

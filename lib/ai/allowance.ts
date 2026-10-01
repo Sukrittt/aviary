@@ -2,10 +2,15 @@ import { NextResponse } from 'next/server'
 import type { Auth } from '../access'
 import { getDb } from '../mongodb'
 import { getSystemSettings } from '../systemSettings'
-import { AI_USAGE, type AiUsageDoc } from './usage'
+import { AI_USAGE, type AiFeature, type AiUsageDoc } from './usage'
 
 /** Stable code clients can branch on, distinct from the burst rate limiter's plain 429. */
 export const AI_ALLOWANCE_EXCEEDED = 'AI_ALLOWANCE_EXCEEDED'
+
+// Logging spends from the money brain is how the app gets its data, so it
+// never eats into the allowance: a user who runs out mid-month can still log.
+// Those calls are still rate limited with the rest of the chat.
+export const ALLOWANCE_EXEMPT_FEATURES: AiFeature[] = ['capture']
 
 const CACHE_MS = 60_000
 // ponytail: per-instance 60s cache of each user's month-to-date spend, so a
@@ -25,7 +30,7 @@ async function monthlySpendUsd(userId: string, now: Date): Promise<number> {
   const [row] = await db
     .collection<AiUsageDoc>(AI_USAGE)
     .aggregate<{ total: number }>([
-      { $match: { user_id: userId, at: { $gte: monthStart(now) } } },
+      { $match: { user_id: userId, at: { $gte: monthStart(now) }, feature: { $nin: ALLOWANCE_EXEMPT_FEATURES } } },
       { $group: { _id: null, total: { $sum: { $ifNull: ['$costUsd', 0] } } } },
     ])
     .toArray()
