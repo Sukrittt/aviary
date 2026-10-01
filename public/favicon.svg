@@ -1,1 +1,26 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#f35022"/><g fill="#fdf4ea" transform="translate(256 270) scale(.82) translate(-256 -270)"><rect x="128" y="379" width="256" height="26" rx="13"/><rect x="224" y="340" width="17" height="46" rx="8.5"/><rect x="259" y="340" width="17" height="46" rx="8.5"/><path fill-rule="evenodd" d="M 352 212 L 404 248 L 352 284 A 110 110 0 0 1 146 288 L 86 164 L 162 178 A 110 110 0 0 1 352 212 Z M 287 216 A 19 19 0 1 1 325 216 A 19 19 0 1 1 287 216 Z"/></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Aviary app icon: a bird perched on a bar">
+  <title>Aviary</title>
+  <rect width="512" height="512" fill="#F04E23"/>
+  <g transform="translate(256 256) scale(0.82) translate(-256 -256)" fill="#FFF6EE">
+    <!-- perch -->
+    <rect x="128" y="379" width="256" height="26" rx="13"/>
+    <!-- legs -->
+    <rect x="224" y="340" width="17" height="46" rx="8.5"/>
+    <rect x="259" y="340" width="17" height="46" rx="8.5"/>
+    <!-- body + beak + tail as one silhouette, eye knocked out -->
+    <path fill-rule="evenodd" d="
+      M 352 212
+      L 404 248
+      L 352 284
+      A 110 110 0 0 1 146 288
+      L 86 164
+      L 162 178
+      A 110 110 0 0 1 352 212
+      Z
+      M 287 216
+      A 19 19 0 1 1 325 216
+      A 19 19 0 1 1 287 216
+      Z
+    "/>
+  </g>
+</svg>

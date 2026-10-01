@@ -1,8 +1,8 @@
+import { pageMetadata } from '@/lib/seo'
 import Link from 'next/link'
 import { BirdMark } from '@/src/components/BirdMark'
 import { TrackedLink } from '@/src/components/TrackedLink'
 
-export const metadata = { title: 'Sign in — Aviary' }
 
 export default async function SignInPage({
   searchParams,
@@ -47,3 +47,5 @@ export default async function SignInPage({
     </div>
   )
 }
+
+export const metadata = pageMetadata('/sign-in')

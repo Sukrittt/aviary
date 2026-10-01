@@ -1,3 +1,4 @@
+import { pageMetadata } from '@/lib/seo'
 import Link from 'next/link'
 import type { Filter } from 'mongodb'
 import { Inbox } from 'lucide-react'
@@ -131,3 +132,5 @@ export default async function AdminFeedback({ searchParams }: { searchParams: Pa
     </>
   )
 }
+
+export const metadata = pageMetadata('/admin/feedback')

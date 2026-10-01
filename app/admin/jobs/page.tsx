@@ -1,3 +1,4 @@
+import { pageMetadata } from '@/lib/seo'
 import { getDb } from '@/lib/mongodb'
 import { COLLECTIONS } from '@/lib/models'
 import { CRON_JOBS, CRON_RUNS, type CronJob, type CronRunDoc } from '@/lib/cronRuns'
@@ -157,3 +158,5 @@ export default async function AdminJobs() {
     </>
   )
 }
+
+export const metadata = pageMetadata('/admin/jobs')

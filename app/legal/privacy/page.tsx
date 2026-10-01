@@ -1,4 +1,4 @@
-export const metadata = { title: 'Privacy Policy — Aviary' }
+import { pageMetadata } from '@/lib/seo'
 
 const SUPPORT_EMAIL = 'support@useaviary.com'
 
@@ -139,3 +139,5 @@ export default function PrivacyPage() {
     </article>
   )
 }
+
+export const metadata = pageMetadata('/legal/privacy')

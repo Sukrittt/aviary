@@ -1,4 +1,4 @@
-export const metadata = { title: 'Terms — Aviary' }
+import { pageMetadata } from '@/lib/seo'
 
 const SUPPORT_EMAIL = 'support@useaviary.com'
 
@@ -125,3 +125,5 @@ export default function TermsPage() {
     </article>
   )
 }
+
+export const metadata = pageMetadata('/legal/terms')

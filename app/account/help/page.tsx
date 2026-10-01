@@ -1,3 +1,4 @@
+import { pageMetadata } from '@/lib/seo'
 import Link from 'next/link'
 
 const REPO_URL = 'https://github.com/Sukrittt/aviary-mobile'
@@ -60,3 +61,5 @@ export default function HelpPage() {
     </>
   )
 }
+
+export const metadata = pageMetadata('/account/help')

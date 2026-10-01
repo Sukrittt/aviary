@@ -1,3 +1,4 @@
+import { pageMetadata } from '@/lib/seo'
 import { getSystemSettings } from '@/lib/systemSettings'
 import { ActionForm, SubmitButton } from '../ActionForm'
 import { saveSettingsAction } from './actions'
@@ -120,3 +121,5 @@ export default async function AdminSystem() {
     </>
   )
 }
+
+export const metadata = pageMetadata('/admin/system')
