@@ -18,6 +18,7 @@ const OPEN: Record<string, string> = {
   // Server-to-server. No user session at all; each does its own secret check.
   'cron/billing': 'cron, CRON_SECRET',
   'cron/gc': 'cron, CRON_SECRET',
+  'cron/emails': 'transactional email retry cron, CRON_SECRET',
   'notifications/run': 'cron, CRON_SECRET',
   'billing/webhooks/revenuecat': 'provider webhook, shared secret',
   'billing/webhooks/razorpay': 'provider webhook, HMAC signature',

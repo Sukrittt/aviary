@@ -1,6 +1,7 @@
 import { json, error } from '@/lib/http'
 import { getAuth } from '@/lib/access'
 import { ensureUserById } from '@/lib/users'
+import { scheduleWelcomeEmail } from '@/lib/email/welcome'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,5 +15,6 @@ export async function GET(req: Request) {
   // Mobile signs in directly against WorkOS (never hits the web callback routes),
   // so this is its only chance to JIT-create the local user row.
   await ensureUserById(auth.userId)
+  scheduleWelcomeEmail(auth.userId)
   return json({ ok: true, userId: auth.userId })
 }

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { saveSession } from '@workos-inc/authkit-nextjs'
 import { getWorkOSClient } from '@/lib/workosClient'
 import { ensureUser } from '@/lib/users'
+import { scheduleWelcomeEmail } from '@/lib/email/welcome'
 import { getAuth } from '@/lib/access'
 import { verifyState, clearStateCookie } from '@/lib/oauthState'
 
@@ -52,6 +53,7 @@ export async function GET(req: Request) {
 
   await ensureUser(user)
   await saveSession({ accessToken, refreshToken, user }, req.url)
+  scheduleWelcomeEmail(user.id)
   const res = NextResponse.redirect(new URL(isLink ? '/account/security?linked=1' : '/', req.url))
   clearStateCookie(res)
   return res

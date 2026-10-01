@@ -2,6 +2,7 @@ import { getDb } from './mongodb'
 import { getWorkOSClient } from './workosClient'
 import { resolveCurrency } from '@/src/lib/currencies'
 import { purgesAt } from './archive'
+import { queueWelcomeEmail, type WelcomeDelivery } from './email/welcome'
 
 /** Features a user can hide from Mobile's More page for a simpler app. Hiding removes entry points only; data is untouched. */
 export const HIDEABLE_FEATURES = ['askAviary', 'investments', 'billScan', 'recurring', 'subscriptions', 'insights', 'wrapped'] as const
@@ -23,6 +24,8 @@ export interface UserDoc {
   name: string | null
   avatarUrl: string | null
   createdAt: Date
+  /** Server-only welcome delivery, seeded on insert so existing accounts are never emailed retroactively. */
+  welcomeEmail?: WelcomeDelivery
   onboardedAt?: string | null
   /** Server-owned milestones used by Mobile's finite Home "Get started" card. */
   getStartedAt?: string | null
@@ -83,6 +86,7 @@ export async function ensureUser(user: WorkOSUserLike): Promise<void> {
         _id: user.id,
         name: user.name || [user.firstName, user.lastName].filter(Boolean).join(' ').trim() || null,
         createdAt: new Date(),
+        welcomeEmail: queueWelcomeEmail({ email: user.email, name: user.name || [user.firstName, user.lastName].filter(Boolean).join(' ').trim() || null }),
         currencyCode: 'INR',
         // Digest is opt-out, not opt-in: a new account with notifications off
         // never hears from the app again. Seeded only on insert, so an existing
@@ -121,8 +125,10 @@ export async function markManualTransactionComplete(userId: string): Promise<voi
  */
 export function serializeUser(user: UserDoc | null) {
   if (!user) return null
+  const profile = { ...user }
+  delete profile.welcomeEmail
   return {
-    ...user,
+    ...profile,
     currencyCode: resolveCurrency(user.currencyCode),
     name: displayName(user),
     emailVerified: user.emailVerified ?? true,

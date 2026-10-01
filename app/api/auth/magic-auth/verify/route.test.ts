@@ -1,19 +1,22 @@
 import { it, expect, vi, beforeEach, afterEach } from 'vitest'
 vi.mock('@workos-inc/authkit-nextjs', () => ({saveSession: vi.fn()}))
 vi.mock('@/lib/users', () => ({ensureUser: vi.fn()}))
+vi.mock('@/lib/email/welcome', () => ({scheduleWelcomeEmail: vi.fn()}))
 vi.mock('@/lib/rateLimit', () => ({isRateLimited: async () => false, clientIp: () => 'test'}))
-const authenticateWithMagicAuth = vi.fn(async () => ({user: {},accessToken:'access',refreshToken:'refresh'}))
+const authenticateWithMagicAuth = vi.fn(async () => ({user: {id:'user_test'},accessToken:'access',refreshToken:'refresh'}))
 const createMagicAuth = vi.fn(async () => ({code: 'minted'}))
 vi.mock('@/lib/workosClient', () => ({getWorkOSClient: () => ({userManagement: {authenticateWithMagicAuth, createMagicAuth}})}))
 const {POST} = await import('./route')
+const {scheduleWelcomeEmail} = await import('@/lib/email/welcome')
 const verify = (body: object) => POST(new Request('https://example.com/api/auth/magic-auth/verify',{method:'POST',body:JSON.stringify(body)}))
 
-beforeEach(() => { authenticateWithMagicAuth.mockClear(); createMagicAuth.mockClear() })
+beforeEach(() => { authenticateWithMagicAuth.mockClear(); createMagicAuth.mockClear(); vi.mocked(scheduleWelcomeEmail).mockClear() })
 afterEach(() => vi.unstubAllEnvs())
 
 it.each([undefined, 'iPhone'])('only echoes tokens to a labeled mobile device (%s)', async device => {
  const response = await verify({email:'a@example.com',code:'123456',device})
  expect(await response.json()).toEqual(device ? {ok:true,accessToken:'access',refreshToken:'refresh'} : {ok:true})
+ expect(scheduleWelcomeEmail).toHaveBeenCalledWith('user_test')
 })
 
 it('lets the review email sign in with the fixed review code', async () => {
