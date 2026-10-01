@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import Link from 'next/link'
 import { BirdMark } from '@/src/components/BirdMark'
 import '../../src/expense-redesign.css'
 
@@ -16,9 +17,9 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         <div className="auth-blob auth-blob--mint-2" />
       </div>
       <aside className="auth-brand">
-        <div className="auth-brand-mark">
+        <Link href="/" className="auth-brand-mark" aria-label="Aviary home">
           <BirdMark size={34} /> Aviary
-        </div>
+        </Link>
         <div className="auth-brand-body">
           <p className="auth-brand-headline">
             Envelope budgeting that{' '}
