@@ -57,7 +57,10 @@ export function LandingPage() {
     <header className="lp-header"><div className="lp-header-inner">
       <a href="#top" className="lp-logo" aria-label="Aviary home"><BirdMark size={30} perched /><span>Aviary<b aria-hidden="true">.</b></span></a>
       <nav className="lp-nav" aria-label="Main navigation"><a href="#learns">How it learns</a><a href="#why">Why log it</a><a href="#play">Try it</a><a href="#faq">FAQ</a></nav>
-      <TrackedLink className="lp-header-cta" href={PLAY_STORE} event="store_cta_clicked" properties={{ placement: 'header' }}>Get the app</TrackedLink>
+      <div className="lp-header-actions">
+        <Link href="/sign-in" className="lp-header-signin">Sign in</Link>
+        <TrackedLink className="lp-header-cta" href={PLAY_STORE} event="store_cta_clicked" properties={{ placement: 'header' }}>Get the app</TrackedLink>
+      </div>
     </div></header>
 
     <section className="lp-hero" aria-labelledby="landing-title">
