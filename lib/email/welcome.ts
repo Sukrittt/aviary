@@ -3,7 +3,8 @@ import { after } from 'next/server'
 import type { Filter } from 'mongodb'
 import { getDb } from '@/lib/mongodb'
 import type { UserDoc } from '@/lib/users'
-import { EmailSendError, sendEmail, type EmailMessage } from './resend'
+import type { EmailMessage } from './resend'
+import { deliverClaimedEmail } from './delivery'
 import { SUPPORT_EMAIL, welcomeTemplate } from './welcomeTemplate'
 
 export interface WelcomeDelivery {
@@ -78,34 +79,18 @@ export async function deliverWelcomeEmail(userId: string): Promise<'sent' | 'ski
   if (!user?.welcomeEmail) return 'skipped'
   const delivery = user.welcomeEmail
   const owned = { _id: userId, 'welcomeEmail.claim': claim }
-  // Leave an ambiguous old send for inspection rather than sending it again
-  // after Resend forgets its idempotency key (24 hours). One hour of margin.
-  if (now.getTime() - delivery.firstAttemptAt!.getTime() >= 23 * 60 * 60 * 1000) {
-    await users.updateOne(owned, { $set: { 'welcomeEmail.state': 'needs_review', 'welcomeEmail.error': 'Check Resend before retrying: the idempotency window has expired' }, $unset: { 'welcomeEmail.claim': '', 'welcomeEmail.leaseUntil': '' } })
-    console.error('[welcome-email] an uncertain delivery needs review in Resend')
-    return 'needs_review'
-  }
-  try {
-    const resendId = await sendEmail(delivery.message, `welcome/${userId}`)
-    await users.updateOne(owned, { $set: { 'welcomeEmail.state': 'sent', 'welcomeEmail.sentAt': new Date(), 'welcomeEmail.resendId': resendId }, $unset: { 'welcomeEmail.claim': '', 'welcomeEmail.leaseUntil': '', 'welcomeEmail.error': '' } })
-    return 'sent'
-  } catch (err) {
-    const definiteRejection = err instanceof EmailSendError && !err.ambiguous && delivery.firstAttemptAt!.getTime() === now.getTime()
-    await users.updateOne(owned, {
-      $set: { 'welcomeEmail.state': 'pending', 'welcomeEmail.nextAttemptAt': new Date(Date.now() + 15 * 60_000), 'welcomeEmail.error': err instanceof EmailSendError ? err.message : 'Could not record the delivery result' },
-      $unset: { 'welcomeEmail.claim': '', 'welcomeEmail.leaseUntil': '', ...(definiteRejection ? { 'welcomeEmail.firstAttemptAt': '' } : {}) },
-    })
-    console.warn('[welcome-email] delivery deferred for retry')
-    return 'failed'
-  }
+  return deliverClaimedEmail(delivery, `welcome/${userId}`, now, change => users.updateOne(owned, {
+    $set: Object.fromEntries(Object.entries(change.$set).map(([key, value]) => [`welcomeEmail.${key}`, value])),
+    $unset: Object.fromEntries(Object.keys(change.$unset).map(key => [`welcomeEmail.${key}`, ''])),
+  }))
 }
 
 /** Daily repair plus retries on sign-in; bounded to fit the serverless execution window. */
-export async function retryWelcomeEmails() {
+export async function retryWelcomeEmails(limit = 8) {
   const result = { sent: 0, skipped: 0, failed: 0, needs_review: 0 }
   if (!process.env.RESEND_API_KEY) return { ...result, configured: false }
   const db = await getDb()
-  const users = await db.collection<UserDoc>('users').find(dueFilter(new Date()), { projection: { _id: 1 } }).sort({ 'welcomeEmail.queuedAt': 1 }).limit(8).toArray()
+  const users = await db.collection<UserDoc>('users').find(dueFilter(new Date()), { projection: { _id: 1 } }).sort({ 'welcomeEmail.queuedAt': 1 }).limit(limit).toArray()
   for (const user of users) {
     result[await deliverWelcomeEmail(user._id)]++
     // Resend's default rate limit is shared by this app's send requests.

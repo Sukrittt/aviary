@@ -2,6 +2,12 @@ import { describe, expect, it } from 'vitest'
 import { welcomeTemplate } from './welcomeTemplate'
 
 describe('welcomeTemplate', () => {
+  it('uses account-related copy without remote fonts', () => {
+    const email = welcomeTemplate('Alex')
+    expect(email.subject).toBe('Welcome to Aviary')
+    expect(email.text).toContain('Your Aviary account is ready.')
+    expect(email.html).not.toContain('@import')
+  })
   it('escapes the recipient’s name and never treats it as HTML', () => {
     const { html, text } = welcomeTemplate('<img/src=x/onerror=alert(1)>')
     expect(html).toContain('&lt;img/src=x/onerror=alert(1)&gt;')
@@ -16,7 +22,7 @@ describe('welcomeTemplate', () => {
   it('includes a working CTA, support link and plain-text equivalent', () => {
     const { html, text } = welcomeTemplate('Alex Smith')
     const doc = new DOMParser().parseFromString(html, 'text/html')
-    expect(doc.querySelector('h1')?.textContent).toBe('Your money.A little more calm.')
+    expect(doc.querySelector('h1')?.textContent).toBe('Welcome to Aviary')
     expect([...doc.querySelectorAll('a')].find(a => a.textContent?.includes('Open Aviary'))?.href).toBe('https://useaviary.com/')
     expect(doc.querySelector('a[href^="mailto:"]')).not.toBeNull()
     expect(doc.querySelector('script')).toBeNull()

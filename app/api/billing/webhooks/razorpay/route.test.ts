@@ -1,3 +1,4 @@
+vi.mock('@/lib/email/subscription', () => ({ scheduleSubscriptionEmails: vi.fn() }))
 import { createHmac } from 'node:crypto'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 

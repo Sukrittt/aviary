@@ -284,7 +284,7 @@ export async function cancelRazorpayRow(db: Db, row: BillingSubscriptionDoc, now
   await cancelSubscription(row.storeTransactionId, atCycleEnd)
   await db
     .collection<BillingSubscriptionDoc>(BILLING_SUBSCRIPTIONS)
-    .updateOne({ _id: row._id }, { $set: { cancelAtPeriodEnd: true, status: row.status === 'active' ? 'cancelled' : row.status, autoRenew: false, updatedAt: now } })
+    .updateOne({ _id: row._id }, { $set: { cancellationEmailPending: row.environment === 'production', cancelAtPeriodEnd: true, status: row.status === 'active' ? 'cancelled' : row.status, autoRenew: false, updatedAt: now } })
   // The cancel itself has landed. A failed re-read only means the row's other
   // fields are a little stale until the next refresh; it must not make the
   // caller think the cancel failed and try again.

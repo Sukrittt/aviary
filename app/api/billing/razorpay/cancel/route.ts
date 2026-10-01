@@ -1,3 +1,4 @@
+import { scheduleSubscriptionEmails } from '@/lib/email/subscription'
 import { json, error } from '@/lib/http'
 import { getAuth } from '@/lib/access'
 import { getDb } from '@/lib/mongodb'
@@ -35,6 +36,7 @@ export async function POST(req: Request) {
   const { purchaseEnabled } = await billingFlagsFor(auth.userId)
   try {
     for (const row of rows) await cancelRazorpayRow(db, row)
+    scheduleSubscriptionEmails()
     return json({ ...(await getAccess(auth.userId)), purchaseEnabled })
   } catch (err) {
     if (err instanceof BillingProviderError) {

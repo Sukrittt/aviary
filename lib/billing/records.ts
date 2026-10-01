@@ -110,6 +110,7 @@ export interface BillingSubscriptionDoc {
    * that knows it will not renew. Written by the cancel route, never by a
    * provider refresh.
    */
+  cancellationEmailPending?: boolean
   cancelAtPeriodEnd?: boolean
   createdAt: Date
   updatedAt: Date
@@ -130,6 +131,8 @@ export interface BillingEventDoc {
   processedAt: Date | null
   state: 'received' | 'processed' | 'failed'
   attempts: number
+  emailKind?: import('@/lib/email/subscriptionTemplate').SubscriptionEmailKind | null
+  emailHandledAt?: Date
   error?: string
   /** Minimized payload — identifiers and lifecycle fields only, never a full receipt. */
   summary: Record<string, unknown>

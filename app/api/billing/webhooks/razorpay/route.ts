@@ -1,3 +1,5 @@
+import { subscriptionEmailKind } from '@/lib/email/subscriptionTemplate'
+import { scheduleSubscriptionEmails } from '@/lib/email/subscription'
 import { createHash } from 'node:crypto'
 import { json } from '@/lib/http'
 import { getDb } from '@/lib/mongodb'
@@ -62,6 +64,7 @@ export async function POST(req: Request) {
       environment,
       eventId,
       type: body.event,
+      emailKind: environment === 'production' ? subscriptionEmailKind('razorpay', body.event) : null,
       userId,
       receivedAt: new Date(),
       processedAt: null,
@@ -90,6 +93,7 @@ export async function POST(req: Request) {
   try {
     await recordRazorpaySubscription(userId, subscription.id)
     await events.updateOne(filter, { $set: { state: 'processed', processedAt: new Date() }, $inc: { attempts: 1 } })
+    scheduleSubscriptionEmails()
     return json({ ok: true })
   } catch (err) {
     const message = err instanceof BillingProviderError ? `${err.message} (status ${err.status})` : (err as Error).message

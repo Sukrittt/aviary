@@ -1,3 +1,5 @@
+import { subscriptionEmailKind } from '@/lib/email/subscriptionTemplate'
+import { scheduleSubscriptionEmails } from '@/lib/email/subscription'
 import { timingSafeEqual, createHash } from 'node:crypto'
 import { json } from '@/lib/http'
 import { getDb } from '@/lib/mongodb'
@@ -22,6 +24,11 @@ interface RcWebhookEvent {
   store?: string
   expiration_at_ms?: number
   event_timestamp_ms?: number
+  period_type?: string
+  cancel_reason?: string
+  price?: number
+  transaction_id?: string
+  original_transaction_id?: string
 }
 
 /**
@@ -77,6 +84,7 @@ export async function POST(req: Request) {
       environment,
       eventId: event.id,
       type: event.type,
+      emailKind: event.environment === 'PRODUCTION' && event.store !== 'PROMOTIONAL' ? subscriptionEmailKind('revenuecat', event.type, event.period_type, event.cancel_reason, event.price) : null,
       userId,
       receivedAt: new Date(),
       processedAt: null,
@@ -85,6 +93,8 @@ export async function POST(req: Request) {
       // Identifiers and lifecycle fields only. A full receipt is payment data
       // we have no reason to keep, and every field kept is a field to protect.
       summary: {
+        transactionId: event.transaction_id ?? null,
+        originalTransactionId: event.original_transaction_id ?? null,
         productId: event.product_id ?? null,
         store: event.store ?? null,
         expirationAtMs: event.expiration_at_ms ?? null,
@@ -105,6 +115,7 @@ export async function POST(req: Request) {
   try {
     await refreshFromProvider(userId)
     await events.updateOne(filter, { $set: { state: 'processed', processedAt: new Date() }, $inc: { attempts: 1 } })
+    scheduleSubscriptionEmails()
     return json({ ok: true })
   } catch (err) {
     const message = err instanceof BillingProviderError ? `${err.message} (status ${err.status})` : (err as Error).message
