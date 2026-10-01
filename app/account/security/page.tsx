@@ -65,9 +65,12 @@ function SecurityContent() {
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const { data: billing } = useBillingStatus()
   // Deleting the account cannot cancel a Google Play subscription — only the Play Store can.
+  // A web one is cancelled by the delete itself (DELETE /api/user), so it only needs a heads-up.
   const renewingSubscription = billing?.mode === 'paid' && billing.autoRenew
+  const renewingOnWeb = renewingSubscription && billing?.store === 'web'
   const [deleteEmailDraft, setDeleteEmailDraft] = useState('')
   const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const [restoring, setRestoring] = useState(false)
   const [restoreError, setRestoreError] = useState(false)
@@ -165,6 +168,7 @@ function SecurityContent() {
 
   async function deleteAccount() {
     setDeleting(true)
+    setDeleteError(null)
     const res = await fetch('/api/user', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
@@ -174,6 +178,13 @@ function SecurityContent() {
       window.location.href = '/sign-in'
       return
     }
+    // 503: the web subscription couldn't be cancelled, so the server refused
+    // the delete rather than keep billing a gone account.
+    setDeleteError(
+      res.status === 503
+        ? "We couldn't cancel your subscription just now, so your account wasn't deleted. Try again in a bit."
+        : "Your account wasn't deleted. Check your connection and try again.",
+    )
     setDeleting(false)
   }
 
@@ -434,7 +445,12 @@ function SecurityContent() {
               You&apos;ll have 7 days to restore before this is permanent. Type <strong>{doc?.email}</strong> to
               confirm.
             </div>
-            {renewingSubscription ? (
+            {renewingOnWeb ? (
+              <div className="account-confirm-copy">
+                <strong>Your subscription is still active.</strong> Deleting your account cancels it, so you won&apos;t be
+                charged again.
+              </div>
+            ) : renewingSubscription ? (
               <div className="account-confirm-copy">
                 <strong>Your subscription is still active.</strong> Deleting your account doesn&apos;t cancel it. Cancel in
                 the Google Play Store first, or you&apos;ll keep being billed.
@@ -470,6 +486,11 @@ function SecurityContent() {
                 {deleting ? 'Deleting…' : 'Delete permanently'}
               </button>
             </div>
+            {deleteError ? (
+              <div className="account-confirm-copy" role="alert">
+                {deleteError}
+              </div>
+            ) : null}
           </div>
         ) : (
           <button type="button" className="account-danger-btn" onClick={() => setConfirmingDelete(true)}>

@@ -6,7 +6,8 @@ import { getWorkOSClient } from '@/lib/workosClient'
 import { serializeUser, type UserDoc } from '@/lib/users'
 import { purgesAt } from '@/lib/archive'
 import { softDeleteAccount } from '@/lib/accountLifecycle'
-import { completeOnboarding } from '@/lib/billing/service'
+import { cancelWebSubscriptions, completeOnboarding } from '@/lib/billing/service'
+import { BillingProviderError } from '@/lib/billing/providerError'
 
 export const dynamic = 'force-dynamic'
 
@@ -112,6 +113,17 @@ export async function DELETE(req: Request) {
   const account = await db.collection<UserDoc>('users').findOne({ _id: auth.userId }, { projection: { email: 1 } })
   if (!account?.email || !confirmEmail || confirmEmail !== account.email.toLowerCase()) {
     return error('email confirmation required', 400)
+  }
+
+  // A web subscription is ours to stop, so stop it before the account goes.
+  // If Razorpay can't be reached, refuse the delete rather than leave a
+  // mandate billing someone whose account no longer exists. (A Google Play
+  // subscription can only be cancelled in Play; the client warns about that.)
+  try {
+    await cancelWebSubscriptions(auth.userId)
+  } catch (err) {
+    if (err instanceof BillingProviderError) return error('could not cancel your web subscription, try again shortly', 503)
+    throw err
   }
 
   // Soft delete, same as every other DELETE route (lib/scoped.ts) — a

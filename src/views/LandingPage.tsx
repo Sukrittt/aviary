@@ -195,6 +195,6 @@ export function LandingPage() {
       <div className="lp-hero-actions"><StoreLink placement="footer_cta" /><Link href="/expense" className="lp-button lp-button--ghost"><Monitor size={18} aria-hidden="true" />Open web app</Link></div>
       <span className="lp-hero-note">Free during the trial · No bank connection · Open source</span>
     </section>
-    <footer className="lp-footer"><div><a href="#top" className="lp-logo"><BirdMark size={26} perched /><span>Aviary<b aria-hidden="true">.</b></span></a><p>The budgeting app that learns your spending.</p></div><nav aria-label="Footer"><Link href="/legal/privacy">Privacy</Link><Link href="/legal/terms">Terms</Link><Link href="/legal/delete-account">Delete account</Link><a href="#faq">Help &amp; FAQ</a><a href={GITHUB}>GitHub</a></nav></footer>
+    <footer className="lp-footer"><div><a href="#top" className="lp-logo"><BirdMark size={26} perched /><span>Aviary<b aria-hidden="true">.</b></span></a><p>The budgeting app that learns your spending.</p></div><nav aria-label="Footer"><Link href="/legal/pricing">Pricing</Link><Link href="/legal/privacy">Privacy</Link><Link href="/legal/terms">Terms</Link><Link href="/legal/refunds">Refunds</Link><Link href="/legal/contact">Contact</Link><Link href="/legal/delete-account">Delete account</Link><a href="#faq">Help &amp; FAQ</a><a href={GITHUB}>GitHub</a></nav></footer>
   </div></LandingMotion>
 }
