@@ -12,6 +12,7 @@ import { SuccessButton, useButtonPhase } from '../components/SuccessButton'
 import { getArchive, purgeArchivedItem, restoreArchivedItem, type ArchivableCollection, type ArchivedItem } from '../api/account'
 import { useHideAmounts } from '../hooks/useHideAmounts'
 import { daysUntil, formatDateShort } from '../lib/format'
+import { BirdEmptyState } from '../components/BirdEmptyState'
 
 const SECTION_ORDER: ArchivableCollection[] = ['expenses', 'budgets', 'categories', 'groups', 'subscriptions', 'holdings']
 
@@ -69,6 +70,8 @@ export function ArchivePage() {
   const restoreAllButton = useButtonPhase()
 
   const items = archiveQuery.data ?? []
+  const loading = archiveQuery.isLoading
+  const loadError = archiveQuery.isError
   const sorted = [...items].sort((a, b) => daysUntil(a.purgesAt) - daysUntil(b.purgesAt))
   const shown = filter === 'all' ? sorted : sorted.filter((i) => i.collection === filter)
   const pageCount = Math.max(1, Math.ceil(shown.length / PAGE_SIZE))
@@ -174,20 +177,19 @@ export function ArchivePage() {
         </div>
       )}
 
-      {archiveQuery.isLoading ? (
+      {loading ? (
         <LoadingCaption feature="archive" placement="page" />
-      ) : archiveQuery.isError ? (
+      ) : loadError ? (
         <div className="account-empty">
           <p className="account-row-meta">Couldn&apos;t load the archive. {RETRY}</p>
         </div>
       ) : items.length === 0 ? (
-        <div className="account-empty">
-          <span aria-hidden="true">🗃️</span>
-          <div className="account-empty-title">Archive is empty</div>
-          <p className="account-row-meta">
-            Deleted transactions, budgets and more land here for 7 days, long enough to change your mind.
-          </p>
-        </div>
+        <BirdEmptyState
+          mood="clear"
+          subject="archive"
+          title="All clear in here"
+          description="Deleted transactions, budgets and more will rest here for seven days, just in case."
+        />
       ) : (
         <>
           {next && (

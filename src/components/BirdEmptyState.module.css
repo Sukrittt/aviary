@@ -1,0 +1,464 @@
+.root {
+  --bird-empty-size: 176px;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  padding: 38px 24px 40px;
+  color: var(--erd-text);
+  text-align: center;
+}
+
+.compact {
+  --bird-empty-size: 132px;
+  padding: 24px 14px 26px;
+}
+
+.scene {
+  position: relative;
+  width: var(--bird-empty-size);
+  height: calc(var(--bird-empty-size) * 0.8);
+  margin-bottom: 6px;
+  color: var(--erd-text);
+  animation: scene-in 520ms cubic-bezier(0.2, 0.85, 0.25, 1) both;
+}
+
+.halo {
+  position: absolute;
+  top: 7%;
+  left: 16%;
+  width: 64%;
+  aspect-ratio: 1;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 34% 28%, color-mix(in oklab, var(--gold) 30%, white), transparent 60%),
+    var(--gold-soft);
+  opacity: 0.78;
+}
+
+.orbit {
+  position: absolute;
+  top: 4%;
+  left: 9%;
+  width: 80%;
+  height: 84%;
+  border: 1px solid var(--erd-border-strong);
+  border-radius: 50%;
+  transform: rotate(-18deg);
+}
+
+.ground {
+  position: absolute;
+  bottom: 12%;
+  left: 23%;
+  width: 48%;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--gold-soft);
+}
+
+.bird {
+  position: absolute;
+  top: 10%;
+  left: 14%;
+  display: grid;
+  place-items: center;
+}
+
+.bird > svg {
+  width: calc(var(--bird-empty-size) * 0.64);
+  height: calc(var(--bird-empty-size) * 0.64);
+  overflow: visible;
+}
+
+.prop {
+  position: absolute;
+  right: 3%;
+  bottom: 13%;
+  display: grid;
+  place-items: center;
+  width: 28%;
+  aspect-ratio: 0.9;
+  color: var(--gold-ink);
+  background: var(--erd-card-solid);
+  border: 1px solid var(--erd-border);
+  border-radius: 14px;
+  box-shadow: 0 10px 24px color-mix(in oklab, var(--erd-text) 8%, transparent);
+  transform: rotate(9deg);
+}
+
+.prop svg {
+  width: 51%;
+  height: 51%;
+}
+
+/* Each data family gets its own little scene, not the same badge with a
+   swapped glyph. The bird stays recognisably Aviary while pose, frame and
+   object tell a different story. */
+.subject_envelopes .orbit {
+  top: 10%;
+  left: 13%;
+  width: 66%;
+  height: 74%;
+  border-style: dashed;
+  border-radius: 42% 58% 48% 52%;
+  transform: rotate(13deg);
+}
+
+.subject_envelopes .halo {
+  top: 18%;
+  left: 21%;
+  width: 58%;
+  border-radius: 46% 54% 44% 56%;
+  transform: rotate(-8deg);
+}
+
+.subject_envelopes .bird {
+  top: 2%;
+  left: 23%;
+  transform: rotate(7deg) translateY(4px);
+}
+
+.subject_envelopes .ground {
+  display: none;
+}
+
+.prop_envelopes {
+  right: 6%;
+  bottom: 5%;
+  width: 72%;
+  height: 42%;
+  aspect-ratio: auto;
+  border-radius: 10px 10px 14px 14px;
+  background:
+    linear-gradient(150deg, transparent 49%, var(--gold-soft) 50%) 0 0 / 50% 68% no-repeat,
+    linear-gradient(210deg, transparent 49%, color-mix(in oklab, var(--gold-soft) 72%, white) 50%) 100% 0 / 50% 68% no-repeat,
+    var(--erd-card-solid);
+  clip-path: polygon(0 8%, 50% 47%, 100% 8%, 100% 100%, 0 100%);
+  box-shadow: 0 12px 22px color-mix(in oklab, var(--erd-text) 7%, transparent);
+  transform: rotate(-2deg);
+}
+
+.prop_envelopes svg {
+  display: none;
+}
+
+.subject_subscriptions .orbit,
+.subject_recurring .orbit {
+  top: 2%;
+  left: 8%;
+  width: 82%;
+  height: 88%;
+  border-width: 2px;
+  border-right-color: var(--gold);
+  border-bottom-color: var(--gold);
+  transform: rotate(-28deg);
+}
+
+.subject_subscriptions .halo,
+.subject_recurring .halo {
+  left: 12%;
+  width: 68%;
+}
+
+.subject_subscriptions .bird,
+.subject_recurring .bird {
+  left: 12%;
+}
+
+.prop_subscriptions,
+.prop_recurring {
+  right: 0;
+  bottom: 20%;
+  width: 29%;
+  aspect-ratio: 1;
+  border-radius: 999px;
+  transform: rotate(-8deg);
+}
+
+.subject_expenses .orbit {
+  top: 12%;
+  left: 17%;
+  width: 63%;
+  height: 70%;
+  border-radius: 22px;
+  border-style: dashed;
+  transform: rotate(8deg);
+}
+
+.subject_expenses .halo {
+  top: 3%;
+  left: 25%;
+  width: 55%;
+  border-radius: 58% 42% 55% 45%;
+}
+
+.subject_expenses .bird {
+  top: 8%;
+  left: 17%;
+  transform: scaleX(-1);
+}
+
+.prop_expenses {
+  right: 2%;
+  bottom: 8%;
+  width: 27%;
+  aspect-ratio: 0.68;
+  border-radius: 7px 7px 12px 12px;
+  transform: rotate(8deg);
+}
+
+.subject_holdings .orbit {
+  top: 8%;
+  left: 4%;
+  width: 90%;
+  height: 76%;
+  border: 0;
+  border-bottom: 2px dashed var(--erd-border-strong);
+  border-radius: 0;
+  transform: rotate(-12deg);
+}
+
+.subject_holdings .halo {
+  top: 2%;
+  left: 30%;
+  width: 55%;
+  background: color-mix(in oklab, var(--mint-soft) 78%, var(--erd-card-solid));
+}
+
+.subject_holdings .bird {
+  top: 3%;
+  left: 17%;
+  transform: rotate(-4deg);
+}
+
+.subject_holdings .ground {
+  bottom: 9%;
+  left: 15%;
+  width: 70%;
+  height: 8px;
+  transform: rotate(-9deg);
+  transform-origin: left center;
+}
+
+.prop_holdings {
+  right: 1%;
+  bottom: 18%;
+  width: 31%;
+  aspect-ratio: 1.18;
+  border-radius: 18px 18px 8px 8px;
+  color: var(--mint);
+  transform: rotate(4deg);
+}
+
+.subject_scans .orbit,
+.subject_insights .orbit {
+  top: 7%;
+  left: 12%;
+  width: 75%;
+  height: 78%;
+  border-radius: 18px;
+  border-style: dashed;
+  transform: rotate(-5deg);
+}
+
+.subject_scans .halo,
+.subject_insights .halo {
+  top: 14%;
+  left: 20%;
+  width: 56%;
+}
+
+.subject_scans .bird,
+.subject_insights .bird {
+  top: 6%;
+  left: 12%;
+}
+
+.prop_scans,
+.prop_insights {
+  right: 0;
+  bottom: 7%;
+  width: 29%;
+  aspect-ratio: 1;
+  border-radius: 10px;
+  transform: rotate(6deg);
+}
+
+.subject_chat .orbit {
+  top: 5%;
+  left: 8%;
+  width: 80%;
+  height: 80%;
+  border: 0;
+  background: radial-gradient(circle at 85% 16%, var(--gold) 0 4px, transparent 5px),
+    radial-gradient(circle at 96% 6%, var(--gold-soft) 0 7px, transparent 8px);
+}
+
+.subject_chat .halo {
+  left: 8%;
+  border-radius: 55% 45% 58% 42%;
+}
+
+.subject_chat .bird {
+  left: 9%;
+  transform: rotate(-4deg);
+}
+
+.prop_chat {
+  right: 1%;
+  bottom: 20%;
+  width: 35%;
+  aspect-ratio: 1.25;
+  border-radius: 18px 18px 18px 5px;
+  transform: rotate(4deg);
+}
+
+.subject_archive .orbit {
+  display: none;
+}
+
+.subject_archive .halo {
+  top: 2%;
+  left: 24%;
+  width: 58%;
+  background: color-mix(in oklab, var(--blue-soft) 72%, var(--erd-card-solid));
+}
+
+.subject_archive .bird {
+  top: 0;
+  left: 20%;
+  transform: rotate(2deg);
+}
+
+.subject_archive .ground {
+  display: none;
+}
+
+.prop_archive {
+  right: 7%;
+  bottom: 2%;
+  width: 70%;
+  height: 38%;
+  aspect-ratio: auto;
+  border-radius: 8px 8px 15px 15px;
+  color: var(--blue);
+  transform: rotate(1deg);
+}
+
+.prop_archive::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: 13%;
+  width: 74%;
+  height: 12px;
+  border: 1px solid var(--erd-border);
+  border-radius: 6px;
+  background: var(--blue-soft);
+}
+
+.dot {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--gold);
+}
+
+.dotOne {
+  top: 17%;
+  left: 15%;
+}
+
+.dotTwo {
+  right: 13%;
+  bottom: 20%;
+  width: 4px;
+  height: 4px;
+}
+
+.copy {
+  display: flex;
+  max-width: 340px;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  animation: copy-in 420ms 70ms cubic-bezier(0.2, 0.85, 0.25, 1) both;
+}
+
+.title {
+  font: 600 19px/1.2 var(--font-fredoka);
+  letter-spacing: -0.01em;
+}
+
+.description {
+  margin: 0;
+  color: var(--erd-text2);
+  font: 600 13px/1.55 var(--font-nunito);
+}
+
+.action {
+  margin-top: 8px;
+}
+
+.compact .scene {
+  margin-bottom: 0;
+}
+
+.compact .title {
+  font-size: 16px;
+}
+
+.compact .description {
+  max-width: 250px;
+  font-size: 12px;
+}
+
+.scene :global(.snoozing-bird-head) {
+  transform-origin: 250px 340px;
+  animation: snoozing-nod 3.2s ease-in-out infinite alternate;
+}
+
+.scene :global(.snoozing-bird-z) {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: snoozing-drift 2.4s ease-out infinite;
+}
+
+.scene :global(.snoozing-bird-z.is-small) {
+  animation-delay: -1.2s;
+}
+
+@keyframes scene-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes copy-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes snoozing-nod {
+  to { transform: rotate(7deg) translateY(1px); }
+}
+
+@keyframes snoozing-drift {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.6); }
+  20%, 70% { opacity: 1; }
+  100% { opacity: 0; transform: translate(18px, -55px) scale(1.1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scene,
+  .copy,
+  .scene :global(.snoozing-bird-head),
+  .scene :global(.snoozing-bird-z) {
+    animation: none;
+  }
+}

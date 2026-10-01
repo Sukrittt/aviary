@@ -52,6 +52,7 @@ import {
   withDelta,
 } from "@/src/lib/monthly";
 import { EMPTY } from "@/src/lib/constants";
+import { BirdEmptyState } from "@/src/components/BirdEmptyState";
 
 const TREND_MONTHS = 12;
 const HEATMAP_WEEKS = 12;
@@ -572,7 +573,12 @@ export function InsightsPage() {
                     </Link>
                   </div>
                   {topSpends.length === 0 ? (
-                    <p className="ins-top-empty">Nothing logged yet.</p>
+                    <BirdEmptyState
+                      compact
+                      subject="expenses"
+                      title="Nothing logged yet"
+                      description="Your biggest spends will line up here once you start logging."
+                    />
                   ) : (
                     <div className="ins-top-list">
                       {topSpends.map((spend, index) => (

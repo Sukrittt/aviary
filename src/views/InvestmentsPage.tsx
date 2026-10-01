@@ -40,6 +40,7 @@ import {
   rebaseHoldingDraft,
   type HoldingDraft,
 } from "../lib/holdingConflict";
+import { BirdEmptyState } from "../components/BirdEmptyState";
 
 const TYPES = [
   "Equity",
@@ -227,10 +228,12 @@ export function InvestmentsPage() {
                   Holdings
                 </div>
                 {shownHoldings.length === 0 ? (
-                  <div className="account-empty">
-                    <div className="account-empty-title">No holdings yet</div>
-                    <p className="account-row-meta">Add one to get started.</p>
-                  </div>
+                  <BirdEmptyState
+                    subject="holdings"
+                    title="Room to grow"
+                    description="No holdings yet. Add one to start watching your future take shape."
+                    action={{ label: 'Add a holding', onClick: () => setEditing('') }}
+                  />
                 ) : (
                   <ul
                     className="account-card recurring-list"

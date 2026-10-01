@@ -4,7 +4,6 @@ import { useCurrency } from '@/src/context/CurrencyContext'
 
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { Repeat2 } from 'lucide-react'
 import { AmountText, popIn, staggerDelay } from '../components/landing/mobile/kit'
 import { AllocationBar, type AllocationSegment } from '../components/charts/AllocationBar'
 import { LoadingCaption } from '../components/LoadingCaption'
@@ -17,6 +16,7 @@ import { splitEmoji } from '../lib/emoji'
 import { formatDateShort } from '../lib/format'
 import { CHART_COLORS } from '../theme/chartColors'
 import type { RecurringExpenseRow } from '../types'
+import { BirdEmptyState } from '../components/BirdEmptyState'
 
 const CADENCE_LABELS: Record<string, string> = {
   daily: 'Every day',
@@ -64,6 +64,8 @@ export function RecurringPage() {
   const [editing, setEditing] = useState<string | undefined>(undefined)
 
   const rows = recurringQ.data ?? []
+  const loading = recurringQ.isLoading
+  const loadError = recurringQ.isError
   const active = rows.filter((r) => r.status === 'active')
   const inactive = rows.filter((r) => r.status !== 'active')
   const monthlyTotal = active.reduce((sum, r) => sum + monthlyEquivalent(r), 0)
@@ -138,20 +140,19 @@ export function RecurringPage() {
 
       <RecurringSuggestions />
 
-      {recurringQ.isLoading ? (
+      {loading ? (
         <LoadingCaption feature="recurring" placement="page" />
-      ) : recurringQ.isError ? (
+      ) : loadError ? (
         <div className="account-empty">
           <p className="account-row-meta">Couldn&apos;t load your recurring expenses. Check your connection and try again.</p>
         </div>
       ) : rows.length === 0 ? (
-        <div className="account-empty">
-          <Repeat2 size={30} strokeWidth={1.7} aria-hidden="true" />
-          <div className="account-empty-title">Set it once, forget it</div>
-          <p className="account-row-meta">
-            Rent, the gym, your maid. Add it here and we&apos;ll log it for you on every due date.
-          </p>
-        </div>
+        <BirdEmptyState
+          subject="recurring"
+          title="Set it once, forget it"
+          description="Rent, the gym, your maid. Add it here and we’ll log it for you on every due date."
+          action={{ label: 'Add a recurring expense', onClick: () => setEditing('') }}
+        />
       ) : (
         <>
           <div className="account-card recurring-hero">

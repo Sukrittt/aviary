@@ -5,7 +5,7 @@ import { useCurrency } from '@/src/context/CurrencyContext'
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { AmountText, STAGGER, popIn, staggerDelay } from '../components/landing/mobile/kit'
-import { ChevronRight, Eye, EyeOff, Receipt, X } from 'lucide-react'
+import { ChevronRight, Eye, EyeOff, X } from 'lucide-react'
 import { LoadingCaption } from '../components/LoadingCaption'
 import { Scrim, Sheet } from '../components/MotionSheet'
 import { useBillScan, useBillScans } from '../hooks/useBillScans'
@@ -15,6 +15,7 @@ import { formatDate, formatDateShort } from '../lib/format'
 import { feeDiff, groupByDivisor, isFeeLine, round2 } from '../lib/split'
 import { CHART_COLORS } from '../theme/chartColors'
 import type { BillScanItem } from '../api/bills'
+import { BirdEmptyState } from '../components/BirdEmptyState'
 
 /** `/account/bill-scans`. Twin of Mobile's account/bill-scans.tsx + modals/bill-scan.tsx. */
 export function BillScansPage() {
@@ -24,6 +25,8 @@ export function BillScansPage() {
   const [openId, setOpenId] = useState<string | null>(null)
 
   const rows = scansQ.data ?? []
+  const loading = scansQ.isLoading
+  const loadError = scansQ.isError
   const shareTotal = rows.reduce((sum, row) => sum + row.my_share, 0)
   const itemCount = rows.reduce((sum, row) => sum + row.item_count, 0)
   const labelOf = (category: string) => splitEmoji(category).text || category
@@ -39,23 +42,23 @@ export function BillScansPage() {
         <div>
           <div className="account-section-label">Bills Scanned</div>
           <div className="account-row-meta" style={{ padding: '2px 4px 0' }}>
-            {scansQ.isLoading ? 'Fetching your bills' : rows.length === 0 ? 'Nothing scanned yet' : `${rows.length} scanned`}
+            {loading ? 'Fetching your bills' : rows.length === 0 ? 'Nothing scanned yet' : `${rows.length} scanned`}
           </div>
         </div>
       </div>
 
-      {scansQ.isLoading ? (
+      {loading ? (
         <LoadingCaption feature="billScans" placement="page" />
-      ) : scansQ.isError ? (
+      ) : loadError ? (
         <div className="account-empty">
           <p className="account-row-meta">Couldn&apos;t load your scans. Check your connection and try again.</p>
         </div>
       ) : rows.length === 0 ? (
-        <div className="account-empty">
-          <Receipt size={28} aria-hidden="true" style={{ color: 'var(--erd-text3)' }} />
-          <div className="account-empty-title">No scans yet</div>
-          <p className="account-row-meta">Scan a bill from the sidebar and it&apos;ll show up here, photo and all.</p>
-        </div>
+        <BirdEmptyState
+          subject="scans"
+          title="No scans yet"
+          description="Scan a bill from the sidebar and it’ll show up here, photo and all."
+        />
       ) : (
         <>
           <div className="account-card recurring-hero">

@@ -22,6 +22,7 @@ import { track } from '@/src/lib/analytics'
 import { LoadingCaption } from './LoadingCaption'
 import { BirdMark, BirdThinking } from './BirdMark'
 import { ChatMarkdown } from './ChatMarkdown'
+import { BirdEmptyState } from './BirdEmptyState'
 
 export interface OpenChat {
   sessionId: string | null
@@ -74,6 +75,8 @@ export function MoneyBrainDrawer({ initialSessionId = null, openChat, onClose }:
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
   const history = useChatSessions(view === 'history', { page, query: debouncedQuery })
+  const historySessions = history.data?.sessions ?? []
+  const historyPageCount = history.data?.pageCount ?? 1
   const envelope = useMemo(
     () => computeEnvelopeState(
       budgets.data ?? [],
@@ -245,9 +248,9 @@ export function MoneyBrainDrawer({ initialSessionId = null, openChat, onClose }:
               <Search size={16} aria-hidden="true" />
               <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search your chats…" />
             </label>
-            {history.isLoading && !history.data ? <LoadingCaption /> : history.data?.sessions.length ? (
+            {history.isLoading && !history.data ? <LoadingCaption /> : historySessions.length ? (
               <div className="brain-history-list">
-                {history.data.sessions.map((item, i) => (
+                {historySessions.map((item, i) => (
                   <motion.button
                     key={item.id}
                     type="button"
@@ -262,13 +265,19 @@ export function MoneyBrainDrawer({ initialSessionId = null, openChat, onClose }:
                 ))}
               </div>
             ) : (
-              <div className="brain-empty">{query ? `No chats match “${query}”.` : 'No past chats yet.'}</div>
+              <BirdEmptyState
+                compact
+                mood={query ? 'searching' : 'snoozing'}
+                subject="chat"
+                title={query ? 'Nothing turned up' : 'No past chats yet'}
+                description={query ? `No chats match “${query}”.` : 'Start a conversation and it’ll wait for you here.'}
+              />
             )}
-            {(history.data?.pageCount ?? 1) > 1 && (
+            {historyPageCount > 1 && (
               <div className="brain-pager">
                 <button type="button" disabled={page <= 1} onClick={() => setPage((value) => value - 1)}>Previous</button>
-                <span>{page} of {history.data?.pageCount}</span>
-                <button type="button" disabled={page >= (history.data?.pageCount ?? 1)} onClick={() => setPage((value) => value + 1)}>Next</button>
+                <span>{page} of {historyPageCount}</span>
+                <button type="button" disabled={page >= historyPageCount} onClick={() => setPage((value) => value + 1)}>Next</button>
               </div>
             )}
           </div>

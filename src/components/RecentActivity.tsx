@@ -4,6 +4,7 @@ import type { ExpenseRow } from '../types'
 import { avatarColorFor, categoryEmoji, splitEmoji } from '../lib/emoji'
 import { formatShortDate } from '../lib/format'
 import { CREDIT_CARD_CATEGORY, INCOME_CATEGORY } from '../lib/envelope'
+import { BirdEmptyState } from './BirdEmptyState'
 
 export function RecentActivity({ expenses, hideAmounts }: { expenses: ExpenseRow[]; hideAmounts: boolean }) {
   const { formatCurrency } = useCurrency()
@@ -19,7 +20,14 @@ export function RecentActivity({ expenses, hideAmounts }: { expenses: ExpenseRow
         <h2>Recent activity</h2>
         <Link href="/expense/transactions" className="erd-manage-btn">View all</Link>
       </div>
-      {recent.length === 0 ? <p className="ins-top-empty">Your latest expenses will appear here.</p> : (
+      {recent.length === 0 ? (
+        <BirdEmptyState
+          compact
+          subject="expenses"
+          title="Your story starts here"
+          description="Log your first expense and the little details will gather here."
+        />
+      ) : (
         <div className="ins-top-list">
           {recent.map((expense, index) => {
             const category = splitEmoji(expense.category).text

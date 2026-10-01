@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { useCurrency } from '@/src/context/CurrencyContext'
 
 import { monthAbbrev } from '@/src/lib/envelope'
+import { BirdEmptyState } from '../BirdEmptyState'
 
 
 export interface TrendPoint {
@@ -59,7 +60,16 @@ export function TrendChart({
     return () => observer.disconnect()
   }, [empty])
 
-  if (empty) return <div className="ins-chart-empty">{emptyNote}</div>
+  if (empty) return (
+    <BirdEmptyState
+      compact
+      subject="insights"
+      title={emptyNote}
+      description="A few logged expenses will turn this quiet card into a trend."
+      className="ins-chart-empty"
+      style={{ minHeight: HEIGHT }}
+    />
+  )
 
   const max = Math.max(...data.map((point) => point.value), baseline ?? 0, 1)
   // Savings can go negative (a month that spent more than it earned): those

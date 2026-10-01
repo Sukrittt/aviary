@@ -10,7 +10,7 @@ import type { BreakdownRow, MonthComparison } from '@/src/lib/monthly'
 import { CHART_COLORS } from '@/src/theme/chartColors'
 import { DonutChart, type DonutSegment } from './DonutChart'
 import { AutoHeight, PopIn, ease } from '@/src/components/landing/mobile/kit'
-import { SnoozingBird } from '../SnoozingBird'
+import { BirdEmptyState } from '../BirdEmptyState'
 
 interface Props {
   rows: BreakdownRow[]
@@ -263,11 +263,11 @@ export function CategoryBreakdown({ rows, categoryRows, groupRows, categoryGroup
       {displayRows.length === 0 ? (
         <div className="ins-breakdown-empty" aria-busy={loading}>
           {!loading && (
-            <>
-              <SnoozingBird />
-              <strong>Nothing spent yet</strong>
-              <p>Log an expense and it&apos;ll land here.</p>
-            </>
+            <BirdEmptyState
+              subject="expenses"
+              title="Nothing spent yet"
+              description="Log an expense and it'll land here."
+            />
           )}
         </div>
       ) : (
