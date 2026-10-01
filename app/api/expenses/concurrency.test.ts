@@ -13,6 +13,8 @@ vi.mock('@/lib/access', () => ({
 }))
 vi.mock('@/lib/billing/guard', () => ({ requireAccess: async () => null }))
 vi.mock('@/lib/cache', () => ({ invalidate: vi.fn() }))
+// The expenses route imports lib/users, which drags in the server-only WorkOS client.
+vi.mock('@/lib/workosClient', () => ({ getWorkOSClient: vi.fn() }))
 vi.mock('@/lib/categoryMap', () => ({ invalidateCategoryMap: vi.fn() }))
 vi.mock('@/lib/notifications/instant', () => ({ notifyThresholdCrossed: vi.fn() }))
 // Real scoped/encrypted collections and real Mongo transactions. The barrier
