@@ -271,13 +271,10 @@ Confident, chunky pills.
 - **Focus:** 3px Focus Blue outline, 4px offset, on every link, button and summary.
 
 ### Success tick
-The page's one pressable piece of the real app, in "Every log is a little win."
-- **Shape:** `tick-button`, 18px corners, at least 190px wide.
-- **Behavior:** on press the label swaps to a check that draws on (380ms) plus "Logged", the fill goes Logged Green, a chime plays, and it resets after 1100ms. This mirrors Mobile's shared success animation; reuse it, don't invent another confirmation.
+The app's check, buzz and chime only happen in the app, so the page shows the result instead: the "See what's left" card plays the Added moment once in view (a Logged Green disc pops, its check draws on, then a Burnt Orange segment grows onto the envelope bar). Reuse this rather than a pressable fake.
 
 ### Tabs (playground)
-- **Style:** a Warm Surface pill track with a hairline border and 5px padding; tabs are Fredoka 500, 15px, Muted.
-- **Active:** `tab-active`, ink pill with white text. Background and color transition over 180ms.
+The Playground no longer has tabs; it's a self-playing take of the real log screen. A script drives the twin components through DOM events: a white tap ring lands on each target, "Coffee with Sam" types in, the category pill spins its emoji reel and lands with a burst (web twin of Mobile's AutoCategoryPill), the keypad enters ₹180, + logs it, and the Added screen plays muted. It runs only while 35% visible, restarts cleanly after a pause, and the phone is inert.
 
 ### Cards / Containers
 - **Card:** `card`, Card White, 24px corners, hairline border, 26px padding. Win cards use 30px corners and 32px padding.
@@ -303,7 +300,13 @@ Header: sticky, frosted Paper, Fredoka 600 26px wordmark with an orange bird and
 One item open at a time. Questions are Nunito 800 18px on hairline-divided rows; the Burnt Orange Ink plus rotates 135° to a cross; the answer springs open (height spring, no bounce, 350ms) in Muted 16px at 1.75.
 
 ### Hero stage (signature)
-Three parts on the framed demo: "It noticed" (three logged chais), a lock-screen phone that receives and answers the nudge, and "It's logged" (envelope ticking from ₹240 to ₹220 left and a new row in Orange Wash). The loop runs 1400 / 2600 / 700 / 3800ms per step, only while at least 25% visible, with a 40px round pause button bottom right and a "Sample data" note bottom left. Under reduced motion it renders the finished, answered state and drops the pause button. A screen-reader paragraph narrates the whole loop.
+A chaptered film under the headline: Learns your habits, Scan a bill, Ask Aviary, Insights, Bills & subscriptions, Investments. Each chapter is a side card, a phone and a side card on the framed demo; app chapters render the real 360×740 layout scaled into the phone on the app's black. Pill tabs under the stage show which chapter is playing with a 2px orange progress line, and jump on click. A single rAF clock drives chapters and the Learns beats (0 / 1300 / 3900 / 4600ms), only while 25% visible; pausing freezes CSS animations too. Reduced motion holds each scene's finished state. Each scene only shows what the feature really does (bill scan reads lines and splits your share into one envelope; Ask Aviary answers from envelopes).
+
+### Before / after split
+Moonjar-style: a Warm Surface bank statement (monospace, fading out to the right) beside a white side where the nudge quote is followed by "Aviary is on it", four steps that spin then check in violet, and today's log rising in. An ink pill, uppercase and tracked, sits on the seam. A Replay pill restarts it. It runs once when 40% visible.
+
+### Perched bird
+Every bird on the page is the perched mark: its head tilts 6° and it blinks on the app's idle timing (3.2s nod, 3.38s blink). Founder tiles rotate the other way and grow 5% on hover.
 
 ### Motion
 Entrances and state changes use `cubic-bezier(.22, 1, .36, 1)` (a soft ease-out); drawn strokes use `cubic-bezier(.65, 0, .35, 1)`. Text swaps fade in from a 3 to 4px blur. The toast enters with a slight overshoot (`cubic-bezier(.34, 1.56, .64, 1)`, 350ms). `prefers-reduced-motion` removes every CSS animation and transition, and `MotionConfig` zeroes Motion durations; content always lands in its final state.
