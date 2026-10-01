@@ -40,7 +40,7 @@ describe('landing demos', () => {
     advance(20_000)
     expect(stage).toHaveAttribute('data-chapter', 'scan')
 
-    fireEvent.click(screen.getByRole('tab', { name: /Ask Aviary/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Ask Aviary/ }))
     expect(stage).toHaveAttribute('data-chapter', 'ask')
   })
 

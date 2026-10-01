@@ -1,5 +1,7 @@
 import Link from 'next/link'
-import { ArrowRight, Bell, Github, LayoutGrid, Monitor, Repeat, ScanLine, Smartphone, WifiOff } from 'lucide-react'
+import Image from 'next/image'
+import { BarWidget, EnvelopeWidget } from '../components/landing/mobile/Widget'
+import { ArrowRight, Github, Monitor, Repeat, ScanLine, Smartphone, WifiOff } from 'lucide-react'
 import { Playground } from '../components/landing/Playground'
 import { Faq, LandingMotion } from '../components/landing/LandingClient'
 import { TrackedLink } from '../components/TrackedLink'
@@ -13,8 +15,6 @@ const PLAY_STORE = 'https://play.google.com/store/apps/details?id=com.sukrit04.e
 const GITHUB = 'https://github.com/Sukrittt/aviary-mobile'
 
 const ANYWHERE = [
-  { icon: Bell, tone: 'fun', title: 'The nudge', body: 'Tap Log on the notification. That’s it.' },
-  { icon: LayoutGrid, tone: 'rent', title: 'Your home screen', body: 'The widget opens straight to the keypad.' },
   { icon: ScanLine, tone: 'food', title: 'A receipt', body: 'Snap the bill. Aviary reads every line and splits it if you shared.' },
   { icon: Repeat, tone: 'savings', title: 'On repeat', body: 'Rent and subscriptions log themselves.' },
   { icon: WifiOff, tone: 'fun', title: 'No signal', body: 'Logs wait on your phone, then sync.' },
@@ -97,10 +97,37 @@ export function LandingPage() {
     <section id="anywhere" className="lp-section lp-center" aria-labelledby="anywhere-title">
       <h2 id="anywhere-title" className="lp-h2">Log from anywhere.</h2>
       <p className="lp-lede">Aviary meets you where the spending happens. Most logs take one tap. The rest take a few.</p>
-      <ul className="lp-ways">
+      <div className="lp-shots">
+        <figure className="lp-shot">
+          <div className="lp-shot-art lp-shot-home" aria-hidden="true">
+            <div className="lp-shot-phone lp-shot-phone--home"><BarWidget /><EnvelopeWidget /></div>
+          </div>
+          <figcaption><strong>Your home screen</strong><span>See what’s left at a glance. Tap + and you’re on the keypad.</span></figcaption>
+        </figure>
+        <figure className="lp-shot">
+          <div className="lp-shot-art" aria-hidden="true">
+            <div className="lp-shot-phone lp-shot-phone--lock">
+              <div className="lp-lock-time">4:15</div>
+              <div className="lp-notif lp-notif--still">
+                <div className="lp-notif-app"><span className="lp-notif-icon"><BirdMark size={14} perched /></span>Aviary · now</div>
+                <div className="lp-notif-body"><strong>Chai time?</strong><span>Log it while it’s fresh. We filled in the usual.</span></div>
+                <div className="lp-notif-actions"><span className="lp-notif-log">Log ₹20</span><span>Not this one</span></div>
+              </div>
+            </div>
+          </div>
+          <figcaption><strong>The nudge</strong><span>Tap Log on the notification. That’s it.</span></figcaption>
+        </figure>
+        <figure className="lp-shot">
+          <div className="lp-shot-art" aria-hidden="true">
+            <div className="lp-shot-phone"><Image src="/landing/log-expense.jpeg" alt="" width={764} height={1599} sizes="300px" /></div>
+          </div>
+          <figcaption><strong>The keypad</strong><span>Amount, a word or two, done. The envelope picks itself.</span></figcaption>
+        </figure>
+      </div>
+      <ul className="lp-ways lp-ways--compact">
         {ANYWHERE.map(({ icon: Icon, tone, title, body }) => <li key={title}>
-          <span className={`lp-way-icon lp-tone-${tone}`}><Icon size={26} strokeWidth={2.2} aria-hidden="true" /></span>
-          <strong>{title}</strong><span>{body}</span>
+          <span className={`lp-way-icon lp-tone-${tone}`}><Icon size={22} strokeWidth={2.2} aria-hidden="true" /></span>
+          <span><strong>{title}</strong><span>{body}</span></span>
         </li>)}
       </ul>
     </section>

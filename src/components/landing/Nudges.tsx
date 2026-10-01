@@ -5,7 +5,7 @@ import { useReducedMotion } from 'motion/react'
 import { Check, Pause, Play, RotateCcw } from 'lucide-react'
 import { BirdMark } from '../BirdMark'
 import { InsightsScreen } from './mobile/Insights'
-import { CATEGORIES } from './mobile/demo'
+import { CATEGORIES, DAYS_LEFT } from './mobile/demo'
 import { PHONE, PhoneScreenContext } from './mobile/kit'
 import { useOnScreen } from './useOnScreen'
 
@@ -42,7 +42,7 @@ const CHAPTERS: { id: ChapterId; label: string; ms: number; sr: string }[] = [
   { id: 'scan', label: 'Scan a bill', ms: 8000, sr: 'A grocery bill is scanned. Aviary reads five lines, splits the ₹620 bill between two people, and logs your ₹310 share to Groceries.' },
   { id: 'ask', label: 'Ask Aviary', ms: 8500, sr: 'You ask “Can I afford dinner out this week?” and Aviary answers from your envelopes: Eating out has ₹1,800 left with 9 days to go.' },
   { id: 'insights', label: 'Insights', ms: 7500, sr: 'Insights breaks the month down by category, compared with what you usually spend.' },
-  { id: 'bills', label: 'Bills & subscriptions', ms: 7500, sr: 'Subscriptions total ₹2,142 a month. Aviary warns that Netflix renews in 3 days, and recurring bills like rent log themselves.' },
+  { id: 'bills', label: 'Bills & subscriptions', ms: 7500, sr: 'Subscriptions total ₹2,142 a month. Aviary warns that Netflix renews in 3 days, on 9 October, and recurring bills like rent log themselves.' },
   { id: 'invest', label: 'Investments', ms: 7500, sr: 'Investments track your holdings and net worth over time, with contributions logged as you make them.' },
 ]
 // Learns' beats: lock screen, nudge lands, thumb on "Log", logged.
@@ -101,8 +101,8 @@ export function HeroStage() {
       </button>}
       <span className="lp-stage-sample">Sample data</span>
     </div>
-    <div className="lp-chapters" role="tablist" aria-label="What Aviary does">
-      {CHAPTERS.map((c, i) => <button key={c.id} type="button" role="tab" aria-selected={i === chapter} className={`lp-chapter${i === chapter ? ' is-on' : ''}`} onClick={() => jump(i)}>
+    <div className="lp-chapters" role="group" aria-label="What Aviary does">
+      {CHAPTERS.map((c, i) => <button key={c.id} type="button" aria-pressed={i === chapter} className={`lp-chapter${i === chapter ? ' is-on' : ''}`} onClick={() => jump(i)}>
         {c.label}
         <span className="lp-chapter-bar" aria-hidden="true"><span key={i === chapter ? `on${chapter}` : 'off'} ref={i === chapter ? bar : undefined} style={{ transform: i === chapter && reduced ? 'scaleX(1)' : 'scaleX(0)' }} /></span>
       </button>)}
@@ -228,22 +228,30 @@ function AskScene() {
   </>
 }
 
+// The side cards read the same sample month the Insights screen draws.
+const inr = (n: number) => `₹${Math.round(n).toLocaleString('en-IN')}`
+const SPENT = CATEGORIES.reduce((s, c) => s + c.spent, 0)
+const LEFT = CATEGORIES.reduce((s, c) => s + Math.max(0, c.assigned - c.spent), 0)
+const HOT = CATEGORIES.reduce((a, c) => ((c.deltaPct ?? -Infinity) > (a.deltaPct ?? -Infinity) ? c : a))
+const SLACK = CATEGORIES.filter((c) => c.spent === 0).sort((a, b) => b.assigned - a.assigned)[0]
+const nameOf = (n: string) => n.slice(n.indexOf(' ') + 1)
+
 function InsightsScene() {
   return <>
     <Card label="Heads up on this month" className="lp-reveal">
-      <p className="lp-card-copy lp-card-copy--strong">Shopping is running hot. Fun has ₹4,000 of slack that could cover it guilt-free.</p>
+      <p className="lp-card-copy lp-card-copy--strong">{nameOf(HOT.name)} is running {HOT.deltaPct}% above your usual. {nameOf(SLACK.name)} still has {inr(SLACK.assigned)} untouched.</p>
     </Card>
     <Phone>
       <InsightsScreen categories={CATEGORIES} onBack={() => {}} notice={() => {}} />
     </Phone>
     <Card label="Your spending update" className="lp-reveal lp-reveal-late">
-      <p className="lp-card-copy lp-card-copy--strong">₹18,400 spent this month · ₹23,600 left · 8 days to go.</p>
+      <p className="lp-card-copy lp-card-copy--strong">{inr(SPENT)} spent this month · {inr(LEFT)} left · {DAYS_LEFT} days to go.</p>
       <p className="lp-stage-note">Normal or not, where it went, and a daily heatmap.</p>
     </Card>
   </>
 }
 
-const SUBS: [string, string, string][] = [['Netflix', 'Renews 3 Oct', '₹649'], ['Spotify', 'Added today', '₹119'], ['Gym', 'Renews 12 Oct', '₹1,299'], ['iCloud', 'Renews 18 Oct', '₹75']]
+const SUBS: [string, string, string][] = [['Netflix', 'Renews 9 Oct', '₹649'], ['Spotify', 'Added today', '₹119'], ['Gym', 'Renews 12 Oct', '₹1,299'], ['iCloud', 'Renews 18 Oct', '₹75']]
 
 function BillsScene() {
   return <>
@@ -251,7 +259,7 @@ function BillsScene() {
       <p className="lp-card-copy">Every subscription with its next due date, and a heads-up before it charges.</p>
     </Card>
     <Phone>
-      <div className="lp-app-banner"><b>Netflix renews soon</b><span>₹649 due in 3 days (Oct 3).</span></div>
+      <div className="lp-app-banner"><b>Netflix renews soon</b><span>₹649 due in 3 days (Oct 9).</span></div>
       <div className="lp-app-head">Subscriptions</div>
       <div className="lp-app-total"><b>₹2,142</b><span>a month</span></div>
       <ul className="lp-app-list">{SUBS.map(([a, b, c], i) => <li key={a} style={{ animationDelay: `${0.25 + i * 0.12}s` }}><span><b>{a}</b><small>{b}</small></span><strong>{c}</strong></li>)}</ul>

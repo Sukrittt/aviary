@@ -20,6 +20,8 @@ import { useOnScreen } from './useOnScreen'
 type Tap = { x: number; y: number; n: number }
 const ITEM = 'Coffee with Sam'
 const AMOUNT = ['1', '8', '0']
+// What the take ends on, shown as-is when motion is reduced.
+const FINAL: LoggedExpense = { item: ITEM, amount: 180, category: '🎡 Outings', loggedAt: '2026-10-06T16:15:00' }
 
 const sleep = (ms: number, alive: () => boolean) =>
   new Promise<void>((res, rej) => setTimeout(() => (alive() ? res() : rej(new Error('stopped'))), ms))
@@ -122,14 +124,16 @@ export function Playground() {
                 <div className="lp-island" />
                 <PhoneScreenContext.Provider value={host}>
                   <AnimatePresence initial={false}>
-                    <motion.div key={screen === 'log' ? `log:${run}` : 'added'} style={{ position: 'absolute', inset: 0 }}
+                    <motion.div key={reduced ? 'still' : screen === 'log' ? `log:${run}` : 'added'} style={{ position: 'absolute', inset: 0 }}
                       initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { duration: 0.25 } }} exit={{ opacity: 0, transition: { duration: 0.25 } }}>
-                      {screen === 'log'
+                      {reduced
+                        ? <ExpenseAddedScreen expense={FINAL} before={CATEGORIES.find((c) => c.name === FINAL.category)} onUndo={() => {}} onDone={() => {}} muted />
+                        : screen === 'log'
                         ? <LogExpenseScreen categories={categories} groups={GROUPS} publish={setSubmit} onAdded={onAdded} />
                         : added && <ExpenseAddedScreen expense={added.expense} before={added.before} onUndo={() => {}} onDone={() => {}} muted />}
                     </motion.div>
                   </AnimatePresence>
-                  {screen === 'log' && <div style={{ position: 'absolute', inset: 0, zIndex: 20, pointerEvents: 'none' }}>
+                  {screen === 'log' && !reduced && <div style={{ position: 'absolute', inset: 0, zIndex: 20, pointerEvents: 'none' }}>
                     <FloatingNav active={null} addActive addSaving={submit.saving} addSuccess={submit.success}
                       addInvalid={!submit.canSubmit} addDisabled={submit.saving || submit.success} onSelect={() => false} onAdd={() => {}} />
                   </div>}
