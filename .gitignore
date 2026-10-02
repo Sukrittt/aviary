@@ -58,3 +58,6 @@ scripts/tmp-purge-user.mjs
 /PRODUCT.md
 /MEMORY.md
 /memory/
+
+# Graphify local knowledge graph and generated state
+.graphify/

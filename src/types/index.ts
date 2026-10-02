@@ -89,6 +89,8 @@ export interface HoldingRow {
   recurring_amount: string
   recurring_day: string
   recurring_last_run: string
+  /** Computed by the server in the account's timezone. */
+  next_contribution_date?: string | null
   version: number
 }
 

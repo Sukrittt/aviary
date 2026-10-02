@@ -3,10 +3,11 @@ import { json, error, readBody, isValidTimezone } from '@/lib/http'
 import { getAuth } from '@/lib/access'
 import { getDb } from '@/lib/mongodb'
 import { getWorkOSClient } from '@/lib/workosClient'
-import { serializeUser, type UserDoc } from '@/lib/users'
+import { serializeUser, HIDEABLE_FEATURES, type HideableFeature, type UserDoc } from '@/lib/users'
 import { purgesAt } from '@/lib/archive'
 import { softDeleteAccount } from '@/lib/accountLifecycle'
-import { completeOnboarding } from '@/lib/billing/service'
+import { cancelWebSubscriptions, completeOnboarding } from '@/lib/billing/service'
+import { BillingProviderError } from '@/lib/billing/providerError'
 
 export const dynamic = 'force-dynamic'
 
@@ -39,6 +40,7 @@ export async function PATCH(req: Request) {
       | 'notifyBillLeadDays'
       | 'notifyCoach'
       | 'notifyWrapped'
+      | 'hiddenFeatures'
     >
   > = {}
   if ('currencyCode' in body) {
@@ -60,6 +62,11 @@ export async function PATCH(req: Request) {
   }
   if (typeof body.notifyCoach === 'boolean') updates.notifyCoach = body.notifyCoach
   if (typeof body.notifyWrapped === 'boolean') updates.notifyWrapped = body.notifyWrapped
+  if ('hiddenFeatures' in body) {
+    const list = body.hiddenFeatures
+    if (!Array.isArray(list) || !list.every((f) => HIDEABLE_FEATURES.includes(f))) return error('invalid hiddenFeatures')
+    updates.hiddenFeatures = [...new Set(list as HideableFeature[])]
+  }
   const completingGuidedTour = body.guidedTourCompleted === true
 
   // `onboardedAt` is no longer a client-writable profile field: completing
@@ -112,6 +119,17 @@ export async function DELETE(req: Request) {
   const account = await db.collection<UserDoc>('users').findOne({ _id: auth.userId }, { projection: { email: 1 } })
   if (!account?.email || !confirmEmail || confirmEmail !== account.email.toLowerCase()) {
     return error('email confirmation required', 400)
+  }
+
+  // A web subscription is ours to stop, so stop it before the account goes.
+  // If Razorpay can't be reached, refuse the delete rather than leave a
+  // mandate billing someone whose account no longer exists. (A Google Play
+  // subscription can only be cancelled in Play; the client warns about that.)
+  try {
+    await cancelWebSubscriptions(auth.userId)
+  } catch (err) {
+    if (err instanceof BillingProviderError) return error('could not cancel your web subscription, try again shortly', 503)
+    throw err
   }
 
   // Soft delete, same as every other DELETE route (lib/scoped.ts) — a

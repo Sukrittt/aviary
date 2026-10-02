@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { saveSession } from '@workos-inc/authkit-nextjs'
 import { getWorkOSClient } from '@/lib/workosClient'
 import { ensureUser } from '@/lib/users'
+import { scheduleWelcomeEmail } from '@/lib/email/welcome'
 import { readBody, EMAIL_RE } from '@/lib/http'
 import { isRateLimited, clientIp } from '@/lib/rateLimit'
 
@@ -69,6 +70,7 @@ export async function POST(req: Request) {
     })
     await ensureUser(user)
     await saveSession({ accessToken, refreshToken, user }, req.url)
+    scheduleWelcomeEmail(user.id)
     return NextResponse.json(typeof device === 'string' && device.trim() ? { ok: true, accessToken, refreshToken } : { ok: true })
   } catch {
     return NextResponse.json({ error: 'invalid or expired code' }, { status: 401 })

@@ -4411,6 +4411,12 @@
    ───────────────────────────────────────────────────────────── */
 
 .setup-page {
+  /* .expense-redesign pins the app screens to 100vh with overflow hidden;
+     setup steps grow with their content, so a long category list scrolls
+     instead of clipping the CTA. */
+  height: auto;
+  overflow-x: clip;
+  overflow-y: visible;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -4776,6 +4782,9 @@
   border: 1.5px solid var(--erd-border-strong);
   background: transparent;
   color: var(--erd-on-accent);
+  display: grid;
+  place-items: center;
+  padding: 0;
   font-size: 13px;
   cursor: pointer;
   flex-shrink: 0;
@@ -4874,9 +4883,11 @@
 }
 
 .setup-rem-chip.is-zero {
+  /* Done state stays calm: card surface, green only in the text and a
+     faint border. A full mint fill read as a heavy slab on the cream page. */
   color: var(--mint);
-  background: var(--mint-soft);
-  border-color: var(--mint);
+  background: var(--erd-card);
+  border-color: color-mix(in srgb, var(--mint) 35%, transparent);
 }
 
 .setup-rem-chip.is-over {
@@ -4970,6 +4981,18 @@
   -moz-appearance: textfield;
 }
 
+/* Hug the amount instead of a fixed 120px slab; the fixed width stays as the
+   fallback where field-sizing isn't supported. */
+@supports (field-sizing: content) {
+  .expense-redesign .setup-assign-input {
+    flex: 0 0 auto;
+    width: auto;
+    field-sizing: content;
+    min-width: 64px;
+    max-width: 140px;
+  }
+}
+
 .expense-redesign .setup-assign-input:focus {
   border-color: var(--gold);
 }
@@ -5017,6 +5040,33 @@
   background: var(--erd-input-bg);
   color: var(--erd-text3);
   cursor: default;
+}
+
+.setup-cta.is-saving {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background: var(--gold);
+  color: var(--erd-on-accent);
+  cursor: progress;
+}
+
+/* Fills as each setup write lands, so a slow save visibly moves. */
+.setup-cta.is-saving::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: rgba(255, 255, 255, 0.22);
+  transform-origin: left;
+  transform: scaleX(var(--save-progress, 0));
+  transition: transform 0.35s ease-out;
+}
+
+.setup-cta-caption .loading-caption-text {
+  font-size: inherit;
+  color: inherit;
+  font-weight: inherit;
 }
 
 .setup-cta-hint {
@@ -5131,12 +5181,12 @@
   line-height: 1.5;
   color: var(--erd-text2);
   margin: 7px 0 0;
-  max-width: 340px;
+  max-width: 560px;
 }
 
 .setup-done-list {
   width: 100%;
-  max-width: 360px;
+  max-width: 560px;
   margin-top: 22px;
   display: flex;
   flex-direction: column;
@@ -5179,8 +5229,17 @@
 
 .setup-done .setup-cta {
   width: 100%;
-  max-width: 360px;
+  max-width: 560px;
   margin-top: 20px;
+}
+
+.erd-content:has(> .account-panel > .trial-notice) {
+  padding-block: 24px;
+}
+
+.account-panel:has(> .trial-notice) {
+  flex: 1 0 auto;
+  justify-content: center;
 }
 
 .trial-notice {
@@ -5189,9 +5248,14 @@
   align-items: center;
   text-align: center;
   gap: 14px;
-  max-width: 460px;
+  width: 100%;
+  max-width: 640px;
   margin: 0 auto;
-  padding: 64px 0 24px;
+  padding: 0;
+}
+
+.trial-notice .setup-cta {
+  max-width: 100%;
 }
 
 .trial-notice-badge {

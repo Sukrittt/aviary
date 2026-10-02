@@ -5,9 +5,13 @@ import { COLLECTIONS } from '@/lib/models'
 import { GRACE_DAYS } from '@/lib/archive'
 import type { UserDoc } from '@/lib/users'
 import { AI_USAGE, type AiUsageDoc } from '@/lib/ai/usage'
+import Link from 'next/link'
+import { getPlanPrices } from '@/lib/billing/razorpay'
+import { BILLING_SUBSCRIPTIONS, type BillingSubscriptionDoc } from '@/lib/billing/records'
+import { summarize } from '@/lib/billing/revenue'
 import { DailyBars } from './DailyBars'
 import { RangeTabs } from './RangeTabs'
-import { daysAgo, fmtBytes, num, parseRange, usd } from './format'
+import { daysAgo, fmtBytes, inr, num, parseRange, usd } from './format'
 
 const TZ = 'Asia/Kolkata'
 
@@ -52,7 +56,7 @@ export default async function AdminOverview({ searchParams }: { searchParams: Pr
   const users = db.collection<UserDoc>('users')
   const live = { deleted_at: null }
 
-  const [total, new7, new30, active1, active7, active30, pendingDelete, signups, expensesPerDay, collections, [ai]] = await Promise.all([
+  const [total, new7, new30, active1, active7, active30, pendingDelete, signups, expensesPerDay, collections, [ai], billingSubs, prices] = await Promise.all([
     users.countDocuments(live),
     users.countDocuments({ ...live, createdAt: { $gte: daysAgo(7) } }),
     users.countDocuments({ ...live, createdAt: { $gte: daysAgo(30) } }),
@@ -82,7 +86,14 @@ export default async function AdminOverview({ searchParams }: { searchParams: Pr
         { $group: { _id: null, calls: { $sum: 1 }, cost: { $sum: { $ifNull: ['$costUsd', 0] } } } },
       ])
       .toArray(),
+    db.collection<BillingSubscriptionDoc>(BILLING_SUBSCRIPTIONS).find({ environment: 'production' }).limit(5000).toArray(),
+    // A Razorpay outage shouldn't take the overview down with it; the revenue page explains the gap.
+    getPlanPrices().catch(() => null),
   ])
+  const monthly = prices?.find((p) => p.period === 'monthly')?.amount
+  const yearly = prices?.find((p) => p.period === 'yearly')?.amount
+  const revenue = summarize(billingSubs, new Date(), monthly && yearly ? { monthly, yearly } : null)
+  const money = (paise: number) => (monthly && yearly ? inr(paise) : '—')
 
   return (
     <>
@@ -97,6 +108,16 @@ export default async function AdminOverview({ searchParams }: { searchParams: Pr
         <Kpi label="New this week" value={new7} note={`${num(new30)} new in the last 30 days`} />
         <Kpi label="Pending deletion" value={pendingDelete} note={`Purged ${GRACE_DAYS} days after the request`} />
       </div>
+
+      <h2 className="adm-section">Revenue</h2>
+      <div className="adm-grid">
+        <Kpi label="MRR" value={money(revenue.mrr)} note="Monthly recurring revenue" />
+        <Kpi label="ARR" value={money(revenue.arr)} note="MRR × 12" />
+        <Kpi label="Paying subscribers" value={revenue.payers} note={`${pct(revenue.payers, total)} of accounts`} />
+      </div>
+      <p className="adm-sub">
+        Churn, retention, trial conversion and more on the <Link href="/admin/revenue">revenue page</Link>.
+      </p>
 
       <h2 className="adm-section">Activity</h2>
       <div className="adm-grid">

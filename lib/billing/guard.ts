@@ -27,8 +27,12 @@ export const SUBSCRIPTION_REQUIRED = 'SUBSCRIPTION_REQUIRED'
  * the top of a handler, after `getAuth`.
  *
  * The demo user is exempt: it is public sample data with no owner to bill.
+ *
+ * `setup` marks the handlers onboarding writes through. They also admit an
+ * account with no trial yet, since the trial only begins at completion and
+ * completion needs those setup rows. Every other route stays closed until then.
  */
-export async function requireAccess(auth: Auth): Promise<NextResponse | null> {
+export async function requireAccess(auth: Auth, opts: { setup?: boolean } = {}): Promise<NextResponse | null> {
   if (auth.readOnly) return null
 
   // Checked first so the guard costs nothing while enforcement is off: this
@@ -38,7 +42,7 @@ export async function requireAccess(auth: Auth): Promise<NextResponse | null> {
   if (!(await billingFlagsFor(auth.userId)).enforced) return null
 
   const access = await getAccess(auth.userId)
-  if (access.allowed) return null
+  if (access.allowed || (opts.setup && access.mode === 'setup_incomplete')) return null
   return NextResponse.json(
     { error: SUBSCRIPTION_REQUIRED, mode: access.mode, trialEndsAt: access.trialEndsAt },
     { status: 402 },

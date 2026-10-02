@@ -37,7 +37,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const auth = await getAuth(req)
-  const gate = await requireAccess(auth)
+  const gate = await requireAccess(auth, { setup: true })
   if (gate) return gate
   const guard = readOnlyGuard(auth, 'POST')
   if (guard) return guard

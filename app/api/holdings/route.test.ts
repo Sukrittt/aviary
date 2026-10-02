@@ -73,7 +73,7 @@ vi.mock('@/lib/http', async (importOriginal) => {
   }
 })
 
-const { PUT } = await import('./route')
+const { GET, PUT } = await import('./route')
 
 function req(method: string, body: unknown): Request {
   return new Request('https://example.com/api/holdings', {
@@ -94,6 +94,29 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers()
+})
+
+describe('GET /api/holdings — next contribution date', () => {
+  it('derives the next date from the current user calendar day without persisting it', async () => {
+    store.push({ _id: new ObjectId(), name: 'SIP', value: '1000', is_recurring: 'true',
+      recurring_amount: '100', recurring_day: '4', recurring_last_run: '2026-08' })
+    store.push({ _id: new ObjectId(), name: 'Gold', value: '1000', is_recurring: 'false' })
+    const response = await GET(new Request('https://example.com/api/holdings'))
+    const body = await response.json()
+    expect(body.rows[0].next_contribution_date).toBe('2026-10-04')
+    expect(body.rows[1].next_contribution_date).toBeNull()
+    expect(store[0]).not.toHaveProperty('next_contribution_date')
+    expect(body.headers).not.toContain('next_contribution_date')
+  })
+
+  it('uses the account calendar date when it differs from UTC', async () => {
+    // Oct 3 in UTC is already Oct 4 in the account's IST timezone.
+    vi.setSystemTime(new Date('2026-10-03T22:00:00.000Z'))
+    store.push({ _id: new ObjectId(), name: 'SIP', value: '1000', is_recurring: 'true',
+      recurring_amount: '100', recurring_day: '4', recurring_last_run: '2026-09' })
+    const response = await GET(new Request('https://example.com/api/holdings'))
+    expect((await response.json()).rows[0].next_contribution_date).toBe('2026-10-04')
+  })
 })
 
 describe('PUT /api/holdings — recurring contribution edit', () => {

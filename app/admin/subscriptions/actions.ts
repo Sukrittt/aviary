@@ -92,7 +92,7 @@ export async function toggleTesterAction(userId: string): Promise<ActionResult> 
   return done(userId, billingTester ? 'Added to billing testers' : 'Removed from billing testers')
 }
 
-/** Re-verify one account against RevenueCat now — for a purchase a missed webhook left behind. */
+/** Re-verify one account against RevenueCat and Razorpay now — for a purchase a missed webhook left behind. */
 export async function resyncAction(userId: string): Promise<ActionResult> {
   const adminId = await requireAdmin()
   try {
@@ -102,6 +102,6 @@ export async function resyncAction(userId: string): Promise<ActionResult> {
   } catch (err) {
     // An unreachable provider is an outage, not a cancellation. `refreshFromProvider`
     // wrote nothing, so the existing projection stands.
-    return { ok: false, message: `RevenueCat unreachable, nothing changed: ${(err as Error).message}` }
+    return { ok: false, message: `Payment provider unreachable, nothing changed: ${(err as Error).message}` }
   }
 }

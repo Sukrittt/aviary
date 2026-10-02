@@ -64,7 +64,7 @@ async function invalidateAccount(userId: string): Promise<void> {
 }
 
 /** Per-user collections outside COLLECTIONS that still carry `user_id`. */
-const EXTRA_USER_COLLECTIONS = ['notification_threshold_state', 'ai_usage']
+const EXTRA_USER_COLLECTIONS = ['notification_threshold_state', 'ai_usage', 'email_outbox']
 
 /**
  * Irreversible, immediate account purge (admin only): WorkOS user, every

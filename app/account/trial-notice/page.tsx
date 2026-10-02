@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { motion } from 'motion/react'
+import { Sparkles } from 'lucide-react'
 import { popIn } from '@/src/components/landing/mobile/kit'
 import { useBillingStatus } from '@/src/hooks/useBillingStatus'
 import { formatDate } from '@/src/components/billing/copy'
@@ -18,7 +19,9 @@ export default function TrialNoticePage() {
 
   return (
     <div className="trial-notice">
-      <motion.div className="trial-notice-badge" {...popIn(0)}>✨</motion.div>
+      <motion.div className="trial-notice-badge" {...popIn(0)}>
+        <Sparkles size={24} strokeWidth={2.2} aria-hidden="true" />
+      </motion.div>
       <motion.h1 className="trial-notice-title" {...popIn(80)}>You&apos;re on the trial plan</motion.h1>
       <motion.p className="trial-notice-body" {...popIn(80)}>
         {dated

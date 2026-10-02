@@ -59,6 +59,15 @@ export interface BillingAccountDoc {
   createdAt: Date
 }
 
+/** Who verified a purchase. RevenueCat fronts Google Play; Razorpay sells on the web directly. */
+export type BillingProvider = 'revenuecat' | 'razorpay'
+
+/**
+ * Where the purchase lives, which is where the user manages it. Rows written
+ * before web checkout existed have no reason to carry anything but `'play'`.
+ */
+export type BillingStore = 'play' | 'web'
+
 /** Verified store subscription status, mapped from the provider's own lifecycle. */
 export type SubscriptionStatus =
   | 'active'
@@ -82,9 +91,9 @@ export type SubscriptionStatus =
 export interface BillingSubscriptionDoc {
   _id: ObjectId
   userId: string
-  provider: 'revenuecat'
+  provider: BillingProvider
   environment: 'production' | 'sandbox'
-  store: 'play'
+  store: BillingStore
   productId: string
   basePlanId: string | null
   storeTransactionId: string
@@ -95,6 +104,14 @@ export interface BillingSubscriptionDoc {
   /** Last time this row was confirmed against the provider, not the last webhook received. */
   verifiedAt: Date
   providerRefs: { customerId?: string; entitlementId?: string; originalTransactionId?: string }
+  /**
+   * Razorpay only: the user asked us to stop renewing. Razorpay keeps the
+   * subscription `active` until the paid cycle ends, so this is the one place
+   * that knows it will not renew. Written by the cancel route, never by a
+   * provider refresh.
+   */
+  cancellationEmailPending?: boolean
+  cancelAtPeriodEnd?: boolean
   createdAt: Date
   updatedAt: Date
 }
@@ -105,7 +122,7 @@ export interface BillingSubscriptionDoc {
  */
 export interface BillingEventDoc {
   _id: ObjectId
-  provider: 'revenuecat'
+  provider: BillingProvider
   environment: 'production' | 'sandbox'
   eventId: string
   type: string
@@ -114,6 +131,8 @@ export interface BillingEventDoc {
   processedAt: Date | null
   state: 'received' | 'processed' | 'failed'
   attempts: number
+  emailKind?: import('@/lib/email/subscriptionTemplate').SubscriptionEmailKind | null
+  emailHandledAt?: Date
   error?: string
   /** Minimized payload — identifiers and lifecycle fields only, never a full receipt. */
   summary: Record<string, unknown>

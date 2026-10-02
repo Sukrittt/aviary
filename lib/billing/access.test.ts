@@ -187,3 +187,27 @@ describe('pickSubscription', () => {
     expect(pickSubscription([old, recent], NOW)?.storeTransactionId).toBe('recent')
   })
 })
+
+describe('resolveAccess store', () => {
+  it('says where the deciding purchase lives, so clients send people to the right place to manage it', () => {
+    expect(resolve({ subscription: sub('active', new Date(NOW.getTime() + 5 * DAY)) }).store).toBe('play')
+    expect(resolve({ subscription: sub('active', new Date(NOW.getTime() + 5 * DAY), { store: 'web', provider: 'razorpay' }) }).store).toBe('web')
+    expect(resolve({ subscription: null }).store).toBeNull()
+  })
+
+  it('lets a web purchase entitle alongside an expired Play one', () => {
+    const play = sub('expired', new Date(NOW.getTime() - DAY))
+    const web = sub('active', new Date(NOW.getTime() + 30 * DAY), { store: 'web', provider: 'razorpay', storeTransactionId: 'sub_1' })
+    expect(pickSubscription([play, web], NOW)?.store).toBe('web')
+  })
+})
+
+describe('sandbox isolation', () => {
+  it('never grants or displays a sandbox purchase as production access', () => {
+    const sandbox = sub('active', new Date(NOW.getTime() + 365 * DAY), { environment: 'sandbox' })
+    const live = sub('active', new Date(NOW.getTime() + DAY))
+    expect(pickSubscription([sandbox], NOW)).toBeNull()
+    expect(pickSubscription([live, sandbox], NOW)).toBe(live)
+    expect(resolve({ subscription: sandbox })).toMatchObject({ allowed: false, store: null, renewalState: null })
+  })
+})

@@ -21,6 +21,12 @@ const JOBS: Array<{ job: CronJob; label: string; schedule: string; confirm: stri
     schedule: 'Daily 05:00 UTC',
     confirm: 'Reconcile billing now? Re-verifies lapsing subscriptions and failed webhook events against RevenueCat. Safe to run any time.',
   },
+  {
+    job: 'emails',
+    label: 'Transactional email delivery',
+    schedule: 'Daily 06:00 UTC',
+    confirm: 'Retry pending welcome and subscription emails now? Sends real service emails to eligible accounts.',
+  },
 ]
 
 export default async function AdminJobs() {
@@ -54,7 +60,8 @@ export default async function AdminJobs() {
           // A run that returned while leaving accounts unreconciled is not "ok" —
           // the badge read `last.ok` alone, so 47 failed accounts showed green.
           const failed = Number(last?.result?.failed ?? 0)
-          const healthy = last?.ok && failed === 0
+          const needsReview = Number(last?.result?.needs_review ?? 0)
+          const healthy = last?.ok && failed === 0 && needsReview === 0 && last?.result?.configured !== false
           return (
             <section key={job} className="erd-card">
               <h2>{label}</h2>
@@ -71,7 +78,7 @@ export default async function AdminJobs() {
                       {healthy ? (
                         <span className="adm-badge is-good">ok</span>
                       ) : (
-                        <span className="adm-badge is-bad">{failed > 0 ? `${failed} failed` : 'failed'}</span>
+                        <span className="adm-badge is-bad">{needsReview > 0 ? `${needsReview} need review` : last?.result?.configured === false ? 'not configured' : failed > 0 ? `${failed} failed` : 'failed'}</span>
                       )}{' '}
                       · {(last.durationMs / 1000).toFixed(1)}s
                     </>

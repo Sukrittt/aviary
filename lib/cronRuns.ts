@@ -4,7 +4,7 @@ import { sendPushNotification } from './push'
 import type { UserDoc } from './users'
 
 export const CRON_RUNS = 'cron_runs'
-export const CRON_JOBS = { notifications: '/api/notifications/run', gc: '/api/cron/gc', billing: '/api/cron/billing' } as const
+export const CRON_JOBS = { notifications: '/api/notifications/run', gc: '/api/cron/gc', billing: '/api/cron/billing', emails: '/api/cron/emails' } as const
 export type CronJob = keyof typeof CRON_JOBS
 
 /** Header the admin "Run now" action sends alongside CRON_SECRET, so the run is recorded as manual. */

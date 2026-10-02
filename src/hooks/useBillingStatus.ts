@@ -1,16 +1,26 @@
 'use client'
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { getBillingStatus, syncBilling, type BillingStatus } from '@/src/api/billing'
+import {
+  AlreadySubscribedError,
+  cancelWebSubscription,
+  getBillingStatus,
+  getWebPlans,
+  startWebCheckout,
+  syncBilling,
+  verifyWebCheckout,
+  type BillingStatus,
+  type PlanPeriod,
+} from '@/src/api/billing'
+import { openCheckout } from '@/src/lib/razorpayCheckout'
 
 export const billingKey = ['billing-status'] as const
 
 /**
  * The account's subscription state. Twin of Mobile/src/hooks/useBillingStatus.
  *
- * The web app never runs Play checkout, so there is no purchase to react to
- * here — this exists to recognize an entitlement bought on Android, and to
- * show the trial countdown. `refetchOnWindowFocus` covers the realistic case:
+ * Recognizes an entitlement bought on Android as well as one bought here, and
+ * shows the trial countdown. `refetchOnWindowFocus` covers the realistic case:
  * the user buys on their phone, comes back to this tab, and expects the app
  * to have caught up.
  */
@@ -36,12 +46,70 @@ export function useSyncBilling() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: syncBilling,
-    onSuccess: (status: BillingStatus) => {
-      qc.setQueryData(billingKey, status)
-      // Access just changed — every screen that was showing restricted or
-      // stale content needs to refetch what it could not load before.
-      if (status.allowed) void qc.invalidateQueries()
+    onSuccess: (status: BillingStatus) => seedBillingStatus(qc, status),
+  })
+}
+
+/** Put a fresh server answer (sync, checkout, cancel) straight into the cache. */
+function seedBillingStatus(qc: ReturnType<typeof useQueryClient>, status: BillingStatus): void {
+  qc.setQueryData(billingKey, status)
+  // Access just changed — every screen that was showing restricted or
+  // stale content needs to refetch what it could not load before.
+  if (status.allowed) void qc.invalidateQueries()
+}
+
+/** The web plans and their live prices. */
+export function useWebPlans(enabled = true) {
+  return useQuery({ queryKey: ['billing-web-plans'], queryFn: getWebPlans, staleTime: 10 * 60_000, enabled })
+}
+
+export type WebCheckoutOutcome =
+  /** Paid and confirmed with Razorpay. */
+  | { status: 'paid'; access: BillingStatus }
+  /** Paid, but the server couldn't confirm it yet. The webhook will; don't let them pay twice. */
+  | { status: 'pending'; access: BillingStatus }
+  | { status: 'dismissed' }
+  | { status: 'already_subscribed'; store: 'play' | 'web' | null }
+
+/**
+ * Web checkout, end to end: the server creates the subscription, Razorpay's
+ * sheet takes the payment, and the server re-checks it before anything
+ * unlocks. The access that comes back is the server's, never the sheet's.
+ */
+export function useWebCheckout(prefill?: { email?: string; name?: string }) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (period: PlanPeriod): Promise<WebCheckoutOutcome> => {
+      let session: { subscriptionId: string; keyId: string }
+      try {
+        session = await startWebCheckout(period)
+      } catch (err) {
+        if (err instanceof AlreadySubscribedError) return { status: 'already_subscribed', store: err.store }
+        throw err
+      }
+      const result = await openCheckout({
+        keyId: session.keyId,
+        subscriptionId: session.subscriptionId,
+        description: period === 'yearly' ? 'Yearly plan' : 'Monthly plan',
+        prefill,
+      })
+      if (result.status === 'dismissed') return result
+      const access = await verifyWebCheckout(result)
+      return { status: access.mode === 'paid' ? 'paid' : 'pending', access }
     },
+    onSuccess: (outcome) => {
+      if (outcome.status === 'paid' || outcome.status === 'pending') seedBillingStatus(qc, outcome.access)
+      if (outcome.status === 'already_subscribed') void qc.invalidateQueries({ queryKey: billingKey })
+    },
+  })
+}
+
+/** Stop renewing a web subscription. */
+export function useCancelWebSubscription() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: cancelWebSubscription,
+    onSuccess: (status: BillingStatus) => seedBillingStatus(qc, status),
   })
 }
 

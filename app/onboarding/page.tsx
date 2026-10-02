@@ -20,6 +20,7 @@ import { DEFAULT_ALERT_PCTS } from '../../src/lib/alerts'
 import { startTimer, track } from '../../src/lib/analytics'
 import { AmountTicker } from '../../src/components/onboarding/AmountTicker'
 import { Confetti } from '../../src/components/onboarding/Confetti'
+import { LoadingCaption } from '../../src/components/LoadingCaption'
 
 // Twin of Mobile's app/setup.tsx: income → groups → categories → assign →
 // done. Writes land on finish, same reasoning as mobile — groups/categories
@@ -29,6 +30,10 @@ import { Confetti } from '../../src/components/onboarding/Confetti'
 // inline number fields replace them.
 const EMOJI_CYCLE = ['🏠', '🎬', '🌱', '🛒', '💡', '🚌', '🍜', '📺', '🛍', '🛟', '📈', '🎓', '🐶', '💊', '✈️', '🎁']
 const QUICK_PICKS = ['30000', '50000', '75000', '100000']
+// Shortest time a Finish-button save step stays on screen.
+const STEP_MIN_MS = 500
+// The last step holds longer so it reads as finishing, not a flash before the success screen.
+const LAST_STEP_MIN_MS = 1000
 
 interface Item {
   id: string
@@ -139,6 +144,10 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
   const [cats, setCats] = useState<Record<string, Item[]>>(defaultCats)
   const [amounts, setAmounts] = useState<Record<string, number>>({})
   const [pending, setPending] = useState(false)
+  // Real save progress for the Finish button: the step being written and the
+  // share of writes that have landed, so a slow save visibly moves.
+  const [saveStep, setSaveStep] = useState('')
+  const [saveProgress, setSaveProgress] = useState(0)
   const [error, setError] = useState('')
   const [result, setResult] = useState<{ income: number; groupCount: number; categoryCount: number } | null>(null)
 
@@ -295,6 +304,22 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
       setResult({ income: incomeValue, groupCount: selectedGroups.length, categoryCount })
       setStep(5)
     }
+    const live = liveCats()
+    // Groups, categories, income, each envelope, then currency + completion.
+    const totalWrites = selectedGroups.length + categoryCount + 1 + live.length + 2
+    let doneWrites = 0
+    const tick = () => setSaveProgress(++doneWrites / totalWrites)
+    setSaveProgress(0)
+    setSaveStep('Creating your envelopes…')
+    // Each step stays readable for at least STEP_MIN_MS, so a fast write never
+    // flashes its text past the user or cuts straight to the next screen.
+    let stepShownAt = Date.now()
+    const holdStep = (minMs = STEP_MIN_MS) => new Promise<void>((r) => setTimeout(r, Math.max(0, stepShownAt + minMs - Date.now())))
+    const showStep = async (text: string) => {
+      await holdStep()
+      setSaveStep(text)
+      stepShownAt = Date.now()
+    }
     try {
       const month = currentMonthKey()
       const budgetVersions = new Map(
@@ -305,21 +330,25 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
       // together, matching mobile. Completion waits for every setup write.
       await Promise.all([
         (async () => {
-          for (const g of selectedGroups) await addGroup(label(g)).catch(ignoreConflict)
+          for (const g of selectedGroups) await addGroup(label(g)).catch(ignoreConflict).then(tick)
         })(),
         (async () => {
-          for (const c of categories) await addCategory(c.name, c.group).catch(ignoreConflict)
+          for (const c of categories) await addCategory(c.name, c.group).catch(ignoreConflict).then(tick)
         })(),
-        updateBudget(month, INCOME_CATEGORY, { assigned: String(incomeValue), rolled_over: '0' }, versionFor(INCOME_CATEGORY)),
-        ...liveCats().map((item) => {
+        updateBudget(month, INCOME_CATEGORY, { assigned: String(incomeValue), rolled_over: '0' }, versionFor(INCOME_CATEGORY)).then(tick),
+        ...live.map((item) => {
           const catLabel = `${item.emoji} ${item.name.trim()}`
-          return updateBudget(month, catLabel, { assigned: String(amounts[item.key] ?? 0), rolled_over: '0' }, versionFor(catLabel))
+          return updateBudget(month, catLabel, { assigned: String(amounts[item.key] ?? 0), rolled_over: '0' }, versionFor(catLabel)).then(tick)
         }),
       ])
+      await showStep('Starting your budget…')
       await updateUser({ currencyCode })
+      tick()
       const { user } = await completeOnboarding()
+      tick()
       qc.setQueryData(['user'], user)
       void qc.invalidateQueries()
+      await holdStep(LAST_STEP_MIN_MS)
       finishSetup()
     } catch {
       // The response may be lost after completion committed. Check the
@@ -329,6 +358,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
         if (user.onboardedAt) {
           qc.setQueryData(['user'], user)
           void qc.invalidateQueries()
+          await holdStep(LAST_STEP_MIN_MS)
           finishSetup(true)
           return
         }
@@ -554,8 +584,16 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
 
       {error !== '' && <p className="setup-error">{error}</p>}
 
-      <button type="button" className="setup-cta" disabled={!canAdvance || pending} onClick={next}>
-        {pending ? 'Saving…' : step === 4 ? 'Finish setup' : 'Continue'}
+      <button
+        type="button"
+        className={`setup-cta${pending ? ' is-saving' : ''}`}
+        disabled={!canAdvance || pending}
+        onClick={next}
+        style={pending ? ({ '--save-progress': saveProgress } as React.CSSProperties) : undefined}
+      >
+        {pending ? (
+          <LoadingCaption phrases={[saveStep || 'Saving…']} placement="inline" align="center" className="setup-cta-caption" />
+        ) : step === 4 ? 'Finish setup' : 'Continue'}
       </button>
       {error === '' && <p className="setup-cta-hint">{hint}</p>}
     </div>

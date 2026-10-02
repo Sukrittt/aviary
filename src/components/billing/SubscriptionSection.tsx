@@ -1,25 +1,36 @@
 'use client'
 
-import { ExternalLink, RefreshCw } from 'lucide-react'
-import { useBillingStatus, useSyncBilling } from '@/src/hooks/useBillingStatus'
+import { useState } from 'react'
+import { AnimatePresence } from 'motion/react'
+import { ExternalLink, RefreshCw, XCircle } from 'lucide-react'
+import { ConfirmDialog } from '@/src/components/ConfirmDialog'
+import { useBillingStatus, useCancelWebSubscription, useSyncBilling } from '@/src/hooks/useBillingStatus'
 import { billingVisible, formatDate, PLAY_STORE_URL, trialRemainingLabel } from './copy'
+import { WebPlanPicker } from './WebPlanPicker'
 
 /**
  * Subscription status on the account page: what the plan is, when it renews
  * or ends, and how to change it.
  *
- * Cancelling and changing payment method both live in Google Play, not here —
- * that is where the subscription actually is, and pretending otherwise would
- * leave someone clicking a button in this app believing they had cancelled
- * when they had not.
+ * Where a plan is managed depends on where it was bought. A Google Play plan
+ * can only be cancelled in Play, and pretending otherwise would leave someone
+ * clicking a button here believing they had cancelled when they had not. A
+ * web plan is ours, so it's cancelled right here.
  */
 export function SubscriptionSection() {
   const { data, isLoading } = useBillingStatus()
   const sync = useSyncBilling()
+  const cancel = useCancelWebSubscription()
+  const [confirmingCancel, setConfirmingCancel] = useState(false)
 
   // Hidden entirely until subscriptions are switched on, so nobody is shown a
   // plan they cannot buy and a countdown that does not apply to them yet.
   if (isLoading || !data || !billingVisible(data)) return null
+
+  const paid = data.mode === 'paid' && !data.gifted
+  const web = paid && data.store === 'web'
+  const play = paid && data.store !== 'web'
+  const canBuy = data.purchaseEnabled && (data.mode === 'trial' || data.mode === 'expired')
 
   return (
     <div id="subscription">
@@ -40,19 +51,52 @@ export function SubscriptionSection() {
             <span className="account-row-label" style={{ color: 'var(--tk-warn)' }}>
               Payment problem
               <span className="account-row-hint">
-                Google Play could not take the last payment. Update your payment method to avoid losing access.
+                {web
+                  ? "Your last renewal didn't go through. We're retrying it, and you keep everything meanwhile."
+                  : 'Google Play could not take the last payment. Update your payment method to avoid losing access.'}
               </span>
             </span>
           </div>
         )}
 
-        <a className="account-row" href={PLAY_STORE_URL} target="_blank" rel="noreferrer">
-          <span className="account-row-label">
-            Manage in Google Play
-            <span className="account-row-hint">Change plan, update payment method, or cancel.</span>
-          </span>
-          <ExternalLink size={16} className="account-row-arrow" aria-hidden />
-        </a>
+        {play && (
+          <a className="account-row" href={PLAY_STORE_URL} target="_blank" rel="noreferrer">
+            <span className="account-row-label">
+              Manage in Google Play
+              <span className="account-row-hint">Change plan, update payment method, or cancel.</span>
+            </span>
+            <ExternalLink size={16} className="account-row-arrow" aria-hidden />
+          </a>
+        )}
+
+        {web && data.autoRenew && (
+          <button
+            type="button"
+            className="account-row"
+            onClick={() => setConfirmingCancel(true)}
+            disabled={cancel.isPending}
+            style={{ width: '100%', textAlign: 'left' }}
+          >
+            <span className="account-row-label">
+              Cancel renewal
+              <span className="account-row-hint">
+                {cancel.isError ? "That didn't go through. Check your connection and try again." : `You keep everything until ${formatDate(data.paidExpiresAt)}.`}
+              </span>
+            </span>
+            <XCircle size={16} className="account-row-arrow" aria-hidden />
+          </button>
+        )}
+
+        {web && !data.autoRenew && (
+          <div className="account-row" style={{ cursor: 'default' }}>
+            <span className="account-row-label">
+              Renewal is off
+              <span className="account-row-hint">
+                You keep everything until {formatDate(data.paidExpiresAt)}. Pick a plan again after that to carry on.
+              </span>
+            </span>
+          </div>
+        )}
 
         <button type="button" className="account-row" onClick={() => sync.mutate()} disabled={sync.isPending} style={{ width: '100%', textAlign: 'left' }}>
           <span className="account-row-label">
@@ -66,14 +110,40 @@ export function SubscriptionSection() {
           <RefreshCw size={16} className="account-row-arrow" aria-hidden />
         </button>
       </div>
+
+      {canBuy && (
+        <div className="account-card" style={{ marginTop: 12, padding: 16 }}>
+          <WebPlanPicker />
+        </div>
+      )}
+
+      <AnimatePresence>
+        {confirmingCancel && (
+          <ConfirmDialog
+            title="Cancel renewal?"
+            body={`You won't be charged again, and you keep everything until ${formatDate(data.paidExpiresAt)}.`}
+            cancelLabel="Keep my plan"
+            onCancel={() => setConfirmingCancel(false)}
+          >
+            <button
+              type="button"
+              className="account-danger-btn"
+              disabled={cancel.isPending}
+              onClick={() => cancel.mutate(undefined, { onSettled: () => setConfirmingCancel(false) })}
+            >
+              {cancel.isPending ? 'Cancelling…' : 'Cancel renewal'}
+            </button>
+          </ConfirmDialog>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
 
-function describePlan(data: { mode: string; trialEndsAt: string | null; paidExpiresAt: string | null; autoRenew: boolean; basePlanId: string | null }): string {
+function describePlan(data: { mode: string; trialEndsAt: string | null; paidExpiresAt: string | null; autoRenew: boolean; basePlanId: string | null; gifted?: boolean }): string {
   if (data.mode === 'trial') return `Free trial ends ${formatDate(data.trialEndsAt)}`
   if (data.mode === 'paid') {
-    const plan = data.basePlanId ? `${data.basePlanId} · ` : ''
+    const plan = data.basePlanId ? `${data.basePlanId[0].toUpperCase()}${data.basePlanId.slice(1)} · ` : ''
     // "Renews" and "ends" are not interchangeable. Someone who cancelled needs
     // to see the date their access stops, not a renewal that is not coming.
     return `${plan}${data.autoRenew ? 'Renews' : 'Ends'} ${formatDate(data.paidExpiresAt)}`

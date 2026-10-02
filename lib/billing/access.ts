@@ -7,7 +7,7 @@
  * grace, hold, a pending purchase) testable without a database, and stops
  * anyone reaching for the payment provider on a budgeting request.
  */
-import { TRIAL_DAYS, type BillingAccountDoc, type BillingSubscriptionDoc, type SubscriptionStatus } from './records'
+import { TRIAL_DAYS, type BillingAccountDoc, type BillingStore, type BillingSubscriptionDoc, type SubscriptionStatus } from './records'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -43,6 +43,12 @@ export interface Access {
   autoRenew: boolean
   /** The verified store status, surfaced so the client can say *why* (grace, on hold, pending). */
   renewalState: SubscriptionStatus | null
+  /**
+   * Where the purchase behind `renewalState` lives, and so where the user
+   * manages it: `'play'` (Google Play) or `'web'` (Razorpay, on our site).
+   * Null with no purchase on record.
+   */
+  store: BillingStore | null
   /**
    * True when an admin's gifted plan is what is entitling the account.
    * Deliberately not a separate `mode`: shipped clients switch on the four
@@ -96,6 +102,8 @@ export function extendTrialEnd(currentEnd: Date, days: number, now: Date): Date 
  * action, so no account means no clock has started.
  */
 export function resolveAccess({ now, account, subscription, enforced }: AccessInput): Access {
+  // Test purchases must never become live access after provider keys change.
+  if (subscription?.environment !== 'production') subscription = null
   const purchased = subscriptionEntitles(subscription, now)
   // A purchase outranks a gift for display: it is the one with a renewal to
   // explain. The gift keeps entitling underneath either way.
@@ -123,6 +131,7 @@ export function resolveAccess({ now, account, subscription, enforced }: AccessIn
     paidExpiresAt: gifted ? account!.comp!.until.toISOString() : (subscription?.expiresAt?.toISOString() ?? null),
     autoRenew: gifted ? false : (subscription?.autoRenew ?? false),
     renewalState: subscription?.status ?? null,
+    store: subscription?.store ?? null,
     gifted,
     retentionDeadline: account?.retentionDeadline?.toISOString() ?? null,
   }
@@ -135,6 +144,7 @@ export function resolveAccess({ now, account, subscription, enforced }: AccessIn
  * the most recently verified is kept so the client can explain the failure.
  */
 export function pickSubscription(subs: BillingSubscriptionDoc[], now: Date): BillingSubscriptionDoc | null {
+  subs = subs.filter((sub) => sub.environment === 'production')
   if (subs.length === 0) return null
   const entitling = subs.filter((s) => subscriptionEntitles(s, now))
   if (entitling.length > 0) {

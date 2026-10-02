@@ -47,7 +47,7 @@ describe('site metadata', () => {
   })
 
   it('indexes only public content and keeps all financial, auth and admin pages private', () => {
-    const publicPaths = ['/', '/legal/privacy', '/legal/terms', '/legal/delete-account']
+    const publicPaths = ['/', '/legal/privacy', '/legal/terms', '/legal/pricing', '/legal/refunds', '/legal/contact', '/legal/delete-account']
     for (const path of Object.keys(pages) as PagePath[]) {
       expect(pageMetadata(path).robots).toMatchObject({ index: publicPaths.includes(path) })
     }

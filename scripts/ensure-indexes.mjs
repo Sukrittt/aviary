@@ -133,6 +133,11 @@ const INDEXES = {
     // Reconciliation sweeps entitlements that have lapsed or are about to.
     [{ expiresAt: 1 }, {}],
   ],
+  email_outbox: [
+    [{ user_id: 1 }, {}],
+    [{ 'delivery.state': 1, 'delivery.nextAttemptAt': 1 }, {}],
+    [{ 'delivery.state': 1, 'delivery.leaseUntil': 1 }, {}],
+  ],
   billing_events: [
     // Idempotent ingest: a duplicate webhook delivery throws E11000 instead
     // of applying a second state change.

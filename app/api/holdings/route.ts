@@ -5,6 +5,7 @@ import { requireAccess } from '@/lib/billing/guard'
 import { HOLDING_HEADERS, toRow } from '@/lib/models'
 import { invalidate } from '@/lib/cache'
 import { withTx } from '@/lib/mongodb'
+import { nextContributionDate } from '@/lib/holdingRecurrence'
 
 export const dynamic = 'force-dynamic'
 
@@ -43,7 +44,17 @@ export async function GET(req: Request) {
   if (gate) return gate
   const coll = await getCollection('holdings', auth)
   const docs = await coll.find({}).toArray()
-  return json({ headers: HOLDING_HEADERS, rows: docs.map(holdingRow) })
+  const { date: today } = await nowForUser(auth.userId)
+  const rows = docs.map((doc) => ({
+    ...holdingRow(doc),
+    next_contribution_date: nextContributionDate({
+      is_recurring: doc.is_recurring === 'true' ? 'true' : 'false',
+      recurring_amount: String(doc.recurring_amount ?? ''),
+      recurring_day: String(doc.recurring_day ?? ''),
+      recurring_last_run: String(doc.recurring_last_run ?? ''),
+    }, today),
+  }))
+  return json({ headers: HOLDING_HEADERS, rows })
 }
 
 export async function POST(req: Request) {

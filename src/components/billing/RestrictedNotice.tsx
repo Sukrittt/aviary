@@ -5,6 +5,7 @@ import { ChevronRight, Compass, Database, ExternalLink, Lock, MessageCircle, Ref
 import '@/src/expense-redesign.css'
 import { useBillingStatus, useSyncBilling } from '@/src/hooks/useBillingStatus'
 import { lockedReason, PLAY_STORE_URL } from './copy'
+import { WebPlanPicker } from './WebPlanPicker'
 
 /**
  * Shown in place of the budgeting app when the account has no valid trial or
@@ -15,10 +16,10 @@ import { lockedReason, PLAY_STORE_URL } from './copy'
  * delete their account, and pay — and nothing else. A dead end with only a
  * "Subscribe" button would be holding their own records hostage.
  *
- * There is no checkout on this page because there cannot be one: Google Play
- * requires purchases for in-app digital access to go through Play billing, so
- * the web app's job is to explain that clearly and send them to the Android
- * app, not to imitate a paywall it is not allowed to complete.
+ * Checkout happens right here through Razorpay once purchases are open. The
+ * Android app keeps its own Google Play checkout (Play requires it there), and
+ * either purchase unlocks both, so this also points people who'd rather pay
+ * on their phone at the app.
  */
 export function RestrictedNotice() {
   const { data: status } = useBillingStatus()
@@ -56,13 +57,17 @@ export function RestrictedNotice() {
           background: 'var(--tk-card-solid)',
         }}
       >
-        <div>
-          <strong style={{ color: 'var(--tk-text)' }}>Subscribe in the Android app</strong>
-          <p style={{ margin: '6px 0 0', color: 'var(--tk-text2)', fontSize: 14, lineHeight: 1.5 }}>
-            Payment goes through Google Play, so it happens on your phone. Sign in to the Android app with this same
-            Aviary account and your subscription unlocks here too.
-          </p>
-        </div>
+        {status?.purchaseEnabled ? (
+          <WebPlanPicker />
+        ) : (
+          <div>
+            <strong style={{ color: 'var(--tk-text)' }}>Subscribe in the Android app</strong>
+            <p style={{ margin: '6px 0 0', color: 'var(--tk-text2)', fontSize: 14, lineHeight: 1.5 }}>
+              Payment goes through Google Play, so it happens on your phone. Sign in to the Android app with this same
+              Aviary account and your subscription unlocks here too.
+            </p>
+          </div>
+        )}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
           <a
             href={PLAY_STORE_URL}
@@ -74,13 +79,14 @@ export function RestrictedNotice() {
               gap: 8,
               padding: '10px 16px',
               borderRadius: 999,
-              background: 'var(--tk-accent)',
-              color: 'var(--tk-on-accent)',
-              fontWeight: 700,
+              // Secondary once web checkout is on the page, so there's one obvious way to pay.
+              ...(status?.purchaseEnabled
+                ? { border: '1px solid var(--tk-border-strong)', background: 'transparent', color: 'var(--tk-text)', fontWeight: 600 }
+                : { background: 'var(--tk-accent)', color: 'var(--tk-on-accent)', fontWeight: 700 }),
               textDecoration: 'none',
             }}
           >
-            Open Google Play <ExternalLink size={15} aria-hidden />
+            {status?.purchaseEnabled ? 'Get the Android app' : 'Open Google Play'} <ExternalLink size={15} aria-hidden />
           </a>
           {/* For someone who already paid on their phone and is waiting for
               this tab to catch up, rather than a second way to buy. */}

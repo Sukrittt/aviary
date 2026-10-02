@@ -3,7 +3,7 @@ import { json } from '@/lib/http'
 import { getDb } from '@/lib/mongodb'
 import { recordCronRun, triggerOf, alertAdminsOnRepeatFailure } from '@/lib/cronRuns'
 import { BILLING_EVENTS, BILLING_SUBSCRIPTIONS, type BillingEventDoc, type BillingSubscriptionDoc } from '@/lib/billing/records'
-import { refreshFromProvider } from '@/lib/billing/service'
+import { recordRazorpaySubscription, refreshFromProvider } from '@/lib/billing/service'
 import { runRetention, sendTrialReminders, type RetentionResult } from '@/lib/billing/lifecycle'
 
 export const dynamic = 'force-dynamic'
@@ -29,7 +29,7 @@ const MAX_PER_RUN = 200
  * user whose renewal notification went missing is quietly locked out of an
  * account they are still paying for.
  *
- * Two queues, both re-verified the same way:
+ * Two queues, both re-verified the same way (RevenueCat and Razorpay alike):
  *  - subscriptions whose entitlement has lapsed or lapses within a day and a half
  *  - accounts whose last webhook failed to process
  *
@@ -69,16 +69,28 @@ async function reconcile(): Promise<{ checked: number; failed: number; trialRemi
       .toArray(),
     db
       .collection<BillingEventDoc>(BILLING_EVENTS)
-      .find({ state: 'failed', userId: { $ne: null } }, { projection: { userId: 1 } })
+      .find({ state: 'failed', userId: { $ne: null } }, { projection: { userId: 1, provider: 1, summary: 1 } })
       .limit(MAX_PER_RUN)
       .toArray(),
   ])
 
   const userIds = [...new Set([...dueSubs.map((s) => s.userId), ...failedEvents.map((e) => e.userId!)])]
 
+  // A failed Razorpay event may be the first news of a subscription we hold
+  // no row for yet (checkout closed before verify ran), and refreshFromProvider
+  // only re-reads rows it already has. Record those by id first.
+  const webSubsByUser = new Map<string, Set<string>>()
+  for (const e of failedEvents) {
+    const subscriptionId = e.provider === 'razorpay' ? e.summary?.subscriptionId : null
+    if (typeof subscriptionId !== 'string') continue
+    if (!webSubsByUser.has(e.userId!)) webSubsByUser.set(e.userId!, new Set())
+    webSubsByUser.get(e.userId!)!.add(subscriptionId)
+  }
+
   let failed = 0
   for (const userId of userIds) {
     try {
+      for (const subscriptionId of webSubsByUser.get(userId) ?? []) await recordRazorpaySubscription(userId, subscriptionId)
       await refreshFromProvider(userId)
       // Only clear the retry backlog once the account genuinely re-verified.
       await db

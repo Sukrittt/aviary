@@ -49,3 +49,13 @@ export function lastNDays(n: number): string[] {
   }
   return days
 }
+
+/** Paise as whole rupees, Indian grouping: 1234500 → "₹12,345". */
+export const inr = (paise: number) => `₹${Math.round(paise / 100).toLocaleString('en-IN')}`
+
+/** Paise as a short rupee figure for axes and tight spaces: "₹1.2L", "₹45K". */
+export const inrShort = (paise: number) =>
+  `₹${(paise / 100).toLocaleString('en-IN', { notation: 'compact', maximumFractionDigits: paise / 100 >= 1000 ? 1 : 0 })}`
+
+/** A ratio as a whole percentage, or the missing-value glyph for null. */
+export const percent = (ratio: number | null) => (ratio === null ? '—' : `${Math.round(ratio * 100)}%`)

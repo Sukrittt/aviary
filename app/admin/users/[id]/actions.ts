@@ -8,6 +8,7 @@ import { requireAdmin } from '@/lib/admin'
 import { audit } from '@/lib/adminAudit'
 import { purgeAccountNow, restoreAccount, softDeleteAccount } from '@/lib/accountLifecycle'
 import { getDb } from '@/lib/mongodb'
+import { cancelWebSubscriptions } from '@/lib/billing/service'
 import type { UserDoc } from '@/lib/users'
 import type { ActionResult } from '../../ActionForm'
 import { getWorkOSClient } from '@/lib/workosClient'
@@ -85,6 +86,13 @@ export async function softDeleteAction(userId: string): Promise<ActionResult> {
   const { db, user } = await target(userId)
   if (!user) return { ok: false, message: 'User not found' }
   if (user.deleted_at) return { ok: false, message: 'Already scheduled for deletion' }
+
+  // Same as the user's own delete: a web subscription must not outlive the account.
+  try {
+    await cancelWebSubscriptions(userId)
+  } catch (err) {
+    return { ok: false, message: `Couldn't cancel their web subscription, nothing changed: ${(err as Error).message}` }
+  }
 
   await softDeleteAccount(db, userId)
   await audit(adminId, 'user.soft_delete', userId, { email: user.email })

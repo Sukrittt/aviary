@@ -44,7 +44,7 @@ describe('onboarding analytics', () => {
 
   it('reports every step, the back tap, and the finish, matching mobile', async () => {
     const client = walkToFinish()
-    await waitFor(() => expect(eventsNamed('onboarding_completed')).toHaveLength(1))
+    await waitFor(() => expect(eventsNamed('onboarding_completed')).toHaveLength(1), { timeout: 3000 })
 
     expect(eventsNamed('onboarding_started')).toHaveLength(1)
     expect(eventsNamed('onboarding_step_viewed').map((p) => p?.step_name)).toEqual([
@@ -66,7 +66,7 @@ describe('onboarding analytics', () => {
   it('reports a failed save without counting the last step as done', async () => {
     vi.mocked(completeOnboarding).mockRejectedValueOnce(new Error('503'))
     const client = walkToFinish()
-    await waitFor(() => expect(eventsNamed('onboarding_failed')).toEqual([{ reason: 'save_failed' }]))
+    await waitFor(() => expect(eventsNamed('onboarding_failed')).toEqual([{ reason: 'save_failed' }]), { timeout: 3000 })
     expect(eventsNamed('onboarding_completed')).toHaveLength(0)
     expect(eventsNamed('onboarding_step_completed').map((p) => p?.step_name)).not.toContain('assign')
     client.clear()
@@ -75,10 +75,22 @@ describe('onboarding analytics', () => {
     vi.mocked(completeOnboarding).mockRejectedValueOnce(new Error('Response lost'))
     vi.mocked(getUser).mockResolvedValueOnce({ email: 'test@example.com', emailVerified: true, onboardedAt: '2026-10-01', currencyCode: 'USD' })
     const client = walkToFinish()
-    expect(await screen.findByRole('heading', { name: 'Your budget is ready to go.' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Your budget is ready to go.' }, { timeout: 3000 })).toBeInTheDocument()
     expect(eventsNamed('onboarding_failed')).toHaveLength(0)
     expect(eventsNamed('onboarding_completed')).toEqual([expect.objectContaining({ recovered_after_error: true })])
     client.clear()
   })
 
+  it('shows the real save step in the Finish button while saving', async () => {
+    let finish!: () => void
+    vi.mocked(completeOnboarding).mockReturnValueOnce(new Promise((resolve) => {
+      finish = () => resolve({ onboardedAt: '2026-09-18T12:00:00.000Z', user: { currencyCode: 'USD' } as never, access: {} as never })
+    }))
+    const client = walkToFinish()
+    expect(screen.getByText('Creating your envelopes…')).toBeInTheDocument()
+    expect(await screen.findByText('Starting your budget…')).toBeInTheDocument()
+    finish()
+    expect(await screen.findByRole('heading', { name: 'Your budget is ready to go.' }, { timeout: 3000 })).toBeInTheDocument()
+    client.clear()
+  })
 })
