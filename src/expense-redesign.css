@@ -5029,6 +5029,33 @@
   cursor: default;
 }
 
+.setup-cta.is-saving {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background: var(--gold);
+  color: var(--erd-on-accent);
+  cursor: progress;
+}
+
+/* Fills as each setup write lands, so a slow save visibly moves. */
+.setup-cta.is-saving::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: rgba(255, 255, 255, 0.22);
+  transform-origin: left;
+  transform: scaleX(var(--save-progress, 0));
+  transition: transform 0.35s ease-out;
+}
+
+.setup-cta-caption .loading-caption-text {
+  font-size: inherit;
+  color: inherit;
+  font-weight: inherit;
+}
+
 .setup-cta-hint {
   font-size: 11px;
   color: var(--erd-text3);
