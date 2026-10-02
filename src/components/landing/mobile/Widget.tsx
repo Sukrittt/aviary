@@ -2,11 +2,11 @@
 
 import { BIRD_BODY_PATH } from '../../BirdMark'
 import { CATEGORIES, DAYS_LEFT } from './demo'
-import { T } from './kit'
+import { lightTokens as T } from '@/src/theme/tokens'
 
 /**
  * Web twins of Mobile's home-screen widgets (src/widgets/EnvelopeWidget.tsx and
- * EnvelopeBarWidget.tsx), in the dark scheme, fed from the landing's sample
+ * EnvelopeBarWidget.tsx), in the light scheme, fed from the landing's sample
  * categories. The bird-in-a-ring is a port of src/widgets/bird.ts at the "ok" mood.
  */
 
@@ -36,7 +36,7 @@ function BirdRing({ size }: { size: number }) {
       <path d={BIRD_BODY_PATH} fill={T.accent} />
       <path d="M 168 236 Q 214 318 292 300 Q 246 262 168 236 Z" fill="#0a0a0a" fillOpacity="0.22" />
       <ellipse cx="318" cy="258" rx="17" ry="11" fill="#ffb199" fillOpacity="0.75" />
-      <circle cx={cx} cy={cy} r={r} fill="#0a0a0a" />
+      <circle cx={cx} cy={cy} r={r} fill="#fcfcfc" />
       <circle cx={cx + 6} cy={cy - 6} r="6" fill={T.accent} />
     </g>
   </svg>

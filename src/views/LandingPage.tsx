@@ -8,7 +8,7 @@ import { TrackedLink } from '../components/TrackedLink'
 // Parked while the page leads with habit nudges; see the commented section below.
 // import { MoneyLesson } from '../components/landing/MoneyLesson'
 import { BirdLanding, BirdMark } from '../components/BirdMark'
-import { HeroStage, LeftCard, NoticeSplit, RotatingHabit, StreakCard } from '../components/landing/Nudges'
+import { HeroStage, NoticeSplit, RotatingHabit } from '../components/landing/Nudges'
 import '../landing.css'
 
 const PLAY_STORE = 'https://play.google.com/store/apps/details?id=com.sukrit04.envelope'
@@ -122,7 +122,7 @@ export function LandingPage() {
         </figure>
         <figure className="lp-shot">
           <div className="lp-shot-art" aria-hidden="true">
-            <div className="lp-shot-phone"><Image src="/landing/log-expense.jpeg" alt="" width={764} height={1599} sizes="300px" /></div>
+            <div className="lp-shot-phone"><video src="/landing/clip-log.mp4" poster="/landing/poster-log.jpg" autoPlay muted loop playsInline preload="metadata" /></div>
           </div>
           <figcaption><strong>The keypad</strong><span>Amount, a word or two, done. The envelope picks itself.</span></figcaption>
         </figure>
@@ -152,12 +152,15 @@ export function LandingPage() {
         <article className="lp-win">
           <h3>See what’s left, right away.</h3>
           <p>In the app, every log lands with a check, a buzz and a chime. Then you see what that envelope has left for the month.</p>
-          <LeftCard />
+          <video className="lp-win-shot" src="/landing/clip-added.mp4" poster="/landing/poster-added.jpg" autoPlay muted loop playsInline preload="metadata" aria-label="Added ₹150 for Bike to office. Metro has ₹960 left of ₹1,110." />
         </article>
         <article className="lp-win lp-win--wrapped">
           <h3>A streak worth keeping.</h3>
           <p>Expense Wrapped turns your month into a recap, longest logging streak included.</p>
-          <StreakCard />
+          <div className="lp-win-shots">
+            <Image src="/landing/wrapped-streak.png" alt="Longest logging streak: 23 days, 8 Sep to 30 Sep." width={576} height={640} sizes="(max-width: 760px) 45vw, 250px" />
+            <Image src="/landing/wrapped-persona.png" alt="Your spending personality: The Homebody." width={576} height={640} sizes="(max-width: 760px) 45vw, 250px" />
+          </div>
         </article>
       </div>
     </section>
@@ -175,11 +178,11 @@ export function LandingPage() {
           <div className="lp-founder-sign"><span aria-hidden="true">S</span><div><strong>Sukrit</strong><small>Builds Aviary</small></div></div>
         </div>
         <figure className="lp-road">
-          <div className="lp-road-tiles" aria-hidden="true">
-            <span className="lp-road-tile lp-road-sheet"><i /><i /><i /><i /><i /><i /></span>
-            <span className="lp-road-tile lp-road-bank">UPI/DR<br />POS<br />NACH</span>
-            <span className="lp-road-tile lp-road-ynab">$$$</span>
-            <span className="lp-road-tile lp-road-aviary"><BirdMark size={64} perched /></span>
+          <div className="lp-road-tiles">
+            <span className="lp-road-tile lp-road-sheet" aria-hidden="true"><i /><i /><i /><i /><i /><i /></span>
+            <span className="lp-road-tile lp-road-bank" aria-hidden="true">UPI/DR<br />POS<br />NACH</span>
+            <span className="lp-road-tile lp-road-ynab" aria-hidden="true">$$$</span>
+            <TrackedLink className="lp-road-tile lp-road-aviary" href={PLAY_STORE} event="store_cta_clicked" properties={{ placement: 'founder_icon' }}><BirdMark size={64} perched /><span className="lp-sr-only">Get Aviary on Google Play</span></TrackedLink>
           </div>
           <figcaption>Homemade apps, spreadsheets, bank sync, YNAB, and now Aviary.</figcaption>
         </figure>
