@@ -19,17 +19,17 @@ export function subscriptionTemplate(kind: SubscriptionEmailKind, name: string |
   const expiry = expiresAt && Number.isFinite(expiresAt.getTime()) ? expiresAt.toISOString().slice(0, 10) + ' (UTC)' : null
   const content = {
     paid: {
-      subject: 'Your Aviary subscription payment was received',
-      paragraphs: [`${provider} confirmed your Aviary subscription payment.`, ...(expiry ? [`Your current subscription period ends on ${expiry}.`] : []), store === 'play' ? 'You can find your receipt and manage your subscription in Google Play.' : 'You can review your subscription and manage renewal in your Aviary account.'],
+      subject: 'Payment received for Aviary',
+      paragraphs: [`We got your Aviary payment through ${provider}. Thanks for supporting the app.`, ...(expiry ? [`Your subscription is paid through ${expiry}.`] : []), store === 'play' ? 'Your receipt is in Google Play, where you can also manage the subscription.' : 'You can see your plan and change renewal settings in your Aviary account.'],
     },
     failed: {
-      subject: 'Your Aviary subscription payment needs attention',
-      paragraphs: [`${provider} reported a problem collecting your Aviary subscription payment.`, 'Please check your payment method in your subscription settings. The provider may retry the payment; your current access is shown in Aviary.', 'If you have already updated your payment method, check your subscription status before taking further action.'],
+      subject: 'Your Aviary payment didn’t go through',
+      paragraphs: [`${provider} couldn’t collect your latest Aviary payment.`, 'Please check the payment method on your subscription. The payment may be retried automatically, and your current access is shown in Aviary.', 'If you’ve already updated it, you can confirm the status in your subscription settings.'],
     },
     cancelled: {
-      subject: 'Your Aviary subscription renewal is cancelled',
-      paragraphs: ['Automatic renewal for your Aviary subscription has been turned off.', ...(expiry && expiresAt!.getTime() > Date.now() ? [`Your current access continues until ${expiry}.`] : ['You can check your current access in Aviary.']), 'This confirmation does not indicate a refund. You can manage your subscription in your subscription settings.'],
+      subject: 'Your Aviary subscription won’t renew',
+      paragraphs: ['Auto-renewal for your Aviary subscription is now off.', ...(expiry && expiresAt!.getTime() > Date.now() ? [`You keep access until ${expiry}.`] : ['You can check your current access in Aviary.']), 'This isn’t a refund. You can manage your subscription anytime from your subscription settings.'],
     },
   }[kind]
-  return transactionalTemplate({ ...content, name, cta: 'Manage subscription', url: store === 'play' ? 'https://play.google.com/store/account/subscriptions' : 'https://useaviary.com/account', reason: 'You’re receiving this service email about your Aviary subscription.' })
+  return transactionalTemplate({ ...content, name, cta: 'Manage subscription', url: store === 'play' ? 'https://play.google.com/store/account/subscriptions' : 'https://useaviary.com/account', reason: 'You’re getting this because you have an Aviary subscription.' })
 }

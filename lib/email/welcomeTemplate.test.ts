@@ -5,7 +5,7 @@ describe('welcomeTemplate', () => {
   it('uses account-related copy without remote fonts', () => {
     const email = welcomeTemplate('Alex')
     expect(email.subject).toBe('Welcome to Aviary')
-    expect(email.text).toContain('Your Aviary account is ready.')
+    expect(email.text).toContain('Thanks for signing up. Your Aviary account is ready.')
     expect(email.html).not.toContain('@import')
   })
   it('escapes the recipient’s name and never treats it as HTML', () => {

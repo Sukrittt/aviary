@@ -46,7 +46,7 @@ describe('durable subscription delivery', () => {
     const results = await Promise.all([retrySubscriptionEmails(), retrySubscriptionEmails()])
     expect(results.reduce((n, r) => n + r.sent, 0)).toBe(1)
     expect(sendEmail).toHaveBeenCalledOnce()
-    expect(vi.mocked(sendEmail).mock.calls[0][0]).toMatchObject({ to: ['person@example.com'], subject: 'Your Aviary subscription payment was received' })
+    expect(vi.mocked(sendEmail).mock.calls[0][0]).toMatchObject({ to: ['person@example.com'], subject: 'Payment received for Aviary' })
     expect((await retrySubscriptionEmails()).sent).toBe(0)
   })
   it('waits for provider verification and never retrofits historical events or sandbox purchases', async () => {

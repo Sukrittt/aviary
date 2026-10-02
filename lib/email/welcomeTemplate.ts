@@ -5,11 +5,12 @@ export function welcomeTemplate(name: string | null = null) {
   return transactionalTemplate({
     subject: 'Welcome to Aviary', name,
     paragraphs: [
-      'Your Aviary account is ready. Aviary helps you plan your spending with envelopes and keep track of everyday expenses.',
-      'To get started, create an envelope for something you spend on, add money to it, and record your first expense. You can do this on the website or in the mobile app.',
-      'If you need help getting set up, reply to this email.',
+      'Thanks for signing up. Your Aviary account is ready.',
+      'A good first step is to make an envelope for something you pay for every month, like groceries or rent, and put some money in it. When you spend, log it against that envelope and you’ll see what’s left.',
+      'Aviary works on the web and in the mobile app, so use whichever is handy.',
+      'If you get stuck, reply to this email and we’ll help.',
     ],
     cta: 'Open Aviary', url: 'https://useaviary.com/',
-    reason: 'You’re receiving this email because you created an Aviary account.',
+    reason: 'You’re getting this because you signed up for Aviary.',
   })
 }
