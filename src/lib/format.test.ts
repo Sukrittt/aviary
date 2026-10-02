@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatINR, formatCurrency, formatDateTime, formatDate, formatDateShort } from './format'
+import { formatINR, formatCurrency, formatDateTime, formatDate, formatDateShort, formatOrdinalDate } from './format'
 
 describe('formatINR', () => {
   it('groups digits using Indian lakh/crore placement', () => {
@@ -61,3 +61,20 @@ describe('date formatters', () => {
 })
 
 it('suppresses negative zero', () => expect(formatINR(-0.004)).toBe('₹0'))
+
+
+describe('formatOrdinalDate', () => {
+  it.each([
+    ['2026-10-01', '1st Oct'], ['2026-10-02', '2nd Oct'], ['2026-10-03', '3rd Oct'],
+    ['2026-10-04', '4th Oct'], ['2026-10-11', '11th Oct'], ['2026-10-12', '12th Oct'],
+    ['2026-10-13', '13th Oct'], ['2026-10-21', '21st Oct'], ['2026-10-22', '22nd Oct'],
+    ['2026-10-23', '23rd Oct'], ['2026-10-31', '31st Oct'],
+  ])('formats %s as %s without moving the calendar date', (input, expected) => {
+    expect(formatOrdinalDate(input)).toBe(expected)
+  })
+
+  it('omits invalid dates', () => {
+    expect(formatOrdinalDate('')).toBe('')
+    expect(formatOrdinalDate('invalid')).toBe('')
+  })
+})

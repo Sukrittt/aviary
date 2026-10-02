@@ -1,7 +1,35 @@
 import { describe, it, expect } from 'vitest'
-import { isDueToday, isDueTomorrow, tomorrowOf } from './holdingRecurrence'
+import { isDueToday, isDueTomorrow, tomorrowOf, nextContributionDate } from './holdingRecurrence'
 
 const base = { is_recurring: 'true', recurring_day: '15', recurring_last_run: '2026-08' }
+
+describe('nextContributionDate', () => {
+  const holding = { ...base, recurring_day: '4', recurring_amount: '1000', recurring_last_run: '2026-09' }
+
+  it('shows the upcoming date and keeps today until the contribution runs', () => {
+    expect(nextContributionDate(holding, '2026-10-02')).toBe('2026-10-04')
+    expect(nextContributionDate(holding, '2026-10-04')).toBe('2026-10-04')
+  })
+
+  it('advances after this month has run or its due date was missed', () => {
+    expect(nextContributionDate({ ...holding, recurring_last_run: '2026-10' }, '2026-10-04')).toBe('2026-11-04')
+    expect(nextContributionDate(holding, '2026-10-05')).toBe('2026-11-04')
+  })
+
+  it('clamps short months, handles leap years, and rolls into the next year', () => {
+    expect(nextContributionDate({ ...holding, recurring_day: '31' }, '2026-02-01')).toBe('2026-02-28')
+    expect(nextContributionDate({ ...holding, recurring_day: '31' }, '2028-02-01')).toBe('2028-02-29')
+    expect(nextContributionDate(holding, '2026-12-05')).toBe('2027-01-04')
+  })
+
+  it('omits schedules that the cron cannot apply', () => {
+    expect(nextContributionDate({ ...holding, is_recurring: 'false' }, '2026-10-02')).toBeNull()
+    expect(nextContributionDate({ ...holding, recurring_amount: '0' }, '2026-10-02')).toBeNull()
+    for (const recurring_day of ['', '0', '32', 'abc']) {
+      expect(nextContributionDate({ ...holding, recurring_day }, '2026-10-02')).toBeNull()
+    }
+  })
+})
 
 describe('isDueToday', () => {
   it('fires when recurring_day matches today and this month has not run yet', () => {

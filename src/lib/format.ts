@@ -18,6 +18,16 @@ export function formatRelativeTime(ms: number): string {
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
+/** Calendar date only: "4th Oct", without shifting it to the device timezone. */
+export function formatOrdinalDate(dateStr: string): string {
+  const date = new Date(`${dateStr}T00:00:00Z`)
+  if (Number.isNaN(date.getTime())) return ''
+  const day = date.getUTCDate()
+  const suffix = day % 100 >= 11 && day % 100 <= 13
+    ? 'th' : (['th', 'st', 'nd', 'rd'][day % 10] ?? 'th')
+  return `${day}${suffix} ${MONTHS[date.getUTCMonth()]}`
+}
+
 /** e.g. "12 Aug, 3:45 PM" — used by Investments' holding rows and event history. */
 export function formatDateTime(ts: string): string {
   if (!ts) return ''

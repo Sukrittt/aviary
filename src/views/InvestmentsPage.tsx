@@ -20,7 +20,7 @@ import { predictHoldingType } from "../api/holdings";
 import { useHoldingEvents } from "../hooks/useHoldingEvents";
 import { useHideAmounts } from "../hooks/useHideAmounts";
 import { EMPTY } from "../lib/constants";
-import { formatDateTime } from "../lib/format";
+import { formatDateTime, formatOrdinalDate } from "../lib/format";
 import { CHART_COLORS } from "../theme/chartColors";
 import type { HoldingRow } from "../types";
 import { Scrim, Sheet } from "../components/MotionSheet";
@@ -276,6 +276,7 @@ export function InvestmentsPage() {
                                     Number(h.recurring_amount) || 0,
                                     hideAmounts,
                                   )}
+                                  {h.next_contribution_date && ` · Next ${formatOrdinalDate(h.next_contribution_date)}`}
                                 </span>
                               )}
                             </span>

@@ -81,6 +81,19 @@ describe('InvestmentsPage deletion', () => {
     expect(dialog).toHaveTextContent('It will move to Archive. You can restore it for 7 days.')
     expect(dialog).not.toHaveTextContent(/can't be undone/i)
   })
+
+  it('shows the next contribution date alongside a recurring holding', async () => {
+    vi.mocked(getHoldings).mockResolvedValue([holding({ next_contribution_date: '2026-10-04' })])
+    renderPage()
+    expect(await screen.findByText('Monthly ₹100 · Next 4th Oct')).toBeInTheDocument()
+  })
+
+  it('omits the next date when no contribution is scheduled', async () => {
+    vi.mocked(getHoldings).mockResolvedValue([holding({ next_contribution_date: null })])
+    renderPage()
+    await screen.findByRole('button', { name: /Stocks/ })
+    expect(screen.queryByText(/Next \d/)).not.toBeInTheDocument()
+  })
 })
 
 describe('HoldingModal concurrency review', () => {
