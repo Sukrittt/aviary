@@ -138,3 +138,11 @@ describe('welcome signup and delivery', () => {
     expect(queueWelcomeEmail({ email: 'person@example.com', name: null }).message).toMatchObject({ from: 'Aviary <team@useaviary.com>', reply_to: 'support@example.com' })
   })
 })
+
+it('holds a frozen welcome message for review after the verified recipient changes', async () => {
+  const user = await addUser()
+  await db.collection<UserDoc>('users').updateOne({ _id: user._id }, { $set: { email: 'new@example.com', emailVerified: true } })
+  expect(await deliverWelcomeEmail(user._id)).toBe('needs_review')
+  expect(sendEmail).not.toHaveBeenCalled()
+  expect((await db.collection<UserDoc>('users').findOne({ _id: user._id }))?.welcomeEmail?.state).toBe('needs_review')
+})

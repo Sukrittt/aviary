@@ -44,7 +44,7 @@ function statusOf(sub: RzpSubscription, paidUntil: Date | null, cancelAtPeriodEn
       return 'pending'
     // A renewal failed and Razorpay is retrying.
     case 'pending':
-      return 'grace'
+      return cancelAtPeriodEnd ? (paidPeriodLeft ? 'cancelled' : 'expired') : 'grace'
     // Retries ran out.
     case 'halted':
       return 'on_hold'

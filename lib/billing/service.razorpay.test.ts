@@ -43,7 +43,7 @@ const fetchSubscriptionMock = vi.fn()
 const cancelSubscriptionMock = vi.fn()
 vi.mock('./razorpay', async (orig) => ({
   ...(await orig<typeof import('./razorpay')>()),
-  razorpayConfig: () => ({ keyId: 'rzp_test_abc', keySecret: 'secret', plans: { monthly: 'plan_month', yearly: 'plan_year' } }),
+  razorpayConfig: () => ({ keyId: 'rzp_live_abc', keySecret: 'secret', plans: { monthly: 'plan_month', yearly: 'plan_year' } }),
   fetchSubscription: (id: string) => fetchSubscriptionMock(id),
   cancelSubscription: (id: string, atCycleEnd: boolean) => cancelSubscriptionMock(id, atCycleEnd),
 }))
@@ -86,7 +86,7 @@ describe('recordRazorpaySubscription', () => {
     const access = await recordRazorpaySubscription('user_a', 'sub_1', NOW)
     expect(access).toMatchObject({ mode: 'paid', allowed: true, store: 'web', basePlanId: 'yearly', autoRenew: true })
     expect(subs()).toHaveLength(1)
-    expect(subs()[0]).toMatchObject({ userId: 'user_a', provider: 'razorpay', environment: 'sandbox', storeTransactionId: 'sub_1' })
+    expect(subs()[0]).toMatchObject({ userId: 'user_a', provider: 'razorpay', environment: 'production', storeTransactionId: 'sub_1' })
   })
 
   it("refuses someone else's subscription and writes nothing", async () => {

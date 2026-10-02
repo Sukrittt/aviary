@@ -32,7 +32,7 @@ export const STORE_FEE: Record<BillingStore, number> = { play: 0.15, web: 0.0236
 type Sub = Pick<
   BillingSubscriptionDoc,
   'userId' | 'environment' | 'store' | 'productId' | 'basePlanId' | 'status' | 'autoRenew' | 'expiresAt' | 'createdAt'
->
+> & Partial<Pick<BillingSubscriptionDoc, 'verifiedAt'>>
 
 /**
  * A row's billing period. Razorpay rows store `monthly` / `yearly` as the base
@@ -76,6 +76,9 @@ export function payersAt(subs: Sub[], at: Date, prices: Prices | null): Map<stri
   const out = new Map<string, Payer>()
   for (const sub of subs) {
     if (!isRevenueRow(sub) || sub.createdAt.getTime() > t || sub.expiresAt.getTime() <= t) continue
+    // Keep earlier paid history, but stop counting access-denying states from
+    // their latest verification onward. Exact historical transitions are not stored.
+    if (['paused', 'on_hold', 'expired'].includes(sub.status) && (!sub.verifiedAt || sub.verifiedAt.getTime() <= t)) continue
     const prev = out.get(sub.userId)
     if (prev && prev.sub.expiresAt!.getTime() >= sub.expiresAt.getTime()) continue
     const period = periodOf(sub)

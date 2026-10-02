@@ -201,3 +201,13 @@ describe('resolveAccess store', () => {
     expect(pickSubscription([play, web], NOW)?.store).toBe('web')
   })
 })
+
+describe('sandbox isolation', () => {
+  it('never grants or displays a sandbox purchase as production access', () => {
+    const sandbox = sub('active', new Date(NOW.getTime() + 365 * DAY), { environment: 'sandbox' })
+    const live = sub('active', new Date(NOW.getTime() + DAY))
+    expect(pickSubscription([sandbox], NOW)).toBeNull()
+    expect(pickSubscription([live, sandbox], NOW)).toBe(live)
+    expect(resolve({ subscription: sandbox })).toMatchObject({ allowed: false, store: null, renewalState: null })
+  })
+})

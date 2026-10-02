@@ -57,3 +57,7 @@ Content changes cannot guarantee Gmail inbox placement. Inspect the actual Gmail
 spam banner and Show original SPF/DKIM/DMARC results before attributing a delivery
 to content or authentication. Check Resend domain verification, delivery logs and
 domain reputation as well. No DNS settings are changed by this integration.
+
+If a queued message's recipient no longer matches the verified account email,
+its frozen payload is held as `needs_review` and is not sent. Keep that payload
+and idempotency key unchanged when inspecting an uncertain earlier delivery.

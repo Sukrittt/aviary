@@ -7,6 +7,7 @@ const ago = (d: number) => new Date(now - d * DAY)
 
 const rows: Record<string, unknown[]> = {}
 const pricesMock = vi.fn()
+const findMock = vi.fn()
 
 vi.mock('server-only', () => ({}))
 vi.mock('next/link', () => ({ default: ({ href, children, ...rest }: { href: string; children: React.ReactNode }) => <a href={href} {...rest}>{children}</a> }))
@@ -14,7 +15,13 @@ vi.mock('@/lib/billing/razorpay', () => ({ getPlanPrices: () => pricesMock() }))
 vi.mock('@/lib/mongodb', () => ({
   getDb: async () => ({
     collection: (name: string) => ({
-      find: () => ({ limit: () => ({ toArray: async () => rows[name] ?? [] }), toArray: async () => rows[name] ?? [] }),
+      find: (filter: Record<string, unknown> = {}) => {
+        findMock(name, filter)
+        const data = (rows[name] ?? []).filter(row => !filter.environment || (row as Record<string, unknown>).environment === filter.environment)
+        const cursor = { sort: () => cursor, limit: (n: number) => ({ toArray: async () => data.slice(0, n) }), toArray: async () => data }
+        return cursor
+      },
+      countDocuments: async (filter: Record<string, unknown>) => (rows[name] ?? []).filter(row => (row as Record<string, unknown>).environment === filter.environment).length,
     }),
   }),
 }))
@@ -145,4 +152,12 @@ describe('MovementBars', () => {
     expect(screen.getByText('Churned')).toBeTruthy()
     expect(screen.queryByText('Expansion')).toBeNull()
   })
+})
+
+it('filters test purchases before limiting and warns when production scans are incomplete', async () => {
+  rows.billing_subscriptions = [sub({ environment: 'sandbox' }), ...Array.from({ length: 5001 }, (_, i) => sub({ userId: `u${i}` }))]
+  rows.billing_accounts = Array.from({ length: 5001 }, (_, i) => ({ _id: `a${i}`, trialStartedAt: ago(10), trialEndsAt: new Date(now + DAY) }))
+  await renderPage()
+  expect(findMock).toHaveBeenCalledWith('billing_subscriptions', { environment: 'production' })
+  expect(screen.getByRole('alert').textContent).toMatch(/incomplete/i)
 })

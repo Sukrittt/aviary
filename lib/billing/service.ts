@@ -79,7 +79,7 @@ export async function getAccess(userId: string, now: Date = new Date()): Promise
   const db = await getDb()
   const [account, subs, flags] = await Promise.all([
     db.collection<BillingAccountDoc>(BILLING_ACCOUNTS).findOne({ _id: userId }),
-    db.collection<BillingSubscriptionDoc>(BILLING_SUBSCRIPTIONS).find({ userId }).toArray(),
+    db.collection<BillingSubscriptionDoc>(BILLING_SUBSCRIPTIONS).find({ userId, environment: 'production' }).toArray(),
     billingFlagsFor(userId),
   ])
   return resolveAccess({

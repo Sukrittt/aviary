@@ -119,3 +119,13 @@ describe('durable subscription delivery', () => {
     expect(sendEmail).not.toHaveBeenCalled()
   })
 })
+
+it('holds a subscription notification after its recipient changes, including an ambiguous retry', async () => {
+  await event()
+  vi.mocked(sendEmail).mockRejectedValueOnce(new EmailSendError('timeout', true))
+  expect((await retrySubscriptionEmails()).failed).toBe(1)
+  await db.collection('users').updateOne({}, { $set: { email: 'new@example.com' } })
+  await db.collection(EMAIL_OUTBOX).updateOne({}, { $set: { 'delivery.nextAttemptAt': new Date(0) } })
+  expect((await retrySubscriptionEmails()).needs_review).toBe(1)
+  expect(sendEmail).toHaveBeenCalledTimes(1)
+})

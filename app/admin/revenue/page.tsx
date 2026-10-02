@@ -110,19 +110,23 @@ export default async function AdminRevenue({ searchParams }: { searchParams: Par
   const now = new Date()
 
   const db = await getDb()
-  const [subs, accounts, prices] = await Promise.all([
-    db.collection<BillingSubscriptionDoc>(BILLING_SUBSCRIPTIONS).find().limit(MAX_SCAN).toArray(),
+  const [scannedSubs, scannedAccounts, prices, sandbox] = await Promise.all([
+    db.collection<BillingSubscriptionDoc>(BILLING_SUBSCRIPTIONS).find({ environment: 'production' }).sort({ createdAt: -1, _id: 1 }).limit(MAX_SCAN + 1).toArray(),
     db
       .collection<BillingAccountDoc>(BILLING_ACCOUNTS)
       .find({}, { projection: { trialStartedAt: 1, trialEndsAt: 1 } })
-      .limit(MAX_SCAN)
+      .sort({ trialStartedAt: -1, _id: 1 })
+      .limit(MAX_SCAN + 1)
       .toArray(),
     loadPrices(),
+    db.collection<BillingSubscriptionDoc>(BILLING_SUBSCRIPTIONS).countDocuments({ environment: 'sandbox' }),
   ])
+  const incomplete = scannedSubs.length > MAX_SCAN || scannedAccounts.length > MAX_SCAN
+  const subs = scannedSubs.slice(0, MAX_SCAN)
+  const accounts = scannedAccounts.slice(0, MAX_SCAN)
 
   // Without prices only the payer count means anything, so the chart falls back to it.
   const metric: Metric = !prices ? 'payers' : params.metric === 'arr' || params.metric === 'payers' ? params.metric : 'mrr'
-  const sandbox = subs.filter((s) => s.environment === 'sandbox').length
 
   const s = summarize(subs, now, prices)
   const monthAgo = new Date(now.getTime() - 30 * DAY_MS)
@@ -170,6 +174,12 @@ export default async function AdminRevenue({ searchParams }: { searchParams: Par
         </div>
       </div>
 
+      {incomplete && (
+        <div className="adm-notice" role="alert">
+          <TriangleAlert size={17} />
+          <p>Revenue figures are incomplete. This view uses at most {num(MAX_SCAN)} recent production subscriptions and trial accounts.</p>
+        </div>
+      )}
       {!prices && (
         <div className="adm-notice">
           <TriangleAlert size={17} />

@@ -212,3 +212,11 @@ describe('trialCohorts and medianDaysToConvert', () => {
     expect(medianDaysToConvert(accounts, [])).toBeNull()
   })
 })
+
+it('excludes currently paused and held plans but keeps paid history before verification', () => {
+  const held = sub({ userId: 'held', status: 'on_hold', createdAt: ago(40), verifiedAt: ago(1) })
+  const paused = sub({ userId: 'paused', status: 'paused', createdAt: ago(40), verifiedAt: ago(1) })
+  expect(summarize([held, paused], NOW, PRICES)).toMatchObject({ payers: 0, mrr: 0 })
+  expect(payersAt([held, paused], ago(2), PRICES).size).toBe(2)
+  expect(movement([held, paused], ago(30), NOW, PRICES).churn.n).toBe(2)
+})

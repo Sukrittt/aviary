@@ -28,9 +28,9 @@ interface RzpWebhookBody {
  * 3. **Re-fetch, never trust.** The payload says *something changed*. The
  *    subscription is fetched from Razorpay again before access moves.
  *
- * A failure to re-verify still returns 200: the event is stored, and the
- * reconciliation job (cron/billing) retries it. A 5xx would only make
- * Razorpay redeliver something we already hold.
+ * A failed verification stays durable and returns 503 for provider retry.
+ * Redeliveries retry unfinished events using their persisted owner and purchase;
+ * processed events are no-ops. The billing cron remains a repair fallback.
  *
  * Exempt from middleware's Bearer gate by its path (/api/billing/webhooks/).
  */
@@ -58,6 +58,10 @@ export async function POST(req: Request) {
   const environment: BillingEventDoc['environment'] = config ? razorpayEnvironment(config.keyId) : 'production'
   const db = await getDb()
 
+  const events = db.collection<BillingEventDoc>(BILLING_EVENTS)
+  const filter = { provider: 'razorpay' as const, environment, eventId }
+  let retryUserId = userId
+  let retrySubscriptionId = subscription?.id
   try {
     await db.collection<Omit<BillingEventDoc, '_id'>>(BILLING_EVENTS).insertOne({
       provider: 'razorpay',
@@ -80,18 +84,19 @@ export async function POST(req: Request) {
       },
     })
   } catch (err) {
-    if ((err as { code?: number }).code === 11000) return json({ ok: true, duplicate: true })
-    throw err
+    if ((err as { code?: number }).code !== 11000) throw err
+    const stored = await events.findOne(filter)
+    if (!stored || stored.state === 'processed') return json({ ok: true, duplicate: true })
+    retryUserId = stored.userId
+    retrySubscriptionId = typeof stored.summary.subscriptionId === 'string' ? stored.summary.subscriptionId : undefined
   }
 
   // Payment-only events and subscriptions we didn't create (no userId note)
   // carry nothing we act on.
-  if (!subscription?.id || !userId) return json({ ok: true, ignored: 'no subscription for a known user' })
+  if (!retrySubscriptionId || !retryUserId) return json({ ok: true, ignored: 'no subscription for a known user' })
 
-  const events = db.collection<BillingEventDoc>(BILLING_EVENTS)
-  const filter = { provider: 'razorpay' as const, environment, eventId }
   try {
-    await recordRazorpaySubscription(userId, subscription.id)
+    await recordRazorpaySubscription(retryUserId, retrySubscriptionId)
     await events.updateOne(filter, { $set: { state: 'processed', processedAt: new Date() }, $inc: { attempts: 1 } })
     scheduleSubscriptionEmails()
     return json({ ok: true })
@@ -99,6 +104,6 @@ export async function POST(req: Request) {
     const message = err instanceof BillingProviderError ? `${err.message} (status ${err.status})` : (err as Error).message
     console.error('razorpay webhook: re-verification failed for', userId, message)
     await events.updateOne(filter, { $set: { state: 'failed', error: message }, $inc: { attempts: 1 } })
-    return json({ ok: true, deferred: true })
+    return json({ ok: false, deferred: true }, { status: 503 })
   }
 }

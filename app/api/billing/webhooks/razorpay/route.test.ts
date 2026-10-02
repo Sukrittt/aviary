@@ -3,8 +3,9 @@ import { createHmac } from 'node:crypto'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 const insertOneMock = vi.fn(async (_doc: Record<string, unknown>) => ({}))
+const findOneMock = vi.fn(async () => ({ state: 'processed', userId: 'user_a', summary: { subscriptionId: 'sub_1' } }))
 const updateOneMock = vi.fn(async () => ({}))
-vi.mock('@/lib/mongodb', () => ({ getDb: vi.fn(async () => ({ collection: () => ({ insertOne: insertOneMock, updateOne: updateOneMock }) })) }))
+vi.mock('@/lib/mongodb', () => ({ getDb: vi.fn(async () => ({ collection: () => ({ insertOne: insertOneMock, updateOne: updateOneMock, findOne: findOneMock }) })) }))
 
 const recordMock = vi.fn(async (_userId: string, _subId: string) => ({ mode: 'paid' }))
 vi.mock('@/lib/billing/service', () => ({ recordRazorpaySubscription: (u: string, s: string) => recordMock(u, s) }))
@@ -70,11 +71,20 @@ describe('POST /api/billing/webhooks/razorpay', () => {
     expect(recordMock).not.toHaveBeenCalled()
   })
 
-  it('answers 200 and leaves the event for reconciliation when Razorpay is unreachable', async () => {
+  it('asks the provider to retry and keeps the failed event when Razorpay is unreachable', async () => {
     recordMock.mockRejectedValueOnce(new BillingProviderError('Razorpay responded 503', 503))
     const res = await POST(request(body()))
-    expect(res.status).toBe(200)
+    expect(res.status).toBe(503)
     expect(await res.json()).toMatchObject({ deferred: true })
     expect(updateOneMock).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ $set: expect.objectContaining({ state: 'failed' }) }))
   })
+})
+
+it('re-verifies a previously failed duplicate using the persisted owner and purchase', async () => {
+  insertOneMock.mockRejectedValueOnce(Object.assign(new Error('dup'), { code: 11000 }))
+  findOneMock.mockResolvedValueOnce({ state: 'failed', userId: 'original_user', summary: { subscriptionId: 'original_sub' } })
+  const res = await POST(request(body()))
+  expect(res.status).toBe(200)
+  expect(recordMock).toHaveBeenCalledWith('original_user', 'original_sub')
+  expect(updateOneMock).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ $set: expect.objectContaining({ state: 'processed' }) }))
 })

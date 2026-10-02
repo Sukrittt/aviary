@@ -92,6 +92,12 @@ export async function retrySubscriptionEmails(limit = 4) {
       'delivery.firstAttemptAt': { $ifNull: ['$delivery.firstAttemptAt', now] }, 'delivery.attempts': { $add: ['$delivery.attempts', 1] },
     } }], { returnDocument: 'after' })
     if (!email) { result.skipped++; continue }
+    const recipient = await db.collection<UserDoc>('users').findOne({ _id: email.user_id, deleted_at: null, emailVerified: { $ne: false } }, { projection: { email: 1 } })
+    if (!recipient || email.delivery.message.to.length !== 1 || email.delivery.message.to[0] !== recipient.email) {
+      await outbox.updateOne({ _id: email._id, 'delivery.claim': claim }, { $set: { 'delivery.state': 'needs_review', 'delivery.error': 'Account email changed before delivery' }, $unset: { 'delivery.claim': '', 'delivery.leaseUntil': '' } })
+      result.needs_review++
+      continue
+    }
     result[await deliverClaimedEmail(email.delivery, `subscription/${email._id}`, now, change => outbox.updateOne({ _id: email._id, 'delivery.claim': claim }, {
       $set: Object.fromEntries(Object.entries(change.$set).map(([key, value]) => [`delivery.${key}`, value])),
       $unset: Object.fromEntries(Object.keys(change.$unset).map(key => [`delivery.${key}`, ''])),

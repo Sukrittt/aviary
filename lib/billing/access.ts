@@ -102,6 +102,8 @@ export function extendTrialEnd(currentEnd: Date, days: number, now: Date): Date 
  * action, so no account means no clock has started.
  */
 export function resolveAccess({ now, account, subscription, enforced }: AccessInput): Access {
+  // Test purchases must never become live access after provider keys change.
+  if (subscription?.environment !== 'production') subscription = null
   const purchased = subscriptionEntitles(subscription, now)
   // A purchase outranks a gift for display: it is the one with a renewal to
   // explain. The gift keeps entitling underneath either way.
@@ -142,6 +144,7 @@ export function resolveAccess({ now, account, subscription, enforced }: AccessIn
  * the most recently verified is kept so the client can explain the failure.
  */
 export function pickSubscription(subs: BillingSubscriptionDoc[], now: Date): BillingSubscriptionDoc | null {
+  subs = subs.filter((sub) => sub.environment === 'production')
   if (subs.length === 0) return null
   const entitling = subs.filter((s) => subscriptionEntitles(s, now))
   if (entitling.length > 0) {

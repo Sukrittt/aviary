@@ -79,6 +79,12 @@ export async function deliverWelcomeEmail(userId: string): Promise<'sent' | 'ski
   if (!user?.welcomeEmail) return 'skipped'
   const delivery = user.welcomeEmail
   const owned = { _id: userId, 'welcomeEmail.claim': claim }
+  // Keep the frozen payload and key unchanged after an uncertain send. A new
+  // recipient needs review rather than another send to the previous address.
+  if (delivery.message.to.length !== 1 || delivery.message.to[0] !== user.email) {
+    await users.updateOne(owned, { $set: { 'welcomeEmail.state': 'needs_review', 'welcomeEmail.error': 'Account email changed before delivery' }, $unset: { 'welcomeEmail.claim': '', 'welcomeEmail.leaseUntil': '' } })
+    return 'needs_review'
+  }
   return deliverClaimedEmail(delivery, `welcome/${userId}`, now, change => users.updateOne(owned, {
     $set: Object.fromEntries(Object.entries(change.$set).map(([key, value]) => [`welcomeEmail.${key}`, value])),
     $unset: Object.fromEntries(Object.keys(change.$unset).map(key => [`welcomeEmail.${key}`, ''])),

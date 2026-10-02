@@ -90,3 +90,9 @@ describe('projectRazorpaySubscription', () => {
     expect(entitles(sub({ status: 'paused' }))).toBe(false)
   })
 })
+
+it('preserves cancellation through a pending renewal refresh without extending unpaid grace', () => {
+  const pending = sub({ status: 'pending', current_end: secs(1) })
+  expect(project(pending, true)).toMatchObject({ status: 'cancelled', autoRenew: false, expiresAt: new Date(secs(1) * 1000) })
+  expect(entitles(sub({ status: 'pending', current_end: secs(-1) }), true)).toBe(false)
+})
