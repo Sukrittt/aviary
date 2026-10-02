@@ -103,7 +103,7 @@ export function ExpenseSidebar({ onBulkReturn }: Props) {
           <Menu size={21} />
         </button>
         <Link href="/expense" className="erd-mobile-brand" aria-label="Aviary home">
-          <BirdMark size={29} flightTarget />
+          <BirdMark size={29} />
           <span>Aviary</span>
         </Link>
         <span className="erd-mobile-page">{currentPage}</span>
@@ -124,7 +124,7 @@ export function ExpenseSidebar({ onBulkReturn }: Props) {
       >
         <div className="erd-brand">
           <Link href="/expense" className="erd-brand-link" aria-label="Aviary home" onClick={() => closeMobileMenu()}>
-            <BirdMark size={34} flightTarget />
+            <BirdMark size={34} />
             <span className="erd-side-label">Aviary</span>
           </Link>
           <button

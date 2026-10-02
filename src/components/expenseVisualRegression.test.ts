@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest'
 const root = process.cwd()
 const expenseCss = readFileSync(join(root, 'src/expense-redesign.css'), 'utf8')
 const insightsCss = readFileSync(join(root, 'src/insights.css'), 'utf8')
+const expensePage = readFileSync(join(root, 'src/views/ExpensePage.tsx'), 'utf8')
 const transactions = readFileSync(join(root, 'src/components/TransactionsView.tsx'), 'utf8')
 const insights = readFileSync(join(root, 'src/views/InsightsPage.tsx'), 'utf8')
 const subscriptions = readFileSync(join(root, 'src/views/SubscriptionsPage.tsx'), 'utf8')
@@ -19,6 +20,13 @@ describe('expense screen visual regressions', () => {
     expect(transactions).toContain('period === key ? "is-active erd-accent-action" : ""')
     expect(expenseCss).toMatch(
       /\.expense-redesign \.action-button\.is-active\.erd-accent-action\s*{[\s\S]*?background:\s*var\(--gold\)/,
+    )
+  })
+
+  it('keeps the bulk return CTA solid and its description close to the title', () => {
+    expect(expensePage).toContain('className="is-active erd-accent-action"')
+    expect(expenseCss).toMatch(
+      /\.expense-redesign \.bulk-return-modal \.move-money-desc\s*{[^}]*margin-top:\s*-14px/,
     )
   })
 

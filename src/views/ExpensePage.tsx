@@ -24,7 +24,6 @@ import {
 import { ExpenseSidebar } from "../components/ExpenseSidebar";
 import { Scrim, Sheet } from "../components/MotionSheet";
 import { ExpensePageLoading } from "../components/ExpensePageLoading";
-import { SignInFlight } from "../features/sign-in-flight/SignInFlight";
 import {
   toExpensePanelData,
   type ExpensePanelData,
@@ -315,13 +314,12 @@ export function ExpensePage() {
 
       <header className="erd-mobile-header">
         <div className="erd-mobile-greet">
-          <BirdMark size={30} flightTarget perched /> Aviary
+          <BirdMark size={30} perched /> Aviary
         </div>
       </header>
 
       {/* Mounted only once the dashboard has loaded, so the bird lands on the
           real sidebar rather than the loading screen's copy of it. */}
-      <SignInFlight />
 
       <div className="erd-main">
         <ExpenseSidebar onBulkReturn={() => setShowBulkReturnConfirm(true)} />
@@ -612,7 +610,7 @@ export function ExpensePage() {
                   onClick={() => setShowBulkReturnConfirm(false)}
                 >
                   <Sheet
-                    className="move-money-modal"
+                    className="move-money-modal bulk-return-modal"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <div className="move-money-header">
@@ -664,7 +662,7 @@ export function ExpensePage() {
                           </button>
                           <SuccessButton
                             type="button"
-                            className="is-active"
+                            className="is-active erd-accent-action"
                             disabled={
                               bulkReturnPhase.saving || bulkReturnPhase.success
                             }
