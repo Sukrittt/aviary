@@ -8,6 +8,11 @@
   --erd-text3: color-mix(in srgb, var(--tk-text3) 75%, var(--tk-text));
 }
 
+/* Match the expense page's flat, bordered panels. */
+.adm .erd-card {
+  box-shadow: none;
+}
+
 .adm h1 {
   font-family: var(--font-fredoka);
   font-size: 28px;
