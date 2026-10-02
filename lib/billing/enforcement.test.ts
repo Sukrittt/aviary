@@ -102,7 +102,7 @@ describe('subscription enforcement coverage', () => {
       // Every handler resolves the caller with getAuth; each of those must be
       // followed by a gate. A route that gates GET but forgets DELETE is the
       // easy mistake, and it is the expensive one.
-      return (source.match(/await getAuth\(req\)/g) ?? []).length !== (source.match(/await requireAccess\(auth\)/g) ?? []).length
+      return (source.match(/await getAuth\(req\)/g) ?? []).length !== (source.match(/await requireAccess\(auth(?:, \{ setup: true \})?\)/g) ?? []).length
     })
     expect(missed).toEqual([])
   })

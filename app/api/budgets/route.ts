@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(req: Request) {
   const auth = await getAuth(req)
-  const gate = await requireAccess(auth)
+  const gate = await requireAccess(auth, { setup: true })
   if (gate) return gate
   const coll = await getCollection('budgets', auth)
   const docs = await coll.find({}).toArray()
@@ -98,7 +98,7 @@ function isDuplicateKeyError(err: unknown): boolean {
 
 export async function PUT(req: Request) {
   const auth = await getAuth(req)
-  const gate = await requireAccess(auth)
+  const gate = await requireAccess(auth, { setup: true })
   if (gate) return gate
   const guard = readOnlyGuard(auth, 'PUT')
   if (guard) return guard
