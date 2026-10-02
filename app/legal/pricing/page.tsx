@@ -32,15 +32,29 @@ export default async function PricingPage() {
 
       <h2>Plans</h2>
       {monthly && yearly ? (
-        <ul>
-          <li>
-            <strong>Monthly:</strong> {formatPrice(monthly.amount, monthly.currency)} a month
-          </li>
-          <li>
-            <strong>Yearly:</strong> {formatPrice(yearly.amount, yearly.currency)} a year
-            {saving ? ` (save ${saving}% over monthly)` : ''}
-          </li>
-        </ul>
+        <div className="legal-pricing-plans">
+          <section className="legal-plan-card" aria-labelledby="monthly-plan-title">
+            <div className="legal-plan-heading">
+              <h3 id="monthly-plan-title">Monthly</h3>
+            </div>
+            <p className="legal-plan-price">
+              <strong>{formatPrice(monthly.amount, monthly.currency)}</strong>
+              <span> / month</span>
+            </p>
+            <p className="legal-plan-billing">Billed monthly. Cancel any time.</p>
+          </section>
+          <section className="legal-plan-card legal-plan-card--yearly" aria-labelledby="yearly-plan-title">
+            <div className="legal-plan-heading">
+              <h3 id="yearly-plan-title">Yearly</h3>
+              {saving ? <span className="legal-plan-saving">Save {saving}%</span> : null}
+            </div>
+            <p className="legal-plan-price">
+              <strong>{formatPrice(yearly.amount, yearly.currency)}</strong>
+              <span> / year</span>
+            </p>
+            <p className="legal-plan-billing">Billed yearly. Cancel any time.</p>
+          </section>
+        </div>
       ) : (
         <p>Prices aren&apos;t loading right now. They&apos;re always shown in the app before you pay.</p>
       )}
