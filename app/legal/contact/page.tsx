@@ -1,7 +1,7 @@
 import { pageMetadata } from '@/lib/seo'
 export const metadata = pageMetadata('/legal/contact')
 
-const SUPPORT_EMAIL = 'aviary.playreview@gmail.com'
+const SUPPORT_EMAIL = 'support@useaviary.com'
 
 export default function ContactPage() {
   return (

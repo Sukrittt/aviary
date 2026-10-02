@@ -6324,12 +6324,27 @@ button.account-feature-card {
 .legal-back {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   font-family: var(--font-fredoka);
-  font-size: 16px;
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.035em;
   color: var(--erd-text);
   text-decoration: none;
   margin-bottom: 28px;
+}
+
+.legal-back svg,
+.legal-back b {
+  color: var(--gold);
+}
+
+.legal-back b {
+  font-weight: inherit;
+}
+
+.legal-back .bird-idle-eyelid {
+  display: none;
 }
 
 .legal-doc {
@@ -6370,6 +6385,85 @@ button.account-feature-card {
 
 .legal-doc a {
   color: var(--gold-ink);
+}
+
+.legal-pricing-plans {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin: 16px 0 20px;
+}
+
+.legal-plan-card {
+  padding: 24px;
+  border: 1px solid var(--erd-border-strong);
+  border-radius: 16px;
+  background: var(--erd-bg);
+}
+
+.legal-plan-card--yearly {
+  border-color: var(--gold);
+  background: var(--gold-soft);
+}
+
+.legal-plan-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 28px;
+}
+
+.legal-plan-heading h3 {
+  margin: 0;
+  font-family: var(--font-fredoka);
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.legal-plan-saving {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--erd-card);
+  color: var(--gold-ink);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.legal-doc .legal-plan-price {
+  margin: 18px 0 8px;
+  color: var(--erd-text);
+  line-height: 1.2;
+}
+
+.legal-plan-price strong {
+  font-family: var(--font-fredoka);
+  font-size: 36px;
+  font-weight: 500;
+  letter-spacing: -0.025em;
+}
+
+.legal-plan-price span {
+  display: inline-block;
+  color: var(--erd-text2);
+  font-size: 13px;
+}
+
+.legal-doc .legal-plan-billing {
+  margin: 0;
+  font-size: 13px;
+}
+
+@media (max-width: 520px) {
+  .legal-doc {
+    padding: 24px 20px;
+  }
+
+  .legal-pricing-plans {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
 }
 
 .legal-updated {
@@ -10196,6 +10290,14 @@ button.account-feature-card {
   gap: 6px;
   padding: 18px;
 }
+.inv-trend {
+  margin-top: -2px;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.inv-trend.is-up { color: var(--mint); }
+.inv-trend.is-down { color: var(--coral); }
 .inv-delta {
   display: flex;
   align-items: center;

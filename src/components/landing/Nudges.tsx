@@ -1,19 +1,19 @@
 'use client'
 
+import Image from 'next/image'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useReducedMotion } from 'motion/react'
-import { Check, Pause, Play, RotateCcw } from 'lucide-react'
+import { Check, ChevronDown, Pause, Play, RotateCcw } from 'lucide-react'
 import { BirdMark } from '../BirdMark'
-import { InsightsScreen } from './mobile/Insights'
-import { CATEGORIES, DAYS_LEFT } from './mobile/demo'
 import { PHONE, PhoneScreenContext } from './mobile/kit'
 import { useOnScreen } from './useOnScreen'
 
 /**
- * The landing page's demos. Every amount, date and name here is sample data
- * shaped like the real app: the nudge copy matches Mobile's habitNudges.ts,
- * the notification copy matches the guided tour's samples, and each scene only
- * shows what that feature actually does.
+ * The landing page's demos. Scan, Ask, Insights and Subscriptions show screen
+ * recordings of the app on a demo account (public/landing/clip-*.mp4). The rest
+ * is sample data shaped like the real app: the nudge copy matches Mobile's
+ * habitNudges.ts, the notification copy matches the guided tour's samples, and
+ * each scene only shows what that feature actually does.
  */
 
 const HABITS = ['4pm chai', 'Friday cab home', 'Sunday groceries', 'morning metro']
@@ -39,10 +39,10 @@ export function RotatingHabit() {
 type ChapterId = 'learns' | 'scan' | 'ask' | 'insights' | 'bills' | 'invest'
 const CHAPTERS: { id: ChapterId; label: string; ms: number; sr: string }[] = [
   { id: 'learns', label: 'Learns your habits', ms: 9000, sr: 'Aviary saw chai logged around 4pm on three Tuesdays. The next Tuesday at 4:15pm it asks “Chai time?”, one tap on “Log ₹20” logs it, and Snacks drops to ₹220 left.' },
-  { id: 'scan', label: 'Scan a bill', ms: 8000, sr: 'A grocery bill is scanned. Aviary reads five lines, splits the ₹620 bill between two people, and logs your ₹310 share to Groceries.' },
-  { id: 'ask', label: 'Ask Aviary', ms: 8500, sr: 'You ask “Can I afford dinner out this week?” and Aviary answers from your envelopes: Eating out has ₹1,800 left with 9 days to go.' },
-  { id: 'insights', label: 'Insights', ms: 7500, sr: 'Insights breaks the month down by category, compared with what you usually spend.' },
-  { id: 'bills', label: 'Bills & subscriptions', ms: 7500, sr: 'Subscriptions total ₹2,142 a month. Aviary warns that Netflix renews in 3 days, on 9 October, and recurring bills like rent log themselves.' },
+  { id: 'scan', label: 'Scan a bill', ms: 14000, sr: 'A ₹1,725.70 Meghana Foods bill is scanned. Aviary reads every line, you mark which items were shared two or three ways, and it logs your ₹672.96 share to Eating out.' },
+  { id: 'ask', label: 'Ask Aviary', ms: 13500, sr: 'You ask “Can I afford 90k iPhone?” and Aviary answers from your budget: not yet. You have ₹36,802 left to spend this month, so it suggests a gadget envelope you add to each month.' },
+  { id: 'insights', label: 'Insights', ms: 7500, sr: 'Insights shows your spending trend over 12 months and where this month’s money went, by category, compared with what you usually spend.' },
+  { id: 'bills', label: 'Bills & subscriptions', ms: 7500, sr: 'Subscriptions total ₹1,883 a month across 9 services. Aviary warns that Netflix renews soon, and recurring bills log themselves: milk every day, ₹15,000 rent next on 5 Oct, ₹50 water next on 9 Oct.' },
   { id: 'invest', label: 'Investments', ms: 7500, sr: 'Investments track your holdings and net worth over time, with contributions logged as you make them.' },
 ]
 // Learns' beats: lock screen, nudge lands, thumb on "Log", logged.
@@ -54,6 +54,8 @@ export function HeroStage() {
   const { ref, visible } = useOnScreen<HTMLDivElement>(0.25)
   const [chapter, setChapter] = useState(0)
   const [beat, setBeat] = useState(0)
+  // Bumped on every jump so re-picking the playing chapter restarts its scene (and clip) with the bar.
+  const [take, setTake] = useState(0)
   const bar = useRef<HTMLSpanElement | null>(null)
   const elapsed = useRef(0)
   const playing = visible && !paused && !reduced
@@ -87,6 +89,7 @@ export function HeroStage() {
     elapsed.current = 0
     setBeat(0)
     setChapter(i)
+    setTake((t) => t + 1)
   }
   const current = CHAPTERS[chapter]
   // Reduced motion holds each scene's finished state.
@@ -95,7 +98,7 @@ export function HeroStage() {
   return <div className="lp-stage-shell">
     <div className="lp-stage" ref={ref} data-chapter={current.id} data-step={learnBeat} data-paused={!playing || undefined}>
       <p className="lp-sr-only" aria-live="polite">{current.label}. Sample: {current.sr}</p>
-      <Scene id={current.id} beat={learnBeat} key={current.id} />
+      <Scene id={current.id} beat={learnBeat} playing={playing} key={`${current.id}:${take}`} />
       {!reduced && <button type="button" className="lp-stage-pause" onClick={() => setPaused((p) => !p)} aria-label={paused ? 'Play the demo' : 'Pause the demo'}>
         {paused ? <Play size={14} /> : <Pause size={14} />}
       </button>}
@@ -110,12 +113,12 @@ export function HeroStage() {
   </div>
 }
 
-function Scene({ id, beat }: { id: ChapterId; beat: number }) {
+function Scene({ id, beat, playing }: { id: ChapterId; beat: number; playing: boolean }) {
   switch (id) {
     case 'learns': return <LearnsScene beat={beat} />
-    case 'scan': return <ScanScene />
-    case 'ask': return <AskScene />
-    case 'insights': return <InsightsScene />
+    case 'scan': return <ScanScene playing={playing} />
+    case 'ask': return <AskScene playing={playing} />
+    case 'insights': return <InsightsScene playing={playing} />
     case 'bills': return <BillsScene />
     case 'invest': return <InvestScene />
   }
@@ -129,17 +132,29 @@ function Rows({ rows }: { rows: [string, string, string][] }) {
   return <ul className="lp-card-rows">{rows.map(([a, b, c]) => <li key={a + b}><span>{a}</span><span>{b}</span><strong>{c}</strong></li>)}</ul>
 }
 
-/** The app's screen at its real size (360×740), shrunk into the hero phone. */
-function Phone({ children, lock = false }: { children: ReactNode; lock?: boolean }) {
+/** The app's screen at its real size (360×740), shrunk into the hero phone. `shot` holds a recording or screenshot instead. */
+function Phone({ children, lock = false, shot = false }: { children: ReactNode; lock?: boolean; shot?: boolean }) {
   const [host, setHost] = useState<HTMLDivElement | null>(null)
   return <div className="lp-lock" aria-hidden="true">
-    <div className={lock ? 'lp-lock-screen' : 'lp-lock-screen lp-app-screen'}>
+    <div className={lock ? 'lp-lock-screen' : shot ? 'lp-lock-screen lp-shot-screen' : 'lp-lock-screen lp-app-screen'}>
       <div className="lp-lock-island" />
-      {lock ? children : <div className="lp-app" ref={setHost} style={{ width: PHONE.width, height: PHONE.height }} inert>
+      {lock || shot ? children : <div className="lp-app" ref={setHost} style={{ width: PHONE.width, height: PHONE.height }} inert>
         <PhoneScreenContext.Provider value={host}>{children}</PhoneScreenContext.Provider>
       </div>}
     </div>
   </div>
+}
+
+/** A screen recording that plays while `playing` and holds its poster (the finished state) when paused or reduced. */
+export function Clip({ name, playing, loop = false }: { name: string; playing: boolean; loop?: boolean }) {
+  const ref = useRef<HTMLVideoElement>(null)
+  useEffect(() => {
+    const v = ref.current
+    if (!v) return
+    if (playing) v.play()?.catch(() => {})
+    else v.pause()
+  }, [playing])
+  return <video ref={ref} className="lp-clip" src={`/landing/clip-${name}.mp4`} poster={`/landing/poster-${name}.jpg`} muted loop={loop} playsInline preload="metadata" />
 }
 
 function LearnsScene({ beat }: { beat: number }) {
@@ -173,99 +188,75 @@ function LearnsScene({ beat }: { beat: number }) {
   </>
 }
 
-const BILL: [string, string][] = [['Milk 2L', '₹120'], ['Sourdough', '₹145'], ['Eggs ×12', '₹90'], ['Coffee beans', '₹240'], ['Delivery fee', '₹25']]
-
-function ScanScene() {
+function ScanScene({ playing }: { playing: boolean }) {
   return <>
     <Card label="Snap the bill" className="lp-reveal">
-      <p className="lp-card-copy">Point your camera at a receipt. Aviary reads every line, fees included.</p>
-      <Rows rows={BILL.slice(0, 3).map(([a, b]) => [a, 'Read from the bill', b])} />
+      <p className="lp-card-copy">Point your camera at a receipt. Aviary reads every line, taxes included.</p>
+      <Rows rows={[['Paneer Biryani', 'Split 3 ways', '₹380'], ['Gobi Manchurian', 'Split 2 ways', '₹155'], ['Coke Tin 330 ML', 'Split 2 ways', '₹133']]} />
     </Card>
-    <Phone>
-      <div className="lp-app-head">Scan a bill</div>
-      <div className="lp-receipt">
-        <b>FRESHMART</b><span>06 Oct · 6:42pm</span>
-        {BILL.map(([a, b]) => <div key={a}><span>{a}</span><span>{b}</span></div>)}
-        <div className="lp-receipt-total"><span>TOTAL</span><span>₹620</span></div>
-        <i className="lp-scan-beam" />
-      </div>
-      <div className="lp-app-sheet lp-scan-sheet">
-        <span className="lp-app-muted">5 items · scanned just now</span>
-        <div className="lp-app-split"><span>Split with</span><b>2 people</b></div>
-        <div className="lp-app-split"><span>Your share</span><b>₹310</b></div>
-        <div className="lp-app-cta">Log ₹310 to 🍅 Groceries</div>
-      </div>
-    </Phone>
+    <Phone shot><Clip name="scan" playing={playing} /></Phone>
     <Card label="Split it fair" className="lp-reveal lp-reveal-late">
-      <div className="lp-envelope-line"><span>Bill</span><strong>₹620</strong></div>
-      <div className="lp-envelope-line"><span>Shared with</span><strong>2 people</strong></div>
-      <div className="lp-split-share"><span>Your share, logged</span><strong>₹310</strong><small>to 🍅 Groceries</small></div>
+      <div className="lp-envelope-line"><span>Bill</span><strong>₹1,725.70</strong></div>
+      <div className="lp-envelope-line"><span>Shared items</span><strong>2 or 3 ways</strong></div>
+      <div className="lp-split-share"><span>Your share, logged</span><strong>₹672.96</strong><small>to Eating out</small></div>
     </Card>
   </>
 }
 
-const ANSWER = 'Yes. Eating out has ₹1,800 left with 9 days to go. You usually spend about ₹600 a week there, so dinner fits.'
-
-function AskScene() {
+function AskScene({ playing }: { playing: boolean }) {
   return <>
     <Card label="Ask in plain words" className="lp-reveal">
-      <div className="lp-ask-chips"><span>Where did my money go?</span><span>What’s left for food?</span><span>Am I on track this month?</span></div>
+      <div className="lp-ask-chips"><span>What can I cut back on?</span><span>How does this month compare?</span><span>Can I afford 90k iPhone?</span></div>
     </Card>
-    <Phone>
-      <div className="lp-app-head"><span className="lp-app-bird"><BirdMark size={18} perched /></span>Ask Aviary</div>
-      <div className="lp-chat">
-        <div className="lp-bubble lp-bubble--me">Can I afford dinner out this week?</div>
-        <div className="lp-chat-thinking"><BirdMark size={26} perched /></div>
-        <div className="lp-bubble lp-bubble--bird">{ANSWER.split(' ').map((w, i) => <span key={i} style={{ animationDelay: `${2.4 + i * 0.07}s` }}>{w} </span>)}</div>
-      </div>
-      <div className="lp-app-input">Ask about your money…</div>
-    </Phone>
+    <Phone shot><Clip name="ask" playing={playing} /></Phone>
     <Card label="It reads your budget" className="lp-reveal lp-reveal-late">
-      <div className="lp-envelope-line"><span>🍝 Eating out</span><strong>₹1,800<small> left</small></strong></div>
-      <div className="lp-envelope-bar"><i style={{ transform: 'scaleX(.4)' }} /></div>
+      <div className="lp-envelope-line"><span>Left to spend</span><strong>₹36,802<small> this month</small></strong></div>
+      <div className="lp-envelope-bar"><i style={{ transform: 'scaleX(.53)' }} /></div>
       <p className="lp-stage-note">Answers come from your own envelopes and spending.</p>
     </Card>
   </>
 }
 
-// The side cards read the same sample month the Insights screen draws.
-const inr = (n: number) => `₹${Math.round(n).toLocaleString('en-IN')}`
-const SPENT = CATEGORIES.reduce((s, c) => s + c.spent, 0)
-const LEFT = CATEGORIES.reduce((s, c) => s + Math.max(0, c.assigned - c.spent), 0)
-const HOT = CATEGORIES.reduce((a, c) => ((c.deltaPct ?? -Infinity) > (a.deltaPct ?? -Infinity) ? c : a))
-const SLACK = CATEGORIES.filter((c) => c.spent === 0).sort((a, b) => b.assigned - a.assigned)[0]
-const nameOf = (n: string) => n.slice(n.indexOf(' ') + 1)
-
-function InsightsScene() {
+function InsightsScene({ playing }: { playing: boolean }) {
   return <>
-    <Card label="Heads up on this month" className="lp-reveal">
-      <p className="lp-card-copy lp-card-copy--strong">{nameOf(HOT.name)} is running {HOT.deltaPct}% above your usual. {nameOf(SLACK.name)} still has {inr(SLACK.assigned)} untouched.</p>
+    <Card label="Normal or not" className="lp-reveal">
+      <p className="lp-card-copy lp-card-copy--strong">Every month next to the last twelve. Tap one to see where it went.</p>
     </Card>
-    <Phone>
-      <InsightsScreen categories={CATEGORIES} onBack={() => {}} notice={() => {}} />
-    </Phone>
-    <Card label="Your spending update" className="lp-reveal lp-reveal-late">
-      <p className="lp-card-copy lp-card-copy--strong">{inr(SPENT)} spent this month · {inr(LEFT)} left · {DAYS_LEFT} days to go.</p>
-      <p className="lp-stage-note">Normal or not, where it went, and a daily heatmap.</p>
+    <Phone shot><Clip name="insights" playing={playing} /></Phone>
+    <Card label="Where it went" className="lp-reveal lp-reveal-late">
+      <p className="lp-card-copy lp-card-copy--strong">Each category against what you usually spend.</p>
+      <p className="lp-stage-note">Plus a daily heatmap and your subscriptions.</p>
     </Card>
   </>
 }
 
-const SUBS: [string, string, string][] = [['Netflix', 'Renews 9 Oct', '₹649'], ['Spotify', 'Added today', '₹119'], ['Gym', 'Renews 12 Oct', '₹1,299'], ['iCloud', 'Renews 18 Oct', '₹75']]
+// Rows from the demo account's Recurring screen; dot colours are the envelope groups'.
+const RECURRING: [string, string, string, string, string, string][] = [
+  ['Milk', 'Every day', 'Groceries', '#d70e3a', 'Due today', '₹24'],
+  ['Rent', 'Every month', 'Rent', '#0b7f97', 'Next on 5 Oct', '₹15,000'],
+  ['Water', 'Every month', 'Groceries', '#d70e3a', 'Next on 9 Oct', '₹50'],
+]
 
 function BillsScene() {
   return <>
     <Card label="Never surprised by a renewal" className="lp-reveal">
       <p className="lp-card-copy">Every subscription with its next due date, and a heads-up before it charges.</p>
     </Card>
-    <Phone>
-      <div className="lp-app-banner"><b>Netflix renews soon</b><span>₹649 due in 3 days (Oct 9).</span></div>
-      <div className="lp-app-head">Subscriptions</div>
-      <div className="lp-app-total"><b>₹2,142</b><span>a month</span></div>
-      <ul className="lp-app-list">{SUBS.map(([a, b, c], i) => <li key={a} style={{ animationDelay: `${0.25 + i * 0.12}s` }}><span><b>{a}</b><small>{b}</small></span><strong>{c}</strong></li>)}</ul>
+    <Phone shot>
+      {/* eslint-disable-next-line @next/next/no-img-element -- fills the phone frame; next/image adds nothing at this size */}
+      <img className="lp-clip" src="/landing/subscriptions.png" alt="" />
+      {/* An Android heads-up, in the app's real bill-reminder copy (Mobile's tour/content.ts). */}
+      <div className="lp-app-banner lp-heads-up">
+        <div className="lp-notif-app"><span className="lp-notif-icon"><BirdMark size={13} perched /></span>Aviary<span className="lp-heads-up-time">· now</span><ChevronDown size={14} strokeWidth={2.4} /></div>
+        <div className="lp-heads-up-row"><b>Netflix renews soon</b><span>₹199 due in 3 days (Oct 28).</span></div>
+      </div>
     </Phone>
     <Card label="Recurring logs itself" className="lp-reveal lp-reveal-late">
-      <Rows rows={[['Rent', 'Logs on the 1st', '₹18,000'], ['Spotify charged', '₹119 auto-added', '₹119']]} />
+      <ul className="lp-recurring">{RECURRING.map(([name, every, env, color, next, amt]) => <li key={name}>
+        <i style={{ background: color }} />
+        <span><b>{name}</b><small>{every} · {env}</small><em>{next}</em></span>
+        <strong>{amt}</strong>
+      </li>)}</ul>
     </Card>
   </>
 }
@@ -307,14 +298,8 @@ const STATEMENT: [string, string, string][] = [
   ['02 Oct', 'IMPS/P2A/87990/XXXXXX9012/EMMA', '1,200.00'],
   ['02 Oct', 'UPI/DR/6014471/AMAZON/AXIS/amazon', '1,149.00'],
 ]
-const STEPS = ['Noticed it’s Tuesday, 4:15pm, like the last three', 'Filled in Chai · Snacks · ₹20 · UPI', 'Logged with one tap on the notification', 'Snacks has ₹220 left this month']
-const LOG: [string, string, string][] = [
-  ['Chai', 'Snacks', '₹20'],
-  ['Dinner with Emma', 'Eating out', '₹349'],
-  ['Groceries for the week', 'Food', '₹612'],
-  ['Gym', 'Health', '₹1,299'],
-  ['Paid Jake back', 'Friends', '₹500'],
-]
+// Matches the top row of activity-today.png and the Metro envelope in the log-expense recording.
+const STEPS = ['Noticed it’s Friday, 9:15am, like the last three', 'Filled in Bike to office · Metro · ₹150 · UPI', 'Logged with one tap on the notification', 'Metro has ₹960 left this month']
 const STEP_MS = 750
 
 export function NoticeSplit() {
@@ -341,7 +326,7 @@ export function NoticeSplit() {
     </div>
     <span className="lp-split2-pill" aria-hidden="true">Without Aviary <span>→</span> With Aviary</span>
     <div className="lp-split2-with">
-      <p className="lp-split2-quote">“Chai time? Log it while it’s fresh.”</p>
+      <p className="lp-split2-quote">“Bike to office? Log it while it’s fresh.”</p>
       <div className="lp-split2-who"><span className="lp-split2-avatar"><BirdMark size={26} perched /></span>{done > STEPS.length ? 'Aviary is done' : 'Aviary is on it'}</div>
       <ol className="lp-split2-steps">
         {STEPS.map((s, i) => <li key={s} className={done > i + 1 ? 'is-done' : done === i + 1 ? 'is-busy' : ''}>
@@ -350,42 +335,9 @@ export function NoticeSplit() {
       </ol>
       <div className={`lp-split2-result${done > STEPS.length ? ' is-in' : ''}`}>
         <span className="lp-stage-label">Today in Aviary</span>
-        <ul>{LOG.map(([what, env, amt], i) => <li key={what} className={i === 0 ? 'is-new' : ''}><span>{what}<small>{env}</small></span><strong>{amt}</strong></li>)}</ul>
+        <Image src="/landing/activity-today.png" alt="Today's logs in the app: Bike to office ₹150, Shopping ₹1,500, Trip with friends ₹1,500, Electricity ₹6,000, Groceries ₹5,000, Gym membership ₹1,500." width={720} height={665} sizes="(max-width: 760px) 90vw, 420px" />
       </div>
       {!reduced && <button type="button" className="lp-replay" onClick={() => { setStep(0); setTake((t) => t + 1) }}><RotateCcw size={15} aria-hidden="true" />Replay</button>}
     </div>
-  </div>
-}
-
-// ─── Every log is a little win ────────────────────────────────────────────────
-
-/** The Added moment from the app: tick, then the envelope bar ticks down to what's left. */
-export function LeftCard() {
-  const { ref, visible } = useOnScreen<HTMLDivElement>(0.5)
-  const [seen, setSeen] = useState(false)
-  if (visible && !seen) setSeen(true)
-  return <div className={`lp-left-demo${seen ? ' is-in' : ''}`} ref={ref} aria-hidden="true">
-    <div className="lp-left-added"><span className="lp-left-tick"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" /></svg></span><b>Added ₹20</b><small>Chai</small></div>
-    <div className="lp-envelope-line"><span>🍪 Snacks</span><strong>₹220<small> left of ₹600</small></strong></div>
-    <div className="lp-left-bar"><i /><em /></div>
-    <span className="lp-win-meta">About ₹11 a day for the next 20 days</span>
-  </div>
-}
-
-// September 2026 starts on a Tuesday; the 8th through the 30th is the streak.
-const MISSED = new Set([3, 6, 7])
-
-export function StreakCard() {
-  const { ref, visible } = useOnScreen<HTMLDivElement>(0.5)
-  const [seen, setSeen] = useState(false)
-  if (visible && !seen) setSeen(true)
-  return <div className={`lp-wrapped${seen ? ' is-in' : ''}`} ref={ref} aria-hidden="true">
-    <span className="lp-wrapped-month">September · Expense Wrapped</span>
-    <div className="lp-wrapped-cal">
-      {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => <b key={i}>{d}</b>)}
-      <i className="is-blank" />
-      {Array.from({ length: 30 }, (_, i) => i + 1).map((d) => <i key={d} className={MISSED.has(d) ? 'is-missed' : d >= 8 ? 'is-streak' : 'is-logged'} style={{ animationDelay: `${0.2 + d * 0.03}s` }} />)}
-    </div>
-    <div className="lp-wrapped-stat"><strong>23</strong><span>days in a row<br />Longest logging streak</span></div>
   </div>
 }
