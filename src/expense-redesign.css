@@ -4398,6 +4398,12 @@
    ───────────────────────────────────────────────────────────── */
 
 .setup-page {
+  /* .expense-redesign pins the app screens to 100vh with overflow hidden;
+     setup steps grow with their content, so a long category list scrolls
+     instead of clipping the CTA. */
+  height: auto;
+  overflow-x: clip;
+  overflow-y: visible;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -4763,6 +4769,9 @@
   border: 1.5px solid var(--erd-border-strong);
   background: transparent;
   color: var(--erd-on-accent);
+  display: grid;
+  place-items: center;
+  padding: 0;
   font-size: 13px;
   cursor: pointer;
   flex-shrink: 0;
@@ -4861,9 +4870,11 @@
 }
 
 .setup-rem-chip.is-zero {
+  /* Done state stays calm: card surface, green only in the text and a
+     faint border. A full mint fill read as a heavy slab on the cream page. */
   color: var(--mint);
-  background: var(--mint-soft);
-  border-color: var(--mint);
+  background: var(--erd-card);
+  border-color: color-mix(in srgb, var(--mint) 35%, transparent);
 }
 
 .setup-rem-chip.is-over {
@@ -4955,6 +4966,18 @@
   text-align: right;
   appearance: textfield;
   -moz-appearance: textfield;
+}
+
+/* Hug the amount instead of a fixed 120px slab; the fixed width stays as the
+   fallback where field-sizing isn't supported. */
+@supports (field-sizing: content) {
+  .expense-redesign .setup-assign-input {
+    flex: 0 0 auto;
+    width: auto;
+    field-sizing: content;
+    min-width: 64px;
+    max-width: 140px;
+  }
 }
 
 .expense-redesign .setup-assign-input:focus {
