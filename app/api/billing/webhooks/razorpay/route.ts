@@ -103,7 +103,7 @@ export async function POST(req: Request) {
   } catch (err) {
     const message = err instanceof BillingProviderError ? `${err.message} (status ${err.status})` : (err as Error).message
     console.error('razorpay webhook: re-verification failed for', userId, message)
-    await events.updateOne(filter, { $set: { state: 'failed', error: message }, $inc: { attempts: 1 } })
+    await events.updateOne({ ...filter, state: { $ne: 'processed' } }, { $set: { state: 'failed', error: message }, $inc: { attempts: 1 } })
     return json({ ok: false, deferred: true }, { status: 503 })
   }
 }

@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 const insertOneMock = vi.fn(async (_doc: Record<string, unknown>) => ({}))
 const findOneMock = vi.fn(async () => ({ state: 'processed', userId: 'user_a', summary: { subscriptionId: 'sub_1' } }))
-const updateOneMock = vi.fn(async () => ({}))
+const updateOneMock = vi.fn(async (_filter: Record<string, unknown>, _update: Record<string, Record<string, unknown>>) => ({}))
 vi.mock('@/lib/mongodb', () => ({ getDb: vi.fn(async () => ({ collection: () => ({ insertOne: insertOneMock, updateOne: updateOneMock, findOne: findOneMock }) })) }))
 
 const recordMock = vi.fn(async (_userId: string, _subId: string) => ({ mode: 'paid' }))
@@ -87,4 +87,35 @@ it('re-verifies a previously failed duplicate using the persisted owner and purc
   expect(res.status).toBe(200)
   expect(recordMock).toHaveBeenCalledWith('original_user', 'original_sub')
   expect(updateOneMock).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ $set: expect.objectContaining({ state: 'processed' }) }))
+})
+
+
+it('keeps a successfully processed event when an overlapping duplicate fails later', async () => {
+  const stored = { state: 'received', userId: 'user_a', summary: { subscriptionId: 'sub_1' } }
+  let succeed!: (value: { mode: string }) => void
+  let fail!: (error: Error) => void
+  let firstStarted!: () => void
+  let secondStarted!: () => void
+  const first = new Promise<void>(resolve => { firstStarted = resolve })
+  const second = new Promise<void>(resolve => { secondStarted = resolve })
+  recordMock.mockImplementationOnce(() => { firstStarted(); return new Promise(resolve => { succeed = resolve }) })
+  recordMock.mockImplementationOnce(() => { secondStarted(); return new Promise((_resolve, reject) => { fail = reject }) })
+  insertOneMock.mockResolvedValueOnce({}).mockRejectedValueOnce(Object.assign(new Error('dup'), { code: 11000 }))
+  findOneMock.mockResolvedValueOnce(stored)
+  updateOneMock.mockImplementationOnce(async (_filter, update) => { stored.state = update.$set.state as string; return {} })
+  updateOneMock.mockImplementationOnce(async (filter, update) => {
+    const condition = filter.state as { $ne?: string } | undefined
+    if (stored.state !== condition?.$ne) stored.state = update.$set.state as string
+    return {}
+  })
+  const original = POST(request(body()))
+  await first
+  const duplicate = POST(request(body()))
+  await second
+  succeed({ mode: 'paid' })
+  expect((await original).status).toBe(200)
+  expect(stored.state).toBe('processed')
+  fail(new BillingProviderError('provider unavailable', 503))
+  expect((await duplicate).status).toBe(503)
+  expect(stored.state).toBe('processed')
 })
