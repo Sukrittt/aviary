@@ -20,7 +20,7 @@ import { predictHoldingType } from "../api/holdings";
 import { useHoldingEvents } from "../hooks/useHoldingEvents";
 import { useHideAmounts } from "../hooks/useHideAmounts";
 import { EMPTY } from "../lib/constants";
-import { formatDateTime, formatOrdinalDate } from "../lib/format";
+import { formatDateShort, formatDateTime, formatOrdinalDate } from "../lib/format";
 import { CHART_COLORS } from "../theme/chartColors";
 import type { HoldingRow } from "../types";
 import { Scrim, Sheet } from "../components/MotionSheet";
@@ -29,6 +29,8 @@ import {
   AllocationBar,
   type AllocationSegment,
 } from "../components/charts/AllocationBar";
+import { LineChart } from "../components/charts/LineChart";
+import { netWorthHistory } from "../lib/netWorthHistory";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { DeletingRow } from "../components/DeletingRow";
 import { LoadingCaption } from "../components/LoadingCaption";
@@ -126,6 +128,13 @@ export function InvestmentsPage() {
     [holdings],
   );
 
+  const history = useMemo(
+    () => netWorthHistory(holdings, events).map((p) => ({ x: p.t, y: p.value })),
+    [holdings, events],
+  );
+  const historyDelta =
+    history.length > 1 ? history[history.length - 1].y - history[0].y : null;
+
   const segments: AllocationSegment[] = useMemo(() => {
     const byType = new Map<string, number>();
     for (const h of holdings)
@@ -217,6 +226,19 @@ export function InvestmentsPage() {
                     <AmountText value={netWorth} animate />
                   )}
                 </div>
+                {historyDelta != null && (
+                  <div className={`inv-trend ${historyDelta < 0 ? "is-down" : "is-up"}`}>
+                    {historyDelta < 0 ? "-" : "+"}
+                    {formatCurrency(Math.abs(historyDelta), hideAmounts)} since{" "}
+                    {formatDateShort(new Date(history[0].x).toISOString())}
+                  </div>
+                )}
+                <LineChart
+                  data={history}
+                  label="Net worth over time"
+                  formatX={(x) => formatDateShort(new Date(x).toISOString())}
+                  formatY={(y) => formatCurrency(y, hideAmounts)}
+                />
                 {segments.length > 0 && <AllocationBar segments={segments} />}
               </div>
 

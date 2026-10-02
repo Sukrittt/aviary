@@ -10196,6 +10196,14 @@ button.account-feature-card {
   gap: 6px;
   padding: 18px;
 }
+.inv-trend {
+  margin-top: -2px;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.inv-trend.is-up { color: var(--mint); }
+.inv-trend.is-down { color: var(--coral); }
 .inv-delta {
   display: flex;
   align-items: center;
