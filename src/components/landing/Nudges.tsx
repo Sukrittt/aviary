@@ -5,11 +5,10 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useReducedMotion } from 'motion/react'
 import { Check, ChevronDown, Pause, Play, RotateCcw } from 'lucide-react'
 import { BirdMark } from '../BirdMark'
-import { PHONE, PhoneScreenContext } from './mobile/kit'
 import { useOnScreen } from './useOnScreen'
 
 /**
- * The landing page's demos. Scan, Ask, Insights and Subscriptions show screen
+ * The landing page's demos. Scan, Ask, Insights, Subscriptions and Investments show screen
  * recordings of the app on a demo account (public/landing/clip-*.mp4). The rest
  * is sample data shaped like the real app: the nudge copy matches Mobile's
  * habitNudges.ts, the notification copy matches the guided tour's samples, and
@@ -43,7 +42,7 @@ const CHAPTERS: { id: ChapterId; label: string; ms: number; sr: string }[] = [
   { id: 'ask', label: 'Ask Aviary', ms: 13500, sr: 'You ask “Can I afford 90k iPhone?” and Aviary answers from your budget: not yet. You have ₹36,802 left to spend this month, so it suggests a gadget envelope you add to each month.' },
   { id: 'insights', label: 'Insights', ms: 7500, sr: 'Insights shows your spending trend over 12 months and where this month’s money went, by category, compared with what you usually spend.' },
   { id: 'bills', label: 'Bills & subscriptions', ms: 7500, sr: 'Subscriptions total ₹1,883 a month across 9 services. Aviary warns that Netflix renews soon, and recurring bills log themselves: milk every day, ₹15,000 rent next on 5 Oct, ₹50 water next on 9 Oct.' },
-  { id: 'invest', label: 'Investments', ms: 7500, sr: 'Investments track your holdings and net worth over time, with contributions logged as you make them.' },
+  { id: 'invest', label: 'Investments', ms: 12000, sr: 'Investments shows your ₹2,24,600 net worth over time, split across equity, FDs, gold and crypto. You add ₹10,000 to Crypto and net worth climbs to ₹2,34,600.' },
 ]
 // Learns' beats: lock screen, nudge lands, thumb on "Log", logged.
 const LEARN_BEATS = [0, 1300, 3900, 4600]
@@ -120,7 +119,7 @@ function Scene({ id, beat, playing }: { id: ChapterId; beat: number; playing: bo
     case 'ask': return <AskScene playing={playing} />
     case 'insights': return <InsightsScene playing={playing} />
     case 'bills': return <BillsScene />
-    case 'invest': return <InvestScene />
+    case 'invest': return <InvestScene playing={playing} />
   }
 }
 
@@ -132,15 +131,12 @@ function Rows({ rows }: { rows: [string, string, string][] }) {
   return <ul className="lp-card-rows">{rows.map(([a, b, c]) => <li key={a + b}><span>{a}</span><span>{b}</span><strong>{c}</strong></li>)}</ul>
 }
 
-/** The app's screen at its real size (360×740), shrunk into the hero phone. `shot` holds a recording or screenshot instead. */
-function Phone({ children, lock = false, shot = false }: { children: ReactNode; lock?: boolean; shot?: boolean }) {
-  const [host, setHost] = useState<HTMLDivElement | null>(null)
+/** The hero phone. `lock` is the lock screen; otherwise it holds a recording or screenshot. */
+function Phone({ children, lock = false }: { children: ReactNode; lock?: boolean }) {
   return <div className="lp-lock" aria-hidden="true">
-    <div className={lock ? 'lp-lock-screen' : shot ? 'lp-lock-screen lp-shot-screen' : 'lp-lock-screen lp-app-screen'}>
+    <div className={lock ? 'lp-lock-screen' : 'lp-lock-screen lp-shot-screen'}>
       <div className="lp-lock-island" />
-      {lock || shot ? children : <div className="lp-app" ref={setHost} style={{ width: PHONE.width, height: PHONE.height }} inert>
-        <PhoneScreenContext.Provider value={host}>{children}</PhoneScreenContext.Provider>
-      </div>}
+      {children}
     </div>
   </div>
 }
@@ -194,7 +190,7 @@ function ScanScene({ playing }: { playing: boolean }) {
       <p className="lp-card-copy">Point your camera at a receipt. Aviary reads every line, taxes included.</p>
       <Rows rows={[['Paneer Biryani', 'Split 3 ways', '₹380'], ['Gobi Manchurian', 'Split 2 ways', '₹155'], ['Coke Tin 330 ML', 'Split 2 ways', '₹133']]} />
     </Card>
-    <Phone shot><Clip name="scan" playing={playing} /></Phone>
+    <Phone><Clip name="scan" playing={playing} /></Phone>
     <Card label="Split it fair" className="lp-reveal lp-reveal-late">
       <div className="lp-envelope-line"><span>Bill</span><strong>₹1,725.70</strong></div>
       <div className="lp-envelope-line"><span>Shared items</span><strong>2 or 3 ways</strong></div>
@@ -208,7 +204,7 @@ function AskScene({ playing }: { playing: boolean }) {
     <Card label="Ask in plain words" className="lp-reveal">
       <div className="lp-ask-chips"><span>What can I cut back on?</span><span>How does this month compare?</span><span>Can I afford 90k iPhone?</span></div>
     </Card>
-    <Phone shot><Clip name="ask" playing={playing} /></Phone>
+    <Phone><Clip name="ask" playing={playing} /></Phone>
     <Card label="It reads your budget" className="lp-reveal lp-reveal-late">
       <div className="lp-envelope-line"><span>Left to spend</span><strong>₹36,802<small> this month</small></strong></div>
       <div className="lp-envelope-bar"><i style={{ transform: 'scaleX(.53)' }} /></div>
@@ -222,7 +218,7 @@ function InsightsScene({ playing }: { playing: boolean }) {
     <Card label="Normal or not" className="lp-reveal">
       <p className="lp-card-copy lp-card-copy--strong">Every month next to the last twelve. Tap one to see where it went.</p>
     </Card>
-    <Phone shot><Clip name="insights" playing={playing} /></Phone>
+    <Phone><Clip name="insights" playing={playing} /></Phone>
     <Card label="Where it went" className="lp-reveal lp-reveal-late">
       <p className="lp-card-copy lp-card-copy--strong">Each category against what you usually spend.</p>
       <p className="lp-stage-note">Plus a daily heatmap and your subscriptions.</p>
@@ -242,7 +238,7 @@ function BillsScene() {
     <Card label="Never surprised by a renewal" className="lp-reveal">
       <p className="lp-card-copy">Every subscription with its next due date, and a heads-up before it charges.</p>
     </Card>
-    <Phone shot>
+    <Phone>
       {/* eslint-disable-next-line @next/next/no-img-element -- fills the phone frame; next/image adds nothing at this size */}
       <img className="lp-clip" src="/landing/subscriptions.png" alt="" />
       {/* An Android heads-up, in the app's real bill-reminder copy (Mobile's tour/content.ts). */}
@@ -261,21 +257,16 @@ function BillsScene() {
   </>
 }
 
-const HOLDINGS: [string, string, string][] = [['Index fund', '+8.2%', '₹2,10,000'], ['Fixed deposit', '7.1% a year', '₹1,00,000'], ['Gold', '+3.4%', '₹62,000'], ['Stocks', '−1.1%', '₹40,800']]
-
-function InvestScene() {
+function InvestScene({ playing }: { playing: boolean }) {
   return <>
-    <Card label="Contributions, logged" className="lp-reveal">
-      <Rows rows={[['Index fund', 'Added 4 Oct', '+₹25,000'], ['Gold', 'Added 4 Oct', '+₹5,000']]} />
+    <Card label="Everything you own" className="lp-reveal">
+      <p className="lp-card-copy">Equity, FDs, gold and crypto, with your net worth charted since day one.</p>
+      <Rows rows={[['Nifty Index Fund', 'Monthly ₹5,000', '₹1,18,000'], ['HDFC Fixed Deposit', 'Monthly ₹50,000', '₹76,200'], ['Gold ETF', 'Updated 3 Oct', '₹20,400']]} />
     </Card>
-    <Phone>
-      <div className="lp-app-head">Investments</div>
-      <div className="lp-app-total"><span>Net worth</span><b>₹4,12,800</b><small>+₹30,000 this month</small></div>
-      <svg className="lp-app-chart" viewBox="0 0 320 120" preserveAspectRatio="none"><path d="M0 104 C 30 98, 50 100, 80 86 S 130 80, 160 66 S 210 58, 240 40 S 290 24, 320 14" /></svg>
-      <ul className="lp-app-list">{HOLDINGS.map(([a, b, c], i) => <li key={a} style={{ animationDelay: `${0.9 + i * 0.12}s` }}><span><b>{a}</b><small>{b}</small></span><strong>{c}</strong></li>)}</ul>
-    </Phone>
-    <Card label="Net worth over time" className="lp-reveal lp-reveal-late">
-      <p className="lp-card-copy lp-card-copy--strong">Holdings, market updates and every contribution in one place, next to your budget.</p>
+    <Phone><Clip name="invest" playing={playing} /></Phone>
+    <Card label="Add as you invest" className="lp-reveal lp-reveal-late">
+      <div className="lp-envelope-line"><span>Crypto</span><strong>+₹10,000</strong></div>
+      <div className="lp-split-share"><span>Net worth</span><strong>₹2,34,600</strong><small>+₹64,600 since 5 May</small></div>
     </Card>
   </>
 }
