@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useReducedMotion } from 'motion/react'
-import { Check, ChevronDown, Pause, Play, RotateCcw } from 'lucide-react'
+import { Check, ChevronDown, ChevronUp, Pause, Play, RotateCcw } from 'lucide-react'
 import { BirdMark } from '../BirdMark'
 import { useOnScreen } from './useOnScreen'
 
@@ -37,7 +37,7 @@ export function RotatingHabit() {
 
 type ChapterId = 'learns' | 'scan' | 'ask' | 'insights' | 'bills' | 'invest'
 const CHAPTERS: { id: ChapterId; label: string; ms: number; sr: string }[] = [
-  { id: 'learns', label: 'Learns your habits', ms: 9000, sr: 'Aviary saw chai logged around 4pm on three Tuesdays. The next Tuesday at 4:15pm it asks “Chai time?”, one tap on “Log ₹20” logs it, and Snacks drops to ₹220 left.' },
+  { id: 'learns', label: 'Learns your habits', ms: 9000, sr: 'Aviary saw chai logged around 4pm on three Tuesdays. The next Tuesday at 4:15pm it asks “Afternoon chai?”, one tap on “Log ₹20” logs it, and Snacks drops to ₹220 left.' },
   { id: 'scan', label: 'Scan a bill', ms: 14000, sr: 'A ₹1,725.70 Meghana Foods bill is scanned. Aviary reads every line, you mark which items were shared two or three ways, and it logs your ₹672.96 share to Eating out.' },
   { id: 'ask', label: 'Ask Aviary', ms: 13500, sr: 'You ask “Can I afford 90k iPhone?” and Aviary answers from your budget: not yet. You have ₹36,802 left to spend this month, so it suggests a gadget envelope you add to each month.' },
   { id: 'insights', label: 'Insights', ms: 7500, sr: 'Insights shows your spending trend over 12 months and where this month’s money went, by category, compared with what you usually spend.' },
@@ -165,12 +165,11 @@ function LearnsScene({ beat }: { beat: number }) {
       <div className="lp-lock-time">4:15</div>
       <div className="lp-lock-date">Tuesday, 6 October</div>
       <div className="lp-notif">
-        <div className="lp-notif-app"><span className="lp-notif-icon"><BirdMark size={14} perched /></span>Aviary · now</div>
+        <div className="lp-notif-app"><span className="lp-notif-icon"><BirdMark size={14} perched /></span>Aviary<span className="lp-notif-time">• now</span><ChevronUp size={14} strokeWidth={2.4} /></div>
         {logged
           ? <div className="lp-notif-body" key="done"><strong><Check size={15} strokeWidth={3} /> Logged ₹20</strong><span>Chai is in. Nice one.</span></div>
-          : <div className="lp-notif-body" key="ask"><strong>Chai time?</strong><span>Log it while it’s fresh. We filled in the usual.</span></div>}
-        {!logged && <div className="lp-notif-actions"><span className="lp-notif-log">Log ₹20</span><span>Not this one</span></div>}
-        <span className="lp-thumb" />
+          : <div className="lp-notif-body" key="ask"><strong>Afternoon chai?</strong><span>Time for your Tuesday chai fix? Snap it into the app real quick.</span></div>}
+        {!logged && <div className="lp-notif-actions"><span className="lp-notif-log">Log ₹20<span className="lp-thumb" /></span><span>Not this one</span></div>}
       </div>
     </Phone>
     <Card label="It’s logged" className="lp-stage-logged">

@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { BarWidget, EnvelopeWidget } from '../components/landing/mobile/Widget'
-import { ArrowRight, Github, Monitor, Repeat, ScanLine, Smartphone, WifiOff } from 'lucide-react'
+import { ArrowRight, ChevronUp, Github, Monitor, Repeat, ScanLine, Smartphone, WifiOff } from 'lucide-react'
 import { Playground } from '../components/landing/Playground'
 import { Faq, LandingMotion } from '../components/landing/LandingClient'
 import { TrackedLink } from '../components/TrackedLink'
@@ -85,7 +85,7 @@ export function LandingPage() {
         <div className="lp-learn-habit"><BirdMark size={34} perched /><strong>Habit learned</strong><span>Chai on Tuesdays,<br />around 4pm</span></div>
         <svg className="lp-learn-lines" viewBox="0 0 80 240" preserveAspectRatio="none" aria-hidden="true"><path d="M0 120 C 40 120, 40 40, 80 40 M0 120 L 80 120 M0 120 C 40 120, 40 200, 80 200" /></svg>
         <ol className="lp-learn-col lp-learn-next" aria-label="Nudges Aviary sends next">
-          {['6 Oct', '13 Oct', '20 Oct'].map((d) => <li key={d}><span>Tue, {d}</span><strong>Chai time?</strong><em>4:15pm</em></li>)}
+          {['6 Oct', '13 Oct', '20 Oct'].map((d) => <li key={d}><span>Tue, {d}</span><strong>Afternoon chai?</strong><em>4:15pm</em></li>)}
         </ol>
         <figcaption>Three Tuesdays in, three nudges out. Sample data.</figcaption>
       </figure>
@@ -112,8 +112,8 @@ export function LandingPage() {
             <div className="lp-shot-phone lp-shot-phone--lock">
               <div className="lp-lock-time">4:15</div>
               <div className="lp-notif lp-notif--still">
-                <div className="lp-notif-app"><span className="lp-notif-icon"><BirdMark size={14} perched /></span>Aviary · now</div>
-                <div className="lp-notif-body"><strong>Chai time?</strong><span>Log it while it’s fresh. We filled in the usual.</span></div>
+                <div className="lp-notif-app"><span className="lp-notif-icon"><BirdMark size={14} perched /></span>Aviary<span className="lp-notif-time">• now</span><ChevronUp size={14} strokeWidth={2.4} /></div>
+                <div className="lp-notif-body"><strong>Afternoon chai?</strong><span>Time for your Tuesday chai fix? Snap it into the app real quick.</span></div>
                 <div className="lp-notif-actions"><span className="lp-notif-log">Log ₹20</span><span>Not this one</span></div>
               </div>
             </div>
