@@ -240,6 +240,7 @@ export default function AccountPage() {
             </a>
           </div>
           <AccountRow icon={Compass} label="How this works" href="/account/guided-tour" />
+          <AccountRow icon={FileText} label="Changelog" href="/account/changelog" />
           <AccountRow icon={MessageCircle} label="Help & feedback" href="/account/help" />
           <AccountRow icon={FileText} label="Terms & privacy" href="/legal/privacy" />
         </div>

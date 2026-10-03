@@ -13,6 +13,7 @@ const NAV: Array<{ href: string; label: string; icon: LucideIcon }> = [
   { href: '/admin/jobs', label: 'Jobs', icon: Activity },
   { href: '/admin/ai', label: 'AI usage', icon: Cpu },
   { href: '/admin/system', label: 'System', icon: Settings2 },
+  { href: '/admin/changelog', label: 'Changelog', icon: ScrollText },
   { href: '/admin/audit', label: 'Audit log', icon: ScrollText },
 ]
 

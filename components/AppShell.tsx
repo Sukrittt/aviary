@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react'
 import { usePathname } from 'next/navigation'
 import { useAppearance } from './AppearanceProvider'
+import { ChangelogAnnouncement } from './ChangelogAnnouncement'
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname() ?? ''
@@ -20,6 +21,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="mc-layout">
         <section className="mc-main">{children}</section>
       </div>
+      <ChangelogAnnouncement />
     </main>
   )
 }

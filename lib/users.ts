@@ -31,6 +31,8 @@ export interface UserDoc {
   getStartedAt?: string | null
   manualTransactionCompletedAt?: string | null
   guidedTourCompletedAt?: string | null
+  /** Web releases already announced. Server-owned, atomic across tabs/devices. */
+  seenWebChangelogIds?: string[]
   notifyCadence?: 'off' | 'weekly' | 'daily'
   /** Category limit alerts (threshold + overspent) — independent of `notifyCadence`, which only gates the digest. */
   notifyThresholds?: boolean
