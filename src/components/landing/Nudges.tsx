@@ -37,15 +37,16 @@ export function RotatingHabit() {
 
 type ChapterId = 'learns' | 'scan' | 'ask' | 'insights' | 'bills' | 'invest'
 const CHAPTERS: { id: ChapterId; label: string; ms: number; sr: string }[] = [
-  { id: 'learns', label: 'Learns your habits', ms: 9000, sr: 'Aviary saw chai logged around 4pm on three Tuesdays. The next Tuesday at 4:15pm it asks “Afternoon chai?”, one tap on “Log ₹20” logs it, and Snacks drops to ₹220 left.' },
-  { id: 'scan', label: 'Scan a bill', ms: 14000, sr: 'A ₹1,725.70 Meghana Foods bill is scanned. Aviary reads every line, you mark which items were shared two or three ways, and it logs your ₹672.96 share to Eating out.' },
-  { id: 'ask', label: 'Ask Aviary', ms: 13500, sr: 'You ask “Can I afford 90k iPhone?” and Aviary answers from your budget: not yet. You have ₹36,802 left to spend this month, so it suggests a gadget envelope you add to each month.' },
-  { id: 'insights', label: 'Insights', ms: 7500, sr: 'Insights shows your spending trend over 12 months and where this month’s money went, by category, compared with what you usually spend.' },
+  { id: 'learns', label: 'Learns your habits', ms: 7300, sr: 'Aviary saw chai logged around 4pm on three Tuesdays. The next Tuesday at 4:15pm it asks “Afternoon chai?”, one tap on “Log ₹20” logs it, and Snacks drops to ₹220 left.' },
+  { id: 'scan', label: 'Scan a bill', ms: 15500, sr: 'A ₹1,725.70 Meghana Foods bill is scanned. Aviary reads every line, you mark which items were shared two or three ways, and it logs your ₹672.96 share to Eating out.' },
+  { id: 'ask', label: 'Ask Aviary', ms: 16000, sr: 'You ask “Can I afford 90k iPhone?” and Aviary answers from your budget: not yet. You have ₹36,802 left to spend this month, so it suggests a gadget envelope you add to each month.' },
+  { id: 'insights', label: 'Insights', ms: 13000, sr: 'Insights shows your spending trend over 12 months and where this month’s money went, by category, compared with what you usually spend.' },
   { id: 'bills', label: 'Bills & subscriptions', ms: 7500, sr: 'Subscriptions total ₹1,883 a month across 9 services. Aviary warns that Netflix renews soon, and recurring bills log themselves: milk every day, ₹15,000 rent next on 5 Oct, ₹50 water next on 9 Oct.' },
-  { id: 'invest', label: 'Investments', ms: 12000, sr: 'Investments shows your ₹2,24,600 net worth over time, split across equity, FDs, gold and crypto. You add ₹10,000 to Crypto and net worth climbs to ₹2,34,600.' },
+  { id: 'invest', label: 'Investments', ms: 13500, sr: 'Investments shows your ₹2,24,600 net worth over time, split across equity, FDs, gold and crypto. You add ₹10,000 to Crypto and net worth climbs to ₹2,34,600.' },
 ]
+// Clip chapters run ~1.5s past their recording so the finished screen holds before the cut.
 // Learns' beats: lock screen, nudge lands, thumb on "Log", logged.
-const LEARN_BEATS = [0, 1300, 3900, 4600]
+const LEARN_BEATS = [0, 500, 2200, 2900]
 
 export function HeroStage() {
   const reduced = useReducedMotion()
