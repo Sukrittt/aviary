@@ -33,7 +33,7 @@ export const pages = {
   '/account/recurring': { title: 'Recurring Expenses', description: 'Manage recurring expenses and reminders for regular purchases in your Aviary budget.' },
   '/account/security': { title: 'Account Security', description: 'Manage your sign-in methods, email, active sessions, and account security in Aviary.' },
   '/account/subscriptions': { title: 'Subscriptions', description: 'Track subscriptions, renewal dates, and recurring service costs in Aviary.' },
-  '/account/trial-notice': { title: 'Your Trial Plan', description: 'Review how your Aviary trial works and what to expect when payments launch.' },
+  '/account/trial-notice': { title: 'Your Trial Plan', description: 'Review how your Aviary trial works and what to expect when it ends.' },
   '/admin': { title: 'Admin Overview', description: 'Aviary administration overview for authorized administrators.' },
   '/admin/changelog': { title: 'Admin Changelog', description: 'Draft, preview, and publish Aviary web release notes.' },
   '/admin/ai': { title: 'Admin AI Usage', description: 'Review Aviary AI usage and processing costs.' },

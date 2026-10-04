@@ -41,7 +41,7 @@ export function TrialBanner() {
       <Clock size={16} aria-hidden style={{ flexShrink: 0, color: urgent ? 'var(--tk-warn)' : 'var(--tk-text2)' }} />
       <span style={{ flex: 1, minWidth: 0 }}>
         <strong>Free trial: {trialRemainingLabel(days)}.</strong>{' '}
-        <span style={{ color: 'var(--tk-text2)' }}>Subscribe in the Android app to keep budgeting.</span>
+        <span style={{ color: 'var(--tk-text2)' }}>Pick a plan to keep budgeting.</span>
       </span>
       <Link href="/account" style={{ color: 'var(--tk-accent)', fontWeight: 700, textDecoration: 'none', flexShrink: 0 }}>
         Details
