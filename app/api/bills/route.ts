@@ -118,10 +118,13 @@ export async function POST(req: Request) {
 
   if (!/^[A-Za-z0-9+/]+={0,2}$/.test(image) || image.length % 4 !== 0) return error('invalid base64 image')
   const bytes = Buffer.from(image, 'base64')
-  const matches = mimeType === 'image/png' ? bytes.subarray(0, 8).equals(Buffer.from([137,80,78,71,13,10,26,10]))
-    : mimeType === 'image/jpeg' ? bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255
-    : bytes.toString('ascii', 0, 4) === 'RIFF' && bytes.toString('ascii', 8, 12) === 'WEBP'
-  if (!matches) return error('image content does not match its format')
+  // Trust the bytes, not the declared type: Android's image picker re-encodes
+  // a PNG screenshot to JPEG but still reports image/png.
+  const detectedMime = bytes.subarray(0, 8).equals(Buffer.from([137,80,78,71,13,10,26,10])) ? 'image/png'
+    : bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255 ? 'image/jpeg'
+    : bytes.toString('ascii', 0, 4) === 'RIFF' && bytes.toString('ascii', 8, 12) === 'WEBP' ? 'image/webp'
+    : null
+  if (!detectedMime) return error('image content is not a JPEG, PNG, or WebP')
   const expenses = await getCollection('expenses', auth)
   if (!(await expenses.findOne({ _id: new ObjectId(expenseId) }, { projection: { _id: 1 } }))) return error('expense not found', 404)
   const release = await acquireLease(`bills:${auth.userId}`)
@@ -135,14 +138,14 @@ export async function POST(req: Request) {
     if (!existing && await coll.countDocuments({}, {}, { includeDeleted: true }) >= 500) return error('Receipt storage limit reached (500 bills).', 429)
     if (existing) {
       await coll.updateOne({ _id: existing._id }, { $set: { image_status: 'pending' } })
-      after(() => storeBillScanImage(auth.userId, String(existing._id), image, mimeType))
+      after(() => storeBillScanImage(auth.userId, String(existing._id), image, detectedMime))
       return json({ id: String(existing._id) }, { status: 202 })
     }
     const { insertedId } = await coll.insertOne({
       merchant, category, date, total: String(total), my_share: String(myShare), people_count: peopleCount,
       items, expense_id: expenseId, image_url: null, image_status: 'pending', image_bytes: bytes.length, created_at: nowIST().timestamp,
     })
-    after(() => storeBillScanImage(auth.userId, insertedId.toString(), image, mimeType))
+    after(() => storeBillScanImage(auth.userId, insertedId.toString(), image, detectedMime))
     return json({ id: insertedId.toString() }, { status: 202 })
   } finally { await release() }
 }
