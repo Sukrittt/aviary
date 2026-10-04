@@ -31,6 +31,7 @@ export function planSummary(status: BillingStatus): string {
     case 'paid':
       if (status.renewalState === 'grace') return status.store === 'web' ? 'Payment issue · retrying' : 'Payment issue · fix in Google Play'
       if (status.gifted) return `Gifted plan · ends ${formatDate(status.paidExpiresAt)}`
+      if (status.renewalState === 'scheduled') return `Free trial · first charge ${formatDate(status.paidExpiresAt)}`
       return status.autoRenew ? `Renews ${formatDate(status.paidExpiresAt)}` : `Ends ${formatDate(status.paidExpiresAt)}`
     case 'expired':
       return status.trialEndsAt && !status.productId ? 'Trial ended' : 'Subscription ended'

@@ -53,6 +53,14 @@ describe('SubscriptionSection', () => {
     expect(screen.queryByText('Cancel renewal')).toBeNull()
   })
 
+  it('lets someone who subscribed mid-trial cancel before the first charge', () => {
+    renderWith({ renewalState: 'scheduled', trialDaysRemaining: 13, paidExpiresAt: '2026-10-17T12:00:00.000Z' })
+    expect(screen.getByText('13 days left')).toBeTruthy()
+    fireEvent.click(screen.getByText('Cancel subscription'))
+    fireEvent.click(screen.getAllByText('Cancel subscription').at(-1)!)
+    expect(cancelMutate).toHaveBeenCalled()
+  })
+
   it('sends a Play subscriber to Google Play, with no cancel button that would do nothing', () => {
     renderWith({ store: 'play' })
     expect(screen.getByText('Manage in Google Play')).toBeTruthy()

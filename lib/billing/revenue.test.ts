@@ -58,7 +58,7 @@ describe('monthlyValue', () => {
 })
 
 describe('payersAt', () => {
-  it('skips sandbox, pending, refunded and out-of-window rows', () => {
+  it('skips sandbox, pending, not-yet-charged, refunded and out-of-window rows', () => {
     const subs = [
       sub({ userId: 'a' }),
       sub({ userId: 'b', environment: 'sandbox' }),
@@ -66,6 +66,7 @@ describe('payersAt', () => {
       sub({ userId: 'd', status: 'revoked' }),
       sub({ userId: 'e', expiresAt: ago(1) }),
       sub({ userId: 'f', createdAt: ahead(1) }),
+      sub({ userId: 'g', status: 'scheduled', expiresAt: ahead(13) }),
     ]
     expect([...payersAt(subs, NOW, PRICES).keys()]).toEqual(['a'])
   })

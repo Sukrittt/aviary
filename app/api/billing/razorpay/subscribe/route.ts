@@ -43,8 +43,14 @@ export async function POST(req: Request) {
     return json({ error: 'already_subscribed', store: access.store, paidExpiresAt: access.paidExpiresAt }, { status: 409 })
   }
 
+  // Mid-trial, the first charge waits for the trial to end, so subscribing
+  // early doesn't throw away the days left. Too close to the end to be worth
+  // a separate mandate step, it just charges now.
+  const trialEnd = access.mode === 'trial' && access.trialEndsAt ? new Date(access.trialEndsAt) : null
+  const startAt = trialEnd && trialEnd.getTime() > Date.now() + 15 * 60_000 ? trialEnd : null
+
   try {
-    const subscription = await createSubscription(config.plans[period as PlanPeriod], period as PlanPeriod, auth.userId)
+    const subscription = await createSubscription(config.plans[period as PlanPeriod], period as PlanPeriod, auth.userId, startAt)
     return json({ subscriptionId: subscription.id, keyId: config.keyId })
   } catch (err) {
     if (err instanceof BillingProviderError) {

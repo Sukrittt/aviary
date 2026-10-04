@@ -85,6 +85,7 @@ describe('resolveAccess states', () => {
     ['expired', false],
     ['revoked', false],
     ['pending', false],
+    ['scheduled', true],
   ] as const)('status %s entitles: %s', (status, entitled) => {
     const access = resolve({ subscription: sub(status, new Date(NOW.getTime() + DAY)) })
     expect(access.mode).toBe(entitled ? 'paid' : 'setup_incomplete')
@@ -93,6 +94,12 @@ describe('resolveAccess states', () => {
 
   it('does not entitle an active subscription whose entitlement already ended', () => {
     expect(resolve({ subscription: sub('active', new Date(NOW.getTime() - 1)) }).mode).toBe('setup_incomplete')
+  })
+
+  it('keeps a scheduled plan entitled for a day past its first charge, while that charge settles', () => {
+    const firstCharge = new Date(NOW.getTime() - 12 * 60 * 60 * 1000)
+    expect(resolve({ subscription: sub('scheduled', firstCharge) }).mode).toBe('paid')
+    expect(resolve({ subscription: sub('scheduled', new Date(NOW.getTime() - 2 * DAY)) }).mode).toBe('setup_incomplete')
   })
 
   it('does not entitle a pending purchase with no expiry', () => {

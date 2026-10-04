@@ -38,6 +38,11 @@ describe('WebPlanPicker', () => {
     expect(screen.getByText('₹83.25/month, billed yearly')).toBeTruthy()
   })
 
+  it('says nothing is charged until the trial ends when bought mid-trial', () => {
+    render(<WebPlanPicker trialEndsAt="2026-10-17T12:00:00.000Z" />)
+    expect(screen.getByText(/Nothing's charged until your trial ends/)).toBeTruthy()
+  })
+
   it('buys the plan the user picked', () => {
     render(<WebPlanPicker />)
     fireEvent.click(screen.getByText('Monthly'))

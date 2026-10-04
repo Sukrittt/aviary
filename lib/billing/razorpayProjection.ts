@@ -38,9 +38,12 @@ function statusOf(sub: RzpSubscription, paidUntil: Date | null, cancelAtPeriodEn
   switch (sub.status) {
     case 'active':
       return cancelAtPeriodEnd ? 'cancelled' : 'active'
+    // Mandate approved with the first charge deferred (subscribed during the
+    // trial). Runs to `charge_at`.
+    case 'authenticated':
+      return sub.charge_at ? 'scheduled' : 'pending'
     // Checkout opened but the first payment or mandate hasn't settled. Grants nothing.
     case 'created':
-    case 'authenticated':
       return 'pending'
     // A renewal failed and Razorpay is retrying.
     case 'pending':
@@ -66,7 +69,7 @@ export function projectRazorpaySubscription({
   cancelAtPeriodEnd,
   fetchedAt,
 }: RazorpayProjectionInput): ProjectedSubscription {
-  const paidUntil = seconds(sub.current_end)
+  const paidUntil = seconds(sub.status === 'authenticated' ? sub.charge_at : sub.current_end)
   const status = statusOf(sub, paidUntil, cancelAtPeriodEnd, fetchedAt)
   // `grace` is the only status that entitles past the paid cycle.
   const expiresAt = status === 'grace' && paidUntil ? new Date(paidUntil.getTime() + RETRY_GRACE_DAYS * DAY_MS) : paidUntil
@@ -81,7 +84,7 @@ export function projectRazorpaySubscription({
     // what the unique purchase index needs.
     storeTransactionId: sub.id,
     status,
-    autoRenew: status === 'active' || status === 'grace',
+    autoRenew: status === 'active' || status === 'grace' || status === 'scheduled',
     expiresAt,
     verifiedAt: fetchedAt,
     providerRefs: { customerId: sub.customer_id ?? undefined },

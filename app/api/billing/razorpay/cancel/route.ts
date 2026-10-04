@@ -12,7 +12,8 @@ export const dynamic = 'force-dynamic'
 
 /**
  * Turn off renewal for the user's web subscription. Access carries on to the
- * end of the cycle they've paid for; nothing is refunded here.
+ * end of the cycle they've paid for; nothing is refunded here. One still
+ * waiting on its first charge (subscribed mid-trial) just stops.
  *
  * Only web subscriptions: a Google Play one can only be cancelled in Play,
  * and pretending otherwise would leave someone believing they'd stopped a
@@ -29,7 +30,7 @@ export async function POST(req: Request) {
   const db = await getDb()
   const rows = await db
     .collection<BillingSubscriptionDoc>(BILLING_SUBSCRIPTIONS)
-    .find({ userId: auth.userId, provider: 'razorpay', status: { $in: ['active', 'grace'] }, cancelAtPeriodEnd: { $ne: true } })
+    .find({ userId: auth.userId, provider: 'razorpay', status: { $in: ['active', 'grace', 'scheduled'] }, cancelAtPeriodEnd: { $ne: true } })
     .toArray()
   if (rows.length === 0) return error('no renewing web subscription', 404)
 
