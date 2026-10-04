@@ -30,6 +30,8 @@ export function SubscriptionSection() {
   const paid = data.mode === 'paid' && !data.gifted
   const web = paid && data.store === 'web'
   const play = paid && data.store !== 'web'
+  // Subscribed mid-trial: nothing charged until the trial ends on `paidExpiresAt`.
+  const scheduled = data.renewalState === 'scheduled'
   const canBuy = data.purchaseEnabled && (data.mode === 'trial' || data.mode === 'expired')
 
   return (
@@ -78,9 +80,13 @@ export function SubscriptionSection() {
             style={{ width: '100%', textAlign: 'left' }}
           >
             <span className="account-row-label">
-              Cancel renewal
+              {scheduled ? 'Cancel subscription' : 'Cancel renewal'}
               <span className="account-row-hint">
-                {cancel.isError ? "That didn't go through. Check your connection and try again." : `You keep everything until ${formatDate(data.paidExpiresAt)}.`}
+                {cancel.isError
+                  ? "That didn't go through. Check your connection and try again."
+                  : scheduled
+                    ? `You won't be charged. Your free trial still runs until ${formatDate(data.paidExpiresAt)}.`
+                    : `You keep everything until ${formatDate(data.paidExpiresAt)}.`}
               </span>
             </span>
             <XCircle size={16} className="account-row-arrow" aria-hidden />
@@ -113,15 +119,19 @@ export function SubscriptionSection() {
 
       {canBuy && (
         <div className="account-card" style={{ marginTop: 12, padding: 16 }}>
-          <WebPlanPicker />
+          <WebPlanPicker trialEndsAt={data.mode === 'trial' ? data.trialEndsAt : null} />
         </div>
       )}
 
       <AnimatePresence>
         {confirmingCancel && (
           <ConfirmDialog
-            title="Cancel renewal?"
-            body={`You won't be charged again, and you keep everything until ${formatDate(data.paidExpiresAt)}.`}
+            title={scheduled ? 'Cancel subscription?' : 'Cancel renewal?'}
+            body={
+              scheduled
+                ? `You won't be charged. Your free trial still runs until ${formatDate(data.paidExpiresAt)}.`
+                : `You won't be charged again, and you keep everything until ${formatDate(data.paidExpiresAt)}.`
+            }
             cancelLabel="Keep my plan"
             onCancel={() => setConfirmingCancel(false)}
           >
@@ -131,7 +141,7 @@ export function SubscriptionSection() {
               disabled={cancel.isPending}
               onClick={() => cancel.mutate(undefined, { onSettled: () => setConfirmingCancel(false) })}
             >
-              {cancel.isPending ? 'Cancelling…' : 'Cancel renewal'}
+              {cancel.isPending ? 'Cancelling…' : scheduled ? 'Cancel subscription' : 'Cancel renewal'}
             </button>
           </ConfirmDialog>
         )}
@@ -140,10 +150,11 @@ export function SubscriptionSection() {
   )
 }
 
-function describePlan(data: { mode: string; trialEndsAt: string | null; paidExpiresAt: string | null; autoRenew: boolean; basePlanId: string | null; gifted?: boolean }): string {
+function describePlan(data: { mode: string; trialEndsAt: string | null; paidExpiresAt: string | null; autoRenew: boolean; basePlanId: string | null; renewalState: string | null; gifted?: boolean }): string {
   if (data.mode === 'trial') return `Free trial ends ${formatDate(data.trialEndsAt)}`
   if (data.mode === 'paid') {
     const plan = data.basePlanId ? `${data.basePlanId[0].toUpperCase()}${data.basePlanId.slice(1)} · ` : ''
+    if (data.renewalState === 'scheduled') return `${plan}Free trial until ${formatDate(data.paidExpiresAt)}, then your first charge`
     // "Renews" and "ends" are not interchangeable. Someone who cancelled needs
     // to see the date their access stops, not a renewal that is not coming.
     return `${plan}${data.autoRenew ? 'Renews' : 'Ends'} ${formatDate(data.paidExpiresAt)}`
@@ -152,7 +163,7 @@ function describePlan(data: { mode: string; trialEndsAt: string | null; paidExpi
 }
 
 function statusChip(data: { mode: string; trialDaysRemaining: number; renewalState: string | null }): string {
-  if (data.mode === 'trial') return trialRemainingLabel(data.trialDaysRemaining)
+  if (data.mode === 'trial' || data.renewalState === 'scheduled') return trialRemainingLabel(data.trialDaysRemaining)
   if (data.renewalState === 'grace') return 'Payment failed'
   if (data.renewalState === 'on_hold') return 'On hold'
   if (data.renewalState === 'paused') return 'Paused'

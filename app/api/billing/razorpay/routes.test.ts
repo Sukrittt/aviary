@@ -53,7 +53,20 @@ describe('POST /api/billing/razorpay/subscribe', () => {
     const res = await subscribe(post({ period: 'yearly' }))
     expect(res.status).toBe(200)
     expect(await res.json()).toEqual({ subscriptionId: 'sub_new', keyId: 'rzp_test_abc' })
-    expect(createMock).toHaveBeenCalledWith('plan_year', 'yearly', 'user_a')
+    expect(createMock).toHaveBeenCalledWith('plan_year', 'yearly', 'user_a', null)
+  })
+
+  it('starts charging when the trial ends, so subscribing early keeps the trial days left', async () => {
+    const trialEndsAt = new Date(Date.now() + 13 * 24 * 60 * 60 * 1000).toISOString()
+    getAccessMock.mockResolvedValueOnce({ mode: 'trial', gifted: false, store: null, trialEndsAt })
+    expect((await subscribe(post({ period: 'yearly' }))).status).toBe(200)
+    expect(createMock).toHaveBeenCalledWith('plan_year', 'yearly', 'user_a', new Date(trialEndsAt))
+  })
+
+  it('charges now when the trial is all but over', async () => {
+    getAccessMock.mockResolvedValueOnce({ mode: 'trial', gifted: false, store: null, trialEndsAt: new Date(Date.now() + 60_000).toISOString() })
+    await subscribe(post({ period: 'yearly' }))
+    expect(createMock).toHaveBeenCalledWith('plan_year', 'yearly', 'user_a', null)
   })
 
   it('refuses the demo user', async () => {

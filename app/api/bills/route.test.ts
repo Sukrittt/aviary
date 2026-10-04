@@ -208,3 +208,12 @@ describe('GET /api/bills', () => {
 it('rejects base64 data that is not the declared image format', async () => {
   expect((await POST(req({ ...validBody, image: 'aGVsbG8=' }))).status).toBe(400)
 })
+
+// Android expo-image-picker re-encodes a picked PNG screenshot to JPEG when
+// quality < 1 but still reports the source mimeType, so trust the bytes.
+it('accepts JPEG bytes declared as image/png and stores them as JPEG', async () => {
+  const res = await POST(req({ ...validBody, image: '/9j/4AAQ', mimeType: 'image/png' }))
+  expect(res.status).toBe(202)
+  await queuedAfter[0]()
+  expect(storeBillScanImage).toHaveBeenCalledWith('user_a', expect.any(String), '/9j/4AAQ', 'image/jpeg')
+})

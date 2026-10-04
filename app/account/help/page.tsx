@@ -1,8 +1,8 @@
 import { pageMetadata } from '@/lib/seo'
 import Link from 'next/link'
+import { FEEDBACK_BOARD_URL } from '@/lib/links'
 
 const REPO_URL = 'https://github.com/Sukrittt/aviary-mobile'
-const FEEDBACK_BOARD_URL = 'https://aviary.userjot.com'
 
 export default function HelpPage() {
   return (

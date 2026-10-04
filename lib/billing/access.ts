@@ -23,7 +23,15 @@ export function trialWindow(startedAt: Date): { trialStartedAt: Date; trialEndsA
  * `expired`, `revoked` and `pending` are not — a payment the store has not
  * settled grants nothing.
  */
-const ENTITLING: readonly SubscriptionStatus[] = ['active', 'cancelled', 'grace']
+const ENTITLING: readonly SubscriptionStatus[] = ['active', 'cancelled', 'grace', 'scheduled']
+
+/**
+ * A scheduled plan's `expiresAt` is its first charge date. Razorpay takes a
+ * while to settle that charge, and the webhook that turns it `active` can lag,
+ * so the plan keeps entitling this long past it rather than locking the user
+ * out the moment their trial ends.
+ */
+const FIRST_CHARGE_SETTLE_MS = 24 * 60 * 60 * 1000
 
 export type AccessMode = 'setup_incomplete' | 'trial' | 'paid' | 'expired'
 
@@ -72,7 +80,8 @@ export interface AccessInput {
 
 function subscriptionEntitles(sub: BillingSubscriptionDoc | null, now: Date): boolean {
   if (!sub || !ENTITLING.includes(sub.status)) return false
-  return sub.expiresAt !== null && sub.expiresAt.getTime() > now.getTime()
+  const settle = sub.status === 'scheduled' ? FIRST_CHARGE_SETTLE_MS : 0
+  return sub.expiresAt !== null && sub.expiresAt.getTime() + settle > now.getTime()
 }
 
 /** A gift entitles until its instant, exactly like a purchase's `expiresAt`. */

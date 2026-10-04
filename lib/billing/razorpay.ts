@@ -135,13 +135,17 @@ export function fetchPlan(planId: string): Promise<RzpPlan> {
  * Start a subscription for `userId`. The user id rides along in `notes`, which
  * is how a webhook (which carries no session) knows whose access to refresh,
  * and how the verify step refuses a subscription that belongs to someone else.
+ *
+ * `startAt` defers the first charge (checkout then only approves the
+ * mandate), so someone subscribing mid-trial keeps the days they have left.
  */
-export function createSubscription(planId: string, period: PlanPeriod, userId: string): Promise<RzpSubscription> {
+export function createSubscription(planId: string, period: PlanPeriod, userId: string, startAt: Date | null = null): Promise<RzpSubscription> {
   return call('POST', '/subscriptions', {
     plan_id: planId,
     total_count: TOTAL_COUNT[period],
     customer_notify: 1,
     notes: { userId },
+    ...(startAt ? { start_at: Math.floor(startAt.getTime() / 1000) } : {}),
   })
 }
 

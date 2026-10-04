@@ -53,6 +53,18 @@ describe('projectRazorpaySubscription', () => {
     expect(entitles(sub(), true)).toBe(true)
   })
 
+  it('treats a mandate whose first charge is still ahead as a scheduled plan', () => {
+    const scheduled = sub({ status: 'authenticated', current_start: null, current_end: null, paid_count: 0, charge_at: secs(13) })
+    expect(project(scheduled)).toMatchObject({ status: 'scheduled', autoRenew: true, expiresAt: new Date(secs(13) * 1000) })
+    expect(entitles(scheduled)).toBe(true)
+  })
+
+  it('keeps a cancelled scheduled plan expired even if Razorpay still reports the mandate', () => {
+    const stale = sub({ status: 'authenticated', current_start: null, current_end: null, paid_count: 0, charge_at: secs(13) })
+    expect(project(stale, true)).toMatchObject({ status: 'expired' })
+    expect(entitles(stale, true)).toBe(false)
+  })
+
   it('grants nothing for a checkout that has not settled', () => {
     for (const status of ['created', 'authenticated'] as const) {
       expect(project(sub({ status, current_end: null }))).toMatchObject({ status: 'pending', expiresAt: null })

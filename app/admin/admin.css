@@ -1,5 +1,19 @@
 /* Admin pages. Built on expense-redesign.css's --erd-* / --tk-* tokens so both themes work. */
 
+.adm-form.adm-changelog-form { display: flex; flex-direction: column; align-items: stretch; gap: 16px; }
+.adm-changelog-form .adm-input { width: 100%; }
+.adm-changelog-form label { display: flex; flex-direction: column; gap: 7px; font-size: 13px; font-weight: 700; }
+.adm-changelog-form textarea.adm-input { height: auto; padding: 10px 12px; resize: vertical; line-height: 1.5; }
+.adm-changelog-preview { display: grid; gap: 14px; }
+.adm-changelog-preview h2, .adm-changelog-entry h3 { margin: 0; }
+.adm-changelog-preview > .changelog-card { max-width: 380px; }
+.adm-changelog-list { display: grid; gap: 24px; }
+.adm-changelog-entry { overflow-wrap: anywhere; }
+.adm-changelog-entry + .adm-changelog-entry { border-top: 1px solid var(--erd-border); padding-top: 24px; }
+.adm-changelog-entry ul { padding-left: 20px; color: var(--erd-text2); font-size: 14px; line-height: 1.6; }
+.adm-changelog-actions { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px; margin-top: 16px; }
+.adm-changelog-actions .adm-form { margin: 0; }
+
 /* Admin leans on secondary text far harder than the dashboard does — notes,
    hints, table captions, axis labels. The shared --tk-text3 lands at 2.9:1 on
    these surfaces, so lift it toward the foreground for /admin only. Mixed from

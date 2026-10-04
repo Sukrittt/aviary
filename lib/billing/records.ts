@@ -82,6 +82,11 @@ export type SubscriptionStatus =
   | 'revoked'
   /** Slow payment method (UPI mandate, carrier billing) not yet settled. Grants nothing. */
   | 'pending'
+  /**
+   * Web only: subscribed during the trial, mandate approved, first charge
+   * deferred to `expiresAt` (the trial's end). Entitles, but no money yet.
+   */
+  | 'scheduled'
 
 /**
  * A purchase, as verified against the provider — never as reported by a

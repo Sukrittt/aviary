@@ -99,6 +99,12 @@ describe('API calls', () => {
     expect(JSON.parse(init.body)).toEqual({ plan_id: 'plan_year', total_count: 10, customer_notify: 1, notes: { userId: 'user_a' } })
   })
 
+  it('defers the first charge to a start date when given one', async () => {
+    fetchMock.mockResolvedValue(ok({ id: 'sub_1' }))
+    await createSubscription('plan_year', 'yearly', 'user_a', new Date('2026-10-17T12:00:00.000Z'))
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toMatchObject({ start_at: Date.parse('2026-10-17T12:00:00.000Z') / 1000 })
+  })
+
   it('cancels at cycle end when asked to', async () => {
     fetchMock.mockResolvedValue(ok({ id: 'sub_1' }))
     await cancelSubscription('sub_1', true)

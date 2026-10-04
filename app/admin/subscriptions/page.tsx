@@ -274,7 +274,7 @@ export default async function AdminSubscriptions({ searchParams }: { searchParam
               <tbody>
                 {plans.map(([key, n]) => {
                   const [product, status] = key.split('|')
-                  const entitling = status === 'active' || status === 'cancelled' || status === 'grace'
+                  const entitling = status === 'active' || status === 'cancelled' || status === 'grace' || status === 'scheduled'
                   return (
                     <tr key={key}>
                       <td className="adm-mono">{product}</td>

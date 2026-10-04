@@ -266,7 +266,7 @@ export async function cancelWebSubscriptions(userId: string, now: Date = new Dat
   const db = await getDb()
   const coll = db.collection<BillingSubscriptionDoc>(BILLING_SUBSCRIPTIONS)
   const live = await coll
-    .find({ userId, provider: 'razorpay', status: { $in: ['active', 'grace', 'pending', 'paused'] }, cancelAtPeriodEnd: { $ne: true } })
+    .find({ userId, provider: 'razorpay', status: { $in: ['active', 'grace', 'pending', 'paused', 'scheduled'] }, cancelAtPeriodEnd: { $ne: true } })
     .toArray()
   for (const row of live) await cancelRazorpayRow(db, row, now)
   return live.length
@@ -284,7 +284,7 @@ export async function cancelRazorpayRow(db: Db, row: BillingSubscriptionDoc, now
   await cancelSubscription(row.storeTransactionId, atCycleEnd)
   await db
     .collection<BillingSubscriptionDoc>(BILLING_SUBSCRIPTIONS)
-    .updateOne({ _id: row._id }, { $set: { cancellationEmailPending: row.environment === 'production', cancelAtPeriodEnd: true, status: row.status === 'active' ? 'cancelled' : row.status, autoRenew: false, updatedAt: now } })
+    .updateOne({ _id: row._id }, { $set: { cancellationEmailPending: row.environment === 'production', cancelAtPeriodEnd: true, status: row.status === 'active' ? 'cancelled' : row.status === 'scheduled' ? 'expired' : row.status, autoRenew: false, updatedAt: now } })
   // The cancel itself has landed. A failed re-read only means the row's other
   // fields are a little stale until the next refresh; it must not make the
   // caller think the cancel failed and try again.

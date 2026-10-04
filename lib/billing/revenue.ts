@@ -55,10 +55,11 @@ export function monthlyValue(period: Period | null, prices: Prices | null): numb
 
 /**
  * Rows that represent money received. Sandbox rows are test purchases,
- * `pending` never settled, and `revoked` was refunded.
+ * `pending` never settled, `scheduled` isn't charged until the trial ends,
+ * and `revoked` was refunded.
  */
 export function isRevenueRow(sub: Sub): sub is Sub & { expiresAt: Date } {
-  return sub.environment === 'production' && sub.status !== 'pending' && sub.status !== 'revoked' && sub.expiresAt !== null
+  return sub.environment === 'production' && !['pending', 'scheduled', 'revoked'].includes(sub.status) && sub.expiresAt !== null
 }
 
 export interface Payer {

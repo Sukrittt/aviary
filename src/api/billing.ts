@@ -19,7 +19,7 @@ export interface BillingStatus {
   basePlanId: string | null
   paidExpiresAt: string | null
   autoRenew: boolean
-  renewalState: 'active' | 'cancelled' | 'grace' | 'on_hold' | 'paused' | 'expired' | 'revoked' | 'pending' | null
+  renewalState: 'active' | 'cancelled' | 'grace' | 'on_hold' | 'paused' | 'expired' | 'revoked' | 'pending' | 'scheduled' | null
   /** Where the purchase lives, so where it's managed: Google Play, or Razorpay on this site. Absent from older servers. */
   store?: 'play' | 'web' | null
   /** `mode: 'paid'` because an admin gifted the plan, not because anything was bought. Absent from older servers. */

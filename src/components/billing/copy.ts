@@ -2,6 +2,16 @@ import type { BillingStatus } from '@/src/api/billing'
 
 export const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.sukrit04.envelope'
 
+/**
+ * Whether subscribing now defers the first charge to the trial's end. Inside
+ * the trial's last 15 minutes it isn't worth a separate mandate step, so the
+ * server charges straight away. The subscribe route and the picker's copy
+ * share this so the promise matches the charge.
+ */
+export function defersFirstCharge(trialEndsAt: string | Date | null | undefined, now: number = Date.now()): boolean {
+  return !!trialEndsAt && new Date(trialEndsAt).getTime() > now + 15 * 60_000
+}
+
 /** Reminder thresholds, in days remaining. Matches payment-subscriptions-plan.md. */
 export const REMINDER_DAYS = [7, 3, 1]
 
@@ -31,6 +41,7 @@ export function planSummary(status: BillingStatus): string {
     case 'paid':
       if (status.renewalState === 'grace') return status.store === 'web' ? 'Payment issue · retrying' : 'Payment issue · fix in Google Play'
       if (status.gifted) return `Gifted plan · ends ${formatDate(status.paidExpiresAt)}`
+      if (status.renewalState === 'scheduled') return `Free trial · first charge ${formatDate(status.paidExpiresAt)}`
       return status.autoRenew ? `Renews ${formatDate(status.paidExpiresAt)}` : `Ends ${formatDate(status.paidExpiresAt)}`
     case 'expired':
       return status.trialEndsAt && !status.productId ? 'Trial ended' : 'Subscription ended'

@@ -58,6 +58,8 @@ const OPEN: Record<string, string> = {
   // The two reads an expired user is still entitled to.
   'privacy/proof': 'shows how their data is stored; no budgeting content',
   'system/status': 'public; maintenance banner and update prompt',
+  'changelog/latest': 'signed-in release notes; no budgeting content',
+  'changelog/[id]/seen': 'account-level release announcement tracking, available while expired',
   'notifications/register': 'a device must be able to register to receive the "your trial ended" push',
 }
 

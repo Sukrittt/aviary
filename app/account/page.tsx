@@ -34,6 +34,7 @@ import { SignOutDialog } from '../../src/components/ConfirmDialog'
 import { SubscriptionSection } from '../../src/components/billing/SubscriptionSection'
 import { billingVisible, planSummary } from '../../src/components/billing/copy'
 import { useBillingStatus } from '../../src/hooks/useBillingStatus'
+import { FEEDBACK_BOARD_URL } from '../../lib/links'
 
 const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.sukrit04.envelope'
 
@@ -118,6 +119,15 @@ export default function AccountPage() {
         </div>
         <ChevronRight size={16} className="account-row-arrow" aria-hidden="true" />
       </Link>
+
+      <a href={FEEDBACK_BOARD_URL} target="_blank" rel="noreferrer" className="account-early-card">
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <span className="account-badge account-early-badge">Early access</span>
+          <div className="account-early-title">Aviary&rsquo;s still early. Help shape it.</div>
+          <div className="account-row-hint">Tell us what to fix or build next. We read every one.</div>
+        </div>
+        <MessageCircle size={18} aria-hidden="true" />
+      </a>
 
       <SubscriptionSection />
 
@@ -240,7 +250,8 @@ export default function AccountPage() {
             </a>
           </div>
           <AccountRow icon={Compass} label="How this works" href="/account/guided-tour" />
-          <AccountRow icon={MessageCircle} label="Help & feedback" href="/account/help" />
+          <AccountRow icon={FileText} label="Changelog" href="/account/changelog" />
+          <AccountRow icon={MessageCircle} label="Help & feedback" hint="We read every one" href="/account/help" />
           <AccountRow icon={FileText} label="Terms & privacy" href="/legal/privacy" />
         </div>
       </div>
@@ -327,11 +338,14 @@ function FeatureCard({
   )
 }
 
-function AccountRow({ icon: Icon, label, href }: { icon: LucideIcon; label: string; href: string }) {
+function AccountRow({ icon: Icon, label, hint, href }: { icon: LucideIcon; label: string; hint?: string; href: string }) {
   return (
     <Link href={href} className="account-row">
       <Icon size={16} aria-hidden="true" />
-      <span className="account-row-label">{label}</span>
+      <span className="account-row-label">
+        {label}
+        {hint && <span className="account-row-hint">{hint}</span>}
+      </span>
       <ChevronRight size={16} className="account-row-arrow" aria-hidden="true" />
     </Link>
   )

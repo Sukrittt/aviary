@@ -8,7 +8,7 @@ import { useBillingStatus } from '@/src/hooks/useBillingStatus'
 import { formatDate } from '@/src/components/billing/copy'
 
 /**
- * Shown once, right after budget setup finishes onboarding, and again from the account page's Plan & billing row before billing is live. Twin of
+ * Shown once, right after budget setup finishes onboarding, and again from the account page's Plan & billing row. Twin of
  * Mobile's app/account/trial-notice.tsx: sets expectations about the trial
  * instead of leaving the new user to find out on day 45.
  */
@@ -26,12 +26,12 @@ export default function TrialNoticePage() {
       <motion.p className="trial-notice-body" {...popIn(80)}>
         {dated
           ? `Everything's free until ${formatDate(data.trialEndsAt)}. No card needed, nothing to cancel.`
-          : "Everything's free while you try it out. No card needed, nothing to cancel."}
+          : "Everything's free for 45 days. No card needed, nothing to cancel."}
       </motion.p>
       <motion.div className="trial-notice-card" {...popIn(160)}>
         <strong>What happens when it ends</strong>
         <p>
-          We&apos;ll remind you a week before. Then you can subscribe in the Android app. Nothing is charged
+          We&apos;ll remind you a week before. Then you can pick a monthly or yearly plan here or in the Android app. Nothing is charged
           automatically, and you can always export your data for free.
         </p>
       </motion.div>

@@ -9,6 +9,10 @@ export type Tone = 'good' | 'bad' | 'warn' | undefined
 /** Friendly name and badge tone for each action recorded by `audit()`. Unknown actions fall back to the raw string. */
 export const ACTIONS: Record<string, { label: string; tone: Tone }> = {
   'system.settings': { label: 'System settings', tone: undefined },
+  'changelog.create': { label: 'Update drafted', tone: undefined },
+  'changelog.edit': { label: 'Update edited', tone: undefined },
+  'changelog.publish': { label: 'Update published', tone: 'good' },
+  'changelog.unpublish': { label: 'Update unpublished', tone: 'warn' },
   'job.run': { label: 'Job run', tone: undefined },
   'user.update': { label: 'User edited', tone: undefined },
   'user.revoke_sessions': { label: 'Sessions revoked', tone: 'warn' },
