@@ -8177,7 +8177,7 @@ button.account-feature-card {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 30px;
+  color: var(--gold-ink);
   flex-shrink: 0;
 }
 

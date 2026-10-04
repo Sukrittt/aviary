@@ -7,9 +7,9 @@ import { track } from '@/src/lib/analytics'
 import { useTourProgress } from '../../../src/hooks/useTourProgress'
 import { useMoneyBrain } from '../../../components/MoneyBrainProvider'
 import { useTourContent } from '@/src/components/tour/useTourContent'
-import { motion, useReducedMotion } from 'motion/react'
 import { ArrowLeft, X } from 'lucide-react'
 import { FadeIn, PopIn } from '@/src/components/tour/parts'
+import { BirdMark } from '@/src/components/BirdMark'
 
 import { AssignDemo } from '../../../src/components/tour/demos/AssignDemo'
 import { LogDemo } from '../../../src/components/tour/demos/LogDemo'
@@ -208,19 +208,13 @@ function Hub({
   onStart: () => void
 }) {
   const { CHAPTERS } = useTourContent()
-  const reduce = useReducedMotion()
 
   return (
     <div className="tour-hub">
       <div className="tour-hub-hero">
-        {/* Mobile's badge bob: 1.7s each way, up 7px while tilting -2° → 2°. */}
-        <motion.div
-          className="tour-hub-badge"
-          animate={reduce ? undefined : { y: [0, -7, 0], rotate: [-2, 2, -2] }}
-          transition={{ duration: 3.4, ease: 'easeInOut', repeat: Infinity }}
-        >
-          ✉️
-        </motion.div>
+        <div className="tour-hub-badge">
+          <BirdMark size={46} />
+        </div>
         <div className="tour-row-body">
           <h2 className="tour-hub-title">Your money gets a job.</h2>
           <p className="tour-hub-subtitle">Seven short chapters. All of them are pokeable, none of them touch your real money.</p>
