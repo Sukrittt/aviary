@@ -5,7 +5,7 @@ import { Check } from 'lucide-react'
 import type { PlanPeriod } from '@/src/api/billing'
 import { useWebCheckout, useWebPlans } from '@/src/hooks/useBillingStatus'
 import { useUser } from '@/src/hooks/useUser'
-import { formatDate, formatPrice, yearlySavingsPercent } from './copy'
+import { defersFirstCharge, formatDate, formatPrice, yearlySavingsPercent } from './copy'
 
 /**
  * What a subscription gets you. Mirrors Mobile's PlanPicker BENEFITS; there's
@@ -158,7 +158,7 @@ export function WebPlanPicker({ trialEndsAt = null }: { trialEndsAt?: string | n
               : 'Subscribe'}
         </button>
         <p style={{ ...note, fontSize: 11, lineHeight: '16px', textAlign: 'center', color: 'var(--tk-text3)' }}>
-          {trialEndsAt ? `Nothing's charged until your trial ends on ${formatDate(trialEndsAt)}. ` : ''}
+          {trialEndsAt && defersFirstCharge(trialEndsAt) ? `Nothing's charged until your trial ends on ${formatDate(trialEndsAt)}. ` : ''}
           Renews every {isYearly ? 'year' : 'month'} until you cancel. Pay with UPI or card. Cancel anytime from your account page.
         </p>
       </div>

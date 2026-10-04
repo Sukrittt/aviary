@@ -5,6 +5,7 @@ import { getAccess } from '@/lib/billing/service'
 import { billingFlagsFor } from '@/lib/billing/flags'
 import { BillingProviderError } from '@/lib/billing/providerError'
 import { createSubscription, razorpayConfig, type PlanPeriod } from '@/lib/billing/razorpay'
+import { defersFirstCharge } from '@/src/components/billing/copy'
 
 export const dynamic = 'force-dynamic'
 
@@ -46,8 +47,7 @@ export async function POST(req: Request) {
   // Mid-trial, the first charge waits for the trial to end, so subscribing
   // early doesn't throw away the days left. Too close to the end to be worth
   // a separate mandate step, it just charges now.
-  const trialEnd = access.mode === 'trial' && access.trialEndsAt ? new Date(access.trialEndsAt) : null
-  const startAt = trialEnd && trialEnd.getTime() > Date.now() + 15 * 60_000 ? trialEnd : null
+  const startAt = access.mode === 'trial' && access.trialEndsAt && defersFirstCharge(access.trialEndsAt) ? new Date(access.trialEndsAt) : null
 
   try {
     const subscription = await createSubscription(config.plans[period as PlanPeriod], period as PlanPeriod, auth.userId, startAt)

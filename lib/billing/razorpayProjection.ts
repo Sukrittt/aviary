@@ -39,8 +39,10 @@ function statusOf(sub: RzpSubscription, paidUntil: Date | null, cancelAtPeriodEn
     case 'active':
       return cancelAtPeriodEnd ? 'cancelled' : 'active'
     // Mandate approved with the first charge deferred (subscribed during the
-    // trial). Runs to `charge_at`.
+    // trial). Runs to `charge_at`. Cancelling one stops it outright, so a
+    // stale read that still says `authenticated` mustn't bring it back.
     case 'authenticated':
+      if (cancelAtPeriodEnd) return 'expired'
       return sub.charge_at ? 'scheduled' : 'pending'
     // Checkout opened but the first payment or mandate hasn't settled. Grants nothing.
     case 'created':

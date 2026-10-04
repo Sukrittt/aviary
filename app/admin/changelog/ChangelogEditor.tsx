@@ -35,7 +35,7 @@ export function ChangelogEditor({ release, revision }: { release?: ChangelogRele
         <p className="adm-sub">Shown at the bottom of the web app. The published date is added when you publish.</p>
         <ChangelogCard release={preview} preview />
         <div><ReplayChangelogPreview release={preview} /></div>
-        <p className="adm-sub">Only you see the preview. It does not change anyone&apos;s seen status.</p>
+        <p className="adm-sub">Only you see the preview. It doesn&apos;t change anyone&apos;s seen status.</p>
         {body && <div className="erd-card"><h2>Full notes preview</h2><p className="changelog-body">{body}</p></div>}
       </section>
     </div>

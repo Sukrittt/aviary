@@ -39,8 +39,13 @@ describe('WebPlanPicker', () => {
   })
 
   it('says nothing is charged until the trial ends when bought mid-trial', () => {
-    render(<WebPlanPicker trialEndsAt="2026-10-17T12:00:00.000Z" />)
+    render(<WebPlanPicker trialEndsAt={new Date(Date.now() + 12 * 86_400_000).toISOString()} />)
     expect(screen.getByText(/Nothing's charged until your trial ends/)).toBeTruthy()
+  })
+
+  it("doesn't promise a deferred charge in the trial's last minutes, when the server charges now", () => {
+    render(<WebPlanPicker trialEndsAt={new Date(Date.now() + 10 * 60_000).toISOString()} />)
+    expect(screen.queryByText(/Nothing's charged until your trial ends/)).toBeNull()
   })
 
   it('buys the plan the user picked', () => {

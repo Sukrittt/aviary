@@ -31,7 +31,7 @@ export default async function AdminChangelog({ searchParams }: { searchParams: P
       {(draft || publishedRelease) && <Link className="adm-muted" href="/admin/changelog">← Create a new update</Link>}
       {publishedRelease ? <>
         <p className="adm-msg" role="status">{publishedRelease.title} is published. The newest update appears once per account.</p>
-        <div className="adm-changelog-preview"><h2>Published card</h2><ChangelogCard release={serializeRelease(publishedRelease)} preview /><div><ReplayChangelogPreview release={serializeRelease(publishedRelease)} /></div><p className="adm-sub">Only you see the preview. It does not change anyone&apos;s seen status.</p></div>
+        <div className="adm-changelog-preview"><h2>Published card</h2><ChangelogCard release={serializeRelease(publishedRelease)} preview /><div><ReplayChangelogPreview release={serializeRelease(publishedRelease)} /></div><p className="adm-sub">Only you see the preview. It doesn&apos;t change anyone&apos;s seen status.</p></div>
       </> : <ChangelogEditor key={draft ? `${draft._id}:${draft.revision}` : 'new'} release={draft ? serializeRelease(draft) : undefined} revision={draft?.revision} />}
       <section className="erd-card">
         <h2>Updates</h2>
