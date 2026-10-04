@@ -9,6 +9,7 @@ import { TrackedLink } from '../components/TrackedLink'
 // import { MoneyLesson } from '../components/landing/MoneyLesson'
 import { BirdLanding, BirdMark } from '../components/BirdMark'
 import { HeroStage, NoticeSplit, RotatingHabit } from '../components/landing/Nudges'
+import { FEEDBACK_BOARD_URL } from '@/lib/links'
 import '../landing.css'
 
 const PLAY_STORE = 'https://play.google.com/store/apps/details?id=com.sukrit04.envelope'
@@ -64,6 +65,7 @@ export function LandingPage() {
     </div></header>
 
     <section className="lp-hero" aria-labelledby="landing-title">
+      <a className="lp-early" href={FEEDBACK_BOARD_URL} target="_blank" rel="noreferrer"><b>Early access</b>Your feedback shapes what we build next <ArrowRight size={14} aria-hidden="true" /></a>
       <h1 id="landing-title">Aviary <span className="lp-learns">learns<svg viewBox="0 0 200 14" preserveAspectRatio="none" aria-hidden="true"><path d="M3 10 C 40 3, 70 3, 100 8 S 160 13, 197 5" /></svg></span><br />your spending.</h1>
       <p>It notices your <RotatingHabit /> and nudges you<br className="lp-desktop-break" /> while it’s still fresh. One tap and it’s logged.</p>
       <div className="lp-hero-actions">
@@ -198,6 +200,10 @@ export function LandingPage() {
       <div className="lp-hero-actions"><StoreLink placement="footer_cta" /><Link href="/expense" className="lp-button lp-button--ghost"><Monitor size={18} aria-hidden="true" />Open web app</Link></div>
       <span className="lp-hero-note">Free during the trial · No bank connection · Open source</span>
     </section>
-    <footer className="lp-footer"><div><a href="#top" className="lp-logo"><BirdMark size={26} perched /><span>Aviary<b aria-hidden="true">.</b></span></a><p>The budgeting app that learns your spending.</p></div><nav aria-label="Footer"><Link href="/legal/pricing">Pricing</Link><Link href="/legal/privacy">Privacy</Link><Link href="/legal/terms">Terms</Link><Link href="/legal/refunds">Refunds</Link><Link href="/legal/contact">Contact</Link><Link href="/legal/delete-account">Delete account</Link><a href="#faq">Help &amp; FAQ</a><a href={GITHUB}>GitHub</a></nav></footer>
+    <footer className="lp-footer"><div><a href="#top" className="lp-logo"><BirdMark size={26} perched /><span>Aviary<b aria-hidden="true">.</b></span></a><p>The budgeting app that learns your spending.</p></div><nav aria-label="Footer">
+      <div><h2>Product</h2><a href={PLAY_STORE}>Android app</a><Link href="/expense">Web app</Link><Link href="/legal/pricing">Pricing</Link><a href="#faq">Help &amp; FAQ</a></div>
+      <div><h2>Community</h2><a href={FEEDBACK_BOARD_URL}>Feedback board</a><a href={GITHUB}>GitHub</a><Link href="/legal/contact">Contact</Link></div>
+      <div><h2>Legal</h2><Link href="/legal/privacy">Privacy</Link><Link href="/legal/terms">Terms</Link><Link href="/legal/refunds">Refunds</Link><Link href="/legal/delete-account">Delete account</Link></div>
+    </nav></footer>
   </div></LandingMotion>
 }
