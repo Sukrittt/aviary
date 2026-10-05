@@ -168,8 +168,9 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
   const [saveStep, setSaveStep] = useState('')
   const [saveProgress, setSaveProgress] = useState(0)
   const [error, setError] = useState('')
-  // Two checked groups (or categories) can't share a name; trying it shows this toast.
-  const [dupToast, setDupToast] = useState({ n: 0, name: '', kind: 'group' })
+  // Why a row couldn't be checked (no name yet, or a name another checked row
+  // already has); each bump of `n` shows it as a toast.
+  const [rowToast, setRowToast] = useState({ n: 0, message: '' })
   const [result, setResult] = useState<{ income: number; groupCount: number; categoryCount: number } | null>(null)
 
   // Timing for the onboarding funnel, same as mobile's setup.tsx: the whole
@@ -337,8 +338,9 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
     setCategorySelectionUndo(null)
   }
 
+  const blockRow = (message: string) => setRowToast((t) => ({ n: t.n + 1, message }))
   const blockDup = (kind: 'group' | 'category', name: string) =>
-    setDupToast((t) => ({ n: t.n + 1, name: name.trim(), kind }))
+    blockRow(`You've already got a ${kind} called ${name.trim()}.`)
 
   // Whether `name` matches another checked row. Categories compare across
   // every selected group, since they all become envelopes side by side.
@@ -349,6 +351,10 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
     selectedGroups.some((g) => (cats[g.id] ?? []).some((c) => c.id !== catId && c.on && sameName(c.name, name)))
 
   const toggleGuarded = (item: Item, isDup: (name: string) => boolean, kind: 'group' | 'category'): Partial<Item> | null => {
+    if (!item.on && !item.name.trim()) {
+      blockRow(`Give this ${kind} a name first.`)
+      return null
+    }
     if (!item.on && isDup(item.name)) {
       blockDup(kind, item.name)
       return null
@@ -766,7 +772,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
         </div>
       )}
 
-      <Toast trigger={dupToast.n} message={`You've already got a ${dupToast.kind} called ${dupToast.name}.`} icon={CopyX} />
+      <Toast trigger={rowToast.n} message={rowToast.message} icon={CopyX} />
 
       {error !== '' && <p className="setup-error">{error}</p>}
 

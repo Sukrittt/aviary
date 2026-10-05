@@ -175,6 +175,9 @@ describe('onboarding pick rows', () => {
     toGroupsStep()
     fireEvent.click(screen.getByRole('button', { name: /Add your own group/ }))
     expect(screen.getByRole('checkbox', { name: 'Select Group name' }).getAttribute('aria-checked')).toBe('false')
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select Group name' }))
+    expect(screen.getByRole('checkbox', { name: 'Select Group name' }).getAttribute('aria-checked')).toBe('false')
+    expect(screen.getByRole('alert').textContent).toContain('Give this group a name first.')
     const input = screen.getAllByPlaceholderText('Group name').at(-1)!
     fireEvent.change(input, { target: { value: 'Pets' } })
     expect(screen.getByRole('checkbox', { name: 'Deselect Pets' }).getAttribute('aria-checked')).toBe('true')
