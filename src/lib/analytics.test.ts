@@ -108,6 +108,15 @@ describe('with a key', () => {
     expect(vi.mocked(posthog.identify).mock.invocationCallOrder[0]).toBeLessThan(vi.mocked(posthog.capture).mock.invocationCallOrder[0])
   })
 
+  it('stops queueing once loading fails', async () => {
+    vi.mocked(posthog.init).mockImplementationOnce(() => { throw new Error('blocked') })
+    const a = await load('phc_test')
+    await a.initAnalytics()
+    expect(a.isAnalyticsLoading()).toBe(false)
+    a.track('expense_logged')
+    expect(posthog.capture).not.toHaveBeenCalled()
+  })
+
   it('drops calls made before init', async () => {
     const a = await load('phc_test')
     a.track('expense_logged')

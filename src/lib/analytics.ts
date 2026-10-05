@@ -161,10 +161,17 @@ export function initAnalytics(): Promise<void> {
       for (const fn of queued.splice(0)) send(fn)
     })
     .catch(() => {
-      // Blocked by an ad blocker or offline: analytics just stays off.
+      // Blocked by an ad blocker or offline: analytics just stays off, and
+      // later calls are dropped rather than queued for a client that won't come.
       queued.length = 0
+      loading = null
     })
   return loading
+}
+
+/** Whether calls are being queued right now, waiting on the script to load. */
+export function isAnalyticsLoading(): boolean {
+  return loading !== null && client === null
 }
 
 /** Resolves once analytics has started, or straight away when it never will. */
