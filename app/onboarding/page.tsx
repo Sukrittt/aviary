@@ -13,7 +13,8 @@ import '../../src/expense-redesign.css'
 import { currentMonthKey, INCOME_CATEGORY } from '../../src/lib/envelope'
 import { getBudgets, updateBudget } from '../../src/api/budgets'
 import { addGroup } from '../../src/api/groups'
-import { addCategory } from '../../src/api/categories'
+import { addCategory, getSplitBuckets } from '../../src/api/categories'
+import { normName, splitEvenly, suggestSplit, unknownCategories, type BucketTags } from '../../src/lib/budgetSplit'
 import { getUser, updateUser } from '../../src/api/account'
 import { completeOnboarding } from '../../src/api/billing'
 import { DEFAULT_ALERT_PCTS } from '../../src/lib/alerts'
@@ -47,7 +48,7 @@ interface LiveCat {
   key: string
   groupId: string
   catId: string
-  gi: number
+  group: string
   emoji: string
   name: string
 }
@@ -116,15 +117,6 @@ async function ignoreConflict(err: unknown): Promise<void> {
   throw err
 }
 
-// group 0 gets the biggest weighted share, group 1 next, every group after
-// that (including "rest") shares the same smaller weight.
-function groupWeight(gi: number, weighted: boolean): number {
-  if (!weighted) return 1
-  if (gi === 0) return 3
-  if (gi === 1) return 2
-  return 1.5
-}
-
 // Analytics names for the five steps, so a funnel reads 'groups' rather than '2'.
 const STEP_NAMES = ['currency', 'income', 'groups', 'categories', 'assign'] as const
 
@@ -133,7 +125,7 @@ const TITLES: Record<number, [string, string]> = {
   1: ['What lands each month?', 'Your take-home income. This becomes the pot you assign from. You can change it any month.'],
   2: ['Group your money', 'Groups are the big buckets. Accept these or rename them to fit your life.'],
   3: ['Add your categories', 'These are the envelopes you actually spend from. Pick the ones you recognize.'],
-  4: ['Assign your money', 'We suggested a split. Change any amount. The leftover has to reach zero.'],
+  4: ['Assign your money', 'We used the 50/30/20 rule: half to needs, 30% to wants, 20% to savings. Change any amount. The leftover has to reach zero.'],
 }
 
 export default function SetupWizardPage() {
@@ -179,6 +171,9 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
   const stepTimer = useRef<() => number>(() => 0)
   // Whether the user touched the suggested split on the assign step.
   const editedSplit = useRef(false)
+  // Need/want/savings tags Jev gave the user's own categories, and every name already asked about.
+  const [bucketTags, setBucketTags] = useState<BucketTags>({})
+  const askedBuckets = useRef(new Set<string>())
 
   useEffect(() => {
     wizardTimer.current = startTimer()
@@ -201,9 +196,9 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
 
   function liveCats(): LiveCat[] {
     const out: LiveCat[] = []
-    selectedGroups.forEach((g, gi) => {
+    selectedGroups.forEach((g) => {
       ;(cats[g.id] ?? []).forEach((c) => {
-        if (c.on && c.name.trim()) out.push({ key: `${g.id}:${c.id}`, groupId: g.id, catId: c.id, gi, emoji: c.emoji, name: c.name })
+        if (c.on && c.name.trim()) out.push({ key: `${g.id}:${c.id}`, groupId: g.id, catId: c.id, group: g.name, emoji: c.emoji, name: c.name })
       })
     })
     return out
@@ -212,21 +207,31 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
   const assignedTotal = () => liveCats().reduce((n, c) => n + (amounts[c.key] ?? 0), 0)
   const remainder = () => (Number(income) || 0) - assignedTotal()
 
-  function distribute(weighted: boolean): Record<string, number> {
+  function distribute(weighted: boolean, tags: BucketTags = bucketTags): Record<string, number> {
     const items = liveCats()
     const incomeValue = Number(income) || 0
-    if (!items.length) return {}
-    const weights = items.map((it) => groupWeight(it.gi, weighted))
-    const totalWeight = weights.reduce((a, b) => a + b, 0)
-    const out: Record<string, number> = {}
-    let used = 0
-    items.forEach((it, idx) => {
-      let v = idx === items.length - 1 ? incomeValue - used : Math.round((incomeValue * weights[idx]) / totalWeight / 100) * 100
-      if (v < 0) v = 0
-      used += v
-      out[it.key] = v
-    })
-    return out
+    return weighted ? suggestSplit(incomeValue, items, tags) : splitEvenly(incomeValue, items.map((it) => it.key))
+  }
+
+  const openAssign = (tags: BucketTags) => {
+    setAmounts((prev) => (Object.keys(prev).length ? prev : distribute(true, tags)))
+    setStep(4)
+  }
+
+  // Jev tags the categories the user named themselves, once per name, before
+  // the assign step opens. Any failure leaves them on the group-name fallback.
+  // With nothing new to ask, the step opens at once.
+  const tagThenOpenAssign = async () => {
+    const ask = unknownCategories(liveCats()).filter((c) => !askedBuckets.current.has(normName(c.name)))
+    if (!ask.length) return openAssign(bucketTags)
+    ask.forEach((c) => askedBuckets.current.add(normName(c.name)))
+    setSaveProgress(0)
+    setSaveStep('Working out your split…')
+    setPending(true)
+    const tags = { ...bucketTags, ...(await getSplitBuckets(ask)) }
+    setPending(false)
+    setBucketTags(tags)
+    openAssign(tags)
   }
 
   const canAdvance = step === 0 ? true :
@@ -518,14 +523,13 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
   }
 
   const next = () => {
-    if (!canAdvance) return
+    if (!canAdvance || pending) return
     setGroupSelectionUndo(null)
     setCategorySelectionUndo(null)
     // The assign step reports itself once the save lands (see commit).
     if (step < 4) trackStepCompleted()
     if (step === 3) {
-      setAmounts((prev) => (Object.keys(prev).length ? prev : distribute(true)))
-      setStep(4)
+      void tagThenOpenAssign()
       return
     }
     if (step === 4) {

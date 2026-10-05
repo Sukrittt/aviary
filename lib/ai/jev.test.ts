@@ -11,7 +11,7 @@ vi.mock('../systemSettings', () => ({
   getSystemSettings: async () => ({ aiDisabled: false }),
 }))
 
-const { pickCategory, pickHoldingType } = await import('./jev')
+const { pickCategory, pickHoldingType, pickBudgetBuckets } = await import('./jev')
 const caller = { userId: 'user_1', feature: 'suggest' as const }
 const usage = { inputTokens: 40, outputTokens: 1, totalTokens: 41 }
 
@@ -92,5 +92,36 @@ describe('pickHoldingType', () => {
   it('never returns a type outside the list', async () => {
     evaluate.mockResolvedValue(typeAnswer('Crypto', { Crypto: 1 }))
     expect(await pickHoldingType('Stocks', ['Equity', 'FD'], caller)).toBe('')
+  })
+})
+
+describe('pickBudgetBuckets', () => {
+  const onboarding = { userId: 'user_1', feature: 'onboarding' as const }
+  const pick = (choice: string, p: number) => ({ type: 'choice', choice, probabilities: { [choice]: p } })
+
+  it('asks every category in one call, with its group as context', async () => {
+    evaluate.mockResolvedValue({ answers: { c0: pick('savings', 0.95), c1: pick('need', 0.9) }, usage })
+    await pickBudgetBuckets([{ name: 'SIP', group: 'Future' }, { name: 'Gym', group: 'Health' }], onboarding)
+    expect(evaluate).toHaveBeenCalledTimes(1)
+    const { state, questions } = evaluate.mock.calls[0][0]
+    expect(state).toEqual({ category_0: 'SIP', group_0: 'Future', category_1: 'Gym', group_1: 'Health' })
+    expect(Object.keys(questions)).toEqual(['c0', 'c1'])
+    expect(Object.keys(questions.c0.criteria)).toEqual(['need', 'want', 'savings'])
+  })
+
+  it('returns confident tags keyed by lowercased name and drops the unsure ones', async () => {
+    evaluate.mockResolvedValue({ answers: { c0: pick('savings', 0.95), c1: pick('want', 0.5) }, usage })
+    const tags = await pickBudgetBuckets([{ name: 'SIP', group: 'Future' }, { name: 'zxqv', group: 'x' }], onboarding)
+    expect(tags).toEqual({ sip: 'savings' })
+  })
+
+  it('never returns a bucket outside need, want and savings', async () => {
+    evaluate.mockResolvedValue({ answers: { c0: pick('luxury', 1) }, usage })
+    expect(await pickBudgetBuckets([{ name: 'Yacht', group: 'Fun' }], onboarding)).toEqual({})
+  })
+
+  it('skips the model call when there is nothing to tag', async () => {
+    expect(await pickBudgetBuckets([], onboarding)).toEqual({})
+    expect(evaluate).not.toHaveBeenCalled()
   })
 })
