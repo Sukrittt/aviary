@@ -110,3 +110,27 @@ it('renders a chip-triggered calendar as a popover with no inline field, and clo
   expect(onChange).toHaveBeenCalledWith('2026-08-25')
   expect(screen.queryByText('August 2026')).toBeNull()
 })
+
+
+it('opens a popup on small screens when requested and closes after selecting a date', () => {
+  vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({
+    matches: false,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  }))
+  const onChange = vi.fn()
+  render(
+    <div className="expense-redesign">
+      <aside className="scan-side">
+        <DatePicker mode="single" value="2026-08-19" onChange={onChange} popover />
+      </aside>
+    </div>,
+  )
+  fireEvent.click(screen.getByText('Wednesday, 19 Aug 2026'))
+  const calendar = screen.getByText('August 2026').closest('.date-picker-popover')
+  expect(calendar).toBeInTheDocument()
+  expect(calendar?.closest('.scan-side')).toBeNull()
+  fireEvent.click(screen.getByText('25'))
+  expect(onChange).toHaveBeenCalledWith('2026-08-25')
+  expect(screen.queryByText('August 2026')).toBeNull()
+})

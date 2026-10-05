@@ -235,7 +235,7 @@ export function ScanReview(s: ScanBillState) {
         )}
 
         <div className="erd-log-label">Date</div>
-        <DatePicker mode="single" value={s.date} onChange={s.setDate} />
+        <DatePicker mode="single" value={s.date} onChange={s.setDate} popover />
 
         <button
           type="button"

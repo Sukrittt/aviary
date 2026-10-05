@@ -10068,6 +10068,10 @@ button.account-feature-card {
   position: sticky;
   top: 0;
 }
+/* Keep field focus outlines inside the scrolling column. */
+.scan-review-edit .scan-side {
+  padding: 4px;
+}
 .scan-side .erd-log-label {
   margin: 6px 0 -4px;
 }

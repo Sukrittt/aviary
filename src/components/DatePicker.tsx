@@ -36,6 +36,8 @@ type SingleProps = {
   value: string
   onChange: (value: string) => void
   disableFuture?: boolean
+  /** Render the calendar in a popup at every viewport size. */
+  popover?: boolean
   popoverOnDesktop?: boolean
   /** Externally-triggered popover: caller owns the trigger button and open state (e.g. a chip). */
   open?: boolean
@@ -193,7 +195,7 @@ export function DatePicker(props: DatePickerProps) {
   )
   // A caller-owned trigger (hideTrigger) always pops over; there's no inline fallback to size for.
   const [desktopPopover, setDesktopPopover] = useState(false)
-  const popoverActive = hideTrigger || desktopPopover
+  const popoverActive = hideTrigger || (props.mode === 'single' && !!props.popover) || desktopPopover
   const [popoverPosition, setPopoverPosition] = useState<{ left: number; top: number; width: number } | null>(null)
   const rootRef = useRef<HTMLDivElement>(null)
   const cardRef = useRef<HTMLDivElement>(null)
