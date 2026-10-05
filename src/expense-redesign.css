@@ -10,8 +10,10 @@
 /* ── Tokens ─────────────────────────────────────────────────── */
 
 .expense-redesign {
-  --font-fredoka: "Fredoka", -apple-system, system-ui, sans-serif;
-  --font-nunito: "Nunito", -apple-system, system-ui, sans-serif;
+  /* No --font-fredoka / --font-nunito here: they come from next/font on
+     <body> (app/layout.tsx), along with size-matched fallback faces. Redefining
+     them as "Fredoka", system-ui dropped those fallbacks, so text first drew in
+     system-ui and reflowed when the web font arrived (CLS up to 0.65 on /expense). */
 
   /* Every colour below comes from src/theme/tokens.css, generated from
      src/theme/tokens.ts — the twin of Mobile's palette. The local names are

@@ -12,6 +12,30 @@ import '@/src/expense-redesign.css'
 // /api/user call that a signed-out visitor can only fail.
 const ONBOARDING_EXEMPT_PATHS = ['/', '/sign-in', '/email', '/code', '/onboarding', '/legal']
 
+// Set once /api/user confirms onboarding, so a returning visit renders the app
+// without waiting on that round trip first. It isn't keyed by account, so the
+// sign-in pages clear it: every account switch passes through one of them, and
+// the next account starts from a full check.
+const ONBOARDED_KEY = 'aviary.onboarded'
+const SIGN_IN_PATHS = ['/sign-in', '/email', '/code']
+
+function readOnboarded(): boolean {
+  try {
+    return localStorage.getItem(ONBOARDED_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+function writeOnboarded(onboarded: boolean): void {
+  try {
+    if (onboarded) localStorage.setItem(ONBOARDED_KEY, '1')
+    else localStorage.removeItem(ONBOARDED_KEY)
+  } catch {
+    // Storage blocked: every visit just waits on the check, as before.
+  }
+}
+
 function isExempt(pathname: string): boolean {
   return ONBOARDING_EXEMPT_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))
 }
@@ -34,6 +58,9 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (isExempt(pathname)) return
+    // A browser that has already seen this account onboarded skips the wait:
+    // onboardedAt never goes back to null, so the check below only confirms it.
+    if (readOnboarded()) setChecking(false)
 
     void (async () => {
       try {
@@ -41,7 +68,11 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
         if (res.ok) {
           const user = await res.json()
           // Stay on the loader until the route lands on /onboarding, which is exempt.
-          if (!user.onboardedAt) return router.replace('/onboarding')
+          if (!user.onboardedAt) {
+            writeOnboarded(false)
+            return router.replace('/onboarding')
+          }
+          writeOnboarded(true)
         }
       } catch {
         // Network hiccup — not worth blocking the app over, next mount tries again.
@@ -55,6 +86,7 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
   // Once the redirect lands, the check is done; finishing onboarding must not
   // return to a loader that is still waiting on it.
   useEffect(() => {
+    if (SIGN_IN_PATHS.includes(pathname)) writeOnboarded(false)
     if (isExempt(pathname)) setChecking(false)
   }, [pathname])
 
