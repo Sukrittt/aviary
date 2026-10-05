@@ -62,7 +62,8 @@ export default function PrivacyPage() {
           Apple&apos;s push services.
         </li>
         {/* Promise below: once the iPhone launch email has gone out, delete every
-            `waitlist` document with platform 'ios' from Mongo. Keeping them breaks this policy. */}
+            `waitlist` document with platform 'ios'. Keeping them breaks this policy.
+            Procedure: docs/waitlist.md. */}
         <li>
           <strong>iPhone waitlist.</strong> If you join the iPhone waitlist on our website, we store the email
           you enter and when you joined. We use it only to email you once when the iPhone app launches, and
