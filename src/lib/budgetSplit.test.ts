@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { allocate, knownBucket, splitEvenly, suggestSplit, unknownCategories, type SplitItem } from './budgetSplit'
+import { allocate, bucketsOf, summarizeSplit, knownBucket, splitEvenly, suggestSplit, unknownCategories, type SplitItem } from './budgetSplit'
 
 const sum = (r: Record<string, number>) => Object.values(r).reduce((a, b) => a + b, 0)
 
@@ -115,5 +115,38 @@ describe('unknownCategories', () => {
       { key: 'b', name: 'gym ', group: 'Health' },
     ]
     expect(unknownCategories(items)).toEqual([{ name: 'Gym', group: 'Lifestyle' }])
+  })
+})
+
+describe('bucketsOf', () => {
+  it('says which bucket each category landed in', () => {
+    expect(bucketsOf([...defaults, { key: 'x', name: 'SIP', group: 'Future' }], { sip: 'savings' })).toEqual({
+      rent: 'need', groc: 'need', util: 'need', eat: 'want', ent: 'want', ef: 'savings', x: 'savings',
+    })
+  })
+})
+
+describe('summarizeSplit', () => {
+  it('gives each bucket its 50/30/20 share when all three are there', () => {
+    expect(summarizeSplit(defaults, {})).toEqual([
+      { bucket: 'need', pct: 50 },
+      { bucket: 'want', pct: 30 },
+      { bucket: 'savings', pct: 20 },
+    ])
+  })
+
+  it('spreads a missing bucket over the rest', () => {
+    expect(summarizeSplit(defaults.filter((d) => d.key !== 'ef'), {})).toEqual([
+      { bucket: 'need', pct: 62.5 },
+      { bucket: 'want', pct: 37.5 },
+    ])
+  })
+
+  it('gives a lone bucket everything', () => {
+    expect(summarizeSplit([{ key: 'r', name: 'Rent', group: 'Home' }], {})).toEqual([{ bucket: 'need', pct: 100 }])
+  })
+
+  it('is null for no categories', () => {
+    expect(summarizeSplit([], {})).toBeNull()
   })
 })

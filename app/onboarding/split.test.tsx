@@ -42,6 +42,9 @@ describe('onboarding suggested split', () => {
     expect(needs + wants).toBe(50000)
     expect(Math.abs(needs - 31250)).toBeLessThanOrEqual(500)
     expect(amountOf('Rent')).toBeGreaterThan(amountOf('Utilities'))
+    expect(document.querySelector('.setup-split-why')).toHaveTextContent(/^Needs 62\.5%Wants 37\.5%$/)
+    expect(screen.getAllByText('Need')).toHaveLength(3)
+    expect(screen.getAllByText('Want')).toHaveLength(2)
     client.clear()
   })
 
@@ -56,6 +59,8 @@ describe('onboarding suggested split', () => {
     expect(await screen.findByRole('button', { name: 'Finish setup' })).toBeInTheDocument()
     expect(getSplitBuckets).toHaveBeenCalledWith([{ name: 'Index fund', group: expect.any(String) }])
     expect(amountOf('Index fund')).toBe(10000)
+    expect(screen.getByText('Savings', { selector: '.setup-assign-bucket' })).toBeInTheDocument()
+    expect(document.querySelector('.setup-split-why')).toHaveTextContent(/^Needs 50%Wants 30%Savings 20%$/)
     client.clear()
   })
 })

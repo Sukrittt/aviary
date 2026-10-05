@@ -5061,6 +5061,65 @@
   gap: 7px;
 }
 
+.setup-split-why {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin: 10px 2px 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--erd-text2);
+}
+
+.setup-split-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.setup-split-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.setup-split-dot.is-need {
+  background: var(--tk-blue);
+}
+
+.setup-split-dot.is-want {
+  background: var(--tk-violet);
+}
+
+.setup-split-dot.is-savings {
+  background: var(--tk-mint);
+}
+
+.setup-assign-bucket.is-need {
+  background: var(--tk-blue-soft);
+  color: var(--tk-blue);
+}
+
+.setup-assign-bucket.is-want {
+  background: var(--tk-violet-soft);
+  color: var(--tk-violet);
+}
+
+.setup-assign-bucket.is-savings {
+  background: var(--tk-mint-soft);
+  color: var(--tk-mint);
+}
+
+.setup-assign-bucket {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  border-radius: 100px;
+  padding: 2px 8px;
+}
+
 .setup-split-btn {
   flex: 1;
   padding: 9px 12px;

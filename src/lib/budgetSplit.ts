@@ -77,6 +77,33 @@ export function allocate(income: number, weights: Record<string, number>): Recor
   return out
 }
 
+/** Which bucket each item landed in, keyed by `key`. */
+export function bucketsOf(items: SplitItem[], tags: BucketTags): Record<string, Bucket> {
+  return Object.fromEntries(items.map((it) => [it.key, bucketFor(it, tags)]))
+}
+
+export const BUCKET_LABELS: Record<Bucket, string> = { need: 'Need', want: 'Want', savings: 'Savings' }
+export const BUCKET_PLURALS: Record<Bucket, string> = { need: 'Needs', want: 'Wants', savings: 'Savings' }
+
+export interface BucketShare {
+  bucket: Bucket
+  /** The share of income this bucket actually got, in percent. */
+  pct: number
+}
+
+/**
+ * The share each picked bucket got, for the assign step to show. An empty
+ * bucket's share goes to the rest, so with no savings it's 62.5/37.5. Null
+ * with no categories.
+ */
+export function summarizeSplit(items: SplitItem[], tags: BucketTags): BucketShare[] | null {
+  if (!items.length) return null
+  const present = new Set(items.map((it) => bucketFor(it, tags)))
+  const used = BUCKETS.filter((b) => present.has(b))
+  const total = used.reduce((n, b) => n + BUCKET_SHARES[b], 0)
+  return used.map((b) => ({ bucket: b, pct: Math.round((BUCKET_SHARES[b] / total) * 1000) / 10 }))
+}
+
 export function suggestSplit(income: number, items: SplitItem[], tags: BucketTags): Record<string, number> {
   const buckets = items.map((it) => bucketFor(it, tags))
   const itemWeight = (it: SplitItem) => KNOWN[normName(it.name)]?.weight ?? 1

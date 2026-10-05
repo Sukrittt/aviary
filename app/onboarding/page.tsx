@@ -14,7 +14,7 @@ import { currentMonthKey, INCOME_CATEGORY } from '../../src/lib/envelope'
 import { getBudgets, updateBudget } from '../../src/api/budgets'
 import { addGroup } from '../../src/api/groups'
 import { addCategory, getSplitBuckets } from '../../src/api/categories'
-import { normName, splitEvenly, suggestSplit, unknownCategories, type BucketTags } from '../../src/lib/budgetSplit'
+import { BUCKET_LABELS, BUCKET_PLURALS, bucketsOf, summarizeSplit, normName, splitEvenly, suggestSplit, unknownCategories, type BucketTags } from '../../src/lib/budgetSplit'
 import { getUser, updateUser } from '../../src/api/account'
 import { completeOnboarding } from '../../src/api/billing'
 import { DEFAULT_ALERT_PCTS } from '../../src/lib/alerts'
@@ -125,7 +125,7 @@ const TITLES: Record<number, [string, string]> = {
   1: ['What lands each month?', 'Your take-home income. This becomes the pot you assign from. You can change it any month.'],
   2: ['Group your money', 'Groups are the big buckets. Accept these or rename them to fit your life.'],
   3: ['Add your categories', 'These are the envelopes you actually spend from. Pick the ones you recognize.'],
-  4: ['Assign your money', 'We used the 50/30/20 rule: half to needs, 30% to wants, 20% to savings. Change any amount. The leftover has to reach zero.'],
+  4: ['Assign your money', 'We suggested a split based on what each category is for. Change any amount. The leftover has to reach zero.'],
 }
 
 export default function SetupWizardPage() {
@@ -559,6 +559,9 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
 
   const [title, blurb] = TITLES[step]
   const rem = remainder()
+  // Need/want/savings per category, labelled on the assign step so the suggested split explains itself.
+  const buckets = bucketsOf(liveCats(), bucketTags)
+  const summary = summarizeSplit(liveCats(), bucketTags)
   const hint = step === 0 ? '' :
     step === 1
       ? canAdvance
@@ -745,6 +748,16 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
               Split evenly
             </motion.button>
           </div>
+          {summary && (
+            <p className="setup-split-why">
+              {summary.map((s) => (
+                <span key={s.bucket} className="setup-split-key">
+                  <span className={`setup-split-dot is-${s.bucket}`} aria-hidden="true" />
+                  {BUCKET_PLURALS[s.bucket]} {s.pct}%
+                </span>
+              ))}
+            </p>
+          )}
           <div className="setup-section-list">
             {selectedGroups.map((g) => {
               const rows = (cats[g.id] ?? []).filter((c) => c.on && c.name.trim())
@@ -768,6 +781,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
                           onPick={(emoji) => patchCat(g.id, c.id, { emoji })}
                         />
                         <AssignName name={c.name} onCommit={(name) => renameAssigned(g.id, c, name)} />
+                        <span className={`setup-assign-bucket is-${buckets[key]}`}>{BUCKET_LABELS[buckets[key]]}</span>
                         <input
                           type="number"
                           className="txn-entry-input setup-assign-input"
