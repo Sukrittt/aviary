@@ -19,8 +19,15 @@ import { AutoPickStatus } from '../features/log-expense/AutoPickStatus'
 import { EMPTY } from '../lib/constants'
 import { missingFields, missingFieldsMessage } from '../features/log-expense/missingFields'
 import { Toast } from './Toast'
-import { ExpenseAdded, PreloadExpenseAddedTick, type AddedExpense } from '../features/log-expense/ExpenseAdded'
+import dynamic from 'next/dynamic'
+import type { AddedExpense } from '../features/log-expense/ExpenseAdded'
 import { useNudge, useShake } from './landing/mobile/kit'
+
+// Loaded with the dialog, not with the page: the success screen carries the
+// lottie player (~30 KB gzipped) that every page holding this dialog used to
+// download up front. The hidden preload below still warms it while the form is open.
+const ExpenseAdded = dynamic(() => import('../features/log-expense/ExpenseAdded').then((m) => m.ExpenseAdded), { ssr: false })
+const PreloadExpenseAddedTick = dynamic(() => import('../features/log-expense/ExpenseAdded').then((m) => m.PreloadExpenseAddedTick), { ssr: false })
 
 interface Props {
   onClose: () => void

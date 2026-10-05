@@ -3,14 +3,18 @@ import { render, screen } from '@testing-library/react'
 import { OnboardingGate } from './OnboardingGate'
 
 let mockPathname = '/'
+const replace = vi.fn()
 vi.mock('next/navigation', () => ({
   usePathname: () => mockPathname,
-  useRouter: () => ({ replace: vi.fn() }),
+  useRouter: () => ({ replace }),
 }))
 
 const fetchMock = vi.fn(() => new Promise<Response>(() => {}))
 beforeEach(() => {
-  fetchMock.mockClear()
+  fetchMock.mockReset()
+  fetchMock.mockImplementation(() => new Promise<Response>(() => {}))
+  replace.mockClear()
+  localStorage.clear()
   vi.stubGlobal('fetch', fetchMock)
 })
 
@@ -27,5 +31,30 @@ describe('OnboardingGate', () => {
     render(<OnboardingGate><p>page</p></OnboardingGate>)
     expect(screen.queryByText('page')).toBeNull()
     expect(fetchMock).toHaveBeenCalledWith('/api/user')
+  })
+
+  it('renders straight away for a browser that has seen this account onboarded, still checking in the background', async () => {
+    mockPathname = '/expense'
+    localStorage.setItem('aviary.onboarded', '1')
+    render(<OnboardingGate><p>page</p></OnboardingGate>)
+    expect(await screen.findByText('page')).toBeTruthy()
+    expect(fetchMock).toHaveBeenCalledWith('/api/user')
+  })
+
+  it('remembers onboarding once the check confirms it', async () => {
+    mockPathname = '/expense'
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ onboardedAt: '2026-01-01T00:00:00.000Z' })))
+    render(<OnboardingGate><p>page</p></OnboardingGate>)
+    expect(await screen.findByText('page')).toBeTruthy()
+    expect(localStorage.getItem('aviary.onboarded')).toBe('1')
+  })
+
+  it('still sends a not-onboarded account to onboarding, and forgets the stale flag', async () => {
+    mockPathname = '/expense'
+    localStorage.setItem('aviary.onboarded', '1')
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ onboardedAt: null })))
+    render(<OnboardingGate><p>page</p></OnboardingGate>)
+    await vi.waitFor(() => expect(replace).toHaveBeenCalledWith('/onboarding'))
+    expect(localStorage.getItem('aviary.onboarded')).toBeNull()
   })
 })
