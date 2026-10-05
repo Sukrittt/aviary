@@ -12,8 +12,7 @@ import { splitEmoji } from '@/src/lib/emoji'
 
 // Twin of Mobile/src/features/scan-bill/useScanBillController.ts. Where they
 // differ: the photo is picked inside this flow (Mobile picks it on the More
-// screen and hands it over), selection is plain checkboxes rather than a
-// select mode, and success plays the inline tick and closes the dialog
+// screen and hands it over), and success plays the inline tick and closes the dialog
 // instead of routing to expense-added.
 type Phase = 'pick' | 'scanning' | 'review' | 'confirm' | 'error'
 
@@ -39,6 +38,8 @@ export function useScanBillController({ onDone }: { onDone: () => void }) {
   const { productItems, myShare, billTotal } = totals
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState<string[]>([])
+  const [selecting, setSelecting] = useState(false)
+  const [pickingCategory, setPickingCategory] = useState(false)
 
   const visibleItems = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -104,10 +105,16 @@ export function useScanBillController({ onDone }: { onDone: () => void }) {
     setSelected((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]))
   }
 
+  function toggleSelecting() {
+    setSelecting((prev) => !prev)
+    setSelected([])
+  }
+
   function applyBulkDivisor(divisor: number) {
     if (selected.length === 0) return
     actions.applyDivisor(selected, divisor)
     setSelected([])
+    setSelecting(false)
   }
 
   function handleConfirm() {
@@ -139,7 +146,10 @@ export function useScanBillController({ onDone }: { onDone: () => void }) {
                 .map(({ name, price, qty, divisor }) => ({ name, price, qty: qty ?? 1, divisor })),
             })
           }
-          confirmButton.succeed(onDone)
+          confirmButton.succeed(() => {
+            startOver()
+            onDone()
+          })
         },
         onError: () => {
           confirmButton.fail()
@@ -150,8 +160,18 @@ export function useScanBillController({ onDone }: { onDone: () => void }) {
   }
 
   function startOver() {
+    actions.reset()
+    confirmButton.reset()
     setImageUrl('')
     setErrorMsg('')
+    setConfirmError('')
+    setMerchant('')
+    setCategory('')
+    setDate(todayIST())
+    setQuery('')
+    setSelected([])
+    setSelecting(false)
+    setPickingCategory(false)
     setPhase('pick')
   }
 
@@ -159,7 +179,8 @@ export function useScanBillController({ onDone }: { onDone: () => void }) {
     categories, phase, setPhase, errorMsg, confirmError, imageUrl,
     merchant, setMerchant, category, setCategory, date, setDate,
     items, peopleCount, ...totals, ...actions,
-    query, setQuery, selected, setSelected, visibleItems, canProceed,
+    query, setQuery, selected, setSelected, selecting, toggleSelecting, visibleItems, canProceed,
+    pickingCategory, setPickingCategory,
     toggleSelected, applyBulkDivisor, pickFile, pickFrame, handleConfirm, startOver,
     confirmButton, categoryLabel: category ? splitEmoji(category).text : '',
   }

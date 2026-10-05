@@ -18,11 +18,11 @@ import { LoadingCaption } from "../components/LoadingCaption";
 import { EnvelopeTabbar } from "../components/EnvelopeTabbar";
 import { SpringChevron, SpringCollapse } from "../components/SpringCollapse";
 import { AlertThresholdPicker } from "../components/AlertThresholdPicker";
+import { AddCategoryModal } from "../components/AddCategoryModal";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { Scrim, Sheet } from "../components/MotionSheet";
 import {
   useCategories,
-  useAddCategory,
   useUpdateCategory,
   useDeleteCategory,
 } from "../hooks/useCategories";
@@ -47,7 +47,6 @@ import { BirdEmptyState } from "../components/BirdEmptyState";
 
 /** A pending rename or creation, in whichever place the row sits. */
 type Draft =
-  | { kind: "new-category"; group: string }
   | { kind: "new-group" }
   | { kind: "rename-category"; name: string; group: string }
   | { kind: "rename-group"; name: string };
@@ -69,7 +68,6 @@ export function EnvelopesPage() {
 
   const categoriesQuery = useCategories();
   const groupsQuery = useGroups();
-  const addCategory = useAddCategory();
   const updateCategory = useUpdateCategory();
   const deleteCategory = useDeleteCategory();
   const addGroup = useAddGroup();
@@ -82,7 +80,7 @@ export function EnvelopesPage() {
   const [collapsed, setCollapsed] = useCollapsedGroups("envelopes");
   const [draft, setDraft] = useState<Draft | null>(null);
   const [draftText, setDraftText] = useState("");
-  const [draftGroup, setDraftGroup] = useState("");
+  const [addCategoryGroup, setAddCategoryGroup] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [editing, setEditing] = useState<CategoryRow | null>(null);
   const [draftPcts, setDraftPcts] = useState<number[]>(DEFAULT_ALERT_PCTS);
@@ -106,11 +104,14 @@ export function EnvelopesPage() {
     });
   }
 
-  function beginDraft(next: Draft, initial = "") {
+  function beginDraft(next: Draft | { kind: "new-category"; group: string }, initial = "") {
     setError(null);
+    if (next.kind === "new-category") {
+      setAddCategoryGroup(next.group);
+      return;
+    }
     setDraft(next);
     setDraftText(initial);
-    setDraftGroup(next.kind === "new-category" ? next.group : "");
   }
 
   async function run(action: () => Promise<unknown>, whenBusy: string) {
@@ -138,11 +139,6 @@ export function EnvelopesPage() {
     let ok = false;
     if (draft.kind === "new-group")
       ok = await run(() => addGroup.mutateAsync(name), "group");
-    else if (draft.kind === "new-category")
-      ok = await run(
-        () => addCategory.mutateAsync({ name, group: draftGroup }),
-        "category",
-      );
     else if (draft.kind === "rename-group")
       ok = await run(
         () => updateGroup.mutateAsync({ name: draft.name, newName: name }),
@@ -471,6 +467,17 @@ export function EnvelopesPage() {
       </div>
 
       <AnimatePresence>
+        {addCategoryGroup !== null && (
+          <AddCategoryModal
+            key="add-category"
+            initialGroup={addCategoryGroup}
+            onClose={() => setAddCategoryGroup(null)}
+            onCreated={() => setAddCategoryGroup(null)}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
         {draft && (
           <Scrim
             key="scrim"
@@ -482,13 +489,11 @@ export function EnvelopesPage() {
               role="dialog"
               aria-modal="true"
               aria-label={
-                draft.kind === "new-category"
-                  ? "Add category"
-                  : draft.kind === "rename-category"
-                    ? "Rename category"
-                    : draft.kind === "new-group"
-                      ? "Add group"
-                      : "Rename group"
+                draft.kind === "rename-category"
+                  ? "Rename category"
+                  : draft.kind === "new-group"
+                    ? "Add group"
+                    : "Rename group"
               }
               onClick={(e) => e.stopPropagation()}
             >
@@ -519,12 +524,10 @@ export function EnvelopesPage() {
               ) : (
                 <>
                   <div className="env-sheet-title">
-                    {draft.kind === "new-category" ? "Add category" : "Add group"}
+                    Add group
                   </div>
                   <p className="env-sheet-copy">
-                    {draft.kind === "new-category"
-                      ? "Categories live inside a group. Pick where this one belongs."
-                      : "Groups gather related categories: Food, Home, Transport."}
+                    Groups gather related categories: Food, Home, Transport.
                   </p>
                 </>
               )}
@@ -535,9 +538,7 @@ export function EnvelopesPage() {
               <div className="env-sheet-name-row">
                 {!draft.kind.startsWith("rename-") && (
                   <div className="env-sheet-icon-swatch" aria-hidden="true">
-                    {draft.kind === "new-category"
-                      ? categoryEmoji(draftText, draftGroup)
-                      : groupEmoji(draftText)}
+                    {groupEmoji(draftText)}
                   </div>
                 )}
                 <input
@@ -546,7 +547,6 @@ export function EnvelopesPage() {
                   autoFocus
                   aria-describedby={draft.kind.startsWith("rename-") ? "env-sheet-emoji-help" : undefined}
                   placeholder={
-                    draft.kind === "new-category" ||
                     draft.kind === "rename-category"
                       ? "Groceries, fuel, gym…"
                       : "Transport, Health…"
@@ -566,37 +566,9 @@ export function EnvelopesPage() {
               ) : draftText.trim() !== "" && splitEmoji(draftText).icon === "" && (
                 <p className="env-sheet-hint">
                   💡 Tip: start the name with an emoji, like{" "}
-                  {draft.kind === "new-category" ||
-                  draft.kind === "rename-category"
-                    ? "🛒 Groceries"
-                    : "🚗 Transport"}
+                  🚗 Transport
                   , to give it its own icon.
                 </p>
-              )}
-
-              {draft.kind === "new-category" && (
-                <>
-                  <p className="env-sheet-section-label">GROUP</p>
-                  <div className="env-pct-row">
-                    <button
-                      type="button"
-                      className={`env-pct${draftGroup === "" ? " is-on" : ""}`}
-                      onClick={() => setDraftGroup("")}
-                    >
-                      Other
-                    </button>
-                    {groups.map((g) => (
-                      <button
-                        type="button"
-                        key={g}
-                        className={`env-pct${draftGroup === g ? " is-on" : ""}`}
-                        onClick={() => setDraftGroup(g)}
-                      >
-                        {groupEmoji(g)} {splitEmoji(g).text}
-                      </button>
-                    ))}
-                  </div>
-                </>
               )}
 
               {error && (
@@ -621,13 +593,11 @@ export function EnvelopesPage() {
                 >
                   {submitting
                     ? "Saving…"
-                    : draft.kind === "new-category"
-                      ? "Add category"
-                      : draft.kind === "rename-category"
-                        ? "Rename"
-                        : draft.kind === "new-group"
-                          ? "Create group"
-                          : "Rename"}
+                    : draft.kind === "rename-category"
+                      ? "Rename"
+                      : draft.kind === "new-group"
+                        ? "Create group"
+                        : "Rename"}
                 </button>
               </div>
             </Sheet>

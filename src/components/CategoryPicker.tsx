@@ -15,6 +15,8 @@ const SEARCH_MIN_CATEGORIES = 12
 interface Props {
   value: string
   onChange: (category: string) => void
+  /** Newly saved category while the server list refreshes. */
+  additionalCategory?: CategoryRow | null
 }
 
 /** Plain category name (leading emoji stripped, lowercased) — the dedupe + match key. */
@@ -80,15 +82,21 @@ function rankCategories(
  * Twin of Mobile's CategoryPickerSheet, flattened to match the log-expense
  * redesign (no group headers, no recents rail).
  */
-export function CategoryPicker({ value, onChange }: Props) {
+export function CategoryPicker({ value, onChange, additionalCategory }: Props) {
   const categoriesQ = useCategories()
   const expensesQ = useRecentExpenses()
   const { recents, record } = useRecentCategories()
   const [search, setSearch] = useState('')
 
   const ranked = useMemo(
-    () => rankCategories(categoriesQ.data ?? EMPTY, expensesQ.data ?? EMPTY, recents),
-    [categoriesQ.data, expensesQ.data, recents],
+    () => rankCategories(
+      additionalCategory
+        ? [additionalCategory, ...(categoriesQ.data ?? EMPTY).filter((c) => c.name !== additionalCategory.name)]
+        : categoriesQ.data ?? EMPTY,
+      expensesQ.data ?? EMPTY,
+      recents,
+    ),
+    [categoriesQ.data, expensesQ.data, recents, additionalCategory],
   )
 
   const q = search.trim().toLowerCase()

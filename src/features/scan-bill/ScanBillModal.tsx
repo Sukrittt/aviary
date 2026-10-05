@@ -1,11 +1,13 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { ReceiptText, Upload } from 'lucide-react'
 import { Scrim, Sheet } from '@/src/components/MotionSheet'
 import { LoadingCaption } from '@/src/components/LoadingCaption'
 import { ScanReview } from './ScanReview'
 import { ScanConfirm } from './ScanConfirm'
-import { useScanBillController, type ScanBillState } from './useScanBillController'
+import type { ScanBillState } from './useScanBillController'
+import { useScanBillDraft } from './ScanBillProvider'
 
 interface Props {
   onClose: () => void
@@ -18,8 +20,10 @@ interface Props {
  * bill photo sits beside the items it was read from.
  */
 export function ScanBillModal({ onClose, onEnterManually }: Props) {
-  const state = useScanBillController({ onDone: onClose })
-  const { phase, selected } = state
+  const { state, registerOnDone } = useScanBillDraft()
+  const replacementInputRef = useRef<HTMLInputElement>(null)
+  useEffect(() => registerOnDone(onClose), [registerOnDone, onClose])
+  const { phase } = state
   // Past the picker there are edits to lose, so a stray click on the scrim
   // stops closing the dialog. The ✕ still does.
   const dismissable = phase === 'pick' || phase === 'error'
@@ -27,13 +31,13 @@ export function ScanBillModal({ onClose, onEnterManually }: Props) {
   const title = phase === 'confirm' ? 'Confirm your log' : 'Scan a bill'
   const subtitle =
     phase === 'review'
-      ? `${state.productItems.length} ${state.productItems.length === 1 ? 'item' : 'items'} · scanned just now${selected.length ? ` · ${selected.length} selected` : ''}`
+      ? `${state.productItems.length} ${state.productItems.length === 1 ? 'item' : 'items'} · scanned just now`
       : null
 
   return (
     <Scrim className="erd-modal-overlay" onClick={dismissable ? onClose : undefined}>
       <Sheet
-        className={`erd-modal-card scan-modal ${phase === 'review' || phase === 'confirm' ? 'is-wide' : ''}`}
+        className={`erd-modal-card scan-modal ${phase === 'review' || phase === 'confirm' ? 'is-wide' : ''} ${phase === 'review' ? 'is-review' : ''}`}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -44,16 +48,50 @@ export function ScanBillModal({ onClose, onEnterManually }: Props) {
             <h3>{title}</h3>
             {subtitle && <p className="scan-subtitle">{subtitle}</p>}
           </div>
-          <button
-            type="button"
-            className="erd-modal-close"
-            onClick={onClose}
-            aria-label="Close"
-            disabled={state.confirmButton.success}
-          >
-            ✕
-          </button>
+          <div className="scan-head-actions">
+            {phase === 'review' && (
+              <button type="button" className={`account-pill-btn scan-select-toggle ${state.selecting ? 'is-selected' : ''}`} aria-pressed={state.selecting} onClick={state.toggleSelecting}>
+                {state.selecting ? 'Done' : 'Select'}
+              </button>
+            )}
+            {(phase === 'review' || phase === 'confirm') && (
+              <button
+                type="button"
+                className="account-pill-btn scan-reupload"
+                aria-label="Re-upload bill"
+                onClick={() => replacementInputRef.current?.click()}
+                disabled={state.confirmButton.saving || state.confirmButton.success}
+              >
+                <Upload size={15} aria-hidden="true" />
+                <span className="scan-reupload-label">Re-upload bill</span>
+              </button>
+            )}
+            <button
+              type="button"
+              className="erd-modal-close"
+              onClick={onClose}
+              aria-label="Close"
+              disabled={state.confirmButton.success}
+            >
+              ✕
+            </button>
+          </div>
         </div>
+        <input
+          ref={replacementInputRef}
+          type="file"
+          accept="image/*"
+          hidden
+          aria-label="Re-upload bill photo"
+          disabled={state.confirmButton.saving || state.confirmButton.success}
+          onChange={(e) => {
+            const file = e.target.files?.[0]
+            e.target.value = ''
+            if (!file || state.confirmButton.saving || state.confirmButton.success) return
+            state.startOver()
+            void state.pickFile(file)
+          }}
+        />
 
         {phase === 'pick' && <ScanPick {...state} />}
 
@@ -178,11 +216,9 @@ function ScanPick({ pickFile, pickFrame }: Pick<ScanBillState, 'pickFile' | 'pic
         if (file) void pickFile(file)
       }}
     >
-      <span className="scan-drop-icon" aria-hidden="true">
-        🧾
-      </span>
+      <ReceiptText className="scan-drop-icon" size={34} strokeWidth={1.75} aria-hidden="true" />
       <p className="scan-drop-title">Drop a bill or a screenshot here</p>
-      <p className="scan-drop-copy">Or paste one straight from your clipboard. We&apos;ll read the items and work out your share.</p>
+      <p className="scan-drop-copy">We&apos;ll read the items and calculate your share.</p>
       <div className="scan-actions-row">
         <button type="button" className="account-pill-btn account-pill-btn--primary" onClick={() => inputRef.current?.click()}>
           Choose a file
@@ -193,6 +229,7 @@ function ScanPick({ pickFile, pickFrame }: Pick<ScanBillState, 'pickFile' | 'pic
           </button>
         )}
       </div>
+      <p className="scan-drop-formats">JPG, PNG or WebP</p>
       {cameraError && <p className="erd-log-error">{cameraError}</p>}
       <input
         ref={inputRef}

@@ -2,13 +2,14 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'motion/react'
-import { DotLottieReact } from '@lottiefiles/dotlottie-react'
+import dynamic from 'next/dynamic'
 import { useCurrency } from '@/src/context/CurrencyContext'
 import { useAppearance } from '@/components/AppearanceProvider'
 import { useBudgets } from '@/src/hooks/useBudgets'
 import { useCategories } from '@/src/hooks/useCategories'
 import { useRecentExpenses } from '@/src/hooks/useExpenses'
 import { useGroups } from '@/src/hooks/useGroups'
+import type { CategoryRow } from '@/src/types'
 import { EMPTY } from '@/src/lib/constants'
 import { categoryEmoji, splitEmoji } from '@/src/lib/emoji'
 import { computeEnvelopeState, currentMonthKey, daysLeftInMonth } from '@/src/lib/envelope'
@@ -22,6 +23,20 @@ import {
   FadeInDown,
   STAGGER,
 } from '@/src/components/landing/mobile/LogExpense'
+
+// Keep the receipt synchronous; only the animation player waits on its chunk.
+const DotLottieReact = dynamic(
+  () => import('@lottiefiles/dotlottie-react').then((m) => m.DotLottieReact),
+  {
+    ssr: false,
+    loading: () => (
+      <svg width="72" height="72" viewBox="0 0 72 72" aria-hidden="true">
+        <circle cx="36" cy="36" r="36" fill="var(--gold)" />
+        <path d="M20 36l10 10 22-22" fill="none" stroke="var(--erd-on-accent)" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
+)
 
 /** The in-app receipt runs Mobile's beats at 0.6x their length; 1 is Mobile's pace. */
 const PACE = 0.6
@@ -37,6 +52,8 @@ export interface AddedExpense {
   date: string
   amount: number
   loggedAt: string
+  /** Newly created category while its list refetch is still pending. */
+  categorySnapshot?: CategoryRow
 }
 
 const TICK_SRC = '/landing/success-tick.lottie'
@@ -88,11 +105,13 @@ export function ExpenseAdded({
       budgetsQ.data ?? EMPTY,
       expensesQ.data ?? EMPTY,
       currentMonthKey(),
-      categoriesQ.data ?? EMPTY,
+      expense.categorySnapshot && !(categoriesQ.data ?? EMPTY).some((c) => c.name === expense.categorySnapshot!.name)
+        ? [...(categoriesQ.data ?? EMPTY), expense.categorySnapshot]
+        : categoriesQ.data ?? EMPTY,
       groupsQ.data ?? EMPTY,
     )
     return state.envelopes.find((e) => e.category === category)
-  }, [budgetsQ.data, expensesQ.data, categoriesQ.data, groupsQ.data, category])
+  }, [budgetsQ.data, expensesQ.data, categoriesQ.data, groupsQ.data, category, expense.categorySnapshot])
 
   // The refetch this add triggered may not have landed yet. Until the new row
   // is in the list, charge it by hand so the numbers are right on first paint.
@@ -102,9 +121,9 @@ export function ExpenseAdded({
   const funded = (envelope?.assigned ?? 0) + (envelope?.rolledOver ?? 0)
   // A past-month expense doesn't move this month's envelope, so no card for it.
   const isCurrentMonth = date.slice(0, 7) === currentMonthKey()
-  const showEnvelope = isCurrentMonth && envelope != null && funded > 0
-  const spentPct = funded > 0 ? Math.min(100, (spent / funded) * 100) : 0
-  const prevPct = funded > 0 ? Math.min(100, ((spent - amount) / funded) * 100) : 0
+  const showEnvelope = isCurrentMonth && envelope != null
+  const spentPct = funded > 0 ? Math.min(100, (spent / funded) * 100) : spent > 0 ? 100 : 0
+  const prevPct = funded > 0 ? Math.min(100, ((spent - amount) / funded) * 100) : spent - amount > 0 ? 100 : 0
   const preLeft = left + amount
   const daysLeft = daysLeftInMonth()
   const perDay = daysLeft > 0 ? Math.round(left / daysLeft) : left
@@ -128,7 +147,9 @@ export function ExpenseAdded({
   return (
     <div className="erd-added">
       <div className="erd-added-receipt">
-        <DotLottieReact src={TICK_SRC} autoplay loop={false} className="erd-added-tick" />
+        <div className="erd-added-tick" style={{ display: 'grid', placeItems: 'center' }} aria-hidden="true">
+          <DotLottieReact src={TICK_SRC} autoplay loop={false} style={{ width: '100%', height: '100%' }} />
+        </div>
         <FadeInDown delay={at(STAGGER.headline)} duration={at(420)} className="erd-added-headline">
           <span>Added</span>
           <AmountText value={amount} animate />
@@ -143,15 +164,22 @@ export function ExpenseAdded({
 
       {showEnvelope && (
         <FadeInDown delay={at(STAGGER.card)} duration={at(460)} className="erd-added-card">
-          <AnimatedUsedPercentage from={prevPct} to={spentPct} categoryName={categoryName} tokens={tokens} pace={PACE} />
+          {funded > 0 ? (
+            <AnimatedUsedPercentage from={prevPct} to={spentPct} categoryName={categoryName} tokens={tokens} pace={PACE} />
+          ) : (
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+              <strong>{categoryName}</strong>
+              <span>No budget assigned</span>
+            </div>
+          )}
           <div className="erd-added-left">
-            <AmountText value={shownLeft} animate />
-            <span>{`left of ${formatMoney(Math.round(funded))}`}</span>
+            <AmountText value={funded > 0 ? shownLeft : -shownLeft} animate />
+            <span>{funded > 0 ? `left of ${formatMoney(Math.round(funded))}` : 'spent this month'}</span>
           </div>
           <div className="erd-added-bar">
             <DeltaBar from={prevPct} to={spentPct} amount={amount} tokens={tokens} pace={PACE} />
           </div>
-          <motion.div
+          {funded > 0 && <motion.div
             className="erd-added-pace"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -159,7 +187,7 @@ export function ExpenseAdded({
           >
             <span>{daysLeft === 0 ? 'Less than 24 hrs' : `${daysLeft} days left`}</span>
             <strong>{`${formatMoney(perDay)}/day to stay on track`}</strong>
-          </motion.div>
+          </motion.div>}
         </FadeInDown>
       )}
 

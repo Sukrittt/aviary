@@ -31,6 +31,11 @@ export function useBillSplit() {
   }, [items, feeResidual, peopleCount])
   return {
     items, peopleCount, totals, actions: {
+      reset() {
+        setItems([])
+        setFeeResidual(0)
+        setPeopleCount(2)
+      },
       load(result: ScanResult) {
         setItems(result.items.map(it => ({ ...it, key: makeKey(), divisor: 1 })))
         setFeeResidual(feeDiff(result.total, result.items))

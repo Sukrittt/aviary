@@ -105,9 +105,12 @@ describe('EnvelopesPage', () => {
     const user = userEvent.setup()
     renderPage()
     await user.click(await screen.findByLabelText('Add a category to Home'))
+    const dialog = screen.getByRole('dialog', { name: 'Add category' })
+    expect(within(dialog).getByRole('button', { name: /Home/ })).toHaveAttribute('aria-pressed', 'true')
     await user.type(screen.getByPlaceholderText('Groceries, fuel, gym…'), 'Gas')
     await user.keyboard('{Enter}')
     await waitFor(() => expect(addCategory).toHaveBeenCalledWith('Gas', 'Home'))
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Add category' })).not.toBeInTheDocument())
   })
 
   it('re-homes stranded categories into Archived before deleting their group', async () => {

@@ -44,3 +44,9 @@ describe('expense screen visual regressions', () => {
     expect(insightsCss).toMatch(/\.expense-redesign \.ins-top-row\s*{[\s\S]*?border:\s*0/)
   })
 })
+
+
+it('keeps the disabled expense save button on the theme accent', () => {
+  expect(expenseCss).toMatch(/\.erd-log-submit:disabled\s*\{[^}]*background:\s*var\(--gold\)/)
+  expect(expenseCss).toMatch(/\.erd-log-submit:disabled\s*\{[^}]*color:\s*var\(--erd-on-accent\)/)
+})

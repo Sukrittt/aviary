@@ -813,6 +813,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
         type="button"
         className={`setup-cta${pending ? ' is-saving' : ''}`}
         disabled={!canAdvance || pending}
+        aria-busy={pending}
         onClick={next}
         style={pending ? ({ '--save-progress': saveProgress } as React.CSSProperties) : undefined}
       >
