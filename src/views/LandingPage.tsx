@@ -5,6 +5,7 @@ import { ArrowRight, ChevronUp, Github, Monitor, Repeat, ScanLine, Smartphone, W
 import { Playground } from '../components/landing/Playground'
 import { Faq, LandingMotion } from '../components/landing/LandingClient'
 import { TrackedLink } from '../components/TrackedLink'
+import { IosWaitlist } from '../components/landing/IosWaitlist'
 // Parked while the page leads with habit nudges; see the commented section below.
 // import { MoneyLesson } from '../components/landing/MoneyLesson'
 import { BirdLanding, BirdMark } from '../components/BirdMark'
@@ -37,7 +38,7 @@ const FAQS = [
   { q: 'Why give your money a job?', a: 'Your bank balance includes money for rent, groceries, future plans, and fun. Assigning it to envelopes shows which money is available for each purpose before you spend. Savings is a purpose too: you don’t have to spend everything you assign.' },
   { q: 'Does zero ready to assign mean I’m out of money?', a: 'No. It means you’ve given all your available money a purpose. The money is still yours until you spend it. Check each envelope’s available balance to see what remains for that purpose.' },
   { q: 'Is Aviary free?', a: 'Aviary is on a trial plan while payments are still being set up, so it’s free to use right now. You don’t need a payment card to get started. Once payments go live, you’ll get a full 45-day trial from that point, and we’ll tell you before it starts. We haven’t settled on a price yet, but it’ll be kept affordable. Aviary is also open source; you can inspect the code on GitHub.' },
-  { q: 'Can I use it on my phone and computer?', a: 'Yes. Android and web share your account’s budgets and transactions. Android also offers a home-screen widget and notifications. New expenses can be logged offline on mobile and sync when you reconnect; other actions need a connection. There’s no published iPhone app; use the web version on iPhone.' },
+  { q: 'Can I use it on my phone and computer?', a: 'Yes. Android and web share your account’s budgets and transactions. Android also offers a home-screen widget and notifications. New expenses can be logged offline on mobile and sync when you reconnect; other actions need a connection. There’s no iPhone app yet. Use the web version on iPhone, or join the iPhone waitlist at the bottom of this page.' },
   { q: 'What happens to my financial data?', a: <>Sensitive financial fields are encrypted in storage. The server decrypts them to run the app; this isn’t end-to-end encryption. Ask Aviary and AI briefs send relevant transaction and budget context to Google Gemini, and bill scanning sends receipt photos. You can export or delete your data in account settings. <Link href="/legal/privacy">Read the privacy policy</Link> for storage, analytics, and processing details.</> },
   { q: 'Can I use another currency?', a: 'Yes. Choose your display currency during setup or change it in More. One currency applies to your whole budget; changing it doesn’t convert amounts.' },
 ]
@@ -199,9 +200,10 @@ export function LandingPage() {
       <h2 id="get-title" className="lp-h2">Your money, noticed.</h2>
       <div className="lp-hero-actions"><StoreLink placement="footer_cta" /><Link href="/expense" className="lp-button lp-button--ghost"><Monitor size={18} aria-hidden="true" />Open web app</Link></div>
       <span className="lp-hero-note">Free during the trial · No bank connection · Open source</span>
+      <IosWaitlist />
     </section>
     <footer className="lp-footer"><div><a href="#top" className="lp-logo"><BirdMark size={26} perched /><span>Aviary<b aria-hidden="true">.</b></span></a><p>The budgeting app that learns your spending.</p></div><nav aria-label="Footer">
-      <div><h2>Product</h2><a href={PLAY_STORE}>Android app</a><Link href="/expense">Web app</Link><Link href="/legal/pricing">Pricing</Link><a href="#faq">Help &amp; FAQ</a></div>
+      <div><h2>Product</h2><a href={PLAY_STORE}>Android app</a><Link href="/expense">Web app</Link><a href="#get">iPhone waitlist</a><Link href="/legal/pricing">Pricing</Link><a href="#faq">Help &amp; FAQ</a></div>
       <div><h2>Community</h2><a href={FEEDBACK_BOARD_URL}>Feedback board</a><a href={GITHUB}>GitHub</a><Link href="/legal/contact">Contact</Link></div>
       <div><h2>Legal</h2><Link href="/legal/privacy">Privacy</Link><Link href="/legal/terms">Terms</Link><Link href="/legal/refunds">Refunds</Link><Link href="/legal/delete-account">Delete account</Link></div>
     </nav></footer>

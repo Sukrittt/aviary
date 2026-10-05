@@ -6,7 +6,7 @@ export default function PrivacyPage() {
   return (
     <article className="legal-doc">
       <h1>Privacy Policy</h1>
-      <p className="legal-updated">Last updated 27 September 2026</p>
+      <p className="legal-updated">Last updated 5 October 2026</p>
 
       <p>
         Aviary (&ldquo;we&rdquo;, &ldquo;us&rdquo;) is an independently developed, personal budgeting app.
@@ -60,6 +60,13 @@ export default function PrivacyPage() {
           bill reminders, and digests. Notification text can include category names and amounts (e.g.
           &ldquo;You&apos;ve overspent &#8377;500 in Food&rdquo;), delivered through Google&apos;s and
           Apple&apos;s push services.
+        </li>
+        {/* Promise below: once the iPhone launch email has gone out, delete every
+            `waitlist` document with platform 'ios' from Mongo. Keeping them breaks this policy. */}
+        <li>
+          <strong>iPhone waitlist.</strong> If you join the iPhone waitlist on our website, we store the email
+          you enter and when you joined. We use it only to email you once when the iPhone app launches, and
+          delete it after that. To be removed sooner, contact us.
         </li>
       </ul>
 

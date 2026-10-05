@@ -60,6 +60,7 @@ const OPEN: Record<string, string> = {
   'system/status': 'public; maintenance banner and update prompt',
   'changelog/latest': 'signed-in release notes; no budgeting content',
   'changelog/[id]/seen': 'account-level release announcement tracking, available while expired',
+  waitlist: 'public landing-page signup; no session, no budgeting content',
   'notifications/register': 'a device must be able to register to receive the "your trial ended" push',
 }
 
