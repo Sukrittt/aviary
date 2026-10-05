@@ -44,6 +44,39 @@ describe('currentMonthKey / prevMonthKey', () => {
 describe('computeEnvelopeState', () => {
   const categories: CategoryRow[] = [{ name: 'Rent', group: 'Home' }]
 
+  it.each(['2026-07', '2026-08', '2026-09'])('ignores a deleted category budget from %s without losing its spending', (budgetMonth) => {
+    const budgets = [
+      budget('2026-08', INCOME_CATEGORY, '50000'),
+      budget('2026-08', 'Rent', '18000'),
+      budget(budgetMonth, 'Eating out', '13500'),
+    ]
+    const expenses = [expense('2026-08-01', 'Rent', '250'), expense('2026-08-02', 'Eating out', '450')]
+    const originalBudgets = budgets.map((row) => ({ ...row }))
+    const originalExpenses = expenses.map((row) => ({ ...row }))
+
+    const state = computeEnvelopeState(budgets, expenses, '2026-08', categories, ['Home'])
+
+    expect(state.envelopes.map((e) => e.category)).toEqual(['Rent'])
+    expect(state.totalAssigned).toBe(18000)
+    expect(state.readyToAssign).toBe(32000)
+    expect(state.isOverAssigned).toBe(false)
+    expect(state.totalSpent).toBe(700)
+    expect(budgets).toEqual(originalBudgets)
+    expect(expenses).toEqual(originalExpenses)
+  })
+
+  it('does not recreate envelopes when all categories have been deleted', () => {
+    const state = computeEnvelopeState(
+      [budget('2026-07', INCOME_CATEGORY, '50000'), budget('2026-07', 'Eating out', '13500')],
+      [expense('2026-08-02', 'Eating out', '450')],
+      '2026-08', [], [],
+    )
+    expect(state.envelopes).toEqual([])
+    expect(state.totalAssigned).toBe(0)
+    expect(state.readyToAssign).toBe(50000)
+    expect(state.totalSpent).toBe(450)
+  })
+
   it('does not carry unspent money into the next month', () => {
     const budgets = [budget('2026-07', 'Rent', '1000'), budget('2026-08', 'Rent', '1000')]
     const expenses = [expense('2026-07-05', 'Rent', '400')]
@@ -184,15 +217,16 @@ describe('extraForReadyToAssign', () => {
   const prev = '2026-08'
 
   function afterSaving(rows: BudgetRow[], target: number) {
-    const before = computeEnvelopeState(rows, [], month, [], [])
+    const categories = [{ name: 'Food', group: '' }, { name: 'Rent', group: '' }]
+    const before = computeEnvelopeState(rows, [], month, categories, [])
     const extra = extraForReadyToAssign(before.incomeBase, before.totalAssigned, target)
     const saved = [
       ...rows.filter((r) => !(r.month === month && r.category === INCOME_CATEGORY)),
       { ...budget(month, INCOME_CATEGORY, String(before.incomeBase)), extra: String(extra) },
     ]
     return {
-      now: computeEnvelopeState(saved, [], month, [], []),
-      next: computeEnvelopeState(saved, [], '2026-10', [], []),
+      now: computeEnvelopeState(saved, [], month, categories, []),
+      next: computeEnvelopeState(saved, [], '2026-10', categories, []),
     }
   }
 
