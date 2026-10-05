@@ -8,7 +8,9 @@ import '@/src/expense-redesign.css'
 // Pages that exist outside the "logged in and onboarded" app proper — never
 // bounce these to /onboarding even if the onboarding check would otherwise fire.
 // '/' is public; middleware sends signed-in visitors straight to /expense.
-const ONBOARDING_EXEMPT_PATHS = ['/', '/sign-in', '/email', '/code', '/onboarding']
+// /legal is public too: gating it held every legal page behind a loader until a
+// /api/user call that a signed-out visitor can only fail.
+const ONBOARDING_EXEMPT_PATHS = ['/', '/sign-in', '/email', '/code', '/onboarding', '/legal']
 
 function isExempt(pathname: string): boolean {
   return ONBOARDING_EXEMPT_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))

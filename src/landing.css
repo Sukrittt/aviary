@@ -519,7 +519,7 @@ html:has(.lp) { scroll-behavior: smooth; }
 .lp-split2-who { display: flex; align-items: center; gap: 12px; font-family: var(--font-fredoka), sans-serif; font-size: 22px; font-weight: 500; }
 .lp-split2-avatar { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 13px; background: var(--accent); color: var(--on-accent); }
 .lp-split2-steps { display: flex; flex-direction: column; gap: 10px; padding-left: 4px !important; }
-.lp-split2-steps li { display: flex; align-items: center; gap: 12px; font-size: 16px; color: #aaa69c; transition: color .3s ease; }
+.lp-split2-steps li { display: flex; align-items: center; gap: 12px; font-size: 16px; color: #7a756a; transition: color .3s ease; }
 .lp-split2-steps li.is-busy { color: var(--muted); }
 .lp-split2-steps li.is-done { color: var(--ink); }
 .lp-split2-icon { width: 22px; height: 22px; flex-shrink: 0; display: grid; place-items: center; border-radius: 50%; border: 2px solid #ddd9cf; color: #fff; transition: background-color .25s ease, border-color .25s ease; }
