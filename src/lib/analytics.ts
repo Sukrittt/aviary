@@ -89,6 +89,8 @@ export type AppEvent =
   | 'account_deleted'
   // Web only: the landing page's way into the app store
   | 'store_cta_clicked'
+  // Web only: the landing page's iPhone waitlist form. `platform` is 'ios'.
+  | 'waitlist_joined'
 
 export type EventProperties = Record<string, string | number | boolean>
 

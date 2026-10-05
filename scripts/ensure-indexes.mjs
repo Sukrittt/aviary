@@ -69,6 +69,11 @@ const INDEXES = {
     [{ key: 1, ts: -1 }, {}],
     [{ ts: 1 }, { expireAfterSeconds: 3600 }],
   ],
+  // Landing-page platform waitlist (app/api/waitlist): one row per email per
+  // platform; the unique index backs the route's upsert against races.
+  waitlist: [
+    [{ email: 1, platform: 1 }, { unique: true }],
+  ],
   // Send-log dedupe for Smart Notifications: the unique compound index is
   // what makes a repeat `insertOne` throw E11000 for an already-sent key.
   // The TTL index reclaims rows after 90 days — well past any lead-day or
