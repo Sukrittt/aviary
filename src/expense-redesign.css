@@ -4715,9 +4715,83 @@
   }
 }
 
+.setup-groups-body {
+  gap: 12px;
+}
+
+.setup-selection-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--erd-border);
+  background: var(--erd-bg);
+}
+
+.setup-selection-count {
+  margin: 0;
+  color: var(--erd-text2);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.setup-selection-actions {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.setup-selection-action {
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--erd-text2);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.setup-selection-action:enabled:hover {
+  background: var(--erd-input-bg);
+  color: var(--erd-text);
+}
+
+.setup-selection-action:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.setup-selection-action:disabled {
+  color: var(--erd-text3);
+  opacity: 0.55;
+  cursor: default;
+}
+
+.setup-selection-feedback {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-basis: 100%;
+  color: var(--erd-text2);
+  font-size: 12px;
+}
+
+.setup-selection-feedback .setup-selection-action {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .setup-row-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
   align-content: start;
   gap: 8px;
 }
@@ -4740,6 +4814,16 @@
 .setup-pick-row.is-on {
   border-color: var(--gold);
   background: var(--erd-card);
+}
+
+.setup-pick-row.is-incomplete {
+  border-style: dashed;
+}
+
+.setup-pick-name-hint {
+  color: var(--erd-text3);
+  font-size: 10px;
+  white-space: nowrap;
 }
 
 .setup-pick-emoji {
@@ -4803,6 +4887,7 @@
 
 .setup-pick-input {
   flex: 1;
+  min-width: 0;
   border: none;
   background: none;
   color: var(--erd-text);
@@ -4875,7 +4960,7 @@
 
 .setup-section-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
   align-items: start;
   gap: 16px 20px;
 }
