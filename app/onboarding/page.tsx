@@ -5,7 +5,7 @@ import { CurrencyScope, useCurrency } from '@/src/context/CurrencyContext'
 
 import { useEffect, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
-import { ArrowLeft, Check, FolderOpen, Plus, Tags, WalletCards } from 'lucide-react'
+import { ArrowLeft, Check, CopyX, FolderOpen, Plus, Tags, WalletCards } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import '../../src/expense-redesign.css'
@@ -21,6 +21,7 @@ import { startTimer, track } from '../../src/lib/analytics'
 import { AmountTicker } from '../../src/components/onboarding/AmountTicker'
 import { Confetti } from '../../src/components/onboarding/Confetti'
 import { LoadingCaption } from '../../src/components/LoadingCaption'
+import { Toast } from '../../src/components/Toast'
 
 // Twin of Mobile's app/setup.tsx: income → groups → categories → assign →
 // done. Writes land on finish, same reasoning as mobile — groups/categories
@@ -28,7 +29,7 @@ import { LoadingCaption } from '../../src/components/LoadingCaption'
 // here: those exist on mobile because a thumb keyboard is painful, and a
 // desktop already has a real one, so a plain input (under the ticker) and
 // inline number fields replace them.
-const EMOJI_CYCLE = ['🏠', '🎬', '🌱', '🛒', '💡', '🚌', '🍜', '📺', '🛍', '🛟', '📈', '🎓', '🐶', '💊', '✈️', '🎁']
+const EMOJI_CHOICES = ['🏠', '🎬', '🌱', '🛒', '💡', '🚌', '🍜', '📺', '🛍', '🛟', '📈', '🎓', '🐶', '💊', '✈️', '🎁']
 const QUICK_PICKS = ['30000', '50000', '75000', '100000']
 // Shortest time a Finish-button save step stays on screen.
 const STEP_MIN_MS = 500
@@ -84,10 +85,14 @@ function defaultCats(): Record<string, Item[]> {
   }
 }
 
-function nextEmoji(current: string): string {
-  const i = EMOJI_CYCLE.indexOf(current)
-  return EMOJI_CYCLE[(i + 1 + EMOJI_CYCLE.length) % EMOJI_CYCLE.length]
+// A blank row stays unchecked; it checks itself the moment it gets a name,
+// and unchecks again if the name is cleared.
+function onForName(item: Item, name: string): boolean {
+  if (!name.trim()) return false
+  return item.name.trim() ? item.on : true
 }
+
+const sameName = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase()
 
 function label(item: Item): string {
   return `${item.emoji} ${item.name.trim()}`
@@ -149,6 +154,8 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
   const [saveStep, setSaveStep] = useState('')
   const [saveProgress, setSaveProgress] = useState(0)
   const [error, setError] = useState('')
+  // Two checked groups (or categories) can't share a name; trying it shows this toast.
+  const [dupToast, setDupToast] = useState({ n: 0, name: '', kind: 'group' })
   const [result, setResult] = useState<{ income: number; groupCount: number; categoryCount: number } | null>(null)
 
   // Timing for the onboarding funnel, same as mobile's setup.tsx: the whole
@@ -244,17 +251,57 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
   const patchGroup = (id: string, patch: Partial<Item>) =>
     setGroups((gs) => gs.map((g) => (g.id === id ? { ...g, ...patch } : g)))
 
+  const blockDup = (kind: 'group' | 'category', name: string) =>
+    setDupToast((t) => ({ n: t.n + 1, name: name.trim(), kind }))
+
+  // Whether `name` matches another checked row. Categories compare across
+  // every selected group, since they all become envelopes side by side.
+  const groupDup = (id: string) => (name: string) =>
+    name.trim() !== '' && groups.some((g) => g.id !== id && g.on && sameName(g.name, name))
+  const catDup = (catId: string) => (name: string) =>
+    name.trim() !== '' &&
+    selectedGroups.some((g) => (cats[g.id] ?? []).some((c) => c.id !== catId && c.on && sameName(c.name, name)))
+
+  const toggleGuarded = (item: Item, isDup: (name: string) => boolean, kind: 'group' | 'category'): Partial<Item> | null => {
+    if (!item.on && isDup(item.name)) {
+      blockDup(kind, item.name)
+      return null
+    }
+    return { on: !item.on }
+  }
+
+  const renameGuarded = (item: Item, name: string, isDup: (name: string) => boolean, kind: 'group' | 'category'): Partial<Item> => {
+    const dup = isDup(name)
+    const wasDup = isDup(item.name)
+    // A row unchecked only because it was a duplicate checks again once renamed.
+    const wantOn = wasDup && !item.on && name.trim() ? true : onForName(item, name)
+    if (wantOn && dup && !wasDup) blockDup(kind, name)
+    return { name, on: wantOn && !dup }
+  }
+
+  const toggleGroup = (g: Item) => {
+    const patch = toggleGuarded(g, groupDup(g.id), 'group')
+    if (patch) patchGroup(g.id, patch)
+  }
+  const renameGroup = (g: Item, name: string) => patchGroup(g.id, renameGuarded(g, name, groupDup(g.id), 'group'))
+  const toggleCat = (groupId: string, c: Item) => {
+    const patch = toggleGuarded(c, catDup(c.id), 'category')
+    if (patch) patchCat(groupId, c.id, patch)
+  }
+  const renameCat = (groupId: string, c: Item, name: string) =>
+    patchCat(groupId, c.id, renameGuarded(c, name, catDup(c.id), 'category'))
+
   const patchCat = (groupId: string, catId: string, patch: Partial<Item>) =>
     setCats((c) => ({ ...c, [groupId]: (c[groupId] ?? []).map((cat) => (cat.id === catId ? { ...cat, ...patch } : cat)) }))
 
   const addGroupRow = () => {
     const id = makeId()
-    setGroups((gs) => [...gs, { id, emoji: '🎁', name: '', on: true }])
+    setGroups((gs) => [...gs, { id, emoji: '🎁', name: '', on: false }])
     setCats((c) => ({ ...c, [id]: [] }))
   }
 
   const addCatRow = (groupId: string) => {
-    setCats((c) => ({ ...c, [groupId]: [...(c[groupId] ?? []), { id: makeId(), emoji: '🎁', name: '', on: true }] }))
+    setCats((c) => ({ ...c, [groupId]: [...(c[groupId] ?? []), { id: makeId(), emoji: '🎁', name: '', on: false }] }))
   }
 
   const setAmount = (key: string, v: number) => {
@@ -439,7 +486,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
       {step === 0 && (<div className="setup-body"><CurrencyPicker value={currencyCode} onChange={onCurrencyChange} /></div>)}
 
       {step === 1 && (
-        <div className="setup-body">
+        <div className="setup-body setup-income-body">
           <label className="setup-amount-field">
             <AmountTicker text={formatMoney(Number(income) || 0)} tick={tick} dir={dir} delta={delta} dimmed={!income} />
             <input
@@ -478,15 +525,15 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
               name={g.name}
               on={g.on}
               placeholder="Group name"
-              onCycleEmoji={() => patchGroup(g.id, { emoji: nextEmoji(g.emoji) })}
-              onChangeName={(name) => patchGroup(g.id, { name })}
-              onToggle={() => patchGroup(g.id, { on: !g.on })}
+              onPickEmoji={(emoji) => patchGroup(g.id, { emoji })}
+              onChangeName={(name) => renameGroup(g, name)}
+              onToggle={() => toggleGroup(g)}
             />
           ))}
           <button type="button" className="setup-add-row" onClick={addGroupRow}>
             <Plus size={16} aria-hidden="true" /> Add your own group
           </button>
-          <p className="setup-micro-hint">tap a name to rename · tap the emoji to change it</p>
+          <p className="setup-micro-hint">click a name to rename · click the emoji to pick another</p>
         </div>
       )}
 
@@ -501,18 +548,20 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
                   <span className="setup-section-title">{g.name.toUpperCase()}</span>
                   <span className="setup-section-count">{rows.filter((c) => c.on).length} picked</span>
                 </div>
-                {rows.map((c) => (
-                  <PickRow
-                    key={c.id}
-                    emoji={c.emoji}
-                    name={c.name}
-                    on={c.on}
-                    placeholder="Category name"
-                    onCycleEmoji={() => patchCat(g.id, c.id, { emoji: nextEmoji(c.emoji) })}
-                    onChangeName={(name) => patchCat(g.id, c.id, { name })}
-                    onToggle={() => patchCat(g.id, c.id, { on: !c.on })}
-                  />
-                ))}
+                <div className="setup-section-rows">
+                  {rows.map((c) => (
+                    <PickRow
+                      key={c.id}
+                      emoji={c.emoji}
+                      name={c.name}
+                      on={c.on}
+                      placeholder="Category name"
+                      onPickEmoji={(emoji) => patchCat(g.id, c.id, { emoji })}
+                      onChangeName={(name) => renameCat(g.id, c, name)}
+                      onToggle={() => toggleCat(g.id, c)}
+                    />
+                  ))}
+                </div>
                 <button type="button" className="setup-add-pill" onClick={() => addCatRow(g.id)}>
                   <Plus size={14} aria-hidden="true" /> Add category
                 </button>
@@ -582,6 +631,8 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
         </div>
       )}
 
+      <Toast trigger={dupToast.n} message={`You've already got a ${dupToast.kind} called ${dupToast.name}.`} icon={CopyX} />
+
       {error !== '' && <p className="setup-error">{error}</p>}
 
       <button
@@ -605,7 +656,7 @@ function PickRow({
   name,
   on,
   placeholder,
-  onCycleEmoji,
+  onPickEmoji,
   onChangeName,
   onToggle,
 }: {
@@ -613,19 +664,81 @@ function PickRow({
   name: string
   on: boolean
   placeholder: string
-  onCycleEmoji: () => void
+  onPickEmoji: (emoji: string) => void
   onChangeName: (name: string) => void
   onToggle: () => void
 }) {
+  // Where the popover sits, in viewport coordinates. It's position: fixed so a
+  // scrolling category column can't clip it; null means closed.
+  const [picking, setPicking] = useState<{ top: number; left: number } | null>(null)
+  const pickerRef = useRef<HTMLDivElement>(null)
+
+  const togglePicker = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (picking) return setPicking(null)
+    const r = e.currentTarget.getBoundingClientRect()
+    // Flip above the button when there's no room for the grid below it.
+    const top = r.bottom + 108 > window.innerHeight ? r.top - 108 : r.bottom + 8
+    setPicking({ top, left: r.left })
+  }
+
+  useEffect(() => {
+    if (!picking) return
+    const close = () => setPicking(null)
+    const onDown = (e: PointerEvent) => {
+      if (!pickerRef.current?.contains(e.target as Node)) close()
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') close()
+    }
+    document.addEventListener('pointerdown', onDown)
+    document.addEventListener('keydown', onKey)
+    // A fixed popover would drift off its button on scroll, so close instead.
+    window.addEventListener('scroll', close, true)
+    return () => {
+      document.removeEventListener('pointerdown', onDown)
+      document.removeEventListener('keydown', onKey)
+      window.removeEventListener('scroll', close, true)
+    }
+  }, [picking])
+
   return (
     <div className={`setup-pick-row ${on ? 'is-on' : ''}`}>
-      <button type="button" className="setup-pick-emoji" onClick={onCycleEmoji} title="Change emoji">
-        {emoji}
-      </button>
+      <div className="setup-pick-emoji-wrap" ref={pickerRef}>
+        <button
+          type="button"
+          className="setup-pick-emoji"
+          onClick={togglePicker}
+          aria-label={`Change emoji for ${name || placeholder}`}
+          aria-expanded={picking !== null}
+        >
+          {emoji}
+        </button>
+        {picking && (
+          <div className="setup-emoji-pop" role="group" aria-label="Pick an emoji" style={picking}>
+            {EMOJI_CHOICES.map((e) => (
+              <button
+                key={e}
+                type="button"
+                className={`setup-emoji-opt ${e === emoji ? 'is-active' : ''}`}
+                aria-pressed={e === emoji}
+                onClick={() => {
+                  onPickEmoji(e)
+                  setPicking(null)
+                }}
+              >
+                {e}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
       <input
         type="text"
         className="setup-pick-input"
         placeholder={placeholder}
+        // Rows only mount empty when just added: focus them, which also
+        // scrolls them into view inside a scrolling category column.
+        autoFocus={name === ''}
         value={name}
         onChange={(e) => onChangeName(e.target.value)}
       />
