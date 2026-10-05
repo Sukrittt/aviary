@@ -227,3 +227,42 @@ describe('onboarding pick rows', () => {
     expect(screen.queryByRole('group', { name: 'Pick an emoji' })).toBeNull()
   })
 })
+
+describe('assign step rename', () => {
+  it('renames in place, keeping the old name on a blank or clashing one', () => {
+    toCategoriesStep()
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+
+    const rent = screen.getByRole('textbox', { name: 'Rename Rent' })
+    fireEvent.focus(rent)
+    fireEvent.change(rent, { target: { value: 'Home rent' } })
+    fireEvent.blur(rent)
+    const home = screen.getByRole('textbox', { name: 'Rename Home rent' })
+    expect(home).toHaveValue('Home rent')
+
+    fireEvent.focus(home)
+    fireEvent.change(home, { target: { value: 'groceries' } })
+    fireEvent.blur(home)
+    expect(home).toHaveValue('Home rent')
+    expect(screen.getByRole('alert').textContent).toContain('already got a category called groceries')
+
+    fireEvent.focus(home)
+    fireEvent.change(home, { target: { value: '   ' } })
+    fireEvent.blur(home)
+    expect(home).toHaveValue('Home rent')
+
+    fireEvent.focus(home)
+    fireEvent.change(home, { target: { value: 'Nope' } })
+    fireEvent.keyDown(home, { key: 'Escape' })
+    expect(home).toHaveValue('Home rent')
+  })
+
+  it('picks a new emoji for a category from the same grid', () => {
+    toCategoriesStep()
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Change emoji for Rent' }))
+    fireEvent.click(screen.getByRole('button', { name: '🐶' }))
+    expect(screen.queryByRole('group', { name: 'Pick an emoji' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Change emoji for Rent' })).toHaveTextContent('🐶')
+  })
+})

@@ -388,6 +388,16 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
   const renameCat = (groupId: string, c: Item, name: string) =>
     patchCat(groupId, c.id, renameGuarded(c, name, catDup(c.id), 'category'))
 
+  // Renaming on the assign step. A blank name keeps the old one (a nameless
+  // category would drop off this step), and a clashing one keeps the old one
+  // with the duplicate toast.
+  const renameAssigned = (groupId: string, c: Item, name: string) => {
+    const next = name.trim()
+    if (!next || next === c.name.trim()) return
+    if (catDup(c.id)(next)) return blockDup('category', next)
+    patchCat(groupId, c.id, { name: next })
+  }
+
   const patchCat = (groupId: string, catId: string, patch: Partial<Item>) => {
     setCategorySelectionUndo(null)
     setCats((c) => ({ ...c, [groupId]: (c[groupId] ?? []).map((cat) => (cat.id === catId ? { ...cat, ...patch } : cat)) }))
@@ -751,8 +761,13 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
                     const v = amounts[key] ?? 0
                     return (
                       <div key={c.id} className="setup-assign-row">
-                        <span className="setup-assign-emoji">{c.emoji}</span>
-                        <span className="setup-assign-name">{c.name}</span>
+                        <EmojiPicker
+                          emoji={c.emoji}
+                          label={`Change emoji for ${c.name}`}
+                          className="setup-assign-emoji"
+                          onPick={(emoji) => patchCat(g.id, c.id, { emoji })}
+                        />
+                        <AssignName name={c.name} onCommit={(name) => renameAssigned(g.id, c, name)} />
                         <input
                           type="number"
                           className="txn-entry-input setup-assign-input"
@@ -796,26 +811,46 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
   )
 }
 
-function PickRow({
+// The assign step's category name: reads as a label, edits in place, and only
+// hands the new name up on blur or Enter (Esc throws the edit away).
+function AssignName({ name, onCommit }: { name: string; onCommit: (name: string) => void }) {
+  const [draft, setDraft] = useState<string | null>(null)
+  return (
+    <input
+      type="text"
+      className="setup-assign-name"
+      aria-label={`Rename ${name}`}
+      value={draft ?? name}
+      onFocus={() => setDraft(name)}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={() => {
+        if (draft !== null) onCommit(draft)
+        setDraft(null)
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') e.currentTarget.blur()
+        if (e.key === 'Escape') {
+          setDraft(null)
+          e.currentTarget.blur()
+        }
+      }}
+    />
+  )
+}
+
+// An emoji button that opens a grid of EMOJI_CHOICES. Shared by the
+// group/category rows and the assign step's rows.
+function EmojiPicker({
   emoji,
-  name,
-  on,
-  placeholder,
-  incompleteHint,
-  onPickEmoji,
-  onChangeName,
-  onToggle,
+  label,
+  className,
+  onPick,
 }: {
   emoji: string
-  name: string
-  on: boolean
-  placeholder: string
-  incompleteHint?: string
-  onPickEmoji: (emoji: string) => void
-  onChangeName: (name: string) => void
-  onToggle: () => void
+  label: string
+  className: string
+  onPick: (emoji: string) => void
 }) {
-  const nameHintId = useId()
   // Where the popover sits, in viewport coordinates. It's position: fixed so a
   // scrolling category column can't clip it; null means closed.
   const [picking, setPicking] = useState<{ top: number; left: number } | null>(null)
@@ -850,36 +885,67 @@ function PickRow({
   }, [picking])
 
   return (
+    <div className="setup-pick-emoji-wrap" ref={pickerRef}>
+      <button
+        type="button"
+        className={className}
+        onClick={togglePicker}
+        aria-label={label}
+        aria-expanded={picking !== null}
+      >
+        {emoji}
+      </button>
+      {picking && (
+        <div className="setup-emoji-pop" role="group" aria-label="Pick an emoji" style={picking}>
+          {EMOJI_CHOICES.map((e) => (
+            <button
+              key={e}
+              type="button"
+              className={`setup-emoji-opt ${e === emoji ? 'is-active' : ''}`}
+              aria-pressed={e === emoji}
+              onClick={() => {
+                onPick(e)
+                setPicking(null)
+              }}
+            >
+              {e}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function PickRow({
+  emoji,
+  name,
+  on,
+  placeholder,
+  incompleteHint,
+  onPickEmoji,
+  onChangeName,
+  onToggle,
+}: {
+  emoji: string
+  name: string
+  on: boolean
+  placeholder: string
+  incompleteHint?: string
+  onPickEmoji: (emoji: string) => void
+  onChangeName: (name: string) => void
+  onToggle: () => void
+}) {
+  const nameHintId = useId()
+
+  return (
     <div className={`setup-pick-row ${on ? 'is-on' : ''} ${incompleteHint ? 'is-incomplete' : ''}`}>
-      <div className="setup-pick-emoji-wrap" ref={pickerRef}>
-        <button
-          type="button"
-          className="setup-pick-emoji"
-          onClick={togglePicker}
-          aria-label={`Change emoji for ${name || placeholder}`}
-          aria-expanded={picking !== null}
-        >
-          {emoji}
-        </button>
-        {picking && (
-          <div className="setup-emoji-pop" role="group" aria-label="Pick an emoji" style={picking}>
-            {EMOJI_CHOICES.map((e) => (
-              <button
-                key={e}
-                type="button"
-                className={`setup-emoji-opt ${e === emoji ? 'is-active' : ''}`}
-                aria-pressed={e === emoji}
-                onClick={() => {
-                  onPickEmoji(e)
-                  setPicking(null)
-                }}
-              >
-                {e}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+      <EmojiPicker
+        emoji={emoji}
+        label={`Change emoji for ${name || placeholder}`}
+        className="setup-pick-emoji"
+        onPick={onPickEmoji}
+      />
       <input
         type="text"
         className="setup-pick-input"

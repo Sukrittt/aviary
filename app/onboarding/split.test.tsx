@@ -25,7 +25,7 @@ function walkToCategories() {
 }
 
 const amountOf = (name: string) =>
-  Number((screen.getByText(name).closest('.setup-assign-row')!.querySelector('input') as HTMLInputElement).value)
+  Number((screen.getByRole('textbox', { name: `Rename ${name}` }).closest('.setup-assign-row')!.querySelector('input[type="number"]') as HTMLInputElement).value)
 
 describe('onboarding suggested split', () => {
   beforeEach(() => vi.clearAllMocks())

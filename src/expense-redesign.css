@@ -5099,16 +5099,35 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  cursor: pointer;
 }
 
 .setup-assign-name {
   flex: 1;
   min-width: 0;
+  font: inherit;
   font-size: 14px;
   font-weight: 700;
+  color: var(--erd-text);
+  background: none;
+  border: none;
+  border-bottom: 1px dashed transparent;
+  padding: 4px 2px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  cursor: text;
+}
+
+/* Editable in place: a dashed underline on hover hints at it, a solid one
+   while editing. */
+.setup-assign-name:hover {
+  border-bottom-color: var(--erd-border-strong);
+}
+
+.setup-assign-name:focus {
+  outline: none;
+  border-bottom: 1px solid var(--gold);
 }
 
 .expense-redesign .setup-assign-input {
