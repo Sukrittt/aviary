@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import Image from 'next/image'
+import { preload } from 'react-dom'
 import { BarWidget, EnvelopeWidget } from '../components/landing/mobile/Widget'
 import { ArrowRight, ChevronUp, Github, Monitor, Repeat, ScanLine, Smartphone, WifiOff } from 'lucide-react'
 import { Playground } from '../components/landing/Playground'
@@ -48,6 +49,10 @@ function StoreLink({ placement, children = 'Get it on Android' }: { placement: s
 }
 
 export function LandingPage() {
+  // The hero stage is the mobile LCP element, and this background is its paint.
+  // As a CSS url() it's only found once the stylesheet has loaded; the preload
+  // puts it in the document head so it downloads alongside the CSS instead.
+  preload('/landing/doodles-stage.svg', { as: 'image', fetchPriority: 'high' })
   return <LandingMotion><div className="lp" id="top">
     {/* THESIS: Aviary learns your spending, so logging by hand costs one tap. Refuses the bank-sync pitch of "we'll do it for you".
         OWN-WORLD: Warm near-white page, ink pill buttons, Fredoka display, Nunito body, Aviary orange for the learned moment, pastel envelope tones for the ways to log.

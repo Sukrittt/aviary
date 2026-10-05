@@ -31,7 +31,7 @@ afterEach(() => vi.unstubAllEnvs())
 describe('without a key', () => {
   it('never starts PostHog and drops every event', async () => {
     const a = await load(undefined)
-    a.initAnalytics()
+    await a.initAnalytics()
     a.track('expense_logged')
     a.identifyUser({ id: 'user_1' })
     expect(posthog.init).not.toHaveBeenCalled()
@@ -44,7 +44,7 @@ describe('without a key', () => {
 describe('outside production', () => {
   it.each(['preview', ''])('never starts PostHog when VERCEL_ENV is %j', async (env) => {
     const a = await load('phc_test', env)
-    a.initAnalytics()
+    await a.initAnalytics()
     a.track('expense_logged')
     expect(posthog.init).not.toHaveBeenCalled()
     expect(posthog.capture).not.toHaveBeenCalled()
@@ -54,8 +54,8 @@ describe('outside production', () => {
 describe('with a key', () => {
   it('starts once, with autocapture and recording off, tagged as web', async () => {
     const a = await load('phc_test')
-    a.initAnalytics()
-    a.initAnalytics()
+    await a.initAnalytics()
+    await a.initAnalytics()
     expect(posthog.init).toHaveBeenCalledTimes(1)
     expect(posthog.init).toHaveBeenCalledWith('phc_test', expect.objectContaining({
       autocapture: false,
@@ -67,7 +67,7 @@ describe('with a key', () => {
 
   it('strips query strings from every URL property before sending', async () => {
     const a = await load('phc_test')
-    a.initAnalytics()
+    await a.initAnalytics()
     const { before_send } = vi.mocked(posthog.init).mock.calls[0][1] as unknown as InitConfig
     const out = before_send({
       properties: { $current_url: 'https://aviary.app/code?email=a%40b.com', $referrer: '$direct', $utm_source: 'x' },
@@ -79,7 +79,7 @@ describe('with a key', () => {
 
   it('forwards events, and stamps first-time person properties with $set_once', async () => {
     const a = await load('phc_test')
-    a.initAnalytics()
+    await a.initAnalytics()
     a.track('money_moved', { sources_count: 2 })
     expect(posthog.capture).toHaveBeenCalledWith('money_moved', { sources_count: 2 })
     a.trackFirst('expense_logged', 'first_expense_at', { payment_method: 'bank' })
@@ -91,14 +91,33 @@ describe('with a key', () => {
 
   it('keeps a throwing client from breaking the caller', async () => {
     const a = await load('phc_test')
-    a.initAnalytics()
+    await a.initAnalytics()
     vi.mocked(posthog.capture).mockImplementationOnce(() => { throw new Error('boom') })
     expect(() => a.track('expense_deleted')).not.toThrow()
   })
 
+  it('queues calls made while PostHog is still loading, then sends them in order', async () => {
+    const a = await load('phc_test')
+    const started = a.initAnalytics()
+    a.identifyUser({ id: 'user_1' })
+    a.track('store_cta_clicked')
+    expect(posthog.capture).not.toHaveBeenCalled()
+    await started
+    expect(posthog.identify).toHaveBeenCalledWith('user_1', {})
+    expect(posthog.capture).toHaveBeenCalledWith('store_cta_clicked', undefined)
+    expect(vi.mocked(posthog.identify).mock.invocationCallOrder[0]).toBeLessThan(vi.mocked(posthog.capture).mock.invocationCallOrder[0])
+  })
+
+  it('drops calls made before init', async () => {
+    const a = await load('phc_test')
+    a.track('expense_logged')
+    await a.initAnalytics()
+    expect(posthog.capture).not.toHaveBeenCalled()
+  })
+
   it('identifies with the WorkOS id, and only the fields it has', async () => {
     const a = await load('phc_test')
-    a.initAnalytics()
+    await a.initAnalytics()
     a.identifyUser({ id: 'user_1', email: 'a@b.com', name: null })
     expect(posthog.identify).toHaveBeenCalledWith('user_1', { email: 'a@b.com' })
     a.resetAnalytics()
@@ -107,7 +126,7 @@ describe('with a key', () => {
 
   it('turns analytics off and on', async () => {
     const a = await load('phc_test')
-    a.initAnalytics()
+    await a.initAnalytics()
     a.setAnalyticsEnabled(false)
     expect(posthog.opt_out_capturing).toHaveBeenCalled()
     a.setAnalyticsEnabled(true)

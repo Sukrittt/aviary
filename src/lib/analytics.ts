@@ -11,7 +11,10 @@
 //   this app that's amounts, item names and envelope names.
 // - Pageviews carry the path only. Query strings can hold dates and ids, so
 //   they're dropped from the URL after PostHog has read the UTM tags out of it.
-import posthog from 'posthog-js'
+// - posthog-js is imported lazily: it's ~290 KB of script that every page,
+//   the landing page included, used to parse before it could respond to input.
+//   Calls made while it loads are queued and replayed once it's ready.
+import type { PostHog } from 'posthog-js'
 
 const KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY ?? ''
 const HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST ?? 'https://us.i.posthog.com'
@@ -94,45 +97,79 @@ export type AppEvent =
 
 export type EventProperties = Record<string, string | number | boolean>
 
-let ready = false
+let client: PostHog | null = null
+let loading: Promise<void> | null = null
+const queued: ((posthog: PostHog) => void)[] = []
 
-/** Whether a client exists to send to: in a browser, with a key, after init. */
-function active(): boolean {
-  return ready && typeof window !== 'undefined'
+/**
+ * Run against the client once it exists. Before init, or without a key, the
+ * call is dropped; while the script is loading, it waits in line.
+ * Telemetry never takes down the thing it's measuring: these calls sit in
+ * mutation success handlers, where a throw would read as the save failing.
+ */
+function send(fn: (posthog: PostHog) => void): void {
+  if (typeof window === 'undefined') return
+  if (!client) {
+    if (loading) queued.push(fn)
+    return
+  }
+  try {
+    fn(client)
+  } catch {
+    // Losing an event isn't worth a broken page.
+  }
 }
 
 /**
  * Start the client. Called once from AnalyticsProvider on mount; a second call
  * is a no-op. Does nothing on the server, without a key, or outside production.
  */
-export function initAnalytics(): void {
-  if (ready || typeof window === 'undefined' || !KEY || !IS_PRODUCTION) return
-  posthog.init(KEY, {
-    api_host: HOST,
-    // Next's router moves with pushState, which a plain page-load capture
-    // would miss after the first page.
-    capture_pageview: 'history_change',
-    capture_pageleave: true,
-    autocapture: false,
-    disable_session_recording: true,
-    // Anonymous visitors (the landing page, the read-only demo) still count
-    // in funnels, without each one costing a person profile.
-    person_profiles: 'identified_only',
-    before_send: (event) => {
-      if (!event) return event
-      // The sign-in flow carries the email in the URL (/code?email=…), and a
-      // full navigation afterwards hands that URL on as the referrer.
-      for (const bag of [event.properties, event.$set, event.$set_once]) {
-        if (!bag) continue
-        for (const key of URL_PROPERTIES) {
-          if (typeof bag[key] === 'string') bag[key] = stripQuery(bag[key])
-        }
-      }
-      return event
-    },
-  })
-  posthog.register({ platform: 'web' })
-  ready = true
+export function initAnalytics(): Promise<void> {
+  if (loading) return loading
+  if (typeof window === 'undefined' || !KEY || !IS_PRODUCTION) return Promise.resolve()
+  loading = import('posthog-js')
+    .then(({ default: posthog }) => {
+      posthog.init(KEY, {
+        api_host: HOST,
+        // Next's router moves with pushState, which a plain page-load capture
+        // would miss after the first page.
+        capture_pageview: 'history_change',
+        capture_pageleave: true,
+        autocapture: false,
+        disable_session_recording: true,
+        // Nothing here uses surveys, and leaving them on downloads another
+        // script from PostHog's CDN on every page load.
+        disable_surveys: true,
+        // Anonymous visitors (the landing page, the read-only demo) still count
+        // in funnels, without each one costing a person profile.
+        person_profiles: 'identified_only',
+        before_send: (event) => {
+          if (!event) return event
+          // The sign-in flow carries the email in the URL (/code?email=…), and a
+          // full navigation afterwards hands that URL on as the referrer.
+          for (const bag of [event.properties, event.$set, event.$set_once]) {
+            if (!bag) continue
+            for (const key of URL_PROPERTIES) {
+              if (typeof bag[key] === 'string') bag[key] = stripQuery(bag[key])
+            }
+          }
+          return event
+        },
+      })
+      posthog.register({ platform: 'web' })
+      client = posthog
+      for (const fn of queued.splice(0)) send(fn)
+    })
+    .catch(() => {
+      // Blocked by an ad blocker or offline: analytics just stays off.
+      queued.length = 0
+    })
+  return loading
+}
+
+/** Resolves once analytics has started, or straight away when it never will. */
+export function analyticsReady(): Promise<void> {
+  return loading ?? Promise.resolve()
 }
 
 /** Every property PostHog fills with a URL, on the event or the person. */
@@ -157,14 +194,7 @@ export function track(event: AppEvent, properties?: EventProperties): void {
   if (process.env.NODE_ENV === 'development') {
     console.info(`[analytics] ${event}`, properties ?? {})
   }
-  if (!active()) return
-  // Telemetry never takes down the thing it's measuring: these calls sit in
-  // mutation success handlers, where a throw would read as the save failing.
-  try {
-    posthog.capture(event, properties)
-  } catch {
-    // Losing an event isn't worth a broken page.
-  }
+  send((posthog) => posthog.capture(event, properties))
 }
 
 /**
@@ -172,12 +202,9 @@ export function track(event: AppEvent, properties?: EventProperties): void {
  * `first_expense_at`. Rides on an ordinary event through PostHog's `$set_once`.
  */
 export function trackFirst(event: AppEvent, personProperty: string, properties?: EventProperties): void {
-  if (!active()) return
-  try {
-    posthog.capture(event, { ...properties, $set_once: { [personProperty]: new Date().toISOString() } })
-  } catch {
-    // Losing an event isn't worth a broken page.
-  }
+  // The timestamp is taken now, not when a queued call finally runs.
+  const at = new Date().toISOString()
+  send((posthog) => posthog.capture(event, { ...properties, $set_once: { [personProperty]: at } }))
 }
 
 /** Start a stopwatch; the returned function reads whole seconds elapsed. */
@@ -188,12 +215,7 @@ export function startTimer(): () => number {
 
 /** Properties sent with every event from now on (`plan_status`). */
 export function setEventContext(properties: EventProperties): void {
-  if (!active()) return
-  try {
-    posthog.register(properties)
-  } catch {
-    // Events still go out, just without the extra context.
-  }
+  send((posthog) => posthog.register(properties))
 }
 
 /**
@@ -202,36 +224,23 @@ export function setEventContext(properties: EventProperties): void {
  * go on the person record so the dashboard shows a human.
  */
 export function identifyUser(user: { id: string; email?: string | null; name?: string | null }): void {
-  if (!active()) return
-  try {
-    const properties: Record<string, string> = {}
-    if (user.email) properties.email = user.email
-    if (user.name) properties.name = user.name
-    posthog.identify(user.id, properties)
-  } catch {
-    // Events keep flowing, just anonymously.
-  }
+  const properties: Record<string, string> = {}
+  if (user.email) properties.email = user.email
+  if (user.name) properties.name = user.name
+  send((posthog) => posthog.identify(user.id, properties))
 }
 
 /** On sign-out: the next account on this browser starts clean. */
 export function resetAnalytics(): void {
-  if (!active()) return
-  try {
-    posthog.reset()
-  } catch {
-    // Nothing to do.
-  }
+  send((posthog) => posthog.reset())
 }
 
 /** Whether analytics is currently allowed to send events. */
 export function isAnalyticsEnabled(): boolean {
-  if (!active()) return false
-  return !posthog.has_opted_out_capturing()
+  return client !== null && !client.has_opted_out_capturing()
 }
 
 /** Turn analytics on or off for this browser. PostHog persists the choice. */
 export function setAnalyticsEnabled(enabled: boolean): void {
-  if (!active()) return
-  if (enabled) posthog.opt_in_capturing()
-  else posthog.opt_out_capturing()
+  send((posthog) => (enabled ? posthog.opt_in_capturing() : posthog.opt_out_capturing()))
 }
