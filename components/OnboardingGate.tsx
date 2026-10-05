@@ -13,10 +13,11 @@ import '@/src/expense-redesign.css'
 const ONBOARDING_EXEMPT_PATHS = ['/', '/sign-in', '/email', '/code', '/onboarding', '/legal']
 
 // Set once /api/user confirms onboarding, so a returning visit renders the app
-// without waiting on that round trip first. Not per account: a different,
-// not-yet-onboarded account on this browser still gets corrected by the check,
-// which clears the flag and redirects.
+// without waiting on that round trip first. It isn't keyed by account, so the
+// sign-in pages clear it: every account switch passes through one of them, and
+// the next account starts from a full check.
 const ONBOARDED_KEY = 'aviary.onboarded'
+const SIGN_IN_PATHS = ['/sign-in', '/email', '/code']
 
 function readOnboarded(): boolean {
   try {
@@ -85,6 +86,7 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
   // Once the redirect lands, the check is done; finishing onboarding must not
   // return to a loader that is still waiting on it.
   useEffect(() => {
+    if (SIGN_IN_PATHS.includes(pathname)) writeOnboarded(false)
     if (isExempt(pathname)) setChecking(false)
   }, [pathname])
 

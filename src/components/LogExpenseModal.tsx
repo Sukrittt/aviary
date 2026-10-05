@@ -25,8 +25,18 @@ import { useNudge, useShake } from './landing/mobile/kit'
 
 // Loaded with the dialog, not with the page: the success screen carries the
 // lottie player (~30 KB gzipped) that every page holding this dialog used to
-// download up front. The hidden preload below still warms it while the form is open.
-const ExpenseAdded = dynamic(() => import('../features/log-expense/ExpenseAdded').then((m) => m.ExpenseAdded), { ssr: false })
+// download up front. The hidden preload below still warms it while the form is
+// open; a save that beats it shows the headline instead of a blank card.
+const ExpenseAdded = dynamic(() => import('../features/log-expense/ExpenseAdded').then((m) => m.ExpenseAdded), {
+  ssr: false,
+  loading: () => (
+    <div className="erd-added">
+      <div className="erd-added-receipt">
+        <p className="erd-added-headline" role="status"><span>Added</span></p>
+      </div>
+    </div>
+  ),
+})
 const PreloadExpenseAddedTick = dynamic(() => import('../features/log-expense/ExpenseAdded').then((m) => m.PreloadExpenseAddedTick), { ssr: false })
 
 interface Props {

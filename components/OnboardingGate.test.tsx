@@ -57,4 +57,11 @@ describe('OnboardingGate', () => {
     await vi.waitFor(() => expect(replace).toHaveBeenCalledWith('/onboarding'))
     expect(localStorage.getItem('aviary.onboarded')).toBeNull()
   })
+
+  it.each(['/sign-in', '/email', '/code'])('forgets the flag on %s, so the next account to sign in gets a full check', (path) => {
+    mockPathname = path
+    localStorage.setItem('aviary.onboarded', '1')
+    render(<OnboardingGate><p>page</p></OnboardingGate>)
+    expect(localStorage.getItem('aviary.onboarded')).toBeNull()
+  })
 })
