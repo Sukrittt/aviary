@@ -39,4 +39,32 @@ describe('TrackedLink', () => {
     renderLink()
     expect(fireEvent.click(screen.getByText('Get it'), { metaKey: true })).toBe(true)
   })
+
+  it('disables sign-in immediately and ignores repeated clicks while analytics loads', () => {
+    vi.mocked(isAnalyticsLoading).mockReturnValue(true)
+    vi.mocked(analyticsReady).mockReturnValue(new Promise<void>(() => {}))
+    render(<TrackedLink href="/api/auth/google" event="sign_in_started" disableOnClick>Continue with Google</TrackedLink>)
+    const link = screen.getByRole('link', { name: 'Continue with Google' })
+    fireEvent.click(link)
+    expect(link).toHaveAttribute('aria-disabled', 'true')
+    expect(link).toHaveAttribute('aria-busy', 'true')
+    expect(fireEvent.click(link)).toBe(false)
+    expect(track).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps sign-in available when a modified click opens another tab', () => {
+    render(<TrackedLink href="/api/auth/google" event="sign_in_started" disableOnClick>Continue with Google</TrackedLink>)
+    const link = screen.getByRole('link', { name: 'Continue with Google' })
+    expect(fireEvent.click(link, { metaKey: true })).toBe(true)
+    expect(link).not.toHaveAttribute('aria-disabled')
+  })
+
+  it('reenables sign-in when returning through browser history', () => {
+    vi.mocked(isAnalyticsLoading).mockReturnValue(false)
+    render(<TrackedLink href="/api/auth/google" event="sign_in_started" disableOnClick>Continue with Google</TrackedLink>)
+    const link = screen.getByRole('link', { name: 'Continue with Google' })
+    fireEvent.click(link)
+    fireEvent(window, new Event('pageshow'))
+    expect(link).not.toHaveAttribute('aria-disabled')
+  })
 })

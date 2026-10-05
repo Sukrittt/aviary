@@ -3956,10 +3956,12 @@
   scale: 0.96;
 }
 
-.auth-btn:disabled {
+.auth-btn:disabled,
+.auth-btn[aria-disabled="true"] {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
+  scale: 1;
 }
 
 .auth-btn--outline {
@@ -4145,8 +4147,8 @@
 }
 
 /* Code entry: six visual boxes over one transparent input. Animations mirror
-   Mobile's CodeBoxes + code screen (boxErrDrop, boxLockIn, greenWash,
-   shakeRow, checkPop, checkStroke, successRise, greenVeil). */
+   Mobile's CodeBoxes + code screen (boxErrDrop, boxLockIn,
+   shakeRow, checkPop, checkStroke, successRise). */
 .auth-code-boxes {
   position: relative;
   display: flex;
@@ -4207,24 +4209,10 @@
 
 .is-ok > .auth-code-box {
   border-color: var(--mint);
-  background: var(--mint-soft);
+  background: var(--erd-input-bg);
   color: var(--mint);
   animation: auth-box-lock-in 0.38s cubic-bezier(0.34, 1.56, 0.64, 1)
     calc(var(--i) * 55ms) both;
-}
-
-.auth-code-wash {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 120px;
-  height: 120px;
-  margin: -60px 0 0 -60px;
-  border-radius: 50%;
-  background: var(--mint-soft);
-  pointer-events: none;
-  z-index: -1;
-  animation: auth-green-wash 0.85s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .auth-verified {
@@ -4255,15 +4243,6 @@
   stroke-linejoin: round;
   stroke-dasharray: 19.8;
   animation: auth-check-stroke 0.32s ease-out 0.1s both;
-}
-
-.auth-veil {
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: var(--mint-soft);
-  pointer-events: none;
-  animation: auth-green-veil 0.9s ease-out both;
 }
 
 @keyframes auth-shake-row {
@@ -4313,30 +4292,6 @@
   }
 }
 
-@keyframes auth-green-wash {
-  0% {
-    opacity: 0;
-    transform: scale(0.2);
-  }
-  45% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-    transform: scale(2.6);
-  }
-}
-
-@keyframes auth-green-veil {
-  0%,
-  100% {
-    opacity: 0;
-  }
-  30% {
-    opacity: 1;
-  }
-}
-
 @keyframes auth-check-pop {
   0% {
     opacity: 0;
@@ -4374,16 +4329,10 @@
 @media (prefers-reduced-motion: reduce) {
   .auth-code-boxes,
   .auth-code-box,
-  .auth-code-wash,
   .auth-verified,
   .auth-verified-badge,
-  .auth-verified-badge path,
-  .auth-veil {
+  .auth-verified-badge path {
     animation: none !important;
-  }
-  .auth-code-wash,
-  .auth-veil {
-    display: none;
   }
 }
 
