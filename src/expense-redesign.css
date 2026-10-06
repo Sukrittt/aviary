@@ -841,8 +841,14 @@
 .erd-home-main > *,
 .erd-home-rail > *,
 .env2-group,
-.env-page > .env-group-list > .env-group {
+.env-page > .env-group-list {
   animation: erd-fadeUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+/* The Envelopes list fades in as one, not per card: a drag reorder moves a card in the DOM,
+   which restarts its CSS animation, and that animation then overrides the drag's transform,
+   throwing the held card off the cursor. */
+.env-page > .env-group-list {
+  animation-delay: 0.14s;
 }
 .erd-home-main > :nth-child(2),
 .erd-home-rail > :nth-child(1) {
@@ -886,7 +892,7 @@
   .erd-home-main > *,
   .erd-home-rail > *,
   .env2-group,
-  .env-page > .env-group-list > .env-group,
+  .env-page > .env-group-list,
   .env2-bar .env-bar-fill {
     animation: none;
   }
