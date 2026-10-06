@@ -5,8 +5,8 @@ import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import { EnvelopesPage } from './EnvelopesPage'
-import { getCategories, addCategory, deleteCategory, updateCategory } from '@/src/api/categories'
-import { getGroups, addGroup, deleteGroup, updateGroup } from '@/src/api/groups'
+import { getCategories, addCategory, deleteCategory, updateCategory, moveCategory } from '@/src/api/categories'
+import { getGroups, addGroup, deleteGroup, updateGroup, moveGroup } from '@/src/api/groups'
 
 vi.mock('@/src/api/categories', () => ({
   getCategories: vi.fn(),
@@ -63,6 +63,8 @@ beforeEach(() => {
   ;(addGroup as Mock).mockResolvedValue(undefined)
   ;(deleteGroup as Mock).mockResolvedValue(undefined)
   ;(updateGroup as Mock).mockResolvedValue(undefined)
+  ;(moveCategory as Mock).mockResolvedValue(undefined)
+  ;(moveGroup as Mock).mockResolvedValue(undefined)
 })
 
 describe('EnvelopesPage', () => {
@@ -227,5 +229,25 @@ describe('EnvelopesPage', () => {
     // Wait on the group's own toggle: the collapsed state loads after mount.
     const list = within(await screen.findByRole('list', { name: 'Envelope groups' }))
     await waitFor(() => expect(list.getByRole('button', { name: /^Home/ })).toHaveAttribute('aria-expanded', 'false'))
+  })
+
+  it('reorders a category within its group from the grip', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    const list = await groupList()
+    list.getByRole('button', { name: 'Move Rent' }).focus()
+    await user.keyboard('{ArrowDown}')
+    await waitFor(() => expect(moveCategory).toHaveBeenCalledWith('🏠 Rent', 1))
+  })
+
+  it('reorders groups but keeps Other pinned and unmovable', async () => {
+    ;(getGroups as Mock).mockResolvedValue(['Home', 'Fun'])
+    const user = userEvent.setup()
+    renderPage()
+    const list = await groupList()
+    expect(list.queryByRole('button', { name: 'Move Other' })).not.toBeInTheDocument()
+    list.getByRole('button', { name: 'Move Fun' }).focus()
+    await user.keyboard('{ArrowUp}')
+    await waitFor(() => expect(moveGroup).toHaveBeenCalledWith('Fun', 0))
   })
 })
