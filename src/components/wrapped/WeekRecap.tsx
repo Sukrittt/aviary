@@ -2,12 +2,14 @@
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react'
-import { X } from 'lucide-react'
+import { Pause, Play, X } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCurrency } from '@/src/context/CurrencyContext'
 import { useHideAmounts } from '@/src/hooks/useHideAmounts'
 import { getWeekRecap, markWeekRecapSeen, type WeekRecap } from '@/src/api/weekRecap'
 import { track } from '@/src/lib/analytics'
+import { BirdMark } from '@/src/components/BirdMark'
+import { STORY_MS } from './WrappedExperience'
 
 /** Below this many expenses there's nothing to learn yet, so the recap asks for more instead. */
 const LIGHT_WEEK = 3
@@ -19,14 +21,15 @@ export function formatMinute(minute: number): string {
   return `${h % 12 || 12}${rounded % 60 ? ':30' : ''}${h < 12 ? 'am' : 'pm'}`
 }
 
-type Slide = { color: string; ink: string; eyebrow: string; title: string; emoji?: string; body: string }
+/** `bird` shows the Aviary mark in place of an emoji. */
+type Slide = { color: string; ink: string; eyebrow: string; title: string; emoji?: string; bird?: boolean; body: string }
 
 export function recapSlides(recap: WeekRecap, money: (n: number) => string): Slide[] {
   const n = recap.totalTransactions
   if (n < LIGHT_WEEK) {
     return [
       {
-        color: '#40395f', ink: '#fffaf0', eyebrow: 'Your first week', title: "Let's get to know you", emoji: '🐦',
+        color: '#40395f', ink: '#fffaf0', eyebrow: 'Your first week', title: "Let's get to know you", bird: true,
         body: n === 0
           ? "You haven't logged anything yet. Log a few expenses and we'll start spotting your patterns."
           : `You logged ${n} ${n === 1 ? 'expense' : 'expenses'} this week. Log a few more and we'll start spotting your patterns.`,
@@ -36,7 +39,7 @@ export function recapSlides(recap: WeekRecap, money: (n: number) => string): Sli
 
   const slides: Slide[] = [
     {
-      color: '#40395f', ink: '#fffaf0', eyebrow: 'Your first week', title: "Here's what we learned about you", emoji: '🐦',
+      color: '#40395f', ink: '#fffaf0', eyebrow: 'Your first week', title: "Here's what we learned about you", bird: true,
       body: `${n} expenses across ${recap.daysLogged} of 7 days. Here's what stood out.`,
     },
   ]
@@ -81,6 +84,14 @@ function RecapStory({ recap, onClose }: { recap: WeekRecap; onClose: () => void 
   const last = index === slides.length - 1
   const slide = slides[index]
   const dialog = useRef<HTMLDivElement>(null)
+  const [paused, setPaused] = useState(false)
+
+  // Plays like Wrapped: each slide holds STORY_MS, then moves on, stopping on the last.
+  useEffect(() => {
+    if (paused || reduceMotion || last) return
+    const timer = window.setTimeout(() => setIndex((i) => Math.min(slides.length - 1, i + 1)), STORY_MS)
+    return () => window.clearTimeout(timer)
+  }, [index, paused, reduceMotion, last, slides.length])
 
   useEffect(() => {
     dialog.current?.querySelector<HTMLElement>('.wrapped-controls button')?.focus()
@@ -98,6 +109,7 @@ function RecapStory({ recap, onClose }: { recap: WeekRecap; onClose: () => void 
       if (event.key === 'ArrowRight') setIndex((i) => Math.min(slides.length - 1, i + 1))
       if (event.key === 'ArrowLeft') setIndex((i) => Math.max(0, i - 1))
       if (event.key === 'Escape') onClose()
+      if (event.key === ' ') { event.preventDefault(); setPaused((value) => !value) }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -106,9 +118,10 @@ function RecapStory({ recap, onClose }: { recap: WeekRecap; onClose: () => void 
   return (
     <div ref={dialog} className="wrapped-shell week-recap-overlay" role="dialog" aria-modal="true" aria-label="Your first week">
       <main className="wrapped-player" style={{ '--wrapped-bg': slide.color, '--wrapped-ink': slide.ink } as CSSProperties}>
-        <div className="wrapped-progress" aria-label={`Story ${index + 1} of ${slides.length}`}>{slides.map((_, i) => <i key={i}><b className={i < index ? 'is-done' : i === index ? 'is-current' : ''} /></i>)}</div>
+        <div className="wrapped-progress" aria-label={`Story ${index + 1} of ${slides.length}`}>{slides.map((_, i) => <i key={i}><b className={i < index ? 'is-done' : i === index ? 'is-current' : ''} style={i === index && !paused && !reduceMotion ? { animationDuration: `${STORY_MS}ms` } : undefined} /></i>)}</div>
         <div className="wrapped-controls">
           <button type="button" onClick={onClose} aria-label="Close recap"><X /></button>
+          <button type="button" onClick={() => setPaused((value) => !value)} aria-label={paused ? 'Resume stories' : 'Pause stories'}>{paused ? <Play /> : <Pause />}</button>
         </div>
         <button className="wrapped-tap wrapped-tap--left" type="button" onClick={() => setIndex((i) => Math.max(0, i - 1))} aria-label="Previous story" disabled={index === 0} />
         <button className="wrapped-tap wrapped-tap--right" type="button" onClick={() => setIndex((i) => Math.min(slides.length - 1, i + 1))} aria-label="Next story" disabled={last} />
@@ -117,7 +130,9 @@ function RecapStory({ recap, onClose }: { recap: WeekRecap; onClose: () => void 
             <span className="wrapped-slide-count">{String(index + 1).padStart(2, '0')} / {slides.length}</span>
             <div className="wrapped-story-copy">
               <span className="wrapped-eyebrow">{slide.eyebrow}</span>
-              {slide.emoji && <span className="wrapped-hero-emoji" aria-hidden="true">{slide.emoji}</span>}
+              {slide.bird
+                ? <span className="wrapped-hero-emoji" aria-hidden="true"><BirdMark size={96} /></span>
+                : slide.emoji && <span className="wrapped-hero-emoji" aria-hidden="true">{slide.emoji}</span>}
               <h1>{slide.title}</h1>
               <p>{slide.body}</p>
             </div>

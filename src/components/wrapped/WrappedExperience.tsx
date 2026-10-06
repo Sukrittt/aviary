@@ -13,7 +13,7 @@ import { formatDateShort } from '@/src/lib/format'
 import type { WrappedData, WrappedJudgement } from '@/src/api/wrapped'
 import { LoadingCaption } from '@/src/components/LoadingCaption'
 
-const STORY_MS = 5000
+export const STORY_MS = 5000
 const PALETTE = ['#f2b84b', '#ee785d', '#4f9b82', '#6f67b1', '#df8c59']
 
 /** Jev's persona keys, with the copy the card shows for each. */
