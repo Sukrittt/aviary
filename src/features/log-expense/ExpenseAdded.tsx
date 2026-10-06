@@ -146,8 +146,8 @@ export function ExpenseAdded({
   const subtitle = item || categoryName
   // A small "we're learning you" moment: only once the item has come up before this week.
   const noticed = useMemo(
-    () => noticedLine(item, weeklyRepeat(expensesQ.data ?? EMPTY, { id: expense.id, item, date })),
-    [expensesQ.data, expense.id, item, date],
+    () => noticedLine(item, weeklyRepeat(expensesQ.data ?? EMPTY, { id: expense.id, timestamp, item, date })),
+    [expensesQ.data, expense.id, timestamp, item, date],
   )
 
   return (

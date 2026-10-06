@@ -14,13 +14,18 @@ function addDays(date: string, days: number): string {
   return d.toISOString().slice(0, 10)
 }
 
-/** How many times `expense.item` was logged in the 7 days ending on its date, counting it once. */
-export function weeklyRepeat(rows: Row[], expense: { id?: string; item: string; date: string }): number {
+/**
+ * How many times `expense.item` was logged in the 7 days ending on its date,
+ * counting it once. The new row is recognised by id, or by timestamp when an
+ * older server returned no id, so a refetched list doesn't count it twice.
+ */
+export function weeklyRepeat(rows: (Row & { timestamp?: string })[], expense: { id?: string; timestamp?: string; item: string; date: string }): number {
   const item = norm(expense.item)
   if (!item) return 0
   const from = addDays(expense.date, -6)
-  const others = rows.filter((r) => r.id !== expense.id || !expense.id).filter((r) => norm(r.item) === item && r.date >= from && r.date <= expense.date)
-  return others.length + 1
+  const isSelf = (r: { id?: string; timestamp?: string }) =>
+    (!!expense.id && r.id === expense.id) || (!!expense.timestamp && r.timestamp === expense.timestamp)
+  return rows.filter((r) => !isSelf(r) && norm(r.item) === item && r.date >= from && r.date <= expense.date).length + 1
 }
 
 function ordinal(n: number): string {

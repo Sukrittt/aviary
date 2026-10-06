@@ -29,11 +29,11 @@ export function LearningCard() {
   const logged = new Set(learnedDates(learning.loggedDates, rows, startDate, days[learning.day - 1].date))
 
   return (
-    <article className="erd-card home-learning" aria-label="Aviary is learning your habits">
+    <article className="erd-card home-learning" aria-label="We're learning your habits">
       <div className="home-learning-head">
         <span className="home-learning-bird"><BirdMark size={40} /></span>
         <div>
-          <h2>Aviary is learning your habits</h2>
+          <h2>We&apos;re learning your habits</h2>
           <p>Day {learning.day} of 7 · your first-week recap unlocks {left === 1 ? 'tomorrow' : `in ${left} days`}</p>
         </div>
       </div>

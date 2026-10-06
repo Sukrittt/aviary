@@ -19,6 +19,11 @@ describe('weeklyRepeat', () => {
     expect(weeklyRepeat([...rows, row('new', '2026-10-07', 'Chai')], { id: 'new', item: 'Chai', date: '2026-10-07' })).toBe(3)
   })
 
+  it('recognises the new row by timestamp when an older server returned no id', () => {
+    const self = { id: 'srv-1', date: '2026-10-07', item: 'Chai', timestamp: '2026-10-07T09:00:00' }
+    expect(weeklyRepeat([self], { item: 'Chai', date: '2026-10-07', timestamp: '2026-10-07T09:00:00' })).toBe(1)
+  })
+
   it('ignores later dates, other items and blank items', () => {
     expect(weeklyRepeat([row('x', '2026-10-09', 'Chai')], { item: 'Chai', date: '2026-10-07' })).toBe(1)
     expect(weeklyRepeat(rows, { item: 'Lunch', date: '2026-10-07' })).toBe(1)
