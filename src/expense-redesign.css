@@ -7928,6 +7928,13 @@ button.account-feature-card {
 }
 
 /* Expense Wrapped */
+/* The first-week recap opens the Wrapped player over the expense page. */
+.week-recap-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  overflow-y: auto;
+}
 .wrapped-shell {
   min-height: 100dvh;
   background: #40395f;

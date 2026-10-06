@@ -40,6 +40,7 @@ import { useSubscriptions, useCancelSubscription, useReactivateSubscription } fr
 import { useHideAmounts } from "../hooks/useHideAmounts";
 import { GetStartedCard } from "../components/home/GetStartedCard";
 import { useUser } from "../hooks/useUser";
+import { WeekRecapGate } from "../components/wrapped/WeekRecap";
 import { usePersistentState } from "../hooks/usePersistentState";
 import { LogExpenseModal } from "../components/LogExpenseModal";
 import { SuccessButton, useButtonPhase } from "../components/SuccessButton";
@@ -302,6 +303,7 @@ export function ExpensePage() {
 
   return (
     <section className="expense-redesign">
+      <WeekRecapGate />
       {actionError && (
         <div className="erd-action-error" role="alert">
           {actionError}

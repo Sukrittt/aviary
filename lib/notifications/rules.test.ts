@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildNotifications, categoryLevel, OVER_LEVEL, type NotificationPrefs } from './rules'
+import { buildNotifications, categoryLevel, OVER_LEVEL, prefsFor, weekRecapNotification, type NotificationPrefs } from './rules'
 import type { Envelope } from '@/src/types/expense'
 import type { SummarizeExpensesMeta } from '@/lib/ai/expenseContext'
 
@@ -421,5 +421,17 @@ describe('buildNotifications — pace', () => {
     expect(run({ prefs: prefs({ coach: false }) })).toHaveLength(0)
     expect(run({ prefs: prefs({ cadence: 'off' }) })).toHaveLength(0)
     expect(run({ pace: null })).toHaveLength(0)
+  })
+})
+
+describe('weekRecapNotification', () => {
+  const user = { _id: 'u', email: 'a@b.c', name: null, avatarUrl: null, createdAt: new Date() }
+
+  it('opens the recap and fires once per account', () => {
+    expect(weekRecapNotification(prefsFor(user))).toMatchObject({ key: 'recap:week1', data: { route: '/recap' } })
+  })
+
+  it('respects the Wrapped opt-out', () => {
+    expect(weekRecapNotification(prefsFor({ ...user, notifyWrapped: false }))).toBeNull()
   })
 })

@@ -5,10 +5,11 @@ import { json, nowIn, getCollection } from '@/lib/http'
 import { getDb } from '@/lib/mongodb'
 import type { Auth } from '@/lib/access'
 import { buildExpenseContext } from '@/lib/ai/expenseContext'
-import { buildNotifications, prefsFor, wrappedNotification } from '@/lib/notifications/rules'
+import { buildNotifications, prefsFor, weekRecapNotification, wrappedNotification } from '@/lib/notifications/rules'
 import { claim, claimAndSend, unclaim } from '@/lib/notifications/deliver'
 import { currentEdition, editionStatus } from '@/lib/wrapped'
 import type { UserDoc } from '@/lib/users'
+import { onboardedDate, recapDue } from '@/lib/weekRecap'
 import { applyHoldingAction } from '@/lib/holdings'
 import { isDueToday, isDueTomorrow, tomorrowOf } from '@/lib/holdingRecurrence'
 import { isSubscriptionDueToday } from '@/lib/subscriptions'
@@ -314,6 +315,13 @@ async function runRecurringExpensesForUser(db: Db, user: UserDoc, today: string)
 
   return sent
 }
+/** Day 7 recap push. Rides the Wrapped pass: same opt-out, no expense reads. */
+async function runWeekRecapForUser(db: Db, user: UserDoc): Promise<number> {
+  if (!recapDue(onboardedDate(user), user.weekRecapSeenAt, nowIn(user.timezone).date)) return 0
+  const notification = weekRecapNotification(prefsFor(user))
+  if (!notification) return 0
+  return (await claimAndSend(db, user._id, notification, '')) ? 1 : 0
+}
 
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET
@@ -352,6 +360,11 @@ async function runAll(): Promise<{ sent: number }> {
       sent += await runWrappedForUser(db, user)
     } catch (err) {
       console.error('notifications/run: wrapped failed for', user._id, err)
+    }
+    try {
+      sent += await runWeekRecapForUser(db, user)
+    } catch (err) {
+      console.error('notifications/run: week recap failed for', user._id, err)
     }
   }
 
