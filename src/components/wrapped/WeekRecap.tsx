@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useMemo, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react'
 import { X } from 'lucide-react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCurrency } from '@/src/context/CurrencyContext'
 import { useHideAmounts } from '@/src/hooks/useHideAmounts'
 import { getWeekRecap, markWeekRecapSeen, type WeekRecap } from '@/src/api/weekRecap'
@@ -80,9 +80,21 @@ function RecapStory({ recap, onClose }: { recap: WeekRecap; onClose: () => void 
   const slides = useMemo(() => recapSlides(recap, (n) => formatCurrency(n, hideAmounts)), [recap, formatCurrency, hideAmounts])
   const last = index === slides.length - 1
   const slide = slides[index]
+  const dialog = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    dialog.current?.querySelector<HTMLElement>('.wrapped-controls button')?.focus()
+  }, [])
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
+      // Keep Tab inside the story so the page behind it isn't reachable.
+      if (event.key === 'Tab' && dialog.current) {
+        const buttons = [...dialog.current.querySelectorAll<HTMLElement>('button:not([disabled])')]
+        const at = buttons.indexOf(document.activeElement as HTMLElement)
+        event.preventDefault()
+        buttons[(at + (event.shiftKey ? -1 : 1) + buttons.length) % buttons.length]?.focus()
+      }
       if (event.key === 'ArrowRight') setIndex((i) => Math.min(slides.length - 1, i + 1))
       if (event.key === 'ArrowLeft') setIndex((i) => Math.max(0, i - 1))
       if (event.key === 'Escape') onClose()
@@ -92,7 +104,7 @@ function RecapStory({ recap, onClose }: { recap: WeekRecap; onClose: () => void 
   }, [onClose, slides.length])
 
   return (
-    <div className="wrapped-shell week-recap-overlay" role="dialog" aria-modal="true" aria-label="Your first week">
+    <div ref={dialog} className="wrapped-shell week-recap-overlay" role="dialog" aria-modal="true" aria-label="Your first week">
       <main className="wrapped-player" style={{ '--wrapped-bg': slide.color, '--wrapped-ink': slide.ink } as CSSProperties}>
         <div className="wrapped-progress" aria-label={`Story ${index + 1} of ${slides.length}`}>{slides.map((_, i) => <i key={i}><b className={i < index ? 'is-done' : i === index ? 'is-current' : ''} /></i>)}</div>
         <div className="wrapped-controls">
@@ -122,17 +134,24 @@ function RecapStory({ recap, onClose }: { recap: WeekRecap; onClose: () => void 
  * device. No entry point: if it's been seen anywhere, `due` is false.
  */
 export function WeekRecapGate() {
-  const { data } = useQuery({ queryKey: ['week-recap'], queryFn: getWeekRecap, staleTime: Infinity, retry: false })
+  const qc = useQueryClient()
+  // Refetched on window focus, so a tab left open across day 7 still gets it.
+  const { data } = useQuery({ queryKey: ['week-recap'], queryFn: getWeekRecap, staleTime: 5 * 60_000, retry: false })
+  // Held once shown: marking it seen flips the cache to `due: false`, which must not close the story mid-read.
+  const [shown, setShown] = useState<WeekRecap | null>(null)
   const [closed, setClosed] = useState(false)
-  const open = !!data?.due && !!data.recap && !closed
+  if (!shown && !closed && data?.due && data.recap) setShown(data.recap)
 
   useEffect(() => {
-    if (!open) return
+    if (!shown) return
     track('week_recap_opened')
-    // Seen on open, not on finish: closing early still counts.
-    markWeekRecapSeen().catch((err) => console.warn('Marking recap seen failed', err))
-  }, [open])
+    // Seen on open, not on finish: closing early still counts. Dropping the
+    // cached `due` stops a remount of the page from reopening it.
+    markWeekRecapSeen()
+      .then(() => qc.setQueryData(['week-recap'], { due: false }))
+      .catch((err) => console.warn('Marking recap seen failed', err))
+  }, [shown, qc])
 
-  if (!open || !data?.recap) return null
-  return <RecapStory recap={data.recap} onClose={() => setClosed(true)} />
+  if (!shown || closed) return null
+  return <RecapStory recap={shown} onClose={() => setClosed(true)} />
 }
