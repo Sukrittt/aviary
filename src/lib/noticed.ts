@@ -4,9 +4,9 @@
  * have an expense. Twin of Mobile's src/lib/noticed.ts.
  */
 
-type Row = { id?: string; date: string; item: string }
+type Row = { id?: string; date: string; item?: string }
 
-const norm = (s: string) => s.trim().toLowerCase()
+const norm = (s: string | undefined) => (s ?? '').trim().toLowerCase()
 
 function addDays(date: string, days: number): string {
   const d = new Date(`${date}T00:00:00Z`)
