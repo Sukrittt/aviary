@@ -1,5 +1,7 @@
 'use client'
 
+import type { CSSProperties } from 'react'
+import { motion, useReducedMotion } from 'motion/react'
 import { Check } from 'lucide-react'
 import { BirdMark } from '@/src/components/BirdMark'
 import { useWeekRecap } from '@/src/components/wrapped/WeekRecap'
@@ -15,6 +17,7 @@ const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
  * reads as a miss. Today ticks once they log. Hides once the recap is due. Twin of Mobile's src/components/home/LearningCard.tsx.
  */
 export function LearningCard() {
+  const reduceMotion = useReducedMotion()
   const learning = useWeekRecap().data?.learning
   const rows = useRecentExpenses().data
   if (!learning) return null
@@ -31,25 +34,34 @@ export function LearningCard() {
   const logged = new Set(learnedDates(learning.loggedDates, rows, startDate, days[learning.day - 1].date))
 
   return (
-    <article className="erd-card home-learning" aria-label="We're learning your habits">
-      <div className="home-learning-head">
-        <span className="home-learning-bird"><BirdMark size={40} /></span>
-        <div>
-          <h2>We&apos;re learning your habits</h2>
-          <p>Day {learning.day} of 7 · your first-week recap unlocks {left === 1 ? 'tomorrow' : `in ${left} days`}</p>
+    // Grows in like the Get started card, pushing the cards below down. The
+    // negative margin cancels the column's gap at zero height.
+    <motion.div
+      className="home-learning-slot"
+      initial={reduceMotion ? false : { height: 0, opacity: 0, marginBottom: -20 }}
+      animate={{ height: 'auto', opacity: 1, marginBottom: 0 }}
+      transition={{ duration: reduceMotion ? 0 : 0.4, ease: [0.22, 1, 0.36, 1] }}
+    >
+      <article className="erd-card home-learning" aria-label="We're learning your habits">
+        <div className="home-learning-head">
+          <span className="home-learning-bird"><BirdMark size={40} /></span>
+          <div>
+            <h2>We&apos;re learning your habits</h2>
+            <p>Day {learning.day} of 7 · your first-week recap unlocks {left === 1 ? 'tomorrow' : `in ${left} days`}</p>
+          </div>
         </div>
-      </div>
-      <ol className="home-learning-days">
-        {days.map((d, i) => {
-          const done = i < learning.day - 1 || (d.today && logged.has(d.date))
-          return (
-            <li key={d.date} className={done ? 'is-on' : d.today ? 'is-today' : ''} aria-label={`${d.date}${done ? ', done' : d.today ? ', today' : ''}`}>
-              <span>{done && <Check size={18} strokeWidth={3} style={{ animationDelay: `${120 + i * 90}ms` }} />}</span>
-              <small>{d.letter}</small>
-            </li>
-          )
-        })}
-      </ol>
-    </article>
+        <ol className="home-learning-days">
+          {days.map((d, i) => {
+            const done = i < learning.day - 1 || (d.today && logged.has(d.date))
+            return (
+              <li key={d.date} className={done ? 'is-on' : d.today ? 'is-today' : ''} style={{ '--i': i } as CSSProperties} aria-label={`${d.date}${done ? ', done' : d.today ? ', today' : ''}`}>
+                <span>{done && <Check size={18} strokeWidth={3} />}</span>
+                <small>{d.letter}</small>
+              </li>
+            )
+          })}
+        </ol>
+      </article>
+    </motion.div>
   )
 }
