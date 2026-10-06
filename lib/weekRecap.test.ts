@@ -62,6 +62,14 @@ describe('computeWeekRecap', () => {
     ])
   })
 
+  it('lists the days logged, every log time, and up to 4 categories', () => {
+    const recap = computeWeekRecap(rows, '2026-10-01')
+    expect(recap.loggedDates).toEqual(['2026-10-01', '2026-10-02', '2026-10-03', '2026-10-05', '2026-10-06'])
+    expect(recap.logMinutes).toEqual([550, 580, 1230, 1260, 1265, 1275])
+    expect(recap.categories.map((c) => c.category)).toEqual(['Shopping', 'Transport', 'Food'])
+    expect(recap.categories[0]).toEqual(recap.topCategory)
+  })
+
   it('reports the median logging minute', () => {
     // Sorted minutes: 550, 580, 1230, 1260, 1265, 1275 -> median (1230 + 1260) / 2
     expect(computeWeekRecap(rows, '2026-10-01').usualMinute).toBe(1245)
@@ -94,6 +102,9 @@ describe('computeWeekRecap', () => {
       biggest: null,
       repeats: [],
       usualMinute: null,
+      loggedDates: [],
+      logMinutes: [],
+      categories: [],
     })
   })
 })

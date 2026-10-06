@@ -29,6 +29,12 @@ export interface WeekRecap {
   repeats: { item: string; category: string; count: number }[]
   /** Median minute after local midnight they log at, or null with nothing logged. */
   usualMinute: number | null
+  /** Each date with an expense, ascending. */
+  loggedDates: string[]
+  /** Every log's minute after local midnight, ascending. */
+  logMinutes: number[]
+  /** Biggest categories first, at most 4. The first is `topCategory`. */
+  categories: { category: string; total: number; pct: number }[]
 }
 
 export type RecapRow = { date: string; timestamp: string; item: string; category: string; amount_inr: string; source?: string }
@@ -71,7 +77,10 @@ export function computeWeekRecap(rows: RecapRow[], start: string): WeekRecap {
 
   const byCategory = new Map<string, number>()
   for (const r of week) byCategory.set(r.category, (byCategory.get(r.category) ?? 0) + r.amount)
-  const [top] = [...byCategory.entries()].sort((a, b) => b[1] - a[1])
+  const categories = [...byCategory.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 4)
+    .map(([category, total]) => ({ category, total, pct: (total / totalSpent) * 100 }))
 
   const biggest = week.reduce<(typeof week)[number] | null>((max, r) => (!max || r.amount > max.amount ? r : max), null)
 
@@ -87,6 +96,7 @@ export function computeWeekRecap(rows: RecapRow[], start: string): WeekRecap {
     .map((r) => r.timestamp.slice(11, 16))
     .filter((t) => /^\d\d:\d\d$/.test(t))
     .map((t) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3)))
+    .sort((a, b) => a - b)
 
   return {
     startDate: start,
@@ -94,9 +104,12 @@ export function computeWeekRecap(rows: RecapRow[], start: string): WeekRecap {
     totalTransactions: week.length,
     totalSpent,
     daysLogged: new Set(week.map((r) => r.date)).size,
-    topCategory: top ? { category: top[0], total: top[1], pct: (top[1] / totalSpent) * 100 } : null,
+    topCategory: categories[0] ?? null,
     biggest: biggest ? { item: biggest.item, category: biggest.category, amountInr: biggest.amount, date: biggest.date } : null,
     repeats: [...byItem.values()].filter((r) => r.count >= 2).sort((a, b) => b.count - a.count).slice(0, 3),
     usualMinute: minutes.length ? median(minutes) : null,
+    loggedDates: [...new Set(week.map((r) => r.date))].sort(),
+    logMinutes: minutes,
+    categories,
   }
 }
