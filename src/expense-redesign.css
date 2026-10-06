@@ -6875,6 +6875,34 @@ button.account-feature-card {
   background: var(--coral-soft);
 }
 
+.env-drag-handle {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 20px;
+  height: 34px;
+  margin-left: -8px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--erd-text3);
+  cursor: grab;
+  touch-action: none;
+}
+
+.env-drag-handle:hover {
+  color: var(--erd-text);
+}
+
+.env-drag-handle:active {
+  cursor: grabbing;
+}
+
+/* Rows paint their own background so a dragged one doesn't show the rows beneath. */
+.env-cat-list > .env-cat {
+  background: var(--erd-card);
+}
+
 .env-cat-list {
   list-style: none;
   margin: 0;
