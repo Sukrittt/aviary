@@ -148,7 +148,7 @@ html:has(.lp) { scroll-behavior: smooth; }
 .lp-learn-next li { background: var(--tint); border-color: #ffd7c0; }
 .lp-learn-lines { width: 80px; height: 240px; }
 .lp-learn-lines path { fill: none; stroke: #d3cec2; stroke-width: 2; stroke-dasharray: 5 6; vector-effect: non-scaling-stroke; }
-.lp-learn-habit { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 26px 28px; border-radius: 28px; background: var(--accent); color: var(--on-accent); box-shadow: 0 24px 40px -22px rgb(190 60 10 / 70%); }
+.lp-learn-habit { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 26px 28px; border-radius: 28px; background: var(--accent); color: #ffdbc0; box-shadow: 0 24px 40px -22px rgb(190 60 10 / 70%); }
 .lp-learn-habit strong { font-family: var(--font-fredoka), sans-serif; font-weight: 500; font-size: 22px; margin-top: 4px; }
 .lp-learn-habit span { font-size: 14px; font-weight: 800; line-height: 1.4; }
 .lp-learn figcaption { grid-column: 1 / -1; margin-top: 22px; font-size: 14px; color: var(--muted); }
