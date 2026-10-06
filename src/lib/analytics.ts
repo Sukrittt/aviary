@@ -75,6 +75,8 @@ export type AppEvent =
   | 'wrapped_opened'
   | 'wrapped_card_viewed'
   | 'wrapped_shared'
+  | 'week_recap_opened'
+  | 'week_recap_finished'
   // Paying
   | 'paywall_viewed'
   | 'purchase_started'

@@ -27,6 +27,8 @@ export interface UserDoc {
   /** Server-only welcome delivery, seeded on insert so existing accounts are never emailed retroactively. */
   welcomeEmail?: WelcomeDelivery
   onboardedAt?: string | null
+  /** When the first-week recap was opened, on any device. Server-set, once. */
+  weekRecapSeenAt?: string | null
   /** Server-owned milestones used by Mobile's finite Home "Get started" card. */
   getStartedAt?: string | null
   manualTransactionCompletedAt?: string | null

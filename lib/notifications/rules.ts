@@ -31,7 +31,7 @@ export const DEFAULT_ALERT_PCTS = [50, 90, 100]
 /** Sentinel level for an overspent envelope — always above any realistic alertPct, since `spentPct` is capped at 100. */
 export const OVER_LEVEL = 101
 
-export type NotificationKind = 'threshold' | 'overspent' | 'bill' | 'digest' | 'coach' | 'pace' | 'wrapped'
+export type NotificationKind = 'threshold' | 'overspent' | 'bill' | 'digest' | 'coach' | 'pace' | 'wrapped' | 'recap'
 
 export interface Notification {
   /** Dedupe key claimed in `notification_log`; stable across runs until the underlying fact changes. */
@@ -240,6 +240,22 @@ export function wrappedNotification(month: string, prefs: NotificationPrefs): No
     title: 'Your Wrapped is ready',
     body: `Your ${label} Expense Wrapped just unlocked.`,
     data: { route: '/wrapped' },
+  }
+}
+
+/**
+ * Day 7's "here's what we learned about you" push. Gated on the Wrapped
+ * switch, the closest thing to it. The cron only asks while the recap is due
+ * (see lib/weekRecap.ts), and the key makes it once per account.
+ */
+export function weekRecapNotification(prefs: NotificationPrefs): Notification | null {
+  if (!prefs.wrapped) return null
+  return {
+    key: 'recap:week1',
+    kind: 'recap',
+    title: 'Your first week is in',
+    body: "Here's what we learned about you in 7 days. Take a peek.",
+    data: { route: '/recap' },
   }
 }
 
