@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import SetupWizardPage from './page'
 import { getSplitBuckets } from '@/src/api/categories'
@@ -42,7 +42,7 @@ describe('onboarding suggested split', () => {
     expect(needs + wants).toBe(50000)
     expect(Math.abs(needs - 31250)).toBeLessThanOrEqual(500)
     expect(amountOf('Rent')).toBeGreaterThan(amountOf('Utilities'))
-    expect(document.querySelector('.setup-split-why')).toHaveTextContent(/^Needs 62\.5%Wants 37\.5%$/)
+    expect(document.querySelector('.setup-split-why')).toHaveTextContent(/^Suggested split:Needs 62\.5%Wants 37\.5%$/)
     expect(screen.getAllByText('Need')).toHaveLength(3)
     expect(screen.getAllByText('Want')).toHaveLength(2)
     client.clear()
@@ -60,7 +60,37 @@ describe('onboarding suggested split', () => {
     expect(getSplitBuckets).toHaveBeenCalledWith([{ name: 'Index fund', group: expect.any(String) }])
     expect(amountOf('Index fund')).toBe(10000)
     expect(screen.getByText('Savings', { selector: '.setup-assign-bucket' })).toBeInTheDocument()
-    expect(document.querySelector('.setup-split-why')).toHaveTextContent(/^Needs 50%Wants 30%Savings 20%$/)
+    expect(document.querySelector('.setup-split-why')).toHaveTextContent(/^Suggested split:Needs 50%Wants 30%Savings 20%$/)
     client.clear()
   })
+})
+
+
+it('retries a missing custom classification on the next visit to assignment', async () => {
+  vi.mocked(getSplitBuckets).mockReset().mockResolvedValueOnce({}).mockResolvedValueOnce({ 'index fund': 'savings' })
+  const client = walkToCategories()
+  fireEvent.click(screen.getAllByRole('button', { name: /Add category/ })[0])
+  fireEvent.change(screen.getAllByPlaceholderText('Category name').at(-1)!, { target: { value: 'Index fund' } })
+  fireEvent.click(screen.getByRole('checkbox', { name: /Select Index fund/ }))
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+  await screen.findByRole('button', { name: 'Finish setup' })
+  fireEvent.click(screen.getByRole('button', { name: 'Back' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+  await waitFor(() => expect(getSplitBuckets).toHaveBeenCalledTimes(2))
+  expect(await screen.findByText('Savings', { selector: '.setup-assign-bucket' })).toBeInTheDocument()
+  client.clear()
+})
+
+it('identifies the percentages as the original suggestion after an even split or an edit', async () => {
+  vi.mocked(getSplitBuckets).mockReset().mockResolvedValue({})
+  const client = walkToCategories()
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+  await screen.findByRole('button', { name: 'Finish setup' })
+  fireEvent.click(screen.getByRole('button', { name: 'Split evenly' }))
+  expect(amountOf('Rent')).toBe(10000)
+  expect(document.querySelector('.setup-split-why')).toHaveTextContent('Suggested split:')
+  const input = screen.getByRole('textbox', { name: 'Rename Rent' }).closest('.setup-assign-row')!.querySelector('input[type="number"]')!
+  fireEvent.change(input, { target: { value: '12000' } })
+  expect(document.querySelector('.setup-split-why')).toHaveTextContent('Suggested split:')
+  client.clear()
 })

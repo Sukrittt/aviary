@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { IosWaitlist } from './IosWaitlist'
 
@@ -28,4 +28,16 @@ describe('IosWaitlist', () => {
     expect(await screen.findByText('Check your connection and try again.')).toBeInTheDocument()
     expect(screen.queryByText(/rate limited/)).not.toBeInTheDocument()
   })
+})
+
+
+it('uses the shared animated success beat before settling on the joined label', async () => {
+  vi.stubGlobal('fetch', vi.fn(async () => new Response('{"ok":true}')))
+  render(<IosWaitlist />)
+  join('me@example.com')
+  const tick = await screen.findByRole('img', { name: 'You’re on the list' })
+  expect(tick.closest('button')).toHaveClass('is-success')
+  expect(tick.querySelector('path')).toHaveAttribute('pathLength', '1')
+  await waitFor(() => expect(screen.queryByRole('img', { name: 'You’re on the list' })).not.toBeInTheDocument(), { timeout: 2000 })
+  expect(screen.getByRole('button', { name: 'You’re on the list' })).toBeDisabled()
 })

@@ -218,17 +218,20 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
     setStep(4)
   }
 
-  // Jev tags the categories the user named themselves, once per name, before
-  // the assign step opens. Any failure leaves them on the group-name fallback.
+  // Cache successful tags; a failed or partial request can retry when the
+  // user returns to this step. Failure still opens the group-name fallback.
   // With nothing new to ask, the step opens at once.
   const tagThenOpenAssign = async () => {
     const ask = unknownCategories(liveCats()).filter((c) => !askedBuckets.current.has(normName(c.name)))
     if (!ask.length) return openAssign(bucketTags)
-    ask.forEach((c) => askedBuckets.current.add(normName(c.name)))
     setSaveProgress(0)
     setSaveStep('Working out your split…')
     setPending(true)
-    const tags = { ...bucketTags, ...(await getSplitBuckets(ask)) }
+    const received = await getSplitBuckets(ask)
+    ask.forEach((c) => {
+      if (received[normName(c.name)]) askedBuckets.current.add(normName(c.name))
+    })
+    const tags = { ...bucketTags, ...received }
     setPending(false)
     setBucketTags(tags)
     openAssign(tags)
@@ -750,6 +753,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
           </div>
           {summary && (
             <p className="setup-split-why">
+              <span>Suggested split:</span>
               {summary.map((s) => (
                 <span key={s.bucket} className="setup-split-key">
                   <span className={`setup-split-dot is-${s.bucket}`} aria-hidden="true" />

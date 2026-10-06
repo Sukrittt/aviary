@@ -8,6 +8,7 @@ import { ScanBillModal } from './ScanBillModal'
 import { ScanBillProvider } from './ScanBillProvider'
 import { scanBill, type ScanResult } from '@/src/api/scan'
 import { saveBillScan } from '@/src/api/bills'
+import { dataUrlFromFile } from './image'
 import { postExpensePayload } from '@/src/api/expenses'
 
 vi.mock('@/src/api/scan', () => ({ scanBill: vi.fn() }))
@@ -340,4 +341,29 @@ it('supports keyboard selection, clearing and applying a split to the selected i
   expect(screen.getByRole('button', { name: 'Select' })).toHaveAttribute('aria-pressed', 'false')
   expect(screen.queryByRole('group', { name: 'Split selected items' })).not.toBeInTheDocument()
   expect(screen.getByRole('button', { name: 'Review ₹57.50 →' })).toBeInTheDocument()
+})
+
+
+it.each(['decode', 'scan'])('keeps an edited bill when its replacement fails to %s', async (failure) => {
+  vi.mocked(scanBill).mockResolvedValueOnce(BILL)
+  renderSession()
+  await userEvent.click(screen.getByRole('button', { name: 'Open scan' }))
+  await pasteBill()
+  fireEvent.change(await screen.findByRole('textbox', { name: 'Merchant' }), { target: { value: 'Edited shop' } })
+  fireEvent.change(screen.getByRole('spinbutton', { name: 'Your share of Milk' }), { target: { value: '30' } })
+  const originalPhoto = screen.getByAltText('The scanned bill').getAttribute('src')
+  if (failure === 'decode') vi.mocked(dataUrlFromFile).mockRejectedValueOnce(new Error('corrupt image'))
+  else {
+    vi.mocked(dataUrlFromFile).mockResolvedValueOnce('data:image/jpeg;base64,TkVX')
+    vi.mocked(scanBill).mockRejectedValueOnce(new Error('offline'))
+  }
+  await userEvent.upload(screen.getByLabelText('Re-upload bill photo'), new File(['x'], 'replacement.png', { type: 'image/png' }))
+  await screen.findByText(/Couldn't read that (image|bill)/)
+  expect(screen.getByRole('textbox', { name: 'Merchant' })).toHaveValue('Edited shop')
+  expect(screen.getByRole('alert')).toHaveTextContent(/Couldn't read/)
+  expect(screen.getByRole('spinbutton', { name: 'Your share of Milk' })).toHaveValue(30)
+  expect(screen.getByAltText('The scanned bill')).toHaveAttribute('src', originalPhoto)
+  await userEvent.click(screen.getByRole('button', { name: 'Change page' }))
+  await userEvent.click(screen.getByRole('button', { name: 'Open scan' }))
+  expect(screen.getByRole('button', { name: 'Review ₹77.50 →' })).toBeInTheDocument()
 })

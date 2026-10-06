@@ -88,7 +88,6 @@ export function ScanBillModal({ onClose, onEnterManually }: Props) {
             const file = e.target.files?.[0]
             e.target.value = ''
             if (!file || state.confirmButton.saving || state.confirmButton.success) return
-            state.startOver()
             void state.pickFile(file)
           }}
         />
@@ -119,6 +118,9 @@ export function ScanBillModal({ onClose, onEnterManually }: Props) {
           </div>
         )}
 
+        {(phase === 'review' || phase === 'confirm') && state.errorMsg && (
+          <p className="erd-log-error" role="alert">{state.errorMsg}</p>
+        )}
         {phase === 'review' && <ScanReview {...state} />}
         {phase === 'confirm' && <ScanConfirm {...state} />}
       </Sheet>

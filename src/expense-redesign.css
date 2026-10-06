@@ -10137,7 +10137,7 @@ button.account-feature-card {
   gap: 10px;
 }
 .scan-share-card .scan-hero-amount {
-  color: var(--gold);
+  color: var(--gold-ink);
   font-size: 42px;
 }
 .scan-review-footer {

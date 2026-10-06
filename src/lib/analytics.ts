@@ -174,9 +174,9 @@ export function isAnalyticsLoading(): boolean {
   return loading !== null && client === null
 }
 
-/** Resolves once analytics has started, or straight away when it never will. */
+/** Starts initialization if needed, including before the provider's effect. */
 export function analyticsReady(): Promise<void> {
-  return loading ?? Promise.resolve()
+  return initAnalytics()
 }
 
 /** Every property PostHog fills with a URL, on the event or the person. */

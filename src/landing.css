@@ -214,6 +214,12 @@ html:has(.lp) { scroll-behavior: smooth; }
 .lp-waitlist input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .lp-waitlist .lp-button { flex-shrink: 0; }
 .lp .lp-waitlist .lp-button.is-joined { background: var(--food); color: var(--ink); opacity: 1; }
+.lp-waitlist .lp-button { position: relative; }
+.lp-waitlist .is-success .sb-label { visibility: hidden; }
+.lp-waitlist .sb-tick { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; animation: erd-success-pop 300ms ease forwards; }
+.lp-waitlist .sb-tick svg { width: 18px; height: 18px; }
+.lp-waitlist .sb-tick path { stroke-dasharray: 1; stroke-dashoffset: 1; animation: erd-check-draw 350ms ease 220ms forwards; }
+@media (prefers-reduced-motion: reduce) { .lp-waitlist .sb-tick, .lp-waitlist .sb-tick path { animation: none; stroke-dashoffset: 0; } }
 .lp-waitlist-note { margin-top: 12px; font-size: 14px; color: var(--muted); }
 .lp-footer { max-width: 1240px; padding: 36px 32px 44px; margin: auto; border-top: 1px solid var(--line); display: flex; align-items: flex-start; justify-content: space-between; gap: 30px; }
 .lp-footer .lp-logo { font-size: 22px; }

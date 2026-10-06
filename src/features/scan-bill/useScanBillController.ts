@@ -49,10 +49,18 @@ export function useScanBillController({ onDone }: { onDone: () => void }) {
 
   function fail(message: string) {
     setErrorMsg(message)
-    setPhase('error')
+    // A replacement is provisional until the new scan succeeds. Keep all
+    // edits and restore the original photo if decoding or scanning fails.
+    if (phase === 'review' || phase === 'confirm') {
+      setImageUrl(imageUrl)
+      setPhase(phase)
+    } else {
+      setPhase('error')
+    }
   }
 
   async function scan(dataUrl: string) {
+    setErrorMsg('')
     setImageUrl(dataUrl)
     setPhase('scanning')
     // The scan route always requires a non-empty category list, same guard as
@@ -73,6 +81,10 @@ export function useScanBillController({ onDone }: { onDone: () => void }) {
           actions.load(res)
           setQuery('')
           setSelected([])
+          setSelecting(false)
+          setPickingCategory(false)
+          setConfirmError('')
+          confirmButton.reset()
           setPhase('review')
         },
         onError: () => fail("Couldn't read that bill. Try a clearer photo, or enter this expense manually."),
