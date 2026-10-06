@@ -39,6 +39,7 @@ import { useGroups } from "../hooks/useGroups";
 import { useSubscriptions, useCancelSubscription, useReactivateSubscription } from "../hooks/useSubscriptions";
 import { useHideAmounts } from "../hooks/useHideAmounts";
 import { GetStartedCard } from "../components/home/GetStartedCard";
+import { LearningCard } from "../components/home/LearningCard";
 import { useUser } from "../hooks/useUser";
 import { WeekRecapGate } from "../components/wrapped/WeekRecap";
 import { usePersistentState } from "../hooks/usePersistentState";
@@ -440,6 +441,8 @@ export function ExpensePage() {
                   </motion.div>
                 )}
               </AnimatePresence>
+
+              <LearningCard />
 
               {envelopeState && (
                 <motion.article

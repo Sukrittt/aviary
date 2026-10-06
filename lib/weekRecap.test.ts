@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { computeWeekRecap, recapDue, recapWindow } from './weekRecap'
+import { computeWeekRecap, learningDay, recapDue, recapWindow } from './weekRecap'
 
 const row = (date: string, time: string, item: string, category: string, amount: number, source = 'manual') => ({
   date,
@@ -106,5 +106,23 @@ describe('computeWeekRecap', () => {
       logMinutes: [],
       categories: [],
     })
+  })
+})
+
+describe('learningDay', () => {
+  it('counts the onboarding date as day 1 through day 7, then stops', () => {
+    expect(learningDay('2026-10-01', '2026-09-30')).toBeNull()
+    expect(learningDay('2026-10-01', '2026-10-01')).toBe(1)
+    expect(learningDay('2026-10-01', '2026-10-03')).toBe(3)
+    expect(learningDay('2026-10-01', '2026-10-07')).toBe(7)
+    expect(learningDay('2026-10-01', '2026-10-08')).toBeNull()
+  })
+
+  it('crosses month ends', () => {
+    expect(learningDay('2026-09-29', '2026-10-02')).toBe(4)
+  })
+
+  it('is null without an onboarding date', () => {
+    expect(learningDay(null, '2026-10-02')).toBeNull()
   })
 })

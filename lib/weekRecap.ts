@@ -61,6 +61,17 @@ export function onboardedDate(user: { onboardedAt?: string | null; timezone?: st
   return user.onboardedAt ? nowIn(user.timezone, new Date(user.onboardedAt)).date : null
 }
 
+/**
+ * Which day of the first week `today` is, counting the onboarding date as
+ * day 1, or null outside days 1 to 7. Drives the "learning you" card and
+ * the day 3 and day 5 teaser pushes; the recap itself is due the day after.
+ */
+export function learningDay(onboardedDate: string | null, today: string): number | null {
+  if (!onboardedDate) return null
+  const day = Math.round((Date.parse(`${today}T00:00:00Z`) - Date.parse(`${onboardedDate}T00:00:00Z`)) / 86_400_000) + 1
+  return day >= 1 && day <= 7 ? day : null
+}
+
 export function recapDue(onboardedDate: string | null, seenAt: string | null | undefined, today: string): boolean {
   if (!onboardedDate || seenAt) return false
   const { dueFrom, dueUntil } = recapWindow(onboardedDate)

@@ -5409,6 +5409,17 @@
   max-width: 560px;
 }
 
+/* Sets up the first-week recap from day 0. */
+.setup-done-promise {
+  margin: 14px 0 0;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--gold) 16%, transparent);
+  color: var(--erd-text);
+  font: 800 14px/1.4 var(--font-nunito);
+  animation: setup-fade-in 0.4s 170ms both;
+}
+
 .setup-done-list {
   width: 100%;
   max-width: 560px;
@@ -11280,6 +11291,15 @@ button.account-feature-card {
   color: var(--erd-text2);
   text-align: center;
 }
+.erd-added-noticed {
+  margin-top: 12px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--gold) 16%, transparent);
+  color: var(--erd-text);
+  font: 800 14px/1.3 var(--font-nunito);
+  text-align: center;
+}
 .erd-added-card {
   align-self: stretch;
   margin-top: 32px;
@@ -11453,6 +11473,73 @@ button.account-feature-card {
   overflow: hidden;
   /* Step springs own the reveal; avoid the dashboard's second entrance. */
   animation: none;
+}
+.expense-redesign .home-learning {
+  flex-shrink: 0;
+  display: grid;
+  gap: 16px;
+  padding: 20px 24px;
+}
+.home-learning-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.home-learning-bird {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  flex: none;
+  border-radius: 16px;
+  color: var(--gold-ink);
+  background: color-mix(in srgb, var(--gold) 18%, transparent);
+}
+.home-learning h2 {
+  margin: 0;
+  font: 600 1.15rem var(--font-fredoka), sans-serif;
+  color: var(--erd-text);
+}
+.home-learning p {
+  margin: 2px 0 0;
+  font: 700 0.9rem var(--font-nunito);
+  color: var(--erd-text2);
+}
+.home-learning-days {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.home-learning-days li {
+  flex: 1;
+  max-width: 40px;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+}
+.home-learning-days span {
+  width: 100%;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--erd-border-strong);
+  border-radius: 50%;
+  font-weight: 900;
+  color: var(--gold-ink);
+}
+.home-learning-days li.is-on span {
+  border-color: var(--gold);
+  background: var(--gold);
+}
+.home-learning-days li.is-today span {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+.home-learning-days small {
+  font: 800 0.72rem var(--font-nunito);
+  color: var(--erd-text2);
 }
 .expense-redesign .get-started-heading { display: flex; align-items: flex-start; gap: 12px; }
 .expense-redesign .get-started-heading > div { flex: 1; min-width: 0; }

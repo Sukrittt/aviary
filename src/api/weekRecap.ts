@@ -3,7 +3,16 @@ import type { WeekRecap } from '@/lib/weekRecap'
 
 export type { WeekRecap }
 
-export async function getWeekRecap(): Promise<{ due: boolean; recap?: WeekRecap }> {
+
+/** Days 1 to 7, before the recap is due: the first week so far, for the Home card. */
+export interface WeekLearning {
+  day: number
+  loggedDates: string[]
+  /** The date the recap becomes due. */
+  unlocksOn: string
+}
+
+export async function getWeekRecap(): Promise<{ due: boolean; recap?: WeekRecap; learning?: WeekLearning }> {
   const resp = await apiFetch('/api/recap')
   if (!resp.ok) throw new Error(`Failed to load recap: ${resp.status}`)
   return resp.json()
