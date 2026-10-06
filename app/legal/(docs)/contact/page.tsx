@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Github, Mail, MessageSquareHeart, Smartphone } from 'lucide-react'
+import { Github, Mail, MessageSquareHeart } from 'lucide-react'
 import { pageMetadata } from '@/lib/seo'
 import { FEEDBACK_BOARD_URL } from '@/lib/links'
 import { GITHUB } from '@/src/components/landing/Chrome'
@@ -26,11 +26,6 @@ export default function ContactPage() {
       </a>
 
       <div className="lp-contact-ways">
-        <div className="lp-card lp-pay-card">
-          <span className="lp-include-icon lp-tone-food" aria-hidden="true"><Smartphone size={22} strokeWidth={2.2} /></span>
-          <strong>Signed in already?</strong>
-          <span>Send feedback from inside the app: Account, then Help &amp; feedback.</span>
-        </div>
         <a className="lp-card lp-pay-card" href={FEEDBACK_BOARD_URL} target="_blank" rel="noreferrer">
           <span className="lp-include-icon lp-tone-savings" aria-hidden="true"><MessageSquareHeart size={22} strokeWidth={2.2} /></span>
           <strong>Feedback board</strong>

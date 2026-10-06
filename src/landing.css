@@ -744,7 +744,7 @@ html:has(.lp) { scroll-behavior: smooth; }
 .lp-contact-mail-copy { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .lp-contact-mail-copy strong { font-family: var(--font-fredoka), sans-serif; font-weight: 500; font-size: clamp(20px, 2.6vw, 26px); letter-spacing: -.015em; overflow-wrap: anywhere; }
 .lp-contact-mail-copy span { font-size: 14px; color: var(--muted); }
-.lp-contact-ways { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; width: 100%; margin-top: 20px; }
+.lp-contact-ways { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; width: 100%; max-width: 620px; margin-top: 16px; }
 .lp .lp-contact-ways a.lp-card { transition: border-color .16s ease, transform .3s cubic-bezier(.22, 1, .36, 1); }
 .lp .lp-contact-ways a.lp-card:hover { border-color: #cfcabe; transform: translateY(-3px); }
 .lp-contact-related { font-size: 15px !important; margin-top: 36px !important; }
