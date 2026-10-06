@@ -187,12 +187,13 @@ export function parseAccounts(raw: unknown): { accounts: AccountBalance[]; total
 }
 
 /**
- * Whether two checks were typed over the same accounts. A check from before
- * accounts had names (`[]`) was one account, so it matches any single one.
+ * Whether two checks were typed over the same accounts. An unnamed balance
+ * (`[]`, from before accounts had names or from an older app) was one
+ * account, so it matches any single one.
  */
 export function sameAccounts(before: string[], now: string[]): boolean {
-  if (before.length === 0) return now.length <= 1
-  const key = (names: string[]) => names.map((n) => n.toLowerCase()).sort().join('\n')
+  if (before.length === 0 || now.length === 0) return before.length <= 1 && now.length <= 1
+  const key = (names: string[]) => JSON.stringify(names.map((n) => n.toLowerCase()).sort())
   return key(before) === key(now)
 }
 

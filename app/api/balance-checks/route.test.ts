@@ -161,6 +161,14 @@ describe('POST /api/balance-checks', () => {
     expect(stores.balance_checks.at(-1)).toMatchObject({ status: 'baseline' })
   })
 
+  it('keeps the account names when an older app sends one balance', async () => {
+    seedBaseline()
+    Object.assign(stores.balance_checks[0], { accounts: [{ name: 'HDFC', balance: '50000' }, { name: 'Slice', balance: '0' }] })
+    expect((await (await post({ balance: 50000 })).json()).kind).toBe('baseline')
+    const got = await (await GET(new Request('https://example.com/api/balance-checks'))).json()
+    expect(got.accounts).toEqual(['HDFC', 'Slice'])
+  })
+
   it('rejects a bad account list', async () => {
     expect((await post({ accounts: [{ name: '', balance: 10 }] })).status).toBe(400)
   })

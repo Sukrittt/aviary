@@ -205,8 +205,14 @@ describe('sameAccounts', () => {
     expect(sameAccounts(['HDFC'], ['Slice'])).toBe(false)
   })
 
-  it('takes an unnamed single balance from before accounts as the same one account', () => {
+  it('takes an unnamed single balance from before accounts as the same one account, either way round', () => {
     expect(sameAccounts([], ['HDFC'])).toBe(true)
+    expect(sameAccounts(['HDFC'], [])).toBe(true)
     expect(sameAccounts([], ['HDFC', 'Slice'])).toBe(false)
+    expect(sameAccounts(['HDFC', 'Slice'], [])).toBe(false)
+  })
+
+  it('never mistakes one name with a line break for two accounts', () => {
+    expect(sameAccounts(['a\nb'], ['a', 'b'])).toBe(false)
   })
 })

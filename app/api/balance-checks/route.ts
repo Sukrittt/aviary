@@ -59,8 +59,8 @@ export async function GET(req: Request) {
     expected,
     anchor: anchor ? { timestamp: anchor.timestamp, date: anchor.date, balance: anchor.balance } : null,
     loggedPct: lastLoggedPct(checks),
-    // The accounts to ask about again. The open check's, if there is one: it's the list the user typed last.
-    accounts: (checks[0] ?? anchor)?.accounts ?? [],
+    // The accounts to ask about again: the newest list typed. A check from an older app has none and doesn't clear it.
+    accounts: checks.find((c) => c.accounts.length > 0)?.accounts ?? [],
   })
 }
 
