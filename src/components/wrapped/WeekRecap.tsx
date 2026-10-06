@@ -125,8 +125,10 @@ function RecapStory({ recap, onClose }: { recap: WeekRecap; onClose: () => void 
         </div>
         <button className="wrapped-tap wrapped-tap--left" type="button" onClick={() => setIndex((i) => Math.max(0, i - 1))} aria-label="Previous story" disabled={index === 0} />
         <button className="wrapped-tap wrapped-tap--right" type="button" onClick={() => setIndex((i) => Math.min(slides.length - 1, i + 1))} aria-label="Next story" disabled={last} />
+        {/* The background and ink switch the moment the index changes, so the
+            old slide leaves near-instantly instead of lingering in the new colours. */}
         <AnimatePresence mode="wait">
-          <motion.section key={index} className="wrapped-slide" initial={reduceMotion ? false : { opacity: 0, y: 24, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={reduceMotion ? undefined : { opacity: 0, y: -18 }} transition={{ duration: 0.35 }}>
+          <motion.section key={index} className="wrapped-slide" initial={reduceMotion ? false : { opacity: 0, y: 24, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={reduceMotion ? undefined : { opacity: 0, transition: { duration: 0.1 } }} transition={{ duration: 0.35 }}>
             <span className="wrapped-slide-count">{String(index + 1).padStart(2, '0')} / {slides.length}</span>
             <div className="wrapped-story-copy">
               <span className="wrapped-eyebrow">{slide.eyebrow}</span>
