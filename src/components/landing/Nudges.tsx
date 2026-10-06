@@ -309,7 +309,7 @@ export function NoticeSplit() {
   }, [started, reduced, step, take])
 
   return <div className="lp-split2" ref={ref}>
-    <div className="lp-split2-without" aria-label="Without Aviary: a bank statement">
+    <div className="lp-split2-without" role="img" aria-label="Without Aviary: a bank statement">
       <div className="lp-statement" aria-hidden="true">
         <div className="lp-statement-head"><span>Date</span><span>Narration</span><span>Debit</span></div>
         {STATEMENT.map(([d, n, a]) => <div key={n}><span>{d}</span><span>{n}</span><span>{a}</span></div>)}
@@ -324,7 +324,9 @@ export function NoticeSplit() {
           <span className="lp-split2-icon">{done > i + 1 ? <Check size={13} strokeWidth={3.2} /> : null}</span>{s}
         </li>)}
       </ol>
-      <div className={`lp-split2-result${done > STEPS.length ? ' is-in' : ''}`}>
+      {/* Hidden from assistive tech until it lands: before that it's a faded
+          placeholder for a result that hasn't happened yet. */}
+      <div className={`lp-split2-result${done > STEPS.length ? ' is-in' : ''}`} aria-hidden={done > STEPS.length ? undefined : true}>
         <span className="lp-stage-label">Today in Aviary</span>
         <Image src="/landing/activity-today.png" alt="Today's logs in the app: Bike to office ₹150, Shopping ₹1,500, Trip with friends ₹1,500, Electricity ₹6,000, Groceries ₹5,000, Gym membership ₹1,500." width={720} height={665} sizes="(max-width: 760px) 90vw, 420px" />
       </div>

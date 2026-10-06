@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { motion } from 'motion/react'
 import { LIST_SPRING } from '@/src/components/landing/mobile/kit'
 import { LoadingCaption } from '@/src/components/LoadingCaption'
-import { isAnalyticsEnabled, setAnalyticsEnabled, track } from '@/src/lib/analytics'
+import { analyticsReady, isAnalyticsEnabled, setAnalyticsEnabled, track } from '@/src/lib/analytics'
 
 interface Summary {
   transactionCount: number
@@ -49,7 +49,8 @@ export default function DataPage() {
   const [analyticsOn, setAnalyticsOn] = useState<boolean | null>(null)
 
   useEffect(() => {
-    setAnalyticsOn(isAnalyticsEnabled())
+    // PostHog loads lazily, so ask only once it's there.
+    void analyticsReady().then(() => setAnalyticsOn(isAnalyticsEnabled()))
   }, [])
 
   function toggleAnalytics() {

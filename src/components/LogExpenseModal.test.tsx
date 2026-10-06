@@ -3,9 +3,10 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { LogExpenseModal } from './LogExpenseModal'
 import { suggestCategoryLLM } from '../lib/autoCategory'
 
-const { addExpenseMutation, deleteExpenseMutation, history } = vi.hoisted(() => ({
+const { addExpenseMutation, deleteExpenseMutation, addCategoryMutation, history } = vi.hoisted(() => ({
   addExpenseMutation: vi.fn(),
   deleteExpenseMutation: vi.fn(),
+  addCategoryMutation: vi.fn(),
   history: { rows: [] as unknown[] },
 }))
 vi.mock('../hooks/useExpenses', () => ({
@@ -15,7 +16,9 @@ vi.mock('../hooks/useExpenses', () => ({
 }))
 vi.mock('../api/categoryMap', () => ({ getCategoryMap: vi.fn(async () => ({ words: {}, updatedAt: '' })) }))
 vi.mock('../lib/autoCategory', () => ({ suggestCategoryLLM: vi.fn() }))
+vi.mock('../hooks/useGroups', () => ({ useGroups: () => ({ data: ['Food', 'Home'] }) }))
 vi.mock('../hooks/useCategories', () => ({
+  useAddCategory: () => ({ mutateAsync: addCategoryMutation }),
   useCategories: () => ({ data: [{ name: 'Groceries' }, { name: 'Rent' }, { name: 'Eating out' }] }),
 }))
 vi.mock('@/src/context/CurrencyContext', () => ({ useCurrency: () => ({ currencySymbol: '₹', formatMoney: (n: number) => `₹${n}` }) }))
@@ -32,8 +35,8 @@ vi.mock('./DatePicker', () => ({ DatePicker: () => null }))
 // The animated receipt itself is chrome here; this file tests the dialog's hand-off to it.
 vi.mock('../features/log-expense/ExpenseAdded', () => ({
   PreloadExpenseAddedTick: () => null,
-  ExpenseAdded: ({ expense, onUndo, onDone }: { expense: { amount: number; item: string }; onUndo: () => void; onDone: () => void }) => (
-    <div>
+  ExpenseAdded: ({ expense, onUndo, onDone }: { expense: { amount: number; item: string; categorySnapshot?: { name: string; group: string } }; onUndo: () => void; onDone: () => void }) => (
+    <div data-category-name={expense.categorySnapshot?.name} data-category-group={expense.categorySnapshot?.group}>
       <p>Added ₹{expense.amount} · {expense.item}</p>
       <button type="button" onClick={onUndo}>Undo</button>
       <button type="button" onClick={onDone}>Done</button>
@@ -55,6 +58,7 @@ beforeEach(() => {
   llm.mockReset().mockResolvedValue('')
   addExpenseMutation.mockReset()
   deleteExpenseMutation.mockReset()
+  addCategoryMutation.mockReset()
   history.rows = []
 })
 
@@ -288,4 +292,61 @@ describe('LogExpenseModal typo guard', () => {
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '45' } })
     expect(screen.queryByRole('alert')).toBeNull()
   })
+})
+
+
+it('opens category creation from the web expense form and selects the saved category', async () => {
+  const save = deferred<void>()
+  addCategoryMutation.mockReturnValue(save.promise)
+  addExpenseMutation.mockResolvedValue({ id: 'expense-new', pending: false })
+  render(<LogExpenseModal onClose={vi.fn()} onSaved={vi.fn()} />)
+  fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '450' } })
+  type('Gym membership')
+  fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+  expect(screen.getByRole('dialog', { name: 'Add category' })).toBeInTheDocument()
+  fireEvent.change(screen.getByLabelText('Name'), { target: { value: '  🏋️ Gym  ' } })
+  fireEvent.click(screen.getByRole('button', { name: /Home/ }))
+  fireEvent.click(screen.getByRole('button', { name: 'Add category' }))
+  expect(addCategoryMutation).toHaveBeenCalledWith({ name: '🏋️ Gym', group: 'Home' })
+  expect(screen.getByRole('button', { name: 'Saving…' })).toBeDisabled()
+  save.resolve()
+  await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Add category' })).not.toBeInTheDocument())
+  expect(category()).toBe('🏋️ Gym')
+  expect(screen.getByLabelText('Amount')).toHaveValue('450')
+  expect(screen.getByLabelText('What was it for?')).toHaveValue('Gym membership')
+  fireEvent.click(screen.getByRole('button', { name: 'Save expense' }))
+  await waitFor(() => expect(addExpenseMutation).toHaveBeenCalledWith(expect.objectContaining({ item: 'Gym membership', amount_inr: '450', category: '🏋️ Gym' })))
+  const receipt = (await screen.findByText('Added ₹450 · Gym membership')).parentElement
+  expect(receipt).toHaveAttribute('data-category-name', '🏋️ Gym')
+  expect(receipt).toHaveAttribute('data-category-group', 'Home')
+})
+
+it('keeps creation errors visible and allows retry without closing the expense form', async () => {
+  addCategoryMutation.mockRejectedValueOnce(new Error('Category already exists')).mockResolvedValueOnce(undefined)
+  const onClose = vi.fn()
+  render(<LogExpenseModal onClose={onClose} onSaved={vi.fn()} />)
+  fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+  fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Groceries' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Add category' }))
+  expect(await screen.findByRole('alert')).toHaveTextContent('That category already exists.')
+  expect(screen.getByLabelText('Name')).toHaveValue('Groceries')
+  fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Gym' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Add category' }))
+  await waitFor(() => expect(category()).toBe('Gym'))
+  expect(onClose).not.toHaveBeenCalled()
+})
+
+it('cancels category creation while preserving the expense and previous category', () => {
+  render(<LogExpenseModal onClose={vi.fn()} onSaved={vi.fn()} />)
+  type('Milk')
+  fireEvent.click(screen.getByRole('button', { name: 'Choose Groceries' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+  expect(screen.getByRole('button', { name: 'Add category' })).toBeDisabled()
+  fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Gym' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+  expect(category()).toBe('Groceries')
+  expect(screen.getByLabelText('What was it for?')).toHaveValue('Milk')
+  expect(addCategoryMutation).not.toHaveBeenCalled()
+  fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+  expect(screen.getByLabelText('Name')).toHaveValue('')
 })

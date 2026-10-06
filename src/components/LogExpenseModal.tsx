@@ -3,12 +3,14 @@
 import { useCurrency } from '@/src/context/CurrencyContext'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Calendar, PencilLine, Tag, TriangleAlert, WalletMinimal } from 'lucide-react'
+import { Calendar, PencilLine, Plus, Tag, TriangleAlert, WalletMinimal } from 'lucide-react'
 import { Scrim, Sheet } from './MotionSheet'
 import { DatePicker, formatShort } from './DatePicker'
 import { getCategoryMap } from '../api/categoryMap'
 import { suggestCategoryLLM } from '../lib/autoCategory'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
+import { AddCategoryModal } from './AddCategoryModal'
+import type { CategoryRow } from '../types'
 import { CategoryPicker } from './CategoryPicker'
 import { useCategories } from '../hooks/useCategories'
 import { useAddExpense, useDeleteExpense, useRecentExpenses } from '../hooks/useExpenses'
@@ -60,6 +62,8 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
   const [item, setItem] = useState('')
   const [amount, setAmount] = useState('')
   const [category, setCategory] = useState<string>('')
+  const [showAddCategory, setShowAddCategory] = useState(false)
+  const [createdCategory, setCreatedCategory] = useState<CategoryRow | null>(null)
   const [date, setDate] = useState(toDateInputValue(new Date()))
   const [showCalendar, setShowCalendar] = useState(false)
   const pickDateChipRef = useRef<HTMLButtonElement>(null)
@@ -104,6 +108,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
     [categoriesQ.data],
   )
   const selectedRow = (categoriesQ.data ?? EMPTY).find((c) => c.name === category)
+    ?? (createdCategory?.name === category ? createdCategory : undefined)
   const selectedCategory = selectedRow
     ? { emoji: categoryEmoji(selectedRow.name, selectedRow.group), name: splitEmoji(selectedRow.name).text }
     : null
@@ -271,6 +276,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
         date,
         amount: Math.round(parsed),
         loggedAt: result.timestamp || new Date().toISOString(),
+        categorySnapshot: createdCategory?.name === effectiveCategory ? createdCategory : undefined,
       })
     } catch {
       setError('Could not save — try again.')
@@ -301,8 +307,9 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
   const yesterday = offsetDateValue(1)
 
   return (
-    <Scrim className="erd-modal-overlay" onClick={success ? undefined : onClose}>
-      <Sheet className="erd-modal-card erd-log-card" onClick={(e) => e.stopPropagation()}>
+    <>
+    <Scrim className="erd-modal-overlay" onClick={success || showAddCategory ? undefined : onClose}>
+      <Sheet className="erd-modal-card erd-log-card" inert={showAddCategory} onClick={(e) => e.stopPropagation()}>
         {added ? (
           <ExpenseAdded
             expense={added}
@@ -393,8 +400,12 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
                   <div ref={categoryNudgeRef} className={`erd-log-label${flag('category') ? ' is-missing' : ''}`}>
                     Category
                   </div>
+                  <button type="button" className="erd-chip" style={{ marginInlineStart: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6 }} onClick={() => setShowAddCategory(true)}>
+                    <Plus size={15} aria-hidden="true" />
+                    Add
+                  </button>
                 </div>
-                <CategoryPicker value={effectiveCategory} onChange={handleCategoryPick} />
+                <CategoryPicker value={effectiveCategory} onChange={handleCategoryPick} additionalCategory={createdCategory} />
               </section>
 
               <section className="erd-log-section">
@@ -459,5 +470,16 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
         )}
       </Sheet>
     </Scrim>
+    {showAddCategory && (
+      <AddCategoryModal
+        onClose={() => setShowAddCategory(false)}
+        onCreated={(created) => {
+          setCreatedCategory(created)
+          handleCategoryPick(created.name)
+          setShowAddCategory(false)
+        }}
+      />
+    )}
+    </>
   )
 }

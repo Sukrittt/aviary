@@ -90,3 +90,9 @@ it('shows the search box at 12+ categories and keeps all chips', () => {
   const row = container.querySelector('.erd-chip-row')!
   expect(within(row as HTMLElement).getAllByRole('button')).toHaveLength(14)
 })
+
+it('shows a newly created category selected before the list refresh finishes', () => {
+  setCategories([{ name: 'Groceries', group: 'Food' }])
+  render(<CategoryPicker value="🏋️ Gym" onChange={vi.fn()} additionalCategory={{ name: '🏋️ Gym', group: 'Health' }} />)
+  expect(screen.getByRole('button', { name: /Gym/ })).toHaveAttribute('aria-pressed', 'true')
+})

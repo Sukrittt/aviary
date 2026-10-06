@@ -101,3 +101,42 @@ export async function pickHoldingType(name: string, types: string[], caller: AiC
     caller,
   )
 }
+
+const BUDGET_BUCKETS = ['need', 'want', 'savings'] as const
+export type BudgetBucket = (typeof BUDGET_BUCKETS)[number]
+
+/**
+ * Tags each budget category as a need, want or savings for onboarding's
+ * 50/30/20 split, in one call. Returns only the confident tags, keyed by the
+ * lowercased category name; the caller treats a missing name as untagged.
+ */
+export async function pickBudgetBuckets(
+  categories: { name: string; group: string }[],
+  caller: AiCaller,
+): Promise<Partial<Record<string, BudgetBucket>>> {
+  if (!categories.length) return {}
+  const state: JevState = {}
+  const questions: Record<string, Experimental_EvaluationQuestion> = {}
+  categories.forEach((c, i) => {
+    state[`category_${i}`] = c.name
+    state[`group_${i}`] = c.group
+    questions[`c${i}`] = {
+      type: 'choice',
+      instructions: `In a 50/30/20 personal budget, is the category in category_${i} (filed under the group in group_${i}) a need, a want, or savings?`,
+      criteria: {
+        need: 'Essential spending: housing, bills, groceries, transport, insurance, health, debt payments.',
+        want: 'Discretionary spending: dining out, fun, hobbies, shopping, subscriptions, gifts, people.',
+        savings: 'Money set aside: emergency fund, investments, retirement, saving for a goal.',
+      },
+    }
+  })
+  const answers = await runJev(state, questions, caller)
+  const out: Partial<Record<string, BudgetBucket>> = {}
+  categories.forEach((c, i) => {
+    const a = answers[`c${i}`] as { choice: string; probabilities?: Record<string, number> } | undefined
+    if (!a || !(BUDGET_BUCKETS as readonly string[]).includes(a.choice)) return
+    if (a.probabilities && (a.probabilities[a.choice] ?? 0) < MIN_CONFIDENCE) return
+    out[c.name.trim().toLowerCase()] = a.choice as BudgetBucket
+  })
+  return out
+}

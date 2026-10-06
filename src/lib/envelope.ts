@@ -135,9 +135,6 @@ export function computeEnvelopeState(
     category: e.category,
   }))
 
-  const monthBudgets = budgets.filter((b) => b.month === currentMonth)
-  const prevMonthBudgets = budgets.filter((b) => b.month < currentMonth)
-
   const budgetsByCategory = new Map<string, BudgetNum[]>()
   for (const b of budgets) {
     const arr = budgetsByCategory.get(b.category) ?? []
@@ -170,17 +167,22 @@ export function computeEnvelopeState(
   const categoryGroup = new Map<string, string>()
   for (const c of categoryRows) categoryGroup.set(c.name, c.group ?? '')
 
-  const budgetCategories = new Set(
-    [...monthBudgets, ...prevMonthBudgets]
-      .filter((b) => b.category !== INCOME_CATEGORY)
-      .map((b) => b.category),
-  )
-
-  const allCategories = [...new Set([...categoryRows.map((c) => c.name), ...budgetCategories])]
+  // The category list owns envelope membership. Historical budget rows stay
+  // on record after deletion, but must not recreate an envelope or reserve
+  // its old assignment. The credit-card payment envelope is a system category
+  // and can exist without a category row.
+  const allCategories = new Set(categoryRows.map((c) => c.name).filter((name) => name !== INCOME_CATEGORY))
+  if (budgets.some((b) => b.category === CREDIT_CARD_CATEGORY && b.month <= currentMonth)) {
+    allCategories.add(CREDIT_CARD_CATEGORY)
+  }
 
   const envelopes: Envelope[] = []
   let totalAssigned = 0
-  let totalSpent = 0
+  // Deleting an envelope does not undo its spending. Include every real
+  // expense so historical savings and leftover calculations stay accurate.
+  const totalSpent = [...monthSpending.entries()]
+    .filter(([category]) => category !== CREDIT_CARD_CATEGORY && category !== INCOME_CATEGORY)
+    .reduce((sum, [, spent]) => sum + spent, 0)
 
   for (const category of allCategories) {
     const isCC = category === CREDIT_CARD_CATEGORY
@@ -194,7 +196,6 @@ export function computeEnvelopeState(
 
     if (!isCC) {
       totalAssigned += assigned
-      totalSpent += spent
     }
 
     envelopes.push({

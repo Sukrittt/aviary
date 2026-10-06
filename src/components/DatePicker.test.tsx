@@ -110,3 +110,49 @@ it('renders a chip-triggered calendar as a popover with no inline field, and clo
   expect(onChange).toHaveBeenCalledWith('2026-08-25')
   expect(screen.queryByText('August 2026')).toBeNull()
 })
+
+
+it('opens a popup on small screens when requested and closes after selecting a date', () => {
+  vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({
+    matches: false,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  }))
+  const onChange = vi.fn()
+  render(
+    <div className="expense-redesign">
+      <aside className="scan-side">
+        <DatePicker mode="single" value="2026-08-19" onChange={onChange} popover />
+      </aside>
+    </div>,
+  )
+  fireEvent.click(screen.getByText('Wednesday, 19 Aug 2026'))
+  const calendar = screen.getByText('August 2026').closest('.date-picker-popover')
+  expect(calendar).toBeInTheDocument()
+  expect(calendar?.closest('.scan-side')).toBeNull()
+  fireEvent.click(screen.getByText('25'))
+  expect(onChange).toHaveBeenCalledWith('2026-08-25')
+  expect(screen.queryByText('August 2026')).toBeNull()
+})
+
+
+it('anchors above the field using the untransformed height on the first open and reopen', () => {
+  const rectSpy = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+    return this.classList.contains('date-picker-field-wrap')
+      ? { top: 600, bottom: 650, left: 100, right: 420, width: 320, height: 50 } as DOMRect
+      : { top: 0, bottom: 410, left: 0, right: 320, width: 320, height: 410 } as DOMRect
+  })
+  const heightSpy = vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(320)
+  try {
+    render(<DatePicker mode="single" value="2026-08-19" onChange={vi.fn()} popover />)
+    const trigger = screen.getByText('Wednesday, 19 Aug 2026')
+    fireEvent.click(trigger)
+    expect(screen.getByText('August 2026').closest('.date-picker-popover')).toHaveStyle({ top: '272px' })
+    fireEvent.click(trigger)
+    fireEvent.click(trigger)
+    expect(screen.getByText('August 2026').closest('.date-picker-popover')).toHaveStyle({ top: '272px' })
+  } finally {
+    rectSpy.mockRestore()
+    heightSpy.mockRestore()
+  }
+})
