@@ -1,5 +1,6 @@
 'use client'
 
+import { Check } from 'lucide-react'
 import { BirdMark } from '@/src/components/BirdMark'
 import { useWeekRecap } from '@/src/components/wrapped/WeekRecap'
 import { useRecentExpenses } from '@/src/hooks/useExpenses'
@@ -9,8 +10,9 @@ const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 
 /**
  * Days 1 to 7: tells new users the app is learning them and that a recap is
- * coming, with a dot per day of the week ticking as they log. Hides once the
- * recap is due. Twin of Mobile's src/components/home/LearningCard.tsx.
+ * coming. The dots count the week down, not attendance: every day that has
+ * passed is ticked whether or not anything was spent, so a quiet day never
+ * reads as a miss. Today ticks once they log. Hides once the recap is due. Twin of Mobile's src/components/home/LearningCard.tsx.
  */
 export function LearningCard() {
   const learning = useWeekRecap().data?.learning
@@ -38,12 +40,15 @@ export function LearningCard() {
         </div>
       </div>
       <ol className="home-learning-days">
-        {days.map((d) => (
-          <li key={d.date} className={`${logged.has(d.date) ? 'is-on' : ''}${d.today ? ' is-today' : ''}`} aria-label={`${d.date}${logged.has(d.date) ? ', logged' : ''}`}>
-            <span>{logged.has(d.date) ? '✓' : ''}</span>
-            <small>{d.letter}</small>
-          </li>
-        ))}
+        {days.map((d, i) => {
+          const done = i < learning.day - 1 || (d.today && logged.has(d.date))
+          return (
+            <li key={d.date} className={done ? 'is-on' : d.today ? 'is-today' : ''} aria-label={`${d.date}${done ? ', done' : d.today ? ', today' : ''}`}>
+              <span>{done && <Check size={18} strokeWidth={3} style={{ animationDelay: `${120 + i * 90}ms` }} />}</span>
+              <small>{d.letter}</small>
+            </li>
+          )
+        })}
       </ol>
     </article>
   )

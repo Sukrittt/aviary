@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
+import { Check } from 'lucide-react'
 import type { WeekRecap } from '@/src/api/weekRecap'
 import { BirdMark } from '@/src/components/BirdMark'
 import { Confetti } from '@/src/components/onboarding/Confetti'
@@ -150,10 +151,8 @@ export function RecapDetail({ slide, recap, money }: { slide: RecapSlide; recap:
   }
 }
 
-/** One dot per day of the week, lit where they logged. */
+/** The week, all seven days ticked: a week done, not a scorecard of days logged. */
 function DayDots({ recap }: { recap: WeekRecap }) {
-  if (!recap.loggedDates) return null
-  const logged = new Set(recap.loggedDates)
   const days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(`${recap.startDate}T00:00:00Z`)
     d.setUTCDate(d.getUTCDate() + i)
@@ -161,15 +160,12 @@ function DayDots({ recap }: { recap: WeekRecap }) {
   })
   return (
     <div className="week-recap-dots">
-      {days.map((day, i) => {
-        const on = logged.has(day.date)
-        return (
-          <Pop key={day.date} delay={0.45 + i * 0.09} className="week-recap-dot-col">
-            <span className={`week-recap-dot${on ? ' is-on' : ''}`}>{on ? '✓' : ''}</span>
-            <small>{day.letter}</small>
-          </Pop>
-        )
-      })}
+      {days.map((day, i) => (
+        <Pop key={day.date} delay={0.45 + i * 0.09} className="week-recap-dot-col">
+          <span className="week-recap-dot is-on"><Check size={20} strokeWidth={3} /></span>
+          <small>{day.letter}</small>
+        </Pop>
+      ))}
     </div>
   )
 }

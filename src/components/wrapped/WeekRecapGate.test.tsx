@@ -9,7 +9,7 @@ vi.mock('@/src/hooks/useHideAmounts', () => ({ useHideAmounts: () => [false] }))
 vi.mock('@/src/lib/analytics', () => ({ track: vi.fn() }))
 vi.mock('@/src/api/weekRecap', () => ({ getWeekRecap: vi.fn(), markWeekRecapSeen: vi.fn() }))
 
-const recap = { totalTransactions: 1 } as WeekRecap
+const recap = { startDate: '2026-10-01', totalTransactions: 1 } as WeekRecap
 
 beforeEach(() => {
   vi.clearAllMocks()
