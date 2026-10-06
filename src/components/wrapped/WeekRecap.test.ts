@@ -13,6 +13,9 @@ const recap: WeekRecap = {
   biggest: { item: 'Shoes', category: 'Shopping', amountInr: 2000, date: '2026-10-06' },
   repeats: [{ item: 'Chai', category: 'Food', count: 3 }, { item: 'Uber', category: 'Transport', count: 2 }],
   usualMinute: 1230,
+  loggedDates: ['2026-10-01', '2026-10-02', '2026-10-03', '2026-10-05', '2026-10-06'],
+  logMinutes: [550, 580, 1230, 1260, 1265, 1275],
+  categories: [{ category: 'Shopping', total: 2000, pct: 76.5 }],
 }
 
 describe('formatMinute', () => {
