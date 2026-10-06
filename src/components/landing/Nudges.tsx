@@ -209,14 +209,18 @@ function AskScene({ playing }: { playing: boolean }) {
 
 // ─── More in the nest: what the logs add up to ────────────────────────────────
 
-/** Three more screens of the app, in the "log from anywhere" phone frames. Recordings play only while the row is in view. */
-export function MoreInside() {
+/** A recording in a shot phone that plays only while that phone itself is in view, so a swiped-away one stops. */
+function ShotClip({ name }: { name: string }) {
   const reduced = useReducedMotion()
-  const { ref, visible } = useOnScreen<HTMLDivElement>(0.3)
-  const playing = visible && !reduced
-  return <div className="lp-shots" ref={ref}>
+  const { ref, visible } = useOnScreen<HTMLDivElement>(0.5)
+  return <div className="lp-shot-phone" ref={ref}><Clip name={name} playing={visible && !reduced} loop /></div>
+}
+
+/** Three more screens of the app, in the "log from anywhere" phone frames. */
+export function MoreInside() {
+  return <div className="lp-shots">
     <figure className="lp-shot">
-      <div className="lp-shot-art" aria-hidden="true"><div className="lp-shot-phone"><Clip name="insights" playing={playing} loop /></div></div>
+      <div className="lp-shot-art" aria-hidden="true"><ShotClip name="insights" /></div>
       <figcaption><strong>Insights</strong><span>Every month next to the last twelve, and where this one went, category by category.</span></figcaption>
     </figure>
     <figure className="lp-shot">
@@ -234,7 +238,7 @@ export function MoreInside() {
       <figcaption><strong>Bills &amp; subscriptions</strong><span>Every renewal with its due date and a heads-up before it charges. Rent and milk log themselves.</span></figcaption>
     </figure>
     <figure className="lp-shot">
-      <div className="lp-shot-art" aria-hidden="true"><div className="lp-shot-phone"><Clip name="invest" playing={playing} loop /></div></div>
+      <div className="lp-shot-art" aria-hidden="true"><ShotClip name="invest" /></div>
       <figcaption><strong>Investments</strong><span>Equity, FDs, gold and crypto, with your net worth charted since day one.</span></figcaption>
     </figure>
   </div>
@@ -249,7 +253,8 @@ const noop = () => () => {}
 /** Draws itself once, the first time it's scrolled into view. Without JS or with reduced motion it's simply there. */
 export function LearnDiagram() {
   const reduced = useReducedMotion()
-  const { ref, visible } = useOnScreen<HTMLElement>(0.4)
+  // A low bar: stacked on a short or zoomed screen, 40% of it may never fit in view at once.
+  const { ref, visible } = useOnScreen<HTMLElement>(0.1)
   const hydrated = useSyncExternalStore(noop, () => true, () => false)
   const [seen, setSeen] = useState(false)
   if (visible && !seen) setSeen(true)

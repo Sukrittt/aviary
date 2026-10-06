@@ -137,8 +137,18 @@ export function Playground() {
     setStarter((prev) => ({ text, n: (prev?.n ?? 0) + 1 }))
   }
 
+  // The nav's other tabs lead to screens this demo doesn't have; say so instead of doing nothing.
+  const [elsewhere, setElsewhere] = useState(0)
+  useEffect(() => {
+    if (!elsewhere) return
+    const id = setTimeout(() => setElsewhere(0), 2600)
+    return () => clearTimeout(id)
+  }, [elsewhere])
+
   const hint = !mine
     ? 'It’s playing itself. Tap the phone to take over.'
+    : elsewhere
+    ? 'This demo only logs. Home, envelopes and the rest are in the app.'
     : screen === 'added'
     ? 'That chime is the one you hear in the app.'
     : 'Your turn. Say what it was, tap the amount, hit +.'
@@ -181,7 +191,7 @@ export function Playground() {
                 {screen === 'log' && <div style={{ position: 'absolute', inset: 0, zIndex: 20, pointerEvents: 'none' }}>
                   <div style={{ pointerEvents: 'auto' }}>
                     <FloatingNav active={null} addActive addSaving={submit.saving} addSuccess={submit.success}
-                      addInvalid={!submit.canSubmit} addDisabled={submit.saving || submit.success} onSelect={() => false} onAdd={() => submit.submit()} />
+                      addInvalid={!submit.canSubmit} addDisabled={submit.saving || submit.success} onSelect={() => { setElsewhere((n) => n + 1); return false }} onAdd={() => submit.submit()} />
                   </div>
                 </div>}
               </div>

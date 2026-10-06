@@ -58,6 +58,10 @@ describe('log playground', () => {
     expect(field()).toHaveValue('')
     expect(screen.queryByRole('button', { name: 'Pause the demo' })).not.toBeInTheDocument()
 
+    // Tabs this demo doesn't have say so.
+    fireEvent.click(screen.getByRole('tab', { name: 'Envelopes' }))
+    expect(screen.getByText(/This demo only logs/)).toBeInTheDocument()
+
     // The demo is off for good: nothing types itself in.
     await run(3000)
     expect(field()).toHaveValue('')
