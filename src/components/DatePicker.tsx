@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
 import { Scrim, Sheet } from './MotionSheet'
 
@@ -36,6 +36,8 @@ type SingleProps = {
   value: string
   onChange: (value: string) => void
   disableFuture?: boolean
+  /** Render the calendar in a popup at every viewport size. */
+  popover?: boolean
   popoverOnDesktop?: boolean
   /** Externally-triggered popover: caller owns the trigger button and open state (e.g. a chip). */
   open?: boolean
@@ -193,7 +195,7 @@ export function DatePicker(props: DatePickerProps) {
   )
   // A caller-owned trigger (hideTrigger) always pops over; there's no inline fallback to size for.
   const [desktopPopover, setDesktopPopover] = useState(false)
-  const popoverActive = hideTrigger || desktopPopover
+  const popoverActive = hideTrigger || (props.mode === 'single' && !!props.popover) || desktopPopover
   const [popoverPosition, setPopoverPosition] = useState<{ left: number; top: number; width: number } | null>(null)
   const rootRef = useRef<HTMLDivElement>(null)
   const cardRef = useRef<HTMLDivElement>(null)
@@ -218,19 +220,19 @@ export function DatePicker(props: DatePickerProps) {
     return () => media.removeEventListener('change', sync)
   }, [props.popoverOnDesktop])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!open || !popoverActive) return
 
     function positionPopover() {
       const rect = (externalAnchor?.current ?? rootRef.current)?.getBoundingClientRect()
       if (!rect) return
-      const gap = 28
+      const gap = 8
       const viewportPadding = 16
-      // Before the card has painted, guess its height; once it's mounted, use the real one
-      // so a flip-above doesn't leave a gap sized for the wrong estimate.
-      const height = cardRef.current?.getBoundingClientRect().height || 410
+      // Measure layout height: the entrance animation transforms the bounding
+      // rect, which otherwise makes the first open drift away from its anchor.
+      const height = cardRef.current?.offsetHeight || 410
       const spaceBelow = window.innerHeight - rect.bottom - viewportPadding
-      const top = spaceBelow >= height
+      const top = spaceBelow >= height + gap
         ? rect.bottom + gap
         : Math.max(viewportPadding, rect.top - height - gap)
       // A chip anchor is too narrow to size the card by; give it a fixed width and keep it on-screen.
@@ -251,7 +253,8 @@ export function DatePicker(props: DatePickerProps) {
       window.removeEventListener('resize', positionPopover)
       window.removeEventListener('scroll', positionPopover, true)
     }
-  }, [popoverActive, open, externalAnchor, view])
+    // Re-measure before paint once the portal has mounted at the anchor width.
+  }, [popoverActive, open, externalAnchor, view, popoverPosition?.width])
 
   useEffect(() => {
     if (!hideTrigger || !open) return

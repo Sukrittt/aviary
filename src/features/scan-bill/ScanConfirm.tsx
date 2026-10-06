@@ -2,11 +2,11 @@
 
 import { useCurrency } from '@/src/context/CurrencyContext'
 import { motion } from 'motion/react'
-import { STAGGER, popIn, staggerDelay } from '@/src/components/landing/mobile/kit'
+import { AmountText, STAGGER, popIn, staggerDelay } from '@/src/components/landing/mobile/kit'
 
 import { SuccessButton } from '@/src/components/SuccessButton'
 import { formatDate } from '@/src/lib/format'
-import { ShareBar } from './ScanReview'
+import { ShareBar, useRevealed } from './ScanReview'
 import type { ScanBillState } from './useScanBillController'
 
 /** Twin of Mobile's ScanConfirm: where the share came from on the left, the total and the log button on the right. */
@@ -14,17 +14,20 @@ export function ScanConfirm(s: ScanBillState) {
   const { formatMoney, currencySymbol } = useCurrency()
 
   const { saving, success } = s.confirmButton
+  const revealedShare = useRevealed(s.myShare)
 
   return (
     <div className="scan-review">
       <div className="scan-col">
-        <section className="scan-card scan-confirm-hero">
+        <motion.section className="scan-card scan-confirm-hero" {...popIn(STAGGER.mount)}>
           <div className="scan-micro">Logging to {s.categoryLabel}</div>
-          <div className="scan-hero-amount is-large">{formatMoney(s.myShare)}</div>
+          <div className="scan-hero-amount is-large">
+            <AmountText value={revealedShare} animate />
+          </div>
           <div className="scan-meta">
             {formatDate(s.date)} · from a scanned bill of {formatMoney(s.billTotal)}
           </div>
-        </section>
+        </motion.section>
 
         <div className="scan-micro">Where it came from</div>
         <ul className="scan-card scan-buckets" aria-label="Where your share came from">
@@ -66,7 +69,7 @@ export function ScanConfirm(s: ScanBillState) {
       </div>
 
       <aside className="scan-col scan-side">
-        <section className="scan-card">
+        <motion.section className="scan-card" {...popIn(STAGGER.mount + 2 * STAGGER.block)}>
           <div className="scan-spread">
             <span className="scan-meta is-strong">Total bill</span>
             <strong>{formatMoney(s.billTotal)}</strong>
@@ -78,7 +81,7 @@ export function ScanConfirm(s: ScanBillState) {
             </span>
             <span className="is-strong">Others {formatMoney(s.billTotal - s.myShare)}</span>
           </div>
-        </section>
+        </motion.section>
 
         {s.confirmError && <p className="erd-log-error">{s.confirmError}</p>}
 

@@ -52,6 +52,15 @@ describe('outside production', () => {
 })
 
 describe('with a key', () => {
+  it('waits for initialization even before the provider effect starts it', async () => {
+    const a = await load('phc_test')
+    await a.analyticsReady()
+    expect(posthog.init).toHaveBeenCalledTimes(1)
+    expect(a.isAnalyticsEnabled()).toBe(true)
+    await a.initAnalytics()
+    expect(posthog.init).toHaveBeenCalledTimes(1)
+  })
+
   it('starts once, with autocapture and recording off, tagged as web', async () => {
     const a = await load('phc_test')
     await a.initAnalytics()

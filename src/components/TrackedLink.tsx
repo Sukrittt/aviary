@@ -1,6 +1,6 @@
 'use client'
 
-import type { MouseEvent, ReactNode } from 'react'
+import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react'
 import { analyticsReady, isAnalyticsLoading, track, type AppEvent, type EventProperties } from '../lib/analytics'
 
 /** Longest a click waits on analytics before navigating anyway. */
@@ -22,23 +22,46 @@ export function TrackedLink({
   properties,
   className,
   children,
+  disableOnClick = false,
 }: {
   href: string
   event: AppEvent
   properties?: EventProperties
   className?: string
   children: ReactNode
+  disableOnClick?: boolean
 }) {
+  const [pending, setPending] = useState(false)
+  const pendingRef = useRef(false)
+
+  useEffect(() => {
+    const reset = () => {
+      pendingRef.current = false
+      setPending(false)
+    }
+    window.addEventListener('pageshow', reset)
+    return () => window.removeEventListener('pageshow', reset)
+  }, [])
+
   function onClick(e: MouseEvent<HTMLAnchorElement>) {
+    if (pendingRef.current) {
+      e.preventDefault()
+      return
+    }
+    const modified = e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey
+    if (disableOnClick && !modified) {
+      pendingRef.current = true
+      setPending(true)
+    }
     track(event, properties)
-    if (!isAnalyticsLoading() || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+    if (!isAnalyticsLoading() || modified) return
     e.preventDefault()
     void Promise.race([analyticsReady(), new Promise((resolve) => setTimeout(resolve, MAX_WAIT_MS))])
       .then(() => window.location.assign(href))
   }
 
   return (
-    <a className={className} href={href} onClick={onClick}>
+    <a className={className} href={href} onClick={onClick} aria-disabled={pending || undefined} aria-busy={pending || undefined}>
       {children}
     </a>
   )

@@ -114,7 +114,6 @@ function CodeForm() {
               {code[i] ?? ''}
             </div>
           ))}
-          {done ? <span className="auth-code-wash" aria-hidden /> : null}
         </div>
         {done ? (
           <div className="auth-verified" role="status">
@@ -137,7 +136,6 @@ function CodeForm() {
           </>
         )}
       </form>
-      {done ? <div className="auth-veil" aria-hidden /> : null}
     </div>
   )
 }
