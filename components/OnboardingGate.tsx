@@ -36,7 +36,13 @@ function writeOnboarded(onboarded: boolean): void {
   }
 }
 
+// Server-rendered routes that make the onboarding check themselves before
+// rendering (see app/expense/page.tsx). Exact paths, not prefixes: the routes
+// under them are still client pages that rely on this gate.
+const SERVER_CHECKED_PATHS = ['/expense']
+
 function isExempt(pathname: string): boolean {
+  if (SERVER_CHECKED_PATHS.includes(pathname)) return true
   return ONBOARDING_EXEMPT_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))
 }
 

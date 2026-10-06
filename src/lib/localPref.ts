@@ -22,6 +22,17 @@
  */
 const PREFIX = 'mc-'
 
+/**
+ * The hide-amounts preference, mirrored into a cookie the server can read
+ * (written by useHideAmounts). Server-rendered pages (app/expense/page.tsx)
+ * put real amounts in their HTML, so they only do that when this cookie says
+ * "shown"; without it they leave the amounts to the client, as before. Missing
+ * counts as hidden, so the first visit after this shipped can't flash amounts
+ * at someone who had them hidden. Lives here, not in the hook, so a server
+ * component can import it.
+ */
+export const AMOUNTS_COOKIE = 'mc-amounts'
+
 /** Prefixed key for a preference. Mobile's keys already carry the `mc-` prefix inline. */
 export function prefKey(name: string): string {
   return name.startsWith(PREFIX) ? name : `${PREFIX}${name}`

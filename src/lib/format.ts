@@ -48,11 +48,25 @@ export function formatDate(dateStr: string): string {
   return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`
 }
 
+/**
+ * Day and month of `d`. A date-only string ("2026-10-20") is a calendar date,
+ * which `new Date` parses as UTC midnight, so it's read back in UTC: in local
+ * time it slipped a day west of UTC, and differed between a UTC server render
+ * and the browser.
+ */
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/
+function calendarParts(input: string, d: Date) {
+  return DATE_ONLY.test(input)
+    ? { day: d.getUTCDate(), month: d.getUTCMonth(), year: d.getUTCFullYear() }
+    : { day: d.getDate(), month: d.getMonth(), year: d.getFullYear() }
+}
+
 export function formatDateShort(dateStr: string): string {
   if (!dateStr) return ''
   const d = new Date(dateStr)
   if (Number.isNaN(d.getTime())) return dateStr
-  return `${d.getDate()} ${MONTHS[d.getMonth()]}`
+  const { day, month } = calendarParts(dateStr, d)
+  return `${day} ${MONTHS[month]}`
 }
 
 /** "21 Sept '26" — the Activity timeline's row date, shared with Insights so
@@ -60,10 +74,9 @@ export function formatDateShort(dateStr: string): string {
 export function formatShortDate(iso: string): string {
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return iso
-  const day = d.getDate()
-  const month = d.toLocaleDateString('en-IN', { month: 'short' })
-  const year = String(d.getFullYear()).slice(2)
-  return `${day} ${month} '${year}`
+  const { day, year } = calendarParts(iso, d)
+  const month = d.toLocaleDateString('en-IN', { month: 'short', ...(DATE_ONLY.test(iso) ? { timeZone: 'UTC' } : {}) })
+  return `${day} ${month} '${String(year).slice(2)}`
 }
 
 /** Whole days from now until `ts`, floored at 0 — used for "purges in N days" archive countdowns. */

@@ -1,3 +1,5 @@
+"use client";
+
 import { useCurrency } from "@/src/context/CurrencyContext";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
@@ -115,9 +117,17 @@ export function ExpensePage() {
   );
   // Read-only here: the toggle lives on /account, next to the theme control.
   const [hideAmounts] = useHideAmounts();
-  const [envelopeState, setEnvelopeState] = useState<EnvelopeState | null>(
-    null,
-  );
+  // Derived during render, not copied in by an effect: the page is
+  // server-rendered (app/expense/page.tsx), and an effect-filled value left
+  // the hero and envelopes out of the HTML, then pushed the rail ~2,300px
+  // down when they appeared. A local edit (the bulk return below) overrides
+  // it until the panel data changes, as the effect used to allow.
+  const [envelopeOverride, setEnvelopeOverride] = useState<{ base: EnvelopeState | null; state: EnvelopeState } | null>(null);
+  const envelopeState: EnvelopeState | null = panel
+    ? envelopeOverride && envelopeOverride.base === panel.envelopeState
+      ? envelopeOverride.state
+      : panel.envelopeState
+    : null;
   const [moveMoneyTarget, setMoveMoneyTarget] = useState<string | null>(null);
   const [editAssignedTarget, setEditAssignedTarget] = useState<string | null>(
     null,
@@ -188,12 +198,6 @@ export function ExpensePage() {
 
   // Restore the "hide amounts" preference after hydration so the server and
   // client render the same initial output (avoids a hydration mismatch).
-  // Keep envelopeState in sync with the panel contract, while still allowing
-  // local updates for the bulk-return action
-  // to apply in between contract refreshes.
-  useEffect(() => {
-    if (panel) setEnvelopeState(panel.envelopeState);
-  }, [panel]);
 
   async function handleBulkReturnToRTA() {
     if (!envelopeState) return;
@@ -231,13 +235,13 @@ export function ExpensePage() {
       } catch {
         // Transfer log is diagnostic only — a write failure shouldn't block the return
       }
-      setEnvelopeState({
+      if (panel) setEnvelopeOverride({ base: panel.envelopeState, state: {
         ...current,
         envelopes: updated,
         totalAssigned,
         readyToAssign: rta,
         isOverAssigned: rta < 0,
-      });
+      } });
       bulkReturnPhase.succeed(() => setShowBulkReturnConfirm(false));
     } catch {
       bulkReturnPhase.fail();

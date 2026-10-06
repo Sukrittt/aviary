@@ -117,7 +117,7 @@ export function TrendChart({
                 }
               }}
             >
-              <title>{label} · {amountText}</title>
+              <title>{`${label} · ${amountText}`}</title>
               <rect x={PAD_X + index * slot} y={PAD_TOP} width={slot} height={plotHeight} fill="transparent" />
               <rect
                 x={x}

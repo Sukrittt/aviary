@@ -10,6 +10,7 @@ import type { CategoryRow } from '@/src/types'
 import { track } from '@/src/lib/analytics'
 
 const key = ['categories'] as const
+export const categoriesKey = key
 
 
 // Categories sharing a group are stored contiguously; toIndex is the target position

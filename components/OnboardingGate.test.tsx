@@ -27,14 +27,14 @@ describe('OnboardingGate', () => {
   })
 
   it('holds an app page until the onboarding check answers', () => {
-    mockPathname = '/expense'
+    mockPathname = '/insights'
     render(<OnboardingGate><p>page</p></OnboardingGate>)
     expect(screen.queryByText('page')).toBeNull()
     expect(fetchMock).toHaveBeenCalledWith('/api/user')
   })
 
   it('renders straight away for a browser that has seen this account onboarded, still checking in the background', async () => {
-    mockPathname = '/expense'
+    mockPathname = '/insights'
     localStorage.setItem('aviary.onboarded', '1')
     render(<OnboardingGate><p>page</p></OnboardingGate>)
     expect(await screen.findByText('page')).toBeTruthy()
@@ -42,7 +42,7 @@ describe('OnboardingGate', () => {
   })
 
   it('remembers onboarding once the check confirms it', async () => {
-    mockPathname = '/expense'
+    mockPathname = '/insights'
     fetchMock.mockResolvedValue(new Response(JSON.stringify({ onboardedAt: '2026-01-01T00:00:00.000Z' })))
     render(<OnboardingGate><p>page</p></OnboardingGate>)
     expect(await screen.findByText('page')).toBeTruthy()
@@ -50,7 +50,7 @@ describe('OnboardingGate', () => {
   })
 
   it('still sends a not-onboarded account to onboarding, and forgets the stale flag', async () => {
-    mockPathname = '/expense'
+    mockPathname = '/insights'
     localStorage.setItem('aviary.onboarded', '1')
     fetchMock.mockResolvedValue(new Response(JSON.stringify({ onboardedAt: null })))
     render(<OnboardingGate><p>page</p></OnboardingGate>)
@@ -63,5 +63,17 @@ describe('OnboardingGate', () => {
     localStorage.setItem('aviary.onboarded', '1')
     render(<OnboardingGate><p>page</p></OnboardingGate>)
     expect(localStorage.getItem('aviary.onboarded')).toBeNull()
+  })
+
+  it('leaves /expense to its server-side check, but still gates the routes under it', () => {
+    mockPathname = '/expense'
+    const { unmount } = render(<OnboardingGate><p>page</p></OnboardingGate>)
+    expect(screen.getByText('page')).toBeTruthy()
+    expect(fetchMock).not.toHaveBeenCalled()
+    unmount()
+
+    mockPathname = '/expense/envelopes'
+    render(<OnboardingGate><p>page</p></OnboardingGate>)
+    expect(screen.queryByText('page')).toBeNull()
   })
 })
