@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { noticedLine, weeklyRepeat } from '@/src/lib/noticed'
 import { motion } from 'motion/react'
 import dynamic from 'next/dynamic'
 import { useCurrency } from '@/src/context/CurrencyContext'
@@ -143,6 +144,11 @@ export function ExpenseAdded({
 
   const categoryName = splitEmoji(category).text
   const subtitle = item || categoryName
+  // A small "we're learning you" moment: only once the item has come up before this week.
+  const noticed = useMemo(
+    () => noticedLine(item, weeklyRepeat(expensesQ.data ?? EMPTY, { id: expense.id, item, date })),
+    [expensesQ.data, expense.id, item, date],
+  )
 
   return (
     <div className="erd-added">
@@ -158,6 +164,11 @@ export function ExpenseAdded({
           <FadeInDown delay={at(STAGGER.detail)} duration={at(420)} className="erd-added-subtitle">
             {!item && category ? `${categoryEmoji(category, envelope?.group)} ` : ''}
             {subtitle}
+          </FadeInDown>
+        )}
+        {noticed && (
+          <FadeInDown delay={at(STAGGER.detail + 120)} duration={at(420)} className="erd-added-noticed">
+            {noticed}
           </FadeInDown>
         )}
       </div>

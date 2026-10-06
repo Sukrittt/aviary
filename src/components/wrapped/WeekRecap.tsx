@@ -88,6 +88,11 @@ function RecapStory({ recap, onClose }: { recap: WeekRecap; onClose: () => void 
   )
 }
 
+/** GET /api/recap, shared by the gate and the Home "learning you" card. Refetched on window focus. */
+export function useWeekRecap() {
+  return useQuery({ queryKey: ['week-recap'], queryFn: getWeekRecap, staleTime: 5 * 60_000, retry: false })
+}
+
 /**
  * Opens itself over the page once, the first time the recap is due on any
  * device. No entry point: if it's been seen anywhere, `due` is false.
@@ -95,7 +100,7 @@ function RecapStory({ recap, onClose }: { recap: WeekRecap; onClose: () => void 
 export function WeekRecapGate() {
   const qc = useQueryClient()
   // Refetched on window focus, so a tab left open across day 7 still gets it.
-  const { data } = useQuery({ queryKey: ['week-recap'], queryFn: getWeekRecap, staleTime: 5 * 60_000, retry: false })
+  const { data } = useWeekRecap()
   // Held once shown: marking it seen flips the cache to `due: false`, which must not close the story mid-read.
   const [shown, setShown] = useState<WeekRecap | null>(null)
   const [closed, setClosed] = useState(false)

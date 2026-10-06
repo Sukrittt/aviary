@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildNotifications, categoryLevel, OVER_LEVEL, prefsFor, weekRecapNotification, type NotificationPrefs } from './rules'
+import { buildNotifications, categoryLevel, OVER_LEVEL, prefsFor, weekRecapNotification, weekRecapTeaserNotification, type NotificationPrefs } from './rules'
 import type { Envelope } from '@/src/types/expense'
 import type { SummarizeExpensesMeta } from '@/lib/ai/expenseContext'
 
@@ -433,5 +433,32 @@ describe('weekRecapNotification', () => {
 
   it('respects the Wrapped opt-out', () => {
     expect(weekRecapNotification(prefsFor({ ...user, notifyWrapped: false }))).toBeNull()
+  })
+})
+
+describe('weekRecapTeaserNotification', () => {
+  const user = { _id: 'u', email: 'a@b.c', name: null, avatarUrl: null, createdAt: new Date() }
+  const prefs = prefsFor(user)
+
+  it('fires on day 3 and day 5 only, once each', () => {
+    expect(weekRecapTeaserNotification(3, 2, prefs)).toMatchObject({ key: 'recap:teaser:3', kind: 'recap' })
+    expect(weekRecapTeaserNotification(5, 4, prefs)).toMatchObject({ key: 'recap:teaser:5', kind: 'recap' })
+    for (const day of [1, 2, 4, 6, 7]) expect(weekRecapTeaserNotification(day, 3, prefs)).toBeNull()
+  })
+
+  it('cheers progress, or asks for a log when there is none', () => {
+    expect(weekRecapTeaserNotification(3, 2, prefs)?.body).toContain('2 days')
+    expect(weekRecapTeaserNotification(3, 0, prefs)?.body).toContain('Log')
+  })
+
+  it('respects the Wrapped opt-out', () => {
+    expect(weekRecapTeaserNotification(3, 2, prefsFor({ ...user, notifyWrapped: false }))).toBeNull()
+  })
+
+  it('never uses an em dash', () => {
+    for (const [day, logged] of [[3, 0], [3, 2], [5, 0], [5, 4]]) {
+      const n = weekRecapTeaserNotification(day, logged, prefs)!
+      expect(`${n.title}${n.body}`).not.toContain('—')
+    }
   })
 })
