@@ -99,16 +99,18 @@ export function useCountUp(target: number, durationMs = 900, delayMs = 150): num
 }
 
 function Pop({ delay = 0, children, className, style }: { delay?: number; children: ReactNode; className?: string; style?: CSSProperties }) {
+  const reduceMotion = useReducedMotion()
   return (
-    <motion.div className={className} style={style} initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay, type: 'spring', stiffness: 380, damping: 18 }}>
+    <motion.div className={className} style={style} initial={reduceMotion ? false : { opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay, type: 'spring', stiffness: 380, damping: 18 }}>
       {children}
     </motion.div>
   )
 }
 
 function Rise({ delay = 0, children, className, style }: { delay?: number; children: ReactNode; className?: string; style?: CSSProperties }) {
+  const reduceMotion = useReducedMotion()
   return (
-    <motion.div className={className} style={style} initial={{ opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }} transition={{ delay, duration: 0.55, ease: [0.16, 1, 0.3, 1] }}>
+    <motion.div className={className} style={style} initial={reduceMotion ? false : { opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }} transition={{ delay, duration: 0.55, ease: [0.16, 1, 0.3, 1] }}>
       {children}
     </motion.div>
   )
@@ -226,6 +228,7 @@ function DayArc({ minutes, usual }: { minutes: number[]; usual: number }) {
  * everything else. Reads the same whether we have 1 category or 4.
  */
 function CategoryBars({ categories, money, total }: { categories: NonNullable<WeekRecap['categories']>; money: (n: number) => string; total: number }) {
+  const reduceMotion = useReducedMotion()
   const shades = [1, 0.62, 0.42, 0.28]
   const rest = Math.max(0, total - categories.reduce((s, c) => s + c.total, 0))
   const parts = [
@@ -237,7 +240,7 @@ function CategoryBars({ categories, money, total }: { categories: NonNullable<We
   ]
   return (
     <div className="week-recap-bars">
-      <motion.div className="week-recap-stack" initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ delay: 0.3, duration: 0.9, ease: [0.16, 1, 0.3, 1] }}>
+      <motion.div className="week-recap-stack" initial={reduceMotion ? false : { scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ delay: 0.3, duration: 0.9, ease: [0.16, 1, 0.3, 1] }}>
         {parts.map((p) => <i key={p.key} style={{ flex: p.amount, opacity: p.opacity }} />)}
       </motion.div>
       <div className="week-recap-legend">

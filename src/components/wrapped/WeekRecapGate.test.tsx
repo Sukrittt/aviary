@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { WeekRecapGate } from './WeekRecap'
@@ -46,17 +46,34 @@ it('stays closed when nothing is due', async () => {
   expect(markWeekRecapSeen).not.toHaveBeenCalled()
 })
 
-it('plays on its own and stops on the last slide', async () => {
+it('advances when each progress bar finishes and stops on the last slide', async () => {
   const full = { ...recap, totalTransactions: 6, daysLogged: 5, repeats: [], usualMinute: 1260, topCategory: null, biggest: null }
   vi.mocked(getWeekRecap).mockResolvedValue({ due: true, recap: full })
-  // Installed before render: the first slide's timer is scheduled on mount.
-  vi.useFakeTimers({ shouldAdvanceTime: true })
-  try {
-    renderGate()
-    expect(await screen.findByText("Here's what we learned about you")).toBeTruthy()
-    for (let i = 0; i < 4; i++) await act(async () => { vi.advanceTimersByTime(5100) })
-    expect(await screen.findByText("You're off to a great start")).toBeTruthy()
-  } finally {
-    vi.useRealTimers()
+  renderGate()
+  expect(await screen.findByText("Here's what we learned about you")).toBeTruthy()
+
+  for (let i = 0; i < 4; i++) {
+    const bar = document.querySelector('.wrapped-progress b.is-current')
+    // jsdom has no AnimationEvent, so React listens for the webkit-prefixed name.
+    if (bar) fireEvent(bar, new Event('webkitAnimationEnd', { bubbles: true }))
   }
+  expect(await screen.findByText("You're off to a great start")).toBeTruthy()
+})
+
+it('pauses the progress bar in place instead of finishing it', async () => {
+  vi.mocked(getWeekRecap).mockResolvedValue({ due: true, recap })
+  renderGate()
+  await screen.findByText("Let's get to know you")
+  fireEvent.click(screen.getByLabelText('Pause stories'))
+  const bar = document.querySelector<HTMLElement>('.wrapped-progress b.is-current')!
+  expect(bar.style.animationPlayState).toBe('paused')
+  expect(bar.style.animationDuration).not.toBe('')
+})
+
+it('lets Space press a focused button instead of pausing', async () => {
+  vi.mocked(getWeekRecap).mockResolvedValue({ due: true, recap })
+  renderGate()
+  await screen.findByText("Let's get to know you")
+  fireEvent.keyDown(screen.getByLabelText('Close recap'), { key: ' ' })
+  expect(screen.getByLabelText('Pause stories')).toBeTruthy()
 })

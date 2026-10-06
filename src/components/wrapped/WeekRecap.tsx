@@ -27,11 +27,12 @@ function RecapStory({ recap, onClose }: { recap: WeekRecap; onClose: () => void 
   const [paused, setPaused] = useState(false)
 
   // Plays like Wrapped: each slide holds STORY_MS, then moves on, stopping on the last.
-  useEffect(() => {
-    if (paused || reduceMotion || last) return
-    const timer = window.setTimeout(() => setIndex((i) => Math.min(slides.length - 1, i + 1)), STORY_MS)
-    return () => window.clearTimeout(timer)
-  }, [index, paused, reduceMotion, last, slides.length])
+  // Plays like Wrapped, but driven by the progress bar itself: the slide
+  // advances when its bar finishes, so pausing freezes both together and
+  // resuming carries on from the same point. Stops on the last slide.
+  const advance = () => {
+    if (!last) setIndex((i) => i + 1)
+  }
 
   useEffect(() => {
     dialog.current?.querySelector<HTMLElement>('.wrapped-controls button')?.focus()
@@ -49,7 +50,8 @@ function RecapStory({ recap, onClose }: { recap: WeekRecap; onClose: () => void 
       if (event.key === 'ArrowRight') setIndex((i) => Math.min(slides.length - 1, i + 1))
       if (event.key === 'ArrowLeft') setIndex((i) => Math.max(0, i - 1))
       if (event.key === 'Escape') onClose()
-      if (event.key === ' ') { event.preventDefault(); setPaused((value) => !value) }
+      // Space on a focused button presses that button; anywhere else it pauses.
+      if (event.key === ' ' && !(event.target instanceof HTMLButtonElement)) { event.preventDefault(); setPaused((value) => !value) }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -59,7 +61,7 @@ function RecapStory({ recap, onClose }: { recap: WeekRecap; onClose: () => void 
     <div ref={dialog} className="wrapped-shell week-recap-overlay" role="dialog" aria-modal="true" aria-label="Your first week">
       <main className="wrapped-player week-recap-player" style={{ '--wrapped-bg': slide.color, '--wrapped-ink': slide.ink } as CSSProperties}>
         <RecapBlobs key={index} kind={slide.kind} />
-        <div className="wrapped-progress" aria-label={`Story ${index + 1} of ${slides.length}`}>{slides.map((_, i) => <i key={i}><b className={i < index ? 'is-done' : i === index ? 'is-current' : ''} style={i === index && !paused && !reduceMotion ? { animationDuration: `${STORY_MS}ms` } : undefined} /></i>)}</div>
+        <div className="wrapped-progress" aria-label={`Story ${index + 1} of ${slides.length}`}>{slides.map((_, i) => <i key={i}><b className={i < index ? 'is-done' : i === index ? 'is-current' : ''} style={i === index && !reduceMotion ? { animationDuration: `${STORY_MS}ms`, animationPlayState: paused ? 'paused' : 'running' } : undefined} onAnimationEnd={i === index ? advance : undefined} /></i>)}</div>
         <div className="wrapped-controls">
           <button type="button" onClick={onClose} aria-label="Close recap"><X /></button>
           <button type="button" onClick={() => setPaused((value) => !value)} aria-label={paused ? 'Resume stories' : 'Pause stories'}>{paused ? <Play /> : <Pause />}</button>

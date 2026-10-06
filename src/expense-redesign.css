@@ -7970,11 +7970,15 @@ button.account-feature-card {
   line-height: 0;
 }
 .week-recap-dots {
+  width: min(100%, 420px);
   display: flex;
-  gap: clamp(8px, 2.4vw, 18px);
+  gap: clamp(6px, 2.4vw, 18px);
   margin-top: 30px;
 }
+/* Shrinks to fit: seven fixed 44px dots overflow a 320px phone. */
 .week-recap-dot-col {
+  flex: 1;
+  max-width: 44px;
   display: grid;
   justify-items: center;
   gap: 8px;
@@ -7985,8 +7989,8 @@ button.account-feature-card {
   opacity: 0.8;
 }
 .week-recap-dot {
-  width: 44px;
-  height: 44px;
+  width: 100%;
+  aspect-ratio: 1;
   display: grid;
   place-items: center;
   border-radius: 50%;
