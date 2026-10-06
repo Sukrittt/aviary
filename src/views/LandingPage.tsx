@@ -12,10 +12,10 @@ import { IosWaitlist } from '../components/landing/IosWaitlist'
 import { BirdLanding, BirdMark } from '../components/BirdMark'
 import { HeroStage, LearnDiagram, MoreInside, NoticeSplit, RotatingHabit } from '../components/landing/Nudges'
 import { FEEDBACK_BOARD_URL } from '@/lib/links'
+import { GITHUB, LandingFooter, LandingHeader } from '../components/landing/Chrome'
 import '../landing.css'
 
 const PLAY_STORE = 'https://play.google.com/store/apps/details?id=com.sukrit04.envelope'
-const GITHUB = 'https://github.com/Sukrittt/aviary-mobile'
 
 const ANYWHERE = [
   { icon: ScanLine, tone: 'food', title: 'A receipt', body: 'Snap the bill. Aviary reads every line and splits it if you shared.' },
@@ -62,14 +62,7 @@ export function LandingPage() {
         FORM: User-pinned moonjar.ai structure: centered statements, one framed demo per section, founder card, quiet close.
         FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md */}
     <a href="#learns" className="lp-skip">Skip to how Aviary learns</a>
-    <header className="lp-header"><div className="lp-header-inner">
-      <a href="#top" className="lp-logo" aria-label="Aviary home"><BirdMark size={30} perched /><span>Aviary<b aria-hidden="true">.</b></span></a>
-      <nav className="lp-nav" aria-label="Main navigation"><a href="#learns">How it learns</a><a href="#why">Why log it</a><a href="#play">Try it</a><a href="#faq">FAQ</a></nav>
-      <div className="lp-header-actions">
-        <Link href="/sign-in" className="lp-header-signin">Sign in</Link>
-        <TrackedLink className="lp-header-cta" href={PLAY_STORE} event="store_cta_clicked" properties={{ placement: 'header' }}>Get the app</TrackedLink>
-      </div>
-    </div></header>
+    <LandingHeader />
 
     <section className="lp-hero" aria-labelledby="landing-title">
       <a className="lp-early" href={FEEDBACK_BOARD_URL} target="_blank" rel="noreferrer"><b>Early access</b><span className="lp-early-desktop">Your feedback shapes what we build next</span><span className="lp-early-mobile">Help shape Aviary</span><ArrowRight size={14} aria-hidden="true" /></a>
@@ -203,10 +196,6 @@ export function LandingPage() {
       <span className="lp-hero-note">Free for 45 days · No card needed · Open source</span>
       <IosWaitlist />
     </section>
-    <footer className="lp-footer"><div><a href="#top" className="lp-logo"><BirdMark size={26} perched /><span>Aviary<b aria-hidden="true">.</b></span></a><p>The budgeting app that learns your spending.</p></div><nav aria-label="Footer">
-      <div><h2>Product</h2><a href={PLAY_STORE}>Android app</a><Link href="/expense">Web app</Link><a href="#get">iPhone waitlist</a><Link href="/legal/pricing">Pricing</Link><a href="#faq">Help &amp; FAQ</a></div>
-      <div><h2>Community</h2><a href={FEEDBACK_BOARD_URL}>Feedback board</a><a href={GITHUB}>GitHub</a><Link href="/legal/contact">Contact</Link></div>
-      <div><h2>Legal</h2><Link href="/legal/privacy">Privacy</Link><Link href="/legal/terms">Terms</Link><Link href="/legal/refunds">Refunds</Link><Link href="/legal/delete-account">Delete account</Link></div>
-    </nav></footer>
+    <LandingFooter />
   </div></LandingMotion>
 }

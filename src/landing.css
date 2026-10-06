@@ -679,3 +679,40 @@ html:has(.lp) { scroll-behavior: smooth; }
   .lp-win-shot { height: 300px; }
   .lp-win-shots { min-height: 300px; }
 }
+
+/* ── Pricing (/legal/pricing): the landing's shell around two plan cards ── */
+.lp-early--still { cursor: default; }
+.lp-early--still:hover { color: var(--muted); border-color: var(--line); }
+.lp-plans-wrap { max-width: 860px; margin: 48px auto 0; padding: 0 32px; display: flex; flex-direction: column; align-items: center; }
+.lp-plans { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%; }
+.lp-plan { position: relative; padding: 34px 32px 30px; border-radius: 28px; background: var(--card); border: 1px solid var(--line); text-align: left; box-shadow: var(--shadow); }
+.lp-plan--yearly { background: var(--tint); border-color: #ffd7c0; }
+.lp-plan-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 30px; }
+.lp-plan-head h3 { font-size: 15px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.lp-plan-save { padding: 5px 11px; border-radius: 999px; background: var(--accent); color: #fff; font-size: 13px; font-weight: 800; }
+.lp-plan-price { display: flex; align-items: baseline; gap: 8px; margin-top: 18px !important; }
+.lp-plan-price strong { font-family: var(--font-fredoka), sans-serif; font-weight: 500; font-size: clamp(52px, 6vw, 68px); line-height: 1; letter-spacing: -.035em; font-variant-numeric: tabular-nums; }
+.lp-plan-price span { font-size: 17px; font-weight: 700; color: var(--muted); }
+.lp-plan-eq { margin-top: 14px !important; font-size: 17px; font-weight: 800; }
+.lp-plan--yearly .lp-plan-eq { color: var(--accent-ink); }
+.lp-plan-billing { margin-top: 6px !important; font-size: 14px; color: var(--muted); }
+.lp-plans-empty, .lp-plans-note { margin-top: 20px !important; font-size: 14px; color: var(--muted); text-align: center; text-wrap: pretty; }
+.lp-plans-empty { font-size: 17px; padding: 36px 24px; width: 100%; border-radius: 28px; border: 1px dashed #cfcabe; }
+.lp-includes { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; width: 100%; max-width: 1100px; margin-top: 56px !important; }
+.lp-includes li { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 22px; text-align: left; }
+.lp-include-icon { width: 48px; height: 48px; display: grid; place-items: center; border-radius: 16px; color: #22201c; margin-bottom: 12px; box-shadow: inset 0 -3px 0 rgb(0 0 0 / 7%); }
+.lp-includes strong, .lp-pay-card strong { font-size: 16px; font-weight: 800; }
+.lp-includes span:last-child, .lp-pay-card span:last-child { font-size: 14px; line-height: 1.5; color: var(--muted); }
+.lp-pay { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%; max-width: 760px; margin-top: 48px; }
+.lp-pay-card { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 28px; text-align: left; }
+.lp-pay-note { font-size: 15px !important; margin-top: 28px !important; }
+.lp-pay-note a, .lp-hero-note a { color: var(--accent-ink); text-decoration: underline; text-underline-offset: 3px; }
+@media (max-width: 1080px) { .lp-includes { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 640px) {
+  .lp-plans-wrap { padding: 0 16px; margin-top: 36px; }
+  .lp-plans, .lp-pay { grid-template-columns: 1fr; gap: 14px; }
+  .lp-plan { padding: 26px 22px 24px; }
+  .lp-plan-price strong { font-size: 52px; }
+  .lp-includes { grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 40px !important; }
+  .lp-includes li { padding: 18px 16px; }
+}
