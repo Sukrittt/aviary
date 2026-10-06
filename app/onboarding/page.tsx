@@ -171,6 +171,9 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
   const stepTimer = useRef<() => number>(() => 0)
   // Whether the user touched the suggested split on the assign step.
   const editedSplit = useRef(false)
+  // Refresh automatic suggestions after a classification retry, while an
+  // explicit manual or even split stays under the person's control.
+  const allocationMode = useRef<'suggested' | 'custom'>('suggested')
   // Need/want/savings tags Jev gave the user's own categories, and every name already asked about.
   const [bucketTags, setBucketTags] = useState<BucketTags>({})
   const askedBuckets = useRef(new Set<string>())
@@ -214,7 +217,9 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
   }
 
   const openAssign = (tags: BucketTags) => {
-    setAmounts((prev) => (Object.keys(prev).length ? prev : distribute(true, tags)))
+    setAmounts((prev) => allocationMode.current === 'custom' && Object.keys(prev).length
+      ? prev
+      : distribute(true, tags))
     setStep(4)
   }
 
@@ -420,6 +425,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
 
   const setAmount = (key: string, v: number) => {
     editedSplit.current = true
+    allocationMode.current = 'custom'
     setAmounts((prev) => ({ ...prev, [key]: Math.max(0, v) }))
   }
 
@@ -744,10 +750,17 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
             <span className="setup-rem-value">{formatMoney(Math.abs(rem))}</span>
           </div>
           <div className="setup-split-row">
-            <motion.button whileTap={reduceMotion ? undefined : { scale: 0.97 }} type="button" className="setup-split-btn" onClick={() => setAmounts(distribute(true))}>
+            <motion.button whileTap={reduceMotion ? undefined : { scale: 0.97 }} type="button" className="setup-split-btn" onClick={() => {
+              allocationMode.current = 'suggested'
+              setAmounts(distribute(true))
+            }}>
               Suggested split
             </motion.button>
-            <motion.button whileTap={reduceMotion ? undefined : { scale: 0.97 }} type="button" className="setup-split-btn" onClick={() => setAmounts(distribute(false))}>
+            <motion.button whileTap={reduceMotion ? undefined : { scale: 0.97 }} type="button" className="setup-split-btn" onClick={() => {
+              allocationMode.current = 'custom'
+              editedSplit.current = true
+              setAmounts(distribute(false))
+            }}>
               Split evenly
             </motion.button>
           </div>

@@ -78,6 +78,7 @@ it('retries a missing custom classification on the next visit to assignment', as
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
   await waitFor(() => expect(getSplitBuckets).toHaveBeenCalledTimes(2))
   expect(await screen.findByText('Savings', { selector: '.setup-assign-bucket' })).toBeInTheDocument()
+  expect(amountOf('Index fund')).toBe(10000)
   client.clear()
 })
 
@@ -92,5 +93,44 @@ it('identifies the percentages as the original suggestion after an even split or
   const input = screen.getByRole('textbox', { name: 'Rename Rent' }).closest('.setup-assign-row')!.querySelector('input[type="number"]')!
   fireEvent.change(input, { target: { value: '12000' } })
   expect(document.querySelector('.setup-split-why')).toHaveTextContent('Suggested split:')
+  client.clear()
+})
+
+
+it.each(['manual', 'even'])('preserves a %s allocation when classification succeeds on retry', async (choice) => {
+  vi.mocked(getSplitBuckets).mockReset().mockResolvedValueOnce({}).mockResolvedValueOnce({ 'index fund': 'savings' })
+  const client = walkToCategories()
+  fireEvent.click(screen.getAllByRole('button', { name: /Add category/ })[0])
+  fireEvent.change(screen.getAllByPlaceholderText('Category name').at(-1)!, { target: { value: 'Index fund' } })
+  fireEvent.click(screen.getByRole('checkbox', { name: /Select Index fund/ }))
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+  await screen.findByRole('button', { name: 'Finish setup' })
+  if (choice === 'manual') {
+    const input = screen.getByRole('textbox', { name: 'Rename Index fund' }).closest('.setup-assign-row')!.querySelector('input[type="number"]')!
+    fireEvent.change(input, { target: { value: '12000' } })
+  } else fireEvent.click(screen.getByRole('button', { name: 'Split evenly' }))
+  const names = ['Rent', 'Groceries', 'Utilities', 'Eating out', 'Entertainment', 'Index fund']
+  const before = names.map(amountOf)
+  fireEvent.click(screen.getByRole('button', { name: 'Back' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+  await screen.findByText('Savings', { selector: '.setup-assign-bucket' })
+  expect(names.map(amountOf)).toEqual(before)
+  client.clear()
+})
+
+it('accepts refreshed classifications after switching a custom allocation back to Suggested split', async () => {
+  vi.mocked(getSplitBuckets).mockReset().mockResolvedValueOnce({}).mockResolvedValueOnce({ 'index fund': 'savings' })
+  const client = walkToCategories()
+  fireEvent.click(screen.getAllByRole('button', { name: /Add category/ })[0])
+  fireEvent.change(screen.getAllByPlaceholderText('Category name').at(-1)!, { target: { value: 'Index fund' } })
+  fireEvent.click(screen.getByRole('checkbox', { name: /Select Index fund/ }))
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+  await screen.findByRole('button', { name: 'Finish setup' })
+  fireEvent.click(screen.getByRole('button', { name: 'Split evenly' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Suggested split' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Back' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+  await screen.findByText('Savings', { selector: '.setup-assign-bucket' })
+  expect(amountOf('Index fund')).toBe(10000)
   client.clear()
 })
