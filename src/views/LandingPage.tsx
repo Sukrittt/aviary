@@ -4,13 +4,13 @@ import { preload } from 'react-dom'
 import { BarWidget, EnvelopeWidget } from '../components/landing/mobile/Widget'
 import { ArrowRight, ChevronUp, Github, Monitor, Repeat, ScanLine, Smartphone, WifiOff } from 'lucide-react'
 import { Playground } from '../components/landing/Playground'
-import { Faq, LandingMotion } from '../components/landing/LandingClient'
+import { AddedClip, Faq, LandingMotion } from '../components/landing/LandingClient'
 import { TrackedLink } from '../components/TrackedLink'
 import { IosWaitlist } from '../components/landing/IosWaitlist'
 // Parked while the page leads with habit nudges; see the commented section below.
 // import { MoneyLesson } from '../components/landing/MoneyLesson'
 import { BirdLanding, BirdMark } from '../components/BirdMark'
-import { HeroStage, NoticeSplit, RotatingHabit } from '../components/landing/Nudges'
+import { HeroStage, LearnDiagram, MoreInside, NoticeSplit, RotatingHabit } from '../components/landing/Nudges'
 import { FEEDBACK_BOARD_URL } from '@/lib/links'
 import '../landing.css'
 
@@ -30,14 +30,15 @@ const RULES = [
   { title: 'Two a day, tops', body: 'Your strongest habits go first. The rest wait for another day.' },
   { title: 'Backs off when you ignore it', body: 'Skip one twice and it moves an hour later. Five times and it goes quiet.' },
   { title: 'Skips what’s done', body: 'Already logged it today? Then there’s nothing to nudge.' },
+  { title: 'Yours to switch off', body: 'Turn nudges off any time in notification settings.' },
 ]
 
 
 const FAQS = [
   { q: 'How does Aviary learn my habits?', a: 'It looks at what you’ve logged. Log the same thing on the same weekday, around the same time, three times in eight weeks, and Aviary treats it as a habit. It then nudges you 15 minutes after your usual time with the details filled in. You can turn nudges off in notification settings.' },
   { q: 'Do I connect my bank? How do expenses get added?', a: 'There’s no bank connection. You log purchases yourself, which makes spending a deliberate check-in. Habit nudges, the home-screen widget, recurring expenses and receipt scanning keep that quick. Transactions aren’t imported from your bank.' },
-  { q: 'Why give your money a job?', a: 'Your bank balance includes money for rent, groceries, future plans, and fun. Assigning it to envelopes shows which money is available for each purpose before you spend. Savings is a purpose too: you don’t have to spend everything you assign.' },
-  { q: 'Does zero ready to assign mean I’m out of money?', a: 'No. It means you’ve given all your available money a purpose. The money is still yours until you spend it. Check each envelope’s available balance to see what remains for that purpose.' },
+  { q: 'What’s an envelope?', a: 'An envelope is a slice of your money set aside for one purpose, like rent, groceries or fun. Your bank balance mixes all of those together. Envelopes show what’s available for each one before you spend. Savings is a purpose too: you don’t have to spend everything you set aside.' },
+  { q: 'I’ve put every rupee in an envelope. Am I out of money?', a: 'No. It means all your money has a purpose. It’s still yours until you spend it. Check each envelope to see what’s left for that purpose.' },
   { q: 'Is Aviary free?', a: <>You can try Aviary free for 45 days, with no payment details needed to get started. After the trial, you’ll need a paid subscription to keep using the app. <Link href="/legal/pricing">See plans and pricing</Link>. Aviary is also open source; you can inspect the code on GitHub.</> },
   { q: 'Can I use it on my phone and computer?', a: 'Yes. Android and web share your account’s budgets and transactions. Android also offers a home-screen widget and notifications. New expenses can be logged offline on mobile and sync when you reconnect; other actions need a connection. There’s no iPhone app yet. Use the web version on iPhone, or join the iPhone waitlist at the bottom of this page.' },
   { q: 'What happens to my financial data?', a: <>Sensitive financial fields are encrypted in storage. The server decrypts them to run the app; this isn’t end-to-end encryption. Ask Aviary and AI briefs send relevant transaction and budget context to Google Gemini, and bill scanning sends receipt photos. You can export or delete your data in account settings. <Link href="/legal/privacy">Read the privacy policy</Link> for storage, analytics, and processing details.</> },
@@ -78,25 +79,14 @@ export function LandingPage() {
         <StoreLink placement="hero" />
         <a className="lp-button lp-button--ghost" href="#learns">See how it learns <ArrowRight size={17} aria-hidden="true" /></a>
       </div>
-      <span className="lp-hero-note">Free during the trial · No bank connection · <Link href="/expense">Also on the web</Link></span>
+      <span className="lp-hero-note">Free for 45 days · No card needed · <Link href="/expense">Also on the web</Link></span>
     </section>
     <div className="lp-stage-wrap"><HeroStage /></div>
 
     <section id="learns" className="lp-section lp-center" aria-labelledby="learns-title">
       <h2 id="learns-title" className="lp-h2">It learns from you,<br />not from your bank.</h2>
       <p className="lp-lede">Log the same thing on the same weekday, around the same time, three times in eight weeks. Aviary picks it up as a habit. No setup in between.</p>
-      <figure className="lp-learn">
-        <ol className="lp-learn-col" aria-label="What you logged">
-          {['15 Sep', '22 Sep', '29 Sep'].map((d, i) => <li key={d}><span>Tue, {d}</span><strong>Chai · ₹20</strong><em>{['4:02pm', '4:11pm', '3:56pm'][i]}</em></li>)}
-        </ol>
-        <svg className="lp-learn-lines" viewBox="0 0 80 240" preserveAspectRatio="none" aria-hidden="true"><path d="M0 40 C 40 40, 40 120, 80 120 M0 120 L 80 120 M0 200 C 40 200, 40 120, 80 120" /></svg>
-        <div className="lp-learn-habit"><BirdMark size={34} perched /><strong>Habit learned</strong><span>Chai on Tuesdays,<br />around 4pm</span></div>
-        <svg className="lp-learn-lines" viewBox="0 0 80 240" preserveAspectRatio="none" aria-hidden="true"><path d="M0 120 C 40 120, 40 40, 80 40 M0 120 L 80 120 M0 120 C 40 120, 40 200, 80 200" /></svg>
-        <ol className="lp-learn-col lp-learn-next" aria-label="Nudges Aviary sends next">
-          {['6 Oct', '13 Oct', '20 Oct'].map((d) => <li key={d}><span>Tue, {d}</span><strong>Afternoon chai?</strong><em>4:15pm</em></li>)}
-        </ol>
-        <figcaption>Three Tuesdays in, three nudges out. Sample data.</figcaption>
-      </figure>
+      <LearnDiagram />
       <dl className="lp-rules">
         {RULES.map((r) => <div key={r.title}><dt>{r.title}</dt><dd>{r.body}</dd></div>)}
       </dl>
@@ -118,11 +108,11 @@ export function LandingPage() {
         <figure className="lp-shot">
           <div className="lp-shot-art" aria-hidden="true">
             <div className="lp-shot-phone lp-shot-phone--lock">
-              <div className="lp-lock-time">4:15</div>
+              <div className="lp-lock-time">11:30</div>
               <div className="lp-notif lp-notif--still">
                 <div className="lp-notif-app"><span className="lp-notif-icon"><BirdMark size={14} perched /></span>Aviary<span className="lp-notif-time">• now</span><ChevronUp size={14} strokeWidth={2.4} /></div>
-                <div className="lp-notif-body"><strong>Afternoon chai?</strong><span>Time for your Tuesday chai fix? Snap it into the app real quick.</span></div>
-                <div className="lp-notif-actions"><span className="lp-notif-log">Log ₹20</span><span>Not this one</span></div>
+                <div className="lp-notif-body"><strong>Sunday groceries?</strong><span>Back from the market? Tap Log and it’s in.</span></div>
+                <div className="lp-notif-actions"><span className="lp-notif-log">Log ₹850</span><span>Not this one</span></div>
               </div>
             </div>
           </div>
@@ -145,7 +135,7 @@ export function LandingPage() {
 
 
 
-    <section id="why" className="lp-section lp-center" aria-labelledby="why-title">
+    <section id="why" className="lp-section lp-center lp-why" aria-labelledby="why-title">
       <span className="lp-question">Can’t my bank just sync this?</span>
       <h2 id="why-title" className="lp-h2">Noticing is the point.</h2>
       <p className="lp-lede">Bank sync logs everything for you. That’s the catch. Money leaves, the app files it away, and you never feel a thing.</p>
@@ -159,8 +149,8 @@ export function LandingPage() {
       <div className="lp-wins">
         <article className="lp-win">
           <h3>See what’s left, right away.</h3>
-          <p>In the app, every log lands with a check, a buzz and a chime. Then you see what that envelope has left for the month.</p>
-          <video className="lp-win-shot" src="/landing/clip-added.mp4" poster="/landing/poster-added.jpg" autoPlay muted loop playsInline preload="metadata" aria-label="Added ₹150 for Bike to office. Metro has ₹960 left of ₹1,110." />
+          <p>In the app, every log lands with a check, a buzz and a chime. Then you see what’s left in that envelope, the slice of your money you set aside for it.</p>
+          <AddedClip />
         </article>
         <article className="lp-win lp-win--wrapped">
           <h3>A streak worth keeping.</h3>
@@ -174,6 +164,12 @@ export function LandingPage() {
     </section>
 
     <Playground />
+
+    <section id="more" className="lp-section lp-center" aria-labelledby="more-title">
+      <h2 id="more-title" className="lp-h2">More in the nest.</h2>
+      <p className="lp-lede">Logging is the daily part. This is what it adds up to.</p>
+      <MoreInside />
+    </section>
 
     <section className="lp-section" aria-labelledby="founder-title">
       <div className="lp-founder">
@@ -204,7 +200,7 @@ export function LandingPage() {
       <span className="lp-close-bird"><BirdLanding size={120} alive /></span>
       <h2 id="get-title" className="lp-h2">Your money, noticed.</h2>
       <div className="lp-hero-actions"><StoreLink placement="footer_cta" /><Link href="/expense" className="lp-button lp-button--ghost"><Monitor size={18} aria-hidden="true" />Open web app</Link></div>
-      <span className="lp-hero-note">Free during the trial · No bank connection · Open source</span>
+      <span className="lp-hero-note">Free for 45 days · No card needed · Open source</span>
       <IosWaitlist />
     </section>
     <footer className="lp-footer"><div><a href="#top" className="lp-logo"><BirdMark size={26} perched /><span>Aviary<b aria-hidden="true">.</b></span></a><p>The budgeting app that learns your spending.</p></div><nav aria-label="Footer">

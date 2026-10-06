@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
 import { useReducedMotion } from 'motion/react'
 import { Check, ChevronDown, ChevronUp, Pause, Play, RotateCcw } from 'lucide-react'
 import { BirdMark } from '../BirdMark'
@@ -35,14 +35,11 @@ export function RotatingHabit() {
 
 // ─── Hero: a chaptered film of the app at work ────────────────────────────────
 
-type ChapterId = 'learns' | 'scan' | 'ask' | 'insights' | 'bills' | 'invest'
+type ChapterId = 'learns' | 'scan' | 'ask'
 const CHAPTERS: { id: ChapterId; label: string; ms: number; sr: string }[] = [
   { id: 'learns', label: 'Learns your habits', ms: 7300, sr: 'Aviary saw chai logged around 4pm on three Tuesdays. The next Tuesday at 4:15pm it asks “Afternoon chai?”, one tap on “Log ₹20” logs it, and Snacks drops to ₹220 left.' },
   { id: 'scan', label: 'Scan a bill', ms: 15500, sr: 'A ₹1,725.70 Meghana Foods bill is scanned. Aviary reads every line, you mark which items were shared two or three ways, and it logs your ₹672.96 share to Eating out.' },
   { id: 'ask', label: 'Ask Aviary', ms: 16000, sr: 'You ask “Can I afford 90k iPhone?” and Aviary answers from your budget: not yet. You have ₹36,802 left to spend this month, so it suggests a gadget envelope you add to each month.' },
-  { id: 'insights', label: 'Insights', ms: 13000, sr: 'Insights shows your spending trend over 12 months and where this month’s money went, by category, compared with what you usually spend.' },
-  { id: 'bills', label: 'Bills & subscriptions', ms: 7500, sr: 'Subscriptions total ₹1,883 a month across 9 services. Aviary warns that Netflix renews soon, and recurring bills log themselves: milk every day, ₹15,000 rent next on 5 Oct, ₹50 water next on 9 Oct.' },
-  { id: 'invest', label: 'Investments', ms: 13500, sr: 'Investments shows your ₹2,24,600 net worth over time, split across equity, FDs, gold and crypto. You add ₹10,000 to Crypto and net worth climbs to ₹2,34,600.' },
 ]
 // Clip chapters run ~1.5s past their recording so the finished screen holds before the cut.
 // Learns' beats: lock screen, nudge lands, thumb on "Log", logged.
@@ -118,9 +115,6 @@ function Scene({ id, beat, playing }: { id: ChapterId; beat: number; playing: bo
     case 'learns': return <LearnsScene beat={beat} />
     case 'scan': return <ScanScene playing={playing} />
     case 'ask': return <AskScene playing={playing} />
-    case 'insights': return <InsightsScene playing={playing} />
-    case 'bills': return <BillsScene />
-    case 'invest': return <InvestScene playing={playing} />
   }
 }
 
@@ -169,7 +163,7 @@ function LearnsScene({ beat }: { beat: number }) {
         <div className="lp-notif-app"><span className="lp-notif-icon"><BirdMark size={14} perched /></span>Aviary<span className="lp-notif-time">• now</span><ChevronUp size={14} strokeWidth={2.4} /></div>
         {logged
           ? <div className="lp-notif-body" key="done"><strong><Check size={15} strokeWidth={3} /> Logged ₹20</strong><span>Chai is in. Nice one.</span></div>
-          : <div className="lp-notif-body" key="ask"><strong>Afternoon chai?</strong><span>Time for your Tuesday chai fix? Snap it into the app real quick.</span></div>}
+          : <div className="lp-notif-body" key="ask"><strong>Afternoon chai?</strong><span>Time for your Tuesday chai fix? Tap Log and it’s in.</span></div>}
         {!logged && <div className="lp-notif-actions"><span className="lp-notif-log">Log ₹20<span className="lp-thumb" /></span><span>Not this one</span></div>}
       </div>
     </Phone>
@@ -213,62 +207,67 @@ function AskScene({ playing }: { playing: boolean }) {
   </>
 }
 
-function InsightsScene({ playing }: { playing: boolean }) {
-  return <>
-    <Card label="Normal or not" className="lp-reveal">
-      <p className="lp-card-copy lp-card-copy--strong">Every month next to the last twelve. Tap one to see where it went.</p>
-    </Card>
-    <Phone><Clip name="insights" playing={playing} /></Phone>
-    <Card label="Where it went" className="lp-reveal lp-reveal-late">
-      <p className="lp-card-copy lp-card-copy--strong">Each category against what you usually spend.</p>
-      <p className="lp-stage-note">Plus a daily heatmap and your subscriptions.</p>
-    </Card>
-  </>
-}
+// ─── More in the nest: what the logs add up to ────────────────────────────────
 
-// Rows from the demo account's Recurring screen; dot colours are the envelope groups'.
-const RECURRING: [string, string, string, string, string, string][] = [
-  ['Milk', 'Every day', 'Groceries', '#d70e3a', 'Due today', '₹24'],
-  ['Rent', 'Every month', 'Rent', '#0b7f97', 'Next on 5 Oct', '₹15,000'],
-  ['Water', 'Every month', 'Groceries', '#d70e3a', 'Next on 9 Oct', '₹50'],
-]
-
-function BillsScene() {
-  return <>
-    <Card label="Never surprised by a renewal" className="lp-reveal">
-      <p className="lp-card-copy">Every subscription with its next due date, and a heads-up before it charges.</p>
-    </Card>
-    <Phone>
-      {/* eslint-disable-next-line @next/next/no-img-element -- fills the phone frame; next/image adds nothing at this size */}
-      <img className="lp-clip" src="/landing/subscriptions.png" alt="" />
-      {/* An Android heads-up, in the app's real bill-reminder copy (Mobile's tour/content.ts). */}
-      <div className="lp-app-banner lp-heads-up">
-        <div className="lp-notif-app"><span className="lp-notif-icon"><BirdMark size={13} perched /></span>Aviary<span className="lp-heads-up-time">· now</span><ChevronDown size={14} strokeWidth={2.4} /></div>
-        <div className="lp-heads-up-row"><b>Netflix renews soon</b><span>₹199 due in 3 days (Oct 28).</span></div>
+/** Three more screens of the app, in the "log from anywhere" phone frames. Recordings play only while the row is in view. */
+export function MoreInside() {
+  const reduced = useReducedMotion()
+  const { ref, visible } = useOnScreen<HTMLDivElement>(0.3)
+  const playing = visible && !reduced
+  return <div className="lp-shots" ref={ref}>
+    <figure className="lp-shot">
+      <div className="lp-shot-art" aria-hidden="true"><div className="lp-shot-phone"><Clip name="insights" playing={playing} loop /></div></div>
+      <figcaption><strong>Insights</strong><span>Every month next to the last twelve, and where this one went, category by category.</span></figcaption>
+    </figure>
+    <figure className="lp-shot">
+      <div className="lp-shot-art" aria-hidden="true">
+        <div className="lp-shot-phone">
+          {/* eslint-disable-next-line @next/next/no-img-element -- fills the phone frame; next/image adds nothing at this size */}
+          <img className="lp-clip" src="/landing/subscriptions.png" alt="" />
+          {/* An Android heads-up, in the app's real bill-reminder copy (Mobile's tour/content.ts). */}
+          <div className="lp-app-banner lp-heads-up">
+            <div className="lp-notif-app"><span className="lp-notif-icon"><BirdMark size={13} perched /></span>Aviary<span className="lp-heads-up-time">· now</span><ChevronDown size={14} strokeWidth={2.4} /></div>
+            <div className="lp-heads-up-row"><b>Netflix renews soon</b><span>₹199 due in 3 days (Oct 28).</span></div>
+          </div>
+        </div>
       </div>
-    </Phone>
-    <Card label="Recurring logs itself" className="lp-reveal lp-reveal-late">
-      <ul className="lp-recurring">{RECURRING.map(([name, every, env, color, next, amt]) => <li key={name}>
-        <i style={{ background: color }} />
-        <span><b>{name}</b><small>{every} · {env}</small><em>{next}</em></span>
-        <strong>{amt}</strong>
-      </li>)}</ul>
-    </Card>
-  </>
+      <figcaption><strong>Bills &amp; subscriptions</strong><span>Every renewal with its due date and a heads-up before it charges. Rent and milk log themselves.</span></figcaption>
+    </figure>
+    <figure className="lp-shot">
+      <div className="lp-shot-art" aria-hidden="true"><div className="lp-shot-phone"><Clip name="invest" playing={playing} loop /></div></div>
+      <figcaption><strong>Investments</strong><span>Equity, FDs, gold and crypto, with your net worth charted since day one.</span></figcaption>
+    </figure>
+  </div>
 }
 
-function InvestScene({ playing }: { playing: boolean }) {
-  return <>
-    <Card label="Everything you own" className="lp-reveal">
-      <p className="lp-card-copy">Equity, FDs, gold and crypto, with your net worth charted since day one.</p>
-      <Rows rows={[['Nifty Index Fund', 'Monthly ₹5,000', '₹1,18,000'], ['HDFC Fixed Deposit', 'Monthly ₹50,000', '₹76,200'], ['Gold ETF', 'Updated 3 Oct', '₹20,400']]} />
-    </Card>
-    <Phone><Clip name="invest" playing={playing} /></Phone>
-    <Card label="Add as you invest" className="lp-reveal lp-reveal-late">
-      <div className="lp-envelope-line"><span>Crypto</span><strong>+₹10,000</strong></div>
-      <div className="lp-split-share"><span>Net worth</span><strong>₹2,34,600</strong><small>+₹64,600 since 5 May</small></div>
-    </Card>
-  </>
+// ─── How it learns: three logs in, one habit, three nudges out ────────────────
+
+const LEARNED: [string, string][] = [['11 Sep', '7:38pm'], ['18 Sep', '7:52pm'], ['25 Sep', '7:41pm']]
+const NEXT = ['2 Oct', '9 Oct', '16 Oct']
+const noop = () => () => {}
+
+/** Draws itself once, the first time it's scrolled into view. Without JS or with reduced motion it's simply there. */
+export function LearnDiagram() {
+  const reduced = useReducedMotion()
+  const { ref, visible } = useOnScreen<HTMLElement>(0.4)
+  const hydrated = useSyncExternalStore(noop, () => true, () => false)
+  const [seen, setSeen] = useState(false)
+  if (visible && !seen) setSeen(true)
+  // "no" hides the parts that are about to draw on; unset leaves everything in place.
+  const drawn = reduced || !hydrated ? undefined : seen ? 'yes' : 'no'
+
+  return <figure className="lp-learn" ref={ref} data-in={drawn}>
+    <ol className="lp-learn-col" aria-label="What you logged">
+      {LEARNED.map(([d, t]) => <li key={d}><span>Fri, {d}</span><strong>Cab home · ₹240</strong><em>{t}</em></li>)}
+    </ol>
+    <svg className="lp-learn-lines" viewBox="0 0 80 240" preserveAspectRatio="none" aria-hidden="true"><path d="M0 40 C 40 40, 40 120, 80 120 M0 120 L 80 120 M0 200 C 40 200, 40 120, 80 120" /></svg>
+    <div className="lp-learn-habit"><BirdMark size={34} perched /><strong>Habit learned</strong><span>Cab home on Fridays,<br />around 7:45pm</span></div>
+    <svg className="lp-learn-lines lp-learn-lines--out" viewBox="0 0 80 240" preserveAspectRatio="none" aria-hidden="true"><path d="M0 120 C 40 120, 40 40, 80 40 M0 120 L 80 120 M0 120 C 40 120, 40 200, 80 200" /></svg>
+    <ol className="lp-learn-col lp-learn-next" aria-label="Nudges Aviary sends next">
+      {NEXT.map((d) => <li key={d}><span>Fri, {d}</span><strong>Cab home?</strong><em>8:00pm</em></li>)}
+    </ol>
+    <figcaption>Three Fridays in, three nudges out. Sample data.</figcaption>
+  </figure>
 }
 
 // ─── Noticing is the point: the bank way vs the Aviary way ────────────────────
