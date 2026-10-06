@@ -1,8 +1,11 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { renderToString } from 'react-dom/server'
+import { hydrateRoot } from 'react-dom/client'
+import { recentExpensesKey, recentFrom } from '@/src/hooks/useExpenses'
 import { ExpensePage } from './ExpensePage'
-import { getBudgets, addBudget, updateBudget } from '@/src/api/budgets'
+import { getBudgets, addBudget, updateBudget, transferBudget } from '@/src/api/budgets'
 import { getUser } from '@/src/api/account'
 import { currentMonthKey, prevMonthKey, monthLabel } from '@/src/lib/envelope'
 
@@ -15,7 +18,7 @@ vi.mock('@/src/api/expenses', () => ({ getRecentExpenses: vi.fn(async () => ({ r
 vi.mock('@/src/api/categories', () => ({ getCategories: vi.fn(async () => [{ name: 'Food', group: 'Essentials' }]) }))
 vi.mock('@/src/api/groups', () => ({ getGroups: vi.fn(async () => ['Essentials']) }))
 vi.mock('@/src/api/subscriptions', () => ({ getSubscriptions: vi.fn(async () => []), cancelSubscription: vi.fn(), reactivateSubscription: vi.fn() }))
-vi.mock('../components/ExpenseSidebar', () => ({ ExpenseSidebar: () => null }))
+vi.mock('../components/ExpenseSidebar', () => ({ ExpenseSidebar: ({ onBulkReturn }: { onBulkReturn?: () => void }) => <button onClick={onBulkReturn}>Return all to RTA</button> }))
 vi.mock('../components/EnvelopeGrid', () => ({ EnvelopeGrid: () => <div>Envelope content</div> }))
 vi.mock('../components/RecentActivity', () => ({ RecentActivity: () => null }))
 vi.mock('../components/FluidDemo', () => ({ FluidDemo: () => null }))
@@ -106,4 +109,55 @@ it('shows no leftover notice for a first budget with no history', async () => {
   expect(screen.queryByText(/left over from last month/)).not.toBeInTheDocument()
   expect(screen.queryByText(/Start October/)).not.toBeInTheDocument()
   client.clear()
+})
+
+it('shows a bulk return in Ready to Assign straight away, before the refetch lands', async () => {
+  vi.mocked(getBudgets).mockResolvedValue([
+    { month, category: '__income__', assigned: '20000', rolled_over: '0', version: 1 },
+    { month, category: 'Food', assigned: '5000', rolled_over: '0', version: 1 },
+  ])
+  // The refetch after the transfer never answers, so only the local update can move the hero.
+  vi.mocked(transferBudget).mockImplementation(async () => {
+    vi.mocked(getBudgets).mockReturnValue(new Promise(() => {}))
+  })
+  const client = renderPage()
+  expect(await screen.findByLabelText('₹15,000')).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Return all to RTA' }))
+  fireEvent.click(await screen.findByRole('button', { name: /Return ₹5,000 to RTA/ }))
+  expect(await screen.findByLabelText('₹20,000')).toBeInTheDocument()
+  expect(transferBudget).toHaveBeenCalled()
+  client.clear()
+})
+
+it('renders the finished home screen from a filled cache on the first render, and hydrates it as-is', async () => {
+  // app/expense/page.tsx server-renders this page from a cache filled under
+  // these keys. Anything that holds it back to a later render (an effect, a
+  // loading shell) puts the loading screen in the HTML instead.
+  const filled = () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } })
+    client.setQueryData(['budgets'], [
+      { month, category: '__income__', assigned: '20000', rolled_over: '0', version: 1 },
+      { month, category: 'Food', assigned: '5000', rolled_over: '0', version: 1 },
+    ])
+    client.setQueryData(recentExpensesKey(recentFrom()), { rows: [], lastSpent: {} })
+    client.setQueryData(['categories'], [{ name: 'Food', group: 'Essentials' }])
+    client.setQueryData(['groups'], ['Essentials'])
+    client.setQueryData(['subscriptions'], [])
+    client.setQueryData(['user'], { ...baseUser, manualTransactionCompletedAt: '2026-09-02', guidedTourCompletedAt: '2026-09-02' })
+    return client
+  }
+  const tree = (client: QueryClient) => <QueryClientProvider client={client}><ExpensePage /></QueryClientProvider>
+
+  const html = renderToString(tree(filled()))
+  expect(html).toContain('READY TO ASSIGN')
+  expect(html).toContain('Envelope content')
+  expect(html).not.toContain('erd-home-loading')
+
+  const container = document.createElement('div')
+  container.innerHTML = html
+  document.body.appendChild(container)
+  const onRecoverableError = vi.fn()
+  await act(async () => { hydrateRoot(container, tree(filled()), { onRecoverableError }) })
+  expect(onRecoverableError).not.toHaveBeenCalled()
+  container.remove()
 })

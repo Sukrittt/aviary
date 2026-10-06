@@ -31,7 +31,8 @@ export function AllocationBar({ segments }: { segments: AllocationSegment[] }) {
             fill={segment.color}
             className="ins-allocation-segment"
           >
-            <title>{segment.label} · {segment.width.toFixed(1)}%</title>
+            {/* One string: React 19 renders a multi-part <title> differently on the server and client. */}
+            <title>{`${segment.label} · ${segment.width.toFixed(1)}%`}</title>
           </rect>
         ))}
       </svg>

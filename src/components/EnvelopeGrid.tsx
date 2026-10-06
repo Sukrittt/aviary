@@ -7,6 +7,7 @@ import { SpringChevron, SpringCollapse } from './SpringCollapse'
 import { avatarColorFor, categoryEmoji, groupEmoji, splitEmoji } from '../lib/emoji'
 import type { Envelope } from '../types/expense'
 import { BirdEmptyState } from './BirdEmptyState'
+import { todayIST } from '../lib/date'
 
 /** Web twin of Mobile's app/(tabs)/index.tsx envelopes card (EnvelopeGroup + EnvelopeRow). */
 
@@ -33,23 +34,24 @@ function usedPctLabel(e: Envelope): string {
   return e.spent > 0 ? '∞' : '—'
 }
 
-// Local calendar day as YYYY-MM-DD (en-CA formats that way); toISOString would give the UTC day.
-const localDay = (d: Date) => d.toLocaleDateString('en-CA')
+const DAY_MS = 86_400_000
 
+/**
+ * Days counted on the IST calendar, like every other date in the app
+ * (src/lib/date.ts). Not the device's local day: the server renders this too
+ * (app/expense/page.tsx) from a UTC clock, and the two have to agree or
+ * hydration fails between midnight and 05:30 IST.
+ */
 function lastSpentLabel(iso: string | undefined): string {
   if (!iso) return '—'
-  // Parse the YYYY-MM-DD as local midnight, not UTC midnight.
-  const d = new Date(`${iso.slice(0, 10)}T00:00`)
-  if (Number.isNaN(d.getTime())) return '—'
-  const today = new Date()
-  if (iso.slice(0, 10) === localDay(today)) return 'Today'
-  const yesterday = new Date(today)
-  yesterday.setDate(yesterday.getDate() - 1)
-  if (iso.slice(0, 10) === localDay(yesterday)) return 'Yesterday'
-  today.setHours(0, 0, 0, 0)
-  const days = Math.round((today.getTime() - d.getTime()) / 86400000)
-  if (days >= 1 && days <= 31) return `${days}d ago`
-  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+  // Both sides as UTC midnights of their calendar dates, so the difference is whole days.
+  const spent = Date.parse(`${iso.slice(0, 10)}T00:00:00Z`)
+  if (Number.isNaN(spent)) return '—'
+  const days = Math.round((Date.parse(`${todayIST()}T00:00:00Z`) - spent) / DAY_MS)
+  if (days === 0) return 'Today'
+  if (days === 1) return 'Yesterday'
+  if (days >= 2 && days <= 31) return `${days}d ago`
+  return new Date(spent).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'UTC' })
 }
 
 export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveMoney, onAssignFromRTA, onSetAssigned, onPayCreditCard }: Props) {

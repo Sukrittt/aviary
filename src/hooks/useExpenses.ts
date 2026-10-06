@@ -36,16 +36,21 @@ export function useExpenses() {
  * trends, recent categories). Month-aligned so the key, and the cache entry
  * every caller shares, only changes once a month.
  */
-function recentFrom(): string {
+export function recentFrom(): string {
   return `${shiftMonthKey(currentMonthKey(), -3)}-01`
 }
 
 const selectRows = (d: RecentExpenses) => d.rows
 const selectLastSpent = (d: RecentExpenses) => d.lastSpent
 
+/** The recent-expenses cache key; shared with app/expense/page.tsx's server prefetch. */
+export function recentExpensesKey(from: string) {
+  return [...key, 'recent', from] as const
+}
+
 function recentQuery() {
   const from = recentFrom()
-  return { queryKey: [...key, 'recent', from] as const, queryFn: () => getRecentExpenses(from), staleTime: 30_000 }
+  return { queryKey: recentExpensesKey(from), queryFn: () => getRecentExpenses(from), staleTime: 30_000 }
 }
 
 /** Recent rows only. Use instead of `useExpenses()` unless you need all history. */

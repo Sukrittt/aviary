@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { addGroup, deleteGroup, getGroups, moveGroup, updateGroup } from '@/src/api/groups'
 
 const key = ['groups'] as const
+export const groupsKey = key
 const categoriesKey = ['categories'] as const
 
 export function useGroups() {
