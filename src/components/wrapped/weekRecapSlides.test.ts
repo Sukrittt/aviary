@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatMinute, recapSlides } from './WeekRecap'
+import { formatMinute, recapSlides } from './weekRecapSlides'
 import type { WeekRecap } from '@/src/api/weekRecap'
 
 const money = (n: number) => `₹${n}`
@@ -46,6 +46,31 @@ describe('recapSlides', () => {
     const slides = recapSlides({ ...recap, totalTransactions: 2 }, money)
     expect(slides).toHaveLength(1)
     expect(slides[0].title).toBe("Let's get to know you")
+  })
+
+  it('tags each slide with the visual it gets', () => {
+    expect(recapSlides(recap, money).map((s) => s.kind)).toEqual(['intro', 'regulars', 'hour', 'categories', 'biggest', 'done'])
+    expect(recapSlides({ ...recap, totalTransactions: 0 }, money)[0].kind).toBe('light')
+  })
+
+  it('picks a quip for the time of day', () => {
+    const quip = (usualMinute: number) => recapSlides({ ...recap, usualMinute }, money)[2].body
+    expect(quip(8 * 60)).toBe('Early bird. We respect it.')
+    expect(quip(13 * 60)).toBe('A midday check-in. Very organised.')
+    expect(quip(19 * 60)).toBe('The evening wind-down, wallet edition.')
+    expect(quip(23 * 60)).toBe('Night owl logging. The bird approves.')
+  })
+
+  it('reads the biggest spend against the week', () => {
+    const body = (amountInr: number) => recapSlides({ ...recap, biggest: { ...recap.biggest!, amountInr } }, money)[4].body
+    expect(body(2000)).toBe('Half your week in one go. Bold.')
+    expect(body(300)).toBe('The splurge of the week.')
+  })
+
+  it('names the top category without its emoji, with a share and a quip', () => {
+    const slide = recapSlides({ ...recap, topCategory: { category: '🛍️ Shopping', total: 2000, pct: 76.5 } }, money)[3]
+    expect(slide.title).toBe('Shopping')
+    expect(slide.body).toBe('77% of your spending went here. One more thing never hurt anyone. Probably.')
   })
 
   it('never uses an em dash', () => {
