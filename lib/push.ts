@@ -70,7 +70,7 @@ type ExpoPushTicket = {
  * Sends that user's tokens in one batched request; tokens Expo reports as
  * DeviceNotRegistered are pruned from `push_tokens`. Individual per-device
  * send failures are logged, not thrown — only a failure of the HTTP call
- * itself propagates.
+ * itself propagates. Returns how many devices Expo accepted.
  *
  * `userId` is required rather than optional on purpose: this used to send to
  * every registered device on the platform, and an accidental omission would
@@ -86,11 +86,11 @@ export async function sendPushNotification({
   title: string
   body: string
   data?: Record<string, unknown>
-}): Promise<void> {
+}): Promise<number> {
   const db = await getDb()
   const coll = db.collection<PushToken>(COLLECTIONS.pushTokens)
   const tokens = await coll.find({ user_id: userId }).toArray()
-  if (tokens.length === 0) return
+  if (tokens.length === 0) return 0
 
   const messages: ExpoPushMessage[] = tokens.map((t) => ({
     to: t.token,
@@ -126,4 +126,5 @@ export async function sendPushNotification({
   if (staleTokens.length > 0) {
     await coll.deleteMany({ token: { $in: staleTokens } })
   }
+  return tickets.filter((t) => t.status === 'ok').length
 }

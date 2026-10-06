@@ -40,7 +40,8 @@ export default async function AdminJobs() {
   const runs = db.collection<CronRunDoc>(CRON_RUNS)
   const [latest, history, notifications] = await Promise.all([
     Promise.all(JOBS.map(({ job }) => runs.findOne({ job }, { sort: { startedAt: -1 } }))),
-    runs.find().sort({ startedAt: -1 }).limit(50).toArray(),
+    // The evening check alone runs 24 times a day.
+    runs.find().sort({ startedAt: -1 }).limit(200).toArray(),
     db.collection<{ user_id: string; key: string; sentAt: Date }>(COLLECTIONS.notificationLog).find().sort({ sentAt: -1 }).limit(50).toArray(),
   ])
 
