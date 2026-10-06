@@ -85,6 +85,9 @@ export function clearLocalPrefs(): void {
   } catch {
     // Nothing to clear if storage is unavailable.
   }
+  // Its preference was just cleared above, so the cookie goes too. Missing
+  // reads as hidden, and useHideAmounts rewrites it for the next account.
+  document.cookie = `${AMOUNTS_COOKIE}=; max-age=0; path=/`
   notify()
 }
 

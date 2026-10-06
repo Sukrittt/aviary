@@ -59,6 +59,13 @@ describe('/expense server render', () => {
     await expect(render()).rejects.toThrow('redirect:/onboarding')
   })
 
+  it('hands the onboarding check to the client when the profile cannot be read', async () => {
+    handlers.user.mockImplementationOnce(json({ error: 'boom' }, 500))
+    const tree = (await ExpenseRoute()) as ReactElement<{ children: ReactElement<{ recheck?: boolean }> }>
+    expect(redirect).not.toHaveBeenCalled()
+    expect(tree.props.children.props.recheck).toBe(true)
+  })
+
   it('fails open when the profile cannot be read, leaving the failed query to the client', async () => {
     handlers.user.mockImplementationOnce(json({ error: 'boom' }, 500))
     handlers.budgets.mockImplementationOnce(json({ error: 'boom' }, 500))

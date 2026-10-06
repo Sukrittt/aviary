@@ -5,6 +5,7 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { pageMetadata } from '@/lib/seo'
 import { callGet } from '@/lib/serverQuery'
+import { OnboardingGate } from '@/components/OnboardingGate'
 import type { UserProfile } from '@/src/api/account'
 import { CurrencyScope } from '@/src/context/CurrencyContext'
 import { budgetsKey } from '@/src/hooks/useBudgets'
@@ -58,12 +59,14 @@ export default async function ExpenseRoute() {
   ])
 
   // OnboardingGate skips this route (it would otherwise put its loader in the
-  // HTML), so the server makes the same call: fail open, and only a profile
-  // that says "not onboarded" leaves.
+  // HTML), so the server makes the same call: only a profile that says "not
+  // onboarded" leaves. If the profile can't be read, see `page` below.
   if (user && !user.onboardedAt) redirect('/onboarding')
   if (user) qc.setQueryData(userKey, user)
 
-  const page = <ExpensePage />
+  // Profile unreadable: the server couldn't check onboarding, so the client
+  // gate does, as it did before this page rendered on the server.
+  const page = user ? <ExpensePage /> : <OnboardingGate recheck><ExpensePage /></OnboardingGate>
   return (
     <HydrationBoundary state={dehydrate(qc)}>
       {/* The app-wide CurrencyProvider only learns the currency after the

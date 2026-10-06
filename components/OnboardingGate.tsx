@@ -57,13 +57,22 @@ function isExempt(pathname: string): boolean {
  * This used to live inside DashboardProvider, which otherwise only served the
  * deleted Mission Control views.
  */
-export function OnboardingGate({ children }: { children: ReactNode }) {
+export function OnboardingGate({ children, recheck = false }: {
+  children: ReactNode
+  /**
+   * Check even on a route that normally does it on the server. For when that
+   * server check couldn't read the profile (app/expense/page.tsx), so a
+   * not-onboarded account still ends up on /onboarding.
+   */
+  recheck?: boolean
+}) {
   const pathname = usePathname() ?? ''
   const router = useRouter()
-  const [checking, setChecking] = useState(() => !isExempt(pathname))
+  const exempt = !recheck && isExempt(pathname)
+  const [checking, setChecking] = useState(() => !exempt)
 
   useEffect(() => {
-    if (isExempt(pathname)) return
+    if (exempt) return
     // A browser that has already seen this account onboarded skips the wait:
     // onboardedAt never goes back to null, so the check below only confirms it.
     if (readOnboarded()) setChecking(false)
@@ -93,10 +102,10 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
   // return to a loader that is still waiting on it.
   useEffect(() => {
     if (SIGN_IN_PATHS.includes(pathname)) writeOnboarded(false)
-    if (isExempt(pathname)) setChecking(false)
-  }, [pathname])
+    if (exempt) setChecking(false)
+  }, [pathname, exempt])
 
-  if (checking && !isExempt(pathname)) {
+  if (checking && !exempt) {
     // .expense-redesign carries the app font and colors; erd-home-loading centers.
     return (
       <section className="expense-redesign">

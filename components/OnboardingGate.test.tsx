@@ -76,4 +76,11 @@ describe('OnboardingGate', () => {
     render(<OnboardingGate><p>page</p></OnboardingGate>)
     expect(screen.queryByText('page')).toBeNull()
   })
+
+  it('checks /expense after all when told to recheck (the server could not read the profile)', () => {
+    mockPathname = '/expense'
+    render(<OnboardingGate recheck><p>page</p></OnboardingGate>)
+    expect(screen.queryByText('page')).toBeNull()
+    expect(fetchMock).toHaveBeenCalledWith('/api/user')
+  })
 })
