@@ -1,5 +1,6 @@
 import type { Auth } from '@/lib/access'
 import { getCollection } from '@/lib/http'
+import { validMoney } from '@/lib/inputValidation'
 import { COLLECTIONS } from '@/lib/models'
 
 /**
@@ -8,9 +9,12 @@ import { COLLECTIONS } from '@/lib/models'
  * account and what they logged is what they forgot. It keeps dashboard totals
  * right without bank linking or SMS access.
  *
- * Only one account, on purpose. Card bills get paid from it, so they show up
- * here too and are asked about only then; savings and salary accounts barely
- * move and aren't where anyone spends. Checks are cumulative: each one is
+ * The number is the total across every account the user pays from (a bank
+ * plus, say, a Slice account), typed per account and named once. Moving money
+ * between them then cancels out, and a UPI spend from any of them is covered.
+ * Card bills get paid from these accounts, so they show up here too and are
+ * asked about only then. Adding or removing an account restarts from a new
+ * starting point, or the new account's money would read as income. Checks are cumulative: each one is
  * measured from the last settled check, so a skipped week is simply covered by
  * the next. No AI anywhere: this is arithmetic on the user's own history.
  */
@@ -159,6 +163,40 @@ function daysBefore(ts: string, days: number): string {
   return new Date(time(ts) - days * 86_400_000).toISOString()
 }
 
+export const MAX_ACCOUNTS = 5
+const MAX_ACCOUNT_NAME = 30
+
+export interface AccountBalance {
+  name: string
+  balance: number
+}
+
+/** The accounts a check was typed as, or null when the list isn't usable. Balances may be negative (overdrawn). */
+export function parseAccounts(raw: unknown): { accounts: AccountBalance[]; total: number } | null {
+  if (!Array.isArray(raw) || raw.length === 0 || raw.length > MAX_ACCOUNTS) return null
+  const accounts: AccountBalance[] = []
+  const seen = new Set<string>()
+  for (const a of raw) {
+    const name = typeof a?.name === 'string' ? a.name.trim() : ''
+    if (!name || name.length > MAX_ACCOUNT_NAME || seen.has(name.toLowerCase())) return null
+    if (!validMoney(a.balance, true)) return null
+    seen.add(name.toLowerCase())
+    accounts.push({ name, balance: round2(Number(a.balance)) })
+  }
+  return { accounts, total: round2(accounts.reduce((sum, a) => sum + a.balance, 0)) }
+}
+
+/**
+ * Whether two checks were typed over the same accounts. An unnamed balance
+ * (`[]`, from before accounts had names or from an older app) was one
+ * account, so it matches any single one.
+ */
+export function sameAccounts(before: string[], now: string[]): boolean {
+  if (before.length === 0 || now.length === 0) return before.length <= 1 && now.length <= 1
+  const key = (names: string[]) => JSON.stringify(names.map((n) => n.toLowerCase()).sort())
+  return key(before) === key(now)
+}
+
 export function isDue(lastTs: string | null, nowTs: string): boolean {
   return !lastTs || time(nowTs) - time(lastTs) >= CHECK_EVERY_DAYS * 86_400_000
 }
@@ -181,6 +219,8 @@ export interface StoredCheck {
   cardShortfall: number
   movedOut: number
   moneyIn: MoneyInReason | null
+  /** Names of the accounts this check totalled, empty for one unnamed balance. */
+  accounts: string[]
 }
 
 const num = (v: unknown): number => (v === undefined || v === null || v === '' ? 0 : Number(v) || 0)
@@ -203,6 +243,7 @@ export function toStoredCheck(doc: Record<string, unknown>): StoredCheck {
     cardShortfall: num(doc.card_shortfall),
     movedOut: num(doc.moved_out),
     moneyIn: (doc.money_in as MoneyInReason | undefined) ?? null,
+    accounts: Array.isArray(doc.accounts) ? doc.accounts.map((a: { name?: unknown }) => String(a?.name ?? '')) : [],
   }
 }
 

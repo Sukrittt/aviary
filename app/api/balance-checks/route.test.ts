@@ -138,6 +138,41 @@ describe('POST /api/balance-checks', () => {
     expect(stores.balance_checks).toHaveLength(2)
   })
 
+  it('totals the accounts it was given and remembers their names', async () => {
+    seedBaseline()
+    Object.assign(stores.balance_checks[0], { accounts: [{ name: 'HDFC', balance: '42000' }, { name: 'Slice', balance: '8000' }] })
+    stores.expenses.push(expense('2026-09-22', '13:00:00', 2000))
+    const body = await (await post({ accounts: [{ name: 'HDFC', balance: 40000 }, { name: 'Slice', balance: 8000 }] })).json()
+    expect(body).toMatchObject({ kind: 'square', balance: 48000, gap: 0 })
+    expect(stores.balance_checks[1]).toMatchObject({
+      balance: '48000',
+      accounts: [{ name: 'HDFC', balance: '40000' }, { name: 'Slice', balance: '8000' }],
+    })
+    const got = await (await GET(new Request('https://example.com/api/balance-checks'))).json()
+    expect(got.accounts).toEqual(['HDFC', 'Slice'])
+  })
+
+  it('starts over when an account is added, so its money never reads as income', async () => {
+    seedBaseline()
+    await post({ accounts: [{ name: 'HDFC', balance: 50000 }] })
+    now = { date: '2026-10-04', timestamp: '2026-10-04T10:00:00+05:30' }
+    const body = await (await post({ accounts: [{ name: 'HDFC', balance: 50000 }, { name: 'Slice', balance: 9000 }] })).json()
+    expect(body).toMatchObject({ kind: 'baseline', reason: 'accounts_changed', balance: 59000 })
+    expect(stores.balance_checks.at(-1)).toMatchObject({ status: 'baseline' })
+  })
+
+  it('keeps the account names when an older app sends one balance', async () => {
+    seedBaseline()
+    Object.assign(stores.balance_checks[0], { accounts: [{ name: 'HDFC', balance: '50000' }, { name: 'Slice', balance: '0' }] })
+    expect((await (await post({ balance: 50000 })).json()).kind).toBe('baseline')
+    const got = await (await GET(new Request('https://example.com/api/balance-checks'))).json()
+    expect(got.accounts).toEqual(['HDFC', 'Slice'])
+  })
+
+  it('rejects a bad account list', async () => {
+    expect((await post({ accounts: [{ name: '', balance: 10 }] })).status).toBe(400)
+  })
+
   it('rejects a balance that is not a number, and the demo account', async () => {
     expect((await post({ balance: 'lots' })).status).toBe(400)
     auth = { ...auth, readOnly: true }

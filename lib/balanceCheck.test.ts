@@ -6,6 +6,8 @@ import {
   gapProposal,
   isDue,
   loggedPct,
+  parseAccounts,
+  sameAccounts,
   paidByCard,
   paidFromBank,
   spendBetween,
@@ -166,5 +168,51 @@ describe('gapProposal', () => {
 
   it('is null when there is nothing to estimate', () => {
     expect(gapProposal('c1', '2026-09-27', [])).toBeNull()
+  })
+})
+
+describe('parseAccounts', () => {
+  it('trims names and totals the balances', () => {
+    expect(parseAccounts([{ name: ' HDFC ', balance: 42000 }, { name: 'Slice', balance: '8000.5' }])).toEqual({
+      accounts: [{ name: 'HDFC', balance: 42000 }, { name: 'Slice', balance: 8000.5 }],
+      total: 50000.5,
+    })
+  })
+
+  it('allows an overdrawn account', () => {
+    expect(parseAccounts([{ name: 'HDFC', balance: -200 }])?.total).toBe(-200)
+  })
+
+  it('rejects an empty list, too many accounts, blank or repeated names, and bad balances', () => {
+    expect(parseAccounts([])).toBeNull()
+    expect(parseAccounts('HDFC')).toBeNull()
+    expect(parseAccounts(Array.from({ length: 6 }, (_, i) => ({ name: `A${i}`, balance: 1 })))).toBeNull()
+    expect(parseAccounts([{ name: '  ', balance: 1 }])).toBeNull()
+    expect(parseAccounts([{ name: 'x'.repeat(31), balance: 1 }])).toBeNull()
+    expect(parseAccounts([{ name: 'HDFC', balance: 1 }, { name: 'hdfc', balance: 2 }])).toBeNull()
+    expect(parseAccounts([{ name: 'HDFC', balance: 'lots' }])).toBeNull()
+  })
+})
+
+describe('sameAccounts', () => {
+  it('ignores order and case', () => {
+    expect(sameAccounts(['HDFC', 'Slice'], ['slice', 'hdfc'])).toBe(true)
+  })
+
+  it('spots an account added or removed', () => {
+    expect(sameAccounts(['HDFC'], ['HDFC', 'Slice'])).toBe(false)
+    expect(sameAccounts(['HDFC', 'Slice'], ['HDFC'])).toBe(false)
+    expect(sameAccounts(['HDFC'], ['Slice'])).toBe(false)
+  })
+
+  it('takes an unnamed single balance from before accounts as the same one account, either way round', () => {
+    expect(sameAccounts([], ['HDFC'])).toBe(true)
+    expect(sameAccounts(['HDFC'], [])).toBe(true)
+    expect(sameAccounts([], ['HDFC', 'Slice'])).toBe(false)
+    expect(sameAccounts(['HDFC', 'Slice'], [])).toBe(false)
+  })
+
+  it('never mistakes one name with a line break for two accounts', () => {
+    expect(sameAccounts(['a\nb'], ['a', 'b'])).toBe(false)
   })
 })

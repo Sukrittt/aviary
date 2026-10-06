@@ -267,6 +267,17 @@ describe('scoped() field encryption', () => {
     expect(await scoped(coll as any, 'user_bob').findOne({ key: 'snapshot' })).toBeNull()
   })
 
+  it('encrypts each balance check account name and balance, and decrypts them for their owner', async () => {
+    const coll = fakeMongoCollection('balance_checks')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const view = scoped(coll as any, 'user_alice')
+    const accounts = [{ name: 'HDFC', balance: '42000' }, { name: 'Slice', balance: '8000' }]
+    await view.insertOne({ status: 'baseline', balance: '50000', accounts })
+    const stored = coll.store[0].accounts as { name: string; balance: string }[]
+    expect(stored.every((a) => isEncrypted(a.name) && isEncrypted(a.balance))).toBe(true)
+    expect((await view.findOne({ status: 'baseline' }))?.accounts).toEqual(accounts)
+  })
+
   it('encrypts declared fields on insertOne, leaves plaintext fields alone', async () => {
     const coll = fakeMongoCollection('expenses')
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -38,7 +38,7 @@ export const ENCRYPTED_FIELDS: Record<string, string[]> = {
   holding_events: ['amount', 'previous_value', 'new_value'],
   chat_sessions: ['title', 'messages.text', 'messages.proposal'],
   bill_scans: ['merchant', 'total', 'my_share', 'items.name', 'items.price'],
-  balance_checks: ['balance', 'gap', 'expected', 'logged', 'tolerance', 'forgotten', 'card_bill', 'card_shortfall', 'moved_out'],
+  balance_checks: ['balance', 'gap', 'expected', 'logged', 'tolerance', 'forgotten', 'card_bill', 'card_shortfall', 'moved_out', 'accounts.name', 'accounts.balance'],
 }
 
 export function fieldsFor(collectionName: string): string[] {
