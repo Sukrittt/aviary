@@ -43,4 +43,13 @@ describe('useDragOrder', () => {
     expect(onMove).not.toHaveBeenCalled()
     expect(result.current.order).toEqual(['a', 'c', 'b'])
   })
+
+  it('marks the dragged row active until drop', () => {
+    const { result } = renderHook(() => useDragOrder(['a', 'b'], vi.fn()))
+    expect(result.current.active).toBeNull()
+    act(() => result.current.start('a'))
+    expect(result.current.active).toBe('a')
+    act(() => result.current.drop('a'))
+    expect(result.current.active).toBeNull()
+  })
 })

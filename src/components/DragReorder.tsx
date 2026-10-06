@@ -19,13 +19,18 @@ export function useDragOrder(
   const [live, setLive] = useState<{ base: string[]; order: string[] } | null>(
     null,
   );
+  // The row being dragged, from its first move until drop. Groups read it to fold to headers.
+  const [active, setActive] = useState<string | null>(null);
   const order = live?.order ?? items;
   return {
     order,
+    active,
+    start: setActive,
     setOrder: (next: string[]) =>
       setLive((prev) => ({ base: prev?.base ?? items, order: next })),
     drop(name: string) {
       setLive(null);
+      setActive(null);
       if (!live || live.base.join("\0") !== items.join("\0")) return;
       const from = items.indexOf(name);
       const to = live.order.indexOf(name);
@@ -64,9 +69,12 @@ export function DragItem({
     <Reorder.Item
       as="li"
       value={value}
-      className={className}
+      // Position only: animating size too would squash a row's contents while its height changes.
+      layout="position"
+      className={drag.active === value ? `${className ?? ""} is-dragging` : className}
       dragListener={false}
       dragControls={controls}
+      onDragStart={() => drag.start(value)}
       onDragEnd={() => drag.drop(value)}
       whileDrag={{
         scale: 1.01,

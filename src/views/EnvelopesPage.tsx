@@ -2,7 +2,7 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { AnimatePresence } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import {
   ReceiptText,
   Bell,
@@ -372,7 +372,12 @@ export function EnvelopesPage() {
             label="Envelope groups"
           >
             {orderedGroups.map((group) => {
-              const isCollapsed = collapsed.has(group.label);
+              // Like Mobile, every group folds to its header while one is dragged, so each
+              // slot is one header tall. The bodies unmount outright rather than spring shut:
+              // Reorder measures rows on render, and a body still animating out keeps the old,
+              // tall positions, so the drag never finds a swap.
+              const dragging = groupDrag.active !== null;
+              const isCollapsed = dragging || collapsed.has(group.label);
               const { icon, text } = group.name
                 ? splitEmoji(group.name)
                 : { icon: "🗂️", text: OTHER_LABEL };
@@ -449,93 +454,97 @@ export function EnvelopesPage() {
                     </div>
                   </div>
 
-                  <SpringCollapse open={!isCollapsed}>
-                    <CategoryList
-                      items={group.items}
-                      onMove={moveCategoryTo}
-                      renderRow={(category, catGrip) => {
-                        const parts = splitEmoji(category.name);
-                        const thresholds = category.alertPcts
-                          ? sorted(category.alertPcts)
-                          : DEFAULT_ALERT_PCTS;
-                        return (
-                          <>
-                            {catGrip}
-                            <span
-                              className="env-cat-icon"
-                              style={{ background: avatarColorFor(parts.text) }}
-                              aria-hidden="true"
-                            >
-                              {categoryEmoji(category.name)}
-                            </span>
-                            <span className="env-cat-name">{parts.text}</span>
-                            <button
-                              type="button"
-                              className="env-cat-alerts"
-                              onClick={() => {
-                                setEditing(category);
-                                setDraftPcts(thresholds);
-                              }}
-                              title="Get notified when spending in this envelope reaches these points"
-                              aria-label={`Spending alerts for ${parts.text}: ${thresholds.map((p) => `${p}%`).join(", ")}`}
-                            >
-                              <Bell size={14} aria-hidden="true" />
-                              <span className="env-alert-copy">
-                                <span className="env-alert-label">
-                                  Spending alerts
-                                </span>
-                                <span className="env-alert-values">
-                                  {thresholds.map((p) => `${p}%`).join(" · ")}
-                                </span>
+                  {!dragging && (
+                    <SpringCollapse open={!isCollapsed}>
+                      <CategoryList
+                        items={group.items}
+                        onMove={moveCategoryTo}
+                        renderRow={(category, catGrip) => {
+                          const parts = splitEmoji(category.name);
+                          const thresholds = category.alertPcts
+                            ? sorted(category.alertPcts)
+                            : DEFAULT_ALERT_PCTS;
+                          return (
+                            <>
+                              {catGrip}
+                              <span
+                                className="env-cat-icon"
+                                style={{
+                                  background: avatarColorFor(parts.text),
+                                }}
+                                aria-hidden="true"
+                              >
+                                {categoryEmoji(category.name)}
                               </span>
-                            </button>
-                            <div className="env-cat-actions">
-                              <Link
-                                className="env-icon-btn"
-                                href={`/expense/transactions?category=${encodeURIComponent(category.name)}`}
-                                aria-label={`View transactions for ${parts.text}`}
-                                title="View transactions"
-                              >
-                                <ReceiptText size={14} aria-hidden="true" />
-                              </Link>
+                              <span className="env-cat-name">{parts.text}</span>
                               <button
                                 type="button"
-                                className="env-icon-btn"
-                                onClick={() =>
-                                  beginDraft(
-                                    {
-                                      kind: "rename-category",
+                                className="env-cat-alerts"
+                                onClick={() => {
+                                  setEditing(category);
+                                  setDraftPcts(thresholds);
+                                }}
+                                title="Get notified when spending in this envelope reaches these points"
+                                aria-label={`Spending alerts for ${parts.text}: ${thresholds.map((p) => `${p}%`).join(", ")}`}
+                              >
+                                <Bell size={14} aria-hidden="true" />
+                                <span className="env-alert-copy">
+                                  <span className="env-alert-label">
+                                    Spending alerts
+                                  </span>
+                                  <span className="env-alert-values">
+                                    {thresholds.map((p) => `${p}%`).join(" · ")}
+                                  </span>
+                                </span>
+                              </button>
+                              <div className="env-cat-actions">
+                                <Link
+                                  className="env-icon-btn"
+                                  href={`/expense/transactions?category=${encodeURIComponent(category.name)}`}
+                                  aria-label={`View transactions for ${parts.text}`}
+                                  title="View transactions"
+                                >
+                                  <ReceiptText size={14} aria-hidden="true" />
+                                </Link>
+                                <button
+                                  type="button"
+                                  className="env-icon-btn"
+                                  onClick={() =>
+                                    beginDraft(
+                                      {
+                                        kind: "rename-category",
+                                        name: category.name,
+                                        group: group.name,
+                                      },
+                                      category.name,
+                                    )
+                                  }
+                                  aria-label={`Rename ${parts.text}`}
+                                  title="Rename category"
+                                >
+                                  <Pencil size={14} aria-hidden="true" />
+                                </button>
+                                <button
+                                  type="button"
+                                  className="env-icon-btn env-icon-btn--danger"
+                                  onClick={() =>
+                                    setDeleteTarget({
+                                      kind: "category",
                                       name: category.name,
-                                      group: group.name,
-                                    },
-                                    category.name,
-                                  )
-                                }
-                                aria-label={`Rename ${parts.text}`}
-                                title="Rename category"
-                              >
-                                <Pencil size={14} aria-hidden="true" />
-                              </button>
-                              <button
-                                type="button"
-                                className="env-icon-btn env-icon-btn--danger"
-                                onClick={() =>
-                                  setDeleteTarget({
-                                    kind: "category",
-                                    name: category.name,
-                                  })
-                                }
-                                aria-label={`Delete ${parts.text}`}
-                                title="Delete category"
-                              >
-                                <Trash2 size={14} aria-hidden="true" />
-                              </button>
-                            </div>
-                          </>
-                        );
-                      }}
-                    />
-                  </SpringCollapse>
+                                    })
+                                  }
+                                  aria-label={`Delete ${parts.text}`}
+                                  title="Delete category"
+                                >
+                                  <Trash2 size={14} aria-hidden="true" />
+                                </button>
+                              </div>
+                            </>
+                          );
+                        }}
+                      />
+                    </SpringCollapse>
+                  )}
                 </>
               );
               // Ungrouped "Other" isn't a stored group, so it has no slot to move to.
@@ -550,9 +559,13 @@ export function EnvelopesPage() {
                   {body}
                 </DragItem>
               ) : (
-                <li key={group.label} className="env-group">
+                <motion.li
+                  key={group.label}
+                  layout="position"
+                  className="env-group"
+                >
                   {body(null)}
-                </li>
+                </motion.li>
               );
             })}
           </DragList>

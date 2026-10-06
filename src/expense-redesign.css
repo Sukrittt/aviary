@@ -6898,6 +6898,14 @@ button.account-feature-card {
   cursor: grabbing;
 }
 
+/* The card colour is translucent; the lifted row lays it over the page colour so nothing shows through. */
+.env-group.is-dragging,
+.env-cat.is-dragging {
+  background:
+    linear-gradient(var(--erd-card), var(--erd-card)),
+    var(--erd-bg);
+}
+
 /* Rows paint their own background so a dragged one doesn't show the rows beneath. */
 .env-cat-list > .env-cat {
   background: var(--erd-card);
