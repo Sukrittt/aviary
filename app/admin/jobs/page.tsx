@@ -27,6 +27,12 @@ const JOBS: Array<{ job: CronJob; label: string; schedule: string; confirm: stri
     schedule: 'Daily 06:00 UTC',
     confirm: 'Retry pending welcome and subscription emails now? Sends real service emails to eligible accounts.',
   },
+  {
+    job: 'eveningCheck',
+    label: 'Evening check',
+    schedule: 'Hourly (24 daily crons)',
+    confirm: 'Run the evening check now? Sends a real push to anyone in their 20:00 to 22:00 window with nothing logged today.',
+  },
 ]
 
 export default async function AdminJobs() {
