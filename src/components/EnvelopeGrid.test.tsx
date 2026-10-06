@@ -64,4 +64,28 @@ describe('EnvelopeGrid last spent label', () => {
       vi.useRealTimers()
     }
   })
+
+  // The server renders this label too (app/expense/page.tsx), and Vercel runs in
+  // UTC. It has to come out the same there as in an Indian browser, or hydration
+  // fails between midnight and 05:30 IST.
+  it.each([
+    ['2026-09-25', 'Today'],
+    ['2026-09-24', 'Yesterday'],
+    ['2026-09-22', '3d ago'],
+    ['2026-07-01', '1 Jul'],
+  ])('labels %s as %s in IST, even from a UTC process', (lastSpentDate, label) => {
+    process.env.TZ = 'UTC'
+    vi.useFakeTimers({ toFake: ['Date'] })
+    // 01:30 on 25 Sep in IST; 24 Sep in UTC.
+    vi.setSystemTime(new Date('2026-09-24T20:00:00Z'))
+    try {
+      render(<EnvelopeGrid envelopes={[{ ...envelope, lastSpentDate }]} groups={['Essentials']}
+        hideAmounts={false} onManage={vi.fn()} onMoveMoney={vi.fn()}
+        onAssignFromRTA={vi.fn()} onSetAssigned={vi.fn()} />)
+      expect(screen.getByText(new RegExp(`Last spent ${label}$`))).toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+      process.env.TZ = 'Asia/Kolkata'
+    }
+  })
 })

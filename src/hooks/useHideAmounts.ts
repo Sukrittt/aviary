@@ -1,5 +1,6 @@
-import { useCallback } from 'react'
+import { useCallback, useEffect } from 'react'
 import { usePersistentState } from './usePersistentState'
+import { AMOUNTS_COOKIE, readPref } from '../lib/localPref'
 
 const KEY = 'expense-hide-amounts'
 
@@ -20,6 +21,12 @@ export function useHideAmounts() {
     (raw) => raw === 'true',
     (value) => String(value),
   )
+  useEffect(() => {
+    // From storage, not `hidden`: during hydration that briefly holds the
+    // server default (shown), which must never reach the cookie.
+    const stored = readPref(KEY) === 'true'
+    document.cookie = `${AMOUNTS_COOKIE}=${stored ? 'hidden' : 'shown'}; path=/; max-age=31536000; samesite=lax`
+  }, [hidden])
   const setHidden = useCallback(
     (next: boolean | ((prev: boolean) => boolean)) => setStored(next),
     [setStored],

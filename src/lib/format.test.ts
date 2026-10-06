@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatINR, formatCurrency, formatDateTime, formatDate, formatDateShort, formatOrdinalDate } from './format'
+import { formatINR, formatCurrency, formatDateTime, formatDate, formatDateShort, formatShortDate, formatOrdinalDate } from './format'
 
 describe('formatINR', () => {
   it('groups digits using Indian lakh/crore placement', () => {
@@ -76,5 +76,20 @@ describe('formatOrdinalDate', () => {
   it('omits invalid dates', () => {
     expect(formatOrdinalDate('')).toBe('')
     expect(formatOrdinalDate('invalid')).toBe('')
+  })
+})
+
+describe('date-only strings are calendar dates, in every timezone', () => {
+  // Server-rendered pages format these on a UTC server and again in the
+  // browser; the two must agree, and a due date must not slip a day west of UTC.
+  it.each(['America/Los_Angeles', 'Pacific/Kiritimati', 'UTC'])('in %s', (tz) => {
+    const before = process.env.TZ
+    process.env.TZ = tz
+    try {
+      expect(formatDateShort('2026-10-20')).toBe('20 Oct')
+      expect(formatShortDate('2026-10-20')).toBe("20 Oct '26")
+    } finally {
+      process.env.TZ = before
+    }
   })
 })
