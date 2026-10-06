@@ -2,8 +2,8 @@
 
 import { useCurrency } from '@/src/context/CurrencyContext'
 import { motion } from 'motion/react'
-import { STAGGER, popIn, staggerDelay } from '@/src/components/landing/mobile/kit'
-import { useState } from 'react'
+import { AmountText, STAGGER, popIn, staggerDelay } from '@/src/components/landing/mobile/kit'
+import { useEffect, useState } from 'react'
 import { Check, Search, Trash2 } from 'lucide-react'
 
 import { CategoryPicker } from '@/src/components/CategoryPicker'
@@ -31,16 +31,18 @@ export function ScanReview(s: ScanBillState) {
   return (
     <div className="scan-review scan-review-edit">
       <div className="scan-col scan-review-main">
-        <section className="scan-card scan-share-card">
+        <motion.section className="scan-card scan-share-card" {...popIn(STAGGER.mount)}>
           <div className="scan-micro">Your share</div>
-          <div className="scan-hero-amount">{formatMoney(s.myShare)}</div>
+          <div className="scan-hero-amount">
+            <AmountText value={s.myShare} animate />
+          </div>
           <ShareBar pct={s.sharePct} />
           <div className="scan-spread scan-meta">
             <span>of {formatMoney(s.billTotal)} bill</span>
             <span className="is-strong">{s.sharePct}% yours</span>
           </div>
-        </section>
-        <div className="scan-toolbar">
+        </motion.section>
+        <motion.div className="scan-toolbar" {...popIn(STAGGER.mount + STAGGER.block)}>
           <div className="scan-search-field">
             <Search size={17} aria-hidden="true" />
             <input
@@ -55,7 +57,7 @@ export function ScanReview(s: ScanBillState) {
           <button type="button" className="account-pill-btn" onClick={s.setAllMine}>
             All mine
           </button>
-        </div>
+        </motion.div>
 
         <div className="scan-review-scroll">
           <ul className="scan-items" aria-label="Bill items">
@@ -226,7 +228,7 @@ export function ScanReview(s: ScanBillState) {
         </div>
       </div>
 
-      <aside className="scan-col scan-side">
+      <motion.aside className="scan-col scan-side" {...popIn(STAGGER.mount + 3 * STAGGER.block)}>
         {s.imageUrl && (
           <button type="button" className="scan-bill-thumb" onClick={() => setPreviewOpen(true)} aria-label="Preview bill photo">
             {/* eslint-disable-next-line @next/next/no-img-element -- a local data URL, nothing for next/image to optimize */}
@@ -270,12 +272,26 @@ export function ScanReview(s: ScanBillState) {
         <div className="erd-log-label">Date</div>
         <DatePicker mode="single" value={s.date} onChange={s.setDate} popover />
 
-      </aside>
+      </motion.aside>
     </div>
   )
 }
 
+/** Mobile's FILL_DELAY: bars sit empty this long after mount, then fill. */
+const FILL_DELAY_MS = 500
+
+/** A value that reads as 0 until FILL_DELAY_MS after mount, so bars and amounts fill/roll up on entry like Mobile. */
+export function useRevealed(value: number) {
+  const [revealed, setRevealed] = useState(false)
+  useEffect(() => {
+    const t = setTimeout(() => setRevealed(true), FILL_DELAY_MS)
+    return () => clearTimeout(t)
+  }, [])
+  return revealed ? value : 0
+}
+
 export function ShareBar({ pct, height = 6, muted = false }: { pct: number; height?: number; muted?: boolean }) {
+  pct = useRevealed(pct)
   return (
     <div className="scan-bar" style={{ height }}>
       <div
