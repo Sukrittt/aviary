@@ -30,4 +30,17 @@ describe('useDragOrder', () => {
     act(() => result.current.nudge('a', 1))
     expect(onMove).toHaveBeenCalledWith('a', 1)
   })
+
+  it('drops nothing when the list changed under the drag', () => {
+    const onMove = vi.fn()
+    const { result, rerender } = renderHook(({ items }) => useDragOrder(items, onMove), {
+      initialProps: { items: ['a', 'b', 'c'] },
+    })
+    act(() => result.current.setOrder(['b', 'c', 'a']))
+    // A refetch lands mid-drag with another device's order.
+    rerender({ items: ['a', 'c', 'b'] })
+    act(() => result.current.drop('a'))
+    expect(onMove).not.toHaveBeenCalled()
+    expect(result.current.order).toEqual(['a', 'c', 'b'])
+  })
 })

@@ -8,21 +8,27 @@ import { GripVertical } from "lucide-react";
  * Local order while a drag runs. Motion's Reorder needs `values` updated on every swap, but
  * the server order should only change once, on drop. `order` is the live list; `drop(name)`
  * hands the final index to `onMove` and goes back to `items`, which by then carries the same
- * order through the move hook's optimistic write, so nothing flashes.
+ * order through the move hook's optimistic write, so nothing flashes. `base` is `items` as
+ * the drag found it: if a refetch replaced it mid-drag, the indexes the user saw no longer
+ * mean anything, so the drop is dropped and the row snaps to the fresh order.
  */
 export function useDragOrder(
   items: string[],
   onMove: (name: string, toIndex: number) => void,
 ) {
-  const [live, setLive] = useState<string[] | null>(null);
-  const order = live ?? items;
+  const [live, setLive] = useState<{ base: string[]; order: string[] } | null>(
+    null,
+  );
+  const order = live?.order ?? items;
   return {
     order,
-    setOrder: setLive,
+    setOrder: (next: string[]) =>
+      setLive((prev) => ({ base: prev?.base ?? items, order: next })),
     drop(name: string) {
       setLive(null);
+      if (!live || live.base.join("\0") !== items.join("\0")) return;
       const from = items.indexOf(name);
-      const to = order.indexOf(name);
+      const to = live.order.indexOf(name);
       if (from !== -1 && to !== -1 && from !== to) onMove(name, to);
     },
     /** Keyboard fallback for the grip: arrow keys move one slot. */
