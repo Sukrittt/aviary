@@ -9,8 +9,9 @@
  * it) and Node's loader can't resolve.
  *
  * `'messages.text'` means "the `text` field inside each element of the
- * `messages` array" — the one nested case, handled specially wherever this
- * map is consumed.
+ * `messages` array" — nested array fields are handled specially wherever this
+ * map is consumed. `messages.proposal` is a capture proposal stored as a JSON
+ * string (item names and amounts), encrypted for the same reason `text` is.
  *
  * Deliberately not encrypted, because each is a filter/sort/index key: on
  * `expenses` — date, category, payment_method, timestamp; on
@@ -23,7 +24,9 @@
  * `holdings.name` (a future re-key to `_id` could move it into this list);
  * `chat_sessions.updatedAt` (sort + index); on `bill_scans` — category, date,
  * expense_id, people_count, items.qty, items.divisor, image_url, image_status,
- * created_at (filter/sort/join keys, or not money/PII to begin with).
+ * created_at (filter/sort/join keys, or not money/PII to begin with); on
+ * `balance_checks` — timestamp, date, status, kind, money_in, resolved_at
+ * (sort keys and labels; every amount on a check is encrypted).
  */
 export const ENCRYPTED_FIELDS: Record<string, string[]> = {
   expenses: ['item', 'notes', 'description', 'amount_inr', 'amount'],
@@ -33,8 +36,9 @@ export const ENCRYPTED_FIELDS: Record<string, string[]> = {
   recurring_detection: ['snapshot'],
   holdings: ['value', 'recurring_amount'],
   holding_events: ['amount', 'previous_value', 'new_value'],
-  chat_sessions: ['title', 'messages.text'],
+  chat_sessions: ['title', 'messages.text', 'messages.proposal'],
   bill_scans: ['merchant', 'total', 'my_share', 'items.name', 'items.price'],
+  balance_checks: ['balance', 'gap', 'expected', 'logged', 'tolerance', 'forgotten', 'card_bill', 'card_shortfall', 'moved_out'],
 }
 
 export function fieldsFor(collectionName: string): string[] {

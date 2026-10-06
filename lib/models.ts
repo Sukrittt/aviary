@@ -98,6 +98,7 @@ export const COLLECTIONS = {
   exports: 'exports',
   billScans: 'bill_scans',
   recurringDetection: 'recurring_detection',
+  balanceChecks: 'balance_checks',
 } as const
 
 /** One CSV-ish row; every value is a string so it round-trips exactly. */
