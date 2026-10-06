@@ -42,8 +42,23 @@ describe('noticedLine', () => {
 })
 
 describe('learnedDates', () => {
-  it('merges server dates with local ones inside the week, sorted and unique', () => {
-    const local = [row('a', '2026-10-03', 'Chai'), row('b', '2026-10-05', 'Uber'), row('c', '2026-09-30', 'x'), row('d', '2026-10-08', 'y')]
-    expect(learnedDates(['2026-10-01', '2026-10-03'], local, '2026-10-01')).toEqual(['2026-10-01', '2026-10-03', '2026-10-05'])
+  const r = (date: string, extra: object = {}) => ({ id: date, date, item: 'Chai', amount_inr: '20', source: 'manual', ...extra })
+
+  it('uses the local list once loaded, inside the week and up to today', () => {
+    const local = [r('2026-10-03'), r('2026-10-01'), r('2026-09-30'), r('2026-10-05')]
+    expect(learnedDates(['2026-10-02'], local, '2026-10-01', '2026-10-04')).toEqual(['2026-10-01', '2026-10-03'])
+  })
+
+  it('drops a day whose expense was deleted, since the local list is the truth', () => {
+    expect(learnedDates(['2026-10-01', '2026-10-02'], [r('2026-10-01')], '2026-10-01', '2026-10-03')).toEqual(['2026-10-01'])
+  })
+
+  it('skips automatic, refunded and unnamed expenses like the server does', () => {
+    const local = [r('2026-10-01', { source: 'recurring' }), r('2026-10-02', { source: 'subscription' }), r('2026-10-03', { amount_inr: '-5' }), r('2026-10-04', { item: ' ' })]
+    expect(learnedDates([], local, '2026-10-01', '2026-10-07')).toEqual([])
+  })
+
+  it('falls back to the server dates while the list loads', () => {
+    expect(learnedDates(['2026-10-02', '2026-10-01', '2026-10-06'], undefined, '2026-10-01', '2026-10-03')).toEqual(['2026-10-01', '2026-10-02'])
   })
 })

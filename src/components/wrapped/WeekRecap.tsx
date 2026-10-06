@@ -88,9 +88,13 @@ function RecapStory({ recap, onClose }: { recap: WeekRecap; onClose: () => void 
   )
 }
 
-/** GET /api/recap, shared by the gate and the Home "learning you" card. Refetched on window focus. */
+/**
+ * GET /api/recap, shared by the gate and the Home "learning you" card.
+ * Refetched on window focus, and every 15 minutes so a page left open
+ * across midnight moves on to the next day (or to the recap).
+ */
 export function useWeekRecap() {
-  return useQuery({ queryKey: ['week-recap'], queryFn: getWeekRecap, staleTime: 5 * 60_000, retry: false })
+  return useQuery({ queryKey: ['week-recap'], queryFn: getWeekRecap, staleTime: 5 * 60_000, refetchInterval: 15 * 60_000, retry: false })
 }
 
 /**

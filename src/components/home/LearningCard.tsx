@@ -20,13 +20,13 @@ export function LearningCard() {
   const start = new Date(`${learning.unlocksOn}T00:00:00Z`)
   start.setUTCDate(start.getUTCDate() - 7)
   const startDate = start.toISOString().slice(0, 10)
-  const logged = new Set(learnedDates(learning.loggedDates, rows ?? [], startDate))
   const left = 8 - learning.day
   const days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(start)
     d.setUTCDate(d.getUTCDate() + i)
     return { date: d.toISOString().slice(0, 10), letter: WEEKDAYS[d.getUTCDay()], today: i === learning.day - 1 }
   })
+  const logged = new Set(learnedDates(learning.loggedDates, rows, startDate, days[learning.day - 1].date))
 
   return (
     <article className="erd-card home-learning" aria-label="Aviary is learning your habits">

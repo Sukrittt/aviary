@@ -34,9 +34,23 @@ export function noticedLine(item: string, count: number): string | null {
   return count >= 2 ? `Noted. That's your ${ordinal(count)} ${item.trim()} this week.` : null
 }
 
-/** First-week dates with an expense: the server's, plus any logged since it answered. */
-export function learnedDates(serverDates: string[], rows: Row[], start: string): string[] {
-  const end = addDays(start, 6)
-  const local = rows.map((r) => r.date).filter((d) => d >= start && d <= end)
-  return [...new Set([...serverDates, ...local])].sort()
+// Logged by the server on a schedule, so they don't count toward the recap (see Web lib/weekRecap.ts).
+const AUTO_SOURCES = new Set(['recurring', 'subscription'])
+
+type LocalRow = Row & { source?: string; amount_inr?: string }
+
+/**
+ * First-week dates with an expense, up to today. The local expense list
+ * covers the whole first week and refreshes on every add, edit and delete,
+ * so it's the truth once loaded, filtered the way the server's recap is.
+ * Until then, the server's dates stand in.
+ */
+export function learnedDates(serverDates: string[], rows: LocalRow[] | undefined, start: string, today: string): string[] {
+  const end = addDays(start, 6) < today ? addDays(start, 6) : today
+  const dates = rows
+    ? rows
+        .filter((r) => !AUTO_SOURCES.has(r.source ?? '') && Number(r.amount_inr) > 0 && norm(r.item))
+        .map((r) => r.date)
+    : serverDates
+  return [...new Set(dates.filter((d) => d >= start && d <= end))].sort()
 }

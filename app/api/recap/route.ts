@@ -33,8 +33,9 @@ export async function GET(req: Request) {
   const day = learningDay(start, today)
   if (!due && !day) return json({ due: false })
 
+  // While learning, only through today: an expense dated later this week mustn't tick a future day.
   const coll = await getCollection('expenses', auth)
-  const docs = await coll.find({ date: { $gte: start, $lte: end } }).toArray()
+  const docs = await coll.find({ date: { $gte: start, $lte: due ? end : today } }).toArray()
   const recap = computeWeekRecap(docs.map((d) => toRow(EXPENSE_HEADERS, d) as RecapRow), start)
   if (due) return json({ due: true, recap })
   return json({ due: false, learning: { day, loggedDates: recap.loggedDates, unlocksOn: dueFrom } })
