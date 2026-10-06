@@ -15,6 +15,8 @@ import {
   loadCheckExpenses,
   loggedPct,
   paidByCard,
+  parseAccounts,
+  sameAccounts,
   paidFromBank,
   spendBetween,
   toleranceFor,
@@ -39,7 +41,7 @@ export async function GET(req: Request) {
   const auth = await getAuth(req)
   const gate = await requireAccess(auth)
   if (gate) return gate
-  if (auth.readOnly) return json({ due: false, expected: null, anchor: null, open: false, loggedPct: null })
+  if (auth.readOnly) return json({ due: false, expected: null, anchor: null, open: false, loggedPct: null, accounts: [] })
 
   const [checks, now] = await Promise.all([latestChecks(auth, 5), nowForUser(auth.userId)])
   const anchor = anchorOf(checks)
@@ -57,12 +59,16 @@ export async function GET(req: Request) {
     expected,
     anchor: anchor ? { timestamp: anchor.timestamp, date: anchor.date, balance: anchor.balance } : null,
     loggedPct: lastLoggedPct(checks),
+    // The accounts to ask about again. The open check's, if there is one: it's the list the user typed last.
+    accounts: (checks[0] ?? anchor)?.accounts ?? [],
   })
 }
 
 /**
- * `POST /api/balance-checks` `{ balance }`: records the bank balance and says
- * what it means. The first check is the starting point. After that it's
+ * `POST /api/balance-checks` `{ accounts: [{ name, balance }] }` (or
+ * `{ balance }` from older apps): records the total and says what it means.
+ * The first check is the starting point, and so is one over a different set
+ * of accounts. After that it's
  * `square` (nothing to answer), `unlogged` (money left that wasn't logged) or
  * `surplus` (more money than expected); those two stay `open` until
  * `POST /api/balance-checks/:id/resolve`. Sending a new balance while one is
@@ -76,8 +82,17 @@ export async function POST(req: Request) {
   if (guard) return guard
 
   const body = await readBody(req)
-  if (!validMoney(body.balance, true)) return error('balance must be a number')
-  const balance = Math.round(Number(body.balance) * 100) / 100
+  let balance: number
+  let accounts: { name: string; balance: string }[] | undefined
+  if (body.accounts !== undefined) {
+    const parsed = parseAccounts(body.accounts)
+    if (!parsed) return error('accounts must be 1 to 5 named balances')
+    balance = parsed.total
+    accounts = parsed.accounts.map((a) => ({ name: a.name, balance: String(a.balance) }))
+  } else {
+    if (!validMoney(body.balance, true)) return error('balance must be a number')
+    balance = Math.round(Number(body.balance) * 100) / 100
+  }
 
   const [checks, now] = await Promise.all([latestChecks(auth), nowForUser(auth.userId)])
   const replacing = checks[0]?.status === 'open' ? checks[0] : null
@@ -93,9 +108,10 @@ export async function POST(req: Request) {
     return String(inserted.insertedId)
   }
 
-  if (!anchor) {
-    const id = await save({ timestamp: now.timestamp, date: now.date, status: 'baseline', kind: 'baseline', balance: String(balance) })
-    return json({ id, kind: 'baseline', balance })
+  const accountsChanged = !!anchor && !sameAccounts(anchor.accounts, accounts?.map((a) => a.name) ?? [])
+  if (!anchor || accountsChanged) {
+    const id = await save({ timestamp: now.timestamp, date: now.date, status: 'baseline', kind: 'baseline', balance: String(balance), ...(accounts && { accounts }) })
+    return json({ id, kind: 'baseline', reason: anchor ? 'accounts_changed' : 'first', balance })
   }
 
   const expenses = await loadCheckExpenses(auth, historyStart(now.timestamp, anchor.date))
@@ -116,6 +132,7 @@ export async function POST(req: Request) {
     logged: String(logged),
     gap: String(gap),
     tolerance: String(tolerance),
+    ...(accounts && { accounts }),
   })
 
   return json({ id, kind, balance, expected, logged, gap, tolerance, cardSpendRecent, loggedPct: kind === 'square' ? 100 : null })
