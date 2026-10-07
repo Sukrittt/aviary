@@ -40,6 +40,7 @@ import { useSubscriptions, useCancelSubscription, useReactivateSubscription } fr
 import { useHideAmounts } from "../hooks/useHideAmounts";
 import { GetStartedCard } from "../components/home/GetStartedCard";
 import { LearningCard } from "../components/home/LearningCard";
+import { BalanceCheckCard } from "../components/balance/BalanceCheckCard";
 import { useUser } from "../hooks/useUser";
 import { WeekRecapGate } from "../components/wrapped/WeekRecap";
 import { usePersistentState } from "../hooks/usePersistentState";
@@ -443,6 +444,10 @@ export function ExpensePage() {
               </AnimatePresence>
 
               <LearningCard />
+
+              {/* The weekly balance check keeps these totals honest without bank
+                  linking: a prompt when one is due, else the logged meter. */}
+              <BalanceCheckCard />
 
               {envelopeState && (
                 <motion.article

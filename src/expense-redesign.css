@@ -11533,3 +11533,383 @@ button.account-feature-card {
   .setup-pick-row:has(.setup-pick-check:active), .setup-pick-check:active,
   .setup-cta:enabled:active, .setup-add-row:active, .setup-add-pill:active { transform: none; }
 }
+
+/* ── Logging by typing: the review card (src/components/CaptureReview.tsx) ── */
+.brain-turn {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.brain-inline-link {
+  display: block;
+  margin-top: 6px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--gold-ink);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.expense-redesign .capture-review {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--erd-border);
+  border-radius: 18px;
+  background: var(--erd-card);
+}
+.expense-redesign .capture-row {
+  display: grid;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--erd-border);
+  border-radius: 14px;
+  background: var(--erd-input-bg);
+}
+.expense-redesign .capture-row.is-incomplete {
+  border-color: var(--warn);
+}
+.expense-redesign .capture-row-top,
+.expense-redesign .capture-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.expense-redesign .capture-row-meta small {
+  color: var(--erd-text3);
+  font-size: 12px;
+}
+.expense-redesign .capture-item {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 0;
+  border: none;
+  background: none;
+  color: var(--erd-text);
+  font: 600 14px var(--font-nunito);
+  outline: none;
+}
+.expense-redesign .capture-amount,
+.expense-redesign .balance-amount {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--erd-text2);
+  font: 600 14px var(--font-nunito);
+}
+.expense-redesign .capture-amount input {
+  width: 72px;
+  padding: 4px 0;
+  border: none;
+  background: none;
+  color: var(--erd-text);
+  font: 700 14px var(--font-nunito);
+  text-align: right;
+  outline: none;
+}
+.expense-redesign .capture-amount.is-invalid input {
+  color: var(--warn);
+}
+.expense-redesign .capture-remove,
+.expense-redesign .balance-account-remove {
+  display: inline-flex;
+  padding: 4px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--erd-text3);
+  cursor: pointer;
+}
+.expense-redesign .capture-remove:hover,
+.expense-redesign .balance-account-remove:hover {
+  background: var(--erd-border);
+}
+.expense-redesign .capture-envelope {
+  min-width: 160px;
+}
+.expense-redesign .capture-envelope.is-empty {
+  --erd-input-bg: var(--warn-soft);
+}
+.expense-redesign .capture-unusual {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--warn-ink);
+  font-size: 12px;
+}
+.expense-redesign .capture-error,
+.expense-redesign .balance-error {
+  margin: 0;
+  color: var(--coral);
+  font-size: 13px;
+}
+.expense-redesign .capture-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+.expense-redesign .capture-actions .action-button.is-active {
+  min-width: 140px;
+}
+.expense-redesign .capture-summary {
+  align-self: flex-start;
+  padding: 8px 14px;
+  border-radius: 100px;
+  background: var(--erd-input-bg);
+  color: var(--erd-text3);
+  font: 600 13px var(--font-nunito);
+}
+.expense-redesign .capture-summary.is-logged {
+  background: var(--mint-soft);
+  color: var(--mint);
+}
+.erd-log-several {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 10px;
+  padding: 6px;
+  border: none;
+  background: none;
+  color: var(--erd-text2);
+  font: 600 13px var(--font-nunito);
+  cursor: pointer;
+}
+.erd-log-several:hover {
+  color: var(--gold-ink);
+}
+
+/* ── Weekly balance check (src/components/balance/) ── */
+.expense-redesign .balance-prompt {
+  display: grid;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.expense-redesign .balance-prompt h2 {
+  margin: 0;
+  font: 600 18px var(--font-fredoka);
+}
+.expense-redesign .balance-prompt p {
+  margin: 0;
+  color: var(--erd-text2);
+  font-size: 14px;
+}
+.expense-redesign .balance-prompt-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+.expense-redesign .balance-meter {
+  display: grid;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 0 4px;
+  border: none;
+  background: none;
+  color: var(--erd-text2);
+  font: 600 13px var(--font-nunito);
+  text-align: left;
+  cursor: pointer;
+}
+.expense-redesign .balance-meter-track {
+  display: block;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 100px;
+  background: var(--erd-border);
+}
+.expense-redesign .balance-meter-track i {
+  display: block;
+  height: 100%;
+  border-radius: 100px;
+  background: var(--gold);
+}
+.expense-redesign .balance-meter-track i.is-high {
+  background: var(--mint);
+}
+.expense-redesign .balance-card {
+  width: 520px;
+}
+.expense-redesign .balance-step {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+.expense-redesign .balance-intro {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--erd-border);
+  border-radius: 18px;
+  background: var(--erd-card);
+}
+.expense-redesign .balance-intro-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  background: var(--gold-soft);
+  font-size: 22px;
+}
+.expense-redesign .balance-intro p {
+  margin: 2px 0 0;
+  color: var(--erd-text2);
+  font-size: 13px;
+}
+.expense-redesign .balance-accounts {
+  display: grid;
+  gap: 8px;
+}
+.expense-redesign .balance-account {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--erd-border-strong);
+  border-radius: 14px;
+  background: var(--erd-input-bg);
+}
+.expense-redesign .balance-account:focus-within {
+  border-color: var(--gold);
+}
+.expense-redesign .balance-account-name {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  color: var(--erd-text);
+  font: 600 14px var(--font-nunito);
+  outline: none;
+}
+.expense-redesign .balance-account .balance-amount {
+  flex: 1;
+  font-size: 18px;
+}
+.expense-redesign .balance-account-name + .balance-amount {
+  flex: 0 0 auto;
+}
+.expense-redesign .balance-amount input {
+  width: 100%;
+  min-width: 90px;
+  border: none;
+  background: none;
+  color: var(--erd-text);
+  font-family: var(--font-nunito);
+  font-size: inherit;
+  font-weight: 700;
+  outline: none;
+}
+.expense-redesign .balance-account-name + .balance-amount input {
+  width: 120px;
+  text-align: right;
+}
+.expense-redesign .balance-total {
+  margin: 0;
+  text-align: right;
+  font-weight: 700;
+}
+.expense-redesign .balance-add {
+  justify-self: center;
+  padding: 4px 8px;
+  border: none;
+  background: none;
+  color: var(--gold-ink);
+  font: 700 13px var(--font-nunito);
+  cursor: pointer;
+}
+.expense-redesign .balance-title {
+  margin: 0;
+  font: 600 20px var(--font-fredoka);
+}
+.expense-redesign .balance-hint {
+  margin: 0;
+  color: var(--erd-text2);
+  font-size: 14px;
+}
+.expense-redesign .balance-step .erd-log-submit {
+  margin-top: 4px;
+}
+.expense-redesign .balance-field {
+  display: grid;
+  gap: 6px;
+  color: var(--erd-text3);
+  font: 600 12px var(--font-nunito);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.expense-redesign .balance-field .balance-amount {
+  padding: 10px 12px;
+  border: 1px solid var(--erd-border-strong);
+  border-radius: 14px;
+  background: var(--erd-input-bg);
+  font-size: 16px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.expense-redesign .balance-option {
+  position: relative;
+  display: grid;
+  gap: 2px;
+  padding: 12px 14px;
+  border: 1px solid var(--erd-border);
+  border-radius: 18px;
+  background: var(--erd-card);
+  color: var(--erd-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+.expense-redesign .balance-option:hover:not(:disabled) {
+  border-color: var(--gold);
+}
+.expense-redesign .balance-option:disabled:not(.is-success) {
+  opacity: 0.5;
+  cursor: default;
+}
+.expense-redesign .balance-option .sb-label {
+  display: grid;
+  gap: 2px;
+}
+.expense-redesign .balance-option small {
+  color: var(--erd-text2);
+  font-size: 13px;
+}
+.expense-redesign .balance-option.is-success {
+  border-color: var(--mint);
+  background: var(--mint);
+  color: var(--erd-on-accent);
+  cursor: default;
+}
+.expense-redesign .balance-option.is-success .sb-label {
+  visibility: hidden;
+}
+.expense-redesign .balance-option .sb-tick {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  animation: erd-success-pop 300ms ease forwards;
+}
+.expense-redesign .balance-option .sb-tick svg {
+  width: 22px;
+  height: 22px;
+}
+.expense-redesign .balance-option .sb-tick path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: erd-check-draw 350ms ease 220ms forwards;
+}

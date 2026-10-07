@@ -60,8 +60,18 @@ export type NewExpenseRow = {
   date?: string
   notes?: string
   payment_method?: string
-  /** Only manual entry completes the getting started milestone. */
-  source?: 'manual' | 'scan'
+  /**
+   * Where it came from. Only manual entry completes the getting started
+   * milestone; 'text' is a row confirmed from the money brain and
+   * 'balance_gap' an estimate confirmed after a balance check.
+   */
+  source?: 'manual' | 'scan' | 'text' | 'balance_gap'
+  /**
+   * Set only when the caller already has a stable name for this create, like
+   * a money-brain row (`capture:<proposalId>:<rowId>`), so logging the same
+   * proposal again can never insert a second row. Minted fresh otherwise.
+   */
+  client_id?: string
 }
 
 /** The exact body a POST /api/expenses create sends, `client_id` included. */
@@ -79,7 +89,7 @@ export type ExpensePayload = NewExpenseRow & { client_id: string; date: string; 
 export function mintExpensePayload(row: NewExpenseRow): ExpensePayload {
   const ist = nowIST()
   const date = row.date || ist.date
-  return { ...row, date, timestamp: `${date}T${ist.timestamp.slice(11)}`, client_id: crypto.randomUUID() }
+  return { ...row, date, timestamp: `${date}T${ist.timestamp.slice(11)}`, client_id: row.client_id || crypto.randomUUID() }
 }
 
 /** Resolves with the created (or, on a client_id replay, already-existing) row's identity. */

@@ -3,7 +3,8 @@
 import { useCurrency } from '@/src/context/CurrencyContext'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Calendar, PencilLine, Plus, Tag, TriangleAlert, WalletMinimal } from 'lucide-react'
+import { Calendar, MessageSquareText, PencilLine, Plus, Tag, TriangleAlert, WalletMinimal } from 'lucide-react'
+import { useOptionalMoneyBrain } from '@/components/moneyBrainContext'
 import { Scrim, Sheet } from './MotionSheet'
 import { DatePicker, formatShort } from './DatePicker'
 import { getCategoryMap } from '../api/categoryMap'
@@ -50,6 +51,7 @@ function offsetDateValue(daysAgo: number): string {
 
 export function LogExpenseModal({ onClose, onSaved }: Props) {
   const { currencySymbol, formatMoney } = useCurrency()
+  const brain = useOptionalMoneyBrain()
 
   const categoriesQ = useCategories()
   const addExpenseM = useAddExpense()
@@ -465,6 +467,18 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
               >
                 {warning ? `Save ${formatMoney(parsedAmount)} anyway` : 'Save expense'}
               </SuccessButton>
+              {brain && !saving && !success && (
+                <button
+                  type="button"
+                  className="erd-log-several"
+                  onClick={() => {
+                    onClose()
+                    brain.openCapture()
+                  }}
+                >
+                  <MessageSquareText size={14} aria-hidden="true" /> Log several at once
+                </button>
+              )}
             </div>
           </>
         )}

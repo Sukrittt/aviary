@@ -17,12 +17,13 @@ import { useMoneyBrief } from '@/src/hooks/useMoneyBrief'
 import { useChatSessions, useChatSessionsCount } from '@/src/hooks/useChatSessions'
 import { computeEnvelopeState, currentMonthKey } from '@/src/lib/envelope'
 
-import { getChatSession, streamChat, type ChatMessage } from '@/src/api/ai'
+import { CAPTURE_FAILED_MESSAGE, getChatSession, streamChat, updateProposalStatus, type ChatMessage } from '@/src/api/ai'
 import { track } from '@/src/lib/analytics'
 import { LoadingCaption } from './LoadingCaption'
 import { BirdMark, BirdThinking } from './BirdMark'
 import { ChatMarkdown } from './ChatMarkdown'
 import { BirdEmptyState } from './BirdEmptyState'
+import { CaptureReview } from './CaptureReview'
 
 export interface OpenChat {
   sessionId: string | null
@@ -31,6 +32,10 @@ export interface OpenChat {
 
 interface Props {
   initialSessionId?: string | null
+  /** Opened from "Log several at once": a fresh chat focused on typing spends, without the money brief. */
+  capture?: boolean
+  /** Opens manual entry, offered when a typed message couldn't be read. */
+  onLogManually?: () => void
   /** The chat left open last time; the drawer restores it and keeps it current. */
   openChat?: MutableRefObject<OpenChat>
   onClose: () => void
@@ -46,7 +51,10 @@ function timeAgo(iso: string) {
   return `${Math.round(mins / 1440)}d ago`
 }
 
-export function MoneyBrainDrawer({ initialSessionId = null, openChat, onClose }: Props) {
+/** A chat turn as the drawer holds it: `captureFailed` marks a reply that offers manual entry instead. */
+type BrainMessage = ChatMessage & { captureFailed?: boolean }
+
+export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onLogManually, openChat, onClose }: Props) {
   const { formatCurrency } = useCurrency()
   const { theme } = useAppearance()
 
@@ -62,7 +70,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, openChat, onClose }:
 
   const [view, setView] = useState<'chat' | 'history'>('chat')
   // A reply cut off by closing mid-stream leaves an empty model bubble; drop it.
-  const [messages, setMessages] = useState<ChatMessage[]>(() => openChat?.current.messages.filter((m) => m.text) ?? [])
+  const [messages, setMessages] = useState<BrainMessage[]>(() => openChat?.current.messages.filter((m) => m.text) ?? [])
   const [sessionId, setSessionId] = useState<string | null>(() => openChat?.current.sessionId ?? null)
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
@@ -159,7 +167,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, openChat, onClose }:
     const trimmed = text.trim()
     if (!trimmed || sending) return
     track('money_brain_query', { source })
-    const historyMessages = [...messages, { role: 'user' as const, text: trimmed }]
+    const historyMessages: BrainMessage[] = [...messages, { role: 'user' as const, text: trimmed }]
     setMessages([...historyMessages, { role: 'model', text: '' }])
     setInput('')
     setSending(true)
@@ -177,6 +185,15 @@ export function MoneyBrainDrawer({ initialSessionId = null, openChat, onClose }:
           return next
         }),
         controller.signal,
+        (proposal) => {
+          track('capture_proposed', { rows: proposal.items.length })
+          setMessages((current) => {
+            const next = [...current]
+            const last = next[next.length - 1]
+            if (last?.role === 'model') next[next.length - 1] = { ...last, proposal }
+            return next
+          })
+        },
       )
       setSessionId(resolved)
       await Promise.all([
@@ -185,9 +202,12 @@ export function MoneyBrainDrawer({ initialSessionId = null, openChat, onClose }:
       ])
     } catch (error) {
       if ((error as Error).name !== 'AbortError') {
+        const captureFailed = (error as Error).message === CAPTURE_FAILED_MESSAGE
         setMessages((current) => {
           const next = [...current]
-          next[next.length - 1] = { role: 'model', text: 'Something went wrong. Try again.' }
+          next[next.length - 1] = captureFailed
+            ? { role: 'model', text: "Couldn't read that one. Add it by hand?", captureFailed: true }
+            : { role: 'model', text: 'Something went wrong. Try again.' }
           return next
         })
       }
@@ -197,6 +217,12 @@ export function MoneyBrainDrawer({ initialSessionId = null, openChat, onClose }:
   }
 
   const awaitingFirstDelta = sending && messages.at(-1)?.role === 'model' && !messages.at(-1)?.text
+
+  /** Records a proposal's outcome on the chat, so reopening it shows the card read-only. Best effort. */
+  function settleProposal(proposalId: string, status: 'submitted' | 'dismissed', expenseIds: string[]) {
+    setMessages((current) => current.map((m) => (m.proposal?.id === proposalId ? { ...m, proposal: { ...m.proposal, status, expenseIds } } : m)))
+    if (sessionId) void updateProposalStatus(sessionId, proposalId, status, expenseIds).catch(() => {})
+  }
 
   return (
     <motion.div
@@ -225,7 +251,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, openChat, onClose }:
           ) : <span className="brain-orbit" aria-hidden="true"><BirdMark size={26} /></span>}
           <div className="brain-heading">
             <h2>{view === 'history' ? 'Chat history' : 'Ask Aviary'}</h2>
-            <p>{view === 'history' ? 'Pick up where you left off' : brief.data ? `Reading ${brief.data.meta.txnCountThisMonth} transactions` : 'Reading your budget…'}</p>
+            <p>{view === 'history' ? 'Pick up where you left off' : capture ? 'Type what you spent. Several at once is fine.' : brief.data ? `Reading ${brief.data.meta.txnCountThisMonth} transactions` : 'Reading your budget…'}</p>
           </div>
           <div className="brain-head-actions">
             {view === 'chat' && (
@@ -285,6 +311,13 @@ export function MoneyBrainDrawer({ initialSessionId = null, openChat, onClose }:
           <>
             <div className="brain-body" ref={bodyRef}>
               {loadError && <div className="brain-error" role="alert">Couldn’t load that chat. Check your connection and try again.</div>}
+              {capture && messages.length === 0 && (
+                <motion.section className="brain-summary-card" {...popIn(STAGGER.mount)}>
+                  <span className="brain-kicker">Log several at once</span>
+                  <p>Try “auto 240, lunch 150, turf 1200 split 6”. You&apos;ll check them before anything is logged.</p>
+                </motion.section>
+              )}
+              {!capture && (<>
               <motion.section className="brain-summary-card" {...popIn(STAGGER.mount)}>
                 <span className="brain-kicker">This month so far</span>
                 <strong>{formatCurrency(envelope.totalSpent, hideAmounts)} of {formatCurrency(envelope.totalAssigned, hideAmounts)} assigned</strong>
@@ -328,11 +361,23 @@ export function MoneyBrainDrawer({ initialSessionId = null, openChat, onClose }:
                   </div>
                 </section>
               ) : null}
+              </>)}
               {messages.length > 0 && (
                 <div className="brain-messages" aria-live="polite">
                   {messages.map((message, index) => message.text ? (
-                    <div key={index} className={`brain-bubble brain-bubble--${message.role}`}>
-                      {message.role === 'model' ? <ChatMarkdown text={message.text} /> : message.text}
+                    <div key={index} className="brain-turn">
+                      <div className={`brain-bubble brain-bubble--${message.role}`}>
+                        {message.role === 'model' ? <ChatMarkdown text={message.text} /> : message.text}
+                        {message.captureFailed && onLogManually && (
+                          <button type="button" className="brain-inline-link" onClick={onLogManually}>Add it by hand</button>
+                        )}
+                      </div>
+                      {message.proposal && (
+                        <CaptureReview
+                          proposal={message.proposal}
+                          onSettled={(status, ids) => settleProposal(message.proposal!.id, status, ids)}
+                        />
+                      )}
                     </div>
                   ) : null)}
                   {awaitingFirstDelta && <BirdThinking size={30} />}
@@ -352,7 +397,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, openChat, onClose }:
                     void send(input, 'typed')
                   }
                 }}
-                placeholder="Ask about your money…"
+                placeholder={capture ? 'What did you spend?' : 'Ask about your money…'}
                 aria-label="Ask Aviary"
               />
               <button type="submit" disabled={sending || !input.trim()} aria-label="Send question"><ArrowUp size={18} /></button>
