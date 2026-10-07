@@ -3,7 +3,7 @@ import { ExpenseWriteError } from '../lib/expenseConflict';
 import { useCurrency } from "@/src/context/CurrencyContext";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { Copy, Plus, Search } from "lucide-react";
+import { Check, Copy, Plus, Search } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { toTransactions, type Transaction } from "../lib/expenseTransactions";
 import { useBudgets } from "../hooks/useBudgets";
@@ -127,6 +127,11 @@ export function TransactionsView({
   // settles, so the rows below spring up at once. A failed delete puts one back.
   const [removedKeys, setRemovedKeys] = useState<ReadonlySet<string>>(() => new Set());
   const [deleteNotice, setDeleteNotice] = useState<{ status?: number } | null>(null);
+  // Multi-select: `selecting` swaps row clicks from the actions menu to toggling.
+  const [selecting, setSelecting] = useState(false);
+  const [selectedKeys, setSelectedKeys] = useState<ReadonlySet<string>>(() => new Set());
+  const [confirmBulk, setConfirmBulk] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
   const [showLogModal, setShowLogModal] = useState(false);
   const [actionsKey, setActionsKey] = useState<string | null>(null);
   const actionsMenuRef = useRef<HTMLDivElement | null>(null);
@@ -312,6 +317,61 @@ export function TransactionsView({
     }
   }
 
+  const visibleTransactions = transactionGroups.flatMap((g) => g.transactions);
+  const selectedTxns = visibleTransactions.filter((t) => selectedKeys.has(txnKey(t)));
+  const allSelected = visibleTransactions.length > 0 && selectedTxns.length === visibleTransactions.length;
+
+  function exitSelecting() {
+    setSelecting(false);
+    setSelectedKeys(new Set());
+  }
+
+  function toggleSelected(t: Transaction) {
+    const key = txnKey(t);
+    setSelectedKeys((keys) => {
+      const next = new Set(keys);
+      if (!next.delete(key)) next.add(key);
+      return next;
+    });
+  }
+
+  // One request per row, in order: each delete runs its own server transaction
+  // (credit-card envelope rebalance included), so running them in parallel
+  // would just race those for no real speed-up at this list size.
+  async function handleBulkDelete(txns: Transaction[]) {
+    const keys = txns.map(txnKey);
+    setConfirmBulk(false);
+    setBulkDeleting(true);
+    setDeleteNotice(null);
+    setRemovedKeys((prev) => new Set([...prev, ...keys]));
+    const failed: Transaction[] = [];
+    let firstStatus: number | undefined;
+    for (const t of txns) {
+      try {
+        await deleteExpenseM.mutateAsync({
+          id: t.id,
+          version: t.version,
+          timestamp: t.timestamp,
+          item: t.item,
+          amountInr: t.amountInr,
+        });
+      } catch (err) {
+        if (!failed.length) firstStatus = err instanceof ExpenseWriteError ? err.status : undefined;
+        failed.push(t);
+      }
+    }
+    setBulkDeleting(false);
+    if (!failed.length) {
+      exitSelecting();
+      return;
+    }
+    // Failed rows come back, still selected, so a retry is one tap away.
+    const failedKeys = new Set(failed.map(txnKey));
+    setRemovedKeys((prev) => new Set([...prev].filter((k) => !failedKeys.has(k))));
+    setSelectedKeys(failedKeys);
+    setDeleteNotice({ status: firstStatus });
+  }
+
   const hasActiveFilters =
     period !== "week" || Boolean(selectedCategory) || Boolean(search.trim());
 
@@ -324,6 +384,18 @@ export function TransactionsView({
           <p>Review, search, and edit everything you have logged.</p>
         </div>
         <div className="txn-page-actions">
+          {visibleTransactions.length > 0 && !selecting && (
+            <button
+              type="button"
+              className="action-button"
+              onClick={() => {
+                setActionsKey(null);
+                setSelecting(true);
+              }}
+            >
+              Select
+            </button>
+          )}
           {duplicates.length > 0 && (
             <button
               type="button"
@@ -431,6 +503,38 @@ export function TransactionsView({
       </AnimatePresence>
       {deleteNotice && <ExpenseNoticeDialog status={deleteNotice.status} action="delete" onBack={() => setDeleteNotice(null)} />}
 
+      {selecting && (
+        <div className="txn-select-bar" role="toolbar" aria-label="Selected transactions">
+          <span className="txn-select-count">{selectedTxns.length} selected</span>
+          <button
+            type="button"
+            className="action-button is-ghost"
+            disabled={bulkDeleting}
+            onClick={() =>
+              setSelectedKeys(allSelected ? new Set() : new Set(visibleTransactions.map(txnKey)))
+            }
+          >
+            {allSelected ? "Clear" : "Select all"}
+          </button>
+          <button
+            type="button"
+            className="account-danger-btn txn-select-delete"
+            disabled={selectedTxns.length === 0 || bulkDeleting}
+            onClick={() => setConfirmBulk(true)}
+          >
+            {bulkDeleting ? "Deleting…" : "Delete"}
+          </button>
+          <button
+            type="button"
+            className="action-button is-ghost"
+            disabled={bulkDeleting}
+            onClick={exitSelecting}
+          >
+            Done
+          </button>
+        </div>
+      )}
+
       {loading ? (
         <div className="txn-timeline-loading">
           <LoadingCaption placement="page" />
@@ -488,27 +592,39 @@ export function TransactionsView({
                   const rowKey = `${t.timestamp}-${t.item}-${t.amountInr}`;
                   const categoryName = splitEmoji(t.category).text;
                   const time = formatTransactionTime(t.timestamp);
+                  const isSelected = selecting && selectedKeys.has(txnKey(t));
                   return (
                     <DeletingRow
                       key={t.id || `t-${t.timestamp}-${i}`}
-                      className={`txn-timeline-row${actionsKey === rowKey ? " is-open" : ""}`}
+                      className={`txn-timeline-row${actionsKey === rowKey ? " is-open" : ""}${isSelected ? " is-selected" : ""}`}
                       active={pendingDelete?.id === t.id && pendingDelete?.timestamp === t.timestamp}
                       onDone={() => void handleDelete(t)}
                     >
-                      <button
-                        type="button"
-                        className="txn-row-trigger"
-                        aria-label={`Open actions for ${t.item}`}
-                        aria-haspopup="menu"
-                        aria-expanded={actionsKey === rowKey}
-                        onClick={() => toggleActions(rowKey)}
-                      />
+                      {selecting ? (
+                        <button
+                          type="button"
+                          className="txn-row-trigger"
+                          aria-label={`Select ${t.item}`}
+                          aria-pressed={isSelected}
+                          disabled={bulkDeleting}
+                          onClick={() => toggleSelected(t)}
+                        />
+                      ) : (
+                        <button
+                          type="button"
+                          className="txn-row-trigger"
+                          aria-label={`Open actions for ${t.item}`}
+                          aria-haspopup="menu"
+                          aria-expanded={actionsKey === rowKey}
+                          onClick={() => toggleActions(rowKey)}
+                        />
+                      )}
                       <span
-                        className="txn-timeline-icon"
+                        className={`txn-timeline-icon${isSelected ? " is-checked" : ""}`}
                         title={categoryName}
-                        style={{ background: avatarColorFor(categoryName) }}
+                        style={isSelected ? undefined : { background: avatarColorFor(categoryName) }}
                       >
-                        {categoryEmoji(t.category)}
+                        {isSelected ? <Check size={20} strokeWidth={2.6} aria-hidden="true" /> : categoryEmoji(t.category)}
                       </span>
                       <span className="txn-timeline-body">
                         <span className="txn-timeline-item">{t.item}</span>
@@ -620,6 +736,23 @@ export function TransactionsView({
                 queuedDelete.current = deleteTxn;
                 setDeleteTxn(null);
               }}
+            >
+              Remove
+            </button>
+          </ConfirmDialog>
+        )}
+        {confirmBulk && (
+          <ConfirmDialog
+            title={`Delete ${selectedTxns.length} transaction${selectedTxns.length === 1 ? "" : "s"}?`}
+            body={`${selectedTxns.length === 1 ? "It'll" : "They'll"} move to Archive. You can restore ${selectedTxns.length === 1 ? "it" : "them"} for 7 days.`}
+            cancelLabel="Cancel"
+            onCancel={() => setConfirmBulk(false)}
+          >
+            <button
+              type="button"
+              className="account-danger-btn"
+              style={{ marginTop: 0 }}
+              onClick={() => void handleBulkDelete(selectedTxns)}
             >
               Remove
             </button>
