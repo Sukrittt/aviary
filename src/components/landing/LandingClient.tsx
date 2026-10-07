@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, type ReactNode } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import { AnimatePresence, MotionConfig, motion, useReducedMotion } from 'motion/react'
+import { Volume2 } from 'lucide-react'
 
 
 export function LandingMotion({ children }: { children: ReactNode }) {
@@ -24,4 +25,25 @@ export function Faq({ items }: { items: { q: string; a: ReactNode }[] }) {
   </div>)}</div>
 }
 
+/** The app's log chime, plus its buzz where the browser can (Chrome on Android, after a tap). */
+export function chime() {
+  new Audio('/landing/success.m4a').play().catch(() => {})
+  navigator.vibrate?.([14, 50, 22])
+}
 
+/** The Added recording, with a button that replays it from the top with the chime and the buzz. */
+export function AddedClip() {
+  const ref = useRef<HTMLVideoElement>(null)
+  const replay = () => {
+    const v = ref.current
+    if (v) {
+      v.currentTime = 0
+      v.play()?.catch(() => {})
+    }
+    chime()
+  }
+  return <div className="lp-win-added">
+    <video ref={ref} className="lp-win-shot" src="/landing/clip-added.mp4" poster="/landing/poster-added.jpg" autoPlay muted loop playsInline preload="metadata" aria-label="Added ₹150 for Bike to office. Metro has ₹960 left of ₹1,110." />
+    <button type="button" className="lp-hear" onClick={replay}><Volume2 size={16} aria-hidden="true" />Hear the chime</button>
+  </div>
+}

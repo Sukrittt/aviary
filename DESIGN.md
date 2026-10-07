@@ -191,7 +191,7 @@ A warm neutral page with one hot accent and four borrowed pastels, each with a f
 - **Paper** (`paper`): the page and the frosted sticky header (at 86% with a blur).
 - **Warm Surface** (`surface`): framed demo grounds (hero stage, playground panel), the "without Aviary" and bank-feed sides, chips, and inset sample panels.
 - **Card White** (`card`): cards, the Aviary side of every comparison, ghost buttons.
-- **Ink** (`ink`) and **Ink Hover** (`ink-hover`): all body text and headlines, plus the fill of every primary pill, the versus pill, the active tab and the toast.
+- **Ink** (`ink`) and **Ink Hover** (`ink-hover`): all body text and headlines, plus the fill of every primary pill, the versus pill, the active tab and the toast. Ink is also the ground of the page's one dark band, "Noticing is the point", where headline text is `#f6f3ea` and the lede is `#b8b3a7`.
 - **Muted** (`muted`): ledes, captions, meta lines, nav links at rest.
 - **Hairline** (`line`) and **Hairline Strong** (`line-strong`): 1px borders on every card and frame; the strong one is the hover border for ghost controls.
 - **Focus Blue** (`focus`): the 3px focus ring. It is deliberately off-palette so it never reads as decoration.
@@ -230,9 +230,9 @@ A warm neutral page with one hot accent and four borrowed pastels, each with a f
 
 A single centered column. The header, hero stage, sections and footer cap at 1240px with 32px gutters (20px under 640px; the hero stage wrap uses 12px). The header is a three-column grid: logo, centered nav, CTA right.
 
-Each section opens 150px below the last (100px on mobile) and follows one pattern: centered headline, lede below it, then one framed demo 56px further down (40px on mobile), capped at 1000 to 1100px. Three sections break the pattern on purpose: the playground has a left-aligned head with its tabs on the right; the founder card is a two-column `1.1fr .9fr` split; FAQ narrows to 860px and left-aligns.
+Each section opens 150px below the last (100px on mobile) and follows one pattern: centered headline, lede below it, then one framed demo 56px further down (40px on mobile), capped at 1000 to 1100px. Four sections break the pattern on purpose: "Noticing is the point" is a full-bleed Ink band (120px of its own padding, the split card sitting on it); the playground has no frame at all, with left-aligned copy and starter chips beside a live phone; the founder card is a two-column `1.1fr .9fr` split; FAQ narrows to 860px and left-aligns.
 
-Grids inside demos: six "ways to log" across (3 at 1080px, 2 at 640px); the learn diagram as `1fr 80px auto 80px 1fr` with dashed connector lines (stacked and lineless under 900px); three rules across (2, then 1); wins as `1.25fr 1fr 1fr` with the tick card widest (tick card full width at 900px, all stacked at 640px); comparisons as two equal halves (stacked at 640px).
+Grids inside demos: six "ways to log" across (3 at 1080px, 2 at 640px); the learn diagram as `1fr 80px auto 80px 1fr` with dashed connector lines (stacked and lineless under 900px); six rules, three across (2, then 1); wins as two equal cards (stacked at 900px); comparisons as two equal halves (stacked at 640px). Under 900px the three "log from anywhere" phones become one swipeable snap row instead of a stack, and under 640px the hero's chapter tabs sit above the stage so they're reachable before the demo.
 
 Breakpoints are 1080px, 900px (nav hides), 640px (everything stacks, buttons go full width) and 440px (playground phone zooms to 0.84). Anchored sections keep 90px scroll clearance (72px on mobile) for the sticky header.
 
@@ -257,7 +257,7 @@ Flat by default, lifted on purpose. Most structure is tonal: Card White on Warm 
 
 Everything is round and soft, and radius scales with the size of the object: pill buttons and chips (`pill`), 12px form fields (`field`), 18 to 20px rows and inset panels (`tile`, `inset`), 24px cards and icon tiles (`card`), 28 to 32px feed, win and playground panels (`panel`), and 36px for the big frames (hero stage, form-vs-nudge split, founder card), which step down to 28px under 640px. Devices use their own nested radii (50px bezel over a 40px screen; 54px over 42px for the playground).
 
-Hand-drawn strokes are the only free-form shapes: the hero underline and the dashed learn-diagram connectors, both with rounded caps and `vector-effect: non-scaling-stroke`. The founder's road tiles are the only rotated objects on the page (±4 to 9°).
+Hand-drawn strokes are the only free-form shapes: the hero underline and the dashed learn-diagram connectors, both with rounded caps and `vector-effect: non-scaling-stroke`. Two things rotate: the founder's road tiles (±4 to 9°) and the pair of Wrapped cards, which fan out at -4° and 3° inside the purple win card.
 
 ## Components
 
@@ -271,10 +271,10 @@ Confident, chunky pills.
 - **Focus:** 3px Focus Blue outline, 4px offset, on every link, button and summary.
 
 ### Success tick
-The app's check, buzz and chime only happen in the app, so the page shows the result instead: the "See what's left" card plays the Added moment once in view (a Logged Green disc pops, its check draws on, then a Burnt Orange segment grows onto the envelope bar). Reuse this rather than a pressable fake.
+The Added recording sits in the "See what's left" card at 330px tall so its smallest label reads. Under it a ghost pill, "Hear the chime", replays the clip from the top with the app's chime, plus a short buzz where the browser allows it (Chrome on Android, after a tap; everywhere else it's silently skipped). Sound never plays without a tap.
 
-### Tabs (playground)
-The Playground no longer has tabs; it's a self-playing take of the real log screen. A script drives the twin components through DOM events: a white tap ring lands on each target, "Coffee with Sam" types in, the category pill spins its emoji reel and lands with a burst (web twin of Mobile's AutoCategoryPill), the keypad enters ₹180, + logs it, and the Added screen plays muted. It runs only while 35% visible, restarts cleanly after a pause, and the phone is inert.
+### Playground
+"Go on, log one." is the app's own log screen (web twins of Mobile's log-expense, Added screen and floating nav) live in a phone. Until someone touches it, it plays itself: a white tap ring lands on each target, "Coffee with Sam" types in, the category pill spins its emoji reel and lands with a burst, the keypad enters ₹180, + logs it, and the Added screen plays muted. An ink "Try it yourself" pill sits at the top of the screen and the whole screen is the button. One tap hands the phone over for good: the visitor types, the pill picks, + logs it, and the Added screen chimes and buzzes. Four starter chips beside the phone type a sample item in for anyone who's stuck. "Watch the demo instead" gives it back. With reduced motion there's no self-play and the phone is the visitor's from the start. The self-play only runs while 35% visible.
 
 ### Cards / Containers
 - **Card:** `card`, Card White, 24px corners, hairline border, 26px padding. Win cards use 30px corners and 32px padding.
@@ -300,16 +300,16 @@ Header: sticky, frosted Paper, Fredoka 600 26px wordmark with an orange bird and
 One item open at a time. Questions are Nunito 800 18px on hairline-divided rows; the Burnt Orange Ink plus rotates 135° to a cross; the answer springs open (height spring, no bounce, 350ms) in Muted 16px at 1.75.
 
 ### Hero stage (signature)
-A chaptered film under the headline: Learns your habits, Scan a bill, Ask Aviary, Insights, Bills & subscriptions, Investments. Each chapter is a side card, a phone and a side card on the framed demo; app chapters render the real 360×740 layout scaled into the phone on the app's black. Pill tabs under the stage show which chapter is playing with a 2px orange progress line, and jump on click. A single rAF clock drives chapters and the Learns beats (0 / 1300 / 3900 / 4600ms), only while 25% visible; pausing freezes CSS animations too. Reduced motion holds each scene's finished state. Each scene only shows what the feature really does (bill scan reads lines and splits your share into one envelope; Ask Aviary answers from envelopes).
+A chaptered film under the headline: Learns your habits, Scan a bill, Ask Aviary. Three chapters, about 39s a loop, all about logging; the rest of the app (Insights, Bills & subscriptions, Investments) lives in its own "More in the nest" section after the playground, in the same phone frames as "Log from anywhere". Each chapter is a side card, a phone and a side card on the framed demo; app chapters render the real 360×740 layout scaled into the phone on the app's black. Pill tabs under the stage show which chapter is playing with a 2px orange progress line, and jump on click. A single rAF clock drives chapters and the Learns beats (0 / 1300 / 3900 / 4600ms), only while 25% visible; pausing freezes CSS animations too. Reduced motion holds each scene's finished state. Each scene only shows what the feature really does (bill scan reads lines and splits your share into one envelope; Ask Aviary answers from envelopes).
 
 ### Before / after split
-Moonjar-style: a Warm Surface bank statement (monospace, fading out to the right) beside a white side where the nudge quote is followed by "Aviary is on it", four steps that spin then check in violet, and today's log rising in. An ink pill, uppercase and tracked, sits on the seam. A Replay pill restarts it. It runs once when 40% visible.
+Moonjar-style: a Warm Surface bank statement (monospace, fading out to the right) beside a white side where the nudge quote is followed by "Aviary is on it", four steps that spin then check in violet, and today's log rising in. An ink pill in sentence case sits on the seam. A Replay pill restarts it. It runs once when 40% visible.
 
 ### Perched bird
 Every bird on the page is the perched mark: its head tilts 6° and it blinks on the app's idle timing (3.2s nod, 3.38s blink). Founder tiles rotate the other way and grow 5% on hover.
 
 ### Motion
-Entrances and state changes use `cubic-bezier(.22, 1, .36, 1)` (a soft ease-out); drawn strokes use `cubic-bezier(.65, 0, .35, 1)`. Text swaps fade in from a 3 to 4px blur. The toast enters with a slight overshoot (`cubic-bezier(.34, 1.56, .64, 1)`, 350ms). `prefers-reduced-motion` removes every CSS animation and transition, and `MotionConfig` zeroes Motion durations; content always lands in its final state.
+Entrances and state changes use `cubic-bezier(.22, 1, .36, 1)` (a soft ease-out); drawn strokes use `cubic-bezier(.65, 0, .35, 1)`. Text swaps fade in from a 3 to 4px blur. The toast enters with a slight overshoot (`cubic-bezier(.34, 1.56, .64, 1)`, 350ms). `prefers-reduced-motion` removes every CSS animation and transition, and `MotionConfig` zeroes Motion durations; content always lands in its final state. One thing on the page is scroll-triggered: the learn diagram draws itself the first time it's 40% in view (three logs tick in from the left, the dashed lines wipe across with `clip-path`, the habit node lands from a 4px blur, the three nudges fan out), about 2.6s end to end, once. Nothing else gets a scroll entrance; don't add a fade-up to every section.
 
 ## Do's and Don'ts
 
@@ -320,7 +320,7 @@ Entrances and state changes use `cubic-bezier(.22, 1, .36, 1)` (a soft ease-out)
 - **Do** label demo numbers as sample data, in a caption or a corner note.
 - **Do** give the Aviary side of a comparison the white card and Ambient shadow, and keep the alternative flat.
 - **Do** pause looping demos off screen, offer a pause control, and hold the finished state under reduced motion.
-- **Do** use `·` as the separator in meta lines ("Free during the trial · No bank connection").
+- **Do** use `·` as the separator in meta lines ("Free for 45 days · No card needed").
 
 ### Don't:
 - **Don't** fill a CTA, section background or headline in Aviary Orange.

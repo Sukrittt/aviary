@@ -30,6 +30,7 @@ import {
 } from './kit'
 import { DAYS_LEFT, WORDS, toEnvelope, type DemoCategory } from './demo'
 import { AutoCategoryPill } from './AutoCategoryPill'
+import { chime } from '../LandingClient'
 
 /** Twins of Mobile's app/modals/log-expense.tsx, expense-added.tsx, CategoryPickerSheet and DeltaBar. */
 
@@ -476,7 +477,7 @@ const SNAP_EASE = [0.2, 0.9, 0.25, 1] as const
 const s = (ms: number) => ms / 1000
 
 /** Base fill grows to the pre-expense spot, a marker pins it, then the delta eases in on top. */
-/** `tokens` defaults to the landing page's dark scheme; the app passes the live theme. */
+/** `tokens` defaults to the landing page's light scheme; the app passes the live theme. */
 /** `pace` scales every delay and duration (0.5 = twice as fast); Mobile's timings are 1. */
 export function DeltaBar({
   from,
@@ -669,7 +670,7 @@ export function ExpenseAddedScreen({
 
   // Logging an expense is the app's one verb that chimes.
   useEffect(() => {
-    if (!muted) new Audio('/landing/success.m4a').play().catch(() => {})
+    if (!muted) chime()
     // Once per mount.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -685,7 +686,7 @@ export function ExpenseAddedScreen({
           <FadeInDown delay={STAGGER.headline} duration={420} style={{ marginTop: space.xl }}>
             <div style={{ ...row, alignItems: 'baseline', justifyContent: 'center', gap: space.sm, marginTop: -50 }}>
               <span style={{ color: T.text, ...font.displayBold, fontSize: type.display }}>Added</span>
-              <AmountText value={amount} size={type.display} weight="displayBold" animate />
+              <AmountText value={amount} size={type.display} weight="displayBold" color={T.text} animate />
             </div>
           </FadeInDown>
           {subtitle !== '' && (
@@ -703,7 +704,7 @@ export function ExpenseAddedScreen({
           >
             <AnimatedUsedPercentage from={prevPct} to={spentPct} categoryName={categoryName} />
             <div style={{ ...row, alignItems: 'baseline', gap: space.xs, marginTop: space.md }}>
-              <AmountText value={shownLeft} size={32} weight="displayBold" animate />
+              <AmountText value={shownLeft} size={32} weight="displayBold" color={T.text} animate />
               <span style={{ color: T.text2, ...font.bodyBold, fontSize: type.caption }}>
                 {`left of ${formatMoney(Math.round(funded))}`}
               </span>

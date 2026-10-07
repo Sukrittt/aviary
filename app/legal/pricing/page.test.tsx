@@ -19,11 +19,14 @@ describe('public pricing', () => {
     vi.mocked(getPlanPrices).mockResolvedValue(prices)
     render(await PricingPage())
 
-    expect(within(screen.getByRole('region', { name: 'Monthly' })).getByText('₹199')).toBeInTheDocument()
+    const monthly = within(screen.getByRole('region', { name: 'Monthly' }))
+    expect(monthly.getByText('₹199')).toBeInTheDocument()
+    expect(monthly.getByText('About ₹7 a day.')).toBeInTheDocument()
     const yearly = within(screen.getByRole('region', { name: 'Yearly' }))
     expect(yearly.getByText('₹1,999')).toBeInTheDocument()
     expect(yearly.getByText('Save 16%')).toBeInTheDocument()
     expect(yearly.getByText('/ year')).toBeInTheDocument()
+    expect(yearly.getByText('Works out to ₹167 a month.')).toBeInTheDocument()
   })
 
   it('does not advertise savings when annual billing costs more', async () => {
@@ -42,5 +45,17 @@ describe('public pricing', () => {
     expect(screen.getByText(/Prices aren't loading right now/)).toBeInTheDocument()
     expect(screen.queryByRole('region', { name: 'Monthly' })).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'refund and cancellation policy' })).toHaveAttribute('href', '/legal/refunds')
+  })
+
+  it('wears the landing page’s shell: header home link, store CTA, what’s included, FAQ and footer', async () => {
+    vi.mocked(getPlanPrices).mockResolvedValue(prices)
+    render(await PricingPage())
+
+    expect(screen.getByRole('link', { name: 'Aviary home' })).toHaveAttribute('href', '/')
+    expect(screen.getByRole('link', { name: /Start your free trial/ })).toHaveAttribute('href', expect.stringContaining('play.google.com'))
+    expect(screen.getByRole('heading', { name: 'Everything’s included.' })).toBeInTheDocument()
+    expect(screen.getByText('Money Brain')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /What happens when my trial ends\?/ })).toBeInTheDocument()
+    expect(screen.getByRole('navigation', { name: 'Footer' })).toBeInTheDocument()
   })
 })

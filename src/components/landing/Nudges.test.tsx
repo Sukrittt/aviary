@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { HeroStage, NoticeSplit } from './Nudges'
+import { HeroStage, LearnDiagram, MoreInside, NoticeSplit } from './Nudges'
 
 let now = 0
 beforeEach(() => {
@@ -42,6 +42,19 @@ describe('landing demos', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Ask Aviary/ }))
     expect(stage).toHaveAttribute('data-chapter', 'ask')
+  })
+
+  it('more in the nest plays its recordings while in view', () => {
+    const play = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue()
+    const { container } = render(<MoreInside />)
+    expect(container.querySelectorAll('.lp-shot')).toHaveLength(3)
+    expect(play).toHaveBeenCalledTimes(2)
+  })
+
+  it('learn diagram draws itself once it has been seen', () => {
+    const { container } = render(<LearnDiagram />)
+    expect(container.querySelector('.lp-learn')).toHaveAttribute('data-in', 'yes')
+    expect(container).toHaveTextContent('Cab home on Fridays')
   })
 
   it('split runs its steps once in view, then replays', () => {

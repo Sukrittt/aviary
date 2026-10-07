@@ -16,18 +16,18 @@ import {
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { ChevronLeft, type LucideIcon } from 'lucide-react'
-import { darkTokens } from '@/src/theme/tokens'
+import { darkTokens, lightTokens } from '@/src/theme/tokens'
 
 
 /**
  * Web twins of Mobile's UI primitives (Mobile/src/components/ui/*, shared/*),
  * for the landing-page playground and the app's money screens (MoneyScreens.tsx).
  * Sizes, colours, timings and easings are copied from the RN source; RN
- * Animated/Reanimated become WAAPI and motion. `T` is the dark scheme, since the
- * landing page is dark; app callers pass `var(--tk-*)` colours instead.
+ * Animated/Reanimated become WAAPI and motion. `T` is the light scheme, which is
+ * what the landing's phone shows; app callers pass `var(--tk-*)` colours instead.
  */
 
-export const T = darkTokens
+export const T = lightTokens
 
 // Mobile/src/theme/scale.ts
 export const space = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32, xxxl: 48 } as const
@@ -142,7 +142,8 @@ const lastSeen = new Map<string, { text: string; value: number }>()
 export function AmountText({
   value,
   size,
-  color = T.text,
+  // Still the dark scheme's text: the app callers that don't pass a colour were built on it.
+  color = darkTokens.text,
   weight = 'displaySemiBold',
   animate = false,
   rawText,
