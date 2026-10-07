@@ -74,7 +74,8 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
   const [date, setDate] = useState(toDateInputValue(new Date()))
   // null: follow the category's usual account (src/lib/defaultAccount.ts).
   const [accountPick, setAccountPick] = useState<string | null>(null)
-  const accounts = liveAccounts(useAccounts().data)
+  const accountsQ = useAccounts()
+  const accounts = liveAccounts(accountsQ.data)
   const [showCalendar, setShowCalendar] = useState(false)
   const pickDateChipRef = useRef<HTMLButtonElement>(null)
   const [error, setError] = useState('')
@@ -259,6 +260,8 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
   }
 
   async function handleSubmit() {
+    // Waits out a cold accounts fetch so the expense lands on the account it would default to.
+    if (accountsQ.isLoading) return
     const parsed = Number(amount)
     if (missing.length > 0) {
       setError('')
