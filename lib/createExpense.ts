@@ -9,7 +9,7 @@ import { notifyThresholdCrossed } from '@/lib/notifications/instant'
 import { withTx } from '@/lib/mongodb'
 import { casRetry } from '@/lib/cas'
 import { resolveCategoryName } from '@/lib/categoryName'
-import { liveAccount, paymentMethodFor } from '@/lib/accounts'
+import { AccountError, liveAccount, paymentMethodFor } from '@/lib/accounts'
 
 /**
  * The one way an expense gets created. Lifted out of `app/api/expenses`'s POST
@@ -116,8 +116,13 @@ export async function createExpense(auth: Auth, input: CreateExpenseInput): Prom
   const date = String(input.date || ist.date)
   const timestamp = String(input.timestamp || `${date}T${ist.timestamp.slice(11)}`)
   // The account decides how it was paid, so the Credit Card envelope and the
-  // balance check read the same field they always have.
-  const account = input.account_id ? await liveAccount(auth, input.account_id) : null
+  // balance check read the same field they always have. One archived since
+  // (an offline queue flushing late) drops the label rather than the expense:
+  // a 400 here would dead-letter what the user logged.
+  const account = input.account_id ? await liveAccount(auth, input.account_id).catch((err) => {
+    if (err instanceof AccountError) return null
+    throw err
+  }) : null
   const paymentMethod = account ? paymentMethodFor(account.type) : String(input.payment_method ?? 'bank')
   const clientId = typeof input.client_id === 'string' ? input.client_id : undefined
 

@@ -199,9 +199,7 @@ export async function POST(req: Request) {
 
   // The insert itself lives in `lib/createExpense.ts` so the recurring-expense
   // cron can reuse it verbatim instead of forking a simplified copy.
-  let result: Awaited<ReturnType<typeof createExpense>>
-  try {
-    result = await createExpense(auth, {
+  const result = await createExpense(auth, {
     item: String(body.item),
     amount_inr: String(body.amount_inr),
     category: String(body.category),
@@ -212,11 +210,7 @@ export async function POST(req: Request) {
     account_id: typeof body.account_id === 'string' && body.account_id ? body.account_id : undefined,
     client_id: typeof body.client_id === 'string' ? body.client_id : undefined,
     source: body.source === undefined ? undefined : String(body.source),
-    })
-  } catch (err) {
-    if (err instanceof AccountError) return error('That account is gone. Pick another one.')
-    throw err
-  }
+  })
 
   // The Get Started card is account state, not device state. Only the manual
   // entry screen sends this source marker; scans and recurring charges do not

@@ -97,11 +97,20 @@ describe('expenses on an account', () => {
     expect(page.total).toBe(1)
   })
 
-  it('refuses an archived account', async () => {
+  it('keeps an expense whose account was archived since, without the label', async () => {
+    const id = (await addAccount('Old', 'credit_card')).body.id
+    await accounts.PUT(req('/api/accounts', 'PUT', { id, archived: true }))
+    const res = await expenses.POST(req('/api/expenses', 'POST', { item: 'Tea', amount_inr: '20', category: 'Food', payment_method: 'bank', account_id: id }))
+    expect(res.status).toBe(200)
+    const rows = (await (await expenses.GET(req('/api/expenses', 'GET'))).json()).rows
+    expect(rows[0]).toMatchObject({ item: 'Tea', account_id: '', payment_method: 'bank' })
+  })
+
+  it('refuses to move an expense onto an archived account', async () => {
     const id = (await addAccount('Old', 'bank')).body.id
     await accounts.PUT(req('/api/accounts', 'PUT', { id, archived: true }))
-    const res = await expenses.POST(req('/api/expenses', 'POST', { item: 'Tea', amount_inr: '20', category: 'Food', account_id: id }))
-    expect(res.status).toBe(400)
+    const created = await (await expenses.POST(req('/api/expenses', 'POST', { item: 'Tea', amount_inr: '20', category: 'Food' }))).json()
+    expect((await expenses.PUT(req('/api/expenses', 'PUT', { id: created.id, version: 0, new_account_id: id }))).status).toBe(400)
   })
 })
 
