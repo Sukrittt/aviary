@@ -16,16 +16,24 @@ function addDays(date: string, days: number): string {
 
 /**
  * How many times `expense.item` was logged in the 7 days ending on its date,
- * counting it once. The new row is recognised by id, or by timestamp when an
- * older server returned no id, so a refetched list doesn't count it twice.
+ * and what it came to, counting it once. The new row is recognised by id, or
+ * by timestamp when an older server returned no id, so a refetched list
+ * doesn't count it twice.
  */
-export function weeklyRepeat(rows: (Row & { timestamp?: string })[], expense: { id?: string; timestamp?: string; item: string; date: string }): number {
+export function weeklyRepeat(
+  rows: (Row & { timestamp?: string; amount_inr?: string })[],
+  expense: { id?: string; timestamp?: string; item: string; date: string; amount: number },
+): { count: number; total: number } {
   const item = norm(expense.item)
-  if (!item) return 0
+  if (!item) return { count: 0, total: 0 }
   const from = addDays(expense.date, -6)
   const isSelf = (r: { id?: string; timestamp?: string }) =>
     (!!expense.id && r.id === expense.id) || (!!expense.timestamp && r.timestamp === expense.timestamp)
-  return rows.filter((r) => !isSelf(r) && norm(r.item) === item && r.date >= from && r.date <= expense.date).length + 1
+  const earlier = rows.filter((r) => !isSelf(r) && norm(r.item) === item && r.date >= from && r.date <= expense.date)
+  return {
+    count: earlier.length + 1,
+    total: earlier.reduce((sum, r) => sum + (Number(r.amount_inr) || 0), expense.amount),
+  }
 }
 
 function ordinal(n: number): string {
@@ -34,9 +42,9 @@ function ordinal(n: number): string {
   return `${n}${suffix}`
 }
 
-/** "Noted. That's your 3rd Chai this week." from the second time on. */
-export function noticedLine(item: string, count: number): string | null {
-  return count >= 2 ? `Noted. That's your ${ordinal(count)} ${item.trim()} this week.` : null
+/** "3rd time this week · ₹750 so far" from the third time on. Twice a week is just life. */
+export function noticedLine(repeat: { count: number; total: number }, formatMoney: (n: number) => string): string | null {
+  return repeat.count >= 3 ? `${ordinal(repeat.count)} time this week · ${formatMoney(Math.round(repeat.total))} so far` : null
 }
 
 // Logged by the server on a schedule, so they don't count toward the recap (see Web lib/weekRecap.ts).

@@ -120,11 +120,12 @@ export function ExpenseAdded({
   const spent = (envelope?.spent ?? 0) + (counted ? 0 : amount)
   const left = (envelope?.available ?? 0) - (counted ? 0 : amount)
   const funded = (envelope?.assigned ?? 0) + (envelope?.rolledOver ?? 0)
-  // A past-month expense doesn't move this month's envelope, so no card for it.
+  // A past-month expense doesn't move this month's envelope, and an unfunded
+  // one has nothing to measure against, so no card for either (as on Mobile).
   const isCurrentMonth = date.slice(0, 7) === currentMonthKey()
-  const showEnvelope = isCurrentMonth && envelope != null
-  const spentPct = funded > 0 ? Math.min(100, (spent / funded) * 100) : spent > 0 ? 100 : 0
-  const prevPct = funded > 0 ? Math.min(100, ((spent - amount) / funded) * 100) : spent - amount > 0 ? 100 : 0
+  const showEnvelope = isCurrentMonth && envelope != null && funded > 0
+  const spentPct = funded > 0 ? Math.min(100, (spent / funded) * 100) : 0
+  const prevPct = funded > 0 ? Math.min(100, ((spent - amount) / funded) * 100) : 0
   const preLeft = left + amount
   const daysLeft = daysLeftInMonth()
   const perDay = daysLeft > 0 ? Math.round(left / daysLeft) : left
@@ -144,10 +145,10 @@ export function ExpenseAdded({
 
   const categoryName = splitEmoji(category).text
   const subtitle = item || categoryName
-  // A small "we're learning you" moment: only once the item has come up before this week.
+  // A small "we're learning you" moment: only once the item is a habit this week.
   const noticed = useMemo(
-    () => noticedLine(item, weeklyRepeat(expensesQ.data ?? EMPTY, { id: expense.id, timestamp, item, date })),
-    [expensesQ.data, expense.id, timestamp, item, date],
+    () => noticedLine(weeklyRepeat(expensesQ.data ?? EMPTY, { id: expense.id, timestamp, item, date, amount }), formatMoney),
+    [expensesQ.data, expense.id, timestamp, item, date, amount, formatMoney],
   )
 
   return (
@@ -175,22 +176,15 @@ export function ExpenseAdded({
 
       {showEnvelope && (
         <FadeInDown delay={at(STAGGER.card)} duration={at(460)} className="erd-added-card">
-          {funded > 0 ? (
-            <AnimatedUsedPercentage from={prevPct} to={spentPct} categoryName={categoryName} tokens={tokens} pace={PACE} />
-          ) : (
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-              <strong>{categoryName}</strong>
-              <span>No budget assigned</span>
-            </div>
-          )}
+          <AnimatedUsedPercentage from={prevPct} to={spentPct} categoryName={categoryName} tokens={tokens} pace={PACE} />
           <div className="erd-added-left">
-            <AmountText value={funded > 0 ? shownLeft : -shownLeft} animate />
-            <span>{funded > 0 ? `left of ${formatMoney(Math.round(funded))}` : 'spent this month'}</span>
+            <AmountText value={shownLeft} animate />
+            <span>{`left of ${formatMoney(Math.round(funded))}`}</span>
           </div>
           <div className="erd-added-bar">
             <DeltaBar from={prevPct} to={spentPct} amount={amount} tokens={tokens} pace={PACE} />
           </div>
-          {funded > 0 && <motion.div
+          <motion.div
             className="erd-added-pace"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -198,7 +192,7 @@ export function ExpenseAdded({
           >
             <span>{daysLeft === 0 ? 'Less than 24 hrs' : `${daysLeft} days left`}</span>
             <strong>{`${formatMoney(perDay)}/day to stay on track`}</strong>
-          </motion.div>}
+          </motion.div>
         </FadeInDown>
       )}
 
