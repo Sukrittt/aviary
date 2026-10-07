@@ -141,11 +141,12 @@ export function CaptureReview({ proposal, onSettled, origin = CAPTURE_ORIGIN, lo
         failedIds.add(row.id)
       }
     }
-    setLoggedRows(done)
     setFailedRows(failedIds)
 
     if (failed > 0) {
       // The rows that made it leave the card; the rest stay editable. A retry reuses their client_ids.
+      // Only on a failure: when all of them made it, they stay put while the tick plays.
+      setLoggedRows(done)
       setError(`Couldn't log ${failed === toLog.length ? 'these' : spendsLabel(failed)}. Check your connection and try again.`)
       button.fail()
       return

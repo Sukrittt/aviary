@@ -85,7 +85,7 @@ describe('PATCH /api/ai/chat/sessions/:id/proposals/:proposalId', () => {
   it('falls back to a plain reply when the expenses cannot be read', async () => {
     findMock.mockImplementationOnce(() => { throw new Error('db down') })
     const res = await patch({ status: 'submitted', expenseIds: [EXPENSE] })
-    expect((await res.json()).reply).toBe("Done, that one's logged.")
+    expect((await res.json()).reply).toBe("All set, your books are up to date.")
   })
 
   it('marks a proposal dismissed', async () => {

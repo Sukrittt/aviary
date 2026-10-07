@@ -6,7 +6,7 @@ import { useAppearance } from '@/components/AppearanceProvider'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
 import { STAGGER, popIn, staggerDelay } from './landing/mobile/kit'
-import { ArrowLeft, ArrowUp, Clock3, Plus, Search, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ArrowUp, Check, Clock3, Plus, Search, X } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
 import { useBudgets } from '@/src/hooks/useBudgets'
@@ -63,8 +63,14 @@ function persistSettle(
 
 type PendingSettle = { proposalId: string; status: 'submitted' | 'dismissed'; expenseIds: string[] }
 
+/** The line over Ask Aviary's reply to logged rows; a reopened chat may not know the count. */
+function loggedLabel(count: number | undefined) {
+  if (!count) return 'Logged'
+  return count === 1 ? '1 spend logged' : `${count} spends logged`
+}
+
 /** Said when the server's reply to logged rows never arrives. */
-const LOGGED_FALLBACK = "Done, they're logged."
+const LOGGED_FALLBACK = "All set, your books are up to date."
 
 
 function timeAgo(iso: string) {
@@ -444,13 +450,21 @@ export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onL
                 <div className="brain-messages" aria-live="polite">
                   {messages.map((message, index) => message.text ? (
                     <div key={index} className="brain-turn">
-                      <div className={`brain-bubble brain-bubble--${message.role}`}>
+                      <div className={`brain-bubble brain-bubble--${message.role}${message.ack ? ' brain-ack' : ''}`}>
+                        {message.ack && (
+                          <span className="brain-ack-kicker">
+                            <Check size={13} strokeWidth={3} aria-hidden="true" />
+                            {loggedLabel(messages[index - 1]?.proposal?.expenseIds?.length)}
+                          </span>
+                        )}
                         {message.role === 'model' ? <ChatMarkdown text={message.text} /> : message.text}
                         {message.captureFailed && onLogManually && (
                           <button type="button" className="brain-inline-link" onClick={onLogManually}>Add it by hand</button>
                         )}
                         {message.ack && (
-                          <Link href="/expense/transactions" className="brain-inline-link" onClick={onClose}>See them in Activity</Link>
+                          <Link href="/expense/transactions" className="brain-ack-link" onClick={onClose}>
+                            See them in Activity <ArrowRight size={14} aria-hidden="true" />
+                          </Link>
                         )}
                       </div>
                       {message.proposal && (
