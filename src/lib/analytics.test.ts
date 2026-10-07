@@ -142,6 +142,17 @@ describe('with a key', () => {
     expect(posthog.reset).toHaveBeenCalled()
   })
 
+  // posthog.reset() clears registered properties, so sign-out used to leave
+  // every later event in this tab without `platform`.
+  it('puts platform back after the sign-out reset', async () => {
+    const a = await load('phc_test')
+    await a.initAnalytics()
+    vi.mocked(posthog.register).mockClear()
+    a.resetAnalytics()
+    expect(posthog.register).toHaveBeenCalledWith({ platform: 'web' })
+    expect(vi.mocked(posthog.reset).mock.invocationCallOrder[0]).toBeLessThan(vi.mocked(posthog.register).mock.invocationCallOrder[0])
+  })
+
   it('turns analytics off and on', async () => {
     const a = await load('phc_test')
     await a.initAnalytics()

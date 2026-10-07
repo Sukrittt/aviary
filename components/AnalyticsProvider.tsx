@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, type ReactNode } from 'react'
 import { useAuth } from '@workos-inc/authkit-nextjs/components'
-import { identifyUser, initAnalytics, resetAnalytics } from '@/src/lib/analytics'
+import { identifyUser, initAnalytics, resetAnalytics, SIGN_IN_OUTCOME_COOKIE, track } from '@/src/lib/analytics'
 
 /**
  * Starts PostHog and keeps its identity in step with the WorkOS session.
@@ -17,6 +17,14 @@ export function AnalyticsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     initAnalytics()
+    // Report a Google sign-in the server just finished. Taken once and cleared,
+    // so a reload doesn't count it twice. A completed sign-in can land here
+    // before identify; PostHog merges this anonymous event into the person.
+    const outcome = document.cookie.match(new RegExp(`(?:^|; )${SIGN_IN_OUTCOME_COOKIE}=([^;]*)`))?.[1]
+    if (!outcome) return
+    document.cookie = `${SIGN_IN_OUTCOME_COOKIE}=; path=/; max-age=0`
+    if (outcome === 'completed') track('sign_in_completed', { method: 'google' })
+    else track('sign_in_failed', { method: 'google', reason: outcome })
   }, [])
 
   const userId = user?.id ?? null

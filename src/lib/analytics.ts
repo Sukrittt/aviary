@@ -248,10 +248,21 @@ export function identifyUser(user: { id: string; email?: string | null; name?: s
   send((posthog) => posthog.identify(user.id, properties))
 }
 
-/** On sign-out: the next account on this browser starts clean. */
+/** On sign-out: the next account on this browser starts clean. reset() also
+ * clears registered properties, so platform goes straight back on. */
 export function resetAnalytics(): void {
-  send((posthog) => posthog.reset())
+  send((posthog) => {
+    posthog.reset()
+    posthog.register({ platform: 'web' })
+  })
 }
+
+/**
+ * Google sign-in finishes on the server (app/api/auth/google/callback), where
+ * there's no PostHog. The callback leaves the outcome in this short-lived
+ * cookie, `completed` or a failure reason slug, and AnalyticsProvider reports it.
+ */
+export const SIGN_IN_OUTCOME_COOKIE = 'sign_in_outcome'
 
 /** Whether analytics is currently allowed to send events. */
 export function isAnalyticsEnabled(): boolean {
