@@ -49,17 +49,66 @@ async function assertAiEnabled() {
 }
 
 /** Runs one non-streaming call and logs its tokens, cost and outcome to `ai_usage`. */
-async function tracked(caller: AiCaller, call: () => Promise<GenerateContentResponse>): Promise<GenerateContentResponse> {
+async function tracked(
+  caller: AiCaller,
+  call: () => Promise<GenerateContentResponse>,
+  model: string = MODEL,
+): Promise<GenerateContentResponse> {
   await assertAiEnabled()
   const startedAt = Date.now()
   try {
     const response = await once(call)
-    await logAiUsage(caller, MODEL, startedAt, response.usageMetadata, null)
+    await logAiUsage(caller, model, startedAt, response.usageMetadata, null)
     return response
   } catch (err) {
-    await logAiUsage(caller, MODEL, startedAt, undefined, err)
+    await logAiUsage(caller, model, startedAt, undefined, err)
     throw err
   }
+}
+
+// Gemini's slow spikes hit one model at a time: measured 2026-10-08, 3.5-flash-lite
+// took 10-26s per call for several minutes while 3.5-flash answered in ~4s, and
+// the same lite call took ~1.5s ten minutes later. So the backup is a different model.
+const HEDGE_MODEL = 'gemini-3.5-flash'
+
+/**
+ * Starts `backup` if `primary` hasn't answered after `afterMs`, and takes
+ * whichever answers first, aborting the other. Fails only once every started
+ * call has failed; a primary that fails before the backup starts fails as usual.
+ */
+export function hedged<T>(
+  primary: (signal: AbortSignal) => Promise<T>,
+  backup: (signal: AbortSignal) => Promise<T>,
+  afterMs: number,
+): Promise<T> {
+  const controllers = [new AbortController(), new AbortController()]
+  return new Promise<T>((resolve, reject) => {
+    let pending = 0
+    let done = false
+    const run = (i: 0 | 1, call: (signal: AbortSignal) => Promise<T>) => {
+      pending++
+      call(controllers[i].signal).then(
+        (value) => {
+          if (done) return
+          done = true
+          clearTimeout(timer)
+          controllers[1 - i].abort()
+          resolve(value)
+        },
+        (err) => {
+          pending--
+          if (done || pending > 0) return
+          done = true
+          clearTimeout(timer)
+          reject(err)
+        },
+      )
+    }
+    const timer = setTimeout(() => {
+      if (!done) run(1, backup)
+    }, afterMs)
+    run(0, primary)
+  })
 }
 
 /**
@@ -68,18 +117,30 @@ async function tracked(caller: AiCaller, call: () => Promise<GenerateContentResp
  * on the schema's own constraints (e.g. `enum`) rather than hand-validating
  * the parsed JSON afterward.
  */
-export async function generateJSON<T>(prompt: string, responseSchema: Schema, caller: AiCaller): Promise<T> {
+export async function generateJSON<T>(
+  prompt: string,
+  responseSchema: Schema,
+  caller: AiCaller,
+  /** Race a backup model once the first call has taken this long (see `hedged`). For calls someone is waiting on. */
+  { hedgeAfterMs }: { hedgeAfterMs?: number } = {},
+): Promise<T> {
   const ai = getGeminiClient()
-  const response = await tracked(caller, () =>
-    ai.models.generateContent({
-      model: MODEL,
-      contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
-        responseSchema,
-      },
-    }),
-  )
+  const call = (model: string) => (abortSignal?: AbortSignal) =>
+    tracked(caller, () =>
+      ai.models.generateContent({
+        model,
+        contents: prompt,
+        config: {
+          responseMimeType: 'application/json',
+          responseSchema,
+          abortSignal,
+          ...(model === HEDGE_MODEL ? { thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL } } : {}),
+        },
+      }),
+    model)
+  const response = hedgeAfterMs === undefined
+    ? await call(MODEL)()
+    : await hedged(call(MODEL), call(HEDGE_MODEL), hedgeAfterMs)
   const text = response.text
   if (!text) throw new Error('Gemini returned an empty response')
   return JSON.parse(text) as T

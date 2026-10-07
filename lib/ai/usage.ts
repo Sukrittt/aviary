@@ -33,6 +33,8 @@ export async function logAiUsage(
   startedAt: number,
   usage: GenerateContentResponseUsageMetadata | undefined,
   error: unknown,
+  /** When the call itself finished; pass it when logging later (e.g. from `after()`), so the wait isn't counted. */
+  endedAt: number = Date.now(),
 ): Promise<void> {
   const tokens = {
     inputTokens: usage?.promptTokenCount ?? 0,
@@ -48,7 +50,7 @@ export async function logAiUsage(
       model,
       ...tokens,
       costUsd: estimateCostUsd(model, tokens),
-      durationMs: Date.now() - startedAt,
+      durationMs: endedAt - startedAt,
       ok: !error,
       error: error ? String((error as Error).message ?? error).slice(0, 300) : null,
     })

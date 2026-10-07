@@ -113,6 +113,12 @@ function streamReply(
         const contextRead = options.route ? null : buildExpenseContext(auth)
         // A capture reply never reads the context; keep a failed read from going unhandled.
         contextRead?.catch(() => {})
+        // A message with a number in it is likely a list of spends: start reading it
+        // while routing decides, instead of after. A question that happens to hold a
+        // number ("what did I spend on the 5th?") costs one small wasted read.
+        const canCapture = options.captureCapable && !auth.readOnly
+        const earlyRead = canCapture && !options.route && /\d/.test(message) ? buildCaptureProposal(auth, message) : null
+        earlyRead?.catch(() => {})
         const route = options.route ?? await routeChat(message, caller, earlier)
 
         if (route.capture) {
@@ -127,7 +133,7 @@ function streamReply(
           } else {
             let read: CaptureProposal
             try {
-              read = await buildCaptureProposal(auth, message)
+              read = await (earlyRead ?? buildCaptureProposal(auth, message))
             } catch (err) {
               console.warn('[ai/chat] capture failed:', (err as Error).message)
               throw new Error(CAPTURE_FAILED)

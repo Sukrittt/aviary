@@ -44,13 +44,15 @@ export async function runJev<const Q extends Record<string, Experimental_Evaluat
       maxRetries: 0,
       abortSignal: AbortSignal.timeout(timeoutMs),
     })
+    const endedAt = Date.now()
     after(() => logAiUsage(caller, MODEL, startedAt, {
       promptTokenCount: result.usage.inputTokens,
       candidatesTokenCount: result.usage.outputTokens,
-    }, null))
+    }, null, endedAt))
     return result.answers
   } catch (err) {
-    after(() => logAiUsage(caller, MODEL, startedAt, undefined, err))
+    const endedAt = Date.now()
+    after(() => logAiUsage(caller, MODEL, startedAt, undefined, err, endedAt))
     throw err
   }
 }

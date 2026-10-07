@@ -61,11 +61,11 @@ describe('pickCategory', () => {
   it('logs usage on success and on failure', async () => {
     evaluate.mockResolvedValue(answer('Food', { Food: 1 }))
     await pickCategory('pizza', ['Food'], caller)
-    expect(logMock).toHaveBeenCalledWith(caller, 'typesafe-ai/jev', expect.any(Number), { promptTokenCount: 40, candidatesTokenCount: 1 }, null)
+    expect(logMock).toHaveBeenCalledWith(caller, 'typesafe-ai/jev', expect.any(Number), { promptTokenCount: 40, candidatesTokenCount: 1 }, null, expect.any(Number))
 
     evaluate.mockRejectedValue(new Error('gateway down'))
     await expect(pickCategory('pizza', ['Food'], caller)).rejects.toThrow('gateway down')
-    expect(logMock).toHaveBeenLastCalledWith(caller, 'typesafe-ai/jev', expect.any(Number), undefined, expect.any(Error))
+    expect(logMock).toHaveBeenLastCalledWith(caller, 'typesafe-ai/jev', expect.any(Number), undefined, expect.any(Error), expect.any(Number))
   })
 })
 
