@@ -37,7 +37,9 @@ export function WebPlanPicker({ trialEndsAt = null, trigger = 'plan_screen' }: {
   // Once per visit, the first moment plans are actually on screen. `trigger`
   // separates someone browsing plans mid-trial from someone locked out.
   const paywallSeen = useRef(false)
-  const shown = !!plans.data
+  // The same condition the picker renders plans under, so an error state or an
+  // empty list isn't counted as a view.
+  const shown = !plans.isError && !!plans.data?.length
   useEffect(() => {
     if (!shown || paywallSeen.current) return
     paywallSeen.current = true

@@ -141,11 +141,14 @@ function WrappedStory({ data, judgement, moneySaved, hideAmounts }: { data: Wrap
   }, [started, index])
 
   async function shareStory() {
-    track('wrapped_shared')
     const text = `${monthName(data.month)} Wrapped: ${formatCurrency(data.totalSpent)} spent across ${data.totalTransactions} transactions. My money personality: ${archetype.name}.`
-    if (navigator.share) await navigator.share({ title: 'My Expense Wrapped', text }).catch(() => undefined)
-    else {
+    // Counted only once it went out: a dismissed share sheet isn't a share.
+    if (navigator.share) {
+      const shared = await navigator.share({ title: 'My Expense Wrapped', text }).then(() => true, () => false)
+      if (shared) track('wrapped_shared')
+    } else {
       await navigator.clipboard.writeText(text)
+      track('wrapped_shared')
       setCopied(true)
       window.setTimeout(() => setCopied(false), 1800)
     }

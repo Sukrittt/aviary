@@ -33,6 +33,12 @@ describe('WebPlanPicker', () => {
     expect(trackMock.mock.calls).toEqual([['paywall_viewed', { trigger: 'access_expired' }]])
   })
 
+  it('counts no paywall view when the plans failed to load, even with stale ones cached', () => {
+    plansMock.mockReturnValue({ data: plans, isLoading: false, isError: true })
+    render(<WebPlanPicker />)
+    expect(trackMock).not.toHaveBeenCalled()
+  })
+
   it('counts no paywall view while the plans are still loading', () => {
     plansMock.mockReturnValue({ data: undefined, isLoading: true, isError: false })
     render(<WebPlanPicker />)
