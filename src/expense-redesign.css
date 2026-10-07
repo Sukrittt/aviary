@@ -3535,6 +3535,10 @@
 .expense-redesign .txn-timeline-row.is-open {
   background: color-mix(in oklab, var(--erd-card-solid) 54%, transparent);
 }
+/* Lift the open row so its menu paints over the rows below it. */
+.expense-redesign .txn-timeline-row.is-open {
+  z-index: 2;
+}
 .expense-redesign .txn-timeline-row:last-child {
   border-bottom: 0;
 }
