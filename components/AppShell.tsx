@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react'
 import { usePathname } from 'next/navigation'
 import { useAppearance } from './AppearanceProvider'
+import { CaptureTip } from './CaptureTip'
 import { ChangelogAnnouncement } from './ChangelogAnnouncement'
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -22,6 +23,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <section className="mc-main">{children}</section>
       </div>
       <ChangelogAnnouncement />
+      <CaptureTip />
     </main>
   )
 }
