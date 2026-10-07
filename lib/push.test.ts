@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const state = {
+  // Simulates losing an insert race: the next upsert fails as if a concurrent
+  // first registration had just created the row.
+  raceOnce: null as null | { user_id: string },
   docs: [] as Array<{ token: string; user_id: string; platform: string; createdAt: string; updatedAt: string; deleted_at?: string; account_deleted_at?: string }>,
 }
 
@@ -12,6 +15,11 @@ function fakeCollection() {
       update: { $set: Record<string, unknown>; $setOnInsert?: Record<string, unknown>; $unset?: Record<string, unknown> },
       options?: { upsert?: boolean },
     ) => {
+      if (state.raceOnce) {
+        state.docs.push({ token: filter.token, platform: 'ios', createdAt: 't0', updatedAt: 't0', ...state.raceOnce })
+        state.raceOnce = null
+        throw Object.assign(new Error('E11000 duplicate key'), { code: 11000 })
+      }
       const doc = state.docs.find((d) => d.token === filter.token && (filter.user_id === undefined || d.user_id === filter.user_id))
       if (!doc) {
         if (!options?.upsert) return { matchedCount: 0 }
@@ -45,6 +53,7 @@ const VALID_TOKEN = 'ExponentPushToken[abc123XYZ_-]'
 
 beforeEach(() => {
   state.docs = []
+  state.raceOnce = null
 })
 
 describe('registerPushToken', () => {
@@ -74,6 +83,13 @@ describe('registerPushToken', () => {
     await registerPushToken(VALID_TOKEN, 'ios', 'user_b')
     expect(state.docs).toHaveLength(1)
     expect(state.docs[0].user_id).toBe('user_b')
+  })
+
+  it('retries as an update when a concurrent first registration wins the insert', async () => {
+    state.raceOnce = { user_id: 'user_a' }
+    await registerPushToken(VALID_TOKEN, 'android', 'user_b')
+    expect(state.docs).toHaveLength(1)
+    expect(state.docs[0]).toMatchObject({ user_id: 'user_b', platform: 'android' })
   })
 
   it("takes over a token archived with a deleted account, so it's live again", async () => {
