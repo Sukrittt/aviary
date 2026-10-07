@@ -149,6 +149,15 @@ describe('multi-select delete', () => {
     await waitFor(() => expect(screen.queryByRole('toolbar')).not.toBeInTheDocument())
   })
 
+  it('drops the selection when the filter changes', () => {
+    render(<TransactionsView />)
+    fireEvent.click(screen.getByRole('button', { name: 'Select' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Select all' }))
+    expect(screen.getByText('2 selected')).toBeInTheDocument()
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search transactions' }), { target: { value: 'x' } })
+    expect(screen.getByText('0 selected')).toBeInTheDocument()
+  })
+
   it('puts failed rows back, still selected, with a friendly notice', async () => {
     remove.mockReset().mockResolvedValueOnce(undefined).mockRejectedValueOnce(new ExpenseWriteError(409, 'Raw API error'))
     render(<TransactionsView />)

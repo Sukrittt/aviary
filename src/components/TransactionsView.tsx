@@ -260,6 +260,13 @@ export function TransactionsView({
     setPage(1);
   }, [period, customStart, customEnd, selectedCategory, search]);
 
+  useEffect(() => {
+    // A selection only means the rows on screen: drop it when they change, so
+    // rows picked earlier can't come back selected and get swept into a delete.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSelectedKeys(new Set());
+  }, [page, period, customStart, customEnd, selectedCategory, search]);
+
   const totalCount = expensesQuery.data?.total ?? 0;
   const totalPages = expensesQuery.data?.pageCount ?? 1;
   const totalSpend = expensesQuery.data?.totalAmount ?? 0;
@@ -319,6 +326,9 @@ export function TransactionsView({
 
   const visibleTransactions = transactionGroups.flatMap((g) => g.transactions);
   const selectedTxns = visibleTransactions.filter((t) => selectedKeys.has(txnKey(t)));
+  // keepPreviousData shows the old page's rows while the new one loads; they
+  // aren't what the filter asked for, so nothing gets picked or deleted then.
+  const selectionLocked = bulkDeleting || expensesQuery.isPlaceholderData;
   const allSelected = visibleTransactions.length > 0 && selectedTxns.length === visibleTransactions.length;
 
   function exitSelecting() {
@@ -509,7 +519,7 @@ export function TransactionsView({
           <button
             type="button"
             className="action-button is-ghost"
-            disabled={bulkDeleting}
+            disabled={selectionLocked}
             onClick={() =>
               setSelectedKeys(allSelected ? new Set() : new Set(visibleTransactions.map(txnKey)))
             }
@@ -519,7 +529,7 @@ export function TransactionsView({
           <button
             type="button"
             className="account-danger-btn txn-select-delete"
-            disabled={selectedTxns.length === 0 || bulkDeleting}
+            disabled={selectedTxns.length === 0 || selectionLocked}
             onClick={() => setConfirmBulk(true)}
           >
             {bulkDeleting ? "Deleting…" : "Delete"}
@@ -606,7 +616,7 @@ export function TransactionsView({
                           className="txn-row-trigger"
                           aria-label={`Select ${t.item}`}
                           aria-pressed={isSelected}
-                          disabled={bulkDeleting}
+                          disabled={selectionLocked}
                           onClick={() => toggleSelected(t)}
                         />
                       ) : (
