@@ -54,7 +54,7 @@ export default async function PricingPage() {
   const saving = monthly && yearly ? yearlySavingsPercent(monthly.amount, yearly.amount) : null
 
   return <LandingMotion><div className="lp" id="top">
-    <LandingHeader base="/" />
+    <LandingHeader base="/" faq="#faq" />
 
     <section className="lp-hero" aria-labelledby="pricing-title">
       <p className="lp-early lp-early--still"><b>45 days free</b><span className="lp-early-desktop">No card. No mandate. Nothing to cancel.</span><span className="lp-early-mobile">No card. Nothing to cancel.</span></p>
@@ -103,7 +103,7 @@ export default async function PricingPage() {
 
     <section className="lp-section lp-center" aria-labelledby="pay-title">
       <h2 id="pay-title" className="lp-h2">Pay where you like.</h2>
-      <p className="lp-lede">Same plan, same price. Pick the checkout that suits you.</p>
+      <p className="lp-lede">Same plan, two ways to pay. Pick the checkout that suits you.</p>
       <div className="lp-pay">
         <div className="lp-card lp-pay-card">
           <span className="lp-include-icon lp-tone-savings" aria-hidden="true"><Monitor size={22} strokeWidth={2.2} /></span>
@@ -134,6 +134,6 @@ export default async function PricingPage() {
       <span className="lp-hero-note">No card needed · Cancel any time · <Link href="/legal/contact"><Mail size={13} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 4 }} />Questions? Write to us</Link></span>
     </section>
 
-    <LandingFooter base="/" />
+    <LandingFooter base="/" faq="#faq" />
   </div></LandingMotion>
 }
