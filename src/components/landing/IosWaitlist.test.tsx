@@ -1,6 +1,9 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { IosWaitlist } from './IosWaitlist'
+import { track } from '../../lib/analytics'
+
+vi.mock('../../lib/analytics', () => ({ track: vi.fn() }))
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -19,6 +22,14 @@ describe('IosWaitlist', () => {
     expect(fetchMock).toHaveBeenCalledWith('/api/waitlist', expect.objectContaining({
       body: JSON.stringify({ email: 'me@example.com', platform: 'ios' }),
     }))
+  })
+
+  it('reports the join without overwriting the registered web platform', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('{"ok":true}')))
+    render(<IosWaitlist />)
+    join('me@example.com')
+    await screen.findByRole('button', { name: 'You’re on the list' })
+    expect(track).toHaveBeenCalledWith('waitlist_joined', { waitlist_platform: 'ios' })
   })
 
   it('shows a written error, not the server text, when the request fails', async () => {

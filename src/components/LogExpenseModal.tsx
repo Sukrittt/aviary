@@ -9,6 +9,7 @@ import { Scrim, Sheet } from './MotionSheet'
 import { DatePicker, formatShort } from './DatePicker'
 import { getCategoryMap } from '../api/categoryMap'
 import { suggestCategoryLLM } from '../lib/autoCategory'
+import { track } from '../lib/analytics'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
 import { AddCategoryModal } from './AddCategoryModal'
 import type { CategoryRow } from '../types'
@@ -80,6 +81,8 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
   // True while the category is one we picked, not one the user chose (the
   // Miscellaneous fallback doesn't count). Drives the "Picked for you" status.
   const [autoPicked, setAutoPicked] = useState(false)
+  // What made the current pick, for ai_category_suggested on save (same as mobile).
+  const suggestedBy = useRef<null | 'keyword' | 'ai'>(null)
   // "Picking…" is only shown for the slow AI fallback, and only once it's been
   // pending long enough to be worth showing (see thinkingGate.ts).
   const [suggesting, setSuggesting] = useState(false)
@@ -141,6 +144,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
   function applyLlmAnswer(value: string, llmCategory: string) {
     if (categoryTouchedRef.current || latestItemRef.current !== value) return
     if (llmCategory && categories.includes(llmCategory)) {
+      suggestedBy.current = 'ai'
       setCategory(llmCategory)
       setAutoPicked(true)
       // Mirror the server's word overrides so the same words match locally, instantly, next time.
@@ -167,6 +171,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
     categoryTouchedRef.current = false
     setCategory('')
     setAutoPicked(false)
+    suggestedBy.current = null
     const words = value.toLowerCase().split(/\s+/)
     for (const word of words) {
       const match = categoryWords[word]
@@ -176,6 +181,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
         : categories.find((c) => c.toLowerCase().includes(match.toLowerCase()))
       if (live) {
         gate.finish(() => {
+          suggestedBy.current = 'keyword'
           setCategory(live)
           setAutoPicked(true)
         })
@@ -266,6 +272,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
         date: date || undefined,
         source: 'manual',
       })
+      if (suggestedBy.current) track('ai_category_suggested', { accepted: autoPicked, source: suggestedBy.current })
       onSaved()
       reset()
       setUndoError('')

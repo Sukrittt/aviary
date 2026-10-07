@@ -58,7 +58,7 @@ export function RestrictedNotice() {
         }}
       >
         {status?.purchaseEnabled ? (
-          <WebPlanPicker />
+          <WebPlanPicker trigger="access_expired" />
         ) : (
           <div>
             <strong style={{ color: 'var(--tk-text)' }}>Subscribe in the Android app</strong>

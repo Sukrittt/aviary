@@ -19,7 +19,9 @@ import {
   useSubscriptions,
   useUpdateSubscription,
 } from './useSubscriptions'
+import { track } from '@/src/lib/analytics'
 
+vi.mock('@/src/lib/analytics', () => ({ track: vi.fn() }))
 vi.mock('@/src/api/subscriptions', () => ({
   getSubscriptions: vi.fn(),
   addSubscription: vi.fn(),
@@ -112,4 +114,13 @@ describe('every mutation invalidates both subscriptions and ai-brief', () => {
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['subscriptions'] })
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['ai-brief'] })
   })
+})
+
+it('useAddSubscription reports the add with its billing cycle and nothing identifying', async () => {
+  ;(addSubscription as Mock).mockResolvedValue(undefined)
+  const queryClient = new QueryClient({ defaultOptions: { mutations: { retry: false } } })
+  const { result } = renderHook(() => useAddSubscription(), { wrapper: wrapper(queryClient) })
+  result.current.mutate({ service: 'Netflix', amount_inr: '649', billing_cycle: 'monthly' } as never)
+  await waitFor(() => expect(result.current.isSuccess).toBe(true))
+  expect(track).toHaveBeenCalledWith('subscription_added', { billing_cycle: 'monthly' })
 })

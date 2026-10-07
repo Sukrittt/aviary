@@ -2,7 +2,7 @@
 
 import { useCurrency } from '@/src/context/CurrencyContext'
 
-import { useCallback, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react'
 import { ArrowLeft, ArrowRight, Pause, Play, Share2, X } from 'lucide-react'
@@ -12,6 +12,7 @@ import { useHideAmounts } from '@/src/hooks/useHideAmounts'
 import { formatDateShort } from '@/src/lib/format'
 import type { WrappedData, WrappedJudgement } from '@/src/api/wrapped'
 import { LoadingCaption } from '@/src/components/LoadingCaption'
+import { track } from '@/src/lib/analytics'
 
 export const STORY_MS = 5000
 const PALETTE = ['#f2b84b', '#ee785d', '#4f9b82', '#6f67b1', '#df8c59']
@@ -130,7 +131,17 @@ function WrappedStory({ data, judgement, moneySaved, hideAmounts }: { data: Wrap
     return () => window.removeEventListener('keydown', onKey)
   }, [goBack, goNext, started])
 
+  // Which card people stop on, each counted once per visit. Numbered from 1
+  // to match mobile, where index 0 is the start screen.
+  const seenCards = useRef(new Set<number>())
+  useEffect(() => {
+    if (!started || seenCards.current.has(index)) return
+    seenCards.current.add(index)
+    track('wrapped_card_viewed', { index: index + 1 })
+  }, [started, index])
+
   async function shareStory() {
+    track('wrapped_shared')
     const text = `${monthName(data.month)} Wrapped: ${formatCurrency(data.totalSpent)} spent across ${data.totalTransactions} transactions. My money personality: ${archetype.name}.`
     if (navigator.share) await navigator.share({ title: 'My Expense Wrapped', text }).catch(() => undefined)
     else {
@@ -148,7 +159,7 @@ function WrappedStory({ data, judgement, moneySaved, hideAmounts }: { data: Wrap
         <span>Your spending has a story</span>
         <h1>{monthName(data.month)}<br />Wrapped</h1>
         <p>{data.totalTransactions} transactions, distilled into the moments that shaped your month.</p>
-        <button type="button" onClick={() => { setFrozen(judgement); setStarted(true) }}>Unwrap my month <ArrowRight size={18} /></button>
+        <button type="button" onClick={() => { track('wrapped_opened'); setFrozen(judgement); setStarted(true) }}>Unwrap my month <ArrowRight size={18} /></button>
       </main>
     )
   }

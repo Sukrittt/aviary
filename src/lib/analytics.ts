@@ -28,7 +28,7 @@ const IS_PRODUCTION = process.env.NEXT_PUBLIC_VERCEL_ENV === 'production'
  * typo becomes a type error instead of a junk event nobody notices for a
  * month. Add a name here first, then call track(). Kept identical to mobile's
  * union so one event means one thing across both apps, even where only one
- * app can send it (web has no Play checkout, so no purchase_* here).
+ * app can send it (restore_* is Play only).
  */
 export type AppEvent =
   // Sign-in. `method` is 'google' or 'email'; `reason` is a fixed slug, never
@@ -103,7 +103,8 @@ export type AppEvent =
   | 'account_deleted'
   // Web only: the landing page's way into the app store
   | 'store_cta_clicked'
-  // Web only: the landing page's iPhone waitlist form. `platform` is 'ios'.
+  // Web only: the landing page's iPhone waitlist form. `waitlist_platform` is
+  // 'ios'. Not `platform`: that's the registered app split and stays 'web'.
   | 'waitlist_joined'
 
 export type EventProperties = Record<string, string | number | boolean>
