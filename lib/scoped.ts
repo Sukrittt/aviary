@@ -262,8 +262,9 @@ export function scoped(coll: Collection<Doc>, userId: string) {
       filter: Filter<Doc>,
       update: UpdateFilter<Doc>,
       options?: UpdateOptions,
+      scopeOpts?: ScopeOpts,
     ): Promise<UpdateResult<Doc>> {
-      return bust(coll.updateMany(own(filter), encUpdate(update as Doc, fields, userId, collectionName) as never, options), options)
+      return bust(coll.updateMany(own(filter, scopeOpts), encUpdate(update as Doc, fields, userId, collectionName) as never, options), options)
     },
 
     replaceOne(

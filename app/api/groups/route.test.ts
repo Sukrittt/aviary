@@ -21,6 +21,14 @@ vi.mock('@/lib/http', async (importOriginal) => {
         if (doc) doc.deleted_at = 'now'
         return { deletedCount: doc ? 1 : 0 }
       },
+      findOne: async (f: { name: string }) => stores[base].find((d) => live(d) && d.name === f.name) ?? null,
+      updateOne: async (f: { name: string }, u: { $set: Doc }) => {
+        const doc = stores[base].find((d) => live(d) && d.name === f.name)
+        if (doc) Object.assign(doc, u.$set)
+      },
+      updateMany: async (f: { group: string }, u: { $set: Doc }, _o?: unknown, scope?: { includeDeleted?: boolean }) => {
+        for (const d of stores[base]) if (d.group === f.group && (scope?.includeDeleted || live(d))) Object.assign(d, u.$set)
+      },
       deleteMany: async (f: { group: string }) => {
         const docs = stores[base].filter((d) => live(d) && d.group === f.group)
         for (const d of docs) d.deleted_at = 'now'
@@ -30,15 +38,16 @@ vi.mock('@/lib/http', async (importOriginal) => {
   }
 })
 
-const { DELETE } = await import('./route')
+const { DELETE, PUT } = await import('./route')
 
-function deleteReq(name: string): Request {
+function req(method: string, body: unknown): Request {
   return new Request('https://example.com/api/groups', {
-    method: 'DELETE',
+    method,
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ name }),
+    body: JSON.stringify(body),
   })
 }
+const deleteReq = (name: string) => req('DELETE', { name })
 
 beforeEach(() => {
   stores.groups = [{ name: 'Home' }, { name: 'Archived' }]
@@ -66,5 +75,14 @@ describe('DELETE /api/groups', () => {
     const res = await DELETE(deleteReq('Nope'))
     expect(res.status).toBe(404)
     expect(stores.categories.some((c) => c.deleted_at)).toBe(false)
+  })
+})
+
+describe('PUT /api/groups (rename)', () => {
+  it('renames archived categories too, so restoring one later finds the group', async () => {
+    stores.categories.push({ name: 'Gas', group: 'Home', deleted_at: 'earlier' })
+    const res = await PUT(req('PUT', { name: 'Home', newName: 'House' }))
+    expect(res.status).toBe(200)
+    expect(stores.categories.filter((c) => c.group === 'House').map((c) => c.name)).toEqual(['Rent', 'Water', 'Gas'])
   })
 })

@@ -54,7 +54,8 @@ export async function PUT(req: Request) {
     if (dupe) return error('group already exists', 409)
     await coll.updateOne({ name: String(body.name) }, { $set: { name: newName } })
     const catColl = await getCollection('categories', auth)
-    await catColl.updateMany({ group: String(body.name) }, { $set: { group: newName } })
+    // Archived categories too, so restoring one later still finds its group.
+    await catColl.updateMany({ group: String(body.name) }, { $set: { group: newName } }, {}, { includeDeleted: true })
     invalidate('categories', auth.userId)
   }
   invalidate('groups', auth.userId)
