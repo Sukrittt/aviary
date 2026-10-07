@@ -16,11 +16,12 @@ export function defaultAccountFor(rows: Spent[], category: string, accounts: Acc
   const live = new Set(accounts.filter((a) => !a.archived).map((a) => a.id))
   if (live.size === 0) return ''
   const counts = new Map<string, number>()
-  let latest: { id: string; at: string } | null = null
+  let latest: { id: string; at: number } | null = null
   for (const r of rows) {
     if (!r.account_id || !live.has(r.account_id)) continue
     if (category && r.category === category) counts.set(r.account_id, (counts.get(r.account_id) ?? 0) + 1)
-    const at = r.timestamp || r.date
+    // Parsed, not compared as strings: devices write different UTC offsets.
+    const at = Date.parse(r.timestamp || r.date) || 0
     if (!latest || at > latest.at) latest = { id: r.account_id, at }
   }
   let best = ''

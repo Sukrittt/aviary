@@ -19,6 +19,7 @@ vi.mock('@/lib/userCurrency', () => ({
 }))
 
 import { getDb, getClient } from '@/lib/mongodb'
+import { flagIfDuplicate } from '@/lib/duplicates'
 import { scoped } from '@/lib/scoped'
 import * as accounts from './route'
 import * as expenses from '../expenses/route'
@@ -70,6 +71,17 @@ describe('/api/accounts', () => {
     expect((await addAccount('HDFC Salary', 'bank')).status).toBe(200)
   })
 
+  it('stops offering old typed names once the last bank account is archived', async () => {
+    const { GET: balanceGET } = await import('../balance-checks/route')
+    const checks = scoped((await getDb()).collection('balance_checks'), USER)
+    await checks.insertOne({ timestamp: '2026-10-01T10:00:00Z', date: '2026-10-01', status: 'baseline', kind: 'baseline', balance: '100', accounts: [{ name: 'Typed once', balance: '100' }] })
+    const id = (await addAccount('HDFC', 'bank')).body.id
+    expect((await (await balanceGET(req('/api/balance-checks', 'GET'))).json()).accounts).toEqual(['HDFC'])
+    await accounts.PUT(req('/api/accounts', 'PUT', { id, archived: true }))
+    expect((await (await balanceGET(req('/api/balance-checks', 'GET'))).json()).accounts).toEqual([])
+    await (await getDb()).collection('balance_checks').deleteMany({})
+  })
+
   it('caps bank accounts at five', async () => {
     for (const n of [1, 2, 3, 4, 5]) expect((await addAccount(`Bank ${n}`, 'bank')).status).toBe(200)
     expect((await addAccount('Bank 6', 'bank')).status).toBe(409)
@@ -86,6 +98,8 @@ describe('expenses on an account', () => {
     const rows = (await (await expenses.GET(req('/api/expenses', 'GET'))).json()).rows
     expect(rows[0]).toMatchObject({ id, account_id: card, payment_method: 'credit_card' })
     expect(Number((await budget('2026-10', '__credit_card__'))?.assigned)).toBe(400)
+    // Duplicate detection compares the payment method that was saved.
+    expect(vi.mocked(flagIfDuplicate).mock.calls.at(-1)?.[1]).toMatchObject({ payment_method: 'credit_card' })
 
     const cash = (await addAccount('Wallet', 'cash')).body.id
     await expenses.PUT(req('/api/expenses', 'PUT', { id, version: 0, new_account_id: cash }))

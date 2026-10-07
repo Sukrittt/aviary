@@ -19,6 +19,15 @@ describe('defaultAccountFor', () => {
     expect(defaultAccountFor([], 'Food', accounts)).toBe('hdfc')
   })
 
+  it('orders by real time when devices wrote different offsets', () => {
+    // 23:30 at +00:00 is later than 10:00 at +05:30, though it sorts first as text.
+    const rows = [
+      { category: 'Rent', account_id: 'hdfc', date: '2026-10-07', timestamp: '2026-10-07T23:30:00+00:00' },
+      { category: 'Fun', account_id: 'cash', date: '2026-10-08', timestamp: '2026-10-08T01:00:00+05:30' },
+    ]
+    expect(defaultAccountFor(rows, 'Food', accounts)).toBe('hdfc')
+  })
+
   it('ignores archived accounts and has nothing to offer without accounts', () => {
     const rows = [row('Food', 'old', '2026-10-01')]
     expect(defaultAccountFor(rows, 'Food', [acc('old', true), acc('hdfc')])).toBe('hdfc')

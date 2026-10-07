@@ -78,9 +78,15 @@ export async function liveAccount(auth: Auth, id: string, session?: ClientSessio
   return { id, type: isAccountType(doc.type) ? doc.type : 'bank' }
 }
 
-/** Names of the live bank accounts, oldest first: what the balance check asks about. */
-export async function bankAccountNames(auth: Auth): Promise<string[]> {
+/**
+ * Names of the live bank accounts, oldest first: what the balance check asks
+ * about. Null when the user has never made an account, so the check keeps
+ * asking about the names they typed; once they have, archived ones drop out
+ * even if that leaves none.
+ */
+export async function bankAccountNames(auth: Auth): Promise<string[] | null> {
   const coll = await getCollection('accounts', auth)
-  const docs = await coll.find({ type: 'bank', archived: { $ne: true } }).sort({ created_at: 1 }).toArray()
-  return docs.map((d) => String(d.name ?? '')).filter(Boolean)
+  const docs = await coll.find({}).sort({ created_at: 1 }).toArray()
+  if (docs.length === 0) return null
+  return docs.filter((d) => d.type === 'bank' && d.archived !== true).map((d) => String(d.name ?? '')).filter(Boolean)
 }

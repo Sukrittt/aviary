@@ -240,6 +240,22 @@ describe('runRecurringIncomes', () => {
     expect(await incomeRow('2026-10')).toMatchObject({ assigned: 59000 })
   })
 
+  it('a monthly schedule that ended stops counting from the next month, not before', async () => {
+    await seedIncomeRow('2026-10', 50000)
+    const rec = await coll('recurring_incomes')
+    await rec.insertMany([
+      { label: 'Old job', amount: '50000', frequency: 'monthly', start_date: '2026-01-01', end_date: '2026-10-31', next_run_date: '2026-11-01', status: 'active' },
+      { label: 'New job', amount: '60000', frequency: 'monthly', start_date: '2026-11-01', end_date: '', next_run_date: '2026-11-01', status: 'active' },
+    ])
+    // October still counts the old job.
+    await syncMonthlyIncome(auth, '2026-10')
+    expect(await incomeRow('2026-10')).toMatchObject({ assigned: 50000 })
+    // On November 1st the old one ends and the new one starts.
+    await runRecurringIncomes(auth, '2026-11-01')
+    expect(await incomeRow('2026-11')).toMatchObject({ assigned: 60000 })
+    expect(await incomeRow('2026-10')).toMatchObject({ assigned: 50000 })
+  })
+
   it('a replay after a crash before advancing posts nothing new', async () => {
     const rec = await coll('recurring_incomes')
     const { insertedId } = await rec.insertOne({ label: 'Tutoring', amount: '1500', frequency: 'weekly', start_date: '2026-10-01', end_date: '', next_run_date: '2026-10-08', status: 'active' })

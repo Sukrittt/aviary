@@ -60,9 +60,9 @@ export async function GET(req: Request) {
     expected,
     anchor: anchor ? { timestamp: anchor.timestamp, date: anchor.date, balance: anchor.balance } : null,
     loggedPct: lastLoggedPct(checks),
-    // The accounts to ask about: the user's bank accounts once they've set
-    // some up, else the newest list typed. A check from an older app has none and doesn't clear it.
-    accounts: banks.length > 0 ? banks : checks.find((c) => c.accounts.length > 0)?.accounts ?? [],
+    // The accounts to ask about: the user's bank accounts once they've made
+    // any account, else the newest list typed. A check from an older app has none and doesn't clear it.
+    accounts: banks ?? checks.find((c) => c.accounts.length > 0)?.accounts ?? [],
   })
 }
 

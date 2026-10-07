@@ -225,7 +225,7 @@ export async function POST(req: Request) {
     amount_inr: String(body.amount_inr),
     timestamp: result.timestamp,
     date: result.timestamp.slice(0, 10),
-    payment_method: body.payment_method === undefined ? 'bank' : String(body.payment_method),
+    payment_method: result.paymentMethod,
   })
 
   // The id and the server-generated timestamp go back to the caller so it can

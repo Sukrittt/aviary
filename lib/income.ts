@@ -265,6 +265,19 @@ export async function deleteIncome(auth: Auth, id: string, version: number): Pro
 }
 
 /**
+ * Whether a monthly schedule is part of `month`'s monthly income: started by
+ * then, not paused, and not past its end date. An ended schedule still counts
+ * in the months up to its end.
+ */
+function countsIn(r: Record<string, unknown>, month: string): boolean {
+  const start = String(r.start_date ?? '').slice(0, 7)
+  const end = String(r.end_date ?? '').slice(0, 7)
+  if (start && start > month) return false
+  if (end) return end >= month && (r.status === 'active' || r.status === 'ended')
+  return r.status === 'active'
+}
+
+/**
  * Sets `month`'s monthly income to the sum of the active monthly recurring
  * incomes that have started by then, keeping its `extra`. Run after any change
  * to a monthly schedule, so Ready to Assign counts the new figure from day 1
@@ -273,8 +286,7 @@ export async function deleteIncome(auth: Auth, id: string, version: number): Pro
  */
 export async function syncMonthlyIncome(auth: Auth, month: string): Promise<void> {
   const rec = await getCollection('recurring_incomes', auth)
-  const monthly = (await rec.find({ frequency: 'monthly', status: 'active' }).toArray())
-    .filter((r) => !r.start_date || String(r.start_date).slice(0, 7) <= month)
+  const monthly = (await rec.find({ frequency: 'monthly' }).toArray()).filter((r) => countsIn(r, month))
   const total = round2(monthly.reduce((sum, r) => sum + (Number(r.amount) || 0), 0))
   await withTx((session) => writeIncomeRow(auth, month, (row) => ({ ...row, assigned: total }), session))
   invalidateIncome(auth)
@@ -327,10 +339,14 @@ export async function ensureIncomeMigrated(auth: Auth): Promise<void> {
 export async function runRecurringIncomes(auth: Auth, today: string): Promise<number> {
   const rec = await getCollection('recurring_incomes', auth)
   const schedules = await rec.find({ status: 'active' }).toArray()
-  // A monthly schedule set up ahead of its first month (a new job) counts
-  // from day 1 of that month. Re-syncing during it is idempotent.
+  // A monthly schedule starting this month (a new job set up ahead) counts
+  // from day 1, and one that ended last month stops. Later months carry this
+  // month's row, so it has to be right. Re-syncing during the month is idempotent.
   const month = monthOf(today)
-  if (schedules.some((s) => s.frequency === 'monthly' && String(s.start_date ?? '').slice(0, 7) === month)) {
+  const [y, m] = month.split('-').map(Number)
+  const lastMonth = new Date(Date.UTC(y, m - 2, 1)).toISOString().slice(0, 7)
+  const monthly = await rec.find({ frequency: 'monthly' }).toArray()
+  if (monthly.some((s) => String(s.start_date ?? '').slice(0, 7) === month || String(s.end_date ?? '').slice(0, 7) === lastMonth)) {
     await syncMonthlyIncome(auth, month)
   }
   let posted = 0

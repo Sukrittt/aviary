@@ -59,6 +59,8 @@ export interface CreateExpenseResult {
    * (lib/categoryName.ts) — clients need the real one to find its envelope.
    */
   category: string
+  /** What was saved: an account's type wins over the method asked for. */
+  paymentMethod: string
 }
 
 export function isDuplicateKeyError(err: unknown): boolean {
@@ -139,7 +141,7 @@ export async function createExpense(auth: Auth, input: CreateExpenseInput): Prom
     if (existing) {
       // Replay acknowledges the original create, not a newer edit the caller
       // has never seen. In particular, Undo must still check creation version 0.
-      return { id: String(existing._id), timestamp: String(existing.timestamp), version: 0, duplicate: true, category: String(existing.category ?? input.category) }
+      return { id: String(existing._id), timestamp: String(existing.timestamp), version: 0, duplicate: true, category: String(existing.category ?? input.category), paymentMethod: String(existing.payment_method ?? paymentMethod) }
     }
   }
 
@@ -191,5 +193,5 @@ export async function createExpense(auth: Auth, input: CreateExpenseInput): Prom
   // failure risk.
   if (input.notify !== false) await notifyThresholdCrossed(auth, category)
 
-  return { id: String(insertedId), timestamp, version: 0, duplicate: false, category }
+  return { id: String(insertedId), timestamp, version: 0, duplicate: false, category, paymentMethod }
 }
