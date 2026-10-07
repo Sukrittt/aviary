@@ -3612,7 +3612,7 @@
 }
 .expense-redesign .txn-select-bar {
   position: sticky;
-  bottom: calc(20px + env(safe-area-inset-bottom));
+  bottom: calc(56px + env(safe-area-inset-bottom));
   z-index: 30;
   display: flex;
   align-items: center;
