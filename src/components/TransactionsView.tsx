@@ -3,7 +3,7 @@ import { ExpenseWriteError } from '../lib/expenseConflict';
 import { useCurrency } from "@/src/context/CurrencyContext";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { Check, Copy, Plus, Search } from "lucide-react";
+import { Copy, Plus, Search, X } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { toTransactions, type Transaction } from "../lib/expenseTransactions";
 import { useBudgets } from "../hooks/useBudgets";
@@ -521,38 +521,6 @@ export function TransactionsView({
       </AnimatePresence>
       {deleteNotice && <ExpenseNoticeDialog status={deleteNotice.status} action="delete" onBack={() => setDeleteNotice(null)} />}
 
-      {selecting && (
-        <div className="txn-select-bar" role="toolbar" aria-label="Selected transactions">
-          <span className="txn-select-count">{selectedTxns.length} selected</span>
-          <button
-            type="button"
-            className="action-button is-ghost"
-            disabled={selectionLocked}
-            onClick={() =>
-              setSelectedKeys(allSelected ? new Set() : new Set(visibleTransactions.map(txnKey)))
-            }
-          >
-            {allSelected ? "Clear" : "Select all"}
-          </button>
-          <button
-            type="button"
-            className="account-danger-btn txn-select-delete"
-            disabled={selectedTxns.length === 0 || selectionLocked}
-            onClick={() => setConfirmBulk(true)}
-          >
-            {bulkDeleting ? "Deleting…" : "Delete"}
-          </button>
-          <button
-            type="button"
-            className="action-button is-ghost"
-            disabled={bulkDeleting}
-            onClick={exitSelecting}
-          >
-            Done
-          </button>
-        </div>
-      )}
-
       {loading ? (
         <div className="txn-timeline-loading">
           <LoadingCaption placement="page" />
@@ -575,7 +543,7 @@ export function TransactionsView({
       ) : (
         <motion.div
           key={page}
-          className="txn-timeline-list"
+          className={`txn-timeline-list${selecting ? " is-selecting" : ""}`}
           initial={reduce ? false : { opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: "tween", duration: 0.15, ease: "easeOut" }}
@@ -637,12 +605,28 @@ export function TransactionsView({
                           onClick={() => toggleActions(rowKey)}
                         />
                       )}
+                      {selecting && (
+                        <span className={`txn-check${isSelected ? " is-on" : ""}`} aria-hidden="true">
+                          {isSelected && (
+                            <svg viewBox="0 0 24 24" fill="none">
+                              <path
+                                d="M5 13l4 4L19 7"
+                                stroke="currentColor"
+                                strokeWidth={3}
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                pathLength={1}
+                              />
+                            </svg>
+                          )}
+                        </span>
+                      )}
                       <span
-                        className={`txn-timeline-icon${isSelected ? " is-checked" : ""}`}
+                        className="txn-timeline-icon"
                         title={categoryName}
-                        style={isSelected ? undefined : { background: avatarColorFor(categoryName) }}
+                        style={{ background: avatarColorFor(categoryName) }}
                       >
-                        {isSelected ? <Check size={20} strokeWidth={2.6} aria-hidden="true" /> : categoryEmoji(t.category)}
+                        {categoryEmoji(t.category)}
                       </span>
                       <span className="txn-timeline-body">
                         <span className="txn-timeline-item">{t.item}</span>
@@ -699,6 +683,57 @@ export function TransactionsView({
           </AnimatePresence>
         </motion.div>
       )}
+
+      <AnimatePresence>
+        {selecting && (
+          <motion.div
+            className="txn-select-bar"
+            role="toolbar"
+            aria-label="Selected transactions"
+            initial={reduce ? false : { opacity: 0, y: 24, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={reduce ? { opacity: 0 } : { opacity: 0, y: 24, scale: 0.9, transition: { duration: 0.15 } }}
+            transition={{ type: "spring", mass: 0.8, damping: 14, stiffness: 220 }}
+          >
+            <motion.span
+              key={selectedTxns.length}
+              className="txn-select-count"
+              initial={reduce || selectedTxns.length === 0 ? false : { scale: 1.25 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", damping: 12, stiffness: 400 }}
+            >
+              {selectedTxns.length === 0 ? "Tap rows to pick them" : `${selectedTxns.length} selected`}
+            </motion.span>
+            <button
+              type="button"
+              className="action-button is-ghost"
+              disabled={selectionLocked}
+              onClick={() =>
+                setSelectedKeys(allSelected ? new Set() : new Set(visibleTransactions.map(txnKey)))
+              }
+            >
+              {allSelected ? "Clear" : "Select all"}
+            </button>
+            <button
+              type="button"
+              className="txn-select-delete"
+              disabled={selectedTxns.length === 0 || selectionLocked}
+              onClick={() => setConfirmBulk(true)}
+            >
+              {bulkDeleting ? "Deleting…" : "Delete"}
+            </button>
+            <button
+              type="button"
+              className="txn-select-close"
+              aria-label="Done selecting"
+              disabled={bulkDeleting}
+              onClick={exitSelecting}
+            >
+              <X size={16} strokeWidth={2.4} aria-hidden="true" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {!loading && !error && (
         <div className="txn-timeline-footer">

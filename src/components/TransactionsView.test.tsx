@@ -155,7 +155,7 @@ describe('multi-select delete', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Select all' }))
     expect(screen.getByText('2 selected')).toBeInTheDocument()
     fireEvent.change(screen.getByRole('searchbox', { name: 'Search transactions' }), { target: { value: 'x' } })
-    expect(screen.getByText('0 selected')).toBeInTheDocument()
+    expect(screen.getByText('Tap rows to pick them')).toBeInTheDocument()
   })
 
   it('puts failed rows back, still selected, with a friendly notice', async () => {
