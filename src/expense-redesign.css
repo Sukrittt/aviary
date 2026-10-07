@@ -7654,7 +7654,7 @@ button.account-feature-card {
   flex: 1;
   min-width: 0;
   min-height: 36px;
-  max-height: 120px;
+  max-height: 200px;
   resize: none;
   border: 0;
   outline: 0;

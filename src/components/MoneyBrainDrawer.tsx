@@ -8,6 +8,7 @@ import { motion, useReducedMotion } from 'motion/react'
 import { STAGGER, popIn, staggerDelay } from './landing/mobile/kit'
 import { ArrowLeft, ArrowUp, Clock3, Plus, Search, X } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
+import Link from 'next/link'
 import { useBudgets } from '@/src/hooks/useBudgets'
 import { useCategories } from '@/src/hooks/useCategories'
 import { useRecentExpenses } from '@/src/hooks/useExpenses'
@@ -46,11 +47,25 @@ interface Props {
  * land before the proposal exists. A few spaced retries cover that; after them
  * it's best effort, since client_ids already stop a second log.
  */
-function persistSettle(sessionId: string, proposalId: string, status: 'submitted' | 'dismissed', expenseIds: string[], attempt = 0) {
-  updateProposalStatus(sessionId, proposalId, status, expenseIds).catch(() => {
-    if (attempt < 3) setTimeout(() => persistSettle(sessionId, proposalId, status, expenseIds, attempt + 1), 600 * (attempt + 1))
-  })
+function persistSettle(
+  sessionId: string,
+  settle: PendingSettle,
+  onReply: (proposalId: string, reply: string | null) => void,
+  attempt = 0,
+) {
+  updateProposalStatus(sessionId, settle.proposalId, settle.status, settle.expenseIds)
+    .then((reply) => onReply(settle.proposalId, reply))
+    .catch(() => {
+      if (attempt < 3) setTimeout(() => persistSettle(sessionId, settle, onReply, attempt + 1), 600 * (attempt + 1))
+      else onReply(settle.proposalId, null)
+    })
 }
+
+type PendingSettle = { proposalId: string; status: 'submitted' | 'dismissed'; expenseIds: string[] }
+
+/** Said when the server's reply to logged rows never arrives. */
+const LOGGED_FALLBACK = "Done, they're logged."
+
 
 function timeAgo(iso: string) {
   const date = new Date(iso)
@@ -92,7 +107,9 @@ export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onL
   const abortRef = useRef<AbortController | null>(null)
   // Proposal outcomes picked while their reply was still streaming: the chat has no id yet, or
   // hasn't saved the reply, so they're recorded once the stream ends.
-  const pendingSettles = useRef<{ proposalId: string; status: 'submitted' | 'dismissed'; expenseIds: string[] }[]>([])
+  const pendingSettles = useRef<PendingSettle[]>([])
+  // Proposals whose rows were just logged, waiting on Ask Aviary's reply to them.
+  const [acking, setAcking] = useState<ReadonlySet<string>>(new Set())
   const streamingRef = useRef(false)
   const bodyRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -152,6 +169,14 @@ export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onL
   useEffect(() => {
     bodyRef.current?.scrollTo({ top: bodyRef.current.scrollHeight, behavior: reduceMotion ? 'auto' : 'smooth' })
   }, [messages, reduceMotion])
+
+  // The composer grows with what's typed (a list of spends runs several lines), up to the CSS max-height.
+  useLayoutEffect(() => {
+    const el = inputRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${el.scrollHeight}px`
+  }, [input, view])
 
   // Reopening the drawer or coming back from history lands on the latest message, not the top.
   useLayoutEffect(() => {
@@ -221,7 +246,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onL
       setSessionId(resolved)
       streamingRef.current = false
       if (resolved) {
-        for (const p of pendingSettles.current.splice(0)) persistSettle(resolved, p.proposalId, p.status, p.expenseIds)
+        for (const p of pendingSettles.current.splice(0)) persistSettle(resolved, p, onSettleReply)
       }
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['chatSessions'] }),
@@ -250,8 +275,25 @@ export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onL
   /** Records a proposal's outcome on the chat, so reopening it shows the card read-only. */
   function settleProposal(proposalId: string, status: 'submitted' | 'dismissed', expenseIds: string[]) {
     setMessages((current) => current.map((m) => (m.proposal?.id === proposalId ? { ...m, proposal: { ...m.proposal, status, expenseIds } } : m)))
-    if (sessionId && !streamingRef.current) persistSettle(sessionId, proposalId, status, expenseIds)
-    else pendingSettles.current.push({ proposalId, status, expenseIds })
+    if (status === 'submitted') setAcking((current) => new Set(current).add(proposalId))
+    const settle = { proposalId, status, expenseIds }
+    if (sessionId && !streamingRef.current) persistSettle(sessionId, settle, onSettleReply)
+    else pendingSettles.current.push(settle)
+  }
+
+  /** Puts Ask Aviary's reply to logged rows right under their card. Dismissals get none. */
+  function onSettleReply(proposalId: string, reply: string | null) {
+    setAcking((current) => {
+      if (!current.has(proposalId)) return current
+      const next = new Set(current)
+      next.delete(proposalId)
+      return next
+    })
+    setMessages((messages) => {
+      const at = messages.findIndex((m) => m.proposal?.id === proposalId)
+      if (at < 0 || messages[at].proposal?.status !== 'submitted' || messages[at + 1]?.ack) return messages
+      return [...messages.slice(0, at + 1), { role: 'model', text: reply ?? LOGGED_FALLBACK, ack: true }, ...messages.slice(at + 1)]
+    })
   }
 
   return (
@@ -401,13 +443,18 @@ export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onL
                         {message.captureFailed && onLogManually && (
                           <button type="button" className="brain-inline-link" onClick={onLogManually}>Add it by hand</button>
                         )}
+                        {message.ack && (
+                          <Link href="/expense/transactions" className="brain-inline-link" onClick={onClose}>See them in Activity</Link>
+                        )}
                       </div>
                       {message.proposal && (
                         <CaptureReview
                           proposal={message.proposal}
+                          loggedSummary={false}
                           onSettled={(status, ids) => settleProposal(message.proposal!.id, status, ids)}
                         />
                       )}
+                      {message.proposal && acking.has(message.proposal.id) && <BirdThinking size={30} />}
                     </div>
                   ) : null)}
                   {awaitingFirstDelta && <BirdThinking size={30} />}

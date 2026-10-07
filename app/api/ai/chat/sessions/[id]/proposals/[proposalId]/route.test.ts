@@ -9,9 +9,15 @@ vi.mock('@/lib/access', () => ({
 
 const updateOneMock = vi.fn()
 const findOneMock = vi.fn()
+const findMock = vi.fn(() => ({ toArray: async () => [{ item: 'Auto', category: 'Transport' }] }))
 vi.mock('@/lib/http', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/http')>()
-  return { ...actual, getCollection: vi.fn(async () => ({ updateOne: updateOneMock, findOne: findOneMock })) }
+  return { ...actual, getCollection: vi.fn(async () => ({ updateOne: updateOneMock, findOne: findOneMock, find: findMock })) }
+})
+const captureAckMock = vi.fn(async () => 'Auto’s in. All set.')
+vi.mock('@/lib/ai/captureAck', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/ai/captureAck')>()
+  return { ...actual, captureAck: (...args: unknown[]) => captureAckMock(...(args as [])) }
 })
 
 const { PATCH } = await import('./route')
@@ -43,10 +49,28 @@ describe('PATCH /api/ai/chat/sessions/:id/proposals/:proposalId', () => {
     const res = await patch({ status: 'submitted', expenseIds: [EXPENSE] })
 
     expect(res.status).toBe(200)
-    expect(await res.json()).toEqual({ status: 'submitted' })
+    expect(await res.json()).toEqual({ status: 'submitted', reply: 'Auto’s in. All set.' })
     const [filter, update] = updateOneMock.mock.calls[0]
     expect(filter.messages).toEqual({ $elemMatch: { proposalId: PROPOSAL, proposalStatus: 'pending' } })
     expect(update).toEqual({ $set: { 'messages.$.proposalStatus': 'submitted', 'messages.$.expenseIds': [EXPENSE] } })
+  })
+
+  it('replies to the logged rows once, saving the reply on the chat', async () => {
+    await patch({ status: 'submitted', expenseIds: [EXPENSE] })
+    expect(captureAckMock).toHaveBeenCalledWith([{ item: 'Auto', category: 'Transport' }], { userId: 'user_a', feature: 'capture' })
+    const pushed = updateOneMock.mock.calls[1][1].$push.messages
+    expect(pushed).toMatchObject({ role: 'model', text: 'Auto’s in. All set.', ack: true })
+
+    updateOneMock.mockResolvedValue({ matchedCount: 0 })
+    findOneMock.mockResolvedValue({ messages: [{ proposalId: PROPOSAL, proposalStatus: 'submitted' }] })
+    await patch({ status: 'submitted', expenseIds: [EXPENSE] })
+    expect(captureAckMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('falls back to a plain reply when the expenses cannot be read', async () => {
+    findMock.mockImplementationOnce(() => { throw new Error('db down') })
+    const res = await patch({ status: 'submitted', expenseIds: [EXPENSE] })
+    expect((await res.json()).reply).toBe("Done, that one's logged.")
   })
 
   it('marks a proposal dismissed', async () => {
