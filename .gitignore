@@ -61,3 +61,4 @@ scripts/tmp-purge-user.mjs
 
 # Graphify local knowledge graph and generated state
 .graphify/
+launch-email-preview.html
