@@ -3563,6 +3563,33 @@
   z-index: 2;
   pointer-events: none;
 }
+.expense-redesign .txn-timeline-icon.is-checked {
+  background: var(--gold);
+  color: var(--erd-on-accent);
+}
+.expense-redesign .txn-timeline-row.is-selected {
+  background: color-mix(in oklab, var(--gold) 10%, transparent);
+}
+.expense-redesign .txn-select-bar {
+  position: sticky;
+  top: 8px;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 8px 8px 16px;
+  margin-bottom: 12px;
+  border: 1px solid var(--erd-border);
+  border-radius: 100px;
+  background: var(--erd-card-solid);
+}
+.expense-redesign .txn-select-count {
+  margin-right: auto;
+  font-weight: 700;
+}
+.expense-redesign .txn-select-delete {
+  margin-top: 0;
+}
 .expense-redesign .txn-timeline-body {
   display: flex;
   flex-direction: column;

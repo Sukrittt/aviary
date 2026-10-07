@@ -1,14 +1,19 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { it, expect, vi } from 'vitest'
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest'
 import { TransactionsView } from './TransactionsView'
 import { ExpenseWriteError } from '../lib/expenseConflict'
-const { remove, dismiss, duplicates } = vi.hoisted(() => ({ remove: vi.fn(), dismiss: vi.fn(), duplicates: { data: [] as unknown[] } }))
+const { remove, dismiss, duplicates, page } = vi.hoisted(() => ({
+  remove: vi.fn(),
+  dismiss: vi.fn(),
+  duplicates: { data: [] as unknown[] },
+  page: { extra: [] as unknown[] },
+}))
 vi.mock('next/navigation', () => ({ useSearchParams: () => new URLSearchParams(), useRouter: () => ({ replace: vi.fn() }) }))
 vi.mock('../hooks/useBudgets', () => ({ useBudgets: () => ({ data: [{ category: 'Groceries' }] }) }))
 vi.mock('../hooks/useCategories', () => ({ useCategories: () => ({ data: [{ name: 'Groceries' }, { name: 'Subscription' }] }) }))
 vi.mock('../hooks/useRecentCategories', () => ({ useRecentCategories: () => ({ recents: [] }) }))
 vi.mock('../hooks/useExpenses', () => ({
-  useExpensesPage: () => ({ data: { rows: [{ id: 'one', version: 0, timestamp: '2026-09-18T10:00:00', date: '2026-09-18', item: 'Lunch', amount_inr: '100', category: 'Food' }], total: 1, pageCount: 1, totalAmount: 100 } }),
+  useExpensesPage: () => ({ data: { rows: [{ id: 'one', version: 0, timestamp: '2026-09-18T10:00:00', date: '2026-09-18', item: 'Lunch', amount_inr: '100', category: 'Food' }, ...page.extra], total: 1 + page.extra.length, pageCount: 1, totalAmount: 100 } }),
   useDeleteExpense: () => ({ mutateAsync: remove }),
   useDuplicates: () => duplicates,
   useDismissDuplicate: () => ({ mutateAsync: dismiss }),
@@ -117,4 +122,53 @@ it('puts a row back when its delete fails', async () => {
 
   await waitFor(() => expect(remove).toHaveBeenCalledOnce())
   expect(await screen.findByRole('button', { name: 'Open actions for Lunch' })).toBeInTheDocument()
+})
+
+describe('multi-select delete', () => {
+  beforeEach(() => {
+    page.extra = [{ id: 'two', version: 0, timestamp: '2026-09-18T11:00:00', date: '2026-09-18', item: 'Coffee', amount_inr: '50', category: 'Food' }]
+  })
+  afterEach(() => {
+    page.extra = []
+  })
+
+  it('selects rows and deletes them one by one after a single confirm', async () => {
+    remove.mockReset().mockResolvedValue(undefined)
+    render(<TransactionsView />)
+    fireEvent.click(screen.getByRole('button', { name: 'Select' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Select Lunch' }))
+    expect(screen.getByText('1 selected')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Select all' }))
+    expect(screen.getByText('2 selected')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    expect(screen.getByRole('alertdialog', { name: 'Delete 2 transactions?' })).toBeInTheDocument()
+    fireEvent.click(screen.getByText('Remove'))
+    await waitFor(() => expect(remove).toHaveBeenCalledTimes(2))
+    expect(remove).toHaveBeenCalledWith(expect.objectContaining({ id: 'one' }))
+    expect(remove).toHaveBeenCalledWith(expect.objectContaining({ id: 'two' }))
+    await waitFor(() => expect(screen.queryByRole('toolbar')).not.toBeInTheDocument())
+  })
+
+  it('drops the selection when the filter changes', () => {
+    render(<TransactionsView />)
+    fireEvent.click(screen.getByRole('button', { name: 'Select' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Select all' }))
+    expect(screen.getByText('2 selected')).toBeInTheDocument()
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search transactions' }), { target: { value: 'x' } })
+    expect(screen.getByText('0 selected')).toBeInTheDocument()
+  })
+
+  it('puts failed rows back, still selected, with a friendly notice', async () => {
+    remove.mockReset().mockResolvedValueOnce(undefined).mockRejectedValueOnce(new ExpenseWriteError(409, 'Raw API error'))
+    render(<TransactionsView />)
+    fireEvent.click(screen.getByRole('button', { name: 'Select' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Select all' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    fireEvent.click(screen.getByText('Remove'))
+    await screen.findByRole('dialog', { name: 'This transaction was updated' })
+    expect(screen.queryByText('Raw API error')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Select Coffee' })).toHaveAttribute('aria-pressed', 'true')
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Select Lunch' })).not.toBeInTheDocument())
+    expect(screen.getByText('1 selected')).toBeInTheDocument()
+  })
 })
