@@ -225,6 +225,9 @@ export async function assignCategories(
   )
 }
 
+/** A normal read takes 1-3s; past this, a backup model races it. */
+const CAPTURE_HEDGE_MS = 2500
+
 export interface CaptureContext {
   today: string
   currencyCode: string
@@ -234,7 +237,7 @@ export interface CaptureContext {
 
 /** Reads one message into a proposal. Throws only when the Gemini call itself fails. */
 export async function extractCapture(message: string, ctx: CaptureContext, caller: AiCaller): Promise<CaptureProposal> {
-  const raw = await generateJSON<RawCapture>(capturePrompt(message, ctx.today, ctx.currencyCode), CAPTURE_SCHEMA, caller)
+  const raw = await generateJSON<RawCapture>(capturePrompt(message, ctx.today, ctx.currencyCode), CAPTURE_SCHEMA, caller, { hedgeAfterMs: CAPTURE_HEDGE_MS })
   const { items, skipped, unparsed } = normalizeCapture(raw ?? {}, ctx.today)
   const categories = await assignCategories(items, ctx.categories, ctx.words, caller)
   return {

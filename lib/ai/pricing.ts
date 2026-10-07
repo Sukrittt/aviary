@@ -14,6 +14,8 @@ const PRICES: Record<string, { input: number; output: number }> = {
   // Kept for historical ai_usage rows written before Ask Aviary moved off it.
   'gemini-3.1-flash-lite': { input: 0.25, output: 1.5 },
   'gemini-3.5-flash-lite': { input: 0.3, output: 2.5 },
+  // The hedge backup (lib/ai/gemini.ts). https://ai.google.dev/gemini-api/docs/pricing, checked 2026-10-08.
+  'gemini-3.5-flash': { input: 1.5, output: 9 },
   // https://vercel.com/ai-gateway/models/jev, checked 2026-09-19: input only, no output charge.
   'typesafe-ai/jev': { input: 0.042, output: 0 },
 }
