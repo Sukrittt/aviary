@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   AlreadySubscribedError,
@@ -13,6 +14,7 @@ import {
   type PlanPeriod,
 } from '@/src/api/billing'
 import { openCheckout } from '@/src/lib/razorpayCheckout'
+import { setEventContext, track } from '@/src/lib/analytics'
 
 export const billingKey = ['billing-status'] as const
 
@@ -25,7 +27,7 @@ export const billingKey = ['billing-status'] as const
  * to have caught up.
  */
 export function useBillingStatus(enabled = true) {
-  return useQuery({
+  const query = useQuery({
     queryKey: billingKey,
     queryFn: getBillingStatus,
     staleTime: 30_000,
@@ -36,6 +38,13 @@ export function useBillingStatus(enabled = true) {
     // request, plus React Query's retry, for every anonymous visitor.
     enabled,
   })
+  // Every event carries the plan it happened on, so a chart can split trial
+  // users from paying ones without a join. Same as mobile.
+  const mode = query.data?.mode
+  useEffect(() => {
+    if (mode) setEventContext({ plan_status: mode })
+  }, [mode])
+  return query
 }
 
 /**
@@ -97,7 +106,14 @@ export function useWebCheckout(prefill?: { email?: string; name?: string }) {
       const access = await verifyWebCheckout(result)
       return { status: access.mode === 'paid' ? 'paid' : 'pending', access }
     },
-    onSuccess: (outcome) => {
+    // Same funnel events as mobile's Play checkout. `package` is the period.
+    onMutate: (period) => track('purchase_started', { package: period }),
+    onError: (_, period) => track('purchase_failed', { package: period, error_code: 'error' }),
+    onSuccess: (outcome, period) => {
+      if (outcome.status === 'paid' || outcome.status === 'pending') {
+        track('purchase_completed', { package: period, verified: outcome.status === 'paid', pending: outcome.status === 'pending' })
+      } else if (outcome.status === 'dismissed') track('purchase_cancelled', { package: period })
+      else track('purchase_failed', { package: period, error_code: 'already_subscribed' })
       if (outcome.status === 'paid' || outcome.status === 'pending') seedBillingStatus(qc, outcome.access)
       if (outcome.status === 'already_subscribed') void qc.invalidateQueries({ queryKey: billingKey })
     },

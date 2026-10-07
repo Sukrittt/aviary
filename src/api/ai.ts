@@ -1,4 +1,21 @@
 import { apiFetch } from './client'
+import { track } from '@/src/lib/analytics'
+
+/** The server's code on a 429 for a spent monthly AI allowance (lib/ai/allowance.ts). */
+const AI_ALLOWANCE_EXCEEDED = 'AI_ALLOWANCE_EXCEEDED'
+
+/**
+ * Reports a spent AI allowance, the way mobile's rejectIfAllowanceExceeded
+ * does: how often the cap bites, and on what, is the input to pricing it.
+ * Reads a clone, so the caller can still read the body for its own error.
+ */
+export async function allowanceHit(resp: Response, feature: 'brief' | 'chat' | 'scan'): Promise<boolean> {
+  if (resp.status !== 429) return false
+  const body = await resp.clone().json().catch(() => null)
+  if (body?.code !== AI_ALLOWANCE_EXCEEDED) return false
+  track('ai_allowance_hit', { feature })
+  return true
+}
 
 export interface BriefCard {
   icon: string
@@ -111,6 +128,7 @@ export async function getChatSession(id: string): Promise<ChatSessionDetail> {
 export async function fetchBrief(): Promise<Brief> {
   const resp = await apiFetch('/api/ai/brief')
   if (!resp.ok) {
+    await allowanceHit(resp, 'brief')
     const detail = await resp.json().catch(() => ({}))
     throw new Error(detail.error ?? `Failed to load brief: ${resp.status}`)
   }
@@ -154,8 +172,11 @@ export async function streamChat(
   })
 
   if (!resp.ok) {
+    const spent = await allowanceHit(resp, 'chat')
     const detail = await resp.json().catch(() => ({}))
-    throw new Error(detail.error ?? `Failed to chat: ${resp.status}`)
+    const err = new Error(detail.error ?? `Failed to chat: ${resp.status}`)
+    if (spent) err.name = 'AiAllowanceError'
+    throw err
   }
   if (!resp.body) throw new Error('Failed to chat: empty response body')
 

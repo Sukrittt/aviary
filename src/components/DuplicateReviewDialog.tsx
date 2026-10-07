@@ -6,6 +6,7 @@ import { useDeleteExpense, useDismissDuplicate } from '../hooks/useExpenses'
 import type { DuplicatePair } from '../api/expenses'
 import type { ExpenseRow } from '../types'
 import { formatShortDate } from '../lib/format'
+import { track } from '../lib/analytics'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
 
 function when(row: ExpenseRow): string {
@@ -60,6 +61,7 @@ export function DuplicateReviewDialog({ pairs, onClose }: { pairs: DuplicatePair
         item: duplicate.item,
         amountInr: Number(duplicate.amount_inr) || 0,
       })
+      track('duplicates_resolved', { action: 'deleted' })
       deletePhase.succeed(() => {
         if (isLast) return onClose()
         answer()
@@ -76,6 +78,7 @@ export function DuplicateReviewDialog({ pairs, onClose }: { pairs: DuplicatePair
     setFailed(false)
     try {
       await dismiss.mutateAsync(String(duplicate.id))
+      track('duplicates_resolved', { action: 'kept_both' })
       if (isLast) onClose()
       else answer()
     } catch {

@@ -18,7 +18,7 @@ import { useChatSessions, useChatSessionsCount } from '@/src/hooks/useChatSessio
 import { computeEnvelopeState, currentMonthKey } from '@/src/lib/envelope'
 
 import { CAPTURE_FAILED_MESSAGE, getChatSession, streamChat, updateProposalStatus, type ChatMessage } from '@/src/api/ai'
-import { track } from '@/src/lib/analytics'
+import { startTimer, track } from '@/src/lib/analytics'
 import { LoadingCaption } from './LoadingCaption'
 import { BirdMark, BirdThinking } from './BirdMark'
 import { ChatMarkdown } from './ChatMarkdown'
@@ -137,6 +137,9 @@ export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onL
     }
   }, [onClose])
 
+  // Mounted only while open, so this is one per opening.
+  useEffect(() => { track('money_brain_opened') }, [])
+
   useEffect(() => {
     if (!initialSessionId) return
     void openSession(initialSessionId)
@@ -190,6 +193,9 @@ export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onL
     const controller = new AbortController()
     abortRef.current = controller
     streamingRef.current = true
+    const elapsed = startTimer()
+    const answered = (ok: boolean, reason?: string) =>
+      track('money_brain_answered', { ok, seconds: elapsed(), ...(reason ? { reason } : {}) })
     try {
       const resolved = await streamChat(
         sessionId,
@@ -211,6 +217,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onL
           })
         },
       )
+      answered(true)
       setSessionId(resolved)
       streamingRef.current = false
       if (resolved) {
@@ -223,6 +230,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onL
     } catch (error) {
       if ((error as Error).name !== 'AbortError') {
         const captureFailed = (error as Error).message === CAPTURE_FAILED_MESSAGE
+        answered(false, captureFailed ? 'capture_failed' : (error as Error).name === 'AiAllowanceError' ? 'ai_allowance' : 'error')
         setMessages((current) => {
           const next = [...current]
           next[next.length - 1] = captureFailed

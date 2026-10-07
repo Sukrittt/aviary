@@ -25,7 +25,7 @@ export function IosWaitlist() {
       if (!res.ok) throw new Error(String(res.status))
       setStatus('joined')
       button.succeed()
-      track('waitlist_joined', { platform: 'ios' })
+      track('waitlist_joined', { waitlist_platform: 'ios' })
     } catch {
       setStatus('failed')
       button.fail()
