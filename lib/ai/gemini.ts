@@ -1,4 +1,5 @@
 import { GoogleGenAI, ThinkingLevel, type GenerateContentResponse, type Schema } from '@google/genai'
+import { after } from 'next/server'
 import { logAiUsage, type AiCaller } from './usage'
 import { AI_DISABLED_MESSAGE, getSystemSettings } from '../systemSettings'
 
@@ -58,11 +59,26 @@ async function tracked(
   const startedAt = Date.now()
   try {
     const response = await once(call)
-    await logAiUsage(caller, model, startedAt, response.usageMetadata, null)
+    const endedAt = Date.now()
+    logLater(() => logAiUsage(caller, model, startedAt, response.usageMetadata, null, endedAt))
     return response
   } catch (err) {
-    await logAiUsage(caller, model, startedAt, undefined, err)
+    const endedAt = Date.now()
+    logLater(() => logAiUsage(caller, model, startedAt, undefined, err, endedAt))
     throw err
+  }
+}
+
+/**
+ * The usage write never holds up the answer (or makes a hedge think the first
+ * call is still out). `after()` keeps a serverless function alive for it;
+ * outside a request, as in scripts and tests, it just runs.
+ */
+function logLater(write: () => Promise<void>) {
+  try {
+    after(write)
+  } catch {
+    void write()
   }
 }
 
