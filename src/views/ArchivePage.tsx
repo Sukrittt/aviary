@@ -3,8 +3,9 @@
 import { useCurrency } from '@/src/context/CurrencyContext'
 
 import { useEffect, useState } from 'react'
-import { AnimatePresence, motion } from 'motion/react'
-import { LIST_SPRING } from '@/src/components/landing/mobile/kit'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { Folder, Receipt, Repeat, Tag, TrendingUp, Wallet, X } from 'lucide-react'
+import { ROW_SPRING } from '../components/DeletingRow'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { LoadingCaption } from '../components/LoadingCaption'
 import { ConfirmDialog } from '../components/ConfirmDialog'
@@ -25,13 +26,13 @@ const CHIP_LABELS: Record<ArchivableCollection, string> = {
   holdings: 'Holdings',
 }
 
-const KIND: Record<ArchivableCollection, { label: string; icon: string }> = {
-  expenses: { label: 'Transaction', icon: '🧾' },
-  budgets: { label: 'Budget', icon: '👛' },
-  categories: { label: 'Category', icon: '🏷️' },
-  groups: { label: 'Group', icon: '📂' },
-  subscriptions: { label: 'Subscription', icon: '🔁' },
-  holdings: { label: 'Holding', icon: '📈' },
+const KIND: Record<ArchivableCollection, { label: string; Icon: typeof Receipt }> = {
+  expenses: { label: 'Transaction', Icon: Receipt },
+  budgets: { label: 'Budget', Icon: Wallet },
+  categories: { label: 'Category', Icon: Tag },
+  groups: { label: 'Group', Icon: Folder },
+  subscriptions: { label: 'Subscription', Icon: Repeat },
+  holdings: { label: 'Holding', Icon: TrendingUp },
 }
 
 type Filter = 'all' | ArchivableCollection
@@ -54,6 +55,7 @@ const RETRY = 'Check your connection and try again.'
 /** `/account/archive`. Twin of Mobile's account/archive.tsx. */
 export function ArchivePage() {
   const { formatCurrency } = useCurrency()
+  const reduce = useReducedMotion()
 
   const qc = useQueryClient()
   const [hideAmounts] = useHideAmounts()
@@ -264,8 +266,15 @@ export function ArchivePage() {
               ))}
           </div>
 
-          <ul className={`archive-list${selecting ? ' is-selecting' : ''}`} aria-label="Archived items">
-            <AnimatePresence initial={false}>
+          <motion.ul
+            key={`${filter}-${currentPage}`}
+            className={`archive-list${selecting ? ' is-selecting' : ''}`}
+            aria-label="Archived items"
+            initial={reduce ? false : { opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ type: 'tween', duration: 0.15, ease: 'easeOut' }}
+          >
+            <AnimatePresence mode="popLayout" initial={false}>
             {pageItems.map((item, idx) => {
               const days = daysUntil(item.purgesAt)
               const band = bandFor(days)
@@ -274,11 +283,12 @@ export function ArchivePage() {
               const isPending = pending?.id === item.id
               const restored = restoredId === item.id
               const isSelected = selecting && selected.has(item.id)
+              const { Icon } = KIND[item.collection]
               return (
                 <motion.li
                   key={item.id}
                   layout="position"
-                  transition={LIST_SPRING}
+                  transition={{ layout: ROW_SPRING }}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1, transition: { duration: 0.15 } }}
                   exit={{
@@ -286,11 +296,11 @@ export function ArchivePage() {
                     // Restore all clears the list top-down, like Mobile.
                     transition: batchButton.saving
                       ? { duration: 0.18, delay: idx * 0.055 }
-                      : { duration: 0.12 },
+                      : { duration: 0.22 },
                   }}
                 >
                   {showBand && <div className={`archive-band ${days <= 1 ? 'is-coral' : ''}`}>{band}</div>}
-                  <div className={`account-card archive-row ${days <= 1 ? 'is-urgent' : ''} ${isSelected ? 'is-selected' : ''}`}>
+                  <div className={`archive-row${isSelected ? ' is-selected' : ''}`}>
                     {selecting && (
                       <button
                         type="button"
@@ -301,54 +311,60 @@ export function ArchivePage() {
                         onClick={() => toggleSelected(item.id)}
                       />
                     )}
-                    <span className={`archive-kind${isSelected ? ' is-checked' : ''}`} aria-hidden="true">
-                      {isSelected ? '✓' : KIND[item.collection].icon}
+                    <span className="txn-check-slot" aria-hidden="true">
+                      <span className={`txn-check${isSelected ? ' is-on' : ''}`}>
+                        {isSelected && (
+                          <svg viewBox="0 0 24 24" fill="none">
+                            <path
+                              d="M5 13l4 4L19 7"
+                              stroke="currentColor"
+                              strokeWidth={3}
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              pathLength={1}
+                            />
+                          </svg>
+                        )}
+                      </span>
                     </span>
-                    <div className="archive-row-body">
-                      <div className="archive-row-name">
-                        <strong>{item.label || 'Untitled'}</strong>
-                        {item.amount !== undefined && <span>{formatCurrency(item.amount, hideAmounts)}</span>}
-                      </div>
-                      <div className="account-row-meta">
+                    <span className={`archive-kind is-${item.collection}`} aria-hidden="true">
+                      <Icon size={20} strokeWidth={2.2} />
+                    </span>
+                    <span className="archive-row-body">
+                      <span className="archive-row-name">{item.label || 'Untitled'}</span>
+                      <span className="archive-row-meta">
                         {KIND[item.collection].label} · deleted {formatDateShort(item.deletedAt)}
-                      </div>
-                    </div>
-                    <div className="archive-row-clock">
-                      <span className={`is-${urgency(days)}`}>{days === 1 ? '1 day left' : `${days} days left`}</span>
-                      <div className="archive-bar">
-                        <div
-                          className={`is-${urgency(days)}`}
-                          style={{ transform: `scaleX(${Math.max(6, Math.round((days / 7) * 100)) / 100})` }}
-                        />
-                      </div>
-                    </div>
+                        {item.amount !== undefined ? ` · ${formatCurrency(item.amount, hideAmounts)}` : ''}
+                      </span>
+                    </span>
+                    <span className={`archive-days is-${urgency(days)}`}>{days === 1 ? '1 day left' : `${days} days left`}</span>
                     {!selecting && (
-                    <button
-                      type="button"
-                      className="scan-icon-btn"
-                      aria-label={`Delete ${item.label || 'item'} forever`}
-                      disabled={isPending || restored}
-                      onClick={() => setPurgeTarget(item)}
-                    >
-                      ✕
-                    </button>
-                    )}
-                    {!selecting && (
-                    <button
-                      type="button"
-                      className={`account-pill-btn archive-restore ${restored ? 'is-done' : ''}`}
-                      disabled={isPending || restored}
-                      onClick={() => handleRestore(item)}
-                    >
-                      {restored ? '✓ Restored' : isPending && pending?.kind === 'restore' ? 'Restoring…' : 'Restore'}
-                    </button>
+                      <span className="archive-row-actions">
+                        <button
+                          type="button"
+                          className="scan-icon-btn"
+                          aria-label={`Delete ${item.label || 'item'} forever`}
+                          disabled={isPending || restored}
+                          onClick={() => setPurgeTarget(item)}
+                        >
+                          <X size={15} strokeWidth={2.4} aria-hidden="true" />
+                        </button>
+                        <button
+                          type="button"
+                          className={`account-pill-btn archive-restore ${restored ? 'is-done' : ''}`}
+                          disabled={isPending || restored}
+                          onClick={() => handleRestore(item)}
+                        >
+                          {restored ? '✓ Restored' : isPending && pending?.kind === 'restore' ? 'Restoring…' : 'Restore'}
+                        </button>
+                      </span>
                     )}
                   </div>
                 </motion.li>
               )
             })}
             </AnimatePresence>
-          </ul>
+          </motion.ul>
 
           {filter !== 'all' && shown.length === 0 && (
             <p className="archive-footnote">Nothing archived under {CHIP_LABELS[filter]}.</p>
@@ -369,7 +385,7 @@ export function ArchivePage() {
               </button>
               <button
                 type="button"
-                className="account-compact-btn"
+                className="account-compact-btn archive-select-restore"
                 disabled={selectedItems.length === 0 || selectionLocked}
                 onClick={() => setRestoreBatch(selectedItems)}
               >

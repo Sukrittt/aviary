@@ -10012,46 +10012,68 @@ button.account-feature-card {
   opacity: 0.6;
 }
 .archive-list {
+  /* AnimatePresence popLayout lifts a removed row out of flow against this. */
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  margin: 0;
+  padding: 0 0 4px;
 }
 .archive-list > li {
   display: flex;
   flex-direction: column;
-  gap: 6px;
 }
+/* Band headers read like Activity's day headers. */
 .archive-band {
-  padding: 8px 4px 0;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--erd-text3);
+  padding: 20px 6px 10px;
+  border-bottom: 1px solid var(--erd-border-strong);
+  font: 650 14px/1.25 var(--font-fredoka);
+  color: var(--erd-text);
+}
+.archive-list > li:first-child .archive-band {
+  padding-top: 4px;
 }
 .archive-band.is-coral {
   color: var(--coral);
 }
+/* Rows share Activity's grid: check slot, 44px kind tile, body, days left, actions. */
 .archive-row {
   position: relative;
-  display: flex;
+  display: grid;
+  grid-template-columns: auto 44px minmax(0, 1fr) auto auto;
   align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
-  transition: background-color 140ms, border-color 140ms;
+  --txn-row-gap: 14px;
+  gap: var(--txn-row-gap);
+  min-height: 72px;
+  padding: 13px 6px;
+  border-bottom: 1px solid var(--erd-border);
+  transition: background-color 140ms, transform 140ms;
+}
+.archive-list > li:last-child .archive-row {
+  border-bottom: 0;
+}
+.archive-row:hover {
+  background: color-mix(in oklab, var(--erd-card-solid) 54%, transparent);
+}
+.archive-row:has(.archive-row-pick:active) {
+  transform: scale(0.985);
+}
+.archive-row.is-selected {
+  background: color-mix(in oklab, var(--gold) 7%, transparent);
 }
 .archive-heading-actions {
   display: flex;
   align-items: center;
   gap: 8px;
 }
-/* Select mode: a transparent button covers the whole card, the kind icon turns into a gold tick. */
+/* Select mode: a transparent button covers the whole row; the tick slot and
+   its animation are Activity's (.txn-check-slot / .txn-check). */
 .archive-row-pick {
   position: absolute;
   inset: 0;
-  z-index: 3;
+  z-index: 1;
   border: 0;
-  border-radius: inherit;
+  border-radius: 14px;
   background: none;
   cursor: pointer;
 }
@@ -10062,97 +10084,117 @@ button.account-feature-card {
 .archive-row-pick:disabled {
   cursor: default;
 }
-.archive-row.is-selected {
-  border-color: var(--gold);
-  background: color-mix(in oklab, var(--gold) 10%, var(--erd-card));
+.archive-list.is-selecting .txn-check-slot {
+  width: 22px;
+  margin-right: 0;
 }
-.archive-kind.is-checked {
-  border-color: var(--gold);
-  background: var(--gold);
-  color: var(--erd-on-accent);
-  font-weight: 800;
+.archive-list.is-selecting .txn-check {
+  opacity: 1;
+  transform: scale(1);
+  transition-delay: 80ms, 80ms, 0ms, 0ms;
 }
 .archive-list ~ .txn-select-bar {
   margin-top: 12px;
   margin-bottom: 0;
 }
+/* The bar's primary action is a filled gold Restore, Activity's Delete in restore clothes. */
+.archive-select-restore:enabled {
+  border-color: var(--gold);
+  background: var(--gold);
+  color: var(--erd-on-accent);
+}
 .account-compact-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
-.archive-row.is-urgent {
-  border-color: color-mix(in oklab, var(--coral) 35%, transparent);
-}
 .archive-kind {
-  width: 38px;
-  height: 38px;
-  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--erd-border);
-  border-radius: 12px;
+  border-radius: 15px;
   background: var(--erd-input-bg);
-  font-size: 17px;
+  color: var(--erd-text2);
+  position: relative;
+  z-index: 2;
+  pointer-events: none;
+}
+.archive-kind.is-expenses {
+  background: var(--gold-soft);
+  color: var(--gold-ink);
+}
+.archive-kind.is-budgets {
+  background: var(--mint-soft);
+  color: var(--mint);
+}
+.archive-kind.is-categories {
+  background: var(--violet-soft);
+  color: var(--violet);
+}
+.archive-kind.is-groups {
+  background: var(--blue-soft);
+  color: var(--blue);
+}
+.archive-kind.is-subscriptions {
+  background: var(--warn-soft);
+  color: var(--warn-ink);
+}
+.archive-kind.is-holdings {
+  background: var(--coral-soft);
+  color: var(--coral);
 }
 .archive-row-body {
-  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   min-width: 0;
+  position: relative;
+  z-index: 2;
+  pointer-events: none;
 }
 .archive-row-name {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  font-size: 14px;
-}
-.archive-row-name strong {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font: 650 15px var(--font-nunito);
+  color: var(--erd-text);
 }
-.archive-row-name span {
-  flex-shrink: 0;
-  font-weight: 700;
+.archive-row-meta {
+  font-size: 12px;
   color: var(--erd-text2);
   font-variant-numeric: tabular-nums;
 }
-.archive-row-clock {
-  width: 120px;
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
+.archive-days {
+  padding: 5px 10px;
+  border-radius: 999px;
   font-size: 12px;
   font-weight: 700;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  position: relative;
+  z-index: 2;
+  pointer-events: none;
 }
-.archive-row-clock > .is-coral {
+.archive-days.is-coral {
   color: var(--coral);
+  background: var(--coral-soft);
 }
-.archive-row-clock > .is-warn {
+.archive-days.is-warn {
   color: var(--warn-ink);
+  background: var(--warn-soft);
 }
-.archive-row-clock > .is-calm {
+.archive-days.is-calm {
   color: var(--erd-text2);
+  background: var(--erd-input-bg);
 }
-.archive-bar {
-  height: 3px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: var(--erd-border);
+.archive-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
-.archive-bar > div {
-  height: 100%;
-  border-radius: inherit;
-  transform-origin: left;
-}
-.archive-bar > .is-coral {
-  background: var(--coral);
-}
-.archive-bar > .is-warn {
-  background: var(--warn);
-}
-.archive-bar > .is-calm {
-  background: var(--erd-text3);
+.archive-row-actions .scan-icon-btn {
+  color: var(--erd-text2);
 }
 .archive-restore {
   min-width: 92px;
@@ -10964,12 +11006,11 @@ button.account-feature-card {
     z-index: 2;
   }
   .archive-row {
-    flex-wrap: wrap;
+    grid-template-columns: auto 44px minmax(0, 1fr) auto;
   }
-  .archive-row-clock {
-    width: auto;
-    flex: 1 0 100%;
-    order: 3;
+  .archive-row-actions {
+    grid-column: 3 / -1;
+    justify-content: flex-end;
   }
 }
 @media (max-width: 540px) {
