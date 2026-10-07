@@ -67,6 +67,9 @@ export function CaptureReview({ proposal, onSettled, origin = CAPTURE_ORIGIN }: 
   const [error, setError] = useState('')
   // Rows already logged by an earlier attempt that partly failed. They leave the card, and a retry skips them.
   const [loggedRows, setLoggedRows] = useState<ReadonlySet<string>>(new Set())
+  // Rows whose last attempt failed. They're locked to retry as they are: the server may have saved one
+  // whose response was lost, and a retry reuses its client_id, so an edit would never reach that expense.
+  const [failedRows, setFailedRows] = useState<ReadonlySet<string>>(new Set())
   const [summary, setSummary] = useState<{ count: number; total: number | null }>({
     count: proposal.expenseIds?.length || proposal.items.length,
     total: null,
@@ -96,6 +99,7 @@ export function CaptureReview({ proposal, onSettled, origin = CAPTURE_ORIGIN }: 
     setError('')
     const toLog = kept
     const done = new Set(loggedRows)
+    const failedIds = new Set<string>()
     let failed = 0
     // One at a time, in the order they were said, so their timestamps keep that order in Activity.
     for (const row of toLog) {
@@ -105,9 +109,11 @@ export function CaptureReview({ proposal, onSettled, origin = CAPTURE_ORIGIN }: 
         done.add(row.id)
       } catch {
         failed++
+        failedIds.add(row.id)
       }
     }
     setLoggedRows(done)
+    setFailedRows(failedIds)
 
     if (failed > 0) {
       // The rows that made it leave the card; the rest stay editable. A retry reuses their client_ids.
@@ -131,8 +137,16 @@ export function CaptureReview({ proposal, onSettled, origin = CAPTURE_ORIGIN }: 
 
   function dismiss() {
     if (busy) return
+    track('capture_dismissed', { source: origin.source, rows: proposal.items.length, logged: loggedRows.size })
+    if (loggedRows.size > 0) {
+      // Some rows made it before a failure: the card is a record of those, not "Not logged".
+      const logged = rows.filter((r) => loggedRows.has(r.id))
+      setSummary({ count: logged.length, total: logged.reduce((sum, r) => sum + rowShare(r), 0) })
+      setStatus('submitted')
+      onSettled?.('submitted', expenseIds.current)
+      return
+    }
     setStatus('dismissed')
-    track('capture_dismissed', { source: origin.source, rows: proposal.items.length })
     onSettled?.('dismissed', [])
   }
 
@@ -151,6 +165,7 @@ export function CaptureReview({ proposal, onSettled, origin = CAPTURE_ORIGIN }: 
       {kept.map((row) => {
         const total = rowTotal(row)
         const share = rowShare(row)
+        const locked = failedRows.has(row.id)
         const unusual = !Number.isNaN(share) && row.category ? unusualAmount(share, row.category, expensesQ.data ?? [], today) : null
         return (
           <div key={row.id} className={`capture-row${rowIncomplete(row) ? ' is-incomplete' : ''}`} data-testid={`capture-row-${row.id}`}>
@@ -159,7 +174,7 @@ export function CaptureReview({ proposal, onSettled, origin = CAPTURE_ORIGIN }: 
                 className="capture-item"
                 value={row.item}
                 onChange={(e) => update(row.id, { item: e.target.value })}
-                disabled={busy}
+                disabled={busy || locked}
                 aria-label="What you paid for"
                 placeholder="What was it?"
               />
@@ -168,7 +183,7 @@ export function CaptureReview({ proposal, onSettled, origin = CAPTURE_ORIGIN }: 
                 <input
                   value={row.amountText}
                   onChange={(e) => update(row.id, { amountText: e.target.value.replace(/[^\d.]/g, '') })}
-                  disabled={busy}
+                  disabled={busy || locked}
                   inputMode="decimal"
                   aria-label={`Amount for ${row.item || 'this spend'}`}
                 />
@@ -177,7 +192,7 @@ export function CaptureReview({ proposal, onSettled, origin = CAPTURE_ORIGIN }: 
                 type="button"
                 className="capture-remove"
                 onClick={() => update(row.id, { removed: true })}
-                disabled={busy}
+                disabled={busy || locked}
                 aria-label={`Remove ${row.item || 'this spend'}`}
               >
                 <X size={15} />
@@ -191,7 +206,7 @@ export function CaptureReview({ proposal, onSettled, origin = CAPTURE_ORIGIN }: 
                 options={categoryOptions}
                 placeholder="Pick an envelope"
                 aria-label={row.category ? `Envelope: ${row.category}. Change it` : 'Pick an envelope'}
-                disabled={busy}
+                disabled={busy || locked}
                 searchable
               />
               {row.date !== today && <small>{formatDateShort(row.date)}</small>}

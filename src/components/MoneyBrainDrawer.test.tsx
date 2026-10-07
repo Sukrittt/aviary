@@ -136,3 +136,29 @@ it('opens straight to typing spends in capture mode, without the money brief', (
   expect(screen.getByText('Log several at once')).toBeInTheDocument()
   expect(screen.getByRole('textbox', { name: 'Ask Aviary' })).toHaveAttribute('placeholder', 'What did you spend?')
 })
+
+it('records an outcome picked mid-stream once the chat exists, retrying while the reply saves', async () => {
+  vi.useFakeTimers({ shouldAdvanceTime: true })
+  const { streamChat, updateProposalStatus } = await import('@/src/api/ai')
+  vi.mocked(updateProposalStatus).mockReset().mockRejectedValueOnce(new Error('Failed to update proposal: 404')).mockResolvedValue(undefined)
+  let finish!: (id: string) => void
+  vi.mocked(streamChat).mockImplementation((_s, _m, onDelta, _signal, onProposal) => {
+    onProposal?.(proposal)
+    onDelta('Got it.')
+    return new Promise((resolve) => (finish = resolve))
+  })
+  show()
+  await type('auto 240')
+  fireEvent.click(screen.getByRole('button', { name: 'Not now' }))
+  expect(updateProposalStatus).not.toHaveBeenCalled()
+
+  await act(async () => {
+    finish('s9')
+  })
+  expect(updateProposalStatus).toHaveBeenCalledWith('s9', 'p1', 'dismissed', [])
+  await act(async () => {
+    vi.advanceTimersByTime(700)
+  })
+  expect(updateProposalStatus).toHaveBeenCalledTimes(2)
+  vi.useRealTimers()
+})

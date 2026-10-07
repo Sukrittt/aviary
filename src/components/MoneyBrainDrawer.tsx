@@ -41,6 +41,17 @@ interface Props {
   onClose: () => void
 }
 
+/**
+ * The server sends the end of a reply before it saves it, so the first try can
+ * land before the proposal exists. A few spaced retries cover that; after them
+ * it's best effort, since client_ids already stop a second log.
+ */
+function persistSettle(sessionId: string, proposalId: string, status: 'submitted' | 'dismissed', expenseIds: string[], attempt = 0) {
+  updateProposalStatus(sessionId, proposalId, status, expenseIds).catch(() => {
+    if (attempt < 3) setTimeout(() => persistSettle(sessionId, proposalId, status, expenseIds, attempt + 1), 600 * (attempt + 1))
+  })
+}
+
 function timeAgo(iso: string) {
   const date = new Date(iso)
   if (Number.isNaN(date.getTime())) return ''
@@ -79,6 +90,10 @@ export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onL
   const [debouncedQuery, setDebouncedQuery] = useState('')
   const [page, setPage] = useState(1)
   const abortRef = useRef<AbortController | null>(null)
+  // Proposal outcomes picked while their reply was still streaming: the chat has no id yet, or
+  // hasn't saved the reply, so they're recorded once the stream ends.
+  const pendingSettles = useRef<{ proposalId: string; status: 'submitted' | 'dismissed'; expenseIds: string[] }[]>([])
+  const streamingRef = useRef(false)
   const bodyRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
@@ -174,6 +189,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onL
     setLoadError(false)
     const controller = new AbortController()
     abortRef.current = controller
+    streamingRef.current = true
     try {
       const resolved = await streamChat(
         sessionId,
@@ -196,6 +212,10 @@ export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onL
         },
       )
       setSessionId(resolved)
+      streamingRef.current = false
+      if (resolved) {
+        for (const p of pendingSettles.current.splice(0)) persistSettle(resolved, p.proposalId, p.status, p.expenseIds)
+      }
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['chatSessions'] }),
         queryClient.invalidateQueries({ queryKey: ['chatSessionsCount'] }),
@@ -212,16 +232,18 @@ export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onL
         })
       }
     } finally {
+      streamingRef.current = false
       setSending(false)
     }
   }
 
   const awaitingFirstDelta = sending && messages.at(-1)?.role === 'model' && !messages.at(-1)?.text
 
-  /** Records a proposal's outcome on the chat, so reopening it shows the card read-only. Best effort. */
+  /** Records a proposal's outcome on the chat, so reopening it shows the card read-only. */
   function settleProposal(proposalId: string, status: 'submitted' | 'dismissed', expenseIds: string[]) {
     setMessages((current) => current.map((m) => (m.proposal?.id === proposalId ? { ...m, proposal: { ...m.proposal, status, expenseIds } } : m)))
-    if (sessionId) void updateProposalStatus(sessionId, proposalId, status, expenseIds).catch(() => {})
+    if (sessionId && !streamingRef.current) persistSettle(sessionId, proposalId, status, expenseIds)
+    else pendingSettles.current.push({ proposalId, status, expenseIds })
   }
 
   return (

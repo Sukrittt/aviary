@@ -178,6 +178,31 @@ it('turns spends not logged into estimates on the review card', async () => {
   expect(onClose).toHaveBeenCalled()
 })
 
+it('goes back to the gap question from the amounts', async () => {
+  mocks.submit.mockResolvedValue(measured('unlogged', 3400))
+  await open()
+  typeBalance('Bank balance', '44600')
+  await press('Check')
+  await press(/^Card bill/)
+  await press('Pick something else')
+  expect(screen.getByRole('button', { name: /^Spends I didn't log/ })).toBeInTheDocument()
+})
+
+it("won't close mid-review and lose estimates the check already resolved", async () => {
+  mocks.submit.mockResolvedValue(measured('unlogged', 3400))
+  mocks.resolve.mockResolvedValue({ status: 'resolved', forgotten: 3400, cardShortfall: 0, proposal: estimate, loggedPct: 37 })
+  await open()
+  typeBalance('Bank balance', '44600')
+  await press('Check')
+  await press(/^Spends I didn't log/)
+
+  expect(screen.getByRole('button', { name: 'Close' })).toBeDisabled()
+  fireEvent.keyDown(window, { key: 'Escape' })
+  expect(onClose).not.toHaveBeenCalled()
+  fireEvent.click(screen.getByRole('button', { name: 'Review Food, Travel as balance_gap' }))
+  expect(screen.getByRole('button', { name: 'Close' })).toBeEnabled()
+})
+
 it('takes a card bill and moved money out of the gap', async () => {
   mocks.submit.mockResolvedValue(measured('unlogged', 11000))
   mocks.resolve.mockResolvedValue({ status: 'resolved', forgotten: 500, cardShortfall: 2000, proposal: estimate, loggedPct: 80 })

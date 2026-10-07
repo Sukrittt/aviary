@@ -116,3 +116,24 @@ it('shows a settled proposal read-only', () => {
   expect(screen.getByTestId('capture-summary')).toHaveTextContent('Logged 2 spends')
   expect(screen.queryByRole('button', { name: /Log/ })).toBeNull()
 })
+
+it('locks a failed row to retry as it is, since the server may have saved it', async () => {
+  mocks.add.mockImplementationOnce(async () => ({ id: 'e1', clientId: 'capture:p1:r1', pending: false })).mockRejectedValueOnce(new Error('timeout'))
+  show()
+  await act(async () => {
+    fireEvent.click(screen.getByRole('button', { name: 'Log 2 spends' }))
+  })
+  expect(screen.getByRole('textbox', { name: 'Amount for Turf' })).toBeDisabled()
+  expect(screen.getByRole('button', { name: 'Remove Turf' })).toBeDisabled()
+})
+
+it('keeps the spends that did log when the rest is put off', async () => {
+  mocks.add.mockImplementationOnce(async () => ({ id: 'e1', clientId: 'capture:p1:r1', pending: false })).mockRejectedValueOnce(new Error('timeout'))
+  const onSettled = show()
+  await act(async () => {
+    fireEvent.click(screen.getByRole('button', { name: 'Log 2 spends' }))
+  })
+  fireEvent.click(screen.getByRole('button', { name: 'Not now' }))
+  expect(screen.getByTestId('capture-summary')).toHaveTextContent('Logged 1 spend · ₹240')
+  expect(onSettled).toHaveBeenCalledWith('submitted', ['e1'])
+})

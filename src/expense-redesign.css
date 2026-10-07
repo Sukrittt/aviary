@@ -11913,3 +11913,6 @@ button.account-feature-card {
   stroke-dashoffset: 1;
   animation: erd-check-draw 350ms ease 220ms forwards;
 }
+.expense-redesign .balance-back {
+  justify-self: center;
+}

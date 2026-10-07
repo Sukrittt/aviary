@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { X } from 'lucide-react'
 import type { CaptureProposal } from '@/src/api/ai'
 import type { BalanceResult, BalanceStatus, MoneyInReason, ResolveAnswer } from '@/src/api/balanceChecks'
@@ -60,9 +60,15 @@ function defaultName(i: number): string {
  * on the same review card Ask Aviary uses. Twin of Mobile's
  * app/modals/balance-check.tsx.
  */
-export function BalanceCheckModal({ onClose }: { onClose: () => void }) {
+export function BalanceCheckModal({ onClose: close }: { onClose: () => void }) {
   const statusQ = useBalanceStatus({ fresh: true })
   const [step, setStep] = useState<Step>({ name: 'enter' })
+  // The check is already resolved by the time estimates show, and they live only here: closing
+  // would lose them, so the review has to end with Log or Not now.
+  const [reviewing, setReviewing] = useState(false)
+  const onClose = useCallback(() => {
+    if (!reviewing) close()
+  }, [close, reviewing])
   // The expected balance moves with every expense logged since the last fetch, so wait for this open's own answer.
   const ready = statusQ.isFetchedAfterMount || statusQ.isError
 
@@ -78,16 +84,18 @@ export function BalanceCheckModal({ onClose }: { onClose: () => void }) {
   if (!ready) body = <LoadingCaption />
   else if (step.name === 'enter') body = <EnterBalance status={statusQ.data ?? null} onDone={onClose} onMeasured={setStep} />
   else if (step.name === 'gap') body = <GapQuestion check={step.check} onDone={onClose} onNext={setStep} />
-  else if (step.name === 'amounts') body = <GapAmounts check={step.check} reason={step.reason} onDone={onClose} onNext={setStep} />
+  else if (step.name === 'amounts') {
+    body = <GapAmounts check={step.check} reason={step.reason} onDone={onClose} onNext={setStep} onBack={() => setStep({ name: 'gap', check: step.check })} />
+  }
   else if (step.name === 'surplus') body = <SurplusQuestion check={step.check} onDone={onClose} />
-  else body = <Estimates {...step} onDone={onClose} />
+  else body = <Estimates {...step} onReviewing={setReviewing} onDone={close} />
 
   return (
     <Scrim className="erd-modal-overlay" onClick={onClose}>
       <Sheet className="erd-modal-card balance-card" role="dialog" aria-modal="true" aria-label="Balance check" onClick={(e) => e.stopPropagation()}>
         <div className="erd-modal-head">
           <h3>Balance check</h3>
-          <button type="button" className="erd-modal-close" onClick={onClose} aria-label="Close">
+          <button type="button" className="erd-modal-close" onClick={onClose} aria-label="Close" disabled={reviewing}>
             <X size={18} />
           </button>
         </div>
@@ -334,11 +342,12 @@ function AmountField({ label, value, onChange }: { label: string; value: string;
   )
 }
 
-function GapAmounts({ check, reason, onDone, onNext }: {
+function GapAmounts({ check, reason, onDone, onNext, onBack }: {
   check: Measured
   reason: Exclude<GapReason, 'unlogged'>
   onDone: () => void
   onNext: (step: Step) => void
+  onBack: () => void
 }) {
   const { formatMoney } = useCurrency()
   const resolve = useResolveBalanceCheck()
@@ -389,6 +398,9 @@ function GapAmounts({ check, reason, onDone, onNext }: {
       <SuccessButton type="submit" baseClass="erd-log-submit" saving={button.saving} success={button.success} successLabel="Saved" disabled={!valid || busy}>
         Continue
       </SuccessButton>
+      <button type="button" className="action-button is-ghost balance-back" onClick={onBack} disabled={busy}>
+        Pick something else
+      </button>
     </form>
   )
 }
@@ -436,14 +448,19 @@ function SurplusQuestion({ check, onDone }: { check: Measured; onDone: () => voi
   )
 }
 
-function Estimates({ proposal, cardShortfall, loggedPct, onDone }: {
+function Estimates({ proposal, cardShortfall, loggedPct, onReviewing, onDone }: {
   proposal: CaptureProposal
   cardShortfall: number
   loggedPct: number
+  onReviewing: (reviewing: boolean) => void
   onDone: () => void
 }) {
   const { formatMoney } = useCurrency()
   const [settled, setSettled] = useState(false)
+
+  useEffect(() => {
+    onReviewing(!settled)
+  }, [onReviewing, settled])
   return (
     <div className="balance-step">
       <h4 className="balance-title">Here&apos;s our best guess</h4>
@@ -451,6 +468,7 @@ function Estimates({ proposal, cardShortfall, loggedPct, onDone }: {
       {cardShortfall > 0 && (
         <p className="balance-hint">{`Your card bill was ${formatMoney(cardShortfall)} more than the card spends you logged, so those are in here too.`}</p>
       )}
+      {!settled && <p className="balance-hint">Log them, or choose Not now. Closing would lose these.</p>}
       <CaptureReview proposal={proposal} origin={GAP_ORIGIN} onSettled={() => setSettled(true)} />
       {settled && (
         <>
