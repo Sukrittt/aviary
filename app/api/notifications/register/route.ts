@@ -2,7 +2,7 @@ import { getDb } from '@/lib/mongodb'
 import { COLLECTIONS } from '@/lib/models'
 import { json, error, readBody } from '@/lib/http'
 import { getAuth, readOnlyGuard } from '@/lib/access'
-import { registerPushToken, PushTokenConflict } from '@/lib/push'
+import { registerPushToken } from '@/lib/push'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,8 +23,7 @@ export async function POST(req: Request) {
 
   try {
     await registerPushToken(token, platform, auth.userId)
-  } catch (err) {
-    if (err instanceof PushTokenConflict) return error(err.message, 409)
+  } catch {
     return error('invalid push token')
   }
   return json({ ok: true })

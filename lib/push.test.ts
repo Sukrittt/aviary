@@ -1,16 +1,25 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const state = {
-  docs: [] as Array<{ token: string; user_id: string; platform: string; createdAt: string; updatedAt: string }>,
+  docs: [] as Array<{ token: string; user_id: string; platform: string; createdAt: string; updatedAt: string; deleted_at?: string; account_deleted_at?: string }>,
 }
 
 function fakeCollection() {
   return {
     findOne: vi.fn(async (filter: { token: string }) => state.docs.find(d => d.token === filter.token) ?? null),
-    updateOne: vi.fn(async (filter: { token: string; user_id: string }, update: { $set: Record<string, unknown> }) => {
-      const doc = state.docs.find((d) => d.token === filter.token && d.user_id === filter.user_id)
-      if (!doc) return { matchedCount: 0 }
+    updateOne: vi.fn(async (
+      filter: { token: string; user_id?: string },
+      update: { $set: Record<string, unknown>; $setOnInsert?: Record<string, unknown>; $unset?: Record<string, unknown> },
+      options?: { upsert?: boolean },
+    ) => {
+      const doc = state.docs.find((d) => d.token === filter.token && (filter.user_id === undefined || d.user_id === filter.user_id))
+      if (!doc) {
+        if (!options?.upsert) return { matchedCount: 0 }
+        state.docs.push({ ...filter, ...update.$setOnInsert, ...update.$set } as (typeof state.docs)[number])
+        return { matchedCount: 0, upsertedCount: 1 }
+      }
       Object.assign(doc, update.$set)
+      for (const key of Object.keys(update.$unset ?? {})) delete (doc as Record<string, unknown>)[key]
       return { matchedCount: 1 }
     }),
     deleteOne: vi.fn(async (filter: { token: string }) => {
@@ -57,10 +66,22 @@ describe('registerPushToken', () => {
     expect(state.docs[0].platform).toBe('android')
   })
 
-  it('rejects a different owner without changing the victim registration', async () => {
+  // A token belongs to one physical device, so it follows whoever is signed in
+  // there now. Refusing used to strand the next account on a phone whose last
+  // sign-out never reached the server: it silently got no pushes, ever.
+  it('moves the token to the account signed in on the device now', async () => {
     await registerPushToken(VALID_TOKEN, 'ios', 'user_a')
-    await expect(registerPushToken(VALID_TOKEN, 'ios', 'user_b')).rejects.toMatchObject({ status: 409 })
+    await registerPushToken(VALID_TOKEN, 'ios', 'user_b')
     expect(state.docs).toHaveLength(1)
-    expect(state.docs[0].user_id).toBe('user_a')
+    expect(state.docs[0].user_id).toBe('user_b')
+  })
+
+  it("takes over a token archived with a deleted account, so it's live again", async () => {
+    state.docs.push({ token: VALID_TOKEN, user_id: 'user_a', platform: 'android', createdAt: 't0', updatedAt: 't0', deleted_at: 't1', account_deleted_at: 't1' })
+    await registerPushToken(VALID_TOKEN, 'android', 'user_b')
+    expect(state.docs).toHaveLength(1)
+    expect(state.docs[0]).toMatchObject({ user_id: 'user_b' })
+    expect(state.docs[0].deleted_at).toBeUndefined()
+    expect(state.docs[0].account_deleted_at).toBeUndefined()
   })
 })
