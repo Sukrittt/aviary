@@ -5,8 +5,6 @@ import { invalidate } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
-const ARCHIVED_GROUP = 'Archived'
-
 export async function GET(req: Request) {
   const auth = await getAuth(req)
   const gate = await requireAccess(auth)
@@ -72,14 +70,15 @@ export async function DELETE(req: Request) {
 
   const body = await readBody(req)
   if (!body.name) return error('name required')
-  if (String(body.name) === ARCHIVED_GROUP) return error('cannot delete the Archived group', 400)
 
   const coll = await getCollection('groups', auth)
   const result = await coll.deleteOne({ name: String(body.name) })
   if (result.deletedCount === 0) return error('group not found', 404)
 
+  // Its categories go to Archive with it (soft delete, restorable for 7 days).
+  // Past transactions keep their category name, same as deleting one category.
   const catColl = await getCollection('categories', auth)
-  await catColl.updateMany({ group: String(body.name) }, { $set: { group: '' } })
+  await catColl.deleteMany({ group: String(body.name) })
   invalidate('categories', auth.userId)
   invalidate('groups', auth.userId)
   return json({ ok: true })
