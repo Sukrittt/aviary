@@ -4,7 +4,7 @@ import { getAuth, readOnlyGuard, type Auth } from '@/lib/access'
 import { requireAccess } from '@/lib/billing/guard'
 import { COLLECTIONS } from '@/lib/models'
 import { MAX_CAPTURE_ITEMS } from '@/lib/ai/capture'
-import { captureAck, fallbackAck, type AckRow } from '@/lib/ai/captureAck'
+import { captureAck, FALLBACK_ACK, type AckRow } from '@/lib/ai/captureAck'
 import { MAX_SESSION_MESSAGES, type StoredChatMessage } from '@/lib/ai/chatSessions'
 
 export const dynamic = 'force-dynamic'
@@ -90,7 +90,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
 /** The logged rows as the reply names them, read back from the expenses so edits and removals in the card count. */
 async function ackFor(auth: Auth, expenseIds: string[]): Promise<string> {
-  if (expenseIds.length === 0) return fallbackAck(0)
+  if (expenseIds.length === 0) return FALLBACK_ACK
   try {
     const expenses = await getCollection(COLLECTIONS.expenses, auth)
     const docs = await expenses
@@ -99,6 +99,6 @@ async function ackFor(auth: Auth, expenseIds: string[]): Promise<string> {
     const rows: AckRow[] = docs.map((d) => ({ item: String(d.item ?? ''), category: String(d.category ?? '') }))
     return await captureAck(rows, { userId: auth.userId, feature: 'capture' })
   } catch {
-    return fallbackAck(expenseIds.length)
+    return FALLBACK_ACK
   }
 }

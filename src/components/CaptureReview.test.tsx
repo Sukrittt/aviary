@@ -54,6 +54,8 @@ it('logs every kept row with a client_id fixed by the proposal, then shows what 
   expect(mocks.add).toHaveBeenNthCalledWith(1, expect.objectContaining({ item: 'Auto', amount_inr: '240', source: 'text', client_id: 'capture:p1:r1' }))
   expect(mocks.add).toHaveBeenNthCalledWith(2, expect.objectContaining({ item: 'Turf', amount_inr: '200', client_id: 'capture:p1:r2', notes: 'Split 6 ways · ₹1,200 total' }))
   expect(onSettled).toHaveBeenCalledWith('submitted', ['e-capture:p1:r1', 'e-capture:p1:r2'])
+  // The rows stay on the card while the tick plays, instead of leaving an empty card.
+  expect(screen.getAllByRole('textbox', { name: 'What you paid for' }).map((el) => (el as HTMLInputElement).value)).toEqual(['Auto', 'Turf'])
   expect(mocks.track).toHaveBeenCalledWith('capture_logged', expect.objectContaining({ source: 'text', rows: 2, edited: 0, removed: 0 }))
   await act(async () => {
     vi.advanceTimersByTime(1100)

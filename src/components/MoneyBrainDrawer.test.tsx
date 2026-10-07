@@ -172,3 +172,16 @@ it('records an outcome picked mid-stream once the chat exists, retrying while th
   expect(updateProposalStatus).toHaveBeenCalledTimes(2)
   vi.useRealTimers()
 })
+it('heads the reply to logged spends with how many were logged', async () => {
+  const { getChatSession } = await import('@/src/api/ai')
+  vi.mocked(getChatSession).mockResolvedValue({
+    id: 's1',
+    messages: [
+      { role: 'user', text: 'auto 240, lunch 150' },
+      { role: 'model', text: 'Here’s what I got.', proposal: { id: 'p1', items: [], skipped: [], unparsed: [], status: 'submitted', expenseIds: ['a', 'b'] } },
+      { role: 'model', text: 'Lunch sounds like it was worth it.', ack: true },
+    ],
+  } as unknown as Awaited<ReturnType<typeof getChatSession>>)
+  render(<QueryClientProvider client={new QueryClient()}><MoneyBrainDrawer initialSessionId="s1" onClose={vi.fn()} /></QueryClientProvider>)
+  expect(await screen.findByText('2 spends logged')).toBeInTheDocument()
+})
