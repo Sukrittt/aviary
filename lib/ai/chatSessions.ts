@@ -37,6 +37,9 @@ export interface ClientChatMessage {
   ack?: boolean
 }
 
+/** The stored-array cap every write to `messages` applies with `$slice`. */
+export const MAX_SESSION_MESSAGES = 100
+
 const TITLE_MAX_LEN = 40
 
 /** Truncate to `maxLen` chars with an ellipsis. Used for both session titles and list previews. */

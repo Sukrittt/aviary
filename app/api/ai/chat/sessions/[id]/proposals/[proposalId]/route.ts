@@ -5,7 +5,7 @@ import { requireAccess } from '@/lib/billing/guard'
 import { COLLECTIONS } from '@/lib/models'
 import { MAX_CAPTURE_ITEMS } from '@/lib/ai/capture'
 import { captureAck, fallbackAck, type AckRow } from '@/lib/ai/captureAck'
-import type { StoredChatMessage } from '@/lib/ai/chatSessions'
+import { MAX_SESSION_MESSAGES, type StoredChatMessage } from '@/lib/ai/chatSessions'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,8 +17,10 @@ const PROPOSAL_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{1
  * `dismissed`. Only the plaintext status fields beside the encrypted proposal
  * change, so this is one positional update with nothing to decrypt.
  *
- * The first `submitted` also adds Ask Aviary's reply to the logged rows to the
- * chat (lib/ai/captureAck.ts) and returns it as `reply`.
+ * `submitted` also answers with Ask Aviary's reply to the logged rows
+ * (lib/ai/captureAck.ts) as `reply`, saved right after the card so a reopened
+ * chat shows it in the same place. A retry returns the saved reply, or writes
+ * it if the first attempt marked the status but failed before saving it.
  *
  * Sending the answer it already has is a no-op, since the app retries this
  * best effort after logging. A different answer is a 409. Logging twice is
@@ -59,19 +61,31 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     { _id: sessionId, messages: { $elemMatch: { proposalId, proposalStatus: 'pending' } } },
     { $set: { 'messages.$.proposalStatus': status, ...(expenseIds ? { 'messages.$.expenseIds': expenseIds } : {}) } },
   )
-  if (result.matchedCount === 1) {
-    if (status !== 'submitted') return json({ status })
-    const reply = await ackFor(auth, expenseIds ?? [])
-    const ack: StoredChatMessage = { role: 'model', text: reply, createdAt: new Date(), ack: true }
-    await sessions.updateOne({ _id: sessionId }, { $push: { messages: ack }, $set: { updatedAt: ack.createdAt } } as never)
-    return json({ status, reply })
+  if (result.matchedCount === 0) {
+    const doc = await sessions.findOne({ _id: sessionId }, { projection: { 'messages.proposalId': 1, 'messages.proposalStatus': 1 } })
+    const current = ((doc?.messages as StoredChatMessage[] | undefined) ?? []).find((m) => m.proposalId === proposalId)
+    if (!current) return error('proposal not found', 404)
+    if (current.proposalStatus !== status) {
+      return json({ error: `This proposal was already ${current.proposalStatus}.`, status: current.proposalStatus }, { status: 409 })
+    }
   }
+  if (status !== 'submitted') return json({ status })
 
-  const doc = await sessions.findOne({ _id: sessionId }, { projection: { 'messages.proposalId': 1, 'messages.proposalStatus': 1 } })
-  const current = ((doc?.messages as StoredChatMessage[] | undefined) ?? []).find((m) => m.proposalId === proposalId)
-  if (!current) return error('proposal not found', 404)
-  if (current.proposalStatus === status) return json({ status })
-  return json({ error: `This proposal was already ${current.proposalStatus}.`, status: current.proposalStatus }, { status: 409 })
+  // The reply goes right after its card, or is the one already there.
+  const doc = await sessions.findOne({ _id: sessionId }, { projection: { 'messages.proposalId': 1, 'messages.ack': 1, 'messages.text': 1 } })
+  const messages = (doc?.messages as StoredChatMessage[] | undefined) ?? []
+  const at = messages.findIndex((m) => m.proposalId === proposalId)
+  if (at >= 0 && messages[at + 1]?.ack) return json({ status, reply: messages[at + 1].text })
+
+  const reply = await ackFor(auth, expenseIds ?? [])
+  if (at >= 0) {
+    const ack: StoredChatMessage = { role: 'model', text: reply, createdAt: new Date(), ack: true }
+    await sessions.updateOne(
+      { _id: sessionId },
+      { $push: { messages: { $each: [ack], $position: at + 1, $slice: -MAX_SESSION_MESSAGES } }, $set: { updatedAt: ack.createdAt } } as never,
+    )
+  }
+  return json({ status, reply })
 }
 
 /** The logged rows as the reply names them, read back from the expenses so edits and removals in the card count. */

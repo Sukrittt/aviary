@@ -267,6 +267,12 @@ export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onL
     } finally {
       streamingRef.current = false
       setSending(false)
+      // Cards logged mid-stream whose stream then failed: record them on the chat
+      // they came from, or, with no saved chat, just stop waiting on a reply.
+      for (const p of pendingSettles.current.splice(0)) {
+        if (sessionId) persistSettle(sessionId, p, onSettleReply)
+        else onSettleReply(p.proposalId, null)
+      }
     }
   }
 
