@@ -68,6 +68,16 @@ it('renders markdown answers and keeps the brief visible once a chat starts', as
   expect(screen.getByText('Food').tagName).toBe('LI')
   expect(screen.getByText('Your monthly brief.')).toBeInTheDocument()
 })
+it('links the reply to logged spends to Activity', async () => {
+  const { getChatSession } = await import('@/src/api/ai')
+  vi.mocked(getChatSession).mockResolvedValue({
+    id: 's1',
+    messages: [{ role: 'user', text: 'auto 240' }, { role: 'model', text: 'Auto’s in. All set.', ack: true }],
+  } as Awaited<ReturnType<typeof getChatSession>>)
+  render(<QueryClientProvider client={new QueryClient()}><MoneyBrainDrawer initialSessionId="s1" onClose={vi.fn()} /></QueryClientProvider>)
+  expect(await screen.findByText('Auto’s in. All set.')).toBeInTheDocument()
+  expect(screen.getByRole('link', { name: 'See them in Activity' })).toHaveAttribute('href', '/expense/transactions')
+})
 it('restores the chat left open last time, minus a reply cut off mid-stream', () => {
   const openChat = { current: { sessionId: 's2', messages: [
     { role: 'user' as const, text: 'How much is left?' },
@@ -140,7 +150,7 @@ it('opens straight to typing spends in capture mode, without the money brief', (
 it('records an outcome picked mid-stream once the chat exists, retrying while the reply saves', async () => {
   vi.useFakeTimers({ shouldAdvanceTime: true })
   const { streamChat, updateProposalStatus } = await import('@/src/api/ai')
-  vi.mocked(updateProposalStatus).mockReset().mockRejectedValueOnce(new Error('Failed to update proposal: 404')).mockResolvedValue(undefined)
+  vi.mocked(updateProposalStatus).mockReset().mockRejectedValueOnce(new Error('Failed to update proposal: 404')).mockResolvedValue(null)
   let finish!: (id: string) => void
   vi.mocked(streamChat).mockImplementation((_s, _m, onDelta, _signal, onProposal) => {
     onProposal?.(proposal)

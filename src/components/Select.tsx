@@ -33,6 +33,7 @@ interface Props {
 const MAX_MENU_HEIGHT = 280
 const GAP = 6
 const EDGE = 12
+const MIN_MENU_WIDTH = 220
 
 interface Placement {
   top: number
@@ -87,10 +88,12 @@ export function Select({
     const above = r.top - GAP - EDGE
     const flip = below < 160 && above > below
     const maxHeight = Math.max(120, Math.min(MAX_MENU_HEIGHT, flip ? above : below))
+    // A small trigger (a chip) still gets a menu wide enough to read its options.
+    const width = Math.min(Math.max(r.width, MIN_MENU_WIDTH), window.innerWidth - EDGE * 2)
     setPlace({
       top: flip ? r.top - GAP : r.bottom + GAP,
-      left: Math.max(EDGE, Math.min(r.left, window.innerWidth - r.width - EDGE)),
-      width: r.width,
+      left: Math.max(EDGE, Math.min(r.left, window.innerWidth - width - EDGE)),
+      width,
       maxHeight,
       above: flip,
     })

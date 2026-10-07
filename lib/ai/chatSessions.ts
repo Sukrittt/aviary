@@ -14,6 +14,8 @@ export interface StoredChatMessage {
   proposalStatus?: ProposalStatus
   /** The expenses a submitted proposal became. */
   expenseIds?: string[]
+  /** Ask Aviary's reply once a proposal's rows were logged (lib/ai/captureAck.ts). */
+  ack?: boolean
 }
 
 export interface ChatSessionDoc {
@@ -32,7 +34,11 @@ export interface ClientChatMessage {
   text: string
   createdAt: Date
   proposal?: ClientProposal
+  ack?: boolean
 }
+
+/** The stored-array cap every write to `messages` applies with `$slice`. */
+export const MAX_SESSION_MESSAGES = 100
 
 const TITLE_MAX_LEN = 40
 
@@ -49,7 +55,7 @@ export function captureMessage(text: string, proposal: CaptureProposal, createdA
 
 /** A stored message as the session endpoint returns it, with any proposal parsed and its status attached. */
 export function toClientMessage(message: StoredChatMessage): ClientChatMessage {
-  const base = { role: message.role, text: message.text, createdAt: message.createdAt }
+  const base = { role: message.role, text: message.text, createdAt: message.createdAt, ...(message.ack ? { ack: true } : {}) }
   if (typeof message.proposal !== 'string') return base
   try {
     const proposal = JSON.parse(message.proposal) as CaptureProposal

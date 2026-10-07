@@ -72,6 +72,8 @@ export interface ChatMessage {
   text: string
   /** Set on a reply to a message the user was logging spends with. */
   proposal?: CaptureProposal
+  /** Ask Aviary's reply once a proposal's rows were logged. */
+  ack?: boolean
 }
 
 /** Tells /api/ai/chat this client can show a capture proposal (CAPTURE_HEADER in lib/ai/capture.ts). */
@@ -222,11 +224,14 @@ export async function updateProposalStatus(
   proposalId: string,
   status: Exclude<ProposalStatus, 'pending'>,
   expenseIds?: string[],
-): Promise<void> {
+): Promise<string | null> {
   const resp = await apiFetch(`/api/ai/chat/sessions/${encodeURIComponent(sessionId)}/proposals/${encodeURIComponent(proposalId)}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(expenseIds && expenseIds.length ? { status, expenseIds } : { status }),
   })
   if (!resp.ok && resp.status !== 409) throw new Error(`Failed to update proposal: ${resp.status}`)
+  // The first `submitted` answers with Ask Aviary's reply to the logged rows.
+  const body = (await resp.json().catch(() => null)) as { reply?: unknown } | null
+  return typeof body?.reply === 'string' ? body.reply : null
 }

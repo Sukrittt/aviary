@@ -35,6 +35,8 @@ interface Props {
    * shows it read-only; best effort, since client_ids already stop a second log.
    */
   onSettled?: (status: Exclude<ProposalStatus, 'pending'>, expenseIds: string[]) => void
+  /** Show the "Logged 4 spends" pill once logged. Off where Ask Aviary's reply answers the log instead. */
+  loggedSummary?: boolean
   /** Money-brain rows by default; a balance check's estimates log as `balance_gap`. */
   origin?: RowOrigin
 }
@@ -69,7 +71,7 @@ function spendsLabel(n: number): string {
  * add-expense path with a client_id fixed by the proposal, so logging a card
  * twice can't double it. Twin of Mobile's src/components/brain/CaptureReview.tsx.
  */
-export function CaptureReview({ proposal, onSettled, origin = CAPTURE_ORIGIN }: Props) {
+export function CaptureReview({ proposal, onSettled, origin = CAPTURE_ORIGIN, loggedSummary = true }: Props) {
   const { formatMoney, currencyPrefix } = useCurrency()
   const expensesQ = useRecentExpenses()
   const categoriesQ = useCategories()
@@ -178,6 +180,7 @@ export function CaptureReview({ proposal, onSettled, origin = CAPTURE_ORIGIN }: 
   }
 
   if (status !== 'pending') {
+    if (status === 'submitted' && !loggedSummary) return null
     return (
       <div className={`capture-summary${status === 'submitted' ? ' is-logged' : ''}`} data-testid="capture-summary">
         {status === 'submitted'

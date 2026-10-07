@@ -7,7 +7,7 @@ import { buildSystemPrompt, SCOPE_REFUSAL } from '@/lib/ai/moneyBrainPrompt'
 import { routeChat, type ChatRoute } from '@/lib/ai/chatRouter'
 import { createEmDashScrubber } from '@/lib/ai/emDash'
 import { streamText } from '@/lib/ai/gemini'
-import { captureMessage, makeTitle, type StoredChatMessage } from '@/lib/ai/chatSessions'
+import { MAX_SESSION_MESSAGES, captureMessage, makeTitle, type StoredChatMessage } from '@/lib/ai/chatSessions'
 import {
   buildCaptureProposal,
   captureReplyText,
@@ -33,7 +33,6 @@ const ROUTING_CONTEXT_TURNS = 2
 // long-lived session would eventually hit Mongo's 16MB document limit and
 // every further turn would fail. $slice keeps this atomic with the $push
 // rather than a separate read-modify-write.
-const MAX_SESSION_MESSAGES = 100
 const RATE_WINDOW_MS = 60 * 60 * 1000
 const SIGNED_IN_LIMIT = 60
 const DEMO_LIMIT = 20
