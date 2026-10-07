@@ -145,3 +145,17 @@ it('shows a category emoji once, not twice, when the name already carries it', a
   const trigger = screen.getByRole('combobox', { name: 'Envelope: 🍜 Eating out. Change it' })
   expect(trigger.textContent?.match(/🍜/g)).toHaveLength(1)
 })
+
+it('needs a current envelope for a row whose envelope was deleted since it was read', () => {
+  show({ proposal: { ...proposal, items: [{ ...proposal.items[0], category: 'Old envelope' }] } })
+  expect(screen.getByRole('button', { name: 'Log 1 spend' })).toBeDisabled()
+  expect(screen.getByText('Pick an envelope for Auto to log these.')).toBeInTheDocument()
+})
+
+it('names whatever else blocks logging', () => {
+  show()
+  fireEvent.change(screen.getByRole('textbox', { name: 'Amount for Auto' }), { target: { value: '' } })
+  expect(screen.getByText('Fix the amount for Auto to log these.')).toBeInTheDocument()
+  fireEvent.change(screen.getByRole('textbox', { name: 'Amount for Turf' }), { target: { value: '' } })
+  expect(screen.getByText('Fix the highlighted spends to log these.')).toBeInTheDocument()
+})

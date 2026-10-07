@@ -43,6 +43,20 @@ function secondsSince(startedAt: number): number {
   return Math.round((Date.now() - startedAt) / 1000)
 }
 
+/** Why Log is disabled, naming the one thing to fix when there's only one. Null when nothing blocks it. */
+function blockerHint(kept: CaptureRow[]): string | null {
+  const fixes = kept.flatMap((row) => {
+    const name = row.item.trim()
+    const out: string[] = []
+    if (!name) out.push('Name each spend')
+    if (Number.isNaN(rowTotal(row))) out.push(name ? `Fix the amount for ${name}` : 'Fix the amounts')
+    if (!row.category) out.push(name ? `Pick an envelope for ${name}` : 'Pick an envelope for each spend')
+    return out
+  })
+  if (fixes.length === 0) return null
+  return `${fixes.length === 1 ? fixes[0] : 'Fix the highlighted spends'} to log these.`
+}
+
 function spendsLabel(n: number): string {
   return `${n} ${n === 1 ? 'spend' : 'spends'}`
 }
@@ -78,7 +92,12 @@ export function CaptureReview({ proposal, onSettled, origin = CAPTURE_ORIGIN }: 
   const shownAt = useRef(0)
   const today = todayIST()
 
-  const open = rows.filter((r) => !loggedRows.has(r.id))
+  // Once the envelope list loads, a row whose envelope is gone (deleted since it was read) has none:
+  // logging it would file the spend under a name that no longer exists.
+  const known = categoriesQ.data ? new Set(categoriesQ.data.map((c) => c.name)) : null
+  const open = rows
+    .filter((r) => !loggedRows.has(r.id))
+    .map((r) => (known && r.category && !known.has(r.category) ? { ...r, category: '' } : r))
   const kept = keptRows(open)
   const busy = button.saving || button.success
   const ready = canLog(open)
@@ -88,11 +107,9 @@ export function CaptureReview({ proposal, onSettled, origin = CAPTURE_ORIGIN }: 
     return { value: name, label: text, icon: icon || categoryEmoji(name, group) }
   }
   const categoryOptions = (categoriesQ.data ?? []).map((c) => toOption(c.name, c.group))
-  // A row's envelope shows even before the list loads, or if it's no longer in the list.
-  for (const name of new Set(rows.map((r) => r.category))) {
-    if (name && !categoryOptions.some((o) => o.value === name)) categoryOptions.push(toOption(name))
-  }
-  const missingEnvelope = kept.filter((r) => !r.category)
+  // A row's envelope shows while the list is still loading.
+  if (!known) for (const name of new Set(rows.map((r) => r.category))) if (name) categoryOptions.push(toOption(name))
+  const hint = blockerHint(kept)
 
   useEffect(() => {
     shownAt.current = Date.now()
@@ -219,6 +236,8 @@ export function CaptureReview({ proposal, onSettled, origin = CAPTURE_ORIGIN }: 
                   onChange={(e) => update(row.id, { amountText: e.target.value.replace(/[^\d.]/g, '') })}
                   disabled={busy || locked}
                   inputMode="decimal"
+                  // 1 crore with paise: the server's cap, and all the field can show.
+                  maxLength={11}
                   aria-label={`Amount for ${row.item || 'this spend'}`}
                   // Sized to its digits so the currency sign sits right against them.
                   style={{ width: `${Math.max(row.amountText.length, 1) + 0.2}ch` }}
@@ -239,13 +258,7 @@ export function CaptureReview({ proposal, onSettled, origin = CAPTURE_ORIGIN }: 
         )
       })}
 
-      {missingEnvelope.length > 0 && (
-        <p className="capture-hint">
-          {missingEnvelope.length === 1 && missingEnvelope[0].item.trim()
-            ? `Pick an envelope for ${missingEnvelope[0].item.trim()} to log these.`
-            : 'Pick an envelope for each spend to log these.'}
-        </p>
-      )}
+      {hint && <p className="capture-hint">{hint}</p>}
 
       {error !== '' && <p className="capture-error" role="alert">{error}</p>}
 

@@ -11625,7 +11625,7 @@ button.account-feature-card {
 }
 .expense-redesign .capture-amount input {
   min-width: 2ch;
-  max-width: 11ch;
+  max-width: 12ch;
   padding: 0;
   border: none;
   border-radius: 6px;
