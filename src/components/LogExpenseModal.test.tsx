@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { LogExpenseModal } from './LogExpenseModal'
+import { MoneyBrainContext } from '@/components/moneyBrainContext'
 import { suggestCategoryLLM } from '../lib/autoCategory'
 
 const { addExpenseMutation, deleteExpenseMutation, addCategoryMutation, history } = vi.hoisted(() => ({
@@ -97,6 +98,21 @@ it('swaps the form for the added receipt, and Undo hands the form back filled in
   expect(await screen.findByLabelText('Amount')).toHaveValue('450')
   expect(screen.getByLabelText('What was it for?')).toHaveValue('Milk')
   expect(onClose).not.toHaveBeenCalled()
+})
+
+it('hands off to Ask Aviary to log several spends at once', () => {
+  const onClose = vi.fn()
+  const openCapture = vi.fn()
+  const brain = { openMoneyBrain: vi.fn(), openCapture, closeMoneyBrain: vi.fn(), isMoneyBrainOpen: false }
+  render(<MoneyBrainContext.Provider value={brain}><LogExpenseModal onClose={onClose} onSaved={vi.fn()} /></MoneyBrainContext.Provider>)
+  fireEvent.click(screen.getByRole('button', { name: 'Log several at once' }))
+  expect(onClose).toHaveBeenCalled()
+  expect(openCapture).toHaveBeenCalled()
+})
+
+it('leaves the hand-off out where there is no Ask Aviary to open', () => {
+  render(<LogExpenseModal onClose={vi.fn()} onSaved={vi.fn()} />)
+  expect(screen.queryByRole('button', { name: 'Log several at once' })).toBeNull()
 })
 
 it('closes from Done on the added receipt', async () => {

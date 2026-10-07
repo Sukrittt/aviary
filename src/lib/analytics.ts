@@ -64,6 +64,15 @@ export type AppEvent =
   // Ask Aviary
   | 'money_brain_opened'
   | 'money_brain_query'
+  // Logging spends by typing them into Ask Aviary: a review card was shown,
+  // logged, or dismissed. Row counts and edit counts only.
+  | 'capture_proposed'
+  | 'capture_logged'
+  | 'capture_dismissed'
+  // The weekly balance check: what a check found and how many accounts it
+  // totalled, and how a gap was explained. No amounts.
+  | 'balance_checked'
+  | 'balance_resolved'
   | 'money_brain_answered'
   | 'ai_allowance_hit'
   // Other features
