@@ -141,8 +141,10 @@ export function ExpensePage() {
   const [incomeScreen, setIncomeScreen] = useState<"add" | "monthly" | null>(null);
   const [incomeMenuOpen, setIncomeMenuOpen] = useState(false);
   // Change income edits the monthly schedule Ready to Assign counts from day 1.
-  // With more than one, the Income page is the place to pick.
-  const monthlySchedules = (useRecurringIncomes().data ?? []).filter((r) => r.frequency === "monthly" && r.status === "active");
+  // With more than one, or before they've loaded (a create form then could
+  // duplicate one), the Income page is the place to pick.
+  const schedulesQ = useRecurringIncomes();
+  const monthlySchedules = (schedulesQ.data ?? []).filter((r) => r.frequency === "monthly" && r.status === "active");
   const incomeMenuRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     if (!incomeMenuOpen) return;
@@ -384,7 +386,7 @@ export function ExpensePage() {
                           className="env-menu-item"
                           onClick={() => {
                             setIncomeMenuOpen(false);
-                            if (monthlySchedules.length > 1) router.push("/account/income");
+                            if (!schedulesQ.data || monthlySchedules.length > 1) router.push("/account/income");
                             else setIncomeScreen("monthly");
                           }}
                         >
