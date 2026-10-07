@@ -29,7 +29,7 @@ export function DeletingRow({
   className,
   children,
 }: {
-  ref?: Ref<HTMLDivElement & HTMLLIElement>
+  ref?: Ref<HTMLElement>
   active: boolean
   onDone: () => void
   as?: 'div' | 'li'
@@ -51,7 +51,8 @@ export function DeletingRow({
   }, [active])
   return (
     <Row
-      ref={ref}
+      // `Row` is a union of two motion tags, so its ref type is the intersection.
+      ref={ref as Ref<HTMLDivElement & HTMLLIElement>}
       className={className}
       style={{ position: 'relative' }}
       layout="position"

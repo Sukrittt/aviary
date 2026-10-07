@@ -8,7 +8,7 @@ describe('DeletingRow', () => {
   // out of flow while it exits. Dropping that ref leaves the row in flow, so the
   // rows below jump instead of springing up.
   it('forwards the ref popLayout needs to the row element', () => {
-    const ref = createRef<HTMLDivElement & HTMLLIElement>()
+    const ref = createRef<HTMLLIElement>()
     render(
       <DeletingRow ref={ref} as="li" className="row" active={false} onDone={() => {}}>
         Fuel
