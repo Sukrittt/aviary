@@ -11,7 +11,7 @@ vi.mock('@/src/hooks/useExpenses', () => ({
   useAddExpense: () => ({ mutateAsync: mocks.add }),
 }))
 vi.mock('@/src/hooks/useCategories', () => ({
-  useCategories: () => ({ data: [{ name: 'Travel', group: 'Everyday' }, { name: 'Food', group: 'Everyday' }, { name: 'Sports', group: 'Fun' }] }),
+  useCategories: () => ({ data: [{ name: '🍜 Eating out', group: 'Food' }, { name: 'Travel', group: 'Everyday' }, { name: 'Food', group: 'Everyday' }, { name: 'Sports', group: 'Fun' }] }),
 }))
 vi.mock('@/src/lib/analytics', () => ({ track: mocks.track }))
 vi.mock('@/src/lib/date', () => ({ todayIST: () => '2026-10-07' }))
@@ -44,7 +44,8 @@ beforeEach(() => {
 it('logs every kept row with a client_id fixed by the proposal, then shows what was logged', async () => {
   vi.useFakeTimers({ shouldAdvanceTime: true })
   const onSettled = show()
-  expect(screen.getByText('₹1,200 ÷ 6 = ₹200')).toBeInTheDocument()
+  expect(screen.getByText('₹1,200 ÷ 6')).toBeInTheDocument()
+  expect(screen.getByText('your share ₹200')).toBeInTheDocument()
 
   await act(async () => {
     fireEvent.click(screen.getByRole('button', { name: 'Log 2 spends' }))
@@ -77,6 +78,7 @@ it('waits for an envelope on a row the money brain was unsure of', () => {
   show({ proposal: { ...proposal, items: [{ ...proposal.items[0], category: '' }] } })
   expect(screen.getByRole('button', { name: 'Log 1 spend' })).toBeDisabled()
   expect(screen.getByRole('combobox', { name: 'Pick an envelope' })).toBeInTheDocument()
+  expect(screen.getByText('Pick an envelope for Auto to log these.')).toBeInTheDocument()
 })
 
 it('keeps rows that failed editable, with a written message, and a retry skips the ones that made it', async () => {
@@ -136,4 +138,10 @@ it('keeps the spends that did log when the rest is put off', async () => {
   fireEvent.click(screen.getByRole('button', { name: 'Not now' }))
   expect(screen.getByTestId('capture-summary')).toHaveTextContent('Logged 1 spend · ₹240')
   expect(onSettled).toHaveBeenCalledWith('submitted', ['e1'])
+})
+
+it('shows a category emoji once, not twice, when the name already carries it', async () => {
+  show({ proposal: { ...proposal, items: [{ ...proposal.items[0], category: '🍜 Eating out' }] } })
+  const trigger = screen.getByRole('combobox', { name: 'Envelope: 🍜 Eating out. Change it' })
+  expect(trigger.textContent?.match(/🍜/g)).toHaveLength(1)
 })

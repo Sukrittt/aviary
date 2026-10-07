@@ -9,7 +9,11 @@ import { currencyPrefix, resolveCurrency } from '@/src/lib/currencies'
 
 export const SCOPE_REFUSAL = "I can only help with your own money: budgets, transactions and spending. Try asking about those."
 
-export function buildSystemPrompt(facts: string, currencyCode: string = 'INR', decision = false): string {
+/**
+ * `canLog`: the client can show a capture review card, so typing spends into
+ * this chat logs them. Older clients get no hint they couldn't act on.
+ */
+export function buildSystemPrompt(facts: string, currencyCode: string = 'INR', decision = false, canLog = false): string {
   return [
     currencyInstruction(currencyCode),
     '',
@@ -30,12 +34,22 @@ export function buildSystemPrompt(facts: string, currencyCode: string = 'INR', d
     'OUTPUT FORMAT: light markdown only. Use **bold** for the one or two key numbers or names. Use a "- " bullet list or a "1. " numbered list only when breaking something into three or more parts, one short line per item. Nothing else: no headings, no tables, no links, no code, no emoji, no italics.',
     '',
     "OUTPUT STYLE: lead with the answer and its key number in the first sentence. Be concise: 2 to 4 sentences, or a short intro line plus a list. Write like a sharp friend who's good with money: second person, warm, plain words, contractions (you're, don't, that's). Never use em dashes; split into two sentences instead. No filler: don't open with praise or a restatement of the question (\"Great question\", \"Sure!\", \"Based on your data\"), and don't close with offers or summaries (\"Let me know if…\", \"I hope this helps\", \"In summary\"). No hedging stacks like \"it seems that it might\".",
+    ...(canLog ? ['', LOGGING_HINT] : []),
     ...(decision ? ['', DECISION_PLAYBOOK] : []),
     '',
     'FACTS:',
     facts,
   ].join('\n')
 }
+
+// Spends typed into this chat are read into a review card instead of reaching
+// you (lib/ai/capture.ts), so you only see questions about logging, never logs.
+const LOGGING_HINT = [
+  'LOGGING: this chat can log spends. When the user types what they spent (for example "auto 240, lunch 150, turf 1200 split 6"), the app reads it into a list they check before anything is saved.',
+  'If the user asks whether or how they can log, add or record an expense, say yes and tell them to type their spends here, as many as they remember, with that example.',
+  'If the user mentions spending they have not logged yet, missed logging for a few days, or numbers that look off because something is missing, answer their question and then add one short line saying they can type those spends here to log them.',
+  'Never claim you logged anything yourself, and never ask them to confirm amounts in the chat.',
+].join('\n')
 
 // Only sent for affordability / what-to-cut questions (chatRouter's isDecision).
 // Without it the model treated a monthly cost as a one-off and listed last

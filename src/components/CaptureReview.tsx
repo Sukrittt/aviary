@@ -23,7 +23,7 @@ import { useCategories } from '@/src/hooks/useCategories'
 import { useAddExpense, useRecentExpenses } from '@/src/hooks/useExpenses'
 import { track } from '@/src/lib/analytics'
 import { todayIST } from '@/src/lib/date'
-import { categoryEmoji } from '@/src/lib/emoji'
+import { categoryEmoji, splitEmoji } from '@/src/lib/emoji'
 import { formatDateShort } from '@/src/lib/format'
 import { unusualAmount } from '@/src/lib/unusualAmount'
 
@@ -82,7 +82,17 @@ export function CaptureReview({ proposal, onSettled, origin = CAPTURE_ORIGIN }: 
   const kept = keptRows(open)
   const busy = button.saving || button.success
   const ready = canLog(open)
-  const categoryOptions = (categoriesQ.data ?? []).map((c) => ({ value: c.name, label: c.name, icon: categoryEmoji(c.name, c.group) }))
+  // Names usually carry their emoji already ("🍜 Eating out"): show it once, as the icon.
+  const toOption = (name: string, group?: string) => {
+    const { icon, text } = splitEmoji(name)
+    return { value: name, label: text, icon: icon || categoryEmoji(name, group) }
+  }
+  const categoryOptions = (categoriesQ.data ?? []).map((c) => toOption(c.name, c.group))
+  // A row's envelope shows even before the list loads, or if it's no longer in the list.
+  for (const name of new Set(rows.map((r) => r.category))) {
+    if (name && !categoryOptions.some((o) => o.value === name)) categoryOptions.push(toOption(name))
+  }
+  const missingEnvelope = kept.filter((r) => !r.category)
 
   useEffect(() => {
     shownAt.current = Date.now()
@@ -167,9 +177,11 @@ export function CaptureReview({ proposal, onSettled, origin = CAPTURE_ORIGIN }: 
         const share = rowShare(row)
         const locked = failedRows.has(row.id)
         const unusual = !Number.isNaN(share) && row.category ? unusualAmount(share, row.category, expensesQ.data ?? [], today) : null
+        const icon = row.category ? splitEmoji(row.category).icon || categoryEmoji(row.category) : '❔'
         return (
           <div key={row.id} className={`capture-row${rowIncomplete(row) ? ' is-incomplete' : ''}`} data-testid={`capture-row-${row.id}`}>
-            <div className="capture-row-top">
+            <span className="capture-icon" aria-hidden="true">{icon}</span>
+            <div className="capture-main">
               <input
                 className="capture-item"
                 value={row.item}
@@ -178,6 +190,28 @@ export function CaptureReview({ proposal, onSettled, origin = CAPTURE_ORIGIN }: 
                 aria-label="What you paid for"
                 placeholder="What was it?"
               />
+              <div className="capture-row-meta">
+                <Select
+                  className={`capture-envelope${row.category ? '' : ' is-empty'}`}
+                  value={row.category}
+                  onChange={(category) => update(row.id, { category })}
+                  options={categoryOptions}
+                  placeholder="Pick an envelope"
+                  aria-label={row.category ? `Envelope: ${row.category}. Change it` : 'Pick an envelope'}
+                  disabled={busy || locked}
+                  searchable
+                />
+                {row.splitWays > 1 && !Number.isNaN(total) && <small>{`${formatMoney(total)} ÷ ${row.splitWays}`}</small>}
+                {row.date !== today && <small>{formatDateShort(row.date)}</small>}
+              </div>
+              {unusual && (
+                <p className="capture-unusual">
+                  <TriangleAlert size={12} aria-hidden="true" />
+                  {`Way above your usual ${formatMoney(Math.round(unusual.typical))}. Double-check it.`}
+                </p>
+              )}
+            </div>
+            <div className="capture-money">
               <label className={`capture-amount${Number.isNaN(total) ? ' is-invalid' : ''}`}>
                 <span aria-hidden="true">{currencyPrefix}</span>
                 <input
@@ -186,43 +220,32 @@ export function CaptureReview({ proposal, onSettled, origin = CAPTURE_ORIGIN }: 
                   disabled={busy || locked}
                   inputMode="decimal"
                   aria-label={`Amount for ${row.item || 'this spend'}`}
+                  // Sized to its digits so the currency sign sits right against them.
+                  style={{ width: `${Math.max(row.amountText.length, 1) + 0.2}ch` }}
                 />
               </label>
-              <button
-                type="button"
-                className="capture-remove"
-                onClick={() => update(row.id, { removed: true })}
-                disabled={busy || locked}
-                aria-label={`Remove ${row.item || 'this spend'}`}
-              >
-                <X size={15} />
-              </button>
+              {row.splitWays > 1 && !Number.isNaN(share) && <small>{`your share ${formatMoney(share)}`}</small>}
             </div>
-            <div className="capture-row-meta">
-              <Select
-                className={`capture-envelope${row.category ? '' : ' is-empty'}`}
-                value={row.category}
-                onChange={(category) => update(row.id, { category })}
-                options={categoryOptions}
-                placeholder="Pick an envelope"
-                aria-label={row.category ? `Envelope: ${row.category}. Change it` : 'Pick an envelope'}
-                disabled={busy || locked}
-                searchable
-              />
-              {row.date !== today && <small>{formatDateShort(row.date)}</small>}
-              {row.splitWays > 1 && !Number.isNaN(total) && (
-                <small>{`${formatMoney(total)} ÷ ${row.splitWays} = ${formatMoney(share)}`}</small>
-              )}
-            </div>
-            {unusual && (
-              <p className="capture-unusual">
-                <TriangleAlert size={13} aria-hidden="true" />
-                {`Way above your usual ${formatMoney(Math.round(unusual.typical))}. Double-check it.`}
-              </p>
-            )}
+            <button
+              type="button"
+              className="capture-remove"
+              onClick={() => update(row.id, { removed: true })}
+              disabled={busy || locked}
+              aria-label={`Remove ${row.item || 'this spend'}`}
+            >
+              <X size={14} />
+            </button>
           </div>
         )
       })}
+
+      {missingEnvelope.length > 0 && (
+        <p className="capture-hint">
+          {missingEnvelope.length === 1 && missingEnvelope[0].item.trim()
+            ? `Pick an envelope for ${missingEnvelope[0].item.trim()} to log these.`
+            : 'Pick an envelope for each spend to log these.'}
+        </p>
+      )}
 
       {error !== '' && <p className="capture-error" role="alert">{error}</p>}
 
