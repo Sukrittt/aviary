@@ -5,7 +5,7 @@ import userEvent from '@testing-library/user-event'
 import { currentMonthKey } from '../lib/envelope'
 import { BudgetWriteError } from '../lib/budgetConflict'
 
-const mocks = vi.hoisted(() => ({ fresh: vi.fn(), update: vi.fn(), add: vi.fn(), transfer: vi.fn(), budgets: [] as {month: string; category: string; assigned: string; rolled_over: string; extra?: string; version: number}[] }))
+const mocks = vi.hoisted(() => ({ fresh: vi.fn(), update: vi.fn(), add: vi.fn(), transfer: vi.fn(), addIncome: vi.fn(), accounts: [] as { id: string; name: string; type: string; archived: boolean; created_at: string }[], budgets: [] as {month: string; category: string; assigned: string; rolled_over: string; extra?: string; version: number}[] }))
 vi.mock('../hooks/useBudgets', () => ({
   useBudgets: () => ({ data: mocks.budgets }),
   useFreshBudgets: () => mocks.fresh,
@@ -17,6 +17,8 @@ vi.mock('../hooks/useExpenses', () => ({ useRecentExpenses: () => ({ data: [] })
 vi.mock('../hooks/useCategories', () => ({ useCategories: () => ({ data: [{ name: 'Food', group: 'Home' }, { name: 'Rent', group: 'Home' }] }) }))
 vi.mock('../hooks/useGroups', () => ({ useGroups: () => ({ data: ['Home'] }) }))
 vi.mock('../hooks/useHideAmounts', () => ({ useHideAmounts: () => [false] }))
+vi.mock('../hooks/useIncomes', () => ({ useAddIncome: () => ({ mutateAsync: mocks.addIncome }) }))
+vi.mock('../hooks/useAccounts', () => ({ useAccounts: () => ({ data: mocks.accounts }), liveAccounts: (rows: { archived: boolean }[]) => rows.filter((a) => !a.archived) }))
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -24,6 +26,8 @@ beforeEach(() => {
   mocks.fresh.mockImplementation(async () => mocks.budgets)
   mocks.add.mockResolvedValue(undefined)
   mocks.transfer.mockResolvedValue(undefined)
+  mocks.addIncome.mockResolvedValue({ id: 'i1' })
+  mocks.accounts = []
   mocks.budgets = [['__income__', '2000'], ['Food', '100'], ['Rent', '500']].map(([category, assigned]) => ({ month: currentMonthKey(), category, assigned, rolled_over: '0', version: 3 }))
 })
 
@@ -111,21 +115,31 @@ describe('money screens', () => {
     await waitFor(() => expect(mocks.update).toHaveBeenCalledWith({ month: currentMonthKey(), category: '__income__', version: 3, updates: { extra: '-1100.01' } }))
   })
 
-  it('adds income on top of this month\'s existing extra', async () => {
-    mocks.budgets[0].extra = '500'
-    render(<AddIncomeScreen onClose={vi.fn()} />)
+  it('records a one-off in the income ledger, which moves Ready to Assign server-side', async () => {
+    const onClose = vi.fn()
+    render(<AddIncomeScreen onClose={onClose} />)
     typeAmount('10000')
+    fireEvent.change(screen.getByRole('textbox', { name: 'What was it' }), { target: { value: 'Diwali bonus' } })
     fireEvent.click(screen.getByRole('button', { name: 'Add' }))
-    await waitFor(() => expect(mocks.update).toHaveBeenCalledWith({ month: currentMonthKey(), category: '__income__', version: 3, updates: { extra: '10500' } }))
+    await waitFor(() => expect(mocks.addIncome).toHaveBeenCalledWith(expect.objectContaining({ amount: 10000, label: 'Diwali bonus', client_id: expect.any(String) })))
+    expect(mocks.update).not.toHaveBeenCalled()
   })
 
-  it('re-reads and adds on top when another device saved income first', async () => {
-    mocks.update.mockRejectedValueOnce(new BudgetWriteError(409, 'changed'))
-    mocks.fresh.mockResolvedValue(mocks.budgets.map((b) => (b.category === '__income__' ? { ...b, extra: '2000', version: 4 } : b)))
+  it('names an unnamed one-off and offers accounts once there are some', async () => {
+    mocks.accounts = [{ id: 'a1', name: 'HDFC', type: 'bank', archived: false, created_at: '' }]
     render(<AddIncomeScreen onClose={vi.fn()} />)
-    typeAmount('1000')
+    typeAmount('500')
+    fireEvent.click(screen.getByRole('radio', { name: /HDFC/ }))
     fireEvent.click(screen.getByRole('button', { name: 'Add' }))
-    await waitFor(() => expect(mocks.update).toHaveBeenLastCalledWith({ month: currentMonthKey(), category: '__income__', version: 4, updates: { extra: '3000' } }))
+    await waitFor(() => expect(mocks.addIncome).toHaveBeenCalledWith(expect.objectContaining({ amount: 500, label: 'Extra income', account_id: 'a1' })))
+  })
+
+  it('keeps the screen open with a written error when saving fails', async () => {
+    mocks.addIncome.mockRejectedValueOnce(new Error('503'))
+    render(<AddIncomeScreen onClose={vi.fn()} />)
+    typeAmount('500')
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent("Couldn't save. Check your connection and try again.")
   })
 
   it('creates the income row for a past month that has none', async () => {

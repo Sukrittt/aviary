@@ -11,6 +11,8 @@ export interface Transaction {
   category: string
   notes: string
   source: string
+  /** '' when the row isn't on an account. */
+  accountId: string
 }
 
 /**
@@ -29,5 +31,6 @@ export function toTransactions(rows: ExpenseRow[]): Transaction[] {
     category: r.category ?? '',
     notes: r.notes ?? '',
     source: r.source ?? '',
+    accountId: r.account_id ?? '',
   }))
 }

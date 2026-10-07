@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Copy, Plus, Search, X } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { toTransactions, type Transaction } from "../lib/expenseTransactions";
 import { useBudgets } from "../hooks/useBudgets";
 import { useCategories } from "../hooks/useCategories";
@@ -24,21 +25,16 @@ import { Select } from "./Select";
 import { avatarColorFor, categoryEmoji, splitEmoji } from "../lib/emoji";
 import { formatShortDate } from "../lib/format";
 import { BirdEmptyState } from "./BirdEmptyState";
+import { useIncomes } from "../hooks/useIncomes";
+import { liveAccounts, useAccounts } from "../hooks/useAccounts";
+import { incomesForPage } from "../lib/incomeActivity";
+import { accountName } from "./AccountChips";
+import type { IncomeRow } from "../types";
 
 type PeriodKey = "week" | "month" | "custom";
 
 const PAGE_SIZE = 40;
 
-const INCOME_CATEGORIES = new Set([
-  "Salary",
-  "Income",
-  "Refund",
-  "Cashback",
-  "Bonus",
-  "Interest",
-  "Gift",
-  "Transfer",
-]);
 
 function toDateInput(d: Date): string {
   return d.toISOString().slice(0, 10);
@@ -89,6 +85,10 @@ export function TransactionsView({
   const [customStartOverride, setCustomStart] = useState<string | null>(null);
   const [customEndOverride, setCustomEnd] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedAccount, setSelectedAccount] = useState("");
+  const incomesQuery = useIncomes();
+  const accountsQuery = useAccounts();
+  const accountOptions = liveAccounts(accountsQuery.data);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
 
@@ -220,6 +220,7 @@ export function TransactionsView({
     page,
     limit: PAGE_SIZE,
     category: selectedCategory || undefined,
+    account: selectedAccount || undefined,
     from,
     to,
     q: search || undefined,
@@ -231,38 +232,77 @@ export function TransactionsView({
     () => toTransactions(expensesQuery.data?.rows ?? EMPTY),
     [expensesQuery.data],
   );
+  // Where this page's income starts: the oldest date on the page before it
+  // (lib/incomeActivity.ts). Already cached from visiting that page.
+  const prevPageQuery = useExpensesPage({
+    page: Math.max(1, page - 1),
+    limit: PAGE_SIZE,
+    category: selectedCategory || undefined,
+    account: selectedAccount || undefined,
+    from,
+    to,
+    q: search || undefined,
+  });
+  const prevRows = page > 1 ? prevPageQuery.data?.rows ?? EMPTY : EMPTY;
+  const prevPageMin = prevRows.length > 0 ? prevRows[prevRows.length - 1].date : null;
+  const pageMin = pageTransactions.length > 0 ? pageTransactions[pageTransactions.length - 1].date : null;
+  const totalPagesForIncome = expensesQuery.data?.pageCount ?? 1;
+  // Income has no category, so a category filter hides it.
+  const visibleIncomes = useMemo(
+    () =>
+      selectedCategory || expensesQuery.isPlaceholderData
+        ? []
+        : incomesForPage(incomesQuery.data ?? EMPTY, {
+            from,
+            to,
+            pageMin,
+            prevPageMin,
+            page,
+            isLastPage: page >= totalPagesForIncome,
+            q: search,
+            account: selectedAccount || undefined,
+          }),
+    [incomesQuery.data, selectedCategory, expensesQuery.isPlaceholderData, from, to, pageMin, prevPageMin, page, totalPagesForIncome, search, selectedAccount],
+  );
+
   const transactionGroups = useMemo(() => {
     const groups: Array<{
       date: string;
       total: number;
       transactions: Transaction[];
+      incomes: IncomeRow[];
     }> = [];
     const byDate = new Map<string, (typeof groups)[number]>();
+    const groupFor = (date: string) => {
+      let group = byDate.get(date);
+      if (!group) {
+        group = { date, total: 0, transactions: [], incomes: [] };
+        byDate.set(date, group);
+        groups.push(group);
+      }
+      return group;
+    };
 
     for (const transaction of pageTransactions) {
       if (removedKeys.has(txnKey(transaction))) continue;
-      let group = byDate.get(transaction.date);
-      if (!group) {
-        group = { date: transaction.date, total: 0, transactions: [] };
-        byDate.set(transaction.date, group);
-        groups.push(group);
-      }
+      const group = groupFor(transaction.date);
       group.total += transaction.amountInr;
       group.transactions.push(transaction);
     }
+    for (const income of visibleIncomes) groupFor(income.date).incomes.push(income);
 
-    return groups;
-  }, [pageTransactions, removedKeys]);
+    return groups.sort((a, b) => b.date.localeCompare(a.date));
+  }, [pageTransactions, removedKeys, visibleIncomes]);
 
   useEffect(() => {
     // Reset pagination whenever any filter changes.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPage(1);
-  }, [period, customStart, customEnd, selectedCategory, search]);
+  }, [period, customStart, customEnd, selectedCategory, selectedAccount, search]);
 
   // Which rows are on screen; a bulk delete that finishes after it changed
   // mustn't reselect its failures into a view that no longer shows them.
-  const viewKey = [page, period, customStart, customEnd, selectedCategory, search].join("|");
+  const viewKey = [page, period, customStart, customEnd, selectedCategory, selectedAccount, search].join("|");
   const viewKeyRef = useRef(viewKey);
   useEffect(() => {
     viewKeyRef.current = viewKey;
@@ -272,7 +312,7 @@ export function TransactionsView({
     // rows picked earlier can't come back selected and get swept into a delete.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setSelectedKeys(new Set());
-  }, [page, period, customStart, customEnd, selectedCategory, search]);
+  }, [page, period, customStart, customEnd, selectedCategory, selectedAccount, search]);
 
   const totalCount = expensesQuery.data?.total ?? 0;
   const totalPages = expensesQuery.data?.pageCount ?? 1;
@@ -291,6 +331,7 @@ export function TransactionsView({
   function resetFilters() {
     setPeriod("week");
     setSelectedCategory("");
+    setSelectedAccount("");
     setSearch("");
     setPage(1);
     router.replace("/expense/transactions");
@@ -393,7 +434,7 @@ export function TransactionsView({
   }
 
   const hasActiveFilters =
-    period !== "week" || Boolean(selectedCategory) || Boolean(search.trim());
+    period !== "week" || Boolean(selectedCategory) || Boolean(selectedAccount) || Boolean(search.trim());
 
   return (
     <div className="txn-timeline">
@@ -493,6 +534,21 @@ export function TransactionsView({
             />
           </div>
 
+          {accountOptions.length > 0 && (
+            <div className="txn-select-field">
+              <Select
+                aria-label="Filter by account"
+                value={selectedAccount}
+                onChange={setSelectedAccount}
+                placeholder="All accounts"
+                options={[
+                  { value: "", label: "All accounts" },
+                  ...accountOptions.map((a) => ({ value: a.id, label: a.name })),
+                ]}
+              />
+            </div>
+          )}
+
           <label className="txn-search-field">
             <Search size={16} strokeWidth={2} aria-hidden="true" />
             <span className="sr-only">Search transactions</span>
@@ -532,14 +588,14 @@ export function TransactionsView({
         <div className="txn-timeline-empty">
           Couldn&apos;t load transactions. {error}
         </div>
-      ) : totalCount === 0 ? (
+      ) : totalCount === 0 && visibleIncomes.length === 0 ? (
         <BirdEmptyState
           className="txn-timeline-empty"
-          mood={search || selectedCategory ? 'searching' : 'snoozing'}
+          mood={search || selectedCategory || selectedAccount ? 'searching' : 'snoozing'}
           subject="expenses"
-          title={search || selectedCategory ? 'Nothing turned up' : 'Your story starts here'}
-          description={search || selectedCategory ? 'No transactions for this filter.' : 'Log your first expense and we’ll keep the little details here.'}
-          action={search || selectedCategory
+          title={search || selectedCategory || selectedAccount ? 'Nothing turned up' : 'Your story starts here'}
+          description={search || selectedCategory || selectedAccount ? 'No transactions for this filter.' : 'Log your first expense and we’ll keep the little details here.'}
+          action={search || selectedCategory || selectedAccount
             ? { label: 'Reset filters', onClick: resetFilters }
             : { label: 'Log your first expense', onClick: () => setShowLogModal(true) }}
         />
@@ -566,7 +622,7 @@ export function TransactionsView({
                     {formatDateHeading(group.date)}
                   </h2>
                   <span className="txn-timeline-header-count">
-                    {group.transactions.length} transaction{group.transactions.length === 1 ? "" : "s"}
+                    {group.transactions.length + group.incomes.length} transaction{group.transactions.length + group.incomes.length === 1 ? "" : "s"}
                   </span>
                 </div>
                 <span className={`txn-timeline-header-total ${hideAmounts ? "amount-hidden" : ""}`}>
@@ -576,8 +632,27 @@ export function TransactionsView({
 
               <div className="txn-day-rows">
                 <AnimatePresence mode="popLayout" initial={false}>
+                {group.incomes.map((income) => {
+                  const account = accountName(accountsQuery.data, income.account_id);
+                  return (
+                    <motion.div key={`income-${income.id}`} className="txn-timeline-row is-income-row" layout="position">
+                      <Link href="/account/income" className="txn-row-trigger" aria-label={`${income.label}, income. Open Income`} />
+                      <span className="txn-check-slot" aria-hidden="true" />
+                      <span className="txn-timeline-icon" aria-hidden="true" style={{ background: "var(--mint-soft)" }}>
+                        💰
+                      </span>
+                      <span className="txn-timeline-body">
+                        <span className="txn-timeline-item">{income.label}</span>
+                        <span className="txn-timeline-meta">Income{account ? ` · ${account}` : ""}</span>
+                      </span>
+                      <span className={`txn-timeline-amount is-income ${hideAmounts ? "amount-hidden" : ""}`}>
+                        {hideAmounts ? "---" : `+${formatCurrency(Number(income.amount) || 0)}`}
+                      </span>
+                      <span className="txn-actions" />
+                    </motion.div>
+                  );
+                })}
                 {group.transactions.map((t, i) => {
-                  const isIncome = INCOME_CATEGORIES.has(t.category);
                   const rowKey = `${t.timestamp}-${t.item}-${t.amountInr}`;
                   const categoryName = splitEmoji(t.category).text;
                   const time = formatTransactionTime(t.timestamp);
@@ -638,7 +713,7 @@ export function TransactionsView({
                         </span>
                       </span>
                       <span
-                        className={`txn-timeline-amount ${isIncome ? "is-income" : ""} ${hideAmounts ? "amount-hidden" : ""}`}
+                        className={`txn-timeline-amount ${hideAmounts ? "amount-hidden" : ""}`}
                       >
                         {hideAmounts
                           ? "---"
@@ -823,6 +898,7 @@ export function TransactionsView({
             amountInr={editingTxn.amountInr}
             date={editingTxn.date}
             category={editingTxn.category}
+            accountId={editingTxn.accountId}
             onClose={() => setEditingTxn(null)}
             onSaved={refreshTransactions}
           />

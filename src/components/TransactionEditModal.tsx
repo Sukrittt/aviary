@@ -4,6 +4,8 @@ import { ExpenseWriteError, expenseChanges, expenseDraft, rebaseExpenseDraft } f
 import type { ExpenseRow } from '../types'
 import { useCurrency } from '@/src/context/CurrencyContext'
 import { useEffect, useRef, useState } from 'react'
+import { AccountChips } from './AccountChips'
+import { liveAccounts, useAccounts } from '../hooks/useAccounts'
 import { updateExpense, addExpense, deleteExpense } from '../api/expenses'
 import { Scrim, Sheet } from './MotionSheet'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
@@ -19,6 +21,8 @@ interface Props {
   amountInr: number
   date: string
   category: string
+  /** The row's account, '' for none. */
+  accountId?: string
   onClose: () => void
   onSaved: () => void
 }
@@ -31,9 +35,12 @@ export function TransactionEditModal({
   amountInr,
   date: initialDate,
   category: initialCategory,
+  accountId: initialAccountId = '',
   onClose,
   onSaved,
 }: Props) {
+  const accounts = liveAccounts(useAccounts().data)
+  const [accountId, setAccountId] = useState(initialAccountId)
   const { currencySymbol } = useCurrency()
 
   const qc = useQueryClient()
@@ -111,6 +118,7 @@ export function TransactionEditModal({
             category: line.category,
             date,
             notes: `Split ${i + 1}/${validLines.length} of ${amount}`,
+            ...(accountId ? { account_id: accountId } : {}),
           })
         }
         refresh()
@@ -124,7 +132,10 @@ export function TransactionEditModal({
 
     start()
     try {
-      const changes = expenseChanges(base, { item, amount, date, category })
+      const changes = {
+        ...expenseChanges(base, { item, amount, date, category }),
+        ...(accountId !== initialAccountId ? { new_account_id: accountId } : {}),
+      }
       if (Object.keys(changes).length) {
         await updateExpense(id, timestamp, initialItem, amountInr, changes, expectedVersion)
       }
@@ -229,6 +240,12 @@ export function TransactionEditModal({
                 <span>Category</span>
                 <CategoryPicker value={category} onChange={setCategory} />
               </label>
+            )}
+
+            {accounts.length > 0 && (
+              <div className="subscription-modal-field">
+                <AccountChips accounts={accounts} value={accountId} onChange={setAccountId} allowNone />
+              </div>
             )}
           </div>
         </div>

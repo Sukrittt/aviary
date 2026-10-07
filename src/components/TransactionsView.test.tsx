@@ -8,6 +8,9 @@ const { remove, dismiss, duplicates, page } = vi.hoisted(() => ({
   duplicates: { data: [] as unknown[] },
   page: { extra: [] as unknown[] },
 }))
+vi.mock('../hooks/useAccounts', () => ({ useAccounts: () => ({ data: [] }), liveAccounts: () => [] }))
+vi.mock('../hooks/useIncomes', () => ({ useIncomes: () => ({ data: incomeMocks.rows }) }))
+const incomeMocks = vi.hoisted(() => ({ rows: [] as Record<string, unknown>[] }))
 vi.mock('next/navigation', () => ({ useSearchParams: () => new URLSearchParams(), useRouter: () => ({ replace: vi.fn() }) }))
 vi.mock('../hooks/useBudgets', () => ({ useBudgets: () => ({ data: [{ category: 'Groceries' }] }) }))
 vi.mock('../hooks/useCategories', () => ({ useCategories: () => ({ data: [{ name: 'Groceries' }, { name: 'Subscription' }] }) }))
@@ -183,5 +186,34 @@ describe('multi-select delete', () => {
     expect(screen.getByRole('button', { name: 'Select Coffee' })).toHaveAttribute('aria-pressed', 'true')
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Select Lunch' })).not.toBeInTheDocument())
     expect(screen.getByText('1 selected')).toBeInTheDocument()
+  })
+})
+
+describe('income in Activity', () => {
+  afterEach(() => {
+    incomeMocks.rows = []
+  })
+
+  it('slots income in by date, signed and apart from the spend total', () => {
+    incomeMocks.rows = [
+      { id: 'i1', version: 0, date: '2026-09-17', amount: '50000', label: 'Salary', notes: '', account_id: '', recurring_id: 'r1', source: 'recurring', counted: 'monthly', created_at: '' },
+      { id: 'i2', version: 0, date: '2026-08-01', amount: '9', label: 'Too old', notes: '', account_id: '', recurring_id: '', source: 'manual', counted: 'extra', created_at: '' },
+    ]
+    render(<TransactionsView />)
+    expect(screen.getByRole('heading', { name: /17 September 2026/, level: 2 })).toBeInTheDocument()
+    expect(screen.getByText('Salary')).toBeInTheDocument()
+    expect(screen.getByText('+₹50,000', { selector: '.txn-timeline-amount' })).toHaveClass('is-income')
+    expect(screen.queryByText('Too old')).not.toBeInTheDocument()
+    // The day's total is still what was spent.
+    expect(screen.getByText('₹100', { selector: '.txn-timeline-header-total' })).toBeInTheDocument()
+  })
+
+  it('hides income under a category filter', async () => {
+    incomeMocks.rows = [{ id: 'i1', version: 0, date: '2026-09-17', amount: '5', label: 'Gift', notes: '', account_id: '', recurring_id: '', source: 'manual', counted: 'extra', created_at: '' }]
+    render(<TransactionsView />)
+    fireEvent.click(screen.getByRole('combobox', { name: 'Filter by category' }))
+    fireEvent.mouseDown(screen.getByRole('option', { name: /Groceries/ }))
+    // The row animates out, so it leaves the DOM a beat later.
+    await waitFor(() => expect(screen.queryByText('Gift')).not.toBeInTheDocument())
   })
 })
