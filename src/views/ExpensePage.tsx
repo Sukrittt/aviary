@@ -46,6 +46,7 @@ import { usePersistentState } from "../hooks/usePersistentState";
 import { LogExpenseModal } from "../components/LogExpenseModal";
 import { RecurringIncomeModal } from "../components/RecurringIncomeModal";
 import { useRecurringIncomes } from "../hooks/useIncomes";
+import { useAccounts } from "../hooks/useAccounts";
 import { SuccessButton, useButtonPhase } from "../components/SuccessButton";
 import type { EnvelopeState } from "../types/expense";
 import { computeEnvelopeState, currentMonthKey, daysLeftInMonth, monthLabel, prevMonthKey } from "../lib/envelope";
@@ -144,6 +145,8 @@ export function ExpensePage() {
   // With more than one, or before they've loaded (a create form then could
   // duplicate one), the Income page is the place to pick.
   const schedulesQ = useRecurringIncomes();
+  // Warms the accounts cache so Log expense has them on its first open.
+  useAccounts();
   const monthlySchedules = (schedulesQ.data ?? []).filter((r) => r.frequency === "monthly" && r.status === "active");
   const incomeMenuRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {

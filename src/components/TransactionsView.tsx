@@ -27,7 +27,7 @@ import { formatShortDate } from "../lib/format";
 import { BirdEmptyState } from "./BirdEmptyState";
 import { useIncomes } from "../hooks/useIncomes";
 import { liveAccounts, useAccounts } from "../hooks/useAccounts";
-import { incomesForPage } from "../lib/incomeActivity";
+import { incomesForPage, periodEnd } from "../lib/incomeActivity";
 import { accountName } from "./AccountChips";
 import type { IncomeRow } from "../types";
 
@@ -254,7 +254,7 @@ export function TransactionsView({
         ? []
         : incomesForPage(incomesQuery.data ?? EMPTY, {
             from,
-            to,
+            to: periodEnd(period, to),
             pageMin,
             prevPageMin,
             page,
@@ -262,7 +262,7 @@ export function TransactionsView({
             q: search,
             account: selectedAccount || undefined,
           }),
-    [incomesQuery.data, selectedCategory, expensesQuery.isPlaceholderData, from, to, pageMin, prevPageMin, page, totalPagesForIncome, search, selectedAccount],
+    [incomesQuery.data, selectedCategory, expensesQuery.isPlaceholderData, from, to, period, pageMin, prevPageMin, page, totalPagesForIncome, search, selectedAccount],
   );
 
   const transactionGroups = useMemo(() => {

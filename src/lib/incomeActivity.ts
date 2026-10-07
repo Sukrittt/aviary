@@ -34,3 +34,19 @@ export function incomesForPage(incomes: IncomeRow[], w: IncomeWindow): IncomeRow
     return true
   })
 }
+
+/**
+ * The last day income can fall on for a week or month view. Expenses end the
+ * window at the newest expense, but a payday after it, in the same week or
+ * month, still belongs there.
+ */
+export function periodEnd(period: string, to: string): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(to)) return to
+  const d = new Date(`${to}T00:00:00Z`)
+  if (period === 'month') return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).toISOString().slice(0, 10)
+  if (period === 'week') {
+    d.setUTCDate(d.getUTCDate() + ((7 - d.getUTCDay()) % 7))
+    return d.toISOString().slice(0, 10)
+  }
+  return to
+}

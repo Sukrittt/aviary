@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { incomesForPage, type IncomeWindow } from './incomeActivity'
+import { incomesForPage, periodEnd, type IncomeWindow } from './incomeActivity'
 import type { IncomeRow } from '../types'
 
 const inc = (date: string, label = 'Salary', account_id = ''): IncomeRow => ({
@@ -34,5 +34,16 @@ describe('incomesForPage', () => {
     const rows = [inc('2026-10-10', 'Salary', 'a1'), inc('2026-10-11', 'Gift', 'a2')]
     expect(dates(incomesForPage(rows, { ...base, q: 'gif' }))).toEqual(['2026-10-11'])
     expect(dates(incomesForPage(rows, { ...base, account: 'a1' }))).toEqual(['2026-10-10'])
+  })
+})
+
+describe('periodEnd', () => {
+  it('runs a month view to the end of the month and a week view to Sunday', () => {
+    expect(periodEnd('month', '2026-10-05')).toBe('2026-10-31')
+    expect(periodEnd('month', '2026-02-10')).toBe('2026-02-28')
+    // 2026-10-07 is a Wednesday.
+    expect(periodEnd('week', '2026-10-07')).toBe('2026-10-11')
+    expect(periodEnd('week', '2026-10-11')).toBe('2026-10-11')
+    expect(periodEnd('custom', '2026-10-07')).toBe('2026-10-07')
   })
 })
