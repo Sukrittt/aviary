@@ -27,10 +27,17 @@ function row(doc: Record<string, unknown>) {
  * 1 of this month, and anything due today posts now rather than tomorrow.
  */
 async function settle(auth: Auth) {
-  const { date } = await nowForUser(auth.userId)
-  await syncMonthlyIncome(auth, date.slice(0, 7))
-  await runRecurringIncomes(auth, date)
   invalidate('recurring_incomes', auth.userId)
+  // The schedule is already saved. Failing the request here would make the
+  // client retry and save it twice, so a failed follow-up is logged instead:
+  // the next schedule write or the nightly pass catches up.
+  try {
+    const { date } = await nowForUser(auth.userId)
+    await syncMonthlyIncome(auth, date.slice(0, 7))
+    await runRecurringIncomes(auth, date)
+  } catch (err) {
+    console.error('recurring-incomes: settle failed for', auth.userId, err)
+  }
 }
 
 /** `GET /api/recurring-incomes`: the schedules, after turning an older account's monthly income into one. */

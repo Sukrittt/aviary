@@ -280,7 +280,9 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
         category: effectiveCategory,
         date: date || undefined,
         source: 'manual',
-        ...(accountId ? { account_id: accountId } : {}),
+        // The account's type goes too, so a late create on an account archived
+        // since still lands on the right payment method.
+        ...(accountId ? { account_id: accountId, payment_method: accounts.find((a) => a.id === accountId)?.type ?? 'bank' } : {}),
       })
       if (suggestedBy.current) track('ai_category_suggested', { accepted: autoPicked, source: suggestedBy.current })
       window.dispatchEvent(new Event(MANUAL_LOG_EVENT))

@@ -223,7 +223,7 @@ function AccountModal({ id, onClose }: { id?: string; onClose: () => void }) {
       <Sheet className="erd-modal-card erd-recurring-card" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={existing ? 'Edit account' : 'New account'}>
         <div className="erd-modal-head">
           <h3>{existing ? 'Edit account' : 'New account'}</h3>
-          <button type="button" className="erd-modal-close" onClick={onClose} aria-label="Close" disabled={success}>✕</button>
+          <button type="button" className="erd-modal-close" onClick={onClose} aria-label="Close" disabled={busy}>✕</button>
         </div>
         <div className="erd-recurring-body">
           <section className="erd-recurring-section">
