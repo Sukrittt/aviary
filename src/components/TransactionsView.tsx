@@ -260,6 +260,13 @@ export function TransactionsView({
     setPage(1);
   }, [period, customStart, customEnd, selectedCategory, search]);
 
+  // Which rows are on screen; a bulk delete that finishes after it changed
+  // mustn't reselect its failures into a view that no longer shows them.
+  const viewKey = [page, period, customStart, customEnd, selectedCategory, search].join("|");
+  const viewKeyRef = useRef(viewKey);
+  useEffect(() => {
+    viewKeyRef.current = viewKey;
+  });
   useEffect(() => {
     // A selection only means the rows on screen: drop it when they change, so
     // rows picked earlier can't come back selected and get swept into a delete.
@@ -354,6 +361,7 @@ export function TransactionsView({
     setBulkDeleting(true);
     setDeleteNotice(null);
     setRemovedKeys((prev) => new Set([...prev, ...keys]));
+    const startView = viewKeyRef.current;
     const failed: Transaction[] = [];
     let firstStatus: number | undefined;
     for (const t of txns) {
@@ -378,7 +386,7 @@ export function TransactionsView({
     // Failed rows come back, still selected, so a retry is one tap away.
     const failedKeys = new Set(failed.map(txnKey));
     setRemovedKeys((prev) => new Set([...prev].filter((k) => !failedKeys.has(k))));
-    setSelectedKeys(failedKeys);
+    if (viewKeyRef.current === startView) setSelectedKeys(failedKeys);
     setDeleteNotice({ status: firstStatus });
   }
 
