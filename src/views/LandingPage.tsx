@@ -49,7 +49,8 @@ function StoreLink({ placement, children = 'Get it on Android' }: { placement: s
   return <TrackedLink className="lp-button lp-button--dark" href={PLAY_STORE} event="store_cta_clicked" properties={{ placement }}><Smartphone size={18} aria-hidden="true" />{children}</TrackedLink>
 }
 
-export function LandingPage() {
+export function LandingPage({ monthlyPrice }: { monthlyPrice?: string }) {
+  const afterTrial = monthlyPrice ? <> · Then {monthlyPrice}/month</> : null
   // The hero stage is the mobile LCP element, and this background is its paint.
   // As a CSS url() it's only found once the stylesheet has loaded; the preload
   // puts it in the document head so it downloads alongside the CSS instead.
@@ -72,7 +73,7 @@ export function LandingPage() {
         <StoreLink placement="hero" />
         <a className="lp-button lp-button--ghost" href="#learns">See how it learns <ArrowRight size={17} aria-hidden="true" /></a>
       </div>
-      <span className="lp-hero-note">Free for 45 days · No card needed · <Link href="/expense">Also on the web</Link></span>
+      <span className="lp-hero-note">Free for 45 days{afterTrial} · No card needed · <Link href="/expense">Also on the web</Link></span>
     </section>
     <div className="lp-stage-wrap"><HeroStage /></div>
 
@@ -169,8 +170,8 @@ export function LandingPage() {
         <div className="lp-founder-copy">
           <h2 id="founder-title" className="lp-h2">Hi, I’m Sukrit <span aria-hidden="true">👋</span></h2>
           <p>I’ve been trying to get budgeting right for years. I built a few apps for it, fell back on spreadsheets, and tried bank sync apps. Sync didn’t change a thing. My spending got filed away and I still had no idea where my money went.</p>
-          <p>YNAB finally clicked. Then its pricing humbled me.</p>
-          <p>So I set out to build the best of all worlds: the intention of logging it yourself, with the busywork around it automated away. I cooked really hard on this one. It’s the tool I’ve wanted to build for a long time, and I hope you find it useful too.</p>
+          <p>YNAB finally clicked. Giving every rupee a job made me actually notice my spending. Then its pricing humbled me.</p>
+          <p>So I built Aviary. You still log every expense yourself, because that’s the part that makes you notice. Aviary just learns when you usually spend and nudges you while it’s fresh, so logging takes one tap. It’s the app I wanted for years. I hope it clicks for you too.</p>
           <a href={GITHUB} className="lp-button lp-button--ghost"><Github size={17} aria-hidden="true" />Read the source</a>
           <div className="lp-founder-sign"><span aria-hidden="true">S</span><div><strong>Sukrit</strong><small>Builds Aviary</small></div></div>
         </div>
@@ -193,7 +194,7 @@ export function LandingPage() {
       <span className="lp-close-bird"><BirdLanding size={120} alive /></span>
       <h2 id="get-title" className="lp-h2">Your money, noticed.</h2>
       <div className="lp-hero-actions"><StoreLink placement="footer_cta" /><Link href="/expense" className="lp-button lp-button--ghost"><Monitor size={18} aria-hidden="true" />Open web app</Link></div>
-      <span className="lp-hero-note">Free for 45 days · No card needed · Open source</span>
+      <span className="lp-hero-note">Free for 45 days{afterTrial} · No card needed · <a href={GITHUB} target="_blank" rel="noreferrer">Open source</a></span>
       <IosWaitlist />
     </section>
     <LandingFooter />
