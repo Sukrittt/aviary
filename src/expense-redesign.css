@@ -3520,9 +3520,10 @@
 }
 .expense-redesign .txn-timeline-row {
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) auto;
+  grid-template-columns: auto 44px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 14px;
+  --txn-row-gap: 14px;
+  gap: var(--txn-row-gap);
   min-height: 72px;
   padding: 13px 6px;
   border-bottom: 1px solid var(--erd-border);
@@ -3564,11 +3565,23 @@
   pointer-events: none;
 }
 /* Multi-select: a small check slides in beside each avatar (same ring as
-   onboarding's .setup-pick-check), pops gold and draws its tick when picked. */
-.expense-redesign .txn-timeline-list.is-selecting .txn-timeline-row {
-  grid-template-columns: 22px 44px minmax(0, 1fr) auto;
+   onboarding's .setup-pick-check), pops gold and draws its tick when picked.
+   Its slot is always there at zero width (the negative margin eats the grid
+   gap), so entering select mode grows it and the row content glides right. */
+.expense-redesign .txn-check-slot {
+  display: flex;
+  width: 0;
+  margin-right: calc(-1 * var(--txn-row-gap));
+  transition:
+    width 280ms cubic-bezier(0.22, 1, 0.36, 1),
+    margin-right 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.expense-redesign .txn-timeline-list.is-selecting .txn-check-slot {
+  width: 22px;
+  margin-right: 0;
 }
 .expense-redesign .txn-check {
+  flex: none;
   position: relative;
   z-index: 2;
   width: 22px;
@@ -3579,8 +3592,18 @@
   display: grid;
   place-items: center;
   pointer-events: none;
-  animation: erd-success-pop 220ms ease both;
-  transition: background-color 140ms, border-color 140ms;
+  opacity: 0;
+  transform: scale(0.5);
+  transition:
+    opacity 180ms ease,
+    transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    background-color 140ms,
+    border-color 140ms;
+}
+.expense-redesign .txn-timeline-list.is-selecting .txn-check {
+  opacity: 1;
+  transform: scale(1);
+  transition-delay: 80ms, 80ms, 0ms, 0ms;
 }
 .expense-redesign .txn-check.is-on {
   border-color: var(--gold);
@@ -3665,8 +3688,10 @@
 @media (prefers-reduced-motion: reduce) {
   .expense-redesign .txn-check,
   .expense-redesign .txn-check.is-on,
-  .expense-redesign .txn-check path {
+  .expense-redesign .txn-check path,
+  .expense-redesign .txn-check-slot {
     animation: none;
+    transition: none;
     stroke-dashoffset: 0;
   }
 }
@@ -3861,8 +3886,9 @@
     font-size: 13px;
   }
   .expense-redesign .txn-timeline-row {
-    grid-template-columns: 40px minmax(0, 1fr) auto;
-    gap: 11px;
+    grid-template-columns: auto 40px minmax(0, 1fr) auto;
+    --txn-row-gap: 11px;
+    gap: var(--txn-row-gap);
     min-height: 66px;
     padding-block: 11px;
   }

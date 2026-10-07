@@ -608,8 +608,8 @@ export function TransactionsView({
                           onClick={() => toggleActions(rowKey)}
                         />
                       )}
-                      {selecting && (
-                        <span className={`txn-check${isSelected ? " is-on" : ""}`} aria-hidden="true">
+                      <span className="txn-check-slot" aria-hidden="true">
+                        <span className={`txn-check${isSelected ? " is-on" : ""}`}>
                           {isSelected && (
                             <svg viewBox="0 0 24 24" fill="none">
                               <path
@@ -623,7 +623,7 @@ export function TransactionsView({
                             </svg>
                           )}
                         </span>
-                      )}
+                      </span>
                       <span
                         className="txn-timeline-icon"
                         title={categoryName}
