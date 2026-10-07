@@ -9923,10 +9923,52 @@ button.account-feature-card {
   color: var(--coral);
 }
 .archive-row {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 12px 14px;
+  transition: background-color 140ms, border-color 140ms;
+}
+.archive-heading-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+/* Select mode: a transparent button covers the whole card, the kind icon turns into a gold tick. */
+.archive-row-pick {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border: 0;
+  border-radius: inherit;
+  background: none;
+  cursor: pointer;
+}
+.archive-row-pick:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: -2px;
+}
+.archive-row-pick:disabled {
+  cursor: default;
+}
+.archive-row.is-selected {
+  border-color: var(--gold);
+  background: color-mix(in oklab, var(--gold) 10%, var(--erd-card));
+}
+.archive-kind.is-checked {
+  border-color: var(--gold);
+  background: var(--gold);
+  color: var(--erd-on-accent);
+  font-weight: 800;
+}
+.archive-list ~ .txn-select-bar {
+  margin-top: 12px;
+  margin-bottom: 0;
+}
+.account-compact-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 .archive-row.is-urgent {
   border-color: color-mix(in oklab, var(--coral) 35%, transparent);
@@ -10014,16 +10056,13 @@ button.account-feature-card {
   color: var(--mint);
   opacity: 1;
 }
-.archive-pagination {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-}
 .archive-footnote {
-  padding: 4px 12px;
+  margin: 0;
+  padding: 0 12px 8px;
   text-align: center;
+  font-size: 12px;
   line-height: 1.5;
+  color: var(--erd-text3);
 }
 .expense-redesign .erd-modal-card.archive-confirm {
   width: 400px;
