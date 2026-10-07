@@ -8,14 +8,14 @@ import { useMoneyBrain } from './MoneyBrainProvider'
 import { ChangelogPopup } from '@/src/components/ChangelogPopup'
 import type { ChangelogRelease } from '@/src/lib/changelog'
 
-function interrupted() {
+export function interrupted() {
   return document.visibilityState !== 'visible' || Array.from(document.querySelectorAll('[aria-modal="true"], dialog[open], .erd-mobile-scrim.is-open')).some((element) => {
     const style = getComputedStyle(element)
     return !element.closest('[hidden], [aria-hidden="true"]') && style.display !== 'none' && style.visibility !== 'hidden'
   })
 }
 
-function subscribeInterruptions(notify: () => void) {
+export function subscribeInterruptions(notify: () => void) {
   const observer = new MutationObserver(notify)
   observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['aria-modal', 'aria-hidden', 'hidden', 'open', 'class', 'style'] })
   document.addEventListener('visibilitychange', notify)

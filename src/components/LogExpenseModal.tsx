@@ -9,6 +9,7 @@ import { Scrim, Sheet } from './MotionSheet'
 import { DatePicker, formatShort } from './DatePicker'
 import { getCategoryMap } from '../api/categoryMap'
 import { suggestCategoryLLM } from '../lib/autoCategory'
+import { MANUAL_LOG_EVENT } from '@/src/lib/captureTip'
 import { track } from '../lib/analytics'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
 import { AddCategoryModal } from './AddCategoryModal'
@@ -273,6 +274,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
         source: 'manual',
       })
       if (suggestedBy.current) track('ai_category_suggested', { accepted: autoPicked, source: suggestedBy.current })
+      window.dispatchEvent(new Event(MANUAL_LOG_EVENT))
       onSaved()
       reset()
       setUndoError('')
