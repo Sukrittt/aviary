@@ -134,6 +134,9 @@ describe('/api/incomes and /api/recurring-incomes', () => {
 
     await recurring.POST(req('/api/recurring-incomes', 'POST', { label: 'Side gig', amount: 5000, frequency: 'monthly', start_date: '2026-10-20' }))
     expect(Number((await budget('2026-10', '__income__'))?.assigned)).toBe(45000)
+    // A job that starts next month doesn't count yet.
+    await recurring.POST(req('/api/recurring-incomes', 'POST', { label: 'Next job', amount: 7000, frequency: 'monthly', start_date: '2026-11-01' }))
+    expect(Number((await budget('2026-10', '__income__'))?.assigned)).toBe(45000)
 
     const migrated = before.rows[0].id
     await recurring.PUT(req('/api/recurring-incomes', 'PUT', { id: migrated, amount: 42000 }))
@@ -152,5 +155,7 @@ describe('/api/incomes and /api/recurring-incomes', () => {
   it('rejects bad input', async () => {
     expect((await incomes.POST(req('/api/incomes', 'POST', { amount: -5, label: 'x' }))).status).toBe(400)
     expect((await recurring.POST(req('/api/recurring-incomes', 'POST', { label: 'x', amount: 5, frequency: 'hourly', start_date: '2026-10-01' }))).status).toBe(400)
+    expect((await recurring.POST(req('/api/recurring-incomes', 'POST', { label: 'x', amount: '1.005', frequency: 'monthly', start_date: '2026-10-01' }))).status).toBe(400)
+    expect((await incomes.POST(req('/api/incomes', 'POST', { amount: 0.001, label: 'x' }))).status).toBe(400)
   })
 })

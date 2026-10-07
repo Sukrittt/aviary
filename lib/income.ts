@@ -131,9 +131,14 @@ export interface AddIncomeInput {
   client_id?: string
 }
 
+/** Whole cents only: rounding `1.005` or `0.001` would post a different amount than the user typed, or nothing. */
+export function validIncomeAmount(value: unknown): boolean {
+  return validMoney(value) && Number(value) > 0 && /^\d+(?:\.\d{1,2})?$/.test(String(value).trim())
+}
+
 export function incomeInputError(input: { date?: unknown; amount?: unknown; label?: unknown; notes?: unknown }, partial = false): string | null {
   if ((input.date !== undefined || !partial) && !validDate(input.date)) return 'invalid date'
-  if ((input.amount !== undefined || !partial) && (!validMoney(input.amount) || Number(input.amount) <= 0)) return 'amount must be a finite positive number'
+  if ((input.amount !== undefined || !partial) && !validIncomeAmount(input.amount)) return 'amount must be positive, in whole cents'
   if ((input.label !== undefined || !partial) && !validText(input.label, 200)) return 'invalid label'
   if (input.notes !== undefined && !validText(input.notes, 2000, true)) return 'invalid notes'
   return null
@@ -261,12 +266,15 @@ export async function deleteIncome(auth: Auth, id: string, version: number): Pro
 
 /**
  * Sets `month`'s monthly income to the sum of the active monthly recurring
- * incomes, keeping its `extra`. Run after any change to a monthly schedule,
- * so Ready to Assign counts the new figure from day 1 and later months carry it.
+ * incomes that have started by then, keeping its `extra`. Run after any change
+ * to a monthly schedule, so Ready to Assign counts the new figure from day 1
+ * and later months carry it. A schedule starting in a later month joins when
+ * that month arrives (see `runRecurringIncomes`).
  */
 export async function syncMonthlyIncome(auth: Auth, month: string): Promise<void> {
   const rec = await getCollection('recurring_incomes', auth)
-  const monthly = await rec.find({ frequency: 'monthly', status: 'active' }).toArray()
+  const monthly = (await rec.find({ frequency: 'monthly', status: 'active' }).toArray())
+    .filter((r) => !r.start_date || String(r.start_date).slice(0, 7) <= month)
   const total = round2(monthly.reduce((sum, r) => sum + (Number(r.amount) || 0), 0))
   await withTx((session) => writeIncomeRow(auth, month, (row) => ({ ...row, assigned: total }), session))
   invalidateIncome(auth)
@@ -319,6 +327,12 @@ export async function ensureIncomeMigrated(auth: Auth): Promise<void> {
 export async function runRecurringIncomes(auth: Auth, today: string): Promise<number> {
   const rec = await getCollection('recurring_incomes', auth)
   const schedules = await rec.find({ status: 'active' }).toArray()
+  // A monthly schedule set up ahead of its first month (a new job) counts
+  // from day 1 of that month. Re-syncing during it is idempotent.
+  const month = monthOf(today)
+  if (schedules.some((s) => s.frequency === 'monthly' && String(s.start_date ?? '').slice(0, 7) === month)) {
+    await syncMonthlyIncome(auth, month)
+  }
   let posted = 0
   for (const s of schedules) {
     const id = String(s._id)

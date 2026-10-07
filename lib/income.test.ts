@@ -88,6 +88,11 @@ describe('addIncome', () => {
     expect(await (await coll('incomes')).countDocuments({})).toBe(1)
   })
 
+  it('rejects sub-cent amounts instead of rounding them away', async () => {
+    await expect(addIncome(auth, { date: '2026-10-08', amount: 1.005, label: 'x', source: 'manual', counted: 'extra' })).rejects.toThrow()
+    await expect(addIncome(auth, { date: '2026-10-08', amount: 0.001, label: 'x', source: 'manual', counted: 'extra' })).rejects.toThrow()
+  })
+
   it('rejects a non-positive amount', async () => {
     await expect(addIncome(auth, { date: '2026-10-08', amount: 0, label: 'x', source: 'manual', counted: 'extra' })).rejects.toThrow()
   })
@@ -147,6 +152,18 @@ describe('syncMonthlyIncome', () => {
     ])
     await syncMonthlyIncome(auth, '2026-10')
     expect(await incomeRow('2026-10')).toMatchObject({ assigned: 58000, extra: 300 })
+  })
+
+  it('leaves out a monthly schedule that starts in a later month', async () => {
+    const rec = await coll('recurring_incomes')
+    await rec.insertMany([
+      { label: 'Salary', amount: '50000', frequency: 'monthly', start_date: '2026-10-01', status: 'active' },
+      { label: 'New job', amount: '9000', frequency: 'monthly', start_date: '2026-11-05', status: 'active' },
+    ])
+    await syncMonthlyIncome(auth, '2026-10')
+    expect(await incomeRow('2026-10')).toMatchObject({ assigned: 50000 })
+    await syncMonthlyIncome(auth, '2026-11')
+    expect(await incomeRow('2026-11')).toMatchObject({ assigned: 59000 })
   })
 
   it('creates the row when the month has none', async () => {
@@ -211,6 +228,16 @@ describe('runRecurringIncomes', () => {
       ['Tutoring', '2026-10-01', 'extra'],
       ['Tutoring', '2026-10-08', 'extra'],
     ])
+  })
+
+  it("counts a monthly schedule into Ready to Assign once its first month arrives", async () => {
+    await seedIncomeRow('2026-10', 50000)
+    await (await coll('recurring_incomes')).insertMany([
+      { label: 'Salary', amount: '50000', frequency: 'monthly', start_date: '2026-09-01', end_date: '', next_run_date: '2026-11-01', status: 'active' },
+      { label: 'New job', amount: '9000', frequency: 'monthly', start_date: '2026-10-20', end_date: '', next_run_date: '2026-10-20', status: 'active' },
+    ])
+    await runRecurringIncomes(auth, '2026-10-02')
+    expect(await incomeRow('2026-10')).toMatchObject({ assigned: 59000 })
   })
 
   it('a replay after a crash before advancing posts nothing new', async () => {

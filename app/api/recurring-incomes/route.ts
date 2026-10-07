@@ -4,10 +4,10 @@ import { getAuth, readOnlyGuard, type Auth } from '@/lib/access'
 import { requireAccess } from '@/lib/billing/guard'
 import { nowForUser } from '@/lib/userCurrency'
 import { invalidate } from '@/lib/cache'
-import { validDate, validMoney, validText } from '@/lib/inputValidation'
+import { validDate, validText } from '@/lib/inputValidation'
 import { FREQUENCIES, firstRunOnOrAfter, type Frequency } from '@/lib/recurringExpense'
 import { AccountError, liveAccount } from '@/lib/accounts'
-import { ensureIncomeMigrated, RECURRING_INCOME_HEADERS, runRecurringIncomes, syncMonthlyIncome } from '@/lib/income'
+import { validIncomeAmount, ensureIncomeMigrated, RECURRING_INCOME_HEADERS, runRecurringIncomes, syncMonthlyIncome } from '@/lib/income'
 import { toRow } from '@/lib/models'
 
 export const dynamic = 'force-dynamic'
@@ -52,7 +52,7 @@ async function accountId(auth: Auth, raw: unknown): Promise<string | undefined> 
 
 function inputError(body: Record<string, unknown>, partial: boolean): string | null {
   if ((body.label !== undefined || !partial) && !validText(body.label, 200)) return 'invalid label'
-  if ((body.amount !== undefined || !partial) && (!validMoney(body.amount) || Number(body.amount) <= 0)) return 'amount must be a finite positive number'
+  if ((body.amount !== undefined || !partial) && !validIncomeAmount(body.amount)) return 'amount must be positive, in whole cents'
   if ((body.frequency !== undefined || !partial) && !isFrequency(body.frequency)) return `frequency must be one of ${FREQUENCIES.join(', ')}`
   if ((body.start_date !== undefined || !partial) && !validDate(body.start_date)) return 'start_date must be YYYY-MM-DD'
   if (body.end_date !== undefined && body.end_date !== '' && !validDate(body.end_date)) return 'end_date must be YYYY-MM-DD'
