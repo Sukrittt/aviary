@@ -263,6 +263,19 @@ describe('POST /api/ai/chat (Jev routing)', () => {
     expect(streamTextMock.mock.calls[0][3]).toBe(true)
   })
 
+  it('tells a client that can log spends that it can, so the model can offer it', async () => {
+    getAuthMock.mockResolvedValue({ userId: 'user_a', readOnly: false, sessionId: 'sess_1' })
+    routeChatMock.mockResolvedValue({ onTopic: true, sections: [], decision: false, capture: false })
+    await (await POST(jsonRequest({ messages: [{ role: 'user', text: 'can i log an expense here?' }] }, { 'x-aviary-capture': '1' }))).text()
+    expect(streamTextMock.mock.calls[0][0]).toContain('LOGGING:')
+  })
+
+  it('never offers logging to a client that cannot show the review card', async () => {
+    routeChatMock.mockResolvedValue({ onTopic: true, sections: [], decision: false, capture: false })
+    await (await POST(jsonRequest({ messages: [{ role: 'user', text: 'can i log an expense here?' }] }))).text()
+    expect(streamTextMock.mock.calls[0][0]).not.toContain('LOGGING:')
+  })
+
   it('keeps plain questions on the fast path', async () => {
     await (await POST(jsonRequest({ messages: [{ role: 'user', text: 'how much on food?' }] }))).text()
 

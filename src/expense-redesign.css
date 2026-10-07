@@ -11553,68 +11553,98 @@ button.account-feature-card {
 }
 .expense-redesign .capture-review {
   display: grid;
-  gap: 8px;
-  padding: 12px;
+  gap: 0;
+  padding: 6px 14px 12px;
   border: 1px solid var(--erd-border);
-  border-radius: 18px;
+  border-radius: 20px;
   background: var(--erd-card);
 }
 .expense-redesign .capture-row {
   display: grid;
-  gap: 6px;
-  padding: 8px 10px;
-  border: 1px solid var(--erd-border);
-  border-radius: 14px;
+  grid-template-columns: 34px minmax(0, 1fr) auto auto;
+  align-items: start;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--erd-border);
+}
+.expense-redesign .capture-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
   background: var(--erd-input-bg);
+  font-size: 17px;
 }
-.expense-redesign .capture-row.is-incomplete {
-  border-color: var(--warn);
+.expense-redesign .capture-row.is-incomplete .capture-icon {
+  background: var(--warn-soft);
 }
-.expense-redesign .capture-row-top,
+.expense-redesign .capture-main {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
 .expense-redesign .capture-row-meta {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
 }
-.expense-redesign .capture-row-meta small {
+.expense-redesign .capture-row-meta small,
+.expense-redesign .capture-money small {
   color: var(--erd-text3);
   font-size: 12px;
 }
 .expense-redesign .capture-item {
-  flex: 1;
+  width: 100%;
   min-width: 0;
-  padding: 4px 0;
+  padding: 2px 0;
   border: none;
+  border-radius: 6px;
   background: none;
   color: var(--erd-text);
-  font: 600 14px var(--font-nunito);
+  font: 700 15px var(--font-nunito);
   outline: none;
+}
+.expense-redesign .capture-item:focus-visible {
+  box-shadow: 0 0 0 2px var(--gold-soft);
+}
+.expense-redesign .capture-money {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  padding-top: 2px;
 }
 .expense-redesign .capture-amount,
 .expense-redesign .balance-amount {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: 1px;
   color: var(--erd-text2);
-  font: 600 14px var(--font-nunito);
+  font: 700 15px var(--font-nunito);
 }
 .expense-redesign .capture-amount input {
-  width: 72px;
-  padding: 4px 0;
+  min-width: 2ch;
+  max-width: 12ch;
+  padding: 0;
   border: none;
+  border-radius: 6px;
   background: none;
   color: var(--erd-text);
-  font: 700 14px var(--font-nunito);
+  font: inherit;
   text-align: right;
   outline: none;
 }
+.expense-redesign .capture-amount input:focus-visible {
+  box-shadow: 0 0 0 2px var(--gold-soft);
+}
 .expense-redesign .capture-amount.is-invalid input {
-  color: var(--warn);
+  color: var(--warn-ink);
 }
 .expense-redesign .capture-remove,
 .expense-redesign .balance-account-remove {
   display: inline-flex;
+  margin-top: 2px;
   padding: 4px;
   border: none;
   border-radius: 8px;
@@ -11622,15 +11652,36 @@ button.account-feature-card {
   color: var(--erd-text3);
   cursor: pointer;
 }
-.expense-redesign .capture-remove:hover,
-.expense-redesign .balance-account-remove:hover {
+.expense-redesign .capture-remove:hover:not(:disabled),
+.expense-redesign .balance-account-remove:hover:not(:disabled) {
   background: var(--erd-border);
 }
-.expense-redesign .capture-envelope {
-  min-width: 160px;
+.expense-redesign .capture-envelope.ui-select {
+  width: auto;
+  max-width: 100%;
+  gap: 4px;
+  padding: 3px 8px 3px 10px;
+  border-radius: 100px;
+  border-color: transparent;
+  background: var(--erd-input-bg);
+  color: var(--erd-text2);
+  font-size: 12.5px;
 }
-.expense-redesign .capture-envelope.is-empty {
-  --erd-input-bg: var(--warn-soft);
+.expense-redesign .capture-envelope.ui-select .ui-select-chevron {
+  width: 13px;
+  height: 13px;
+}
+.expense-redesign .capture-envelope.ui-select.is-empty {
+  background: var(--warn-soft);
+}
+.expense-redesign .capture-envelope.ui-select.is-empty .ui-select-value {
+  color: var(--warn-ink);
+  font-weight: 700;
+}
+.expense-redesign .capture-hint {
+  margin: 10px 0 0;
+  color: var(--warn-ink);
+  font-size: 13px;
 }
 .expense-redesign .capture-unusual {
   display: flex;

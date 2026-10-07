@@ -154,7 +154,7 @@ function streamReply(
           return
         }
 
-        const systemPrompt = buildSystemPrompt(factsFor(ctx.sections, route.sections), ctx.currencyCode, route.decision)
+        const systemPrompt = buildSystemPrompt(factsFor(ctx.sections, route.sections), ctx.currencyCode, route.decision, options.captureCapable && !auth.readOnly)
         const geminiStream = await streamText(systemPrompt, contents, caller, route.decision)
 
         const scrub = createEmDashScrubber()
