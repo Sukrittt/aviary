@@ -2,7 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { ObjectId } from 'mongodb'
 
 type Doc = Record<string, unknown>
-const stores: Record<string, Doc[]> = { balance_checks: [], expenses: [] }
+const stores: Record<string, Doc[]> = { balance_checks: [], expenses: [], accounts: [] }
+const addIncome = vi.fn(async (..._args: unknown[]) => ({ id: 'inc', version: 0, duplicate: false }))
+vi.mock('@/lib/income', () => ({ addIncome: (...args: unknown[]) => addIncome(...args) }))
 let now = { date: '2026-09-27', timestamp: '2026-09-27T10:00:00+05:30' }
 let auth = { userId: 'user_a', readOnly: false, sessionId: null as string | null }
 
@@ -17,6 +19,7 @@ function matches(doc: Doc, filter: Doc): boolean {
   return Object.entries(filter).every(([k, v]) => {
     if (k === '_id') return String(doc._id) === String(v)
     if (v && typeof v === 'object' && '$gte' in (v as Doc)) return String(doc[k]) >= String((v as Doc).$gte)
+    if (v && typeof v === 'object' && '$ne' in (v as Doc)) return doc[k] !== (v as Doc).$ne
     return doc[k] === v
   })
 }
@@ -95,6 +98,8 @@ function seedBaseline(balance = 50000) {
 }
 
 beforeEach(() => {
+  addIncome.mockClear()
+  stores.accounts = []
   stores.balance_checks = []
   stores.expenses = []
   now = { date: '2026-09-27', timestamp: '2026-09-27T10:00:00+05:30' }
@@ -186,6 +191,17 @@ describe('GET /api/balance-checks', () => {
     expect(body).toMatchObject({ due: true, expected: null, anchor: null, loggedPct: null })
   })
 
+  it("asks about the user's bank accounts once there are some", async () => {
+    stores.accounts.push(
+      { _id: new ObjectId(), name: 'HDFC', type: 'bank', archived: false, created_at: '1' },
+      { _id: new ObjectId(), name: 'Old', type: 'bank', archived: true, created_at: '2' },
+      { _id: new ObjectId(), name: 'Wallet', type: 'cash', archived: false, created_at: '3' },
+      { _id: new ObjectId(), name: 'Slice', type: 'bank', archived: false, created_at: '4' },
+    )
+    const body = await (await GET(new Request('https://example.com/api/balance-checks'))).json()
+    expect(body.accounts).toEqual(['HDFC', 'Slice'])
+  })
+
   it('prefills the balance it expects and waits a week', async () => {
     seedBaseline()
     stores.expenses.push(expense('2026-09-22', '13:00:00', 2000))
@@ -246,13 +262,22 @@ describe('POST /api/balance-checks/:id/resolve', () => {
     expect(body).toMatchObject({ forgotten: 0, proposal: null, loggedPct: 100 })
   })
 
-  it('records why there was more money, and logs nothing', async () => {
+  it('records why there was more money, and puts income in the ledger', async () => {
     seedBaseline()
-    const { id } = await (await post({ balance: 102000 })).json()
+    const { id, gap } = await (await post({ balance: 102000 })).json()
     const body = await (await resolve(id, { moneyIn: 'income' })).json()
     expect(body).toMatchObject({ status: 'resolved', proposal: null })
     expect(stores.balance_checks[1]).toMatchObject({ status: 'resolved', money_in: 'income' })
+    expect(addIncome).toHaveBeenCalledTimes(1)
+    expect(addIncome.mock.calls[0][1]).toMatchObject({ amount: -gap, label: 'Money in', source: 'balance_gap', counted: 'extra', client_id: `balance:${id}` })
     expect((await resolve(new ObjectId().toString(), { moneyIn: 'income' })).status).toBe(404)
+  })
+
+  it('logs nothing for a refund or money moved in', async () => {
+    seedBaseline()
+    const { id } = await (await post({ balance: 102000 })).json()
+    await resolve(id, { moneyIn: 'refund' })
+    expect(addIncome).not.toHaveBeenCalled()
   })
 
   it('answers a retry with the same rows', async () => {

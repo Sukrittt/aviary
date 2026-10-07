@@ -3,6 +3,7 @@ import { json, error, readBody } from '@/lib/http'
 import { getAuth, readOnlyGuard } from '@/lib/access'
 import { requireAccess } from '@/lib/billing/guard'
 import { validMoney } from '@/lib/inputValidation'
+import { bankAccountNames } from '@/lib/accounts'
 import { nowForUser } from '@/lib/userCurrency'
 import {
   anchorOf,
@@ -43,7 +44,7 @@ export async function GET(req: Request) {
   if (gate) return gate
   if (auth.readOnly) return json({ due: false, expected: null, anchor: null, open: false, loggedPct: null, accounts: [] })
 
-  const [checks, now] = await Promise.all([latestChecks(auth, 5), nowForUser(auth.userId)])
+  const [checks, now, banks] = await Promise.all([latestChecks(auth, 5), nowForUser(auth.userId), bankAccountNames(auth)])
   const anchor = anchorOf(checks)
   const open = checks[0]?.status === 'open'
 
@@ -59,8 +60,9 @@ export async function GET(req: Request) {
     expected,
     anchor: anchor ? { timestamp: anchor.timestamp, date: anchor.date, balance: anchor.balance } : null,
     loggedPct: lastLoggedPct(checks),
-    // The accounts to ask about again: the newest list typed. A check from an older app has none and doesn't clear it.
-    accounts: checks.find((c) => c.accounts.length > 0)?.accounts ?? [],
+    // The accounts to ask about: the user's bank accounts once they've set
+    // some up, else the newest list typed. A check from an older app has none and doesn't clear it.
+    accounts: banks.length > 0 ? banks : checks.find((c) => c.accounts.length > 0)?.accounts ?? [],
   })
 }
 

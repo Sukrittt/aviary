@@ -6,6 +6,8 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { AnimatePresence } from 'motion/react'
 import {
+  Wallet,
+  Landmark,
   Archive,
   Brain,
   ChevronRight,
@@ -148,6 +150,8 @@ export default function AccountPage() {
           <FeatureCard icon={Brain} tone="gold" label="Ask Aviary" blurb="Ask about your spending" onClick={() => openMoneyBrain()} />
           <FeatureCard icon={TrendingUp} tone="mint" label="Investments" blurb="Portfolio at a glance" href="/investments" />
           <FeatureCard icon={ScanLine} tone="mint" label="Scan a bill" blurb="Split a cart or receipt" onClick={() => setShowScan(true)} />
+          <FeatureCard icon={Wallet} tone="mint" label="Income" blurb="What comes in and when" href="/account/income" />
+          <FeatureCard icon={Landmark} tone="gold" label="Accounts" blurb="Bank, card and cash" href="/account/accounts" />
           <FeatureCard icon={Repeat} tone="violet" label="Recurring expenses" blurb="Plan upcoming payments" href="/account/recurring" />
           <FeatureCard icon={Archive} tone="blue" label="Archive" blurb="Restore deleted items" href="/account/archive" />
           <FeatureCard icon={Receipt} tone="violet" label="Subscriptions" blurb="What renews and when" href="/account/subscriptions" />

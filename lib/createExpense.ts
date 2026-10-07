@@ -9,6 +9,7 @@ import { notifyThresholdCrossed } from '@/lib/notifications/instant'
 import { withTx } from '@/lib/mongodb'
 import { casRetry } from '@/lib/cas'
 import { resolveCategoryName } from '@/lib/categoryName'
+import { liveAccount, paymentMethodFor } from '@/lib/accounts'
 
 /**
  * The one way an expense gets created. Lifted out of `app/api/expenses`'s POST
@@ -33,6 +34,8 @@ export interface CreateExpenseInput {
   date?: string
   timestamp?: string
   payment_method?: string
+  /** One of the user's live accounts. When set, `payment_method` comes from its type (lib/accounts.ts). */
+  account_id?: string
   /** Names the intent, so a retry is recognized before it can insert a second row. */
   client_id?: string
   source?: string
@@ -112,7 +115,10 @@ export async function createExpense(auth: Auth, input: CreateExpenseInput): Prom
   const ist = await nowForUser(auth.userId)
   const date = String(input.date || ist.date)
   const timestamp = String(input.timestamp || `${date}T${ist.timestamp.slice(11)}`)
-  const paymentMethod = String(input.payment_method ?? 'bank')
+  // The account decides how it was paid, so the Credit Card envelope and the
+  // balance check read the same field they always have.
+  const account = input.account_id ? await liveAccount(auth, input.account_id) : null
+  const paymentMethod = account ? paymentMethodFor(account.type) : String(input.payment_method ?? 'bank')
   const clientId = typeof input.client_id === 'string' ? input.client_id : undefined
 
   const coll = await getCollection('expenses', auth)
@@ -153,6 +159,7 @@ export async function createExpense(auth: Auth, input: CreateExpenseInput): Prom
         amount: '',
         description: '',
         payment_method: paymentMethod,
+        ...(account ? { account_id: account.id } : {}),
         ...(clientId ? { client_id: clientId } : {}),
       },
       { session },

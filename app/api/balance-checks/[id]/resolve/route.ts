@@ -20,6 +20,7 @@ import {
   type StoredCheck,
 } from '@/lib/balanceCheck'
 import type { Auth } from '@/lib/access'
+import { addIncome } from '@/lib/income'
 
 export const dynamic = 'force-dynamic'
 
@@ -55,7 +56,8 @@ function reply(check: StoredCheck, proposal: Awaited<ReturnType<typeof estimates
  * rows on its capture card and logs them with `source: balance_gap`.
  *
  * More money than expected (`surplus`): `{ moneyIn }`, one of income, refund
- * or moved_in. Nothing is logged.
+ * or moved_in. Income lands in the ledger as "Money in" and in this month's
+ * Ready to Assign (idempotent on the check id); the other two log nothing.
  *
  * Resolving an already resolved check returns the same answer, so a retry
  * after a lost response is safe.
@@ -83,6 +85,18 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (check.kind === 'surplus') {
     const moneyIn = body.moneyIn as MoneyInReason
     if (!MONEY_IN_REASONS.includes(moneyIn)) return error('moneyIn must be income, refund or moved_in')
+    // Before the status flips, so a failed post leaves the check open to retry.
+    if (moneyIn === 'income' && check.gap < 0) {
+      await addIncome(auth, {
+        date: check.date,
+        amount: Math.round(-check.gap * 100) / 100,
+        label: 'Money in',
+        notes: 'Found by your balance check',
+        source: 'balance_gap',
+        counted: 'extra',
+        client_id: `balance:${id}`,
+      })
+    }
     await coll.updateOne({ _id: new ObjectId(id) }, { $set: { status: 'resolved', money_in: moneyIn, forgotten: '0', resolved_at: resolvedAt } })
     return reply({ ...check, status: 'resolved', moneyIn, forgotten: 0 }, null)
   }
