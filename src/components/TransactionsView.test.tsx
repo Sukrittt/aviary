@@ -149,6 +149,19 @@ describe('multi-select delete', () => {
     await waitFor(() => expect(screen.queryByRole('toolbar')).not.toBeInTheDocument())
   })
 
+  it('closes the select bar as soon as the delete is confirmed, before requests settle', async () => {
+    let settle!: () => void
+    remove.mockReset().mockImplementation(() => new Promise<void>((resolve) => { settle = resolve }))
+    render(<TransactionsView />)
+    fireEvent.click(screen.getByRole('button', { name: 'Select' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Select Lunch' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    fireEvent.click(screen.getByText('Remove'))
+    await waitFor(() => expect(screen.queryByRole('toolbar')).not.toBeInTheDocument())
+    expect(remove).toHaveBeenCalledTimes(1)
+    settle()
+  })
+
   it('drops the selection when the filter changes', () => {
     render(<TransactionsView />)
     fireEvent.click(screen.getByRole('button', { name: 'Select' }))

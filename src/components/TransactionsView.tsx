@@ -360,7 +360,9 @@ export function TransactionsView({
     setConfirmBulk(false);
     setBulkDeleting(true);
     setDeleteNotice(null);
+    // Optimistic: rows and the select bar go now; failures bring both back.
     setRemovedKeys((prev) => new Set([...prev, ...keys]));
+    exitSelecting();
     const startView = viewKeyRef.current;
     const failed: Transaction[] = [];
     let firstStatus: number | undefined;
@@ -379,14 +381,14 @@ export function TransactionsView({
       }
     }
     setBulkDeleting(false);
-    if (!failed.length) {
-      exitSelecting();
-      return;
-    }
+    if (!failed.length) return;
     // Failed rows come back, still selected, so a retry is one tap away.
     const failedKeys = new Set(failed.map(txnKey));
     setRemovedKeys((prev) => new Set([...prev].filter((k) => !failedKeys.has(k))));
-    if (viewKeyRef.current === startView) setSelectedKeys(failedKeys);
+    if (viewKeyRef.current === startView) {
+      setSelecting(true);
+      setSelectedKeys(failedKeys);
+    }
     setDeleteNotice({ status: firstStatus });
   }
 
@@ -406,6 +408,7 @@ export function TransactionsView({
             <button
               type="button"
               className="action-button"
+              disabled={bulkDeleting}
               onClick={() => {
                 setActionsKey(null);
                 setSelecting(true);
