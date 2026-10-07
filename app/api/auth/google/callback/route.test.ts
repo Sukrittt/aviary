@@ -52,3 +52,10 @@ it('leaves a failed outcome when the code exchange fails', async () => {
   authenticateWithCode.mockRejectedValue(new Error('invalid_grant'))
   expect(outcomeCookie(await callback())).toBe('token_exchange_failed')
 })
+
+it('leaves no sign-in outcome when an account-link attempt fails its state check', async () => {
+  const { verifyState } = await import('@/lib/oauthState')
+  vi.mocked(verifyState).mockReturnValueOnce(null)
+  const res = await GET(new Request('https://example.com/api/auth/google/callback?code=abc&state=link:nonce'))
+  expect(outcomeCookie(res)).toBeUndefined()
+})

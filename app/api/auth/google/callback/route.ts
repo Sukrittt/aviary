@@ -25,7 +25,8 @@ export async function GET(req: Request) {
     // an attacker-supplied code (login CSRF).
     const res = NextResponse.redirect(new URL('/sign-in?authError=1', req.url))
     clearStateCookie(res)
-    setSignInOutcome(res, 'state_mismatch')
+    // A link attempt from account security isn't a sign-in; keep it out of the funnel.
+    if (!state.startsWith('link:')) setSignInOutcome(res, 'state_mismatch')
     return res
   }
   const { isLink } = verified

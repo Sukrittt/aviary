@@ -16,15 +16,18 @@ export function AnalyticsProvider({ children }: { children: ReactNode }) {
   const identifiedAs = useRef<string | null>(null)
 
   useEffect(() => {
-    initAnalytics()
-    // Report a Google sign-in the server just finished. Taken once and cleared,
-    // so a reload doesn't count it twice. A completed sign-in can land here
-    // before identify; PostHog merges this anonymous event into the person.
-    const outcome = document.cookie.match(new RegExp(`(?:^|; )${SIGN_IN_OUTCOME_COOKIE}=([^;]*)`))?.[1]
-    if (!outcome) return
-    document.cookie = `${SIGN_IN_OUTCOME_COOKIE}=; path=/; max-age=0`
-    if (outcome === 'completed') track('sign_in_completed', { method: 'google' })
-    else track('sign_in_failed', { method: 'google', reason: outcome })
+    // Report a Google sign-in the server just finished. The cookie is cleared
+    // only once PostHog is up to take the event, so a page left before then
+    // reports it on the next one, and a reload after doesn't count it twice.
+    // A completed sign-in can land before identify; PostHog merges this
+    // anonymous event into the person.
+    void initAnalytics().then(() => {
+      const outcome = document.cookie.match(new RegExp(`(?:^|; )${SIGN_IN_OUTCOME_COOKIE}=([^;]*)`))?.[1]
+      if (!outcome) return
+      document.cookie = `${SIGN_IN_OUTCOME_COOKIE}=; path=/; max-age=0`
+      if (outcome === 'completed') track('sign_in_completed', { method: 'google' })
+      else track('sign_in_failed', { method: 'google', reason: outcome })
+    })
   }, [])
 
   const userId = user?.id ?? null
