@@ -38,7 +38,7 @@ import { useCollapsedGroups } from "../hooks/useCollapsedGroups";
 import {
   groupCategories,
   orphanedBy,
-  ARCHIVED_GROUP,
+  groupDeleteBody,
   OTHER_LABEL,
 } from "../lib/envelopeGroups";
 import {
@@ -245,29 +245,9 @@ export function EnvelopesPage() {
     if (ok) setEditing(null);
   }
 
-  /**
-   * Deleting a group would strand its categories, so they are re-homed into
-   * Archived first — the same order Mobile uses, and the reason Archived can
-   * never itself be deleted.
-   */
+  /** Server sends the group's categories to Archive along with it. */
   async function removeGroup(name: string) {
-    if (name === ARCHIVED_GROUP) return;
-    const orphans = orphanedBy(categories, name);
-    await run(async () => {
-      if (orphans.length > 0) {
-        if (!groups.includes(ARCHIVED_GROUP))
-          await addGroup.mutateAsync(ARCHIVED_GROUP);
-        await Promise.all(
-          orphans.map((c) =>
-            updateCategory.mutateAsync({
-              name: c.name,
-              updates: { group: ARCHIVED_GROUP },
-            }),
-          ),
-        );
-      }
-      await deleteGroup.mutateAsync(name);
-    }, "group");
+    await run(() => deleteGroup.mutateAsync(name), "group");
   }
 
   async function confirmDelete() {
@@ -435,7 +415,7 @@ export function EnvelopesPage() {
                           <Pencil size={14} aria-hidden="true" />
                         </button>
                       )}
-                      {group.name && group.name !== ARCHIVED_GROUP && (
+                      {group.name && (
                         <button
                           type="button"
                           className="env-icon-btn env-icon-btn--danger"
@@ -749,7 +729,7 @@ export function EnvelopesPage() {
             title={`Delete ${splitEmoji(deleteTarget.name).text}?`}
             body={
               deleteTarget.kind === "group"
-                ? "Its categories move to the Archived group. You can restore the group from Archive for 7 days."
+                ? groupDeleteBody(orphanedBy(categories, deleteTarget.name).length)
                 : "It will move to Archive. You can restore it for 7 days."
             }
             cancelLabel="Cancel"

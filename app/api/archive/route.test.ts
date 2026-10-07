@@ -10,7 +10,7 @@ vi.mock('@/lib/cache', () => ({ invalidate: vi.fn() }))
 vi.mock('@/lib/categoryMap', () => ({ invalidateCategoryMap: vi.fn() }))
 
 type Doc = Record<string, unknown> & { _id: ObjectId }
-const stores: Record<string, Doc[]> = { expenses: [], categories: [], budgets: [], holdings: [] }
+const stores: Record<string, Doc[]> = { expenses: [], categories: [], budgets: [], holdings: [], groups: [] }
 
 function matches(doc: Doc, filter: Record<string, unknown>): boolean {
   return Object.entries(filter).every(([k, v]) => {
@@ -35,6 +35,11 @@ function fakeCollection(base: string) {
       const doc = store.find((d) => matches(d, filter))
       if (doc) doc.deleted_at = null
       return { matchedCount: doc ? 1 : 0 }
+    },
+    updateMany: async (filter: Record<string, unknown>, update: { $set: Record<string, unknown> }) => {
+      const docs = store.filter((d) => matches(d, filter))
+      for (const doc of docs) Object.assign(doc, update.$set)
+      return { matchedCount: docs.length }
     },
     purge: async (filter: Record<string, unknown>) => {
       const idx = store.findIndex((d) => matches(d, filter))
@@ -74,6 +79,7 @@ beforeEach(() => {
   stores.categories = []
   stores.budgets = []
   stores.holdings = []
+  stores.groups = []
 })
 
 describe('GET /api/archive', () => {
@@ -118,6 +124,31 @@ describe('POST /api/archive (restore)', () => {
     const res = await POST(postReq({ collection: 'categories', id: id.toString() }))
     expect(res.status).toBe(200)
     expect(stores.categories[0].deleted_at).toBeNull()
+  })
+
+  it('brings back the archived group of a restored category', async () => {
+    const id = new ObjectId()
+    stores.categories.push({ _id: id, name: 'Rent', group: 'Home', deleted_at: '2026-01-01T00:00:00.000Z' })
+    stores.groups.push({ _id: new ObjectId(), name: 'Home', deleted_at: '2026-01-01T00:00:00.000Z' })
+    const res = await POST(postReq({ collection: 'categories', id: id.toString() }))
+    expect(res.status).toBe(200)
+    expect(stores.groups[0].deleted_at).toBeNull()
+    expect(stores.categories[0].group).toBe('Home')
+  })
+
+  it('ungroups a restored category whose group is gone for good', async () => {
+    const id = new ObjectId()
+    stores.categories.push({ _id: id, name: 'Rent', group: 'Home', deleted_at: '2026-01-01T00:00:00.000Z' })
+    await POST(postReq({ collection: 'categories', id: id.toString() }))
+    expect(stores.categories[0].group).toBe('')
+  })
+
+  it('leaves a restored category alone when its group is live', async () => {
+    const id = new ObjectId()
+    stores.categories.push({ _id: id, name: 'Rent', group: 'Home', deleted_at: '2026-01-01T00:00:00.000Z' })
+    stores.groups.push({ _id: new ObjectId(), name: 'Home', deleted_at: null })
+    await POST(postReq({ collection: 'categories', id: id.toString() }))
+    expect(stores.categories[0].group).toBe('Home')
   })
 
   it('rejects restoring when a live item with the same name already exists', async () => {
