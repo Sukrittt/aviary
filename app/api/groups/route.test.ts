@@ -10,6 +10,7 @@ vi.mock('@/lib/cache', () => ({ invalidate: vi.fn() }))
 type Doc = Record<string, unknown>
 const stores: Record<string, Doc[]> = { groups: [], categories: [] }
 const live = (d: Doc) => d.deleted_at == null
+let failGroupDelete = false
 
 vi.mock('@/lib/http', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/http')>()
@@ -17,6 +18,7 @@ vi.mock('@/lib/http', async (importOriginal) => {
     ...actual,
     getCollection: vi.fn(async (base: string) => ({
       deleteOne: async (f: { name: string }) => {
+        if (failGroupDelete) throw new Error('db down')
         const doc = stores[base].find((d) => live(d) && d.name === f.name)
         if (doc) doc.deleted_at = 'now'
         return { deletedCount: doc ? 1 : 0 }
@@ -50,6 +52,7 @@ function req(method: string, body: unknown): Request {
 const deleteReq = (name: string) => req('DELETE', { name })
 
 beforeEach(() => {
+  failGroupDelete = false
   stores.groups = [{ name: 'Home' }, { name: 'Archived' }]
   stores.categories = [
     { name: 'Rent', group: 'Home' },
@@ -64,6 +67,14 @@ describe('DELETE /api/groups', () => {
     expect(res.status).toBe(200)
     expect(stores.groups.find((g) => g.name === 'Home')?.deleted_at).toBe('now')
     expect(stores.categories.filter((c) => c.deleted_at).map((c) => c.name)).toEqual(['Rent', 'Water'])
+  })
+
+  it('archives categories before the group, so a failed delete can be retried', async () => {
+    failGroupDelete = true
+    await expect(DELETE(deleteReq('Home'))).rejects.toThrow()
+    expect(stores.groups.find((g) => g.name === 'Home')?.deleted_at).toBeUndefined()
+    failGroupDelete = false
+    expect((await DELETE(deleteReq('Home'))).status).toBe(200)
   })
 
   it('allows deleting the Archived group', async () => {

@@ -73,13 +73,15 @@ export async function DELETE(req: Request) {
   if (!body.name) return error('name required')
 
   const coll = await getCollection('groups', auth)
-  const result = await coll.deleteOne({ name: String(body.name) })
-  if (result.deletedCount === 0) return error('group not found', 404)
+  if (!(await coll.findOne({ name: String(body.name) }))) return error('group not found', 404)
 
   // Its categories go to Archive with it (soft delete, restorable for 7 days).
   // Past transactions keep their category name, same as deleting one category.
+  // Categories first: if the group delete then fails, a retry still works and
+  // no live category is left pointing at a missing group.
   const catColl = await getCollection('categories', auth)
   await catColl.deleteMany({ group: String(body.name) })
+  await coll.deleteOne({ name: String(body.name) })
   invalidate('categories', auth.userId)
   invalidate('groups', auth.userId)
   return json({ ok: true })

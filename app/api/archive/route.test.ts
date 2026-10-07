@@ -36,10 +36,10 @@ function fakeCollection(base: string) {
       if (doc) doc.deleted_at = null
       return { matchedCount: doc ? 1 : 0 }
     },
-    updateOne: async (filter: Record<string, unknown>, update: { $set: Record<string, unknown> }) => {
-      const doc = store.find((d) => matches(d, filter))
-      if (doc) Object.assign(doc, update.$set)
-      return { matchedCount: doc ? 1 : 0 }
+    updateMany: async (filter: Record<string, unknown>, update: { $set: Record<string, unknown> }) => {
+      const docs = store.filter((d) => matches(d, filter))
+      for (const doc of docs) Object.assign(doc, update.$set)
+      return { matchedCount: docs.length }
     },
     purge: async (filter: Record<string, unknown>) => {
       const idx = store.findIndex((d) => matches(d, filter))
