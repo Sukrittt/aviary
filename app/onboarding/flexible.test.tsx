@@ -102,14 +102,18 @@ describe('flexible setup', () => {
     client.clear()
   })
 
-  it('goes back to the starter path when leaving the groups step', () => {
+  // Edits made on the custom path stay, so going back can't finish them
+  // through the starter path and report them as not customized.
+  it('stays on the custom path after going back from the groups step', () => {
     const client = start()
     fireEvent.click(button(/50,000/))
     fireEvent.click(button(PICK_OWN))
     expect(screen.getByRole('heading', { name: 'Group your money' })).toBeTruthy()
     fireEvent.click(button('Back'))
-    expect(button('Finish setup')).toBeTruthy()
-    expect(button(PICK_OWN)).toBeTruthy()
+    expect(button('Continue')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: PICK_OWN })).toBeNull()
+    fireEvent.click(button('Continue'))
+    expect(screen.getByRole('heading', { name: 'Group your money' })).toBeTruthy()
     client.clear()
   })
 })

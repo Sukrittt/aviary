@@ -453,7 +453,6 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
     setCategorySelectionUndo(null)
     if (step > 0) track('onboarding_back_tapped', { from_step: step, step_name: STEP_NAMES[step] })
     setError('')
-    if (step === 2) setCustom(false)
     setStep((s) => Math.max(0, s - 1))
   }
 
