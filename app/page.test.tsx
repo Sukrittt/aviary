@@ -4,12 +4,15 @@ import { getPlanPrices } from '@/lib/billing/razorpay'
 import Home from './page'
 
 vi.mock('@/lib/billing/razorpay', () => ({ getPlanPrices: vi.fn() }))
+let country: string | null = null
+vi.mock('next/headers', () => ({ headers: async () => new Headers(country ? { 'x-vercel-ip-country': country } : {}) }))
 
 // Static markup: the landing page's client effects (IntersectionObserver etc.) don't matter here.
 const html = async () => renderToStaticMarkup(await Home()).replace(/<!-- -->/g, '')
 
 beforeEach(() => {
   vi.mocked(getPlanPrices).mockReset()
+  country = null
 })
 
 describe('landing hero note', () => {
@@ -19,6 +22,11 @@ describe('landing hero note', () => {
       { period: 'yearly', amount: 199900, currency: 'INR' },
     ])
     expect((await html()).match(/Free for 45 days · Then ₹199\/month/g)).toHaveLength(2)
+  })
+
+  it('shows the USD price to visitors outside India', async () => {
+    country = 'GB'
+    expect((await html()).match(/Free for 45 days · Then \$4\.90\/month/g)).toHaveLength(2)
   })
 
   it('leaves the price out when Razorpay is unreachable', async () => {
