@@ -290,6 +290,8 @@ html:has(.lp) { scroll-behavior: smooth; }
   .lp .lp-button { width: 100%; min-height: 52px; font-size: 15px; }
   .lp-hero-note { font-size: 13px; line-height: 1.6; }
   .lp-stage-wrap { padding: 0 12px; margin-top: 24px; }
+  /* The hero waitlist (iPhone visitors) ends in a note, which sits too close to the stage tabs. */
+  .lp-hero:has(.lp-waitlist--hero) + .lp-stage-wrap { margin-top: 44px; }
   .lp-stage { grid-template-columns: 1fr; padding: 12px 16px 76px; border-radius: 28px; gap: 18px; }
   .lp-stage-card:first-of-type { order: 2; }
   .lp-stage-logged { order: 3; }
@@ -582,7 +584,8 @@ html:has(.lp) { scroll-behavior: smooth; }
 @media (max-width: 640px) {
   .lp-stage { min-height: 0; }
   .lp-chapters { order: -1; flex-wrap: nowrap; justify-content: flex-start; width: 100%; overflow-x: auto; padding: 5px; scrollbar-width: none; }
-  .lp .lp-chapter { flex-shrink: 0; }
+  /* Tighter on phones so all three fit; the strip still scrolls if a narrower screen can't. */
+  .lp .lp-chapter { flex: 1 0 auto; padding: 0 12px; font-size: 13px; }
   .lp-split2-pill { font-size: 13px; padding: 12px 18px; gap: 8px; }
   .lp-split2-quote { font-size: 20px; }
   .lp-wins > * { min-width: 0; }
