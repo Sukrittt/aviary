@@ -252,7 +252,12 @@ export function CaptureReview({ proposal, onSettled, origin = CAPTURE_ORIGIN, lo
             <button
               type="button"
               className="capture-remove"
-              onClick={() => update(row.id, { removed: true })}
+              onClick={() => {
+                update(row.id, { removed: true })
+                // Removing the last one means none of these are wanted: settle as Not now
+                // rather than leave an empty card that can only say "Nothing to log".
+                if (kept.length === 1) dismiss()
+              }}
               disabled={busy || locked}
               aria-label={`Remove ${row.item || 'this spend'}`}
             >
