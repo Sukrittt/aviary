@@ -54,8 +54,11 @@ function StoreLink({ placement, children = 'Get it on Android' }: { placement: s
   return <TrackedLink className="lp-button lp-button--dark" href={PLAY_STORE} event="store_cta_clicked" properties={{ placement }}><Smartphone size={18} aria-hidden="true" />{children}</TrackedLink>
 }
 
-/** `ios` swaps every Play Store CTA for the iPhone waitlist: the Android link is a dead end on iPhone. */
-export function LandingPage({ monthlyPrice, ios = false }: { monthlyPrice?: string; ios?: boolean }) {
+/**
+ * `ios` swaps every Play Store CTA for the iPhone waitlist: the Android link is a dead end on iPhone.
+ * `android` drops the waitlist: they can install today. Desktop keeps both, since it could be either phone.
+ */
+export function LandingPage({ monthlyPrice, ios = false, android = false }: { monthlyPrice?: string; ios?: boolean; android?: boolean }) {
   const afterTrial = monthlyPrice ? <> · Then {monthlyPrice}/month</> : null
   // The hero stage is the mobile LCP element, and this background is its paint.
   // As a CSS url() it's only found once the stylesheet has loaded; the preload
@@ -203,7 +206,7 @@ export function LandingPage({ monthlyPrice, ios = false }: { monthlyPrice?: stri
       <h2 id="get-title" className="lp-h2">Your money, noticed.</h2>
       <div className="lp-hero-actions">{!ios && <StoreLink placement="footer_cta" />}<Link href="/expense" className="lp-button lp-button--ghost"><Monitor size={18} aria-hidden="true" />Open web app</Link></div>
       <span className="lp-hero-note">Free for 45 days{afterTrial} · No card needed · <a href={GITHUB} target="_blank" rel="noreferrer">Open source</a></span>
-      <IosWaitlist />
+      {!android && <IosWaitlist />}
     </section>
     <LandingFooter />
   </div></LandingMotion>

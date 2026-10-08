@@ -13,7 +13,9 @@ async function loadMonthlyPrice(): Promise<string | undefined> {
 export default async function Home() {
   const monthlyPrice = await loadMonthlyPrice()
   // iPadOS Safari sends a Mac user agent, so iPads still see the Android CTA.
-  const ios = /iPhone|iPad|iPod/.test((await headers()).get('user-agent') ?? '')
+  const ua = (await headers()).get('user-agent') ?? ''
+  const ios = /iPhone|iPad|iPod/.test(ua)
+  const android = /Android/.test(ua)
   const structuredData = {
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
@@ -31,7 +33,7 @@ export default async function Home() {
       type="application/ld+json"
       dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, '\\u003c') }}
     />
-    <LandingPage monthlyPrice={monthlyPrice} ios={ios} />
+    <LandingPage monthlyPrice={monthlyPrice} ios={ios} android={android} />
   </>
 }
 
