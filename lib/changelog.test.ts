@@ -51,8 +51,9 @@ async function draft() {
   await saveChangelogAction(null, form())
   return (await db.collection(CHANGELOG_COLLECTION).findOne({}, { sort: { _id: -1 } }))!
 }
-async function published() {
-  const doc = await draft()
+async function published(values: Record<string, string> = {}) {
+  await saveChangelogAction(null, form(values))
+  const doc = (await db.collection(CHANGELOG_COLLECTION).findOne({}, { sort: { _id: -1 } }))!
   await publishChangelogAction(String(doc._id), 1, null, new FormData())
   return String(doc._id)
 }
@@ -155,5 +156,44 @@ describe('once per account', () => {
     expect(await response.json()).toEqual({ release: null })
     const user = await db.collection('users').findOne({ _id: 'user_1' as never })
     expect(user?.seenWebChangelogIds).toBeUndefined()
+  })
+})
+
+describe('web and mobile releases', () => {
+  it('announces each app only its own newest release, tracked separately', async () => {
+    const web = await published()
+    const mobile = await published({ platform: 'mobile', version: 'v2.7.0' })
+    expect((await latestUnseenRelease('user_1'))?.id).toBe(web)
+    expect(await latestUnseenRelease('user_1', 'mobile')).toMatchObject({ id: mobile, platform: 'mobile', version: 'v2.7.0' })
+    expect(await claimRelease('user_1', mobile)).not.toBeNull()
+    expect(await latestUnseenRelease('user_1', 'mobile')).toBeNull()
+    expect((await latestUnseenRelease('user_1'))?.id).toBe(web)
+    expect((await publishedChangelog()).map((r) => String(r._id))).toEqual([web])
+    const response = await GET(new Request('http://test/api/changelog/latest?platform=mobile'))
+    expect(await response.json()).toEqual({ release: null })
+    const user = await db.collection('users').findOne({ _id: 'user_1' as never })
+    expect(user?.seenMobileChangelogIds).toEqual([mobile])
+    expect(user?.seenWebChangelogIds).toBeUndefined()
+  })
+
+  it('treats releases saved before platforms existed as web', async () => {
+    const id = await published()
+    await db.collection(CHANGELOG_COLLECTION).updateOne({ _id: new ObjectId(id) }, { $unset: { platform: '' } })
+    expect((await latestUnseenRelease('user_1'))?.platform).toBe('web')
+    expect(await latestUnseenRelease('user_1', 'mobile')).toBeNull()
+  })
+
+  it('rejects an unknown platform', async () => {
+    expect((await saveChangelogAction(null, form({ platform: 'desktop' })))?.ok).toBe(false)
+  })
+
+  it('never shows a release to an account created after it was published', async () => {
+    const id = await published({ platform: 'mobile' })
+    await db.collection('users').insertOne({ _id: 'fresh' as never, onboardedAt: '2026-10-09', createdAt: new Date(Date.now() + 60_000), deleted_at: null })
+    expect(await latestUnseenRelease('fresh', 'mobile')).toBeNull()
+    expect(await claimRelease('fresh', id)).toBeNull()
+    await db.collection('users').updateOne({ _id: 'fresh' as never }, { $set: { createdAt: new Date(Date.now() - 60_000) } })
+    expect((await latestUnseenRelease('fresh', 'mobile'))?.id).toBe(id)
+    expect(await claimRelease('fresh', id)).not.toBeNull()
   })
 })
