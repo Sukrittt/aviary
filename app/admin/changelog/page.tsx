@@ -25,8 +25,8 @@ export default async function AdminChangelog({ searchParams }: { searchParams: P
 
   return (
     <ChangelogPreviewProvider>
-      <div className="adm-head"><h1>Changelog</h1><span className="adm-sub">Web updates · every change is audited</span></div>
-      <p className="adm-sub">Save a draft, review the preview, then publish. Only the newest published update is announced, once per account. All published notes stay in Account → Changelog.</p>
+      <div className="adm-head"><h1>Changelog</h1><span className="adm-sub">Web and mobile updates · every change is audited</span></div>
+      <p className="adm-sub">Save a draft, review the preview, then publish. Web and mobile are announced separately: only the newest published update for each app is shown, once per account, and never to accounts created after it. Web notes stay in Account → Changelog.</p>
       {edit && !draft && <p className="adm-msg is-error">This draft is unavailable. Unpublish a published update before editing.</p>}
       {(draft || publishedRelease) && <Link className="adm-muted" href="/admin/changelog">← Create a new update</Link>}
       {publishedRelease ? <>
@@ -42,7 +42,7 @@ export default async function AdminChangelog({ searchParams }: { searchParams: P
             return (
               <article key={id} className="adm-changelog-entry">
                 <div className="adm-chart-head"><h3>{entry.title}</h3><span className={`adm-badge ${entry.status === 'published' ? 'is-good' : ''}`}>{entry.status === 'published' ? 'Published' : 'Draft'}</span></div>
-                <p className="adm-sub">{entry.version && `${entry.version} · `}{entry.publishedAt ? `First published ${entry.publishedAt.toLocaleDateString('en', { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric' })}` : 'Not published yet'}</p>
+                <p className="adm-sub">{entry.platform === 'mobile' ? 'Mobile' : 'Web'} · {entry.version && `${entry.version} · `}{entry.publishedAt ? `First published ${entry.publishedAt.toLocaleDateString('en', { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric' })}` : 'Not published yet'}</p>
                 <ul>{entry.highlights.map((line, i) => <li key={i}>{line}</li>)}</ul>
                 {entry.body && <details><summary>Full notes</summary><p className="changelog-body">{entry.body}</p></details>}
                 <div className="adm-changelog-actions">
