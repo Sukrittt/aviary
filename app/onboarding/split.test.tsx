@@ -19,7 +19,7 @@ function walkToCategories() {
   fireEvent.click(screen.getByRole('button', { name: /US Dollar/ }))
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
   fireEvent.click(screen.getByRole('button', { name: '$50,000' }))
-  fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Pick my own groups and categories' }))
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
   return client
 }

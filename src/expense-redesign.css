@@ -5452,6 +5452,26 @@
   min-height: 15px;
 }
 
+.setup-pick-own {
+  display: block;
+  margin: 4px auto 0;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--gold-ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.setup-pick-own:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 .setup-done {
   position: relative;
   display: flex;
