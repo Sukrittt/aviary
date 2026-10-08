@@ -244,6 +244,7 @@ html:has(.lp) { scroll-behavior: smooth; }
 .lp-waitlist .sb-tick svg { width: 18px; height: 18px; }
 .lp-waitlist .sb-tick path { stroke-dasharray: 1; stroke-dashoffset: 1; animation: erd-check-draw 350ms ease 220ms forwards; }
 @media (prefers-reduced-motion: reduce) { .lp-waitlist .sb-tick, .lp-waitlist .sb-tick path { animation: none; stroke-dashoffset: 0; } }
+.lp-waitlist--hero { margin: 28px auto 0; padding-top: 0; border-top: 0; }
 .lp-waitlist-note { margin-top: 12px; font-size: 14px; color: var(--muted); }
 .lp-footer { max-width: 1240px; padding: 36px 32px 44px; margin: auto; border-top: 1px solid var(--line); display: flex; align-items: flex-start; justify-content: space-between; gap: 30px; }
 .lp-footer .lp-logo { font-size: 22px; }
