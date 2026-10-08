@@ -3465,6 +3465,13 @@
   margin-top: auto;
   border-top: 1px solid var(--erd-border);
 }
+/* A short list would leave the select bar floating mid-page; pin it above the footer instead. */
+.expense-redesign .txn-timeline > .txn-select-bar {
+  margin-top: auto;
+}
+.expense-redesign .txn-select-bar + .txn-timeline-footer {
+  margin-top: 0;
+}
 .expense-redesign .txn-timeline-loading {
   flex: 1;
   display: flex;
