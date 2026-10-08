@@ -24,8 +24,8 @@ import { Confetti } from '../../src/components/onboarding/Confetti'
 import { LoadingCaption } from '../../src/components/LoadingCaption'
 import { Toast } from '../../src/components/Toast'
 
-// Twin of Mobile's app/setup.tsx: income → groups → categories → assign →
-// done. Writes land on finish, same reasoning as mobile — groups/categories
+// Twin of Mobile's app/setup.tsx: currency → income → done on a starter
+// budget, or "Pick my own" for groups → categories → assign. Writes land on finish, same reasoning as mobile — groups/categories
 // aren't renameable server-side until they exist. No numpad/bottom-sheet
 // here: those exist on mobile because a thumb keyboard is painful, and a
 // desktop already has a real one, so a plain input (under the ticker) and
@@ -122,10 +122,10 @@ const STEP_NAMES = ['currency', 'income', 'groups', 'categories', 'assign'] as c
 
 const TITLES: Record<number, [string, string]> = {
   0: ['Choose your currency', 'The currency you use for your budget. You can change it later in More.'],
-  1: ['What lands each month?', 'Your take-home income. This becomes the pot you assign from. You can change it any month.'],
+  1: ['What lands each month?', 'Your take-home income. This becomes the pot you assign from. Not sure yet? Skip it and add it from Home later.'],
   2: ['Group your money', 'Groups are the big buckets. Accept these or rename them to fit your life.'],
   3: ['Add your categories', 'These are the envelopes you actually spend from. Pick the ones you recognize.'],
-  4: ['Assign your money', 'We suggested a split based on what each category is for. Change any amount. The leftover has to reach zero.'],
+  4: ['Assign your money', 'We suggested a split based on what each category is for. Change any amount. Anything you leave waits in Ready to Assign.'],
 }
 
 export default function SetupWizardPage() {
@@ -142,6 +142,9 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
   const qc = useQueryClient()
 
   const [step, setStep] = useState(0)
+  // Whether the user chose to pick their own groups and categories. Without
+  // it, setup finishes from the income step on the starter budget.
+  const [custom, setCustom] = useState(false)
   const [income, setIncome] = useState('')
   // Drive AmountTicker's roll/flash/delta animation, same as mobile: `tick`
   // replays it, `dir` picks the roll direction, `delta` (quick-pick jumps
@@ -244,20 +247,20 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
 
   const canAdvance = step === 0 ? true :
     step === 1
-      ? Number(income) > 0
+      ? true
       : step === 2
         ? selectedGroups.length > 0
         : step === 3
           ? selectedCatCount > 0
           : step === 4
-            ? remainder() === 0 && assignedTotal() > 0
+            ? remainder() >= 0
             : true
 
   // What each step's choice was, as counts and flags. Never the income or the
   // names typed in: those are the sensitive half of this app's data.
   const stepDetails = (): Record<string, string | number | boolean> => {
     if (step === 0) return { currency: currencyCode }
-    if (step === 1) return { used_quick_pick: QUICK_PICKS.includes(income) }
+    if (step === 1) return { used_quick_pick: QUICK_PICKS.includes(income), skipped_income: !(Number(income) > 0), customized: custom }
     if (step === 2) {
       const defaults = new Map(defaultGroups().map((g) => [g.id, g.name]))
       return {
@@ -270,12 +273,13 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
     return { edited_split: editedSplit.current }
   }
 
-  const trackStepCompleted = () =>
+  const trackStepCompleted = (extra?: Record<string, boolean>) =>
     track('onboarding_step_completed', {
       step,
       step_name: STEP_NAMES[step],
       seconds_on_step: stepTimer.current(),
       ...stepDetails(),
+      ...extra,
     })
 
   const patchGroup = (id: string, patch: Partial<Item>) => {
@@ -449,10 +453,11 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
     setCategorySelectionUndo(null)
     if (step > 0) track('onboarding_back_tapped', { from_step: step, step_name: STEP_NAMES[step] })
     setError('')
+    if (step === 2) setCustom(false)
     setStep((s) => Math.max(0, s - 1))
   }
 
-  const commit = async () => {
+  const commit = async (amounts: Record<string, number>) => {
     if (pending) return
     setPending(true)
     setError('')
@@ -468,6 +473,8 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
         groups_count: selectedGroups.length,
         categories_count: categoryCount,
         currency: currencyCode,
+        customized: custom,
+        skipped_income: incomeValue === 0,
         ...(recoveredAfterError ? { recovered_after_error: true } : {}),
       })
       setResult({ income: incomeValue, groupCount: selectedGroups.length, categoryCount })
@@ -541,21 +548,39 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
     }
   }
 
+  // The step that saves reports itself once the save lands (see commit).
   const next = () => {
     if (!canAdvance || pending) return
     setGroupSelectionUndo(null)
     setCategorySelectionUndo(null)
-    // The assign step reports itself once the save lands (see commit).
-    if (step < 4) trackStepCompleted()
+    const hasIncome = Number(income) > 0
+    if (step === 1 && !custom) {
+      // Starter budget: the pre-checked defaults, income split the suggested way.
+      void commit(hasIncome ? distribute(true) : {})
+      return
+    }
+    if (step === 3 && !hasIncome) {
+      // Nothing to assign, so there's no assign step to show.
+      void commit({})
+      return
+    }
+    if (step === 4) {
+      void commit(amounts)
+      return
+    }
+    trackStepCompleted()
     if (step === 3) {
       void tagThenOpenAssign()
       return
     }
-    if (step === 4) {
-      commit()
-      return
-    }
     setStep((s) => s + 1)
+  }
+
+  const pickOwn = () => {
+    if (pending) return
+    setCustom(true)
+    trackStepCompleted({ customized: true })
+    setStep(2)
   }
 
   if (step === 5 && result) {
@@ -573,9 +598,9 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
   const summary = summarizeSplit(liveCats(), bucketTags)
   const hint = step === 0 ? '' :
     step === 1
-      ? canAdvance
+      ? Number(income) > 0
         ? ''
-        : 'Enter an amount to continue'
+        : 'You can add it from Home any time'
       : step === 2
         ? canAdvance
           ? `${selectedGroups.length} groups selected`
@@ -584,11 +609,15 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
           ? canAdvance
             ? `${selectedCatCount} categories across ${selectedGroups.length} groups`
             : 'Select at least one category to continue'
-          : canAdvance
+          : rem === 0
             ? 'Everything assigned'
             : rem > 0
-              ? `${formatMoney(rem)} still to assign`
+              ? `${formatMoney(rem)} left. It'll wait in Ready to Assign`
               : `${formatMoney(-rem)} over your income`
+
+  const finishesHere = (step === 1 && !custom) || step === 4 || (step === 3 && !(Number(income) > 0))
+  const ctaLabel = step === 1 && !(Number(income) > 0) ? 'Skip for now' : finishesHere ? 'Finish setup' : 'Continue'
+  const dots = custom ? [0, 1, 2, 3, 4] : [0, 1]
 
   const remState = rem === 0 ? 'is-zero' : rem < 0 ? 'is-over' : 'is-under'
   const remLabel = rem === 0 ? 'All assigned' : rem < 0 ? 'Over by' : 'Left to assign'
@@ -599,8 +628,8 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
         <button type="button" className="setup-back" onClick={back} disabled={step === 0} aria-label="Back">
           <ArrowLeft size={16} aria-hidden="true" />
         </button>
-        <div className="setup-dots" role="img" aria-label={`Step ${step + 1} of 5`}>
-          {[0, 1, 2, 3, 4].map((n) => (
+        <div className="setup-dots" role="img" aria-label={`Step ${step + 1} of ${dots.length}`}>
+          {dots.map((n) => (
             <span key={n} className={`setup-dot ${n <= step ? 'is-active' : ''}`} />
           ))}
         </div>
@@ -836,9 +865,14 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
       >
         {pending ? (
           <LoadingCaption phrases={[saveStep || 'Saving…']} placement="inline" align="center" className="setup-cta-caption" />
-        ) : step === 4 ? 'Finish setup' : 'Continue'}
+        ) : ctaLabel}
       </button>
       {error === '' && <p className="setup-cta-hint">{hint}</p>}
+      {step === 1 && !custom && (
+        <button type="button" className="setup-pick-own" onClick={pickOwn} disabled={pending}>
+          Pick my own groups and categories
+        </button>
+      )}
     </div>
   )
 }
@@ -1007,7 +1041,7 @@ function SetupDone({
   const { formatMoney } = useCurrency()
 
   const summary = [
-    { icon: WalletCards, label: 'Monthly income', value: formatMoney(result.income) },
+    { icon: WalletCards, label: 'Monthly income', value: result.income > 0 ? formatMoney(result.income) : 'Add it later' },
     { icon: FolderOpen, label: 'Groups', value: String(result.groupCount) },
     { icon: Tags, label: 'Categories', value: String(result.categoryCount) },
   ]
