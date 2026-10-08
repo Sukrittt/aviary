@@ -1,7 +1,12 @@
 import { headers } from 'next/headers'
 import { getPlanPrices, type PlanPrice } from './razorpay'
 
-/** Razorpay's plans are INR, so visitors outside India see these fixed USD prices instead (cents). */
+/**
+ * Razorpay's plans are INR, so visitors outside India see these fixed USD prices instead (cents).
+ * TODO: web checkout still charges the INR plan for everyone, so an international
+ * buyer on the website pays ₹ rather than this. Create USD Razorpay plans once
+ * international payments are approved, and route non-IN checkout to them.
+ */
 export const INTL_PRICES: PlanPrice[] = [
   { period: 'monthly', amount: 490, currency: 'USD' },
   { period: 'yearly', amount: 4900, currency: 'USD' },
