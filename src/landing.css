@@ -62,7 +62,7 @@ html:has(.lp) { scroll-behavior: smooth; }
 @keyframes lp-rotor-in { from { opacity: 0; filter: blur(4px); transform: translateY(.35em); } }
 .lp-hero-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 28px; }
 .lp-hero-note { display: block; margin-top: 18px; font-size: 14px; color: var(--muted); }
-.lp-hero-note a { text-decoration: underline; text-underline-offset: 3px; }
+.lp-hero-note a { text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; }
 
 /* Hero stage: noticed logs, the phone taking the nudge, the envelope updating */
 .lp-stage-wrap { max-width: 1240px; margin: 32px auto 0; padding: 0 32px; }
