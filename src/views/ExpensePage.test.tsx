@@ -81,6 +81,26 @@ it('keeps getting started out of the way for existing or finished users', async 
   client.clear()
 })
 
+// Setup can skip income, so Get started keeps asking until there's some.
+it('asks for income first when setup skipped it, opening the monthly income screen', async () => {
+  vi.mocked(getBudgets).mockResolvedValue([{ month, category: 'Food', assigned: '0', rolled_over: '0', version: 1 }])
+  vi.mocked(getUser).mockResolvedValue({ ...baseUser, getStartedAt: '2026-09-01' })
+  const client = renderPage()
+  fireEvent.click(await screen.findByRole('button', { name: 'Add your income' }))
+  expect(screen.queryByRole('button', { name: /Set up your budget/ })).not.toBeInTheDocument()
+  expect(screen.getByRole('progressbar', { name: 'Getting started' })).toHaveAttribute('aria-valuenow', '0')
+  expect(await screen.findByText('Monthly income')).toBeInTheDocument()
+  client.clear()
+})
+
+it('keeps getting started up without income, even with both other milestones done', async () => {
+  vi.mocked(getBudgets).mockResolvedValue([])
+  vi.mocked(getUser).mockResolvedValue({ ...baseUser, getStartedAt: '2026-09-01', manualTransactionCompletedAt: '2026-09-02', guidedTourCompletedAt: '2026-09-03' })
+  const client = renderPage()
+  expect(await screen.findByRole('button', { name: 'Add your income' })).toBeInTheDocument()
+  client.clear()
+})
+
 it('preserves the cards below when getting started arrives after the dashboard and is dismissed', async () => {
   let resolveUser!: (user: Awaited<ReturnType<typeof getUser>>) => void
   vi.mocked(getUser).mockReturnValueOnce(new Promise((resolve) => { resolveUser = resolve }))
