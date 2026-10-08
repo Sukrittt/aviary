@@ -38,6 +38,6 @@
   a.changelog-link:hover { text-decoration: underline; }
 }
 @media (max-width: 900px) {
-  .changelog-announcement { right: 16px; bottom: calc(88px + env(safe-area-inset-bottom, 0px)); max-height: calc(100dvh - 180px); overflow-y: auto; border-radius: 20px; }
+  .changelog-announcement { left: 16px; right: 16px; width: auto; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); max-height: calc(100dvh - 120px); overflow-y: auto; border-radius: 20px; }
 }
 .capture-tip-try { margin-top: 12px; padding: 0; border: 0; background: none; font-family: inherit; cursor: pointer; }
