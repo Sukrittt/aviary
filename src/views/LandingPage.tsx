@@ -2,7 +2,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { preload } from 'react-dom'
 import { BarWidget, EnvelopeWidget } from '../components/landing/mobile/Widget'
-import { ArrowRight, ChevronUp, Github, Monitor, Repeat, ScanLine, Smartphone, WifiOff } from 'lucide-react'
+import { ArrowRight, ChevronUp, Github, MessageSquareText, Monitor, Repeat, ScanLine, Smartphone, WifiOff } from 'lucide-react'
 import { Playground } from '../components/landing/Playground'
 import { AddedClip, Faq, LandingMotion } from '../components/landing/LandingClient'
 import { TrackedLink } from '../components/TrackedLink'
@@ -18,6 +18,7 @@ import '../landing.css'
 const PLAY_STORE = 'https://play.google.com/store/apps/details?id=com.sukrit04.envelope'
 
 const ANYWHERE = [
+  { icon: MessageSquareText, tone: 'rent', title: 'A few at once', body: 'Type “lunch 150, coffee 80”. Both logged.' },
   { icon: ScanLine, tone: 'food', title: 'A receipt', body: 'Snap the bill. Aviary reads every line and splits it if you shared.' },
   { icon: Repeat, tone: 'savings', title: 'On repeat', body: 'Rent and subscriptions log themselves.' },
   { icon: WifiOff, tone: 'fun', title: 'No signal', body: 'Logs wait on your phone, then sync.' },
@@ -29,15 +30,15 @@ const RULES = [
   { title: 'Shows up after, not before', body: 'A nudge lands 15 minutes after your usual time, while the spend is still fresh.' },
   { title: 'Two a day, tops', body: 'Your strongest habits go first. The rest wait for another day.' },
   { title: 'Backs off when you ignore it', body: 'Skip one twice and it moves an hour later. Five times and it goes quiet.' },
-  { title: 'Skips what’s done', body: 'Already logged it today? Then there’s nothing to nudge.' },
+  { title: 'Skips what’s done, asks when it isn’t', body: 'Already logged it today? Then there’s nothing to nudge. Nothing logged by evening? One push asks “Anything today?”' },
   { title: 'Yours to switch off', body: 'Turn nudges off any time in notification settings.' },
 ]
 
 
 const FAQS = [
   { q: 'How does Aviary learn my habits?', a: 'It looks at what you’ve logged. Log the same thing on the same weekday, around the same time, three times in eight weeks, and Aviary treats it as a habit. It then nudges you 15 minutes after your usual time with the details filled in. You can turn nudges off in notification settings.' },
-  { q: 'Do I connect my bank? How do expenses get added?', a: 'There’s no bank connection. You log purchases yourself, which makes spending a deliberate check-in. Habit nudges, the home-screen widget, recurring expenses and receipt scanning keep that quick. Transactions aren’t imported from your bank.' },
-  { q: 'What if I miss a few days?', a: 'Nothing breaks. Once a week, Aviary asks for your bank balance. If it doesn’t match what you’ve logged, it splits the difference across your usual envelopes, and you check it before it’s logged. No catching up.' },
+  { q: 'Do I connect my bank? How do expenses get added?', a: 'There’s no bank connection. You log purchases yourself, which makes spending a deliberate check-in. Habit nudges, the home-screen widget, recurring expenses, receipt scanning and typing a few spends at once keep that quick. Transactions aren’t imported from your bank.' },
+  { q: 'What if I miss a few days?', a: 'Nothing breaks. Open Ask Aviary and type whatever you remember, like “auto 240, lunch 150, Friday dinner 900”. Aviary turns it into separate spends, picks the envelopes, and you check them before they’re logged. Two missed days take about a minute.' },
   { q: 'What’s an envelope?', a: 'An envelope is a slice of your money set aside for one purpose, like rent, groceries or fun. Your bank balance mixes all of those together. Envelopes show what’s available for each one before you spend. Savings is a purpose too: you don’t have to spend everything you set aside.' },
   { q: 'I’ve put every rupee in an envelope. Am I out of money?', a: 'No. It means all your money has a purpose. It’s still yours until you spend it. Check each envelope to see what’s left for that purpose.' },
   { q: 'Why not just use a spreadsheet?', a: 'A spreadsheet can do the math. The hard part is keeping it up on your phone, at the counter, every day. Aviary has the envelope method built in, and most logs take one tap.' },
