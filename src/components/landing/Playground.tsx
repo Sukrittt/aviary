@@ -7,7 +7,8 @@ import { Pause, Play, RotateCcw } from 'lucide-react'
 import { PHONE, PhoneScreenContext, T } from './mobile/kit'
 import { FloatingNav } from './mobile/nav'
 import { EMPTY_SUBMIT, ExpenseAddedScreen, LogExpenseScreen, type LoggedExpense, type SubmitState } from './mobile/LogExpense'
-import { CATEGORIES, GROUPS, type DemoCategory } from './mobile/demo'
+import { GROUPS, type DemoCategory } from './mobile/demo'
+import { useSample } from './sample'
 import { useOnScreen } from './useOnScreen'
 
 /**
@@ -19,10 +20,6 @@ import { useOnScreen } from './useOnScreen'
  */
 
 type Tap = { x: number; y: number; n: number }
-const ITEM = 'Coffee with Sam'
-const AMOUNT = ['1', '8', '0']
-// Each one is in demo.ts's WORDS, so the pill always has an envelope to land on.
-const STARTERS = ['Chai', 'Uber home', 'Groceries', 'Netflix']
 
 const sleep = (ms: number, alive: () => boolean) =>
   new Promise<void>((res, rej) => setTimeout(() => (alive() ? res() : rej(new Error('stopped'))), ms))
@@ -38,13 +35,15 @@ async function typeInto(input: HTMLInputElement, text: string, alive: () => bool
 }
 
 export function Playground() {
+  // Starters are each in demo.ts's WORDS, so the pill always has an envelope to land on.
+  const { categories: sampleCategories, playItem, playAmount, starters, batchExample } = useSample()
   const reduced = useReducedMotion()
   const [paused, setPaused] = useState(false)
   const [tookOver, setTookOver] = useState(false)
   const { ref: sectionRef, visible } = useOnScreen<HTMLElement>(0.35)
   const [run, setRun] = useState(0)
   const [screen, setScreen] = useState<'log' | 'added'>('log')
-  const [categories, setCategories] = useState<DemoCategory[]>(CATEGORIES)
+  const [categories, setCategories] = useState<DemoCategory[]>(sampleCategories)
   const [added, setAdded] = useState<{ expense: LoggedExpense; before: DemoCategory | undefined } | null>(null)
   const [prefill, setPrefill] = useState<LoggedExpense | null>(null)
   const [starter, setStarter] = useState<{ text: string; n: number } | null>(null)
@@ -58,11 +57,15 @@ export function Playground() {
   const mine = tookOver || !!reduced
   const playing = visible && !paused && !mine
 
+  // The visitor's own logs, for the + hint (first log) and the capture tip (after two by hand, like Mobile's `batch`).
+  const [logs, setLogs] = useState(0)
+  const [tipDone, setTipDone] = useState(false)
   const onAdded = useCallback((expense: LoggedExpense) => {
+    if (mine) setLogs((n) => n + 1)
     setAdded({ expense, before: categories.find((c) => c.name === expense.category) })
     setCategories((cats) => cats.map((c) => (c.name === expense.category ? { ...c, spent: c.spent + expense.amount } : c)))
     setScreen('added')
-  }, [categories])
+  }, [categories, mine])
 
   /** Back to an empty log screen. `keep` holds on to what the visitor has already logged. */
   const fresh = (keep = false) => {
@@ -70,7 +73,7 @@ export function Playground() {
     setScreen('log')
     setAdded(null)
     setPrefill(null)
-    if (!keep) setCategories(CATEGORIES)
+    if (!keep) setCategories(sampleCategories)
     setRun((r) => r + 1)
   }
 
@@ -94,9 +97,9 @@ export function Playground() {
         await sleep(900, isAlive)
         const input = find('input.m-input-accent') as HTMLInputElement | null
         await touch(input)
-        if (input) await typeInto(input, ITEM, isAlive)
+        if (input) await typeInto(input, playItem, isAlive)
         await sleep(2300, isAlive) // the pill looks it up and lands
-        for (const k of AMOUNT) {
+        for (const k of playAmount) {
           const key = find(`button.m-key[aria-label="${k}"]`)
           await touch(key)
           key?.click()
@@ -112,7 +115,9 @@ export function Playground() {
       } catch { /* stopped mid-script: left where it was, picks up on the next run */ }
     })()
     return () => { alive = false }
-  }, [playing, run, host])
+  // fresh() is a new function every render; the take restarts on run, not on it.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playing, run, host, playItem, playAmount])
 
   // Paused, scrolled away or taken over mid-take: whatever comes next starts from a clean screen.
   const [wasPlaying, setWasPlaying] = useState(playing)
@@ -137,18 +142,20 @@ export function Playground() {
     setStarter((prev) => ({ text, n: (prev?.n ?? 0) + 1 }))
   }
 
-  // The nav's other tabs lead to screens this demo doesn't have; say so instead of doing nothing.
-  const [elsewhere, setElsewhere] = useState(0)
+  // The nav's other tabs and the chat icon lead to screens this demo doesn't have; say so instead of doing nothing.
+  const [elsewhere, setElsewhere] = useState<{ text: string; n: number } | null>(null)
   useEffect(() => {
     if (!elsewhere) return
-    const id = setTimeout(() => setElsewhere(0), 2600)
+    const id = setTimeout(() => setElsewhere(null), 2600)
     return () => clearTimeout(id)
   }, [elsewhere])
+  const say = (text: string) => setElsewhere((prev) => ({ text, n: (prev?.n ?? 0) + 1 }))
+  const toAskAviary = () => say('Logging a few at once happens in Ask Aviary, in the app.')
 
   const hint = !mine
     ? 'It’s playing itself. Tap the phone to take over.'
     : elsewhere
-    ? 'This demo only logs. Home, envelopes and the rest are in the app.'
+    ? elsewhere.text
     : screen === 'added'
     ? 'That chime is the one you hear in the app.'
     : 'Your turn. Say what it was, tap the amount, hit +.'
@@ -161,7 +168,7 @@ export function Playground() {
         <div className="lp-starters">
           <span id="play-starters">Stuck? Start with one of these.</span>
           <div role="group" aria-labelledby="play-starters">
-            {STARTERS.map((s) => <button key={s} type="button" className="lp-starter" onClick={() => start(s)}>{s}</button>)}
+            {starters.map((s) => <button key={s} type="button" className="lp-starter" onClick={() => start(s)}>{s}</button>)}
           </div>
         </div>
         <p className="lp-play-note">Sample month. Nothing you log here is saved.</p>
@@ -177,7 +184,13 @@ export function Playground() {
                   <motion.div key={screen === 'log' ? `log:${run}` : 'added'} style={{ position: 'absolute', inset: 0 }}
                     initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { duration: 0.25 } }} exit={{ opacity: 0, transition: { duration: 0.25 } }}>
                     {screen === 'log'
-                      ? <LogExpenseScreen categories={categories} groups={GROUPS} prefill={prefill} publish={setSubmit} onAdded={onAdded} />
+                      ? <LogExpenseScreen categories={categories} groups={GROUPS} prefill={prefill} publish={setSubmit} onAdded={onAdded}
+                          onSeveral={() => { setTipDone(true); toAskAviary() }}
+                          tip={mine && logs >= 2 && !tipDone ? {
+                            body: `Type them all at once in Ask Aviary, like “${batchExample}”.`,
+                            onTry: () => { setTipDone(true); toAskAviary() },
+                            onDismiss: () => setTipDone(true),
+                          } : null} />
                       : added && <ExpenseAddedScreen expense={added.expense} before={added.before} muted={!mine}
                           onDone={() => fresh(true)}
                           onUndo={() => {
@@ -191,7 +204,8 @@ export function Playground() {
                 {screen === 'log' && <div style={{ position: 'absolute', inset: 0, zIndex: 20, pointerEvents: 'none' }}>
                   <div style={{ pointerEvents: 'auto' }}>
                     <FloatingNav active={null} addActive addSaving={submit.saving} addSuccess={submit.success}
-                      addInvalid={!submit.canSubmit} addDisabled={submit.saving || submit.success} onSelect={() => { setElsewhere((n) => n + 1); return false }} onAdd={() => submit.submit()} />
+                      addHint={logs === 0 && submit.canSubmit && !submit.saving && !submit.success}
+                      addInvalid={!submit.canSubmit} addDisabled={submit.saving || submit.success} onSelect={() => { say('This demo only logs. Home, envelopes and the rest are in the app.'); return false }} onAdd={() => submit.submit()} />
                   </div>
                 </div>}
               </div>

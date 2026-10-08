@@ -32,6 +32,22 @@ export const CATEGORIES: DemoCategory[] = [
   { name: '📈 Investments', group: '📈 Investments', assigned: 40000, spent: 40000, lastSpentDaysAgo: 10, deltaPct: null },
 ]
 
+/** The same month in dollars for visitors outside India, with Takeout in place of a cook. */
+export const CATEGORIES_INTL: DemoCategory[] = [
+  { name: '🏠 Rent', group: '🏠 House', assigned: 1400, spent: 1400, lastSpentDaysAgo: 8, deltaPct: null },
+  { name: '⚡ Electricity', group: '🏠 House', assigned: 120, spent: 58, lastSpentDaysAgo: 12, deltaPct: -9 },
+  { name: '🍅 Groceries', group: '🏠 House', assigned: 400, spent: 168.4, lastSpentDaysAgo: 2, deltaPct: -13 },
+  { name: '🥡 Takeout', group: '🎬 Lifestyle', assigned: 200, spent: 86.5, lastSpentDaysAgo: 1, deltaPct: 14 },
+  { name: '🎡 Outings', group: '🎬 Lifestyle', assigned: 150, spent: 0, lastSpentDaysAgo: 19, deltaPct: null },
+  { name: '📺 Subscriptions', group: '🎬 Lifestyle', assigned: 60, spent: 45.97, lastSpentDaysAgo: 4, deltaPct: null },
+  { name: '🛍️ Shopping', group: '🎬 Lifestyle', assigned: 150, spent: 48.2, lastSpentDaysAgo: 3, deltaPct: 22 },
+  { name: '🛵 Travel', group: '🎬 Lifestyle', assigned: 200, spent: 61.75, lastSpentDaysAgo: 1, deltaPct: -8 },
+  { name: '💇 Haircut', group: '🎬 Lifestyle', assigned: 40, spent: 15, lastSpentDaysAgo: 3, deltaPct: null },
+  { name: '⚽ Football', group: '⚽ Fun', assigned: 100, spent: 36, lastSpentDaysAgo: 1, deltaPct: 96 },
+  { name: '🧺 Laundry', group: '⚽ Fun', assigned: 40, spent: 12, lastSpentDaysAgo: 0, deltaPct: null },
+  { name: '📈 Investments', group: '📈 Investments', assigned: 1000, spent: 1000, lastSpentDaysAgo: 10, deltaPct: null },
+]
+
 /** Stand-in for the category-map dictionary log-expense auto-suggests from. */
 export const WORDS: Record<string, string> = {
   rent: '🏠 Rent',
@@ -66,6 +82,21 @@ export const WORDS: Record<string, string> = {
   turf: '⚽ Football',
   laundry: '🧺 Laundry',
   sip: '📈 Investments',
+  takeout: '🥡 Takeout',
+  doordash: '🥡 Takeout',
+  ubereats: '🥡 Takeout',
+  pizza: '🥡 Takeout',
+  starbucks: '🎡 Outings',
+  walmart: '🍅 Groceries',
+  costco: '🍅 Groceries',
+  hulu: '📺 Subscriptions',
+  target: '🛍️ Shopping',
+  lyft: '🛵 Travel',
+  bus: '🛵 Travel',
+  subway: '🛵 Travel',
+  gas: '🛵 Travel',
+  soccer: '⚽ Football',
+  etf: '📈 Investments',
 }
 
 export interface Envelope {

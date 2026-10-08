@@ -13,7 +13,11 @@ async function loadMonthlyPrice(): Promise<string | undefined> {
 export default async function Home() {
   const monthlyPrice = await loadMonthlyPrice()
   // iPadOS Safari sends a Mac user agent, so iPads still see the Android CTA.
-  const ua = (await headers()).get('user-agent') ?? ''
+  const h = await headers()
+  const ua = h.get('user-agent') ?? ''
+  // Same rule as the price: no geo header (local dev) counts as India.
+  const country = h.get('x-vercel-ip-country')
+  const intl = !!country && country !== 'IN'
   const ios = /iPhone|iPad|iPod/.test(ua)
   const android = /Android/.test(ua)
   const structuredData = {
@@ -33,7 +37,7 @@ export default async function Home() {
       type="application/ld+json"
       dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, '\\u003c') }}
     />
-    <LandingPage monthlyPrice={monthlyPrice} ios={ios} android={android} />
+    <LandingPage monthlyPrice={monthlyPrice} ios={ios} android={android} intl={intl} />
   </>
 }
 

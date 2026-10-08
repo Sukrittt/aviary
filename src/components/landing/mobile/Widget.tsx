@@ -1,7 +1,9 @@
 'use client'
 
 import { BIRD_BODY_PATH } from '../../BirdMark'
-import { CATEGORIES, DAYS_LEFT } from './demo'
+import { DAYS_LEFT } from './demo'
+import { useSample } from '../sample'
+import { useCurrency } from '@/src/context/CurrencyContext'
 import { lightTokens as T } from '@/src/theme/tokens'
 
 /**
@@ -13,31 +15,32 @@ import { lightTokens as T } from '@/src/theme/tokens'
  */
 
 const EYE = { cx: 306, cy: 216, r: 19 }
-const fmt = (n: number) => `₹${Math.round(n).toLocaleString('en-IN')}`
 
 /** Card widths inside the phone frame: 2 of 4 columns for the mini, all 4 for the large. */
 export const MINI = 104
 const CARD = 214
 const BAND = 88
 
-const spendable = CATEGORIES.filter((c) => !c.group.includes('Investments'))
-const assigned = spendable.reduce((s, c) => s + c.assigned, 0)
-const left = spendable.reduce((s, c) => s + Math.max(0, c.assigned - c.spent), 0)
-const LEFT_PCT = left / assigned
-const PER_DAY = fmt(left / DAYS_LEFT)
-const TODAY = [
-  { item: 'Coffee with Sam', amount: 180 },
-  { item: 'Metro card', amount: 100 },
-]
-const ROWS = ['🍅 Groceries', '🛍️ Shopping', '🛵 Travel'].map((name) => {
-  const c = CATEGORIES.find((x) => x.name === name)!
-  return { icon: name.split(' ')[0], name: name.slice(name.indexOf(' ') + 1), left: fmt(c.assigned - c.spent), pct: (c.spent / c.assigned) * 100 }
-})
-const PILLS = [
-  { label: 'per day', value: PER_DAY, tint: T.text },
-  { label: 'today', value: fmt(TODAY.reduce((s, t) => s + t.amount, 0)), tint: T.text },
-  { label: 'week', value: '-8%', tint: T.mint },
-]
+/** The widgets' numbers, from this visitor's sample month and currency. */
+function useWidgetData() {
+  const { categories, widgetToday } = useSample()
+  const { formatMoney, currencyPrefix, currencySymbol } = useCurrency()
+  const fmt = (n: number) => formatMoney(Math.round(n))
+  const spendable = categories.filter((c) => !c.group.includes('Investments'))
+  const assigned = spendable.reduce((s, c) => s + c.assigned, 0)
+  const left = spendable.reduce((s, c) => s + Math.max(0, c.assigned - c.spent), 0)
+  const perDay = fmt(left / DAYS_LEFT)
+  const rows = ['🍅 Groceries', '🛍️ Shopping', '🛵 Travel'].map((name) => {
+    const c = categories.find((x) => x.name === name)!
+    return { icon: name.split(' ')[0], name: name.slice(name.indexOf(' ') + 1), left: fmt(c.assigned - c.spent), pct: (c.spent / c.assigned) * 100 }
+  })
+  const pills = [
+    { label: 'per day', value: perDay, tint: T.text },
+    { label: 'today', value: fmt(widgetToday.reduce((s, t) => s + t.amount, 0)), tint: T.text },
+    { label: 'week', value: '-8%', tint: T.mint },
+  ]
+  return { fmt, left, leftPct: left / assigned, perDay, rows, pills, today: widgetToday, symbol: currencySymbol, digits: fmt(left).slice(currencyPrefix.length) }
+}
 
 /** The bird alone on its 400x340 artboard, eye open; the lid is the blink frame. */
 function Bird({ size }: { size: number }) {
@@ -54,12 +57,12 @@ function Bird({ size }: { size: number }) {
 }
 
 /** The ring gauge alone, as in the label line under the number. */
-function Ring({ size }: { size: number }) {
+function Ring({ size, pct }: { size: number; pct: number }) {
   const R = 43
   const c = 2 * Math.PI * R
   return <svg width={size} height={size} viewBox="0 0 100 100" aria-hidden="true">
     <circle cx="50" cy="50" r={R} fill="none" stroke={T.text} strokeOpacity="0.09" strokeWidth="14" />
-    <circle cx="50" cy="50" r={R} fill="none" stroke={T.mint} strokeWidth="14" strokeLinecap="round" strokeDasharray={`${(c * LEFT_PCT).toFixed(2)} ${c.toFixed(2)}`} transform="rotate(-90 50 50)" />
+    <circle cx="50" cy="50" r={R} fill="none" stroke={T.mint} strokeWidth="14" strokeLinecap="round" strokeDasharray={`${(c * pct).toFixed(2)} ${c.toFixed(2)}`} transform="rotate(-90 50 50)" />
   </svg>
 }
 
@@ -103,39 +106,41 @@ function Plus({ size }: { size: number }) {
 
 /** The 2×2 mini widget: bird peeking in top-left, + top-right, the number across the bottom. */
 export function MiniWidget() {
+  const { fmt, left, leftPct } = useWidgetData()
   return <div className="m-widget m-widget--mini">
     <Doodles width={MINI} height={MINI} />
     <Bird size={Math.round(MINI * 0.66)} />
     <span className="m-widget-plus"><Plus size={16} /></span>
     <div className="m-widget-hero">
       <b>{fmt(left)}</b>
-      <span><Ring size={11} />{DAYS_LEFT} days left</span>
+      <span><Ring size={11} pct={leftPct} />{DAYS_LEFT} days left</span>
     </div>
   </div>
 }
 
 /** The large widget: bird band with the total, stat pills across the full width, three envelopes, today's logs, quick-log chips. */
 export function EnvelopeWidget() {
+  const { fmt, leftPct, perDay, rows, pills, today, symbol, digits } = useWidgetData()
   return <div className="m-widget">
     <div className="m-widget-band">
       <Doodles width={CARD} height={BAND} />
       <Bird size={72} />
       <div className="m-widget-hero">
-        <b><small>₹</small>{Math.round(left).toLocaleString('en-IN')}</b>
-        <span><Ring size={11} />{DAYS_LEFT} days left · {PER_DAY}/day</span>
+        <b><small>{symbol}</small>{digits}</b>
+        <span><Ring size={11} pct={leftPct} />{DAYS_LEFT} days left · {perDay}/day</span>
       </div>
       <div className="m-widget-pills">
-        {PILLS.map((p) => <div key={p.label}><b style={{ color: p.tint }}>{p.value}</b><span>{p.label}</span></div>)}
+        {pills.map((p) => <div key={p.label}><b style={{ color: p.tint }}>{p.value}</b><span>{p.label}</span></div>)}
       </div>
     </div>
     <div className="m-widget-rows">
-      {ROWS.map((r) => <div key={r.name}>
+      {rows.map((r) => <div key={r.name}>
         <div className="m-widget-row"><span>{r.icon}</span><b>{r.name}</b><em>{r.left}</em></div>
         <div className="m-widget-bar"><i style={{ width: `${Math.max(2, Math.min(92, Math.round(r.pct)))}%` }} /></div>
       </div>)}
     </div>
     <span className="m-widget-today">TODAY</span>
-    {TODAY.map((t) => <div key={t.item} className="m-widget-log"><span>{t.item}</span><b>{fmt(t.amount)}</b></div>)}
+    {today.map((t) => <div key={t.item} className="m-widget-log"><span>{t.item}</span><b>{fmt(t.amount)}</b></div>)}
     <div className="m-widget-actions"><span>🍅 Groceries</span><span>🛵 Travel</span><span className="m-widget-plus"><Plus size={16} /></span></div>
   </div>
 }
