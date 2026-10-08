@@ -10100,8 +10100,12 @@ button.account-feature-card {
   transform: scale(1);
   transition-delay: 80ms, 80ms, 0ms, 0ms;
 }
+/* A short archive would leave the footer mid-page; stretch the panel so it sits at the bottom. */
+.account-panel:has(> .archive-footer) {
+  flex: 1 0 auto;
+}
 .archive-list ~ .txn-select-bar {
-  margin-top: 12px;
+  margin-top: auto;
   margin-bottom: 0;
 }
 /* The bar's primary action is a filled gold Restore, Activity's Delete in restore clothes. */
