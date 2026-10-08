@@ -620,26 +620,42 @@ html:has(.lp) { scroll-behavior: smooth; }
 .lp-ways--compact strong { font-size: 15px; }
 .lp-ways--compact li > span:last-child > span { font-size: 13.5px; line-height: 1.45; color: var(--muted); max-width: none; }
 
-/* Home-screen widget twins (dark scheme, Android's 28dp widget corners) */
-.m-widget { display: flex; flex-direction: column; padding: 14px 14px 12px; border-radius: 22px; background: rgb(252 252 252 / 94%); border: 1px solid rgb(60 40 20 / 8%); color: #060606; font-family: var(--font-nunito), sans-serif; text-align: left; }
-.m-widget--bar { flex-direction: row; align-items: center; gap: 10px; padding: 8px 10px; }
-.m-widget-head { display: flex; align-items: center; gap: 10px; }
-.m-widget-hero { display: flex; flex-direction: column; flex: 1; min-width: 0; }
-.m-widget-hero b { font-family: var(--font-fredoka), sans-serif; font-weight: 700; font-size: 26px; line-height: 1.05; }
-.m-widget--bar .m-widget-hero b { font-size: 18px; }
-.m-widget-hero b small { font-size: 16px; margin-right: 1px; }
-.m-widget-hero span { font-size: 10px; font-weight: 600; color: #424242; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Home-screen widget twins (light scheme, Android's 28dp widget corners): Mobile's src/widgets at the 214px the phone leaves */
+.m-widget { position: relative; display: flex; flex-direction: column; overflow: hidden; border-radius: 22px; background: linear-gradient(rgb(255 232 220 / 65%), rgb(255 255 255 / 0%) 70%), rgb(252 252 252 / 94%); border: 1px solid rgb(60 40 20 / 8%); color: #060606; font-family: var(--font-nunito), sans-serif; text-align: left; }
+.m-widget--mini { width: 104px; height: 104px; flex-shrink: 0; justify-content: flex-end; padding: 9px; }
+.m-widget-doodles { position: absolute; inset: 0; }
+.m-bird { position: absolute; top: -7px; left: -10px; }
+.m-widget--mini .m-bird { left: -11px; }
+.m-bird-eye { animation: m-blink-eye 3.15s steps(1) infinite; }
+.m-bird-lid { opacity: 0; animation: m-blink-lid 3.15s steps(1) infinite; }
+@keyframes m-blink-eye { 0% { opacity: 1; } 95.2%, 100% { opacity: 0; } }
+@keyframes m-blink-lid { 0% { opacity: 0; } 95.2%, 100% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .m-bird-eye, .m-bird-lid { animation: none; } }
+.m-widget-band { position: relative; height: 88px; padding: 10px 11px 0 64px; display: flex; }
+.m-widget-hero { position: relative; display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.m-widget-hero b { font-family: var(--font-fredoka), sans-serif; font-weight: 700; font-size: 22px; line-height: 1.05; }
+.m-widget--mini .m-widget-hero { flex: 0 0 auto; }
+.m-widget--mini .m-widget-hero b { font-size: 17px; }
+.m-widget-hero b small { font-size: 14px; margin-right: 1px; }
+.m-widget-hero span { font-size: 9.5px; font-weight: 600; color: #424242; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.m-widget--mini .m-widget-hero span { font-size: 8px; }
+.m-widget-hero span svg { vertical-align: -1px; margin-right: 4px; }
+.m-widget-pills { display: flex; gap: 4px; margin-top: 6px; }
+.m-widget-pills > div { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 3px 2px; border-radius: 9px; background: rgb(255 255 255 / 90%); border: 1px solid rgb(60 40 20 / 8%); }
+.m-widget-pills b { font-size: 9.5px; line-height: 1.1; }
+.m-widget-pills span { font-size: 7px; color: #717171; }
 .m-widget-plus { width: 30px; height: 30px; flex-shrink: 0; display: grid; place-items: center; border-radius: 50%; background: #f4511e; }
-.m-widget-rows { display: flex; flex-direction: column; gap: 9px; margin-top: 12px; }
+.m-widget--mini .m-widget-plus { position: absolute; top: 9px; right: 9px; width: 28px; height: 28px; }
+.m-widget-rows { display: flex; flex-direction: column; gap: 9px; margin-top: 6px; padding: 0 11px; }
 .m-widget-row { display: flex; align-items: center; gap: 5px; font-size: 11px; }
 .m-widget-row b { flex: 1; font-weight: 600; }
 .m-widget-row em { font-style: normal; font-weight: 600; color: #1f7a4d; }
 .m-widget-bar { height: 4px; margin-top: 4px; border-radius: 3px; background: rgb(60 40 20 / 8%); overflow: hidden; }
 .m-widget-bar i { display: block; height: 100%; background: #1f7a4d; }
-.m-widget-today { margin: 12px 0 4px; font-size: 9px; font-weight: 600; letter-spacing: .05em; color: #717171; }
-.m-widget-log { display: flex; justify-content: space-between; font-size: 10.5px; color: #424242; margin-top: 2px; }
+.m-widget-today { margin: 12px 11px 4px; font-size: 9px; font-weight: 600; letter-spacing: .05em; color: #717171; }
+.m-widget-log { display: flex; justify-content: space-between; font-size: 10.5px; color: #424242; margin-top: 2px; padding: 0 11px; }
 .m-widget-log b { color: #060606; font-weight: 500; }
-.m-widget-actions { display: flex; gap: 6px; margin-top: 10px; }
+.m-widget-actions { display: flex; gap: 6px; margin: 10px 11px 10px; }
 .m-widget-actions > span:not(.m-widget-plus) { flex: 1; display: grid; place-items: center; height: 30px; border-radius: 99px; background: #ebe5dd; font-size: 10.5px; font-weight: 600; white-space: nowrap; }
 
 @media (max-width: 900px) {
