@@ -631,7 +631,7 @@ html:has(.lp) { scroll-behavior: smooth; }
 @keyframes m-blink-eye { 0% { opacity: 1; } 95.2%, 100% { opacity: 0; } }
 @keyframes m-blink-lid { 0% { opacity: 0; } 95.2%, 100% { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .m-bird-eye, .m-bird-lid { animation: none; } }
-.m-widget-band { position: relative; height: 88px; padding: 10px 11px 0 64px; display: flex; }
+.m-widget-band { position: relative; height: 88px; padding: 10px 11px 0 66px; display: flex; }
 .m-widget-hero { position: relative; display: flex; flex-direction: column; flex: 1; min-width: 0; }
 .m-widget-hero b { font-family: var(--font-fredoka), sans-serif; font-weight: 700; font-size: 22px; line-height: 1.05; }
 .m-widget--mini .m-widget-hero { flex: 0 0 auto; }
@@ -640,7 +640,7 @@ html:has(.lp) { scroll-behavior: smooth; }
 .m-widget-hero span { font-size: 9.5px; font-weight: 600; color: #424242; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .m-widget--mini .m-widget-hero span { font-size: 8px; }
 .m-widget-hero span svg { vertical-align: -1px; margin-right: 4px; }
-.m-widget-pills { display: flex; gap: 4px; margin-top: 6px; }
+.m-widget-pills { position: absolute; left: 11px; right: 11px; bottom: 7px; display: flex; gap: 4px; }
 .m-widget-pills > div { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 3px 2px; border-radius: 9px; background: rgb(255 255 255 / 90%); border: 1px solid rgb(60 40 20 / 8%); }
 .m-widget-pills b { font-size: 9.5px; line-height: 1.1; }
 .m-widget-pills span { font-size: 7px; color: #717171; }

@@ -84,10 +84,8 @@ const SQUARE: Spot[] = [
 ]
 const WIDE: Spot[] = [
   { glyph: 'star', x: 0.93, y: 0.12, size: 20, rotate: -14 },
-  { glyph: 'arc', x: 0.34, y: 0.56, size: 18, rotate: 32 },
+  { glyph: 'arc', x: 0.76, y: 0.2, size: 18, rotate: 32 },
   { glyph: 'ring', x: 0.97, y: 0.48, size: 14, rotate: 0 },
-  { glyph: 'triangle', x: 0.1, y: 0.9, size: 14, rotate: -28 },
-  { glyph: 'zigzag', x: 0.28, y: 0.92, size: 20, rotate: 12 },
   { glyph: 'stripes', x: 0.34, y: 0.08, size: 14, rotate: 0 },
 ]
 
@@ -116,18 +114,18 @@ export function MiniWidget() {
   </div>
 }
 
-/** The large widget: bird band with the total and stat pills, three envelopes, today's logs, quick-log chips. */
+/** The large widget: bird band with the total, stat pills across the full width, three envelopes, today's logs, quick-log chips. */
 export function EnvelopeWidget() {
   return <div className="m-widget">
     <div className="m-widget-band">
       <Doodles width={CARD} height={BAND} />
-      <Bird size={70} />
+      <Bird size={72} />
       <div className="m-widget-hero">
         <b><small>₹</small>{Math.round(left).toLocaleString('en-IN')}</b>
         <span><Ring size={11} />{DAYS_LEFT} days left · {PER_DAY}/day</span>
-        <div className="m-widget-pills">
-          {PILLS.map((p) => <div key={p.label}><b style={{ color: p.tint }}>{p.value}</b><span>{p.label}</span></div>)}
-        </div>
+      </div>
+      <div className="m-widget-pills">
+        {PILLS.map((p) => <div key={p.label}><b style={{ color: p.tint }}>{p.value}</b><span>{p.label}</span></div>)}
       </div>
     </div>
     <div className="m-widget-rows">
