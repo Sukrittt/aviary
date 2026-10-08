@@ -6,6 +6,10 @@ body,
   overflow-x: hidden;
 }
 
+/* Android Chrome flashes a blue box on every tap. Buttons already show their own
+   pressed state, and keyboard focus keeps its :focus-visible ring. */
+html { -webkit-tap-highlight-color: transparent; }
+
 /* Every resting Aviary mark idly nods and blinks; motion-sensitive users get the settled pose. */
 .bird-idle-head {
   transform-origin: 250px 340px;

@@ -1,3 +1,4 @@
+import { headers } from 'next/headers'
 import { pageMetadata, pages, SITE_URL } from '@/lib/seo'
 import { visitorPlanPrices } from '@/lib/billing/prices'
 import { formatPrice } from '@/src/components/billing/copy'
@@ -11,6 +12,10 @@ async function loadMonthlyPrice(): Promise<string | undefined> {
 
 export default async function Home() {
   const monthlyPrice = await loadMonthlyPrice()
+  // iPadOS Safari sends a Mac user agent, so iPads still see the Android CTA.
+  const ua = (await headers()).get('user-agent') ?? ''
+  const ios = /iPhone|iPad|iPod/.test(ua)
+  const android = /Android/.test(ua)
   const structuredData = {
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
@@ -28,7 +33,7 @@ export default async function Home() {
       type="application/ld+json"
       dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, '\\u003c') }}
     />
-    <LandingPage monthlyPrice={monthlyPrice} />
+    <LandingPage monthlyPrice={monthlyPrice} ios={ios} android={android} />
   </>
 }
 

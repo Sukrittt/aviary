@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import { ArrowUpRight, Sparkles, X } from 'lucide-react'
+import { ArrowUpRight, X } from 'lucide-react'
+import { BirdMark } from './BirdMark'
 import type { ChangelogRelease } from '@/src/lib/changelog'
 import './Changelog.css'
 
@@ -7,7 +8,7 @@ import './Changelog.css'
 export function ChangelogCard({ release, onDismiss, preview = false }: { release: ChangelogRelease; onDismiss?: () => void; preview?: boolean }) {
   return (
     <aside className="changelog-card" aria-label="What's new in Aviary">
-      <div className="changelog-eyebrow"><Sparkles size={14} aria-hidden="true" /> What&apos;s new in Aviary</div>
+      <div className="changelog-eyebrow"><BirdMark size={18} /> What&apos;s new in Aviary</div>
       {onDismiss && <button type="button" className="changelog-close" aria-label="Dismiss update" onClick={onDismiss}><X size={18} aria-hidden="true" /></button>}
       <h2>{release.title}</h2>
       <div className="changelog-meta">

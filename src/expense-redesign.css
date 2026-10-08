@@ -5452,6 +5452,26 @@
   min-height: 15px;
 }
 
+.setup-pick-own {
+  display: block;
+  margin: 4px auto 0;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--gold-ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.setup-pick-own:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 .setup-done {
   position: relative;
   display: flex;
@@ -10100,8 +10120,23 @@ button.account-feature-card {
   transform: scale(1);
   transition-delay: 80ms, 80ms, 0ms, 0ms;
 }
+/* The panel fills the viewport and only the list scrolls, so the footer and its
+   pagination stay on screen whether the archive is short or long. */
+.account-panel:has(> .archive-footer) {
+  flex: 1 1 0;
+  min-height: 0;
+}
+.account-panel:has(> .archive-footer) > .archive-list {
+  flex: 1 1 0;
+  min-height: 240px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--erd-border-strong) transparent;
+  scrollbar-gutter: stable;
+}
 .archive-list ~ .txn-select-bar {
-  margin-top: 12px;
+  margin-top: auto;
   margin-bottom: 0;
 }
 /* The bar's primary action is a filled gold Restore, Activity's Delete in restore clothes. */

@@ -35,6 +35,8 @@ export interface UserDoc {
   guidedTourCompletedAt?: string | null
   /** Web releases already announced. Server-owned, atomic across tabs/devices. */
   seenWebChangelogIds?: string[]
+  /** Mobile releases already announced, tracked apart from web's. */
+  seenMobileChangelogIds?: string[]
   notifyCadence?: 'off' | 'weekly' | 'daily'
   /** Category limit alerts (threshold + overspent) — independent of `notifyCadence`, which only gates the digest. */
   notifyThresholds?: boolean

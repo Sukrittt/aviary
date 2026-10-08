@@ -62,7 +62,7 @@ html:has(.lp) { scroll-behavior: smooth; }
 @keyframes lp-rotor-in { from { opacity: 0; filter: blur(4px); transform: translateY(.35em); } }
 .lp-hero-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 28px; }
 .lp-hero-note { display: block; margin-top: 18px; font-size: 14px; color: var(--muted); }
-.lp-hero-note a { text-decoration: underline; text-underline-offset: 3px; }
+.lp-hero-note a { text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; }
 
 /* Hero stage: noticed logs, the phone taking the nudge, the envelope updating */
 .lp-stage-wrap { max-width: 1240px; margin: 32px auto 0; padding: 0 32px; }
@@ -244,6 +244,7 @@ html:has(.lp) { scroll-behavior: smooth; }
 .lp-waitlist .sb-tick svg { width: 18px; height: 18px; }
 .lp-waitlist .sb-tick path { stroke-dasharray: 1; stroke-dashoffset: 1; animation: erd-check-draw 350ms ease 220ms forwards; }
 @media (prefers-reduced-motion: reduce) { .lp-waitlist .sb-tick, .lp-waitlist .sb-tick path { animation: none; stroke-dashoffset: 0; } }
+.lp-waitlist--hero { margin: 28px auto 0; padding-top: 0; border-top: 0; }
 .lp-waitlist-note { margin-top: 12px; font-size: 14px; color: var(--muted); }
 .lp-footer { max-width: 1240px; padding: 36px 32px 44px; margin: auto; border-top: 1px solid var(--line); display: flex; align-items: flex-start; justify-content: space-between; gap: 30px; }
 .lp-footer .lp-logo { font-size: 22px; }
@@ -289,6 +290,8 @@ html:has(.lp) { scroll-behavior: smooth; }
   .lp .lp-button { width: 100%; min-height: 52px; font-size: 15px; }
   .lp-hero-note { font-size: 13px; line-height: 1.6; }
   .lp-stage-wrap { padding: 0 12px; margin-top: 24px; }
+  /* The hero waitlist (iPhone visitors) ends in a note, which sits too close to the stage tabs. */
+  .lp-hero:has(.lp-waitlist--hero) + .lp-stage-wrap { margin-top: 44px; }
   .lp-stage { grid-template-columns: 1fr; padding: 12px 16px 76px; border-radius: 28px; gap: 18px; }
   .lp-stage-card:first-of-type { order: 2; }
   .lp-stage-logged { order: 3; }
@@ -581,7 +584,8 @@ html:has(.lp) { scroll-behavior: smooth; }
 @media (max-width: 640px) {
   .lp-stage { min-height: 0; }
   .lp-chapters { order: -1; flex-wrap: nowrap; justify-content: flex-start; width: 100%; overflow-x: auto; padding: 5px; scrollbar-width: none; }
-  .lp .lp-chapter { flex-shrink: 0; }
+  /* Tighter on phones so all three fit; the strip still scrolls if a narrower screen can't. */
+  .lp .lp-chapter { flex: 1 0 auto; padding: 0 12px; font-size: 13px; }
   .lp-split2-pill { font-size: 13px; padding: 12px 18px; gap: 8px; }
   .lp-split2-quote { font-size: 20px; }
   .lp-wins > * { min-width: 0; }
@@ -616,26 +620,42 @@ html:has(.lp) { scroll-behavior: smooth; }
 .lp-ways--compact strong { font-size: 15px; }
 .lp-ways--compact li > span:last-child > span { font-size: 13.5px; line-height: 1.45; color: var(--muted); max-width: none; }
 
-/* Home-screen widget twins (dark scheme, Android's 28dp widget corners) */
-.m-widget { display: flex; flex-direction: column; padding: 14px 14px 12px; border-radius: 22px; background: rgb(252 252 252 / 94%); border: 1px solid rgb(60 40 20 / 8%); color: #060606; font-family: var(--font-nunito), sans-serif; text-align: left; }
-.m-widget--bar { flex-direction: row; align-items: center; gap: 10px; padding: 8px 10px; }
-.m-widget-head { display: flex; align-items: center; gap: 10px; }
-.m-widget-hero { display: flex; flex-direction: column; flex: 1; min-width: 0; }
-.m-widget-hero b { font-family: var(--font-fredoka), sans-serif; font-weight: 700; font-size: 26px; line-height: 1.05; }
-.m-widget--bar .m-widget-hero b { font-size: 18px; }
-.m-widget-hero b small { font-size: 16px; margin-right: 1px; }
-.m-widget-hero span { font-size: 10px; font-weight: 600; color: #424242; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Home-screen widget twins (light scheme, Android's 28dp widget corners): Mobile's src/widgets at the 214px the phone leaves */
+.m-widget { position: relative; display: flex; flex-direction: column; overflow: hidden; border-radius: 22px; background: linear-gradient(rgb(255 232 220 / 65%), rgb(255 255 255 / 0%) 70%), rgb(252 252 252 / 94%); border: 1px solid rgb(60 40 20 / 8%); color: #060606; font-family: var(--font-nunito), sans-serif; text-align: left; }
+.m-widget--mini { width: 104px; height: 104px; flex-shrink: 0; justify-content: flex-end; padding: 9px; }
+.m-widget-doodles { position: absolute; inset: 0; }
+.m-bird { position: absolute; top: -7px; left: -10px; }
+.m-widget--mini .m-bird { left: -11px; }
+.m-bird-eye { animation: m-blink-eye 3.15s steps(1) infinite; }
+.m-bird-lid { opacity: 0; animation: m-blink-lid 3.15s steps(1) infinite; }
+@keyframes m-blink-eye { 0% { opacity: 1; } 95.2%, 100% { opacity: 0; } }
+@keyframes m-blink-lid { 0% { opacity: 0; } 95.2%, 100% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .m-bird-eye, .m-bird-lid { animation: none; } }
+.m-widget-band { position: relative; height: 88px; padding: 10px 11px 0 64px; display: flex; }
+.m-widget-hero { position: relative; display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.m-widget-hero b { font-family: var(--font-fredoka), sans-serif; font-weight: 700; font-size: 22px; line-height: 1.05; }
+.m-widget--mini .m-widget-hero { flex: 0 0 auto; }
+.m-widget--mini .m-widget-hero b { font-size: 17px; }
+.m-widget-hero b small { font-size: 14px; margin-right: 1px; }
+.m-widget-hero span { font-size: 9.5px; font-weight: 600; color: #424242; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.m-widget--mini .m-widget-hero span { font-size: 8px; }
+.m-widget-hero span svg { vertical-align: -1px; margin-right: 4px; }
+.m-widget-pills { display: flex; gap: 4px; margin-top: 6px; }
+.m-widget-pills > div { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 3px 2px; border-radius: 9px; background: rgb(255 255 255 / 90%); border: 1px solid rgb(60 40 20 / 8%); }
+.m-widget-pills b { font-size: 9.5px; line-height: 1.1; }
+.m-widget-pills span { font-size: 7px; color: #717171; }
 .m-widget-plus { width: 30px; height: 30px; flex-shrink: 0; display: grid; place-items: center; border-radius: 50%; background: #f4511e; }
-.m-widget-rows { display: flex; flex-direction: column; gap: 9px; margin-top: 12px; }
+.m-widget--mini .m-widget-plus { position: absolute; top: 9px; right: 9px; width: 28px; height: 28px; }
+.m-widget-rows { display: flex; flex-direction: column; gap: 9px; margin-top: 6px; padding: 0 11px; }
 .m-widget-row { display: flex; align-items: center; gap: 5px; font-size: 11px; }
 .m-widget-row b { flex: 1; font-weight: 600; }
 .m-widget-row em { font-style: normal; font-weight: 600; color: #1f7a4d; }
 .m-widget-bar { height: 4px; margin-top: 4px; border-radius: 3px; background: rgb(60 40 20 / 8%); overflow: hidden; }
 .m-widget-bar i { display: block; height: 100%; background: #1f7a4d; }
-.m-widget-today { margin: 12px 0 4px; font-size: 9px; font-weight: 600; letter-spacing: .05em; color: #717171; }
-.m-widget-log { display: flex; justify-content: space-between; font-size: 10.5px; color: #424242; margin-top: 2px; }
+.m-widget-today { margin: 12px 11px 4px; font-size: 9px; font-weight: 600; letter-spacing: .05em; color: #717171; }
+.m-widget-log { display: flex; justify-content: space-between; font-size: 10.5px; color: #424242; margin-top: 2px; padding: 0 11px; }
 .m-widget-log b { color: #060606; font-weight: 500; }
-.m-widget-actions { display: flex; gap: 6px; margin-top: 10px; }
+.m-widget-actions { display: flex; gap: 6px; margin: 10px 11px 10px; }
 .m-widget-actions > span:not(.m-widget-plus) { flex: 1; display: grid; place-items: center; height: 30px; border-radius: 99px; background: #ebe5dd; font-size: 10.5px; font-weight: 600; white-space: nowrap; }
 
 @media (max-width: 900px) {
@@ -738,12 +758,16 @@ html:has(.lp) { scroll-behavior: smooth; }
 .legal-doc a:hover { color: var(--accent-ink); }
 /* Contact */
 .lp-contact { display: flex; flex-direction: column; align-items: center; text-align: center; padding-top: 16px; }
-.lp .lp-contact-mail { display: flex; align-items: center; gap: 20px; width: 100%; max-width: 620px; margin-top: 40px; padding: 24px 28px; border-radius: 28px; background: var(--tint); border: 1px solid #ffd7c0; text-align: left; transition: transform .3s cubic-bezier(.22, 1, .36, 1); }
+.lp-contact-mail-wrap { position: relative; width: 100%; max-width: 620px; margin-top: 40px; }
+.lp .lp-contact-mail { display: flex; align-items: center; gap: 20px; width: 100%; padding: 24px 120px 24px 28px; border-radius: 28px; background: var(--tint); border: 1px solid #ffd7c0; text-align: left; transition: transform .3s cubic-bezier(.22, 1, .36, 1); }
 .lp .lp-contact-mail:hover { transform: translateY(-3px); }
 .lp-contact-mail .lp-include-icon { flex-shrink: 0; margin: 0; }
 .lp-contact-mail-copy { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .lp-contact-mail-copy strong { font-family: var(--font-fredoka), sans-serif; font-weight: 500; font-size: clamp(20px, 2.6vw, 26px); letter-spacing: -.015em; overflow-wrap: anywhere; }
 .lp-contact-mail-copy span { font-size: 14px; color: var(--muted); }
+.lp-contact-copy { position: absolute; top: 50%; right: 24px; transform: translateY(-50%); display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 999px; border: 1px solid #ffd7c0; background: #fff; color: var(--ink); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; transition: background .16s ease, border-color .16s ease; }
+.lp-contact-copy:hover { border-color: #f5b48f; }
+.lp-contact-copy:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
 .lp-contact-ways { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; width: 100%; max-width: 620px; margin-top: 16px; }
 .lp .lp-contact-ways a.lp-card { transition: border-color .16s ease, transform .3s cubic-bezier(.22, 1, .36, 1); }
 .lp .lp-contact-ways a.lp-card:hover { border-color: #cfcabe; transform: translateY(-3px); }
@@ -755,6 +779,7 @@ html:has(.lp) { scroll-behavior: smooth; }
   .legal-doc { padding: 32px 22px 36px; border-radius: 28px; }
   .legal-doc h1 + p, .legal-updated + p { font-size: 17px; margin-top: 24px; }
   .legal-doc h2 { font-size: 23px; margin-top: 36px; }
-  .lp-contact-mail { flex-direction: column; align-items: flex-start; gap: 14px; padding: 22px; }
+  .lp .lp-contact-mail { flex-direction: column; align-items: flex-start; gap: 14px; padding: 22px; }
+  .lp-contact-copy { top: 22px; right: 22px; transform: none; }
   .lp-contact-ways { grid-template-columns: 1fr; }
 }

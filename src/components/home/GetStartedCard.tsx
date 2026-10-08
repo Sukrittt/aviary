@@ -2,18 +2,23 @@ import { motion, useReducedMotion } from 'motion/react'
 import { Check, ChevronRight, CirclePlus, Compass, WalletCards } from 'lucide-react'
 
 type Props = {
+  incomeDone: boolean
   manualTransactionDone: boolean
   guidedTourDone: boolean
+  onAddIncome: () => void
   onAddTransaction: () => void
   onTakeTour: () => void
   onSkip: () => void
 }
 
-/** Setup is done; the two remaining milestones are shared across devices. */
-export function GetStartedCard({ manualTransactionDone, guidedTourDone, onAddTransaction, onTakeTour, onSkip }: Props) {
+/** Setup is done but can skip income, so the first step stays open until the
+ * envelopes have money to hold. The other two milestones are shared across devices. */
+export function GetStartedCard({ incomeDone, manualTransactionDone, guidedTourDone, onAddIncome, onAddTransaction, onTakeTour, onSkip }: Props) {
   const reduce = useReducedMotion()
   const steps = [
-    { key: 'budget', icon: WalletCards, label: 'Set up your budget', hint: 'Your envelopes are ready', done: true },
+    incomeDone
+      ? { key: 'budget', icon: WalletCards, label: 'Set up your budget', hint: 'Your envelopes are ready', done: true }
+      : { key: 'budget', icon: WalletCards, label: 'Add your income', hint: 'Give your envelopes money to hold', done: false, onClick: onAddIncome },
     { key: 'transaction', icon: CirclePlus, label: 'Add a manual transaction', hint: 'Log one expense by hand', done: manualTransactionDone, onClick: onAddTransaction },
     { key: 'tour', icon: Compass, label: 'Take a guided tour', hint: 'See where everything lives', done: guidedTourDone, onClick: onTakeTour },
   ]

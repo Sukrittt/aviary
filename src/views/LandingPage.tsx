@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { preload } from 'react-dom'
-import { BarWidget, EnvelopeWidget } from '../components/landing/mobile/Widget'
+import { MiniWidget, EnvelopeWidget } from '../components/landing/mobile/Widget'
 import { ArrowRight, ChevronUp, Github, MessageSquareText, Monitor, Repeat, ScanLine, Smartphone, WifiOff } from 'lucide-react'
 import { Playground } from '../components/landing/Playground'
 import { AddedClip, Faq, LandingMotion } from '../components/landing/LandingClient'
@@ -54,7 +54,11 @@ function StoreLink({ placement, children = 'Get it on Android' }: { placement: s
   return <TrackedLink className="lp-button lp-button--dark" href={PLAY_STORE} event="store_cta_clicked" properties={{ placement }}><Smartphone size={18} aria-hidden="true" />{children}</TrackedLink>
 }
 
-export function LandingPage({ monthlyPrice }: { monthlyPrice?: string }) {
+/**
+ * `ios` swaps every Play Store CTA for the iPhone waitlist: the Android link is a dead end on iPhone.
+ * `android` drops the waitlist: they can install today. Desktop keeps both, since it could be either phone.
+ */
+export function LandingPage({ monthlyPrice, ios = false, android = false }: { monthlyPrice?: string; ios?: boolean; android?: boolean }) {
   const afterTrial = monthlyPrice ? <> · Then {monthlyPrice}/month</> : null
   // The hero stage is the mobile LCP element, and this background is its paint.
   // As a CSS url() it's only found once the stylesheet has loaded; the preload
@@ -68,17 +72,19 @@ export function LandingPage({ monthlyPrice }: { monthlyPrice?: string }) {
         FORM: User-pinned moonjar.ai structure: centered statements, one framed demo per section, founder card, quiet close.
         FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md */}
     <a href="#learns" className="lp-skip">Skip to how Aviary learns</a>
-    <LandingHeader />
+    <LandingHeader ios={ios} />
 
     <section className="lp-hero" aria-labelledby="landing-title">
       <a className="lp-early" href={FEEDBACK_BOARD_URL} target="_blank" rel="noreferrer"><b>Early access</b><span className="lp-early-desktop">Your feedback shapes what we build next</span><span className="lp-early-mobile">Help shape Aviary</span><ArrowRight size={14} aria-hidden="true" /></a>
       <h1 id="landing-title">Aviary <span className="lp-learns">learns<svg viewBox="0 0 200 14" preserveAspectRatio="none" aria-hidden="true"><path d="M3 10 C 40 3, 70 3, 100 8 S 160 13, 197 5" /></svg></span><br />your spending.</h1>
       <p>It notices your <RotatingHabit /> and nudges you<br className="lp-desktop-break" /> while it’s still fresh. One tap and it’s logged.</p>
-      <div className="lp-hero-actions">
-        <StoreLink placement="hero" />
-        <a className="lp-button lp-button--ghost" href="#learns">See how it learns <ArrowRight size={17} aria-hidden="true" /></a>
-      </div>
-      <span className="lp-hero-note">Free for 45 days{afterTrial} · No card needed · <Link href="/expense">Also on the web</Link></span>
+      {ios
+        ? <IosWaitlist placement="hero" className="lp-waitlist--hero" />
+        : <div className="lp-hero-actions">
+          <StoreLink placement="hero" />
+          <a className="lp-button lp-button--ghost" href="#learns">See how it learns <ArrowRight size={17} aria-hidden="true" /></a>
+        </div>}
+      <span className="lp-hero-note">Free for 45 days{afterTrial} · No card needed · <Link href="/expense">{ios ? 'Use it on the web today' : 'Also on the web'}</Link></span>
     </section>
     <div className="lp-stage-wrap"><HeroStage /></div>
 
@@ -100,7 +106,7 @@ export function LandingPage({ monthlyPrice }: { monthlyPrice?: string }) {
       <div className="lp-shots">
         <figure className="lp-shot">
           <div className="lp-shot-art lp-shot-home" aria-hidden="true">
-            <div className="lp-shot-phone lp-shot-phone--home"><BarWidget /><EnvelopeWidget /></div>
+            <div className="lp-shot-phone lp-shot-phone--home"><MiniWidget /><EnvelopeWidget /></div>
           </div>
           <figcaption><strong>Your home screen</strong><span>See what’s left at a glance. Tap + and you’re on the keypad.</span></figcaption>
         </figure>
@@ -198,9 +204,9 @@ export function LandingPage({ monthlyPrice }: { monthlyPrice?: string }) {
     <section id="get" className="lp-section lp-close" aria-labelledby="get-title">
       <span className="lp-close-bird"><BirdLanding size={120} alive /></span>
       <h2 id="get-title" className="lp-h2">Your money, noticed.</h2>
-      <div className="lp-hero-actions"><StoreLink placement="footer_cta" /><Link href="/expense" className="lp-button lp-button--ghost"><Monitor size={18} aria-hidden="true" />Open web app</Link></div>
+      <div className="lp-hero-actions">{!ios && <StoreLink placement="footer_cta" />}<Link href="/expense" className="lp-button lp-button--ghost"><Monitor size={18} aria-hidden="true" />Open web app</Link></div>
       <span className="lp-hero-note">Free for 45 days{afterTrial} · No card needed · <a href={GITHUB} target="_blank" rel="noreferrer">Open source</a></span>
-      <IosWaitlist />
+      {!android && <IosWaitlist />}
     </section>
     <LandingFooter />
   </div></LandingMotion>

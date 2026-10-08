@@ -12,13 +12,15 @@ export const GITHUB = 'https://github.com/Sukrittt/aviary-mobile'
  * and '/' elsewhere (anchors go home first). `faq` points the FAQ links at a
  * page's own questions when it has them (pricing does).
  */
-export function LandingHeader({ base = '', faq = `${base}#faq` }: { base?: string; faq?: string }) {
+export function LandingHeader({ base = '', faq = `${base}#faq`, ios = false }: { base?: string; faq?: string; ios?: boolean }) {
   return <header className="lp-header"><div className="lp-header-inner">
     <a href={base || '#top'} className="lp-logo" aria-label="Aviary home"><BirdMark size={30} perched /><span>Aviary<b aria-hidden="true">.</b></span></a>
     <nav className="lp-nav" aria-label="Main navigation"><a href={`${base}#learns`}>How it learns</a><a href={`${base}#why`}>Why log it</a><a href={`${base}#play`}>Try it</a><Link href="/legal/pricing">Pricing</Link><a href={faq}>FAQ</a></nav>
     <div className="lp-header-actions">
       <Link href="/sign-in" className="lp-header-signin">Sign in</Link>
-      <TrackedLink className="lp-header-cta" href={PLAY_STORE_URL} event="store_cta_clicked" properties={{ placement: 'header' }}>Get the app</TrackedLink>
+      {ios
+        ? <a className="lp-header-cta" href={`${base}#top`}>Join waitlist</a>
+        : <TrackedLink className="lp-header-cta" href={PLAY_STORE_URL} event="store_cta_clicked" properties={{ placement: 'header' }}>Get the app</TrackedLink>}
     </div>
   </div></header>
 }
