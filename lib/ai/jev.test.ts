@@ -11,7 +11,7 @@ vi.mock('../systemSettings', () => ({
   getSystemSettings: async () => ({ aiDisabled: false }),
 }))
 
-const { pickCategory, pickHoldingType, pickBudgetBuckets } = await import('./jev')
+const { pickCategory, pickHoldingType, pickBudgetBuckets, scoreCategory } = await import('./jev')
 const caller = { userId: 'user_1', feature: 'suggest' as const }
 const usage = { inputTokens: 40, outputTokens: 1, totalTokens: 41 }
 
@@ -61,11 +61,33 @@ describe('pickCategory', () => {
   it('logs usage on success and on failure', async () => {
     evaluate.mockResolvedValue(answer('Food', { Food: 1 }))
     await pickCategory('pizza', ['Food'], caller)
-    expect(logMock).toHaveBeenCalledWith(caller, 'typesafe-ai/jev', expect.any(Number), { promptTokenCount: 40, candidatesTokenCount: 1 }, null)
+    expect(logMock).toHaveBeenCalledWith(caller, 'typesafe-ai/jev', expect.any(Number), { promptTokenCount: 40, candidatesTokenCount: 1 }, null, expect.any(Number))
 
     evaluate.mockRejectedValue(new Error('gateway down'))
     await expect(pickCategory('pizza', ['Food'], caller)).rejects.toThrow('gateway down')
-    expect(logMock).toHaveBeenLastCalledWith(caller, 'typesafe-ai/jev', expect.any(Number), undefined, expect.any(Error))
+    expect(logMock).toHaveBeenLastCalledWith(caller, 'typesafe-ai/jev', expect.any(Number), undefined, expect.any(Error), expect.any(Number))
+  })
+})
+
+describe('scoreCategory', () => {
+  it('returns the confident pick with its probability', async () => {
+    evaluate.mockResolvedValue(answer('Food', { Food: 0.93, Travel: 0.07 }))
+    expect(await scoreCategory('swiggy dinner', ['Food', 'Travel'], caller)).toEqual({ choice: 'Food', probability: 0.93 })
+  })
+
+  it('keeps the probability but drops the pick below the bar', async () => {
+    evaluate.mockResolvedValue(answer('Shopping', { Shopping: 0.62, Food: 0.38 }))
+    expect(await scoreCategory('zxqv 42', ['Shopping', 'Food'], caller)).toEqual({ choice: '', probability: 0.62 })
+  })
+
+  it('reports no probability when no distribution comes back', async () => {
+    evaluate.mockResolvedValue(answer('Travel'))
+    expect(await scoreCategory('uber', ['Food', 'Travel'], caller)).toEqual({ choice: 'Travel', probability: null })
+  })
+
+  it('never returns a category outside the list', async () => {
+    evaluate.mockResolvedValue(answer('Groceries', { Groceries: 1 }))
+    expect(await scoreCategory('milk', ['Food', 'Travel'], caller)).toEqual({ choice: '', probability: null })
   })
 })
 

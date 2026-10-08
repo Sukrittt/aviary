@@ -494,6 +494,7 @@
 }
 .erd-home-main { position: relative; }
 .erd-home-main > .home-get-started-slot { flex-shrink: 0; overflow: hidden; }
+.erd-home-main > .home-learning-slot { flex-shrink: 0; overflow: hidden; }
 @media (min-width: 1280px) {
   .erd-home {
     grid-template-columns: minmax(0, 1fr) clamp(300px, 27%, 400px);
@@ -841,8 +842,14 @@
 .erd-home-main > *,
 .erd-home-rail > *,
 .env2-group,
-.env-page > .env-group-list > .env-group {
+.env-page > .env-group-list {
   animation: erd-fadeUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+/* The Envelopes list fades in as one, not per card: a drag reorder moves a card in the DOM,
+   which restarts its CSS animation, and that animation then overrides the drag's transform,
+   throwing the held card off the cursor. */
+.env-page > .env-group-list {
+  animation-delay: 0.14s;
 }
 .erd-home-main > :nth-child(2),
 .erd-home-rail > :nth-child(1) {
@@ -858,6 +865,7 @@
 /* Motion owns these transforms so the onboarding insert/remove can move
    its siblings without the dashboard entrance animation fighting it. */
 .erd-home-main > .home-get-started-slot,
+.erd-home-main > .home-learning-slot,
 .erd-home-main > .erd-envelopes-panel,
 .erd-home-main > .erd-home-insights-link {
   animation: none;
@@ -886,7 +894,7 @@
   .erd-home-main > *,
   .erd-home-rail > *,
   .env2-group,
-  .env-page > .env-group-list > .env-group,
+  .env-page > .env-group-list,
   .env2-bar .env-bar-fill {
     animation: none;
   }
@@ -3512,9 +3520,10 @@
 }
 .expense-redesign .txn-timeline-row {
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) auto;
+  grid-template-columns: auto 44px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 14px;
+  --txn-row-gap: 14px;
+  gap: var(--txn-row-gap);
   min-height: 72px;
   padding: 13px 6px;
   border-bottom: 1px solid var(--erd-border);
@@ -3525,6 +3534,10 @@
 .expense-redesign .txn-timeline-row:hover,
 .expense-redesign .txn-timeline-row.is-open {
   background: color-mix(in oklab, var(--erd-card-solid) 54%, transparent);
+}
+/* Lift the open row so its menu paints over the rows below it. */
+.expense-redesign .txn-timeline-row.is-open {
+  z-index: 2;
 }
 .expense-redesign .txn-timeline-row:last-child {
   border-bottom: 0;
@@ -3554,6 +3567,137 @@
   position: relative;
   z-index: 2;
   pointer-events: none;
+}
+/* Multi-select: a small check slides in beside each avatar (same ring as
+   onboarding's .setup-pick-check), pops gold and draws its tick when picked.
+   Its slot is always there at zero width (the negative margin eats the grid
+   gap), so entering select mode grows it and the row content glides right. */
+.expense-redesign .txn-check-slot {
+  display: flex;
+  width: 0;
+  margin-right: calc(-1 * var(--txn-row-gap));
+  transition:
+    width 280ms cubic-bezier(0.22, 1, 0.36, 1),
+    margin-right 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.expense-redesign .txn-timeline-list.is-selecting .txn-check-slot {
+  width: 22px;
+  margin-right: 0;
+}
+.expense-redesign .txn-check {
+  flex: none;
+  position: relative;
+  z-index: 2;
+  width: 22px;
+  height: 22px;
+  border-radius: 11px;
+  border: 1.5px solid var(--erd-border-strong);
+  color: var(--erd-on-accent);
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(0.5);
+  transition:
+    opacity 180ms ease,
+    transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    background-color 140ms,
+    border-color 140ms;
+}
+.expense-redesign .txn-timeline-list.is-selecting .txn-check {
+  opacity: 1;
+  transform: scale(1);
+  transition-delay: 80ms, 80ms, 0ms, 0ms;
+}
+.expense-redesign .txn-check.is-on {
+  border-color: var(--gold);
+  background: var(--gold);
+  animation: txn-check-pop 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.expense-redesign .txn-check svg {
+  width: 13px;
+  height: 13px;
+}
+.expense-redesign .txn-check path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: erd-check-draw 260ms ease 60ms forwards;
+}
+@keyframes txn-check-pop {
+  0% { transform: scale(0.7); }
+  55% { transform: scale(1.18); }
+  100% { transform: scale(1); }
+}
+.expense-redesign .txn-timeline-row {
+  transition: transform 140ms, background-color 140ms;
+}
+.expense-redesign .txn-timeline-row:has(.txn-row-trigger:active) {
+  transform: scale(0.985);
+}
+.expense-redesign .txn-timeline-row.is-selected {
+  background: color-mix(in oklab, var(--gold) 7%, transparent);
+}
+.expense-redesign .txn-select-bar {
+  position: sticky;
+  bottom: calc(56px + env(safe-area-inset-bottom));
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  max-width: 100%;
+  margin: 16px auto 0;
+  padding: 6px 6px 6px 18px;
+  border-radius: 999px;
+  background: var(--erd-card-solid);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.15);
+}
+.expense-redesign .txn-select-count {
+  display: inline-block;
+  margin-right: 6px;
+  font: 700 14px/1.3 var(--font-nunito);
+  color: var(--erd-text);
+  white-space: nowrap;
+}
+.expense-redesign .txn-select-delete {
+  padding: 8px 16px;
+  border: 0;
+  border-radius: 100px;
+  background: var(--coral);
+  color: var(--erd-on-accent);
+  font: 600 13px var(--font-fredoka);
+  cursor: pointer;
+  transition: opacity 140ms, scale var(--dur-press) var(--ease-press);
+}
+.expense-redesign .txn-select-delete:active:enabled,
+.expense-redesign .txn-select-close:active:enabled {
+  scale: 0.94;
+}
+.expense-redesign .txn-select-delete:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.expense-redesign .txn-select-close {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 17px;
+  background: var(--erd-input-bg);
+  color: var(--erd-text2);
+  cursor: pointer;
+  transition: scale var(--dur-press) var(--ease-press);
+}
+@media (prefers-reduced-motion: reduce) {
+  .expense-redesign .txn-check,
+  .expense-redesign .txn-check.is-on,
+  .expense-redesign .txn-check path,
+  .expense-redesign .txn-check-slot {
+    animation: none;
+    transition: none;
+    stroke-dashoffset: 0;
+  }
 }
 .expense-redesign .txn-timeline-body {
   display: flex;
@@ -3746,8 +3890,9 @@
     font-size: 13px;
   }
   .expense-redesign .txn-timeline-row {
-    grid-template-columns: 40px minmax(0, 1fr) auto;
-    gap: 11px;
+    grid-template-columns: auto 40px minmax(0, 1fr) auto;
+    --txn-row-gap: 11px;
+    gap: var(--txn-row-gap);
     min-height: 66px;
     padding-block: 11px;
   }
@@ -5409,6 +5554,17 @@
   max-width: 560px;
 }
 
+/* Sets up the first-week recap from day 0. */
+.setup-done-promise {
+  margin: 14px 0 0;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--gold) 16%, transparent);
+  color: var(--erd-text);
+  font: 800 14px/1.4 var(--font-nunito);
+  animation: setup-fade-in 0.4s 170ms both;
+}
+
 .setup-done-list {
   width: 100%;
   max-width: 560px;
@@ -6562,189 +6718,6 @@ button.account-feature-card {
   cursor: default;
 }
 
-.legal-page {
-  min-height: 100vh;
-  min-height: 100dvh;
-  height: auto;
-  overflow: visible;
-  padding: 32px 20px 64px;
-  font-family: var(--font-nunito);
-  color: var(--erd-text);
-}
-
-.legal-shell {
-  max-width: 640px;
-  margin: 0 auto;
-}
-
-.legal-back {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-family: var(--font-fredoka);
-  font-size: 26px;
-  font-weight: 600;
-  letter-spacing: -0.035em;
-  color: var(--erd-text);
-  text-decoration: none;
-  margin-bottom: 28px;
-}
-
-.legal-back svg,
-.legal-back b {
-  color: var(--gold-ink);
-}
-
-.legal-back b {
-  font-weight: inherit;
-}
-
-.legal-back .bird-idle-eyelid {
-  display: none;
-}
-
-.legal-doc {
-  background: var(--erd-card);
-  border: 1px solid var(--erd-border-strong);
-  border-radius: 20px;
-  padding: 32px;
-  line-height: 1.6;
-}
-
-.legal-doc h1 {
-  font-family: var(--font-fredoka);
-  font-size: 26px;
-  font-weight: 600;
-  margin: 0 0 4px;
-}
-
-.legal-doc h2 {
-  font-family: var(--font-fredoka);
-  font-size: 17px;
-  font-weight: 600;
-  margin: 28px 0 8px;
-}
-
-.legal-doc p,
-.legal-doc li {
-  font-size: 14px;
-  color: var(--erd-text2);
-}
-
-.legal-doc ul {
-  margin: 8px 0;
-  padding-left: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.legal-doc a {
-  color: var(--gold-ink);
-}
-
-.legal-pricing-plans {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-  margin: 16px 0 20px;
-}
-
-.legal-plan-card {
-  padding: 24px;
-  border: 1px solid var(--erd-border-strong);
-  border-radius: 16px;
-  background: var(--erd-bg);
-}
-
-.legal-plan-card--yearly {
-  border-color: var(--gold);
-  background: var(--gold-soft);
-}
-
-.legal-plan-heading {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  min-height: 28px;
-}
-
-.legal-plan-heading h3 {
-  margin: 0;
-  font-family: var(--font-fredoka);
-  font-size: 18px;
-  font-weight: 500;
-}
-
-.legal-plan-saving {
-  padding: 3px 10px;
-  border-radius: 999px;
-  background: var(--erd-card);
-  color: var(--gold-ink);
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.legal-doc .legal-plan-price {
-  margin: 18px 0 8px;
-  color: var(--erd-text);
-  line-height: 1.2;
-}
-
-.legal-plan-price strong {
-  font-family: var(--font-fredoka);
-  font-size: 36px;
-  font-weight: 500;
-  letter-spacing: -0.025em;
-}
-
-.legal-plan-price span {
-  display: inline-block;
-  color: var(--erd-text2);
-  font-size: 13px;
-}
-
-.legal-doc .legal-plan-billing {
-  margin: 0;
-  font-size: 13px;
-}
-
-@media (max-width: 520px) {
-  .legal-doc {
-    padding: 24px 20px;
-  }
-
-  .legal-pricing-plans {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-}
-
-.legal-updated {
-  font-size: 12px;
-  color: var(--erd-text3);
-  margin: 0 0 20px;
-}
-
-.legal-footer-nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  margin-top: 24px;
-  font-size: 13px;
-}
-
-.legal-footer-nav a {
-  color: var(--erd-text3);
-  text-decoration: none;
-}
-
-.legal-footer-nav a:hover {
-  color: var(--gold-ink);
-}
-
 /* ── Envelopes screen (/expense/envelopes) ──────────────────── */
 /* Desktop counterpart of Mobile's envelopes tab. The mobile screen is one
    column of rows with a long-press action sheet; here the actions sit inline
@@ -6862,6 +6835,42 @@ button.account-feature-card {
 .env-icon-btn--danger:hover {
   color: var(--coral);
   background: var(--coral-soft);
+}
+
+.env-drag-handle {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 20px;
+  height: 34px;
+  margin-left: -8px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--erd-text3);
+  cursor: grab;
+  touch-action: none;
+}
+
+.env-drag-handle:hover {
+  color: var(--erd-text);
+}
+
+.env-drag-handle:active {
+  cursor: grabbing;
+}
+
+/* The card colour is translucent; the lifted row lays it over the page colour so nothing shows through. */
+.env-group.is-dragging,
+.env-cat.is-dragging {
+  background:
+    linear-gradient(var(--erd-card), var(--erd-card)),
+    var(--erd-bg);
+}
+
+/* Rows paint their own background so a dragged one doesn't show the rows beneath. */
+.env-cat-list > .env-cat {
+  background: var(--erd-card);
 }
 
 .env-cat-list {
@@ -7782,7 +7791,7 @@ button.account-feature-card {
   flex: 1;
   min-width: 0;
   min-height: 36px;
-  max-height: 120px;
+  max-height: 200px;
   resize: none;
   border: 0;
   outline: 0;
@@ -7928,6 +7937,244 @@ button.account-feature-card {
 }
 
 /* Expense Wrapped */
+/* The first-week recap opens the Wrapped player over the expense page. */
+.week-recap-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  overflow-y: auto;
+}
+/* Recap slides: same shell as Wrapped, plus a visual per slide (WeekRecapVisuals.tsx). */
+.week-recap-player .wrapped-story-copy h1 {
+  font-size: clamp(2.6rem, 7vw, 5rem);
+}
+.week-recap-player .wrapped-story-copy > p {
+  margin-top: 18px;
+}
+.week-recap-blobs {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+}
+.week-recap-blob {
+  position: absolute;
+  animation: erd-drift1 12s ease-in-out infinite;
+}
+.week-recap-blob--drift2 {
+  animation-name: erd-drift2;
+}
+.week-recap-blob--spin {
+  animation-name: week-recap-spin;
+  animation-timing-function: linear;
+}
+@keyframes week-recap-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.week-recap-hero {
+  margin-bottom: 18px;
+  line-height: 0;
+}
+.week-recap-dots {
+  width: min(100%, 420px);
+  display: flex;
+  gap: clamp(6px, 2.4vw, 18px);
+  margin-top: 30px;
+}
+/* Shrinks to fit: seven fixed 44px dots overflow a 320px phone. */
+.week-recap-dot-col {
+  flex: 1;
+  max-width: 44px;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+}
+.week-recap-dot-col small {
+  font-size: 0.8rem;
+  font-weight: 800;
+  opacity: 0.8;
+}
+.week-recap-dot {
+  width: 100%;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--wrapped-ink) 35%, transparent);
+  font-weight: 900;
+  font-size: 1.1rem;
+}
+.week-recap-dot.is-on {
+  border-color: var(--wrapped-ink);
+  background: var(--wrapped-ink);
+  color: var(--wrapped-bg);
+}
+.week-recap-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 30px;
+}
+.week-recap-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 9px 9px 20px;
+  border: 2px solid var(--wrapped-ink);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--wrapped-ink) 13%, transparent);
+  font: 600 1.35rem var(--font-fredoka), sans-serif;
+}
+.week-recap-chip b {
+  min-width: 40px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: var(--wrapped-ink);
+  color: var(--recap-bg);
+  font: 900 1rem var(--font-nunito), sans-serif;
+  text-align: center;
+}
+.week-recap-chip.is-first {
+  background: var(--wrapped-ink);
+  color: var(--recap-bg);
+}
+.week-recap-chip.is-first b {
+  background: var(--recap-bg);
+  color: var(--wrapped-ink);
+}
+.week-recap-arc {
+  width: min(420px, 100%);
+  margin-top: 26px;
+}
+.week-recap-arc-plot {
+  position: relative;
+}
+.week-recap-arc-plot svg {
+  display: block;
+}
+.week-recap-arc-bird {
+  position: absolute;
+  line-height: 0;
+}
+.week-recap-arc-bird svg {
+  width: 100%;
+  height: auto;
+}
+.week-recap-arc-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  opacity: 0.75;
+}
+.week-recap-bars {
+  width: min(520px, 100%);
+  display: grid;
+  gap: 20px;
+  margin-top: 28px;
+}
+.week-recap-stack {
+  display: flex;
+  height: 30px;
+  overflow: hidden;
+  border-radius: 15px;
+  transform-origin: left;
+}
+.week-recap-stack i {
+  background: var(--wrapped-ink);
+}
+.week-recap-legend {
+  display: grid;
+  gap: 11px;
+}
+.week-recap-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 1.05rem;
+}
+.week-recap-legend-row i {
+  width: 13px;
+  height: 13px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--wrapped-ink);
+}
+.week-recap-legend-row span {
+  flex: 1;
+  font-weight: 700;
+}
+.week-recap-legend-row strong {
+  font-weight: 900;
+}
+.week-recap-receipt {
+  width: min(400px, 100%);
+  display: grid;
+  gap: 11px;
+  margin-top: 30px;
+  padding: 22px 24px;
+  border-radius: 20px;
+  color: #2a2420;
+  background: #fffaf3;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.22);
+  rotate: -2deg;
+}
+.week-recap-receipt-head {
+  margin-bottom: 4px;
+  color: var(--recap-accent);
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+}
+.week-recap-receipt-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 18px;
+}
+.week-recap-receipt-row span {
+  color: rgba(42, 36, 32, 0.6);
+  font-weight: 700;
+}
+.week-recap-receipt-row strong {
+  overflow: hidden;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.week-recap-receipt hr {
+  width: 100%;
+  margin: 4px 0;
+  border: 0;
+  border-top: 2px dashed rgba(42, 36, 32, 0.2);
+}
+.week-recap-receipt-row.is-total span {
+  color: #2a2420;
+  font-weight: 900;
+}
+.week-recap-receipt-row.is-total strong {
+  color: var(--recap-accent);
+  font: 600 1.6rem var(--font-fredoka), sans-serif;
+}
+.week-recap-confetti {
+  position: fixed;
+  inset: 0 0 auto;
+  height: 420px;
+  pointer-events: none;
+}
+.week-recap-confetti .setup-confetti {
+  height: 420px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .week-recap-blob {
+    animation: none;
+  }
+}
 .wrapped-shell {
   min-height: 100dvh;
   background: #40395f;
@@ -9765,105 +10012,189 @@ button.account-feature-card {
   opacity: 0.6;
 }
 .archive-list {
+  /* AnimatePresence popLayout lifts a removed row out of flow against this. */
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  margin: 0;
+  padding: 0 0 4px;
 }
 .archive-list > li {
   display: flex;
   flex-direction: column;
-  gap: 6px;
 }
+/* Band headers read like Activity's day headers. */
 .archive-band {
-  padding: 8px 4px 0;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--erd-text3);
+  padding: 20px 6px 10px;
+  border-bottom: 1px solid var(--erd-border-strong);
+  font: 650 14px/1.25 var(--font-fredoka);
+  color: var(--erd-text);
+}
+.archive-list > li:first-child .archive-band {
+  padding-top: 4px;
 }
 .archive-band.is-coral {
   color: var(--coral);
 }
+/* Rows share Activity's grid: check slot, 44px kind tile, body, days left, actions. */
 .archive-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 44px minmax(0, 1fr) auto auto;
+  align-items: center;
+  --txn-row-gap: 14px;
+  gap: var(--txn-row-gap);
+  min-height: 72px;
+  padding: 13px 6px;
+  border-bottom: 1px solid var(--erd-border);
+  transition: background-color 140ms, transform 140ms;
+}
+.archive-list > li:last-child .archive-row {
+  border-bottom: 0;
+}
+.archive-row:hover {
+  background: color-mix(in oklab, var(--erd-card-solid) 54%, transparent);
+}
+.archive-row:has(.archive-row-pick:active) {
+  transform: scale(0.985);
+}
+.archive-row.is-selected {
+  background: color-mix(in oklab, var(--gold) 7%, transparent);
+}
+.archive-heading-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
+  gap: 8px;
 }
-.archive-row.is-urgent {
-  border-color: color-mix(in oklab, var(--coral) 35%, transparent);
+/* Select mode: a transparent button covers the whole row; the tick slot and
+   its animation are Activity's (.txn-check-slot / .txn-check). */
+.archive-row-pick {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border: 0;
+  border-radius: 14px;
+  background: none;
+  cursor: pointer;
+}
+.archive-row-pick:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: -2px;
+}
+.archive-row-pick:disabled {
+  cursor: default;
+}
+.archive-list.is-selecting .txn-check-slot {
+  width: 22px;
+  margin-right: 0;
+}
+.archive-list.is-selecting .txn-check {
+  opacity: 1;
+  transform: scale(1);
+  transition-delay: 80ms, 80ms, 0ms, 0ms;
+}
+.archive-list ~ .txn-select-bar {
+  margin-top: 12px;
+  margin-bottom: 0;
+}
+/* The bar's primary action is a filled gold Restore, Activity's Delete in restore clothes. */
+.archive-select-restore:enabled {
+  border-color: var(--gold);
+  background: var(--gold);
+  color: var(--erd-on-accent);
+}
+.account-compact-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 .archive-kind {
-  width: 38px;
-  height: 38px;
-  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--erd-border);
-  border-radius: 12px;
+  border-radius: 15px;
   background: var(--erd-input-bg);
-  font-size: 17px;
+  color: var(--erd-text2);
+  position: relative;
+  z-index: 2;
+  pointer-events: none;
+}
+.archive-kind.is-expenses {
+  background: var(--gold-soft);
+  color: var(--gold-ink);
+}
+.archive-kind.is-budgets {
+  background: var(--mint-soft);
+  color: var(--mint);
+}
+.archive-kind.is-categories {
+  background: var(--violet-soft);
+  color: var(--violet);
+}
+.archive-kind.is-groups {
+  background: var(--blue-soft);
+  color: var(--blue);
+}
+.archive-kind.is-subscriptions {
+  background: var(--warn-soft);
+  color: var(--warn-ink);
+}
+.archive-kind.is-holdings {
+  background: var(--coral-soft);
+  color: var(--coral);
 }
 .archive-row-body {
-  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   min-width: 0;
+  position: relative;
+  z-index: 2;
+  pointer-events: none;
 }
 .archive-row-name {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  font-size: 14px;
-}
-.archive-row-name strong {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font: 650 15px var(--font-nunito);
+  color: var(--erd-text);
 }
-.archive-row-name span {
-  flex-shrink: 0;
-  font-weight: 700;
+.archive-row-meta {
+  font-size: 12px;
   color: var(--erd-text2);
   font-variant-numeric: tabular-nums;
 }
-.archive-row-clock {
-  width: 120px;
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
+.archive-days {
+  padding: 5px 10px;
+  border-radius: 999px;
   font-size: 12px;
   font-weight: 700;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  position: relative;
+  z-index: 2;
+  pointer-events: none;
 }
-.archive-row-clock > .is-coral {
+.archive-days.is-coral {
   color: var(--coral);
+  background: var(--coral-soft);
 }
-.archive-row-clock > .is-warn {
+.archive-days.is-warn {
   color: var(--warn-ink);
+  background: var(--warn-soft);
 }
-.archive-row-clock > .is-calm {
+.archive-days.is-calm {
   color: var(--erd-text2);
+  background: var(--erd-input-bg);
 }
-.archive-bar {
-  height: 3px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: var(--erd-border);
+.archive-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
-.archive-bar > div {
-  height: 100%;
-  border-radius: inherit;
-  transform-origin: left;
-}
-.archive-bar > .is-coral {
-  background: var(--coral);
-}
-.archive-bar > .is-warn {
-  background: var(--warn);
-}
-.archive-bar > .is-calm {
-  background: var(--erd-text3);
+.archive-row-actions .scan-icon-btn {
+  color: var(--erd-text2);
 }
 .archive-restore {
   min-width: 92px;
@@ -9877,16 +10208,13 @@ button.account-feature-card {
   color: var(--mint);
   opacity: 1;
 }
-.archive-pagination {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-}
 .archive-footnote {
-  padding: 4px 12px;
+  margin: 0;
+  padding: 0 12px 8px;
   text-align: center;
+  font-size: 12px;
   line-height: 1.5;
+  color: var(--erd-text3);
 }
 .expense-redesign .erd-modal-card.archive-confirm {
   width: 400px;
@@ -10678,12 +11006,11 @@ button.account-feature-card {
     z-index: 2;
   }
   .archive-row {
-    flex-wrap: wrap;
+    grid-template-columns: auto 44px minmax(0, 1fr) auto;
   }
-  .archive-row-clock {
-    width: auto;
-    flex: 1 0 100%;
-    order: 3;
+  .archive-row-actions {
+    grid-column: 3 / -1;
+    justify-content: flex-end;
   }
 }
 @media (max-width: 540px) {
@@ -11042,6 +11369,15 @@ button.account-feature-card {
   color: var(--erd-text2);
   text-align: center;
 }
+.erd-added-noticed {
+  margin-top: 16px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--mint-soft);
+  color: var(--erd-text);
+  font: 700 14px/1.3 var(--font-nunito);
+  text-align: center;
+}
 .erd-added-card {
   align-self: stretch;
   margin-top: 32px;
@@ -11216,6 +11552,125 @@ button.account-feature-card {
   /* Step springs own the reveal; avoid the dashboard's second entrance. */
   animation: none;
 }
+.expense-redesign .home-learning {
+  flex-shrink: 0;
+  display: grid;
+  gap: 16px;
+  padding: 20px 24px;
+}
+.home-learning-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.home-learning-bird {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  flex: none;
+  border-radius: 16px;
+  color: var(--gold-ink);
+  background: color-mix(in srgb, var(--gold) 18%, transparent);
+}
+.home-learning h2 {
+  margin: 0;
+  font: 600 1.15rem var(--font-fredoka), sans-serif;
+  color: var(--erd-text);
+}
+.home-learning p {
+  margin: 2px 0 0;
+  font: 700 0.9rem var(--font-nunito);
+  color: var(--erd-text2);
+}
+.home-learning-days {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.home-learning-days li {
+  flex: 1;
+  max-width: 40px;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+}
+.home-learning-days span {
+  width: 100%;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--erd-border-strong);
+  border-radius: 50%;
+  font-weight: 900;
+  color: var(--gold-ink);
+}
+.home-learning-days li.is-on span {
+  border-color: var(--gold);
+  background: var(--gold);
+}
+.home-learning-days li.is-today span {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+/*
+ * Once the card has grown in, the circles pop in one after another (--i is
+ * the day's index), then the checks follow the same stagger. Today's circle
+ * keeps breathing after that.
+ */
+.home-learning-days span {
+  animation: home-learning-dot-in 0.4s cubic-bezier(0.3, 1.5, 0.5, 1) calc(250ms + var(--i) * 70ms) both;
+}
+.home-learning-days li.is-today span {
+  animation:
+    home-learning-dot-in 0.4s cubic-bezier(0.3, 1.5, 0.5, 1) calc(250ms + var(--i) * 70ms) both,
+    home-learning-pulse 1.6s ease-in-out calc(900ms + var(--i) * 70ms) infinite;
+}
+.home-learning-days li.is-on svg {
+  animation: home-learning-tick 0.42s cubic-bezier(0.3, 1.6, 0.5, 1) calc(520ms + var(--i) * 70ms) both;
+}
+@keyframes home-learning-dot-in {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes home-learning-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.86);
+  }
+}
+@keyframes home-learning-tick {
+  from {
+    opacity: 0;
+    transform: scale(0.2) rotate(-25deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-learning-days span,
+  .home-learning-days li.is-today span,
+  .home-learning-days li.is-on svg {
+    animation: none;
+  }
+}
+.home-learning-days small {
+  font: 800 0.72rem var(--font-nunito);
+  color: var(--erd-text2);
+}
 .expense-redesign .get-started-heading { display: flex; align-items: flex-start; gap: 12px; }
 .expense-redesign .get-started-heading > div { flex: 1; min-width: 0; }
 .expense-redesign .get-started-heading h2 { margin: 0; font-family: var(--font-fredoka); font-size: 17px; font-weight: 600; }
@@ -11294,4 +11749,463 @@ button.account-feature-card {
   .setup-pick-row, .setup-pick-check-icon { transition: none; }
   .setup-pick-row:has(.setup-pick-check:active), .setup-pick-check:active,
   .setup-cta:enabled:active, .setup-add-row:active, .setup-add-pill:active { transform: none; }
+}
+
+/* ── Logging by typing: the review card (src/components/CaptureReview.tsx) ── */
+.brain-turn {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.brain-ack-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  padding: 3px 10px 3px 7px;
+  border-radius: 100px;
+  background: var(--mint-soft);
+  color: var(--mint);
+  font-size: 12.5px;
+  font-weight: 800;
+}
+.brain-ack-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 8px;
+  color: var(--gold-ink);
+  font-size: 13.5px;
+  font-weight: 800;
+  text-decoration: none;
+}
+.brain-ack-link:hover {
+  text-decoration: underline;
+}
+.brain-inline-link {
+  display: block;
+  margin-top: 6px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--gold-ink);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.expense-redesign .capture-review {
+  display: grid;
+  gap: 0;
+  padding: 6px 14px 12px;
+  border: 1px solid var(--erd-border);
+  border-radius: 20px;
+  background: var(--erd-card);
+}
+.expense-redesign .capture-row {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto auto;
+  align-items: start;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--erd-border);
+}
+.expense-redesign .capture-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  background: var(--erd-input-bg);
+  font-size: 17px;
+}
+.expense-redesign .capture-row.is-incomplete .capture-icon {
+  background: var(--warn-soft);
+}
+.expense-redesign .capture-main {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.expense-redesign .capture-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.expense-redesign .capture-row-meta small,
+.expense-redesign .capture-money small {
+  color: var(--erd-text3);
+  font-size: 12px;
+}
+.expense-redesign .capture-item {
+  width: 100%;
+  min-width: 0;
+  padding: 2px 0;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--erd-text);
+  font: 700 15px var(--font-nunito);
+  outline: none;
+}
+.expense-redesign .capture-item:focus-visible {
+  box-shadow: 0 0 0 2px var(--gold-soft);
+}
+.expense-redesign .capture-money {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  padding-top: 2px;
+}
+.expense-redesign .capture-amount,
+.expense-redesign .balance-amount {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  color: var(--erd-text2);
+  font: 700 15px var(--font-nunito);
+}
+.expense-redesign .capture-amount input {
+  min-width: 2ch;
+  max-width: 12ch;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--erd-text);
+  font: inherit;
+  text-align: right;
+  outline: none;
+}
+.expense-redesign .capture-amount input:focus-visible {
+  box-shadow: 0 0 0 2px var(--gold-soft);
+}
+.expense-redesign .capture-amount.is-invalid input {
+  color: var(--warn-ink);
+}
+.expense-redesign .capture-remove,
+.expense-redesign .balance-account-remove {
+  display: inline-flex;
+  margin-top: 2px;
+  padding: 4px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--erd-text3);
+  cursor: pointer;
+}
+.expense-redesign .capture-remove:hover:not(:disabled),
+.expense-redesign .balance-account-remove:hover:not(:disabled) {
+  background: var(--erd-border);
+}
+.expense-redesign .capture-envelope.ui-select {
+  width: auto;
+  max-width: 100%;
+  gap: 4px;
+  padding: 3px 8px 3px 10px;
+  border-radius: 100px;
+  border-color: transparent;
+  background: var(--erd-input-bg);
+  color: var(--erd-text2);
+  font-size: 12.5px;
+}
+.expense-redesign .capture-envelope.ui-select .ui-select-chevron {
+  width: 13px;
+  height: 13px;
+}
+.expense-redesign .capture-envelope.ui-select.is-empty {
+  background: var(--warn-soft);
+}
+.expense-redesign .capture-envelope.ui-select.is-empty .ui-select-value {
+  color: var(--warn-ink);
+  font-weight: 700;
+}
+.expense-redesign .capture-hint {
+  margin: 10px 0 0;
+  color: var(--warn-ink);
+  font-size: 13px;
+}
+.expense-redesign .capture-unusual {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--warn-ink);
+  font-size: 12px;
+}
+.expense-redesign .capture-error,
+.expense-redesign .balance-error {
+  margin: 0;
+  color: var(--coral);
+  font-size: 13px;
+}
+.expense-redesign .capture-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+.expense-redesign .capture-actions .action-button.is-active {
+  min-width: 140px;
+}
+.expense-redesign .capture-summary {
+  align-self: flex-start;
+  padding: 8px 14px;
+  border-radius: 100px;
+  background: var(--erd-input-bg);
+  color: var(--erd-text3);
+  font: 600 13px var(--font-nunito);
+}
+.expense-redesign .capture-summary.is-logged {
+  background: var(--mint-soft);
+  color: var(--mint);
+}
+.erd-log-several {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 10px;
+  padding: 6px;
+  border: none;
+  background: none;
+  color: var(--erd-text2);
+  font: 600 13px var(--font-nunito);
+  cursor: pointer;
+}
+.erd-log-several:hover {
+  color: var(--gold-ink);
+}
+
+/* ── Weekly balance check (src/components/balance/) ── */
+.expense-redesign .balance-prompt {
+  display: grid;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.expense-redesign .balance-prompt h2 {
+  margin: 0;
+  font: 600 18px var(--font-fredoka);
+}
+.expense-redesign .balance-prompt p {
+  margin: 0;
+  color: var(--erd-text2);
+  font-size: 14px;
+}
+.expense-redesign .balance-prompt-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+.expense-redesign .balance-meter {
+  display: grid;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 0 4px;
+  border: none;
+  background: none;
+  color: var(--erd-text2);
+  font: 600 13px var(--font-nunito);
+  text-align: left;
+  cursor: pointer;
+}
+.expense-redesign .balance-meter-track {
+  display: block;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 100px;
+  background: var(--erd-border);
+}
+.expense-redesign .balance-meter-track i {
+  display: block;
+  height: 100%;
+  border-radius: 100px;
+  background: var(--gold);
+}
+.expense-redesign .balance-meter-track i.is-high {
+  background: var(--mint);
+}
+.expense-redesign .balance-card {
+  width: 520px;
+}
+.expense-redesign .balance-step {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+.expense-redesign .balance-intro {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--erd-border);
+  border-radius: 18px;
+  background: var(--erd-card);
+}
+.expense-redesign .balance-intro-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  background: var(--gold-soft);
+  font-size: 22px;
+}
+.expense-redesign .balance-intro p {
+  margin: 2px 0 0;
+  color: var(--erd-text2);
+  font-size: 13px;
+}
+.expense-redesign .balance-accounts {
+  display: grid;
+  gap: 8px;
+}
+.expense-redesign .balance-account {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--erd-border-strong);
+  border-radius: 14px;
+  background: var(--erd-input-bg);
+}
+.expense-redesign .balance-account:focus-within {
+  border-color: var(--gold);
+}
+.expense-redesign .balance-account-name {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  color: var(--erd-text);
+  font: 600 14px var(--font-nunito);
+  outline: none;
+}
+.expense-redesign .balance-account .balance-amount {
+  flex: 1;
+  font-size: 18px;
+}
+.expense-redesign .balance-account-name + .balance-amount {
+  flex: 0 0 auto;
+}
+.expense-redesign .balance-amount input {
+  width: 100%;
+  min-width: 90px;
+  border: none;
+  background: none;
+  color: var(--erd-text);
+  font-family: var(--font-nunito);
+  font-size: inherit;
+  font-weight: 700;
+  outline: none;
+}
+.expense-redesign .balance-account-name + .balance-amount input {
+  width: 120px;
+  text-align: right;
+}
+.expense-redesign .balance-total {
+  margin: 0;
+  text-align: right;
+  font-weight: 700;
+}
+.expense-redesign .balance-add {
+  justify-self: center;
+  padding: 4px 8px;
+  border: none;
+  background: none;
+  color: var(--gold-ink);
+  font: 700 13px var(--font-nunito);
+  cursor: pointer;
+}
+.expense-redesign .balance-title {
+  margin: 0;
+  font: 600 20px var(--font-fredoka);
+}
+.expense-redesign .balance-hint {
+  margin: 0;
+  color: var(--erd-text2);
+  font-size: 14px;
+}
+.expense-redesign .balance-step .erd-log-submit {
+  margin-top: 4px;
+}
+.expense-redesign .balance-field {
+  display: grid;
+  gap: 6px;
+  color: var(--erd-text3);
+  font: 600 12px var(--font-nunito);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.expense-redesign .balance-field .balance-amount {
+  padding: 10px 12px;
+  border: 1px solid var(--erd-border-strong);
+  border-radius: 14px;
+  background: var(--erd-input-bg);
+  font-size: 16px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.expense-redesign .balance-option {
+  position: relative;
+  display: grid;
+  gap: 2px;
+  padding: 12px 14px;
+  border: 1px solid var(--erd-border);
+  border-radius: 18px;
+  background: var(--erd-card);
+  color: var(--erd-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+.expense-redesign .balance-option:hover:not(:disabled) {
+  border-color: var(--gold);
+}
+.expense-redesign .balance-option:disabled:not(.is-success) {
+  opacity: 0.5;
+  cursor: default;
+}
+.expense-redesign .balance-option .sb-label {
+  display: grid;
+  gap: 2px;
+}
+.expense-redesign .balance-option small {
+  color: var(--erd-text2);
+  font-size: 13px;
+}
+.expense-redesign .balance-option.is-success {
+  border-color: var(--mint);
+  background: var(--mint);
+  color: var(--erd-on-accent);
+  cursor: default;
+}
+.expense-redesign .balance-option.is-success .sb-label {
+  visibility: hidden;
+}
+.expense-redesign .balance-option .sb-tick {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  animation: erd-success-pop 300ms ease forwards;
+}
+.expense-redesign .balance-option .sb-tick svg {
+  width: 22px;
+  height: 22px;
+}
+.expense-redesign .balance-option .sb-tick path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: erd-check-draw 350ms ease 220ms forwards;
+}
+.expense-redesign .balance-back {
+  justify-self: center;
 }

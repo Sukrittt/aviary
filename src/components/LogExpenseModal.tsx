@@ -3,11 +3,14 @@
 import { useCurrency } from '@/src/context/CurrencyContext'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Calendar, PencilLine, Plus, Tag, TriangleAlert, WalletMinimal } from 'lucide-react'
+import { Calendar, MessageSquareText, PencilLine, Plus, Tag, TriangleAlert, WalletMinimal } from 'lucide-react'
+import { useOptionalMoneyBrain } from '@/components/moneyBrainContext'
 import { Scrim, Sheet } from './MotionSheet'
 import { DatePicker, formatShort } from './DatePicker'
 import { getCategoryMap } from '../api/categoryMap'
 import { suggestCategoryLLM } from '../lib/autoCategory'
+import { MANUAL_LOG_EVENT } from '@/src/lib/captureTip'
+import { track } from '../lib/analytics'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
 import { AddCategoryModal } from './AddCategoryModal'
 import type { CategoryRow } from '../types'
@@ -50,6 +53,7 @@ function offsetDateValue(daysAgo: number): string {
 
 export function LogExpenseModal({ onClose, onSaved }: Props) {
   const { currencySymbol, formatMoney } = useCurrency()
+  const brain = useOptionalMoneyBrain()
 
   const categoriesQ = useCategories()
   const addExpenseM = useAddExpense()
@@ -78,6 +82,8 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
   // True while the category is one we picked, not one the user chose (the
   // Miscellaneous fallback doesn't count). Drives the "Picked for you" status.
   const [autoPicked, setAutoPicked] = useState(false)
+  // What made the current pick, for ai_category_suggested on save (same as mobile).
+  const suggestedBy = useRef<null | 'keyword' | 'ai'>(null)
   // "Picking…" is only shown for the slow AI fallback, and only once it's been
   // pending long enough to be worth showing (see thinkingGate.ts).
   const [suggesting, setSuggesting] = useState(false)
@@ -139,6 +145,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
   function applyLlmAnswer(value: string, llmCategory: string) {
     if (categoryTouchedRef.current || latestItemRef.current !== value) return
     if (llmCategory && categories.includes(llmCategory)) {
+      suggestedBy.current = 'ai'
       setCategory(llmCategory)
       setAutoPicked(true)
       // Mirror the server's word overrides so the same words match locally, instantly, next time.
@@ -165,6 +172,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
     categoryTouchedRef.current = false
     setCategory('')
     setAutoPicked(false)
+    suggestedBy.current = null
     const words = value.toLowerCase().split(/\s+/)
     for (const word of words) {
       const match = categoryWords[word]
@@ -174,6 +182,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
         : categories.find((c) => c.toLowerCase().includes(match.toLowerCase()))
       if (live) {
         gate.finish(() => {
+          suggestedBy.current = 'keyword'
           setCategory(live)
           setAutoPicked(true)
         })
@@ -264,6 +273,8 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
         date: date || undefined,
         source: 'manual',
       })
+      if (suggestedBy.current) track('ai_category_suggested', { accepted: autoPicked, source: suggestedBy.current })
+      window.dispatchEvent(new Event(MANUAL_LOG_EVENT))
       onSaved()
       reset()
       setUndoError('')
@@ -465,6 +476,18 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
               >
                 {warning ? `Save ${formatMoney(parsedAmount)} anyway` : 'Save expense'}
               </SuccessButton>
+              {brain && !saving && !success && (
+                <button
+                  type="button"
+                  className="erd-log-several"
+                  onClick={() => {
+                    onClose()
+                    brain.openCapture()
+                  }}
+                >
+                  <MessageSquareText size={14} aria-hidden="true" /> Log several at once
+                </button>
+              )}
             </div>
           </>
         )}

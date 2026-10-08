@@ -68,13 +68,10 @@ describe('ExpenseAdded', () => {
 })
 
 
-it('shows spending impact for a newly created category before the category list refreshes', () => {
+it('skips the card for a category with no money assigned', () => {
   renderAdded(expense({ category: 'Bike repairs', amount: 20, categorySnapshot: { name: 'Bike repairs', group: 'Needs' } }))
-  expect(screen.getByText('Bike repairs')).toBeInTheDocument()
-  expect(screen.getByText('No budget assigned')).toBeInTheDocument()
-  expect(screen.getByText('spent this month')).toBeInTheDocument()
-  expect(document.querySelector('.erd-added-bar')).toBeInTheDocument()
-  expect(screen.queryByText(/\/day to stay on track/)).not.toBeInTheDocument()
+  expect(screen.getByText('Added')).toBeInTheDocument()
+  expect(document.querySelector('.erd-added-card')).not.toBeInTheDocument()
 })
 
 

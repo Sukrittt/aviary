@@ -1,8 +1,16 @@
 import { pageMetadata, pages, SITE_URL } from '@/lib/seo'
+import { visitorPlanPrices } from '@/lib/billing/prices'
+import { formatPrice } from '@/src/components/billing/copy'
 import { LandingPage } from '../src/views/LandingPage'
 
+async function loadMonthlyPrice(): Promise<string | undefined> {
+  // Rendered per request: the price depends on the visitor's country.
+  const monthly = (await visitorPlanPrices())?.find((p) => p.period === 'monthly')
+  return monthly && formatPrice(monthly.amount, monthly.currency)
+}
 
-export default function Home() {
+export default async function Home() {
+  const monthlyPrice = await loadMonthlyPrice()
   const structuredData = {
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
@@ -20,7 +28,7 @@ export default function Home() {
       type="application/ld+json"
       dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, '\\u003c') }}
     />
-    <LandingPage />
+    <LandingPage monthlyPrice={monthlyPrice} />
   </>
 }
 

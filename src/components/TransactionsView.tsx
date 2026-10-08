@@ -3,7 +3,7 @@ import { ExpenseWriteError } from '../lib/expenseConflict';
 import { useCurrency } from "@/src/context/CurrencyContext";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { Copy, Plus, Search } from "lucide-react";
+import { Copy, Plus, Search, X } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { toTransactions, type Transaction } from "../lib/expenseTransactions";
 import { useBudgets } from "../hooks/useBudgets";
@@ -127,6 +127,11 @@ export function TransactionsView({
   // settles, so the rows below spring up at once. A failed delete puts one back.
   const [removedKeys, setRemovedKeys] = useState<ReadonlySet<string>>(() => new Set());
   const [deleteNotice, setDeleteNotice] = useState<{ status?: number } | null>(null);
+  // Multi-select: `selecting` swaps row clicks from the actions menu to toggling.
+  const [selecting, setSelecting] = useState(false);
+  const [selectedKeys, setSelectedKeys] = useState<ReadonlySet<string>>(() => new Set());
+  const [confirmBulk, setConfirmBulk] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
   const [showLogModal, setShowLogModal] = useState(false);
   const [actionsKey, setActionsKey] = useState<string | null>(null);
   const actionsMenuRef = useRef<HTMLDivElement | null>(null);
@@ -255,6 +260,20 @@ export function TransactionsView({
     setPage(1);
   }, [period, customStart, customEnd, selectedCategory, search]);
 
+  // Which rows are on screen; a bulk delete that finishes after it changed
+  // mustn't reselect its failures into a view that no longer shows them.
+  const viewKey = [page, period, customStart, customEnd, selectedCategory, search].join("|");
+  const viewKeyRef = useRef(viewKey);
+  useEffect(() => {
+    viewKeyRef.current = viewKey;
+  });
+  useEffect(() => {
+    // A selection only means the rows on screen: drop it when they change, so
+    // rows picked earlier can't come back selected and get swept into a delete.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSelectedKeys(new Set());
+  }, [page, period, customStart, customEnd, selectedCategory, search]);
+
   const totalCount = expensesQuery.data?.total ?? 0;
   const totalPages = expensesQuery.data?.pageCount ?? 1;
   const totalSpend = expensesQuery.data?.totalAmount ?? 0;
@@ -312,6 +331,67 @@ export function TransactionsView({
     }
   }
 
+  const visibleTransactions = transactionGroups.flatMap((g) => g.transactions);
+  const selectedTxns = visibleTransactions.filter((t) => selectedKeys.has(txnKey(t)));
+  // keepPreviousData shows the old page's rows while the new one loads; they
+  // aren't what the filter asked for, so nothing gets picked or deleted then.
+  const selectionLocked = bulkDeleting || expensesQuery.isPlaceholderData;
+  const allSelected = visibleTransactions.length > 0 && selectedTxns.length === visibleTransactions.length;
+
+  function exitSelecting() {
+    setSelecting(false);
+    setSelectedKeys(new Set());
+  }
+
+  function toggleSelected(t: Transaction) {
+    const key = txnKey(t);
+    setSelectedKeys((keys) => {
+      const next = new Set(keys);
+      if (!next.delete(key)) next.add(key);
+      return next;
+    });
+  }
+
+  // One request per row, in order: each delete runs its own server transaction
+  // (credit-card envelope rebalance included), so running them in parallel
+  // would just race those for no real speed-up at this list size.
+  async function handleBulkDelete(txns: Transaction[]) {
+    const keys = txns.map(txnKey);
+    setConfirmBulk(false);
+    setBulkDeleting(true);
+    setDeleteNotice(null);
+    // Optimistic: rows and the select bar go now; failures bring both back.
+    setRemovedKeys((prev) => new Set([...prev, ...keys]));
+    exitSelecting();
+    const startView = viewKeyRef.current;
+    const failed: Transaction[] = [];
+    let firstStatus: number | undefined;
+    for (const t of txns) {
+      try {
+        await deleteExpenseM.mutateAsync({
+          id: t.id,
+          version: t.version,
+          timestamp: t.timestamp,
+          item: t.item,
+          amountInr: t.amountInr,
+        });
+      } catch (err) {
+        if (!failed.length) firstStatus = err instanceof ExpenseWriteError ? err.status : undefined;
+        failed.push(t);
+      }
+    }
+    setBulkDeleting(false);
+    if (!failed.length) return;
+    // Failed rows come back, still selected, so a retry is one tap away.
+    const failedKeys = new Set(failed.map(txnKey));
+    setRemovedKeys((prev) => new Set([...prev].filter((k) => !failedKeys.has(k))));
+    if (viewKeyRef.current === startView) {
+      setSelecting(true);
+      setSelectedKeys(failedKeys);
+    }
+    setDeleteNotice({ status: firstStatus });
+  }
+
   const hasActiveFilters =
     period !== "week" || Boolean(selectedCategory) || Boolean(search.trim());
 
@@ -324,6 +404,19 @@ export function TransactionsView({
           <p>Review, search, and edit everything you have logged.</p>
         </div>
         <div className="txn-page-actions">
+          {visibleTransactions.length > 0 && !selecting && (
+            <button
+              type="button"
+              className="action-button"
+              disabled={bulkDeleting}
+              onClick={() => {
+                setActionsKey(null);
+                setSelecting(true);
+              }}
+            >
+              Select
+            </button>
+          )}
           {duplicates.length > 0 && (
             <button
               type="button"
@@ -453,7 +546,7 @@ export function TransactionsView({
       ) : (
         <motion.div
           key={page}
-          className="txn-timeline-list"
+          className={`txn-timeline-list${selecting ? " is-selecting" : ""}`}
           initial={reduce ? false : { opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: "tween", duration: 0.15, ease: "easeOut" }}
@@ -488,21 +581,49 @@ export function TransactionsView({
                   const rowKey = `${t.timestamp}-${t.item}-${t.amountInr}`;
                   const categoryName = splitEmoji(t.category).text;
                   const time = formatTransactionTime(t.timestamp);
+                  const isSelected = selecting && selectedKeys.has(txnKey(t));
                   return (
                     <DeletingRow
                       key={t.id || `t-${t.timestamp}-${i}`}
-                      className={`txn-timeline-row${actionsKey === rowKey ? " is-open" : ""}`}
+                      className={`txn-timeline-row${actionsKey === rowKey ? " is-open" : ""}${isSelected ? " is-selected" : ""}`}
                       active={pendingDelete?.id === t.id && pendingDelete?.timestamp === t.timestamp}
                       onDone={() => void handleDelete(t)}
                     >
-                      <button
-                        type="button"
-                        className="txn-row-trigger"
-                        aria-label={`Open actions for ${t.item}`}
-                        aria-haspopup="menu"
-                        aria-expanded={actionsKey === rowKey}
-                        onClick={() => toggleActions(rowKey)}
-                      />
+                      {selecting ? (
+                        <button
+                          type="button"
+                          className="txn-row-trigger"
+                          aria-label={`Select ${t.item}`}
+                          aria-pressed={isSelected}
+                          disabled={selectionLocked}
+                          onClick={() => toggleSelected(t)}
+                        />
+                      ) : (
+                        <button
+                          type="button"
+                          className="txn-row-trigger"
+                          aria-label={`Open actions for ${t.item}`}
+                          aria-haspopup="menu"
+                          aria-expanded={actionsKey === rowKey}
+                          onClick={() => toggleActions(rowKey)}
+                        />
+                      )}
+                      <span className="txn-check-slot" aria-hidden="true">
+                        <span className={`txn-check${isSelected ? " is-on" : ""}`}>
+                          {isSelected && (
+                            <svg viewBox="0 0 24 24" fill="none">
+                              <path
+                                d="M5 13l4 4L19 7"
+                                stroke="currentColor"
+                                strokeWidth={3}
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                pathLength={1}
+                              />
+                            </svg>
+                          )}
+                        </span>
+                      </span>
                       <span
                         className="txn-timeline-icon"
                         title={categoryName}
@@ -566,6 +687,57 @@ export function TransactionsView({
         </motion.div>
       )}
 
+      <AnimatePresence>
+        {selecting && (
+          <motion.div
+            className="txn-select-bar"
+            role="toolbar"
+            aria-label="Selected transactions"
+            initial={reduce ? false : { opacity: 0, y: 24, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={reduce ? { opacity: 0 } : { opacity: 0, y: 24, scale: 0.9, transition: { duration: 0.15 } }}
+            transition={{ type: "spring", mass: 0.8, damping: 14, stiffness: 220 }}
+          >
+            <motion.span
+              key={selectedTxns.length}
+              className="txn-select-count"
+              initial={reduce || selectedTxns.length === 0 ? false : { scale: 1.25 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", damping: 12, stiffness: 400 }}
+            >
+              {selectedTxns.length === 0 ? "Tap rows to pick them" : `${selectedTxns.length} selected`}
+            </motion.span>
+            <button
+              type="button"
+              className="action-button is-ghost"
+              disabled={selectionLocked}
+              onClick={() =>
+                setSelectedKeys(allSelected ? new Set() : new Set(visibleTransactions.map(txnKey)))
+              }
+            >
+              {allSelected ? "Clear" : "Select all"}
+            </button>
+            <button
+              type="button"
+              className="txn-select-delete"
+              disabled={selectedTxns.length === 0 || selectionLocked}
+              onClick={() => setConfirmBulk(true)}
+            >
+              {bulkDeleting ? "Deleting…" : "Delete"}
+            </button>
+            <button
+              type="button"
+              className="txn-select-close"
+              aria-label="Done selecting"
+              disabled={bulkDeleting}
+              onClick={exitSelecting}
+            >
+              <X size={16} strokeWidth={2.4} aria-hidden="true" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {!loading && !error && (
         <div className="txn-timeline-footer">
           <span>
@@ -620,6 +792,23 @@ export function TransactionsView({
                 queuedDelete.current = deleteTxn;
                 setDeleteTxn(null);
               }}
+            >
+              Remove
+            </button>
+          </ConfirmDialog>
+        )}
+        {confirmBulk && (
+          <ConfirmDialog
+            title={`Delete ${selectedTxns.length} transaction${selectedTxns.length === 1 ? "" : "s"}?`}
+            body={`${selectedTxns.length === 1 ? "It'll" : "They'll"} move to Archive. You can restore ${selectedTxns.length === 1 ? "it" : "them"} for 7 days.`}
+            cancelLabel="Cancel"
+            onCancel={() => setConfirmBulk(false)}
+          >
+            <button
+              type="button"
+              className="account-danger-btn"
+              style={{ marginTop: 0 }}
+              onClick={() => void handleBulkDelete(selectedTxns)}
             >
               Remove
             </button>

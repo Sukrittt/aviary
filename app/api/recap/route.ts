@@ -1,0 +1,42 @@
+import { json, nowIn, getCollection } from '@/lib/http'
+import { getAuth } from '@/lib/access'
+import { requireAccess } from '@/lib/billing/guard'
+import { getDb } from '@/lib/mongodb'
+import { EXPENSE_HEADERS, toRow } from '@/lib/models'
+import type { UserDoc } from '@/lib/users'
+import { computeWeekRecap, learningDay, onboardedDate, recapDue, recapWindow, type RecapRow } from '@/lib/weekRecap'
+
+export const dynamic = 'force-dynamic'
+
+/**
+ * The first-week recap, if this user should see it now. Both clients call
+ * this on launch and open the recap on `due: true`. Opening it PATCHes
+ * `weekRecapSeen` on /api/user, which turns `due` off on every device.
+ *
+ * During days 1 to 7, before it's due, `learning` reports the week so far
+ * for the Home "learning you" card.
+ */
+export async function GET(req: Request) {
+  const auth = await getAuth(req)
+  if (auth.readOnly) return json({ due: false })
+  const gate = await requireAccess(auth)
+  if (gate) return gate
+
+  const db = await getDb()
+  const user = await db.collection<UserDoc>('users').findOne({ _id: auth.userId })
+  const start = user ? onboardedDate(user) : null
+  if (!user || !start || user.weekRecapSeenAt) return json({ due: false })
+
+  const today = nowIn(user.timezone).date
+  const { end, dueFrom } = recapWindow(start)
+  const due = recapDue(start, user.weekRecapSeenAt, today)
+  const day = learningDay(start, today)
+  if (!due && !day) return json({ due: false })
+
+  // While learning, only through today: an expense dated later this week mustn't tick a future day.
+  const coll = await getCollection('expenses', auth)
+  const docs = await coll.find({ date: { $gte: start, $lte: due ? end : today } }).toArray()
+  const recap = computeWeekRecap(docs.map((d) => toRow(EXPENSE_HEADERS, d) as RecapRow), start)
+  if (due) return json({ due: true, recap })
+  return json({ due: false, learning: { day, loggedDates: recap.loggedDates, unlocksOn: dueFrom } })
+}

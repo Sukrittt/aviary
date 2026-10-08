@@ -7,6 +7,7 @@ import {
   resumeRecurringExpense,
   updateRecurringExpense,
 } from '@/src/api/recurringExpenses'
+import { track, type AppEvent } from '@/src/lib/analytics'
 
 export const recurringExpensesKey = ['recurring-expenses'] as const
 const key = recurringExpensesKey
@@ -19,11 +20,12 @@ export function useRecurringExpenses() {
   return useQuery({ queryKey: key, queryFn: getRecurringExpenses, staleTime: 30_000 })
 }
 
-function useRecurringMutation<TArgs>(mutationFn: (args: TArgs) => Promise<void>) {
+function useRecurringMutation<TArgs>(mutationFn: (args: TArgs) => Promise<void>, event?: AppEvent) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn,
     onSuccess: async () => {
+      if (event) track(event)
       // Awaited so a caller's own onSuccess (the add modal's close/navigate-back
       // timer) doesn't fire until the list has actually refetched — otherwise the
       // modal can dismiss back to a list that hasn't picked up the change yet.
@@ -34,7 +36,7 @@ function useRecurringMutation<TArgs>(mutationFn: (args: TArgs) => Promise<void>)
 }
 
 export function useAddRecurringExpense() {
-  return useRecurringMutation(addRecurringExpense)
+  return useRecurringMutation(addRecurringExpense, 'recurring_created')
 }
 
 export function useUpdateRecurringExpense() {

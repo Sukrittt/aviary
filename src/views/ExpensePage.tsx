@@ -39,7 +39,10 @@ import { useGroups } from "../hooks/useGroups";
 import { useSubscriptions, useCancelSubscription, useReactivateSubscription } from "../hooks/useSubscriptions";
 import { useHideAmounts } from "../hooks/useHideAmounts";
 import { GetStartedCard } from "../components/home/GetStartedCard";
+import { LearningCard } from "../components/home/LearningCard";
+import { BALANCE_CHECK_ENABLED, BalanceCheckCard } from "../components/balance/BalanceCheckCard";
 import { useUser } from "../hooks/useUser";
+import { WeekRecapGate } from "../components/wrapped/WeekRecap";
 import { usePersistentState } from "../hooks/usePersistentState";
 import { LogExpenseModal } from "../components/LogExpenseModal";
 import { SuccessButton, useButtonPhase } from "../components/SuccessButton";
@@ -302,6 +305,7 @@ export function ExpensePage() {
 
   return (
     <section className="expense-redesign">
+      <WeekRecapGate />
       {actionError && (
         <div className="erd-action-error" role="alert">
           {actionError}
@@ -438,6 +442,12 @@ export function ExpensePage() {
                   </motion.div>
                 )}
               </AnimatePresence>
+
+              <LearningCard />
+
+              {/* The weekly balance check keeps these totals honest without bank
+                  linking: a prompt when one is due, else the logged meter. */}
+              {BALANCE_CHECK_ENABLED && <BalanceCheckCard />}
 
               {envelopeState && (
                 <motion.article

@@ -4,10 +4,19 @@ import { getAuth, type Auth } from '@/lib/access'
 import { requireAccess } from '@/lib/billing/guard'
 import { buildExpenseContext, factsFor } from '@/lib/ai/expenseContext'
 import { buildSystemPrompt, SCOPE_REFUSAL } from '@/lib/ai/moneyBrainPrompt'
-import { routeChat } from '@/lib/ai/chatRouter'
+import { routeChat, type ChatRoute } from '@/lib/ai/chatRouter'
 import { createEmDashScrubber } from '@/lib/ai/emDash'
 import { streamText } from '@/lib/ai/gemini'
-import { makeTitle, type StoredChatMessage } from '@/lib/ai/chatSessions'
+import { MAX_SESSION_MESSAGES, captureMessage, makeTitle, type StoredChatMessage } from '@/lib/ai/chatSessions'
+import {
+  buildCaptureProposal,
+  captureReplyText,
+  CAPTURE_DEMO,
+  CAPTURE_FAILED,
+  CAPTURE_HEADER,
+  CAPTURE_UNSUPPORTED,
+  type CaptureProposal,
+} from '@/lib/ai/capture'
 import { COLLECTIONS } from '@/lib/models'
 import { isRateLimited } from '@/lib/rateLimit'
 import { aiDisabledResponse } from '@/lib/systemSettings'
@@ -24,7 +33,6 @@ const ROUTING_CONTEXT_TURNS = 2
 // long-lived session would eventually hit Mongo's 16MB document limit and
 // every further turn would fail. $slice keeps this atomic with the $push
 // rather than a separate read-modify-write.
-const MAX_SESSION_MESSAGES = 100
 const RATE_WINDOW_MS = 60 * 60 * 1000
 const SIGNED_IN_LIMIT = 60
 const DEMO_LIMIT = 20
@@ -46,26 +54,45 @@ function rateLimited(auth: Auth): Promise<boolean> {
 
 type ModelContents = Array<{ role: 'user' | 'model'; parts: [{ text: string }] }>
 
+interface ReplyOptions {
+  /** The client sent CAPTURE_HEADER, so it can render a proposal frame. */
+  captureCapable: boolean
+  /** Routing that already ran: a user over the allowance is routed before anything is stored. */
+  route?: ChatRoute
+}
+
+/** What a reply ended as: its text, plus the proposal it carried when the user was logging spends. */
+interface SettledReply {
+  text: string
+  proposal?: CaptureProposal
+}
+
 /**
  * Runs the Gemini stream and forwards SSE frames to the client. `onSettle`
  * fires exactly once with whatever assistant text accumulated, either after
  * a normal finish/error or on `cancel()` (the client aborting/disconnecting
  * mid-stream) — so a persisted session never silently loses the reply's tail.
+ *
+ * A message routed as capture never reaches the chat model: it's read into a
+ * proposal (lib/ai/capture.ts), sent as a `{ proposal }` frame followed by one
+ * short line, and the app logs the rows once the user has reviewed them.
  */
 function streamReply(
   auth: Auth,
   contents: ModelContents,
   leadingEvent: Record<string, unknown> | null,
-  onSettle: (fullText: string) => Promise<void> | void,
+  onSettle: (reply: SettledReply) => Promise<void> | void,
+  options: ReplyOptions,
 ): Response {
   const encoder = new TextEncoder()
   let full = ''
+  let proposal: CaptureProposal | undefined
   let settled = false
   const settle = async () => {
     if (settled) return
     settled = true
     try {
-      await onSettle(full)
+      await onSettle({ text: full, proposal })
     } catch (err) {
       console.error('[ai/chat] failed to persist reply:', err)
     }
@@ -78,11 +105,51 @@ function streamReply(
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(leadingEvent)}\n\n`))
         }
         const caller = { userId: auth.userId, feature: 'chat' as const }
+        const send = (event: Record<string, unknown>) => controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`))
         // Routing reads the messages only, so it costs no wall-clock time next to the database read.
         const userTurns = contents.filter((c) => c.role === 'user').map((c) => c.parts[0].text)
         const message = userTurns.at(-1) ?? ''
         const earlier = userTurns.slice(-ROUTING_CONTEXT_TURNS - 1, -1)
-        const [route, ctx] = await Promise.all([routeChat(message, caller, earlier), buildExpenseContext(auth)])
+        const contextRead = options.route ? null : buildExpenseContext(auth)
+        // A capture reply never reads the context; keep a failed read from going unhandled.
+        contextRead?.catch(() => {})
+        // A message with a number in it is likely a list of spends: start reading it
+        // while routing decides, instead of after. A question that happens to hold a
+        // number ("what did I spend on the 5th?") costs one small wasted read.
+        const canCapture = options.captureCapable && !auth.readOnly
+        const earlyRead = canCapture && !options.route && /\d/.test(message) ? buildCaptureProposal(auth, message) : null
+        earlyRead?.catch(() => {})
+        const route = options.route ?? await routeChat(message, caller, earlier)
+
+        if (route.capture) {
+          const say = (text: string) => {
+            full += text
+            send({ delta: text })
+          }
+          if (!options.captureCapable) {
+            say(CAPTURE_UNSUPPORTED)
+          } else if (auth.readOnly) {
+            say(CAPTURE_DEMO)
+          } else {
+            let read: CaptureProposal
+            try {
+              read = await (earlyRead ?? buildCaptureProposal(auth, message))
+            } catch (err) {
+              console.warn('[ai/chat] capture failed:', (err as Error).message)
+              throw new Error(CAPTURE_FAILED)
+            }
+            if (read.items.length) {
+              proposal = read
+              send({ proposal: read })
+            }
+            say(captureReplyText(read))
+          }
+          controller.enqueue(encoder.encode('data: [DONE]\n\n'))
+          await settle()
+          return
+        }
+
+        const ctx = await (contextRead ?? buildExpenseContext(auth))
 
         if (!route.onTopic) {
           full = SCOPE_REFUSAL
@@ -92,7 +159,7 @@ function streamReply(
           return
         }
 
-        const systemPrompt = buildSystemPrompt(factsFor(ctx.sections, route.sections), ctx.currencyCode, route.decision)
+        const systemPrompt = buildSystemPrompt(factsFor(ctx.sections, route.sections), ctx.currencyCode, route.decision, options.captureCapable && !auth.readOnly)
         const geminiStream = await streamText(systemPrompt, contents, caller, route.decision)
 
         const scrub = createEmDashScrubber()
@@ -148,7 +215,7 @@ function isValidMessages(value: unknown): value is ClientMessage[] {
 }
 
 /** Demo/read-only user: today's exact stateless behaviour, nothing touches the DB. */
-function handleDemo(auth: Auth, body: Record<string, unknown>): Response {
+function handleDemo(auth: Auth, body: Record<string, unknown>, captureCapable: boolean): Response {
   const messages = body.messages
 
   if (!isValidMessages(messages)) return error('invalid body', 400)
@@ -171,7 +238,7 @@ function handleDemo(auth: Auth, body: Record<string, unknown>): Response {
 
   const trimmed = userTurns.slice(-HISTORY_LIMIT)
   const contents: ModelContents = trimmed.map((m) => ({ role: m.role, parts: [{ text: m.text }] }))
-  return streamReply(auth, contents, null, () => {})
+  return streamReply(auth, contents, null, () => {}, { captureCapable })
 }
 
 /**
@@ -183,7 +250,11 @@ function handleDemo(auth: Auth, body: Record<string, unknown>): Response {
  * array is redundant once a session exists (the DB is source of truth for
  * everything before it) but harmless to receive.
  */
-async function handlePersisted(auth: Auth, body: Record<string, unknown>): Promise<Response> {
+async function handlePersisted(
+  auth: Auth,
+  body: Record<string, unknown>,
+  { captureCapable, overAllowance }: { captureCapable: boolean; overAllowance: Response | null },
+): Promise<Response> {
   const messages = body.messages
   if (!isValidMessages(messages)) return error('invalid body', 400)
 
@@ -202,15 +273,29 @@ async function handlePersisted(auth: Auth, body: Record<string, unknown>): Promi
   let objectId: ObjectId
   let history: StoredChatMessage[] = []
 
+  let existing: Record<string, unknown> | null = null
   if (sessionId) {
-    const existing = await sessions.findOne({ _id: new ObjectId(sessionId) })
+    existing = await sessions.findOne({ _id: new ObjectId(sessionId) })
     if (!existing) return error('session not found', 404)
-    objectId = existing._id as ObjectId
     history = (existing.messages as StoredChatMessage[] | undefined) ?? []
     const userTurnCount = history.filter((m) => m.role === 'user').length
     if (userTurnCount >= SESSION_MESSAGE_LIMIT) {
       return error('session message limit reached — start a new chat', 429)
     }
+  }
+
+  // Over the allowance, only logging spends still goes through. Routed here,
+  // before anything is stored, so every other message gets the same 429 as
+  // before and leaves no trace in the session.
+  let route: ChatRoute | undefined
+  if (overAllowance) {
+    const earlier = history.filter((m) => m.role === 'user').map((m) => m.text).slice(-ROUTING_CONTEXT_TURNS)
+    route = await routeChat(message, { userId: auth.userId, feature: 'chat' }, earlier)
+    if (!route.capture) return overAllowance
+  }
+
+  if (existing) {
+    objectId = existing._id as ObjectId
   } else {
     const now = new Date()
     const inserted = await sessions.insertOne({
@@ -232,9 +317,11 @@ async function handlePersisted(auth: Auth, body: Record<string, unknown>): Promi
   const trimmed = [...history, userMsg].slice(-HISTORY_LIMIT)
   const contents: ModelContents = trimmed.map((m) => ({ role: m.role, parts: [{ text: m.text }] }))
 
-  return streamReply(auth, contents, sessionId ? null : { sessionId: objectId.toString() }, async (fullText) => {
+  return streamReply(auth, contents, sessionId ? null : { sessionId: objectId.toString() }, async ({ text: fullText, proposal }) => {
     if (!fullText) return
-    const modelMsg: StoredChatMessage = { role: 'model', text: fullText, createdAt: new Date() }
+    const modelMsg: StoredChatMessage = proposal
+      ? captureMessage(fullText, proposal)
+      : { role: 'model', text: fullText, createdAt: new Date() }
     await sessions.updateOne(
       { _id: objectId },
       {
@@ -242,7 +329,7 @@ async function handlePersisted(auth: Auth, body: Record<string, unknown>): Promi
         $set: { updatedAt: new Date() },
       } as never,
     )
-  })
+  }, { captureCapable, route })
 }
 
 export async function POST(req: Request) {
@@ -253,8 +340,11 @@ export async function POST(req: Request) {
   const aiOff = await aiDisabledResponse()
   if (aiOff) return aiOff
 
+  // Clients that can review a capture proposal may still log spends over the
+  // allowance (lib/ai/allowance.ts exempts capture); everyone else stops here.
+  const captureCapable = req.headers.get(CAPTURE_HEADER) === '1'
   const overAllowance = await aiAllowanceResponse(auth)
-  if (overAllowance) return overAllowance
+  if (overAllowance && !captureCapable) return overAllowance
 
   if (await rateLimited(auth)) {
     return error('Too many messages. Try again in a bit.', 429)
@@ -262,5 +352,7 @@ export async function POST(req: Request) {
 
   const body = await readBody(req)
 
-  return auth.readOnly ? handleDemo(auth, body) : handlePersisted(auth, body)
+  return auth.readOnly
+    ? handleDemo(auth, body, captureCapable)
+    : handlePersisted(auth, body, { captureCapable, overAllowance })
 }

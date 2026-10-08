@@ -267,6 +267,17 @@ describe('scoped() field encryption', () => {
     expect(await scoped(coll as any, 'user_bob').findOne({ key: 'snapshot' })).toBeNull()
   })
 
+  it('encrypts each balance check account name and balance, and decrypts them for their owner', async () => {
+    const coll = fakeMongoCollection('balance_checks')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const view = scoped(coll as any, 'user_alice')
+    const accounts = [{ name: 'HDFC', balance: '42000' }, { name: 'Slice', balance: '8000' }]
+    await view.insertOne({ status: 'baseline', balance: '50000', accounts })
+    const stored = coll.store[0].accounts as { name: string; balance: string }[]
+    expect(stored.every((a) => isEncrypted(a.name) && isEncrypted(a.balance))).toBe(true)
+    expect((await view.findOne({ status: 'baseline' }))?.accounts).toEqual(accounts)
+  })
+
   it('encrypts declared fields on insertOne, leaves plaintext fields alone', async () => {
     const coll = fakeMongoCollection('expenses')
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -358,6 +369,29 @@ describe('scoped() field encryption', () => {
     const found = await view.findOne({ _id: id as never })
     const foundMessages = found?.messages as Array<{ text: string }>
     expect(foundMessages[0].text).toBe('How much did I spend?')
+  })
+
+  it('$push also encrypts a capture proposal, leaving its status fields readable', async () => {
+    const coll = fakeMongoCollection('chat_sessions')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const view = scoped(coll as any, 'user_alice')
+    await view.insertOne({ title: 'Money chat', messages: [] })
+    const id = coll.store[0]._id
+    const proposal = JSON.stringify({ id: 'p1', items: [{ id: 'r1', item: 'Auto', amount: 240 }] })
+
+    await view.updateOne(
+      { _id: id as never },
+      { $push: { messages: { $each: [{ role: 'model', text: "Here's what I got.", proposal, proposalId: 'p1', proposalStatus: 'pending' }], $slice: -100 } } } as never,
+    )
+    const stored = (coll.store[0].messages as Array<Record<string, unknown>>)[0]
+    expect(isEncrypted(stored.text)).toBe(true)
+    expect(isEncrypted(stored.proposal)).toBe(true)
+    expect(stored.proposalId).toBe('p1')
+    expect(stored.proposalStatus).toBe('pending')
+
+    const found = await view.findOne({ _id: id as never })
+    const message = (found?.messages as Array<Record<string, unknown>>)[0]
+    expect(message.proposal).toBe(proposal)
   })
 
   it('tolerates a mix of plaintext and encrypted docs on read (mid-rollout safety)', async () => {

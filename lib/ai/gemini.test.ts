@@ -11,7 +11,7 @@ vi.mock('@google/genai', () => ({
 }))
 
 process.env.GEMINI_API_KEY = 'test'
-const { streamText } = await import('./gemini')
+const { streamText, hedged } = await import('./gemini')
 const caller = { userId: 'user_1', feature: 'chat' as const }
 
 async function* chunks() {
@@ -76,5 +76,41 @@ describe('streamText retries', () => {
     generateContentStream.mockRejectedValue(new Error('400 INVALID_ARGUMENT'))
     await expect(streamText('sys', [], caller)).rejects.toThrow('400')
     expect(generateContentStream).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('hedged', () => {
+  const later = <T,>(ms: number, value: T, fail = false) => (signal: AbortSignal) =>
+    new Promise<T>((resolve, reject) => {
+      const t = setTimeout(() => (fail ? reject(new Error(String(value))) : resolve(value)), ms)
+      signal.addEventListener('abort', () => { clearTimeout(t); reject(new Error('aborted')) })
+    })
+
+  it('takes a fast primary without starting the backup', async () => {
+    const backup = vi.fn(later(10, 'backup'))
+    expect(await hedged(later(10, 'primary'), backup, 50)).toBe('primary')
+    expect(backup).not.toHaveBeenCalled()
+  })
+
+  it('takes the backup when the primary is slow, and aborts the primary', async () => {
+    let aborted = false
+    const primary = (signal: AbortSignal) => {
+      signal.addEventListener('abort', () => { aborted = true })
+      return later(500, 'primary')(signal)
+    }
+    expect(await hedged(primary, later(10, 'backup'), 20)).toBe('backup')
+    expect(aborted).toBe(true)
+  })
+
+  it('waits on the other call when one of two fails, and fails only when both do', async () => {
+    expect(await hedged(later(60, 'primary'), later(5, 'nope', true), 10)).toBe('primary')
+    await expect(hedged(later(30, 'p down', true), later(40, 'b down', true), 10)).rejects.toThrow('b down')
+  })
+
+  it('fails straight away when the primary fails before the backup starts', async () => {
+    const backup = vi.fn(later(10, 'backup'))
+    await expect(hedged(later(5, 'down', true), backup, 50)).rejects.toThrow('down')
+    await new Promise((r) => setTimeout(r, 60))
+    expect(backup).not.toHaveBeenCalled()
   })
 })

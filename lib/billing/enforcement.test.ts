@@ -19,6 +19,7 @@ const OPEN: Record<string, string> = {
   'cron/billing': 'cron, CRON_SECRET',
   'cron/gc': 'cron, CRON_SECRET',
   'cron/emails': 'transactional email retry cron, CRON_SECRET',
+  'cron/evening-check': 'evening check push cron, CRON_SECRET',
   'notifications/run': 'cron, CRON_SECRET',
   'billing/webhooks/revenuecat': 'provider webhook, shared secret',
   'billing/webhooks/razorpay': 'provider webhook, HMAC signature',

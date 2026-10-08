@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { addHolding, deleteHolding, getHoldings, performHoldingAction, updateHolding } from '@/src/api/holdings'
+import { track } from '@/src/lib/analytics'
 
 const key = ['holdings'] as const
 const eventsKey = ['holding-events'] as const
@@ -25,7 +26,10 @@ export function useAddHolding() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (row: Parameters<typeof addHolding>[0]) => addHolding(row),
-    onSuccess: () => invalidateHoldings(qc),
+    onSuccess: () => {
+      track('holding_added')
+      return invalidateHoldings(qc)
+    },
   })
 }
 

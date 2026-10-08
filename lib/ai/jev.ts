@@ -44,15 +44,47 @@ export async function runJev<const Q extends Record<string, Experimental_Evaluat
       maxRetries: 0,
       abortSignal: AbortSignal.timeout(timeoutMs),
     })
+    const endedAt = Date.now()
     after(() => logAiUsage(caller, MODEL, startedAt, {
       promptTokenCount: result.usage.inputTokens,
       candidatesTokenCount: result.usage.outputTokens,
-    }, null))
+    }, null, endedAt))
     return result.answers
   } catch (err) {
-    after(() => logAiUsage(caller, MODEL, startedAt, undefined, err))
+    const endedAt = Date.now()
+    after(() => logAiUsage(caller, MODEL, startedAt, undefined, err, endedAt))
     throw err
   }
+}
+
+export interface ScoredChoice {
+  /** The pick, or '' when Jev isn't confident (or picked something off the list). */
+  choice: string
+  /** Jev's probability for its top pick, or null when it didn't report one. */
+  probability: number | null
+}
+
+/** Asks Jev a single choice question over `options` and returns its pick with the probability behind it. */
+async function scoreChoice(
+  answerKey: string,
+  instructions: string,
+  state: Record<string, string>,
+  options: string[],
+  caller: AiCaller,
+): Promise<ScoredChoice> {
+  const answers = await runJev(state, {
+    [answerKey]: {
+      type: 'choice',
+      instructions,
+      criteria: Object.fromEntries(options.map((c) => [c, null])),
+    },
+  } satisfies Record<string, Experimental_EvaluationQuestion>, caller)
+
+  const { choice, probabilities } = answers[answerKey]
+  if (!options.includes(choice)) return { choice: '', probability: null }
+  const probability = probabilities ? (probabilities[choice] ?? 0) : null
+  if (probability !== null && probability < MIN_CONFIDENCE) return { choice: '', probability }
+  return { choice, probability }
 }
 
 /**
@@ -66,29 +98,19 @@ async function pickChoice(
   options: string[],
   caller: AiCaller,
 ): Promise<string> {
-  const answers = await runJev(state, {
-    [answerKey]: {
-      type: 'choice',
-      instructions,
-      criteria: Object.fromEntries(options.map((c) => [c, null])),
-    },
-  } satisfies Record<string, Experimental_EvaluationQuestion>, caller)
-
-  const { choice, probabilities } = answers[answerKey]
-  if (!options.includes(choice)) return ''
-  if (probabilities && (probabilities[choice] ?? 0) < MIN_CONFIDENCE) return ''
-  return choice
+  return (await scoreChoice(answerKey, instructions, state, options, caller)).choice
 }
+
+const CATEGORY_INSTRUCTIONS = 'Which personal budgeting category does this expense item belong to?'
 
 /** Picks the best-fit category for an expense item from the user's own list. */
 export async function pickCategory(item: string, categories: string[], caller: AiCaller): Promise<string> {
-  return pickChoice(
-    'category',
-    'Which personal budgeting category does this expense item belong to?',
-    { expenseItem: item },
-    categories,
-    caller,
-  )
+  return pickChoice('category', CATEGORY_INSTRUCTIONS, { expenseItem: item }, categories, caller)
+}
+
+/** Same pick as pickCategory, plus Jev's probability, so a caller can show how sure it was. */
+export async function scoreCategory(item: string, categories: string[], caller: AiCaller): Promise<ScoredChoice> {
+  return scoreChoice('category', CATEGORY_INSTRUCTIONS, { expenseItem: item }, categories, caller)
 }
 
 /** Picks the best-fit investment type for a holding name from the app's fixed type list. */

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode, type Ref } from 'react'
 import { motion } from 'motion/react'
 
 const SWEEP_MS = 180
@@ -16,14 +16,20 @@ export const ROW_SPRING = { type: 'spring', damping: 30, stiffness: 400, mass: 1
  * `<AnimatePresence mode="popLayout" initial={false}>`, so the row fades out
  * of the flow at once and the rows below spring up via `layout`. If the delete
  * fails, the parent puts the row back and it fades in.
+ *
+ * `ref` must reach the DOM node: popLayout clones a ref onto its child to
+ * measure the row and pin it `position: absolute` while it exits. Without it
+ * the row stays in flow, so the rows below only jump up after the fade.
  */
 export function DeletingRow({
+  ref,
   active,
   onDone,
   as = 'div',
   className,
   children,
 }: {
+  ref?: Ref<HTMLElement>
   active: boolean
   onDone: () => void
   as?: 'div' | 'li'
@@ -45,6 +51,8 @@ export function DeletingRow({
   }, [active])
   return (
     <Row
+      // `Row` is a union of two motion tags, so its ref type is the intersection.
+      ref={ref as Ref<HTMLDivElement & HTMLLIElement>}
       className={className}
       style={{ position: 'relative' }}
       layout="position"

@@ -1,13 +1,15 @@
 'use client'
 
+import { pickAck } from '@/src/lib/captureAck'
 import { useCurrency } from '@/src/context/CurrencyContext'
 import { useAppearance } from '@/components/AppearanceProvider'
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
 import { STAGGER, popIn, staggerDelay } from './landing/mobile/kit'
-import { ArrowLeft, ArrowUp, Clock3, Plus, Search, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ArrowUp, Check, Clock3, Plus, Search, X } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
+import Link from 'next/link'
 import { useBudgets } from '@/src/hooks/useBudgets'
 import { useCategories } from '@/src/hooks/useCategories'
 import { useRecentExpenses } from '@/src/hooks/useExpenses'
@@ -17,12 +19,13 @@ import { useMoneyBrief } from '@/src/hooks/useMoneyBrief'
 import { useChatSessions, useChatSessionsCount } from '@/src/hooks/useChatSessions'
 import { computeEnvelopeState, currentMonthKey } from '@/src/lib/envelope'
 
-import { getChatSession, streamChat, type ChatMessage } from '@/src/api/ai'
-import { track } from '@/src/lib/analytics'
+import { CAPTURE_FAILED_MESSAGE, getChatSession, streamChat, updateProposalStatus, type ChatMessage } from '@/src/api/ai'
+import { startTimer, track } from '@/src/lib/analytics'
 import { LoadingCaption } from './LoadingCaption'
 import { BirdMark, BirdThinking } from './BirdMark'
 import { ChatMarkdown } from './ChatMarkdown'
 import { BirdEmptyState } from './BirdEmptyState'
+import { CaptureReview } from './CaptureReview'
 
 export interface OpenChat {
   sessionId: string | null
@@ -31,10 +34,34 @@ export interface OpenChat {
 
 interface Props {
   initialSessionId?: string | null
+  /** Opened from "Log several at once": a fresh chat focused on typing spends, without the money brief. */
+  capture?: boolean
+  /** Opens manual entry, offered when a typed message couldn't be read. */
+  onLogManually?: () => void
   /** The chat left open last time; the drawer restores it and keeps it current. */
   openChat?: MutableRefObject<OpenChat>
   onClose: () => void
 }
+
+/**
+ * The server sends the end of a reply before it saves it, so the first try can
+ * land before the proposal exists. A few spaced retries cover that; after them
+ * it's best effort, since client_ids already stop a second log.
+ */
+function persistSettle(sessionId: string, settle: PendingSettle, attempt = 0) {
+  updateProposalStatus(sessionId, settle.proposalId, settle.status, settle.expenseIds, settle.reply).catch(() => {
+    if (attempt < 3) setTimeout(() => persistSettle(sessionId, settle, attempt + 1), 600 * (attempt + 1))
+  })
+}
+
+type PendingSettle = { proposalId: string; status: 'submitted' | 'dismissed'; expenseIds: string[]; reply?: string }
+
+/** The line over Ask Aviary's reply to logged rows; a reopened chat may not know the count. */
+function loggedLabel(count: number | undefined) {
+  if (!count) return 'Logged'
+  return count === 1 ? '1 spend logged' : `${count} spends logged`
+}
+
 
 function timeAgo(iso: string) {
   const date = new Date(iso)
@@ -46,7 +73,10 @@ function timeAgo(iso: string) {
   return `${Math.round(mins / 1440)}d ago`
 }
 
-export function MoneyBrainDrawer({ initialSessionId = null, openChat, onClose }: Props) {
+/** A chat turn as the drawer holds it: `captureFailed` marks a reply that offers manual entry instead. */
+type BrainMessage = ChatMessage & { captureFailed?: boolean }
+
+export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onLogManually, openChat, onClose }: Props) {
   const { formatCurrency } = useCurrency()
   const { theme } = useAppearance()
 
@@ -62,7 +92,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, openChat, onClose }:
 
   const [view, setView] = useState<'chat' | 'history'>('chat')
   // A reply cut off by closing mid-stream leaves an empty model bubble; drop it.
-  const [messages, setMessages] = useState<ChatMessage[]>(() => openChat?.current.messages.filter((m) => m.text) ?? [])
+  const [messages, setMessages] = useState<BrainMessage[]>(() => openChat?.current.messages.filter((m) => m.text) ?? [])
   const [sessionId, setSessionId] = useState<string | null>(() => openChat?.current.sessionId ?? null)
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
@@ -71,6 +101,11 @@ export function MoneyBrainDrawer({ initialSessionId = null, openChat, onClose }:
   const [debouncedQuery, setDebouncedQuery] = useState('')
   const [page, setPage] = useState(1)
   const abortRef = useRef<AbortController | null>(null)
+  // Proposal outcomes picked while their reply was still streaming: the chat has no id yet, or
+  // hasn't saved the reply, so they're recorded once the stream ends.
+  const pendingSettles = useRef<PendingSettle[]>([])
+  // Proposals whose rows were just logged, waiting on Ask Aviary's reply to them.
+  const streamingRef = useRef(false)
   const bodyRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
@@ -114,6 +149,9 @@ export function MoneyBrainDrawer({ initialSessionId = null, openChat, onClose }:
     }
   }, [onClose])
 
+  // Mounted only while open, so this is one per opening.
+  useEffect(() => { track('money_brain_opened') }, [])
+
   useEffect(() => {
     if (!initialSessionId) return
     void openSession(initialSessionId)
@@ -126,6 +164,14 @@ export function MoneyBrainDrawer({ initialSessionId = null, openChat, onClose }:
   useEffect(() => {
     bodyRef.current?.scrollTo({ top: bodyRef.current.scrollHeight, behavior: reduceMotion ? 'auto' : 'smooth' })
   }, [messages, reduceMotion])
+
+  // The composer grows with what's typed (a list of spends runs several lines), up to the CSS max-height.
+  useLayoutEffect(() => {
+    const el = inputRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${el.scrollHeight}px`
+  }, [input, view])
 
   // Reopening the drawer or coming back from history lands on the latest message, not the top.
   useLayoutEffect(() => {
@@ -159,13 +205,17 @@ export function MoneyBrainDrawer({ initialSessionId = null, openChat, onClose }:
     const trimmed = text.trim()
     if (!trimmed || sending) return
     track('money_brain_query', { source })
-    const historyMessages = [...messages, { role: 'user' as const, text: trimmed }]
+    const historyMessages: BrainMessage[] = [...messages, { role: 'user' as const, text: trimmed }]
     setMessages([...historyMessages, { role: 'model', text: '' }])
     setInput('')
     setSending(true)
     setLoadError(false)
     const controller = new AbortController()
     abortRef.current = controller
+    streamingRef.current = true
+    const elapsed = startTimer()
+    const answered = (ok: boolean, reason?: string) =>
+      track('money_brain_answered', { ok, seconds: elapsed(), ...(reason ? { reason } : {}) })
     try {
       const resolved = await streamChat(
         sessionId,
@@ -177,26 +227,67 @@ export function MoneyBrainDrawer({ initialSessionId = null, openChat, onClose }:
           return next
         }),
         controller.signal,
+        (proposal) => {
+          track('capture_proposed', { rows: proposal.items.length })
+          setMessages((current) => {
+            const next = [...current]
+            const last = next[next.length - 1]
+            if (last?.role === 'model') next[next.length - 1] = { ...last, proposal }
+            return next
+          })
+        },
       )
+      answered(true)
       setSessionId(resolved)
+      streamingRef.current = false
+      if (resolved) {
+        for (const p of pendingSettles.current.splice(0)) persistSettle(resolved, p)
+      }
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['chatSessions'] }),
         queryClient.invalidateQueries({ queryKey: ['chatSessionsCount'] }),
       ])
     } catch (error) {
       if ((error as Error).name !== 'AbortError') {
+        const captureFailed = (error as Error).message === CAPTURE_FAILED_MESSAGE
+        answered(false, captureFailed ? 'capture_failed' : (error as Error).name === 'AiAllowanceError' ? 'ai_allowance' : 'error')
         setMessages((current) => {
           const next = [...current]
-          next[next.length - 1] = { role: 'model', text: 'Something went wrong. Try again.' }
+          next[next.length - 1] = captureFailed
+            ? { role: 'model', text: "Couldn't read that one. Add it by hand?", captureFailed: true }
+            : { role: 'model', text: 'Something went wrong. Try again.' }
           return next
         })
       }
     } finally {
+      streamingRef.current = false
       setSending(false)
+      // Cards logged mid-stream whose stream then failed: record them on the chat they came from, if it was saved.
+      for (const p of pendingSettles.current.splice(0)) if (sessionId) persistSettle(sessionId, p)
     }
   }
 
   const awaitingFirstDelta = sending && messages.at(-1)?.role === 'model' && !messages.at(-1)?.text
+
+  /**
+   * Records a proposal's outcome on the chat, so reopening it shows the card
+   * read-only. Logged rows get Ask Aviary's line right under the card at once
+   * (src/lib/captureAck.ts); the server saves the same line. Dismissals get none.
+   */
+  function settleProposal(proposalId: string, status: 'submitted' | 'dismissed', expenseIds: string[]) {
+    const reply = status === 'submitted' ? pickAck() : undefined
+    setMessages((current) => {
+      const at = current.findIndex((m) => m.proposal?.id === proposalId)
+      if (at < 0) return current
+      const next = [...current]
+      next[at] = { ...next[at], proposal: { ...next[at].proposal!, status, expenseIds } }
+      if (reply && !next[at + 1]?.ack) next.splice(at + 1, 0, { role: 'model', text: reply, ack: true })
+      return next
+    })
+    const settle = { proposalId, status, expenseIds, reply }
+    if (sessionId && !streamingRef.current) persistSettle(sessionId, settle)
+    else pendingSettles.current.push(settle)
+  }
 
   return (
     <motion.div
@@ -225,7 +316,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, openChat, onClose }:
           ) : <span className="brain-orbit" aria-hidden="true"><BirdMark size={26} /></span>}
           <div className="brain-heading">
             <h2>{view === 'history' ? 'Chat history' : 'Ask Aviary'}</h2>
-            <p>{view === 'history' ? 'Pick up where you left off' : brief.data ? `Reading ${brief.data.meta.txnCountThisMonth} transactions` : 'Reading your budget…'}</p>
+            <p>{view === 'history' ? 'Pick up where you left off' : capture ? 'Type what you spent. Several at once is fine.' : brief.data ? `Reading ${brief.data.meta.txnCountThisMonth} transactions` : 'Reading your budget…'}</p>
           </div>
           <div className="brain-head-actions">
             {view === 'chat' && (
@@ -285,6 +376,13 @@ export function MoneyBrainDrawer({ initialSessionId = null, openChat, onClose }:
           <>
             <div className="brain-body" ref={bodyRef}>
               {loadError && <div className="brain-error" role="alert">Couldn’t load that chat. Check your connection and try again.</div>}
+              {capture && messages.length === 0 && (
+                <motion.section className="brain-summary-card" {...popIn(STAGGER.mount)}>
+                  <span className="brain-kicker">Log several at once</span>
+                  <p>Try “auto 240, lunch 150, turf 1200 split 6”. You&apos;ll check them before anything is logged.</p>
+                </motion.section>
+              )}
+              {!capture && (<>
               <motion.section className="brain-summary-card" {...popIn(STAGGER.mount)}>
                 <span className="brain-kicker">This month so far</span>
                 <strong>{formatCurrency(envelope.totalSpent, hideAmounts)} of {formatCurrency(envelope.totalAssigned, hideAmounts)} assigned</strong>
@@ -328,11 +426,35 @@ export function MoneyBrainDrawer({ initialSessionId = null, openChat, onClose }:
                   </div>
                 </section>
               ) : null}
+              </>)}
               {messages.length > 0 && (
                 <div className="brain-messages" aria-live="polite">
                   {messages.map((message, index) => message.text ? (
-                    <div key={index} className={`brain-bubble brain-bubble--${message.role}`}>
-                      {message.role === 'model' ? <ChatMarkdown text={message.text} /> : message.text}
+                    <div key={index} className="brain-turn">
+                      <div className={`brain-bubble brain-bubble--${message.role}${message.ack ? ' brain-ack' : ''}`}>
+                        {message.ack && (
+                          <span className="brain-ack-kicker">
+                            <Check size={13} strokeWidth={3} aria-hidden="true" />
+                            {loggedLabel(messages[index - 1]?.proposal?.expenseIds?.length)}
+                          </span>
+                        )}
+                        {message.role === 'model' ? <ChatMarkdown text={message.text} /> : message.text}
+                        {message.captureFailed && onLogManually && (
+                          <button type="button" className="brain-inline-link" onClick={onLogManually}>Add it by hand</button>
+                        )}
+                        {message.ack && (
+                          <Link href="/expense/transactions" className="brain-ack-link" onClick={onClose}>
+                            See them in Activity <ArrowRight size={14} aria-hidden="true" />
+                          </Link>
+                        )}
+                      </div>
+                      {message.proposal && (
+                        <CaptureReview
+                          proposal={message.proposal}
+                          loggedSummary={false}
+                          onSettled={(status, ids) => settleProposal(message.proposal!.id, status, ids)}
+                        />
+                      )}
                     </div>
                   ) : null)}
                   {awaitingFirstDelta && <BirdThinking size={30} />}
@@ -352,7 +474,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, openChat, onClose }:
                     void send(input, 'typed')
                   }
                 }}
-                placeholder="Ask about your money…"
+                placeholder={capture ? 'What did you spend?' : 'Ask about your money…'}
                 aria-label="Ask Aviary"
               />
               <button type="submit" disabled={sending || !input.trim()} aria-label="Send question"><ArrowUp size={18} /></button>

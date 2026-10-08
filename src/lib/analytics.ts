@@ -28,7 +28,7 @@ const IS_PRODUCTION = process.env.NEXT_PUBLIC_VERCEL_ENV === 'production'
  * typo becomes a type error instead of a junk event nobody notices for a
  * month. Add a name here first, then call track(). Kept identical to mobile's
  * union so one event means one thing across both apps, even where only one
- * app can send it (web has no Play checkout, so no purchase_* here).
+ * app can send it (restore_* is Play only).
  */
 export type AppEvent =
   // Sign-in. `method` is 'google' or 'email'; `reason` is a fixed slug, never
@@ -64,6 +64,16 @@ export type AppEvent =
   // Ask Aviary
   | 'money_brain_opened'
   | 'money_brain_query'
+  // Logging spends by typing them into Ask Aviary: a review card was shown,
+  // logged, or dismissed. Row counts and edit counts only.
+  | 'capture_proposed'
+  | 'capture_logged'
+  | 'capture_tip'
+  | 'capture_dismissed'
+  // The weekly balance check: what a check found and how many accounts it
+  // totalled, and how a gap was explained. No amounts.
+  | 'balance_checked'
+  | 'balance_resolved'
   | 'money_brain_answered'
   | 'ai_allowance_hit'
   // Other features
@@ -75,6 +85,8 @@ export type AppEvent =
   | 'wrapped_opened'
   | 'wrapped_card_viewed'
   | 'wrapped_shared'
+  | 'week_recap_opened'
+  | 'week_recap_finished'
   // Paying
   | 'paywall_viewed'
   | 'purchase_started'
@@ -92,7 +104,8 @@ export type AppEvent =
   | 'account_deleted'
   // Web only: the landing page's way into the app store
   | 'store_cta_clicked'
-  // Web only: the landing page's iPhone waitlist form. `platform` is 'ios'.
+  // Web only: the landing page's iPhone waitlist form. `waitlist_platform` is
+  // 'ios'. Not `platform`: that's the registered app split and stays 'web'.
   | 'waitlist_joined'
 
 export type EventProperties = Record<string, string | number | boolean>
@@ -237,10 +250,21 @@ export function identifyUser(user: { id: string; email?: string | null; name?: s
   send((posthog) => posthog.identify(user.id, properties))
 }
 
-/** On sign-out: the next account on this browser starts clean. */
+/** On sign-out: the next account on this browser starts clean. reset() also
+ * clears registered properties, so platform goes straight back on. */
 export function resetAnalytics(): void {
-  send((posthog) => posthog.reset())
+  send((posthog) => {
+    posthog.reset()
+    posthog.register({ platform: 'web' })
+  })
 }
+
+/**
+ * Google sign-in finishes on the server (app/api/auth/google/callback), where
+ * there's no PostHog. The callback leaves the outcome in this short-lived
+ * cookie, `completed` or a failure reason slug, and AnalyticsProvider reports it.
+ */
+export const SIGN_IN_OUTCOME_COOKIE = 'sign_in_outcome'
 
 /** Whether analytics is currently allowed to send events. */
 export function isAnalyticsEnabled(): boolean {

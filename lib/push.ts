@@ -13,12 +13,15 @@ export type PushToken = {
 
 const EXPO_PUSH_TOKEN_RE = /^Expo(?:nent)?PushToken\[[\w-]+\]$/
 
-/** A registration belongs to its original account until that account unregisters it. */
-export class PushTokenConflict extends Error {
-  readonly status = 409
-  constructor() { super('push token already registered') }
-}
-
+/**
+ * Register a device's push token for the account signed in on it. A token
+ * belongs to one physical device, so it follows whoever is signed in there
+ * now: a sign-out that never reached the server (offline, app killed,
+ * uninstalled) used to leave the token owned by the old account, and every
+ * later account on that phone silently got no pushes. Only that device can
+ * produce the token, so taking it over hands nobody else's notifications to
+ * a stranger. It also revives a token archived with a deleted account.
+ */
 export async function registerPushToken(
   token: string,
   platform: 'ios' | 'android',
@@ -29,26 +32,22 @@ export async function registerPushToken(
   const db = await getDb()
   const now = new Date().toISOString()
   const coll = db.collection<PushToken>(COLLECTIONS.pushTokens)
-
-  const updated = await coll.updateOne(
-    { token, user_id: userId },
-    { $set: { platform, updatedAt: now } },
+  const write = () => coll.updateOne(
+    { token },
+    {
+      $set: { platform, user_id: userId, updatedAt: now },
+      $setOnInsert: { createdAt: now },
+      $unset: { deleted_at: '', account_deleted_at: '' },
+    },
+    { upsert: true },
   )
-  if (updated.matchedCount > 0) return
-
-  const owner = await coll.findOne({ token })
-  if (owner && owner.user_id !== userId) throw new PushTokenConflict()
-  if (owner) return
   try {
-    await coll.insertOne({ token, platform, user_id: userId, createdAt: now, updatedAt: now })
+    await write()
   } catch (err) {
-    // The unique token index also closes the concurrent registration race.
-    if (err && typeof err === 'object' && 'code' in err && err.code === 11000) {
-      const winner = await coll.findOne({ token })
-      if (winner?.user_id === userId) return
-      throw new PushTokenConflict()
-    }
-    throw err
+    // Two first registrations racing: the unique token index rejects one
+    // insert, and the row it lost to now exists, so retry as a plain update.
+    if (err && typeof err === 'object' && 'code' in err && err.code === 11000) await write()
+    else throw err
   }
 }
 
@@ -70,7 +69,7 @@ type ExpoPushTicket = {
  * Sends that user's tokens in one batched request; tokens Expo reports as
  * DeviceNotRegistered are pruned from `push_tokens`. Individual per-device
  * send failures are logged, not thrown — only a failure of the HTTP call
- * itself propagates.
+ * itself propagates. Returns how many devices Expo accepted.
  *
  * `userId` is required rather than optional on purpose: this used to send to
  * every registered device on the platform, and an accidental omission would
@@ -86,11 +85,11 @@ export async function sendPushNotification({
   title: string
   body: string
   data?: Record<string, unknown>
-}): Promise<void> {
+}): Promise<number> {
   const db = await getDb()
   const coll = db.collection<PushToken>(COLLECTIONS.pushTokens)
   const tokens = await coll.find({ user_id: userId }).toArray()
-  if (tokens.length === 0) return
+  if (tokens.length === 0) return 0
 
   const messages: ExpoPushMessage[] = tokens.map((t) => ({
     to: t.token,
@@ -126,4 +125,5 @@ export async function sendPushNotification({
   if (staleTokens.length > 0) {
     await coll.deleteMany({ token: { $in: staleTokens } })
   }
+  return tickets.filter((t) => t.status === 'ok').length
 }

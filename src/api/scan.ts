@@ -1,4 +1,5 @@
 import { apiFetch, apiErrorMessage } from './client'
+import { allowanceHit } from './ai'
 
 export interface ScanItem {
   name: string
@@ -30,6 +31,9 @@ export async function scanBill(params: {
     body: JSON.stringify(params),
     signal: AbortSignal.timeout(45_000),
   })
-  if (!resp.ok) throw new Error(await apiErrorMessage(resp, 'Failed to scan bill'))
+  if (!resp.ok) {
+    await allowanceHit(resp, 'scan')
+    throw new Error(await apiErrorMessage(resp, 'Failed to scan bill'))
+  }
   return resp.json()
 }

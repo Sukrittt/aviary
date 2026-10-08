@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Check } from 'lucide-react'
 import type { PlanPeriod } from '@/src/api/billing'
 import { useWebCheckout, useWebPlans } from '@/src/hooks/useBillingStatus'
 import { useUser } from '@/src/hooks/useUser'
+import { track } from '@/src/lib/analytics'
 import { defersFirstCharge, formatDate, formatPrice, yearlySavingsPercent } from './copy'
 
 /**
@@ -31,8 +32,19 @@ export const BENEFITS = [
  * Mid-trial (`trialEndsAt` set), the server defers the first charge to the
  * trial's end, and the copy says so.
  */
-export function WebPlanPicker({ trialEndsAt = null }: { trialEndsAt?: string | null }) {
+export function WebPlanPicker({ trialEndsAt = null, trigger = 'plan_screen' }: { trialEndsAt?: string | null; trigger?: 'plan_screen' | 'access_expired' }) {
   const plans = useWebPlans()
+  // Once per visit, the first moment plans are actually on screen. `trigger`
+  // separates someone browsing plans mid-trial from someone locked out.
+  const paywallSeen = useRef(false)
+  // The same condition the picker renders plans under, so an error state or an
+  // empty list isn't counted as a view.
+  const shown = !plans.isError && !!plans.data?.length
+  useEffect(() => {
+    if (!shown || paywallSeen.current) return
+    paywallSeen.current = true
+    track('paywall_viewed', { trigger })
+  }, [shown, trigger])
   const { data: user } = useUser()
   const checkout = useWebCheckout(user ? { email: user.email, name: user.name ?? undefined } : undefined)
   const [period, setPeriod] = useState<PlanPeriod>('yearly')

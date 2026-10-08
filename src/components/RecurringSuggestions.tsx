@@ -19,6 +19,7 @@ import type {
   ScanMonths,
 } from "../types/recurringSuggestions";
 import { LoadingCaption } from "./LoadingCaption";
+import { track } from "../lib/analytics";
 import { Select } from "./Select";
 import { RecurringExpenseModal } from "./RecurringExpenseModal";
 import { SubscriptionModal } from "./SubscriptionModal";
@@ -49,6 +50,7 @@ export function RecurringSuggestions({ kind = "other_recurring" }: { kind?: Sugg
   const dismiss = useMutation({
     mutationFn: dismissRecurringSuggestion,
     onSuccess: (_, id) => {
+      track("recurring_suggestion_dismissed");
       qc.setQueriesData<RecurringScan>({ queryKey: baseKey }, (old) =>
         old
           ? { ...old, suggestions: old.suggestions.filter((s) => s.id !== id) }
@@ -265,6 +267,7 @@ export function RecurringSuggestions({ kind = "other_recurring" }: { kind?: Sugg
           suggestionId={reviewing.id}
           onClose={() => setReviewing(null)}
           onAdded={() => {
+            track("recurring_suggestion_accepted");
             setAccepted((old) => [...old, reviewing.id]);
             void qc.invalidateQueries({ queryKey: baseKey });
           }}
@@ -284,6 +287,7 @@ export function RecurringSuggestions({ kind = "other_recurring" }: { kind?: Sugg
           suggestionId={reviewing.id}
           onClose={() => setReviewing(null)}
           onSaved={() => {
+            track("recurring_suggestion_accepted");
             setAccepted((old) => [...old, reviewing.id]);
             void qc.invalidateQueries({ queryKey: baseKey });
           }}

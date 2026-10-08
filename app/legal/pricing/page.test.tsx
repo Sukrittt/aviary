@@ -4,6 +4,8 @@ import { getPlanPrices } from '@/lib/billing/razorpay'
 import PricingPage from './page'
 
 vi.mock('@/lib/billing/razorpay', () => ({ getPlanPrices: vi.fn() }))
+let country: string | null = null
+vi.mock('next/headers', () => ({ headers: async () => new Headers(country ? { 'x-vercel-ip-country': country } : {}) }))
 
 const prices = [
   { period: 'monthly' as const, amount: 19900, currency: 'INR' },
@@ -12,6 +14,7 @@ const prices = [
 
 beforeEach(() => {
   vi.mocked(getPlanPrices).mockReset()
+  country = null
 })
 
 describe('public pricing', () => {
@@ -19,11 +22,36 @@ describe('public pricing', () => {
     vi.mocked(getPlanPrices).mockResolvedValue(prices)
     render(await PricingPage())
 
-    expect(within(screen.getByRole('region', { name: 'Monthly' })).getByText('₹199')).toBeInTheDocument()
+    const monthly = within(screen.getByRole('region', { name: 'Monthly' }))
+    expect(monthly.getByText('₹199')).toBeInTheDocument()
+    expect(monthly.getByText('About ₹7 a day.')).toBeInTheDocument()
     const yearly = within(screen.getByRole('region', { name: 'Yearly' }))
     expect(yearly.getByText('₹1,999')).toBeInTheDocument()
     expect(yearly.getByText('Save 16%')).toBeInTheDocument()
     expect(yearly.getByText('/ year')).toBeInTheDocument()
+    expect(yearly.getByText('Works out to ₹167 a month.')).toBeInTheDocument()
+  })
+
+  it('shows USD prices to visitors outside India, without asking Razorpay', async () => {
+    country = 'US'
+    render(await PricingPage())
+
+    const monthly = within(screen.getByRole('region', { name: 'Monthly' }))
+    expect(monthly.getByText('$4.90')).toBeInTheDocument()
+    expect(monthly.getByText('About $0.16 a day.')).toBeInTheDocument()
+    const yearly = within(screen.getByRole('region', { name: 'Yearly' }))
+    expect(yearly.getByText('$49')).toBeInTheDocument()
+    expect(yearly.getByText('Save 16%')).toBeInTheDocument()
+    expect(yearly.getByText('Works out to $4.08 a month.')).toBeInTheDocument()
+    expect(getPlanPrices).not.toHaveBeenCalled()
+  })
+
+  it('shows INR prices to visitors in India', async () => {
+    country = 'IN'
+    vi.mocked(getPlanPrices).mockResolvedValue(prices)
+    render(await PricingPage())
+
+    expect(screen.getByText('₹199')).toBeInTheDocument()
   })
 
   it('does not advertise savings when annual billing costs more', async () => {
@@ -42,5 +70,17 @@ describe('public pricing', () => {
     expect(screen.getByText(/Prices aren't loading right now/)).toBeInTheDocument()
     expect(screen.queryByRole('region', { name: 'Monthly' })).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'refund and cancellation policy' })).toHaveAttribute('href', '/legal/refunds')
+  })
+
+  it('wears the landing page’s shell: header home link, store CTA, what’s included, FAQ and footer', async () => {
+    vi.mocked(getPlanPrices).mockResolvedValue(prices)
+    render(await PricingPage())
+
+    expect(screen.getByRole('link', { name: 'Aviary home' })).toHaveAttribute('href', '/')
+    expect(screen.getByRole('link', { name: /Start your free trial/ })).toHaveAttribute('href', expect.stringContaining('play.google.com'))
+    expect(screen.getByRole('heading', { name: 'Everything’s included.' })).toBeInTheDocument()
+    expect(screen.getByText('Money Brain')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /What happens when my trial ends\?/ })).toBeInTheDocument()
+    expect(screen.getByRole('navigation', { name: 'Footer' })).toBeInTheDocument()
   })
 })

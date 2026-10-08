@@ -135,6 +135,19 @@ export async function POST(req: Request) {
     }
   }
 
+  // A category whose group was deleted would render nowhere, so bring the
+  // group back from Archive too, or fall back to ungrouped if it's gone for
+  // good. Done before the restore so a failure here leaves nothing dangling.
+  if (collection === 'categories' && archived.group) {
+    const groups = await getCollection('groups', auth)
+    if (!(await groups.findOne({ name: archived.group }))) {
+      const archivedGroup = await groups.findOne({ name: archived.group }, {}, { includeDeleted: true })
+      if (archivedGroup) await groups.restore({ _id: archivedGroup._id })
+      else await coll.updateMany({ _id: new ObjectId(id) }, { $set: { group: '' } }, {}, { includeDeleted: true })
+      invalidate('groups', auth.userId)
+    }
+  }
+
   await coll.restore({ _id: new ObjectId(id) })
 
   invalidate(collection, auth.userId)

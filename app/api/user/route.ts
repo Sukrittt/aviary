@@ -68,6 +68,7 @@ export async function PATCH(req: Request) {
     updates.hiddenFeatures = [...new Set(list as HideableFeature[])]
   }
   const completingGuidedTour = body.guidedTourCompleted === true
+  const seeingWeekRecap = body.weekRecapSeen === true
 
   // `onboardedAt` is no longer a client-writable profile field: completing
   // onboarding is what starts the 45-day trial clock, so its instant has to
@@ -76,7 +77,7 @@ export async function PATCH(req: Request) {
   // is discarded — and routed through the same server-owned action as
   // POST /api/onboarding/complete. See lib/billing/service.ts.
   const completing = 'onboardedAt' in body
-  if (!completing && !completingGuidedTour && Object.keys(updates).length === 0) return error('no valid fields')
+  if (!completing && !completingGuidedTour && !seeingWeekRecap && Object.keys(updates).length === 0) return error('no valid fields')
 
   if (name !== undefined) {
     await getWorkOSClient().userManagement.updateUser({ userId: auth.userId, name: name || undefined })
@@ -91,6 +92,13 @@ export async function PATCH(req: Request) {
     await db.collection<UserDoc>('users').updateOne(
       { _id: auth.userId, guidedTourCompletedAt: { $in: [null, undefined] } },
       { $set: { guidedTourCompletedAt: new Date().toISOString() } },
+    )
+  }
+  if (seeingWeekRecap) {
+    // Same shape as the guided tour: the first device to open the recap wins.
+    await db.collection<UserDoc>('users').updateOne(
+      { _id: auth.userId, weekRecapSeenAt: { $in: [null, undefined] } },
+      { $set: { weekRecapSeenAt: new Date().toISOString() } },
     )
   }
   if (completing) {

@@ -2,9 +2,10 @@
 
 import { useCurrency } from '@/src/context/CurrencyContext'
 
-import { useState } from 'react'
-import { AnimatePresence, motion } from 'motion/react'
-import { LIST_SPRING } from '@/src/components/landing/mobile/kit'
+import { useEffect, useState } from 'react'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { Folder, Receipt, Repeat, Tag, TrendingUp, Wallet, X } from 'lucide-react'
+import { ROW_SPRING } from '../components/DeletingRow'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { LoadingCaption } from '../components/LoadingCaption'
 import { ConfirmDialog } from '../components/ConfirmDialog'
@@ -25,13 +26,13 @@ const CHIP_LABELS: Record<ArchivableCollection, string> = {
   holdings: 'Holdings',
 }
 
-const KIND: Record<ArchivableCollection, { label: string; icon: string }> = {
-  expenses: { label: 'Transaction', icon: '🧾' },
-  budgets: { label: 'Budget', icon: '👛' },
-  categories: { label: 'Category', icon: '🏷️' },
-  groups: { label: 'Group', icon: '📂' },
-  subscriptions: { label: 'Subscription', icon: '🔁' },
-  holdings: { label: 'Holding', icon: '📈' },
+const KIND: Record<ArchivableCollection, { label: string; Icon: typeof Receipt }> = {
+  expenses: { label: 'Transaction', Icon: Receipt },
+  budgets: { label: 'Budget', Icon: Wallet },
+  categories: { label: 'Category', Icon: Tag },
+  groups: { label: 'Group', Icon: Folder },
+  subscriptions: { label: 'Subscription', Icon: Repeat },
+  holdings: { label: 'Holding', Icon: TrendingUp },
 }
 
 type Filter = 'all' | ArchivableCollection
@@ -54,6 +55,7 @@ const RETRY = 'Check your connection and try again.'
 /** `/account/archive`. Twin of Mobile's account/archive.tsx. */
 export function ArchivePage() {
   const { formatCurrency } = useCurrency()
+  const reduce = useReducedMotion()
 
   const qc = useQueryClient()
   const [hideAmounts] = useHideAmounts()
@@ -64,10 +66,13 @@ export function ArchivePage() {
   const [pending, setPending] = useState<{ id: string; kind: 'restore' | 'purge' } | null>(null)
   const [restoredId, setRestoredId] = useState<string | null>(null)
   const [purgeTarget, setPurgeTarget] = useState<ArchivedItem | null>(null)
-  // The count at the moment the dialog opened, so the title doesn't read "Restore 0 items" while the tick plays.
-  const [restoreAllCount, setRestoreAllCount] = useState<number | null>(null)
+  // The rows at the moment the dialog opened, so the title doesn't read "Restore 0 items" while the tick plays.
+  const [restoreBatch, setRestoreBatch] = useState<ArchivedItem[] | null>(null)
   const [notice, setNotice] = useState('')
-  const restoreAllButton = useButtonPhase()
+  const batchButton = useButtonPhase()
+  // Multi-select: `selecting` swaps each row's buttons for a pick toggle, like Activity.
+  const [selecting, setSelecting] = useState(false)
+  const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set())
 
   const items = archiveQuery.data ?? []
   const loading = archiveQuery.isLoading
@@ -81,6 +86,26 @@ export function ArchivePage() {
 
   const counts = { all: items.length } as Record<Filter, number>
   for (const c of SECTION_ORDER) counts[c] = items.filter((i) => i.collection === c).length
+
+  const selectedItems = pageItems.filter((i) => selected.has(i.id))
+  const allSelected = pageItems.length > 0 && selectedItems.length === pageItems.length
+  const selectionLocked = batchButton.saving || batchButton.success
+
+  // A selection only means the rows on screen: drop it when they change.
+  useEffect(() => setSelected(new Set()), [filter, currentPage])
+
+  function exitSelecting() {
+    setSelecting(false)
+    setSelected(new Set())
+  }
+
+  function toggleSelected(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (!next.delete(id)) next.add(id)
+      return next
+    })
+  }
 
   function drop(ids: string[]) {
     qc.setQueryData<ArchivedItem[]>(archiveKey, (old) => (old ?? []).filter((i) => !ids.includes(i.id)))
@@ -124,31 +149,36 @@ export function ArchivePage() {
     }
   }
 
-  async function handleRestoreAll() {
+  async function handleRestoreBatch(batch: ArchivedItem[]) {
     setNotice('')
-    restoreAllButton.start()
+    batchButton.start()
     const restored: string[] = []
-    let skipped = 0
+    const failed: string[] = []
     // One at a time on purpose: two archived rows with the same name would
     // otherwise race each other past the server's collision check.
-    for (const item of sorted) {
+    for (const item of batch) {
       try {
         await restoreArchivedItem(item.collection, item.id)
         restored.push(item.id)
       } catch {
-        skipped++
+        failed.push(item.id)
       }
     }
     drop(restored)
-    if (skipped > 0) {
-      restoreAllButton.fail()
-      setRestoreAllCount(null)
+    if (failed.length > 0) {
+      batchButton.fail()
+      setRestoreBatch(null)
+      // Failed rows stay selected, so a retry is one tap away.
+      setSelected(new Set(failed))
       setNotice(
-        `${restored.length} restored, ${skipped} skipped because a live item with the same name already exists.`,
+        `${restored.length} restored, ${failed.length} skipped because a live item with the same name already exists.`,
       )
       return
     }
-    restoreAllButton.succeed(() => setRestoreAllCount(null))
+    batchButton.succeed(() => {
+      setRestoreBatch(null)
+      exitSelecting()
+    })
   }
 
   let lastBand: Band | null = null
@@ -162,10 +192,15 @@ export function ArchivePage() {
             {items.length === 0 ? 'Nothing waiting to be purged' : `${items.length} item${items.length === 1 ? '' : 's'} · kept 7 days`}
           </div>
         </div>
-        {items.length > 0 && (
-          <button type="button" className="account-compact-btn" onClick={() => setRestoreAllCount(items.length)}>
-            Restore all
-          </button>
+        {items.length > 0 && !selecting && (
+          <div className="archive-heading-actions">
+            <button type="button" className="account-pill-btn" onClick={() => setSelecting(true)}>
+              Select
+            </button>
+            <button type="button" className="account-compact-btn" onClick={() => setRestoreBatch(sorted)}>
+              Restore all
+            </button>
+          </div>
         )}
       </div>
 
@@ -231,8 +266,15 @@ export function ArchivePage() {
               ))}
           </div>
 
-          <ul className="archive-list" aria-label="Archived items">
-            <AnimatePresence initial={false}>
+          <motion.ul
+            key={`${filter}-${currentPage}`}
+            className={`archive-list${selecting ? ' is-selecting' : ''}`}
+            aria-label="Archived items"
+            initial={reduce ? false : { opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ type: 'tween', duration: 0.15, ease: 'easeOut' }}
+          >
+            <AnimatePresence mode="popLayout" initial={false}>
             {pageItems.map((item, idx) => {
               const days = daysUntil(item.purgesAt)
               const band = bandFor(days)
@@ -240,127 +282,175 @@ export function ArchivePage() {
               lastBand = band
               const isPending = pending?.id === item.id
               const restored = restoredId === item.id
+              const isSelected = selecting && selected.has(item.id)
+              const { Icon } = KIND[item.collection]
               return (
                 <motion.li
                   key={item.id}
                   layout="position"
-                  transition={LIST_SPRING}
+                  transition={{ layout: ROW_SPRING }}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1, transition: { duration: 0.15 } }}
                   exit={{
                     opacity: 0,
                     // Restore all clears the list top-down, like Mobile.
-                    transition: restoreAllButton.saving
+                    transition: batchButton.saving
                       ? { duration: 0.18, delay: idx * 0.055 }
-                      : { duration: 0.12 },
+                      : { duration: 0.22 },
                   }}
                 >
                   {showBand && <div className={`archive-band ${days <= 1 ? 'is-coral' : ''}`}>{band}</div>}
-                  <div className={`account-card archive-row ${days <= 1 ? 'is-urgent' : ''}`}>
-                    <span className="archive-kind" aria-hidden="true">
-                      {KIND[item.collection].icon}
+                  <div className={`archive-row${isSelected ? ' is-selected' : ''}`}>
+                    {selecting && (
+                      <button
+                        type="button"
+                        className="archive-row-pick"
+                        aria-label={`Select ${item.label || 'item'}`}
+                        aria-pressed={isSelected}
+                        disabled={selectionLocked}
+                        onClick={() => toggleSelected(item.id)}
+                      />
+                    )}
+                    <span className="txn-check-slot" aria-hidden="true">
+                      <span className={`txn-check${isSelected ? ' is-on' : ''}`}>
+                        {isSelected && (
+                          <svg viewBox="0 0 24 24" fill="none">
+                            <path
+                              d="M5 13l4 4L19 7"
+                              stroke="currentColor"
+                              strokeWidth={3}
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              pathLength={1}
+                            />
+                          </svg>
+                        )}
+                      </span>
                     </span>
-                    <div className="archive-row-body">
-                      <div className="archive-row-name">
-                        <strong>{item.label || 'Untitled'}</strong>
-                        {item.amount !== undefined && <span>{formatCurrency(item.amount, hideAmounts)}</span>}
-                      </div>
-                      <div className="account-row-meta">
+                    <span className={`archive-kind is-${item.collection}`} aria-hidden="true">
+                      <Icon size={20} strokeWidth={2.2} />
+                    </span>
+                    <span className="archive-row-body">
+                      <span className="archive-row-name">{item.label || 'Untitled'}</span>
+                      <span className="archive-row-meta">
                         {KIND[item.collection].label} · deleted {formatDateShort(item.deletedAt)}
-                      </div>
-                    </div>
-                    <div className="archive-row-clock">
-                      <span className={`is-${urgency(days)}`}>{days === 1 ? '1 day left' : `${days} days left`}</span>
-                      <div className="archive-bar">
-                        <div
-                          className={`is-${urgency(days)}`}
-                          style={{ transform: `scaleX(${Math.max(6, Math.round((days / 7) * 100)) / 100})` }}
-                        />
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      className="scan-icon-btn"
-                      aria-label={`Delete ${item.label || 'item'} forever`}
-                      disabled={isPending || restored}
-                      onClick={() => setPurgeTarget(item)}
-                    >
-                      ✕
-                    </button>
-                    <button
-                      type="button"
-                      className={`account-pill-btn archive-restore ${restored ? 'is-done' : ''}`}
-                      disabled={isPending || restored}
-                      onClick={() => handleRestore(item)}
-                    >
-                      {restored ? '✓ Restored' : isPending && pending?.kind === 'restore' ? 'Restoring…' : 'Restore'}
-                    </button>
+                        {item.amount !== undefined ? ` · ${formatCurrency(item.amount, hideAmounts)}` : ''}
+                      </span>
+                    </span>
+                    <span className={`archive-days is-${urgency(days)}`}>{days === 1 ? '1 day left' : `${days} days left`}</span>
+                    {!selecting && (
+                      <span className="archive-row-actions">
+                        <button
+                          type="button"
+                          className="scan-icon-btn"
+                          aria-label={`Delete ${item.label || 'item'} forever`}
+                          disabled={isPending || restored}
+                          onClick={() => setPurgeTarget(item)}
+                        >
+                          <X size={15} strokeWidth={2.4} aria-hidden="true" />
+                        </button>
+                        <button
+                          type="button"
+                          className={`account-pill-btn archive-restore ${restored ? 'is-done' : ''}`}
+                          disabled={isPending || restored}
+                          onClick={() => handleRestore(item)}
+                        >
+                          {restored ? '✓ Restored' : isPending && pending?.kind === 'restore' ? 'Restoring…' : 'Restore'}
+                        </button>
+                      </span>
+                    )}
                   </div>
                 </motion.li>
               )
             })}
             </AnimatePresence>
-          </ul>
+          </motion.ul>
 
           {filter !== 'all' && shown.length === 0 && (
-            <p className="account-row-meta" style={{ textAlign: 'center' }}>
-              Nothing archived under {CHIP_LABELS[filter]}.
-            </p>
+            <p className="archive-footnote">Nothing archived under {CHIP_LABELS[filter]}.</p>
           )}
 
-          {shown.length > PAGE_SIZE && (
-            <div className="archive-pagination">
-              <button
-                type="button"
-                className="account-pill-btn"
-                aria-label="Previous archive page"
-                disabled={currentPage === 0}
-                onClick={() => setPage(currentPage - 1)}
-              >
-                ←
-              </button>
-              <span className="account-row-meta">
-                Page {currentPage + 1} of {pageCount} · {currentPage * PAGE_SIZE + 1}–
-                {Math.min((currentPage + 1) * PAGE_SIZE, shown.length)} of {shown.length}
+          {selecting && (
+            <div className="txn-select-bar" role="toolbar" aria-label="Selected items">
+              <span className="txn-select-count">
+                {selectedItems.length === 0 ? 'Tap rows to pick them' : `${selectedItems.length} selected`}
               </span>
               <button
                 type="button"
-                className="account-pill-btn"
-                aria-label="Next archive page"
-                disabled={currentPage === pageCount - 1}
-                onClick={() => setPage(currentPage + 1)}
+                className="action-button is-ghost"
+                disabled={selectionLocked}
+                onClick={() => setSelected(allSelected ? new Set() : new Set(pageItems.map((i) => i.id)))}
               >
-                →
+                {allSelected ? 'Clear' : 'Select all'}
+              </button>
+              <button
+                type="button"
+                className="account-compact-btn archive-select-restore"
+                disabled={selectedItems.length === 0 || selectionLocked}
+                onClick={() => setRestoreBatch(selectedItems)}
+              >
+                Restore
+              </button>
+              <button type="button" className="action-button is-ghost" disabled={selectionLocked} onClick={exitSelecting}>
+                Done
               </button>
             </div>
           )}
 
-          <p className="account-row-meta archive-footnote">
-            Kept 7 days from deletion, then removed automatically. Restoring a category or group puts it back, its
-            transactions stay where they are now.
+          <div className="txn-timeline-footer archive-footer">
+            <span>
+              {shown.length} item{shown.length === 1 ? '' : 's'}
+            </span>
+            {pageCount > 1 && (
+              <div className="txn-timeline-pagination">
+                <button type="button" className="action-button is-ghost" disabled={currentPage === 0} onClick={() => setPage(currentPage - 1)}>
+                  Prev
+                </button>
+                <span>
+                  {currentPage + 1} / {pageCount}
+                </span>
+                <button
+                  type="button"
+                  className="action-button is-ghost"
+                  disabled={currentPage === pageCount - 1}
+                  onClick={() => setPage(currentPage + 1)}
+                >
+                  Next
+                </button>
+              </div>
+            )}
+            <span>Gone after 7 days</span>
+          </div>
+
+          <p className="archive-footnote">
+            Restoring a category or group puts it back. Its transactions stay where they are now.
           </p>
         </>
       )}
 
       <AnimatePresence>
-        {restoreAllCount !== null && (
+        {restoreBatch && (
           <ConfirmDialog
-            title={`Restore ${restoreAllCount} item${restoreAllCount === 1 ? '' : 's'} back where they were?`}
+            title={
+              restoreBatch.length === 1
+                ? `Restore ${restoreBatch[0].label || 'this item'} back where it was?`
+                : `Restore ${restoreBatch.length} items back where they were?`
+            }
             cancelLabel="Cancel"
-            onCancel={() => !restoreAllButton.saving && !restoreAllButton.success && setRestoreAllCount(null)}
+            onCancel={() => !selectionLocked && setRestoreBatch(null)}
           >
             <SuccessButton
               type="button"
               // action-button, not account-pill-btn: the tick's styles live on it.
               baseClass="action-button"
-              saving={restoreAllButton.saving}
-              success={restoreAllButton.success}
+              saving={batchButton.saving}
+              success={batchButton.success}
               savingLabel="Restoring…"
               successLabel="Restored"
-              disabled={restoreAllButton.saving || restoreAllButton.success}
-              onClick={handleRestoreAll}
+              disabled={selectionLocked}
+              onClick={() => handleRestoreBatch(restoreBatch)}
             >
-              Restore all
+              Restore
             </SuccessButton>
           </ConfirmDialog>
         )}

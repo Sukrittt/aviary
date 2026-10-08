@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { AnimatePresence } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import {
   ReceiptText,
   Bell,
@@ -25,25 +25,33 @@ import {
   useCategories,
   useUpdateCategory,
   useDeleteCategory,
+  useMoveCategory,
 } from "../hooks/useCategories";
 import {
   useGroups,
   useAddGroup,
   useUpdateGroup,
   useDeleteGroup,
+  useMoveGroup,
 } from "../hooks/useGroups";
 import { useCollapsedGroups } from "../hooks/useCollapsedGroups";
 import {
   groupCategories,
   orphanedBy,
-  ARCHIVED_GROUP,
+  groupDeleteBody,
   OTHER_LABEL,
 } from "../lib/envelopeGroups";
-import { splitEmoji, groupEmoji, categoryEmoji, avatarColorFor } from "../lib/emoji";
+import {
+  splitEmoji,
+  groupEmoji,
+  categoryEmoji,
+  avatarColorFor,
+} from "../lib/emoji";
 import { DEFAULT_ALERT_PCTS } from "../lib/alerts";
 import { EMPTY } from "../lib/constants";
 import type { CategoryRow } from "../types";
 import { BirdEmptyState } from "../components/BirdEmptyState";
+import { DragItem, DragList, useDragOrder } from "../components/DragReorder";
 
 /** A pending rename or creation, in whichever place the row sits. */
 type Draft =
@@ -52,8 +60,7 @@ type Draft =
   | { kind: "rename-group"; name: string };
 
 type DeleteTarget =
-  | { kind: "category"; name: string }
-  | { kind: "group"; name: string };
+  { kind: "category"; name: string } | { kind: "group"; name: string };
 
 function sorted(pcts: number[]): number[] {
   return [...pcts].sort((a, b) => a - b);
@@ -61,6 +68,43 @@ function sorted(pcts: number[]): number[] {
 
 function sameThresholds(a: number[], b: number[]): boolean {
   return a.length === b.length && a.every((v, i) => v === b[i]);
+}
+
+/** One group's categories, draggable within the group like Mobile's DraggableCategoryList. */
+function CategoryList({
+  items,
+  onMove,
+  renderRow,
+}: {
+  items: CategoryRow[];
+  onMove: (name: string, toIndex: number) => void;
+  renderRow: (category: CategoryRow, grip: ReactNode) => ReactNode;
+}) {
+  const names = useMemo(() => items.map((c) => c.name), [items]);
+  const drag = useDragOrder(names, onMove);
+  const byName = new Map(items.map((c) => [c.name, c]));
+  return (
+    <DragList drag={drag} className="env-cat-list">
+      {drag.order.map((name) => {
+        const category = byName.get(name);
+        if (!category) return null;
+        return (
+          <DragItem
+            key={name}
+            value={name}
+            drag={drag}
+            label={splitEmoji(name).text}
+            className="env-cat"
+          >
+            {(grip) => renderRow(category, grip)}
+          </DragItem>
+        );
+      })}
+      {items.length === 0 && (
+        <li className="env-cat env-cat--empty">Nothing in here yet.</li>
+      )}
+    </DragList>
+  );
 }
 
 export function EnvelopesPage() {
@@ -73,6 +117,8 @@ export function EnvelopesPage() {
   const addGroup = useAddGroup();
   const updateGroup = useUpdateGroup();
   const deleteGroup = useDeleteGroup();
+  const moveCategory = useMoveCategory();
+  const moveGroup = useMoveGroup();
 
   const categories: CategoryRow[] = categoriesQuery.data ?? EMPTY;
   const groups: string[] = groupsQuery.data ?? EMPTY;
@@ -91,6 +137,24 @@ export function EnvelopesPage() {
     () => groupCategories(categories, groups),
     [categories, groups],
   );
+  const groupDrag = useDragOrder(groups, (name, toIndex) =>
+    moveGroup.mutate(
+      { name, toIndex },
+      { onError: () => setError("That didn't save. Try again.") },
+    ),
+  );
+  const moveCategoryTo = (name: string, toIndex: number) =>
+    moveCategory.mutate(
+      { name, toIndex },
+      { onError: () => setError("That didn't save. Try again.") },
+    );
+  // Named groups follow the drag's live order; ungrouped "Other" stays pinned last.
+  const byGroupName = new Map(grouped.map((g) => [g.name, g]));
+  const ungrouped = byGroupName.get("");
+  const orderedGroups = [
+    ...groupDrag.order.flatMap((name) => byGroupName.get(name) ?? []),
+    ...(ungrouped ? [ungrouped] : []),
+  ];
   const allKeys = useMemo(() => grouped.map((g) => g.label), [grouped]);
   const allCollapsed =
     allKeys.length > 0 && allKeys.every((k) => collapsed.has(k));
@@ -104,7 +168,10 @@ export function EnvelopesPage() {
     });
   }
 
-  function beginDraft(next: Draft | { kind: "new-category"; group: string }, initial = "") {
+  function beginDraft(
+    next: Draft | { kind: "new-category"; group: string },
+    initial = "",
+  ) {
     setError(null);
     if (next.kind === "new-category") {
       setAddCategoryGroup(next.group);
@@ -178,29 +245,9 @@ export function EnvelopesPage() {
     if (ok) setEditing(null);
   }
 
-  /**
-   * Deleting a group would strand its categories, so they are re-homed into
-   * Archived first — the same order Mobile uses, and the reason Archived can
-   * never itself be deleted.
-   */
+  /** Server sends the group's categories to Archive along with it. */
   async function removeGroup(name: string) {
-    if (name === ARCHIVED_GROUP) return;
-    const orphans = orphanedBy(categories, name);
-    await run(async () => {
-      if (orphans.length > 0) {
-        if (!groups.includes(ARCHIVED_GROUP))
-          await addGroup.mutateAsync(ARCHIVED_GROUP);
-        await Promise.all(
-          orphans.map((c) =>
-            updateCategory.mutateAsync({
-              name: c.name,
-              updates: { group: ARCHIVED_GROUP },
-            }),
-          ),
-        );
-      }
-      await deleteGroup.mutateAsync(name);
-    }, "group");
+    await run(() => deleteGroup.mutateAsync(name), "group");
   }
 
   async function confirmDelete() {
@@ -208,10 +255,7 @@ export function EnvelopesPage() {
     const target = deleteTarget;
     setDeleteTarget(null);
     if (target.kind === "category")
-      await run(
-        () => deleteCategory.mutateAsync(target.name),
-        "category",
-      );
+      await run(() => deleteCategory.mutateAsync(target.name), "category");
     else await removeGroup(target.name);
   }
 
@@ -244,7 +288,9 @@ export function EnvelopesPage() {
             <div className="txn-page-heading">
               <span className="txn-page-eyebrow">Your spending, organized</span>
               <h1>Envelopes</h1>
-              <p>A place for every category. A heads-up before you overspend.</p>
+              <p>
+                A place for every category. A heads-up before you overspend.
+              </p>
             </div>
             <div className="txn-page-actions">
               <button
@@ -260,22 +306,24 @@ export function EnvelopesPage() {
 
           <div className="env-page-toolbar">
             <p className="env-page-summary">
-              <strong>{categories.length}</strong> {categories.length === 1 ? "category" : "categories"}
+              <strong>{categories.length}</strong>{" "}
+              {categories.length === 1 ? "category" : "categories"}
               <span aria-hidden="true"> / </span>
-              <strong>{groups.length}</strong> {groups.length === 1 ? "group" : "groups"}
+              <strong>{groups.length}</strong>{" "}
+              {groups.length === 1 ? "group" : "groups"}
             </p>
-              <button
-                type="button"
-                className="erd-manage-btn env-collapse-btn"
-                onClick={() =>
-                  setCollapsed(
-                    allCollapsed ? new Set<string>() : new Set(allKeys),
-                  )
-                }
-              >
-                <ChevronsDownUp size={14} aria-hidden="true" />
-                {allCollapsed ? "Expand all" : "Collapse all"}
-              </button>
+            <button
+              type="button"
+              className="erd-manage-btn env-collapse-btn"
+              onClick={() =>
+                setCollapsed(
+                  allCollapsed ? new Set<string>() : new Set(allKeys),
+                )
+              }
+            >
+              <ChevronsDownUp size={14} aria-hidden="true" />
+              {allCollapsed ? "Expand all" : "Collapse all"}
+            </button>
           </div>
 
           {error && (
@@ -291,19 +339,32 @@ export function EnvelopesPage() {
               subject="envelopes"
               title="Your envelopes are waiting"
               description="Make a group, add a category, and give every rupee a place to land."
-              action={{ label: 'Create your first group', onClick: () => beginDraft({ kind: 'new-group' }) }}
+              action={{
+                label: "Create your first group",
+                onClick: () => beginDraft({ kind: "new-group" }),
+              }}
             />
           )}
 
-          <ul className="env-group-list" aria-label="Envelope groups">
-            {grouped.map((group) => {
-              const isCollapsed = collapsed.has(group.label);
+          <DragList
+            drag={groupDrag}
+            className="env-group-list"
+            label="Envelope groups"
+          >
+            {orderedGroups.map((group) => {
+              // Like Mobile, every group folds to its header while one is dragged, so each
+              // slot is one header tall. The bodies unmount outright rather than spring shut:
+              // Reorder measures rows on render, and a body still animating out keeps the old,
+              // tall positions, so the drag never finds a swap.
+              const dragging = groupDrag.active !== null;
+              const isCollapsed = dragging || collapsed.has(group.label);
               const { icon, text } = group.name
                 ? splitEmoji(group.name)
                 : { icon: "🗂️", text: OTHER_LABEL };
-              return (
-                <li key={group.label} className="env-group">
+              const body = (grip: ReactNode) => (
+                <>
                   <div className="env-group-head">
+                    {grip}
                     <button
                       type="button"
                       className="env-group-toggle"
@@ -334,7 +395,7 @@ export function EnvelopesPage() {
                           })
                         }
                         aria-label={`Add a category to ${text}`}
-                                title="Add category"
+                        title="Add category"
                       >
                         <Plus size={14} aria-hidden="true" />
                       </button>
@@ -349,12 +410,12 @@ export function EnvelopesPage() {
                             )
                           }
                           aria-label={`Rename ${text}`}
-                                title="Rename group"
+                          title="Rename group"
                         >
                           <Pencil size={14} aria-hidden="true" />
                         </button>
                       )}
-                      {group.name && group.name !== ARCHIVED_GROUP && (
+                      {group.name && (
                         <button
                           type="button"
                           className="env-icon-btn env-icon-btn--danger"
@@ -365,7 +426,7 @@ export function EnvelopesPage() {
                             })
                           }
                           aria-label={`Delete ${text}`}
-                                title="Delete group"
+                          title="Delete group"
                         >
                           <Trash2 size={14} aria-hidden="true" />
                         </button>
@@ -373,96 +434,121 @@ export function EnvelopesPage() {
                     </div>
                   </div>
 
-                  <SpringCollapse open={!isCollapsed}>
-                    <ul className="env-cat-list">
-                      {group.items.map((category) => {
-                        const parts = splitEmoji(category.name);
-                        const thresholds = category.alertPcts
-                          ? sorted(category.alertPcts)
-                          : DEFAULT_ALERT_PCTS;
-                        return (
-                          <li key={category.name} className="env-cat">
-                            <span
-                              className="env-cat-icon"
-                              style={{ background: avatarColorFor(parts.text) }}
-                              aria-hidden="true"
-                            >
-                              {categoryEmoji(category.name)}
-                            </span>
-                            <span className="env-cat-name">{parts.text}</span>
-                            <button
-                              type="button"
-                              className="env-cat-alerts"
-                              onClick={() => {
-                                setEditing(category);
-                                setDraftPcts(thresholds);
-                              }}
-                              title="Get notified when spending in this envelope reaches these points"
-                              aria-label={`Spending alerts for ${parts.text}: ${thresholds.map((p) => `${p}%`).join(", ")}`}
-                            >
-                              <Bell size={14} aria-hidden="true" />
-                              <span className="env-alert-copy">
-                                <span className="env-alert-label">Spending alerts</span>
-                                <span className="env-alert-values">{thresholds.map((p) => `${p}%`).join(" · ")}</span>
+                  {!dragging && (
+                    <SpringCollapse open={!isCollapsed}>
+                      <CategoryList
+                        items={group.items}
+                        onMove={moveCategoryTo}
+                        renderRow={(category, catGrip) => {
+                          const parts = splitEmoji(category.name);
+                          const thresholds = category.alertPcts
+                            ? sorted(category.alertPcts)
+                            : DEFAULT_ALERT_PCTS;
+                          return (
+                            <>
+                              {catGrip}
+                              <span
+                                className="env-cat-icon"
+                                style={{
+                                  background: avatarColorFor(parts.text),
+                                }}
+                                aria-hidden="true"
+                              >
+                                {categoryEmoji(category.name)}
                               </span>
-                            </button>
-                            <div className="env-cat-actions">
-                              <Link
-                                className="env-icon-btn"
-                                href={`/expense/transactions?category=${encodeURIComponent(category.name)}`}
-                                aria-label={`View transactions for ${parts.text}`}
-                                title="View transactions"
-                              >
-                                <ReceiptText size={14} aria-hidden="true" />
-                              </Link>
+                              <span className="env-cat-name">{parts.text}</span>
                               <button
                                 type="button"
-                                className="env-icon-btn"
-                                onClick={() =>
-                                  beginDraft(
-                                    {
-                                      kind: "rename-category",
+                                className="env-cat-alerts"
+                                onClick={() => {
+                                  setEditing(category);
+                                  setDraftPcts(thresholds);
+                                }}
+                                title="Get notified when spending in this envelope reaches these points"
+                                aria-label={`Spending alerts for ${parts.text}: ${thresholds.map((p) => `${p}%`).join(", ")}`}
+                              >
+                                <Bell size={14} aria-hidden="true" />
+                                <span className="env-alert-copy">
+                                  <span className="env-alert-label">
+                                    Spending alerts
+                                  </span>
+                                  <span className="env-alert-values">
+                                    {thresholds.map((p) => `${p}%`).join(" · ")}
+                                  </span>
+                                </span>
+                              </button>
+                              <div className="env-cat-actions">
+                                <Link
+                                  className="env-icon-btn"
+                                  href={`/expense/transactions?category=${encodeURIComponent(category.name)}`}
+                                  aria-label={`View transactions for ${parts.text}`}
+                                  title="View transactions"
+                                >
+                                  <ReceiptText size={14} aria-hidden="true" />
+                                </Link>
+                                <button
+                                  type="button"
+                                  className="env-icon-btn"
+                                  onClick={() =>
+                                    beginDraft(
+                                      {
+                                        kind: "rename-category",
+                                        name: category.name,
+                                        group: group.name,
+                                      },
+                                      category.name,
+                                    )
+                                  }
+                                  aria-label={`Rename ${parts.text}`}
+                                  title="Rename category"
+                                >
+                                  <Pencil size={14} aria-hidden="true" />
+                                </button>
+                                <button
+                                  type="button"
+                                  className="env-icon-btn env-icon-btn--danger"
+                                  onClick={() =>
+                                    setDeleteTarget({
+                                      kind: "category",
                                       name: category.name,
-                                      group: group.name,
-                                    },
-                                    category.name,
-                                  )
-                                }
-                                aria-label={`Rename ${parts.text}`}
-                                title="Rename category"
-                              >
-                                <Pencil size={14} aria-hidden="true" />
-                              </button>
-                              <button
-                                type="button"
-                                className="env-icon-btn env-icon-btn--danger"
-                                onClick={() =>
-                                  setDeleteTarget({
-                                    kind: "category",
-                                    name: category.name,
-                                  })
-                                }
-                                aria-label={`Delete ${parts.text}`}
-                                title="Delete category"
-                              >
-                                <Trash2 size={14} aria-hidden="true" />
-                              </button>
-                            </div>
-                          </li>
-                        );
-                      })}
-
-                      {group.items.length === 0 && (
-                        <li className="env-cat env-cat--empty">
-                          Nothing in here yet.
-                        </li>
-                      )}
-                    </ul>
-                  </SpringCollapse>
-                </li>
+                                    })
+                                  }
+                                  aria-label={`Delete ${parts.text}`}
+                                  title="Delete category"
+                                >
+                                  <Trash2 size={14} aria-hidden="true" />
+                                </button>
+                              </div>
+                            </>
+                          );
+                        }}
+                      />
+                    </SpringCollapse>
+                  )}
+                </>
+              );
+              // Ungrouped "Other" isn't a stored group, so it has no slot to move to.
+              return group.name ? (
+                <DragItem
+                  key={group.label}
+                  value={group.name}
+                  drag={groupDrag}
+                  label={text}
+                  className="env-group"
+                >
+                  {body}
+                </DragItem>
+              ) : (
+                <motion.li
+                  key={group.label}
+                  layout="position"
+                  className="env-group"
+                >
+                  {body(null)}
+                </motion.li>
               );
             })}
-          </ul>
+          </DragList>
         </div>
       </div>
 
@@ -509,7 +595,9 @@ export function EnvelopesPage() {
                       {draft.kind === "rename-category" ? "CATEGORY" : "GROUP"}
                     </span>
                     <h2 className="env-sheet-title">
-                      {draft.kind === "rename-category" ? "Rename category" : "Rename group"}
+                      {draft.kind === "rename-category"
+                        ? "Rename category"
+                        : "Rename group"}
                     </h2>
                   </div>
                   <button
@@ -523,16 +611,17 @@ export function EnvelopesPage() {
                 </div>
               ) : (
                 <>
-                  <div className="env-sheet-title">
-                    Add group
-                  </div>
+                  <div className="env-sheet-title">Add group</div>
                   <p className="env-sheet-copy">
                     Groups gather related categories: Food, Home, Transport.
                   </p>
                 </>
               )}
 
-              <label className="env-sheet-section-label" htmlFor="env-sheet-name">
+              <label
+                className="env-sheet-section-label"
+                htmlFor="env-sheet-name"
+              >
                 {draft.kind.startsWith("rename-") ? "New name" : "Name"}
               </label>
               <div className="env-sheet-name-row">
@@ -545,7 +634,11 @@ export function EnvelopesPage() {
                   id="env-sheet-name"
                   className="env-input"
                   autoFocus
-                  aria-describedby={draft.kind.startsWith("rename-") ? "env-sheet-emoji-help" : undefined}
+                  aria-describedby={
+                    draft.kind.startsWith("rename-")
+                      ? "env-sheet-emoji-help"
+                      : undefined
+                  }
                   placeholder={
                     draft.kind === "rename-category"
                       ? "Groceries, fuel, gym…"
@@ -561,14 +654,17 @@ export function EnvelopesPage() {
               </div>
               {draft.kind.startsWith("rename-") ? (
                 <p className="env-sheet-emoji-help" id="env-sheet-emoji-help">
-                  The first emoji becomes the icon for this {draft.kind === "rename-category" ? "category" : "group"}.
+                  The first emoji becomes the icon for this{" "}
+                  {draft.kind === "rename-category" ? "category" : "group"}.
                 </p>
-              ) : draftText.trim() !== "" && splitEmoji(draftText).icon === "" && (
-                <p className="env-sheet-hint">
-                  💡 Tip: start the name with an emoji, like{" "}
-                  🚗 Transport
-                  , to give it its own icon.
-                </p>
+              ) : (
+                draftText.trim() !== "" &&
+                splitEmoji(draftText).icon === "" && (
+                  <p className="env-sheet-hint">
+                    💡 Tip: start the name with an emoji, like 🚗 Transport , to
+                    give it its own icon.
+                  </p>
+                )
               )}
 
               {error && (
@@ -580,14 +676,22 @@ export function EnvelopesPage() {
               <div className="env-sheet-actions">
                 <button
                   type="button"
-                  className={draft.kind.startsWith("rename-") ? "env-sheet-action env-sheet-action--cancel" : "auth-btn auth-btn--outline"}
+                  className={
+                    draft.kind.startsWith("rename-")
+                      ? "env-sheet-action env-sheet-action--cancel"
+                      : "auth-btn auth-btn--outline"
+                  }
                   onClick={() => setDraft(null)}
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
-                  className={draft.kind.startsWith("rename-") ? "env-sheet-action env-sheet-action--save" : "auth-btn auth-btn--primary"}
+                  className={
+                    draft.kind.startsWith("rename-")
+                      ? "env-sheet-action env-sheet-action--save"
+                      : "auth-btn auth-btn--primary"
+                  }
                   onClick={() => void commitDraft()}
                   disabled={submitting || !draftText.trim()}
                 >
@@ -625,7 +729,7 @@ export function EnvelopesPage() {
             title={`Delete ${splitEmoji(deleteTarget.name).text}?`}
             body={
               deleteTarget.kind === "group"
-                ? "Its categories move to the Archived group. You can restore the group from Archive for 7 days."
+                ? groupDeleteBody(orphanedBy(categories, deleteTarget.name).length)
                 : "It will move to Archive. You can restore it for 7 days."
             }
             cancelLabel="Cancel"

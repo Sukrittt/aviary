@@ -7,6 +7,7 @@ import {
   reactivateSubscription,
   updateSubscription,
 } from '@/src/api/subscriptions'
+import { track } from '@/src/lib/analytics'
 
 export const subscriptionsKey = ['subscriptions'] as const
 const key = subscriptionsKey
@@ -22,7 +23,8 @@ export function useAddSubscription() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (row: Parameters<typeof addSubscription>[0]) => addSubscription(row),
-    onSuccess: () => {
+    onSuccess: (_, row) => {
+      track('subscription_added', { billing_cycle: row.billing_cycle ?? 'unknown' })
       qc.invalidateQueries({ queryKey: key })
       qc.invalidateQueries({ queryKey: briefKey })
     },

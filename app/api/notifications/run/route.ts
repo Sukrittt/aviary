@@ -5,10 +5,12 @@ import { json, nowIn, getCollection } from '@/lib/http'
 import { getDb } from '@/lib/mongodb'
 import type { Auth } from '@/lib/access'
 import { buildExpenseContext } from '@/lib/ai/expenseContext'
-import { buildNotifications, prefsFor, wrappedNotification } from '@/lib/notifications/rules'
+import { buildNotifications, prefsFor, weekRecapNotification, weekRecapTeaserNotification, wrappedNotification } from '@/lib/notifications/rules'
 import { claim, claimAndSend, unclaim } from '@/lib/notifications/deliver'
 import { currentEdition, editionStatus } from '@/lib/wrapped'
 import type { UserDoc } from '@/lib/users'
+import { computeWeekRecap, learningDay, onboardedDate, recapDue, type RecapRow } from '@/lib/weekRecap'
+import { EXPENSE_HEADERS, toRow } from '@/lib/models'
 import { applyHoldingAction } from '@/lib/holdings'
 import { isDueToday, isDueTomorrow, tomorrowOf } from '@/lib/holdingRecurrence'
 import { isSubscriptionDueToday } from '@/lib/subscriptions'
@@ -314,6 +316,27 @@ async function runRecurringExpensesForUser(db: Db, user: UserDoc, today: string)
 
   return sent
 }
+/**
+ * First-week recap pushes: the day 3 and day 5 teasers, then the "it's
+ * ready" push once it's due. Rides the Wrapped pass and its opt-out. Only
+ * the teasers read expenses, and only on those two days.
+ */
+async function runWeekRecapForUser(db: Db, user: UserDoc): Promise<number> {
+  const start = onboardedDate(user)
+  const today = nowIn(user.timezone).date
+  const prefs = prefsFor(user)
+  if (recapDue(start, user.weekRecapSeenAt, today)) {
+    const notification = weekRecapNotification(prefs)
+    return notification && (await claimAndSend(db, user._id, notification, '')) ? 1 : 0
+  }
+  const day = learningDay(start, today)
+  if (!start || (day !== 3 && day !== 5) || !prefs.wrapped) return 0
+  const auth: Auth = { userId: user._id, readOnly: false, sessionId: null }
+  const docs = await (await getCollection('expenses', auth)).find({ date: { $gte: start, $lte: today } }).toArray()
+  const { daysLogged } = computeWeekRecap(docs.map((d) => toRow(EXPENSE_HEADERS, d) as RecapRow), start)
+  const notification = weekRecapTeaserNotification(day, daysLogged, prefs)
+  return notification && (await claimAndSend(db, user._id, notification, '')) ? 1 : 0
+}
 
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET
@@ -352,6 +375,11 @@ async function runAll(): Promise<{ sent: number }> {
       sent += await runWrappedForUser(db, user)
     } catch (err) {
       console.error('notifications/run: wrapped failed for', user._id, err)
+    }
+    try {
+      sent += await runWeekRecapForUser(db, user)
+    } catch (err) {
+      console.error('notifications/run: week recap failed for', user._id, err)
     }
   }
 

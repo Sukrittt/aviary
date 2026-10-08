@@ -1018,6 +1018,7 @@ function SetupDone({
       <div className="setup-done-badge"><Check size={30} strokeWidth={2.4} aria-hidden="true" /></div>
       <h1 className="setup-done-title">Your budget is ready to go.</h1>
       <p className="setup-done-blurb">Everything below can be changed later from Envelopes.</p>
+      <p className="setup-done-promise">Log for 7 days and we&apos;ll show you what we learned about you.</p>
       <div className="setup-done-list">
         {summary.map((s) => (
           <div key={s.label} className="setup-done-row">

@@ -38,3 +38,24 @@ it('bounces back to sign-in instead of a 500 when the code exchange fails', asyn
   expect(saveSession).not.toHaveBeenCalled()
   expect(scheduleWelcomeEmail).not.toHaveBeenCalled()
 })
+
+// Google sign-in finishes here, on the server, so the browser can only report
+// the outcome if this route leaves it behind.
+const outcomeCookie = (res: Response) => res.headers.get('set-cookie')?.match(/sign_in_outcome=([^;]*)/)?.[1]
+
+it('leaves a completed outcome for the browser to report', async () => {
+  authenticateWithCode.mockResolvedValue({ user: { id: 'u1' }, accessToken: 'a', refreshToken: 'r' })
+  expect(outcomeCookie(await callback())).toBe('completed')
+})
+
+it('leaves a failed outcome when the code exchange fails', async () => {
+  authenticateWithCode.mockRejectedValue(new Error('invalid_grant'))
+  expect(outcomeCookie(await callback())).toBe('token_exchange_failed')
+})
+
+it('leaves no sign-in outcome when an account-link attempt fails its state check', async () => {
+  const { verifyState } = await import('@/lib/oauthState')
+  vi.mocked(verifyState).mockReturnValueOnce(null)
+  const res = await GET(new Request('https://example.com/api/auth/google/callback?code=abc&state=link:nonce'))
+  expect(outcomeCookie(res)).toBeUndefined()
+})

@@ -31,7 +31,7 @@ export const DEFAULT_ALERT_PCTS = [50, 90, 100]
 /** Sentinel level for an overspent envelope — always above any realistic alertPct, since `spentPct` is capped at 100. */
 export const OVER_LEVEL = 101
 
-export type NotificationKind = 'threshold' | 'overspent' | 'bill' | 'digest' | 'coach' | 'pace' | 'wrapped'
+export type NotificationKind = 'threshold' | 'overspent' | 'bill' | 'digest' | 'coach' | 'pace' | 'wrapped' | 'recap'
 
 export interface Notification {
   /** Dedupe key claimed in `notification_log`; stable across runs until the underlying fact changes. */
@@ -240,6 +240,41 @@ export function wrappedNotification(month: string, prefs: NotificationPrefs): No
     title: 'Your Wrapped is ready',
     body: `Your ${label} Expense Wrapped just unlocked.`,
     data: { route: '/wrapped' },
+  }
+}
+
+/**
+ * Day 7's "here's what we learned about you" push. Gated on the Wrapped
+ * switch, the closest thing to it. The cron only asks while the recap is due
+ * (see lib/weekRecap.ts), and the key makes it once per account.
+ */
+export function weekRecapNotification(prefs: NotificationPrefs): Notification | null {
+  if (!prefs.wrapped) return null
+  return {
+    key: 'recap:week1',
+    kind: 'recap',
+    title: 'Your first week is in',
+    body: "Here's what we learned about you in 7 days. Take a peek.",
+    data: { route: '/recap' },
+  }
+}
+
+/**
+ * Mid-week teasers for the recap, on day 3 (where new users tend to drop
+ * off) and day 5. Same opt-out as the day 7 push; keyed per day so each
+ * sends once. `loggedDays` is how many days of the week so far have an expense.
+ */
+export function weekRecapTeaserNotification(day: number, loggedDays: number, prefs: NotificationPrefs): Notification | null {
+  if (!prefs.wrapped || (day !== 3 && day !== 5)) return null
+  const left = 8 - day
+  const body = loggedDays > 0
+    ? `${loggedDays} ${loggedDays === 1 ? 'day' : 'days'} logged so far. Your recap unlocks in ${left} days.`
+    : `Log what you spent today and we'll start learning your habits. Your recap unlocks in ${left} days.`
+  return {
+    key: `recap:teaser:${day}`,
+    kind: 'recap',
+    title: day === 3 ? 'Your first-week recap is taking shape' : 'Almost there',
+    body,
   }
 }
 

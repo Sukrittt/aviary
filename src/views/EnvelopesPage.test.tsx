@@ -5,8 +5,8 @@ import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import { EnvelopesPage } from './EnvelopesPage'
-import { getCategories, addCategory, deleteCategory, updateCategory } from '@/src/api/categories'
-import { getGroups, addGroup, deleteGroup, updateGroup } from '@/src/api/groups'
+import { getCategories, addCategory, deleteCategory, updateCategory, moveCategory } from '@/src/api/categories'
+import { getGroups, addGroup, deleteGroup, updateGroup, moveGroup } from '@/src/api/groups'
 
 vi.mock('@/src/api/categories', () => ({
   getCategories: vi.fn(),
@@ -63,6 +63,8 @@ beforeEach(() => {
   ;(addGroup as Mock).mockResolvedValue(undefined)
   ;(deleteGroup as Mock).mockResolvedValue(undefined)
   ;(updateGroup as Mock).mockResolvedValue(undefined)
+  ;(moveCategory as Mock).mockResolvedValue(undefined)
+  ;(moveGroup as Mock).mockResolvedValue(undefined)
 })
 
 describe('EnvelopesPage', () => {
@@ -113,30 +115,22 @@ describe('EnvelopesPage', () => {
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Add category' })).not.toBeInTheDocument())
   })
 
-  it('re-homes stranded categories into Archived before deleting their group', async () => {
+  it('deletes a group with categories straight away, warning they go to Archive', async () => {
     const user = userEvent.setup()
     renderPage()
     await user.click(await screen.findByLabelText('Delete Home'))
     const dialog = screen.getByRole('alertdialog', { name: 'Delete Home?' })
-    expect(dialog).toHaveTextContent('Its categories move to the Archived group. You can restore the group from Archive for 7 days.')
-    expect(dialog).not.toHaveTextContent(/can't be undone/i)
-    // Deletion only runs after the dialog is confirmed.
-    await user.click(
-      within(dialog).getByRole('button', { name: 'Delete' }),
-    )
-    // Archived does not exist yet, so it is created, then both of Home's
-    // categories are moved into it, and only then is Home removed.
+    expect(dialog).toHaveTextContent('Its 2 categories go to Archive too. You can restore them for 7 days.')
+    await user.click(within(dialog).getByRole('button', { name: 'Delete' }))
     await waitFor(() => expect(deleteGroup).toHaveBeenCalledWith('Home'))
-    expect(addGroup).toHaveBeenCalledWith('Archived')
-    expect(updateCategory).toHaveBeenCalledWith('🏠 Rent', { group: 'Archived' })
-    expect(updateCategory).toHaveBeenCalledWith('🚿 Water', { group: 'Archived' })
+    expect(addGroup).not.toHaveBeenCalled()
+    expect(updateCategory).not.toHaveBeenCalled()
   })
 
-  it('will not offer to delete the Archived group', async () => {
+  it('offers to delete the Archived group like any other', async () => {
     ;(getGroups as Mock).mockResolvedValue(['Home', 'Archived'])
     renderPage()
-    expect(await screen.findByLabelText('Delete Home')).toBeInTheDocument()
-    expect(screen.queryByLabelText('Delete Archived')).not.toBeInTheDocument()
+    expect(await screen.findByLabelText('Delete Archived')).toBeInTheDocument()
   })
 
   it('does not delete a category when the dialog is cancelled', async () => {
@@ -227,5 +221,25 @@ describe('EnvelopesPage', () => {
     // Wait on the group's own toggle: the collapsed state loads after mount.
     const list = within(await screen.findByRole('list', { name: 'Envelope groups' }))
     await waitFor(() => expect(list.getByRole('button', { name: /^Home/ })).toHaveAttribute('aria-expanded', 'false'))
+  })
+
+  it('reorders a category within its group from the grip', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    const list = await groupList()
+    list.getByRole('button', { name: 'Move Rent' }).focus()
+    await user.keyboard('{ArrowDown}')
+    await waitFor(() => expect(moveCategory).toHaveBeenCalledWith('🏠 Rent', 1))
+  })
+
+  it('reorders groups but keeps Other pinned and unmovable', async () => {
+    ;(getGroups as Mock).mockResolvedValue(['Home', 'Fun'])
+    const user = userEvent.setup()
+    renderPage()
+    const list = await groupList()
+    expect(list.queryByRole('button', { name: 'Move Other' })).not.toBeInTheDocument()
+    list.getByRole('button', { name: 'Move Fun' }).focus()
+    await user.keyboard('{ArrowUp}')
+    await waitFor(() => expect(moveGroup).toHaveBeenCalledWith('Fun', 0))
   })
 })

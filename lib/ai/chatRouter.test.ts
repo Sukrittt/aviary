@@ -10,7 +10,7 @@ function answers(probabilities: Record<string, number>) {
   return Object.fromEntries(Object.entries(probabilities).map(([k, probability]) => [k, { type: 'boolean', probability }]))
 }
 
-const onTopicOnly = { onTopic: 0.98, needsTransactions: 0.02, needsTrend: 0.05, needsSubscriptions: 0.01, needsInvestments: 0.01, isDecision: 0.03 }
+const onTopicOnly = { onTopic: 0.98, needsTransactions: 0.02, needsTrend: 0.05, needsSubscriptions: 0.01, needsInvestments: 0.01, isDecision: 0.03, isCapture: 0.02 }
 
 beforeEach(() => vi.clearAllMocks())
 
@@ -77,6 +77,35 @@ describe('routeChat', () => {
   ])('answers the vague but financial %s (measured p=%s)', async (message, probability) => {
     runJev.mockResolvedValue(answers({ ...onTopicOnly, onTopic: probability }))
     expect((await routeChat(message, caller)).onTopic).toBe(true)
+  })
+
+  it('routes a list of spends to capture', async () => {
+    runJev.mockResolvedValue(answers({ ...onTopicOnly, isCapture: 0.94 }))
+    const route = await routeChat('auto 240, lunch 150, sneakers 5k', caller)
+    expect(route).toEqual({ onTopic: true, sections: [], decision: false, capture: true })
+  })
+
+  it('captures a log even when Jev scores it low as a money question', async () => {
+    // A log tells rather than asks, so the onTopic question can read it as off topic.
+    runJev.mockResolvedValue(answers({ ...onTopicOnly, onTopic: 0.03, isCapture: 0.9 }))
+    expect((await routeChat('turf 1200 split 6', caller)).capture).toBe(true)
+  })
+
+  it('answers a log that also asks for a judgement instead of capturing it', async () => {
+    runJev.mockResolvedValue(answers({ ...onTopicOnly, isCapture: 0.8, isDecision: 0.85 }))
+    const route = await routeChat('bought sneakers for 5k, was that too much?', caller)
+    expect(route.capture).toBe(false)
+    expect(route.decision).toBe(true)
+  })
+
+  it('does not capture a plain question', async () => {
+    runJev.mockResolvedValue(answers(onTopicOnly))
+    expect((await routeChat('how much on food?', caller)).capture).toBe(false)
+  })
+
+  it('never captures when Jev is unavailable', async () => {
+    runJev.mockRejectedValue(new Error('gateway down'))
+    expect((await routeChat('auto 240', caller)).capture).toBe(false)
   })
 
   it('sends everything when Jev fails, matching the old behaviour', async () => {

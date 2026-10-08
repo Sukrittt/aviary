@@ -52,4 +52,5 @@ export const USER_COLLECTIONS = [
   'push_tokens',
   'category_map_overrides',
   'chat_sessions',
+  'balance_checks',
 ]

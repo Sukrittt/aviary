@@ -141,6 +141,21 @@ describe('PATCH /api/user', () => {
     )
   })
 
+  it('marks the week recap seen once, with the server clock', async () => {
+    const res = await PATCH(patchRequest({ weekRecapSeen: true }))
+    expect(res.status).toBe(200)
+    expect(usersUpdateOneMock).toHaveBeenCalledWith(
+      { _id: 'user_a', weekRecapSeenAt: { $in: [null, undefined] } },
+      { $set: { weekRecapSeenAt: expect.any(String) } },
+    )
+  })
+
+  it('does not accept a client-supplied week recap timestamp', async () => {
+    const res = await PATCH(patchRequest({ weekRecapSeenAt: '2000-01-01T00:00:00.000Z' }))
+    expect(res.status).toBe(400)
+    expect(usersUpdateOneMock).not.toHaveBeenCalled()
+  })
+
   it('does not accept a client-supplied guided-tour timestamp', async () => {
     const res = await PATCH(patchRequest({ guidedTourCompletedAt: '2000-01-01T00:00:00.000Z' }))
     expect(res.status).toBe(400)

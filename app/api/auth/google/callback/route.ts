@@ -5,6 +5,12 @@ import { ensureUser } from '@/lib/users'
 import { scheduleWelcomeEmail } from '@/lib/email/welcome'
 import { getAuth } from '@/lib/access'
 import { verifyState, clearStateCookie } from '@/lib/oauthState'
+import { SIGN_IN_OUTCOME_COOKIE } from '@/src/lib/analytics'
+
+/** Readable by the page, unlike the session: AnalyticsProvider reports it, then clears it. */
+function setSignInOutcome(res: NextResponse, outcome: string): void {
+  res.cookies.set(SIGN_IN_OUTCOME_COOKIE, outcome, { path: '/', maxAge: 300, sameSite: 'lax' })
+}
 
 export async function GET(req: Request) {
   const url = new URL(req.url)
@@ -19,6 +25,8 @@ export async function GET(req: Request) {
     // an attacker-supplied code (login CSRF).
     const res = NextResponse.redirect(new URL('/sign-in?authError=1', req.url))
     clearStateCookie(res)
+    // A link attempt from account security isn't a sign-in; keep it out of the funnel.
+    if (!state.startsWith('link:')) setSignInOutcome(res, 'state_mismatch')
     return res
   }
   const { isLink } = verified
@@ -39,6 +47,7 @@ export async function GET(req: Request) {
     // user back to sign-in with the error banner instead of a bare 500.
     const res = NextResponse.redirect(new URL('/sign-in?authError=1', req.url))
     clearStateCookie(res)
+    if (!isLink) setSignInOutcome(res, 'token_exchange_failed')
     return res
   }
   const { user, accessToken, refreshToken } = authed
@@ -56,5 +65,6 @@ export async function GET(req: Request) {
   scheduleWelcomeEmail(user.id)
   const res = NextResponse.redirect(new URL(isLink ? '/account/security?linked=1' : '/', req.url))
   clearStateCookie(res)
+  if (!isLink) setSignInOutcome(res, 'completed')
   return res
 }

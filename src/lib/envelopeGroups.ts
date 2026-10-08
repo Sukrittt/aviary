@@ -2,8 +2,6 @@ import type { CategoryRow } from '@/src/types'
 
 /** Label for categories that belong to no group. */
 export const OTHER_LABEL = 'Other'
-/** The one group that can't be deleted; orphaned categories land here. */
-export const ARCHIVED_GROUP = 'Archived'
 
 export interface CategoryGroup {
   /** The stored group name. Empty string means ungrouped. */
@@ -38,4 +36,11 @@ export function groupCategories(categories: CategoryRow[], groups: string[]): Ca
 /** Categories in `categories` whose group is not in `groups` — orphaned by a group deletion. */
 export function orphanedBy(categories: CategoryRow[], deletedGroup: string): CategoryRow[] {
   return categories.filter((c) => c.group === deletedGroup)
+}
+
+/** Delete-group confirm copy: its categories go to Archive with it. */
+export function groupDeleteBody(categoryCount: number): string {
+  if (categoryCount === 0) return 'It will move to Archive. You can restore it for 7 days.'
+  const what = categoryCount === 1 ? 'Its 1 category goes' : `Its ${categoryCount} categories go`
+  return `${what} to Archive too. You can restore them for 7 days.`
 }
