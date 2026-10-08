@@ -14,7 +14,7 @@ export interface StoredChatMessage {
   proposalStatus?: ProposalStatus
   /** The expenses a submitted proposal became. */
   expenseIds?: string[]
-  /** Ask Aviary's reply once a proposal's rows were logged (lib/ai/captureAck.ts). */
+  /** Ask Aviary's reply once a proposal's rows were logged (src/lib/captureAck.ts). */
   ack?: boolean
 }
 

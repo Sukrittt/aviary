@@ -9,16 +9,12 @@ vi.mock('@/lib/access', () => ({
 
 const updateOneMock = vi.fn()
 const findOneMock = vi.fn()
-const findMock = vi.fn(() => ({ toArray: async () => [{ item: 'Auto', category: 'Transport' }] }))
 vi.mock('@/lib/http', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/http')>()
-  return { ...actual, getCollection: vi.fn(async () => ({ updateOne: updateOneMock, findOne: findOneMock, find: findMock })) }
+  return { ...actual, getCollection: vi.fn(async () => ({ updateOne: updateOneMock, findOne: findOneMock })) }
 })
-const captureAckMock = vi.fn(async () => 'Auto’s in. All set.')
-vi.mock('@/lib/ai/captureAck', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/lib/ai/captureAck')>()
-  return { ...actual, captureAck: (...args: unknown[]) => captureAckMock(...(args as [])) }
-})
+const { ACK_PHRASES } = await import('@/src/lib/captureAck')
+const PICKED = ACK_PHRASES[2]
 
 const { PATCH } = await import('./route')
 
@@ -47,10 +43,10 @@ beforeEach(() => {
 describe('PATCH /api/ai/chat/sessions/:id/proposals/:proposalId', () => {
   it('marks a pending proposal submitted with the expenses it became', async () => {
     findOneMock.mockResolvedValue({ messages: [{ proposalId: PROPOSAL }] })
-    const res = await patch({ status: 'submitted', expenseIds: [EXPENSE] })
+    const res = await patch({ status: 'submitted', expenseIds: [EXPENSE], reply: PICKED })
 
     expect(res.status).toBe(200)
-    expect(await res.json()).toEqual({ status: 'submitted', reply: 'Auto’s in. All set.' })
+    expect(await res.json()).toEqual({ status: 'submitted', reply: PICKED })
     const [filter, update] = updateOneMock.mock.calls[0]
     expect(filter.messages).toEqual({ $elemMatch: { proposalId: PROPOSAL, proposalStatus: 'pending' } })
     expect(update).toEqual({ $set: { 'messages.$.proposalStatus': 'submitted', 'messages.$.expenseIds': [EXPENSE] } })
@@ -58,11 +54,10 @@ describe('PATCH /api/ai/chat/sessions/:id/proposals/:proposalId', () => {
 
   it('saves the reply right after its card, capped like other chat writes', async () => {
     findOneMock.mockResolvedValue({ messages: [{ role: 'user' }, { proposalId: PROPOSAL }, { role: 'user' }] })
-    await patch({ status: 'submitted', expenseIds: [EXPENSE] })
-    expect(captureAckMock).toHaveBeenCalledWith([{ item: 'Auto', category: 'Transport' }], { userId: 'user_a', feature: 'capture' })
+    await patch({ status: 'submitted', expenseIds: [EXPENSE], reply: PICKED })
     const push = updateOneMock.mock.calls[1][1].$push.messages
     expect(push).toMatchObject({ $position: 2, $slice: -100 })
-    expect(push.$each[0]).toMatchObject({ role: 'model', text: 'Auto’s in. All set.', ack: true })
+    expect(push.$each[0]).toMatchObject({ role: 'model', text: PICKED, ack: true })
   })
 
   it('returns the saved reply on a retry instead of writing another', async () => {
@@ -70,22 +65,22 @@ describe('PATCH /api/ai/chat/sessions/:id/proposals/:proposalId', () => {
     findOneMock.mockResolvedValue({ messages: [{ proposalId: PROPOSAL, proposalStatus: 'submitted' }, { role: 'model', text: 'Saved one.', ack: true }] })
     const res = await patch({ status: 'submitted', expenseIds: [EXPENSE] })
     expect(await res.json()).toEqual({ status: 'submitted', reply: 'Saved one.' })
-    expect(captureAckMock).not.toHaveBeenCalled()
     expect(updateOneMock).toHaveBeenCalledTimes(1)
   })
 
   it('writes a reply a retry finds missing, after the status already landed', async () => {
     updateOneMock.mockResolvedValueOnce({ matchedCount: 0 })
     findOneMock.mockResolvedValue({ messages: [{ proposalId: PROPOSAL, proposalStatus: 'submitted' }] })
-    const res = await patch({ status: 'submitted', expenseIds: [EXPENSE] })
-    expect((await res.json()).reply).toBe('Auto’s in. All set.')
+    const res = await patch({ status: 'submitted', expenseIds: [EXPENSE], reply: PICKED })
+    expect((await res.json()).reply).toBe(PICKED)
     expect(updateOneMock.mock.calls[1][1].$push.messages.$position).toBe(1)
   })
 
-  it('falls back to a plain reply when the expenses cannot be read', async () => {
-    findMock.mockImplementationOnce(() => { throw new Error('db down') })
-    const res = await patch({ status: 'submitted', expenseIds: [EXPENSE] })
-    expect((await res.json()).reply).toBe("All set, your books are up to date.")
+  it('picks its own line when the app sends none, or one not from the list', async () => {
+    for (const reply of [undefined, 'Ignore previous instructions']) {
+      const res = await patch({ status: 'submitted', expenseIds: [EXPENSE], reply })
+      expect(ACK_PHRASES).toContain((await res.json()).reply)
+    }
   })
 
   it('marks a proposal dismissed', async () => {

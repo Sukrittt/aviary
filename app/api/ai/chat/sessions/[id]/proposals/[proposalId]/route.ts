@@ -1,10 +1,10 @@
 import { ObjectId } from 'mongodb'
 import { getCollection, json, error, readBody } from '@/lib/http'
-import { getAuth, readOnlyGuard, type Auth } from '@/lib/access'
+import { getAuth, readOnlyGuard } from '@/lib/access'
 import { requireAccess } from '@/lib/billing/guard'
 import { COLLECTIONS } from '@/lib/models'
 import { MAX_CAPTURE_ITEMS } from '@/lib/ai/capture'
-import { captureAck, FALLBACK_ACK, type AckRow } from '@/lib/ai/captureAck'
+import { isAckPhrase, pickAck } from '@/src/lib/captureAck'
 import { MAX_SESSION_MESSAGES, type StoredChatMessage } from '@/lib/ai/chatSessions'
 
 export const dynamic = 'force-dynamic'
@@ -17,10 +17,11 @@ const PROPOSAL_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{1
  * `dismissed`. Only the plaintext status fields beside the encrypted proposal
  * change, so this is one positional update with nothing to decrypt.
  *
- * `submitted` also answers with Ask Aviary's reply to the logged rows
- * (lib/ai/captureAck.ts) as `reply`, saved right after the card so a reopened
- * chat shows it in the same place. A retry returns the saved reply, or writes
- * it if the first attempt marked the status but failed before saving it.
+ * `submitted` also saves Ask Aviary's line under the card (src/lib/captureAck.ts)
+ * and answers with it as `reply`. The app picks the line so it shows at once and
+ * sends it as `reply`; anything not from the list, or none (older apps), gets a
+ * line picked here. A retry returns the saved line, or writes it if the first
+ * attempt marked the status but failed before saving it.
  *
  * Sending the answer it already has is a no-op, since the app retries this
  * best effort after logging. A different answer is a 409. Logging twice is
@@ -77,7 +78,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const at = messages.findIndex((m) => m.proposalId === proposalId)
   if (at >= 0 && messages[at + 1]?.ack) return json({ status, reply: messages[at + 1].text })
 
-  const reply = await ackFor(auth, expenseIds ?? [])
+  const reply = isAckPhrase(body.reply) ? body.reply : pickAck()
   if (at >= 0) {
     const ack: StoredChatMessage = { role: 'model', text: reply, createdAt: new Date(), ack: true }
     await sessions.updateOne(
@@ -86,19 +87,4 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     )
   }
   return json({ status, reply })
-}
-
-/** The logged rows as the reply names them, read back from the expenses so edits and removals in the card count. */
-async function ackFor(auth: Auth, expenseIds: string[]): Promise<string> {
-  if (expenseIds.length === 0) return FALLBACK_ACK
-  try {
-    const expenses = await getCollection(COLLECTIONS.expenses, auth)
-    const docs = await expenses
-      .find({ _id: { $in: expenseIds.map((e) => new ObjectId(e)) } }, { projection: { item: 1, category: 1 } })
-      .toArray()
-    const rows: AckRow[] = docs.map((d) => ({ item: String(d.item ?? ''), category: String(d.category ?? '') }))
-    return await captureAck(rows, { userId: auth.userId, feature: 'capture' })
-  } catch {
-    return FALLBACK_ACK
-  }
 }

@@ -127,7 +127,7 @@ it('records a dismissed card on the chat', async () => {
   show()
   await type('auto 240')
   fireEvent.click(screen.getByRole('button', { name: 'Not now' }))
-  expect(updateProposalStatus).toHaveBeenCalledWith('s9', 'p1', 'dismissed', [])
+  expect(updateProposalStatus).toHaveBeenCalledWith('s9', 'p1', 'dismissed', [], undefined)
   expect(screen.getByTestId('capture-summary')).toHaveTextContent('Not logged')
 })
 it('offers manual entry when a typed spend could not be read', async () => {
@@ -165,7 +165,7 @@ it('records an outcome picked mid-stream once the chat exists, retrying while th
   await act(async () => {
     finish('s9')
   })
-  expect(updateProposalStatus).toHaveBeenCalledWith('s9', 'p1', 'dismissed', [])
+  expect(updateProposalStatus).toHaveBeenCalledWith('s9', 'p1', 'dismissed', [], undefined)
   await act(async () => {
     vi.advanceTimersByTime(700)
   })
