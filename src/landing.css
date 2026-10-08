@@ -738,12 +738,16 @@ html:has(.lp) { scroll-behavior: smooth; }
 .legal-doc a:hover { color: var(--accent-ink); }
 /* Contact */
 .lp-contact { display: flex; flex-direction: column; align-items: center; text-align: center; padding-top: 16px; }
-.lp .lp-contact-mail { display: flex; align-items: center; gap: 20px; width: 100%; max-width: 620px; margin-top: 40px; padding: 24px 28px; border-radius: 28px; background: var(--tint); border: 1px solid #ffd7c0; text-align: left; transition: transform .3s cubic-bezier(.22, 1, .36, 1); }
+.lp-contact-mail-wrap { position: relative; width: 100%; max-width: 620px; margin-top: 40px; }
+.lp .lp-contact-mail { display: flex; align-items: center; gap: 20px; width: 100%; padding: 24px 120px 24px 28px; border-radius: 28px; background: var(--tint); border: 1px solid #ffd7c0; text-align: left; transition: transform .3s cubic-bezier(.22, 1, .36, 1); }
 .lp .lp-contact-mail:hover { transform: translateY(-3px); }
 .lp-contact-mail .lp-include-icon { flex-shrink: 0; margin: 0; }
 .lp-contact-mail-copy { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .lp-contact-mail-copy strong { font-family: var(--font-fredoka), sans-serif; font-weight: 500; font-size: clamp(20px, 2.6vw, 26px); letter-spacing: -.015em; overflow-wrap: anywhere; }
 .lp-contact-mail-copy span { font-size: 14px; color: var(--muted); }
+.lp-contact-copy { position: absolute; top: 50%; right: 24px; transform: translateY(-50%); display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 999px; border: 1px solid #ffd7c0; background: #fff; color: var(--ink); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; transition: background .16s ease, border-color .16s ease; }
+.lp-contact-copy:hover { border-color: #f5b48f; }
+.lp-contact-copy:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
 .lp-contact-ways { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; width: 100%; max-width: 620px; margin-top: 16px; }
 .lp .lp-contact-ways a.lp-card { transition: border-color .16s ease, transform .3s cubic-bezier(.22, 1, .36, 1); }
 .lp .lp-contact-ways a.lp-card:hover { border-color: #cfcabe; transform: translateY(-3px); }
@@ -755,6 +759,7 @@ html:has(.lp) { scroll-behavior: smooth; }
   .legal-doc { padding: 32px 22px 36px; border-radius: 28px; }
   .legal-doc h1 + p, .legal-updated + p { font-size: 17px; margin-top: 24px; }
   .legal-doc h2 { font-size: 23px; margin-top: 36px; }
-  .lp-contact-mail { flex-direction: column; align-items: flex-start; gap: 14px; padding: 22px; }
+  .lp .lp-contact-mail { flex-direction: column; align-items: flex-start; gap: 14px; padding: 22px; }
+  .lp-contact-copy { top: 22px; right: 22px; transform: none; }
   .lp-contact-ways { grid-template-columns: 1fr; }
 }

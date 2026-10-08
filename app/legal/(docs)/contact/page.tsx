@@ -3,6 +3,7 @@ import { Github, Mail, MessageSquareHeart } from 'lucide-react'
 import { pageMetadata } from '@/lib/seo'
 import { FEEDBACK_BOARD_URL } from '@/lib/links'
 import { GITHUB } from '@/src/components/landing/Chrome'
+import { CopyEmailButton } from './CopyEmailButton'
 
 export const metadata = pageMetadata('/legal/contact')
 
@@ -17,13 +18,16 @@ export default function ContactPage() {
         or your data, write in. You&apos;ll hear back within 3 working days.
       </p>
 
-      <a className="lp-contact-mail" href={`mailto:${SUPPORT_EMAIL}`}>
-        <span className="lp-include-icon lp-tone-fun" aria-hidden="true"><Mail size={22} strokeWidth={2.2} /></span>
-        <span className="lp-contact-mail-copy">
-          <strong>{SUPPORT_EMAIL}</strong>
-          <span>Include the email you sign in with, so your account is easy to find.</span>
-        </span>
-      </a>
+      <div className="lp-contact-mail-wrap">
+        <a className="lp-contact-mail" href={`mailto:${SUPPORT_EMAIL}`}>
+          <span className="lp-include-icon lp-tone-fun" aria-hidden="true"><Mail size={22} strokeWidth={2.2} /></span>
+          <span className="lp-contact-mail-copy">
+            <strong>{SUPPORT_EMAIL}</strong>
+            <span>Include the email you sign in with, so your account is easy to find.</span>
+          </span>
+        </a>
+        <CopyEmailButton email={SUPPORT_EMAIL} />
+      </div>
 
       <div className="lp-contact-ways">
         <a className="lp-card lp-pay-card" href={FEEDBACK_BOARD_URL} target="_blank" rel="noreferrer">
