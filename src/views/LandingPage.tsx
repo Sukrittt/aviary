@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { preload } from 'react-dom'
-import { BarWidget, EnvelopeWidget } from '../components/landing/mobile/Widget'
+import { MiniWidget, EnvelopeWidget } from '../components/landing/mobile/Widget'
 import { ArrowRight, ChevronUp, Github, MessageSquareText, Monitor, Repeat, ScanLine, Smartphone, WifiOff } from 'lucide-react'
 import { Playground } from '../components/landing/Playground'
 import { AddedClip, Faq, LandingMotion } from '../components/landing/LandingClient'
@@ -106,7 +106,7 @@ export function LandingPage({ monthlyPrice, ios = false, android = false }: { mo
       <div className="lp-shots">
         <figure className="lp-shot">
           <div className="lp-shot-art lp-shot-home" aria-hidden="true">
-            <div className="lp-shot-phone lp-shot-phone--home"><BarWidget /><EnvelopeWidget /></div>
+            <div className="lp-shot-phone lp-shot-phone--home"><MiniWidget /><EnvelopeWidget /></div>
           </div>
           <figcaption><strong>Your home screen</strong><span>See what’s left at a glance. Tap + and you’re on the keypad.</span></figcaption>
         </figure>
