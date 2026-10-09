@@ -5452,6 +5452,12 @@
   min-height: 15px;
 }
 
+/* No hint (setup step with income filled in): don't hold a blank line above "Pick my own". */
+.setup-cta-hint:empty {
+  min-height: 0;
+  margin: 0;
+}
+
 .setup-pick-own {
   display: block;
   margin: 4px auto 0;
