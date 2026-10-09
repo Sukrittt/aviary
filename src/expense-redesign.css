@@ -12317,16 +12317,7 @@ button.account-feature-card {
   color: var(--erd-text);
   cursor: pointer;
 }
-.erd-photo-replace {
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--erd-text2);
-  font: 600 13px var(--font-nunito);
-  cursor: pointer;
-}
-.erd-photo-remove:disabled,
-.erd-photo-replace:disabled {
+.erd-photo-remove:disabled {
   opacity: 0.6;
   cursor: default;
 }

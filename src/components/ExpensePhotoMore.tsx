@@ -68,9 +68,6 @@ export function ExpensePhotoMore({ photoUrl, hasPhoto, busy, error, onOpen, onPi
                   <X size={12} aria-hidden="true" />
                 </button>
               </div>
-              <button type="button" className="erd-photo-replace" disabled={busy} onClick={() => inputRef.current?.click()}>
-                Replace photo
-              </button>
             </div>
           ) : (
             <button type="button" className="erd-date-chip" disabled={busy} onClick={() => inputRef.current?.click()}>
