@@ -1,8 +1,8 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { preload } from 'react-dom'
-import { BarWidget, EnvelopeWidget } from '../components/landing/mobile/Widget'
-import { ArrowRight, ChevronUp, Github, Monitor, Repeat, ScanLine, Smartphone, WifiOff } from 'lucide-react'
+import { MiniWidget, EnvelopeWidget } from '../components/landing/mobile/Widget'
+import { ArrowRight, ChevronUp, Github, MessageSquareText, Monitor, Repeat, ScanLine, Smartphone, WifiOff } from 'lucide-react'
 import { Playground } from '../components/landing/Playground'
 import { AddedClip, Faq, LandingMotion } from '../components/landing/LandingClient'
 import { TrackedLink } from '../components/TrackedLink'
@@ -13,11 +13,13 @@ import { BirdLanding, BirdMark } from '../components/BirdMark'
 import { HeroStage, LearnDiagram, MoreInside, NoticeSplit, RotatingHabit } from '../components/landing/Nudges'
 import { FEEDBACK_BOARD_URL } from '@/lib/links'
 import { GITHUB, LandingFooter, LandingHeader } from '../components/landing/Chrome'
+import { SampleScope } from '../components/landing/sample'
 import '../landing.css'
 
 const PLAY_STORE = 'https://play.google.com/store/apps/details?id=com.sukrit04.envelope'
 
-const ANYWHERE = [
+const anywhere = (intl: boolean) => [
+  { icon: MessageSquareText, tone: 'rent', title: 'A few at once', body: intl ? 'Type “lunch 15, coffee 5”. Both logged.' : 'Type “lunch 150, coffee 80”. Both logged.' },
   { icon: ScanLine, tone: 'food', title: 'A receipt', body: 'Snap the bill. Aviary reads every line and splits it if you shared.' },
   { icon: Repeat, tone: 'savings', title: 'On repeat', body: 'Rent and subscriptions log themselves.' },
   { icon: WifiOff, tone: 'fun', title: 'No signal', body: 'Logs wait on your phone, then sync.' },
@@ -29,17 +31,17 @@ const RULES = [
   { title: 'Shows up after, not before', body: 'A nudge lands 15 minutes after your usual time, while the spend is still fresh.' },
   { title: 'Two a day, tops', body: 'Your strongest habits go first. The rest wait for another day.' },
   { title: 'Backs off when you ignore it', body: 'Skip one twice and it moves an hour later. Five times and it goes quiet.' },
-  { title: 'Skips what’s done', body: 'Already logged it today? Then there’s nothing to nudge.' },
+  { title: 'Skips what’s done, asks when it isn’t', body: 'Already logged it today? Then there’s nothing to nudge. Nothing logged by evening? One push asks “Anything today?”' },
   { title: 'Yours to switch off', body: 'Turn nudges off any time in notification settings.' },
 ]
 
 
-const FAQS = [
+const faqs = (intl: boolean) => [
   { q: 'How does Aviary learn my habits?', a: 'It looks at what you’ve logged. Log the same thing on the same weekday, around the same time, three times in eight weeks, and Aviary treats it as a habit. It then nudges you 15 minutes after your usual time with the details filled in. You can turn nudges off in notification settings.' },
-  { q: 'Do I connect my bank? How do expenses get added?', a: 'There’s no bank connection. You log purchases yourself, which makes spending a deliberate check-in. Habit nudges, the home-screen widget, recurring expenses and receipt scanning keep that quick. Transactions aren’t imported from your bank.' },
-  { q: 'What if I miss a few days?', a: 'Nothing breaks. Once a week, Aviary asks for your bank balance. If it doesn’t match what you’ve logged, it splits the difference across your usual envelopes, and you check it before it’s logged. No catching up.' },
+  { q: 'Do I connect my bank? How do expenses get added?', a: 'There’s no bank connection. You log purchases yourself, which makes spending a deliberate check-in. Habit nudges, the home-screen widget, recurring expenses, receipt scanning and typing a few spends at once keep that quick. Transactions aren’t imported from your bank.' },
+  { q: 'What if I miss a few days?', a: `Nothing breaks. Open Ask Aviary and type whatever you remember, like ${intl ? '“bus 3, lunch 15, Friday dinner 60”' : '“auto 240, lunch 150, Friday dinner 900”'}. Aviary turns it into separate spends, picks the envelopes, and you check them before they’re logged. Two missed days take about a minute.` },
   { q: 'What’s an envelope?', a: 'An envelope is a slice of your money set aside for one purpose, like rent, groceries or fun. Your bank balance mixes all of those together. Envelopes show what’s available for each one before you spend. Savings is a purpose too: you don’t have to spend everything you set aside.' },
-  { q: 'I’ve put every rupee in an envelope. Am I out of money?', a: 'No. It means all your money has a purpose. It’s still yours until you spend it. Check each envelope to see what’s left for that purpose.' },
+  { q: `I’ve put every ${intl ? 'dollar' : 'rupee'} in an envelope. Am I out of money?`, a: 'No. It means all your money has a purpose. It’s still yours until you spend it. Check each envelope to see what’s left for that purpose.' },
   { q: 'Why not just use a spreadsheet?', a: 'A spreadsheet can do the math. The hard part is keeping it up on your phone, at the counter, every day. Aviary has the envelope method built in, and most logs take one tap.' },
   { q: 'Does it work if my income changes every month?', a: 'Yes. You only budget money you already have. When a payment lands, give it jobs: rent first, then essentials. A slow month just fills fewer envelopes.' },
   { q: 'Is Aviary free?', a: <>You can try Aviary free for 45 days, with no payment details needed to get started. After the trial, you’ll need a paid subscription to keep using the app. <Link href="/legal/pricing">See plans and pricing</Link>. Aviary is also open source; you can inspect the code on GitHub.</> },
@@ -53,13 +55,18 @@ function StoreLink({ placement, children = 'Get it on Android' }: { placement: s
   return <TrackedLink className="lp-button lp-button--dark" href={PLAY_STORE} event="store_cta_clicked" properties={{ placement }}><Smartphone size={18} aria-hidden="true" />{children}</TrackedLink>
 }
 
-export function LandingPage({ monthlyPrice }: { monthlyPrice?: string }) {
+/**
+ * `ios` swaps every Play Store CTA for the iPhone waitlist: the Android link is a dead end on iPhone.
+ * `android` drops the waitlist: they can install today. Desktop keeps both, since it could be either phone.
+ */
+/** `intl` (any visitor outside India) swaps the sample data to dollars and examples that read anywhere. */
+export function LandingPage({ monthlyPrice, ios = false, android = false, intl = false }: { monthlyPrice?: string; ios?: boolean; android?: boolean; intl?: boolean }) {
   const afterTrial = monthlyPrice ? <> · Then {monthlyPrice}/month</> : null
   // The hero stage is the mobile LCP element, and this background is its paint.
   // As a CSS url() it's only found once the stylesheet has loaded; the preload
   // puts it in the document head so it downloads alongside the CSS instead.
   preload('/landing/doodles-stage.svg', { as: 'image', fetchPriority: 'high' })
-  return <LandingMotion><div className="lp" id="top">
+  return <LandingMotion><SampleScope intl={intl}><div className="lp" id="top">
     {/* THESIS: Aviary learns your spending, so logging by hand costs one tap. Refuses the bank-sync pitch of "we'll do it for you".
         OWN-WORLD: Warm near-white page, ink pill buttons, Fredoka display, Nunito body, Aviary orange for the learned moment, pastel envelope tones for the ways to log.
         STORY: See a habit learned and a nudge answered, see every way to log, understand why noticing beats syncing, try the app, meet the maker, get it.
@@ -67,17 +74,19 @@ export function LandingPage({ monthlyPrice }: { monthlyPrice?: string }) {
         FORM: User-pinned moonjar.ai structure: centered statements, one framed demo per section, founder card, quiet close.
         FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md */}
     <a href="#learns" className="lp-skip">Skip to how Aviary learns</a>
-    <LandingHeader />
+    <LandingHeader ios={ios} />
 
     <section className="lp-hero" aria-labelledby="landing-title">
       <a className="lp-early" href={FEEDBACK_BOARD_URL} target="_blank" rel="noreferrer"><b>Early access</b><span className="lp-early-desktop">Your feedback shapes what we build next</span><span className="lp-early-mobile">Help shape Aviary</span><ArrowRight size={14} aria-hidden="true" /></a>
       <h1 id="landing-title">Aviary <span className="lp-learns">learns<svg viewBox="0 0 200 14" preserveAspectRatio="none" aria-hidden="true"><path d="M3 10 C 40 3, 70 3, 100 8 S 160 13, 197 5" /></svg></span><br />your spending.</h1>
       <p>It notices your <RotatingHabit /> and nudges you<br className="lp-desktop-break" /> while it’s still fresh. One tap and it’s logged.</p>
-      <div className="lp-hero-actions">
-        <StoreLink placement="hero" />
-        <a className="lp-button lp-button--ghost" href="#learns">See how it learns <ArrowRight size={17} aria-hidden="true" /></a>
-      </div>
-      <span className="lp-hero-note">Free for 45 days{afterTrial} · No card needed · <Link href="/expense">Also on the web</Link></span>
+      {ios
+        ? <IosWaitlist placement="hero" className="lp-waitlist--hero" />
+        : <div className="lp-hero-actions">
+          <StoreLink placement="hero" />
+          <a className="lp-button lp-button--ghost" href="#learns">See how it learns <ArrowRight size={17} aria-hidden="true" /></a>
+        </div>}
+      <span className="lp-hero-note">Free for 45 days{afterTrial} · No card needed · <Link href="/expense">{ios ? 'Use it on the web today' : 'Also on the web'}</Link></span>
     </section>
     <div className="lp-stage-wrap"><HeroStage /></div>
 
@@ -99,7 +108,7 @@ export function LandingPage({ monthlyPrice }: { monthlyPrice?: string }) {
       <div className="lp-shots">
         <figure className="lp-shot">
           <div className="lp-shot-art lp-shot-home" aria-hidden="true">
-            <div className="lp-shot-phone lp-shot-phone--home"><BarWidget /><EnvelopeWidget /></div>
+            <div className="lp-shot-phone lp-shot-phone--home"><MiniWidget /><EnvelopeWidget /></div>
           </div>
           <figcaption><strong>Your home screen</strong><span>See what’s left at a glance. Tap + and you’re on the keypad.</span></figcaption>
         </figure>
@@ -110,7 +119,7 @@ export function LandingPage({ monthlyPrice }: { monthlyPrice?: string }) {
               <div className="lp-notif lp-notif--still">
                 <div className="lp-notif-app"><span className="lp-notif-icon"><BirdMark size={14} perched /></span>Aviary<span className="lp-notif-time">• now</span><ChevronUp size={14} strokeWidth={2.4} /></div>
                 <div className="lp-notif-body"><strong>Sunday groceries?</strong><span>Back from the market? Tap Log and it’s in.</span></div>
-                <div className="lp-notif-actions"><span className="lp-notif-log">Log ₹850</span><span>Not this one</span></div>
+                <div className="lp-notif-actions"><span className="lp-notif-log">Log {intl ? '$64' : '₹850'}</span><span>Not this one</span></div>
               </div>
             </div>
           </div>
@@ -118,13 +127,13 @@ export function LandingPage({ monthlyPrice }: { monthlyPrice?: string }) {
         </figure>
         <figure className="lp-shot">
           <div className="lp-shot-art" aria-hidden="true">
-            <div className="lp-shot-phone"><video src="/landing/clip-log.mp4" poster="/landing/poster-log.jpg" autoPlay muted loop playsInline preload="metadata" /></div>
+            <div className="lp-shot-phone"><video src={`/landing/${intl ? 'intl/' : ''}clip-log.mp4`} poster={`/landing/${intl ? 'intl/' : ''}poster-log.jpg`} autoPlay muted loop playsInline preload="metadata" /></div>
           </div>
           <figcaption><strong>The keypad</strong><span>Amount, a word or two, done. The envelope picks itself.</span></figcaption>
         </figure>
       </div>
       <ul className="lp-ways lp-ways--compact">
-        {ANYWHERE.map(({ icon: Icon, tone, title, body }) => <li key={title}>
+        {anywhere(intl).map(({ icon: Icon, tone, title, body }) => <li key={title}>
           <span className={`lp-way-icon lp-tone-${tone}`}><Icon size={22} strokeWidth={2.2} aria-hidden="true" /></span>
           <span><strong>{title}</strong><span>{body}</span></span>
         </li>)}
@@ -182,7 +191,7 @@ export function LandingPage({ monthlyPrice }: { monthlyPrice?: string }) {
         <figure className="lp-road">
           <div className="lp-road-tiles">
             <span className="lp-road-tile lp-road-sheet" aria-hidden="true"><i /><i /><i /><i /><i /><i /></span>
-            <span className="lp-road-tile lp-road-bank" aria-hidden="true">UPI/DR<br />POS<br />NACH</span>
+            <span className="lp-road-tile lp-road-bank" aria-hidden="true">{intl ? <>ACH<br />POS<br />ATM</> : <>UPI/DR<br />POS<br />NACH</>}</span>
             <span className="lp-road-tile lp-road-ynab" aria-hidden="true">$$$</span>
             <TrackedLink className="lp-road-tile lp-road-aviary" href={PLAY_STORE} event="store_cta_clicked" properties={{ placement: 'founder_icon' }}><BirdMark size={64} perched /><span className="lp-sr-only">Get Aviary on Google Play</span></TrackedLink>
           </div>
@@ -192,15 +201,15 @@ export function LandingPage({ monthlyPrice }: { monthlyPrice?: string }) {
     </section>
 
 
-    <section id="faq" className="lp-section lp-faq-section" aria-labelledby="faq-title"><h2 id="faq-title" className="lp-h2">Good questions.</h2><Faq items={FAQS} /></section>
+    <section id="faq" className="lp-section lp-faq-section" aria-labelledby="faq-title"><h2 id="faq-title" className="lp-h2">Good questions.</h2><Faq items={faqs(intl)} /></section>
 
     <section id="get" className="lp-section lp-close" aria-labelledby="get-title">
       <span className="lp-close-bird"><BirdLanding size={120} alive /></span>
       <h2 id="get-title" className="lp-h2">Your money, noticed.</h2>
-      <div className="lp-hero-actions"><StoreLink placement="footer_cta" /><Link href="/expense" className="lp-button lp-button--ghost"><Monitor size={18} aria-hidden="true" />Open web app</Link></div>
+      <div className="lp-hero-actions">{!ios && <StoreLink placement="footer_cta" />}<Link href="/expense" className="lp-button lp-button--ghost"><Monitor size={18} aria-hidden="true" />Open web app</Link></div>
       <span className="lp-hero-note">Free for 45 days{afterTrial} · No card needed · <a href={GITHUB} target="_blank" rel="noreferrer">Open source</a></span>
-      <IosWaitlist />
+      {!android && <IosWaitlist />}
     </section>
     <LandingFooter />
-  </div></LandingMotion>
+  </div></SampleScope></LandingMotion>
 }

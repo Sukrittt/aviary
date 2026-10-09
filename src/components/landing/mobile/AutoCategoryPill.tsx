@@ -75,7 +75,7 @@ export function AutoCategoryPill({ selected, thinking, rollEmojis, onPress }: {
 
   const busy = phase !== 'idle'
   const hasEmoji = busy || !!selected
-  const label = busy ? PICKING_LABEL : selected?.name ?? 'Category'
+  const label = busy ? PICKING_LABEL : selected?.name ?? 'Pick a category'
   const pool = rollEmojis.length > 0 ? rollEmojis : FALLBACK_EMOJIS
 
   // Pinned by its right edge: an off-screen copy measures the target width and

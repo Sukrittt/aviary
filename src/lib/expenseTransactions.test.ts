@@ -29,6 +29,7 @@ describe('toTransactions', () => {
         notes: '',
         source: 'manual',
         accountId: '',
+        hasPhoto: false,
       },
     ])
   })

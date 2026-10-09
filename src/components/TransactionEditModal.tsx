@@ -6,7 +6,9 @@ import { useCurrency } from '@/src/context/CurrencyContext'
 import { useEffect, useRef, useState } from 'react'
 import { AccountChips } from './AccountChips'
 import { liveAccounts, useAccounts } from '../hooks/useAccounts'
-import { updateExpense, addExpense, deleteExpense } from '../api/expenses'
+import { updateExpense, addExpense, deleteExpense, getExpensePhotoUrl, uploadExpensePhoto, removeExpensePhoto } from '../api/expenses'
+import { ExpensePhotoMore } from './ExpensePhotoMore'
+import { base64Of, dataUrlFromFile, PHOTO_ENCODING } from '../features/scan-bill/image'
 import { Scrim, Sheet } from './MotionSheet'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
 import { DatePicker } from './DatePicker'
@@ -23,6 +25,7 @@ interface Props {
   category: string
   /** The row's account, '' for none. */
   accountId?: string
+  hasPhoto?: boolean
   onClose: () => void
   onSaved: () => void
 }
@@ -36,6 +39,7 @@ export function TransactionEditModal({
   date: initialDate,
   category: initialCategory,
   accountId: initialAccountId = '',
+  hasPhoto: initialHasPhoto = false,
   onClose,
   onSaved,
 }: Props) {
@@ -61,6 +65,12 @@ export function TransactionEditModal({
   ])
   const { saving, success, start, succeed, fail } = useButtonPhase()
   const [error, setError] = useState('')
+  // Photo edits save on their own, right away: they don't touch the row's
+  // fields or version, so they can't conflict with the form above.
+  const [hasPhoto, setHasPhoto] = useState(initialHasPhoto)
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null)
+  const [photoBusy, setPhotoBusy] = useState(false)
+  const [photoError, setPhotoError] = useState('')
 
   const amt = parseFloat(amount)
   const canSave = isSplit
@@ -94,6 +104,55 @@ export function TransactionEditModal({
     setError(err instanceof Error ? err.message : 'Failed to update transaction')
     refresh()
     fail()
+  }
+
+  async function photoStep(run: () => Promise<void>, failMessage: string) {
+    if (!id || photoBusy) return
+    setPhotoBusy(true)
+    setPhotoError('')
+    try {
+      await run()
+    } catch {
+      setPhotoError(failMessage)
+    } finally {
+      setPhotoBusy(false)
+    }
+  }
+
+  function loadPhoto() {
+    // Signed URLs expire after minutes, so only a local data: preview is reused.
+    if (!hasPhoto || photoUrl?.startsWith('data:')) return
+    void photoStep(async () => {
+      const url = id ? await getExpensePhotoUrl(id) : null
+      setPhotoUrl(url)
+      setHasPhoto(url !== null)
+    }, "Couldn't load the photo. Check your connection and try again.")
+  }
+
+  function pickPhoto(file: File) {
+    void photoStep(async () => {
+      let dataUrl: string
+      try {
+        dataUrl = await dataUrlFromFile(file, PHOTO_ENCODING)
+      } catch {
+        setPhotoError("Couldn't read that photo. Try another one.")
+        return
+      }
+      await uploadExpensePhoto(id!, base64Of(dataUrl))
+      // The local copy shows instantly; the signed URL would need another round trip to load.
+      setPhotoUrl(dataUrl)
+      setHasPhoto(true)
+      refresh()
+    }, "Couldn't save the photo. Check your connection and try again.")
+  }
+
+  function deletePhoto() {
+    void photoStep(async () => {
+      await removeExpensePhoto(id!)
+      setPhotoUrl(null)
+      setHasPhoto(false)
+      refresh()
+    }, "Couldn't remove the photo. Check your connection and try again.")
   }
 
   async function handleSave() {
@@ -246,6 +305,18 @@ export function TransactionEditModal({
               <div className="subscription-modal-field">
                 <AccountChips accounts={accounts} value={accountId} onChange={setAccountId} allowNone />
               </div>
+            )}
+
+            {id && !isSplit && (
+              <ExpensePhotoMore
+                photoUrl={photoUrl}
+                hasPhoto={hasPhoto}
+                busy={photoBusy}
+                error={photoError}
+                onOpen={loadPhoto}
+                onPick={pickPhoto}
+                onRemove={deletePhoto}
+              />
             )}
           </div>
         </div>

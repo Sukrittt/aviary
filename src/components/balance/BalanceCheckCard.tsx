@@ -22,6 +22,9 @@ function prompt(status: BalanceStatus): { title: string; body: string } {
   return { title: 'Time for a balance check', body: 'Open GPay or your bank app and type the balance. It takes ten seconds.' }
 }
 
+/** Off for now: group splits make the bank balance a poor proxy for spending. Flip to bring the check back. */
+export const BALANCE_CHECK_ENABLED = false
+
 /**
  * Home's slot for the weekly balance check: a prompt when one is due (Later
  * hides it for a day, remembered in this browser and cleared on sign-out by

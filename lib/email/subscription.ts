@@ -43,28 +43,28 @@ export async function prepareSubscriptionEmails(db: Db): Promise<void> {
       await events.updateOne({ _id: event._id }, { $set: { emailHandledAt: new Date() } })
       continue
     }
-    const purchaseId = event.provider === 'razorpay' ? event.summary.subscriptionId : event.summary.productId
+    const purchaseId = event.provider !== 'revenuecat' ? event.summary.subscriptionId : event.summary.productId
     if (typeof purchaseId !== 'string') continue
-    const row = await subscriptions.findOne({ userId: event.userId, provider: event.provider, environment: 'production', ...(event.provider === 'razorpay' ? { storeTransactionId: purchaseId } : { productId: purchaseId }) })
+    const row = await subscriptions.findOne({ userId: event.userId, provider: event.provider, environment: 'production', ...(event.provider !== 'revenuecat' ? { storeTransactionId: purchaseId } : { productId: purchaseId }) })
     if (!row) continue // A verified owned subscription is required; retry after reconciliation.
     // Do not send a delayed failure notice after the subscription has recovered.
     if (event.emailKind === 'failed' && !['grace', 'on_hold', 'pending'].includes(row.status)) {
       await events.updateOne({ _id: event._id }, { $set: { emailHandledAt: new Date() } })
       continue
     }
-    const identity = event.provider === 'razorpay' ? row.storeTransactionId : (event.summary.originalTransactionId ?? row.providerRefs.originalTransactionId ?? row.storeTransactionId)
+    const identity = event.provider !== 'revenuecat' ? row.storeTransactionId : (event.summary.originalTransactionId ?? row.providerRefs.originalTransactionId ?? row.storeTransactionId)
     const cycle = event.summary.currentEnd ?? event.summary.expirationAtMs ?? row.expiresAt?.getTime() ?? event.eventId
     const occurrence = event.emailKind === 'paid' ? (event.summary.paymentId ?? event.summary.transactionId ?? event.eventId) : event.emailKind === 'failed' ? cycle : cycle
     const id = createHash('sha256').update(JSON.stringify([event.provider, event.userId, identity, event.emailKind, occurrence])).digest('hex')
     const now = new Date()
-    const eventExpiry = event.provider === 'razorpay' ? typeof event.summary.currentEnd === 'number' ? event.summary.currentEnd * 1000 : null : typeof event.summary.expirationAtMs === 'number' ? event.summary.expirationAtMs : null
+    const eventExpiry = event.provider !== 'revenuecat' ? typeof event.summary.currentEnd === 'number' ? event.summary.currentEnd * 1000 : null : typeof event.summary.expirationAtMs === 'number' ? event.summary.expirationAtMs : null
     const expiresAt = eventExpiry ? new Date(eventExpiry) : row.expiresAt
     await db.collection<SubscriptionEmail>(EMAIL_OUTBOX).updateOne({ _id: id }, { $setOnInsert: {
       user_id: event.userId,
       delivery: { state: 'pending', queuedAt: now, nextAttemptAt: now, attempts: 0, message: {
         from: process.env.RESEND_FROM_EMAIL?.trim() || 'Aviary <hello@useaviary.com>', to: [user.email],
         reply_to: process.env.RESEND_REPLY_TO?.trim() || SUPPORT_EMAIL,
-        ...subscriptionTemplate(event.emailKind, user.name, row.store, expiresAt),
+        ...subscriptionTemplate(event.emailKind, user.name, row.store, expiresAt, row.provider),
       } },
     } }, { upsert: true })
     await events.updateOne({ _id: event._id }, { $set: { emailHandledAt: new Date() } })

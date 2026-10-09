@@ -31,6 +31,8 @@ import {
   subscriptionUserId,
 } from './razorpay'
 import { projectRazorpaySubscription } from './razorpayProjection'
+import { cancelPayPalSubscription, fetchPayPalSubscription, paypalConfig, PayPalError, periodOfPayPalPlan } from './paypal'
+import { projectPayPalSubscription } from './paypalProjection'
 
 /**
  * Start the 45-day clock, once, for good.
@@ -195,7 +197,7 @@ async function refreshRazorpayOne(db: Db, userId: string, subscriptionId: string
   if (!config) throw new RazorpayError('Razorpay is not configured', 0)
   const subscription = await fetchSubscription(subscriptionId)
   const owner = subscriptionUserId(subscription)
-  if (owner !== userId) throw new RazorpaySubscriptionOwnerError(subscriptionId)
+  if (owner !== userId) throw new SubscriptionOwnerError(subscriptionId)
 
   const environment = razorpayEnvironment(config.keyId)
   const existing = await db
@@ -222,6 +224,43 @@ async function refreshRazorpay(db: Db, userId: string, now: Date): Promise<void>
   for (const row of rows) await refreshRazorpayOne(db, userId, row.storeTransactionId, now)
 }
 
+/**
+ * Re-verify one PayPal subscription and write it down under the user its
+ * `custom_id` names. `userId`, when given, must match: the id arrives from a
+ * browser and isn't allowed to decide whose access it grants. A webhook
+ * passes null and lets PayPal's own record say whose it is.
+ */
+export async function recordPayPalSubscription(userId: string | null, subscriptionId: string, now: Date = new Date()): Promise<Access> {
+  const db = await getDb()
+  const owner = await refreshPayPalOne(db, userId, subscriptionId, now)
+  return finishRefresh(db, owner, now)
+}
+
+async function refreshPayPalOne(db: Db, userId: string | null, subscriptionId: string, now: Date): Promise<string> {
+  const config = paypalConfig()
+  if (!config) throw new PayPalError('PayPal is not configured', 0)
+  const subscription = await fetchPayPalSubscription(subscriptionId)
+  const owner = subscription.custom_id ?? null
+  if (!owner || (userId !== null && owner !== userId)) throw new SubscriptionOwnerError(subscriptionId)
+  const projected = projectPayPalSubscription({
+    subscription,
+    period: periodOfPayPalPlan(config, subscription.plan_id),
+    environment: config.environment,
+    fetchedAt: now,
+  })
+  await writeProjection(db, owner, projected, now)
+  return owner
+}
+
+/** Every PayPal subscription we already hold for this user. */
+async function refreshPayPal(db: Db, userId: string, now: Date): Promise<void> {
+  const rows = await db
+    .collection<BillingSubscriptionDoc>(BILLING_SUBSCRIPTIONS)
+    .find({ userId, provider: 'paypal' }, { projection: { storeTransactionId: 1 } })
+    .toArray()
+  for (const row of rows) await refreshPayPalOne(db, userId, row.storeTransactionId, now)
+}
+
 /** A renewal clears any pending deletion: the account is in continuous use again. */
 async function finishRefresh(db: Db, userId: string, now: Date): Promise<Access> {
   const access = await getAccess(userId, now)
@@ -238,7 +277,7 @@ async function finishRefresh(db: Db, userId: string, now: Date): Promise<Access>
  * reconciliation job. So there is exactly one place where provider state
  * becomes our state, and exactly one place to get the ordering right.
  *
- * Both providers are asked even if one fails, so a RevenueCat outage can't
+ * Every provider is asked even if one fails, so a RevenueCat outage can't
  * hold up a web subscriber's renewal (or the other way round). Whatever did
  * verify is written; then the first failure is thrown.
  *
@@ -249,7 +288,7 @@ async function finishRefresh(db: Db, userId: string, now: Date): Promise<Access>
  */
 export async function refreshFromProvider(userId: string, now: Date = new Date()): Promise<Access> {
   const db = await getDb()
-  const results = await Promise.allSettled([refreshRevenueCat(db, userId, now), refreshRazorpay(db, userId, now)])
+  const results = await Promise.allSettled([refreshRevenueCat(db, userId, now), refreshRazorpay(db, userId, now), refreshPayPal(db, userId, now)])
   const failed = results.find((r): r is PromiseRejectedResult => r.status === 'rejected')
   if (failed) throw failed.reason
   return finishRefresh(db, userId, now)
@@ -266,10 +305,37 @@ export async function cancelWebSubscriptions(userId: string, now: Date = new Dat
   const db = await getDb()
   const coll = db.collection<BillingSubscriptionDoc>(BILLING_SUBSCRIPTIONS)
   const live = await coll
-    .find({ userId, provider: 'razorpay', status: { $in: ['active', 'grace', 'pending', 'paused', 'scheduled'] }, cancelAtPeriodEnd: { $ne: true } })
+    .find({ userId, provider: { $in: ['razorpay', 'paypal'] }, status: { $in: CANCELLABLE }, cancelAtPeriodEnd: { $ne: true } })
     .toArray()
-  for (const row of live) await cancelRazorpayRow(db, row, now)
-  return live.length
+  // A PayPal subscription still waiting for approval can't be cancelled, and
+  // can't charge anyone either.
+  const cancellable = live.filter((row) => row.provider === 'razorpay' || row.status !== 'pending')
+  for (const row of cancellable) await cancelWebRow(db, row, now)
+  return cancellable.length
+}
+
+const CANCELLABLE: BillingSubscriptionDoc['status'][] = ['active', 'grace', 'pending', 'paused', 'scheduled', 'on_hold']
+
+/** Cancel one web subscription, whichever provider sold it. */
+export function cancelWebRow(db: Db, row: BillingSubscriptionDoc, now: Date = new Date()): Promise<void> {
+  return row.provider === 'paypal' ? cancelPayPalRow(db, row, now) : cancelRazorpayRow(db, row, now)
+}
+
+/**
+ * Cancel one PayPal subscription. PayPal stops billing straight away; the
+ * paid cycle keeps entitling through the projection, so nothing already paid
+ * is lost. Same write-after-accept rule as Razorpay below.
+ */
+async function cancelPayPalRow(db: Db, row: BillingSubscriptionDoc, now: Date): Promise<void> {
+  await cancelPayPalSubscription(row.storeTransactionId)
+  await db
+    .collection<BillingSubscriptionDoc>(BILLING_SUBSCRIPTIONS)
+    .updateOne({ _id: row._id }, { $set: { cancellationEmailPending: row.environment === 'production', cancelAtPeriodEnd: true, status: row.status === 'active' || row.status === 'grace' ? 'cancelled' : 'expired', autoRenew: false, updatedAt: now } })
+  try {
+    await refreshPayPalOne(db, row.userId, row.storeTransactionId, now)
+  } catch (err) {
+    console.error('billing: re-read after cancel failed for', row.storeTransactionId, (err as Error).message)
+  }
 }
 
 /**
@@ -296,8 +362,8 @@ export async function cancelRazorpayRow(db: Db, row: BillingSubscriptionDoc, now
 }
 
 /** A subscription id that belongs to another account. Never written, never retried. */
-export class RazorpaySubscriptionOwnerError extends Error {
+export class SubscriptionOwnerError extends Error {
   constructor(subscriptionId: string) {
-    super(`Razorpay subscription ${subscriptionId} doesn't belong to this account`)
+    super(`Subscription ${subscriptionId} doesn't belong to this account`)
   }
 }

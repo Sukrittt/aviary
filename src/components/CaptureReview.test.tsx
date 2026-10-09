@@ -115,6 +115,15 @@ it('dismisses without logging', async () => {
   expect(onSettled).toHaveBeenCalledWith('dismissed', [])
 })
 
+it('settles as not logged once every row is removed, instead of an empty card', async () => {
+  const onSettled = show()
+  fireEvent.click(screen.getByRole('button', { name: 'Remove Auto' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Remove Turf' }))
+  await waitFor(() => expect(screen.getByTestId('capture-summary')).toHaveTextContent('Not logged'))
+  expect(screen.queryByText('Nothing to log')).not.toBeInTheDocument()
+  expect(onSettled).toHaveBeenCalledWith('dismissed', [])
+})
+
 it('shows a settled proposal read-only', () => {
   show({ proposal: { ...proposal, status: 'submitted', expenseIds: ['e1', 'e2'] } })
   expect(screen.getByTestId('capture-summary')).toHaveTextContent('Logged 2 spends')

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { getCachedCategoryMap, invalidateCategoryMap, buildCategoryMap } from './categoryMap'
+import { getCachedCategoryMap, invalidateCategoryMap, buildCategoryMap, learnCategoryCorrection } from './categoryMap'
 import type { ScopedCollection } from './scoped'
 
 function fakeExpensesCollection(rows: Array<{ item: string; category: string }>) {
@@ -57,5 +57,54 @@ describe('buildCategoryMap', () => {
     const map = await buildCategoryMap(coll, overrides)
     expect(map.words.swiggy).toBe('Food')
     expect(map.words.instamart).toBe('Groceries')
+  })
+})
+
+describe('learnCategoryCorrection', () => {
+  function fakeOverrides() {
+    return { updateOne: vi.fn(async () => ({})) } as unknown as ScopedCollection & { updateOne: ReturnType<typeof vi.fn> }
+  }
+
+  it('saves the user\'s choice as an override when the map would have suggested something else', async () => {
+    const overrides = fakeOverrides()
+    const map = { words: { apple: 'Groceries' }, updatedAt: '' }
+
+    const learned = await learnCategoryCorrection(map, 'Apple', 'Eating out', overrides)
+
+    expect(learned).toBe(true)
+    expect(overrides.updateOne).toHaveBeenCalledWith(
+      { word: 'apple' },
+      { $set: expect.objectContaining({ word: 'apple', category: 'Eating out', source: 'user' }) },
+      { upsert: true },
+    )
+  })
+
+  it('then wins over the frequency vote that caused the wrong pick', async () => {
+    const overrides = fakeOverrides()
+    await learnCategoryCorrection({ words: { apple: 'Groceries' }, updatedAt: '' }, 'apple', 'Eating out', overrides)
+    const saved = overrides.updateOne.mock.calls.map((c: unknown[]) => (c[1] as { $set: object }).$set)
+    const map = await buildCategoryMap(
+      fakeExpensesCollection([
+        { item: 'apple', category: 'Groceries' },
+        { item: 'apple', category: 'Groceries' },
+        { item: 'apple', category: 'Eating out' },
+      ]),
+      { find: vi.fn(() => ({ toArray: async () => saved })) } as unknown as ScopedCollection,
+    )
+    expect(map.words.apple).toBe('Eating out')
+  })
+
+  it('writes nothing when the user kept the suggestion', async () => {
+    const overrides = fakeOverrides()
+    const learned = await learnCategoryCorrection({ words: { apple: 'Groceries' }, updatedAt: '' }, 'apple', 'Groceries', overrides)
+    expect(learned).toBe(false)
+    expect(overrides.updateOne).not.toHaveBeenCalled()
+  })
+
+  it('writes nothing when the map had no suggestion to correct', async () => {
+    const overrides = fakeOverrides()
+    const learned = await learnCategoryCorrection({ words: {}, updatedAt: '' }, 'new thing', 'Gifts', overrides)
+    expect(learned).toBe(false)
+    expect(overrides.updateOne).not.toHaveBeenCalled()
   })
 })

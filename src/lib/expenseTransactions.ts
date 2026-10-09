@@ -13,6 +13,7 @@ export interface Transaction {
   source: string
   /** '' when the row isn't on an account. */
   accountId: string
+  hasPhoto: boolean
 }
 
 /**
@@ -32,5 +33,6 @@ export function toTransactions(rows: ExpenseRow[]): Transaction[] {
     notes: r.notes ?? '',
     source: r.source ?? '',
     accountId: r.account_id ?? '',
+    hasPhoto: r.has_photo === true,
   }))
 }

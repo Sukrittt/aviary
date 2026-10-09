@@ -6,6 +6,8 @@ import { useReducedMotion } from 'motion/react'
 import { Check, ChevronDown, ChevronUp, Pause, Play, RotateCcw } from 'lucide-react'
 import { BirdMark } from '../BirdMark'
 import { useOnScreen } from './useOnScreen'
+import { useSample } from './sample'
+import { useCurrency } from '@/src/context/CurrencyContext'
 
 /**
  * The landing page's demos. Scan, Ask, Insights, Subscriptions and Investments show screen
@@ -15,10 +17,9 @@ import { useOnScreen } from './useOnScreen'
  * each scene only shows what that feature actually does.
  */
 
-const HABITS = ['4pm chai', 'Friday cab home', 'Sunday groceries', 'morning metro']
-
 /** The hero's rotating habit. Screen readers get the first one as plain text. */
 export function RotatingHabit() {
+  const HABITS = useSample().habits
   const reduced = useReducedMotion()
   const { ref, visible } = useOnScreen<HTMLSpanElement>(0)
   const [i, setI] = useState(0)
@@ -26,7 +27,7 @@ export function RotatingHabit() {
     if (reduced || !visible) return
     const id = setInterval(() => setI((n) => (n + 1) % HABITS.length), 2600)
     return () => clearInterval(id)
-  }, [reduced, visible])
+  }, [reduced, visible, HABITS.length])
   return <span className="lp-rotor" ref={ref}>
     <span className="lp-sr-only">{HABITS[0]}</span>
     <span className="lp-rotor-word" key={i} aria-hidden="true">{HABITS[i]}</span>
@@ -37,8 +38,10 @@ export function RotatingHabit() {
 
 type ChapterId = 'learns' | 'scan' | 'ask'
 const CHAPTERS: { id: ChapterId; label: string; ms: number; sr: string }[] = [
-  { id: 'learns', label: 'Learns your habits', ms: 7300, sr: 'Aviary saw chai logged around 4pm on three Tuesdays. The next Tuesday at 4:15pm it asks “Afternoon chai?”, one tap on “Log ₹20” logs it, and Snacks drops to ₹220 left.' },
-  { id: 'scan', label: 'Scan a bill', ms: 15500, sr: 'A ₹1,725.70 Meghana Foods bill is scanned. Aviary reads every line, you mark which items were shared two or three ways, and it logs your ₹672.96 share to Eating out.' },
+  // Learns' sr is built from the visitor's sample in HeroStage.
+  { id: 'learns', label: 'Learns your habits', ms: 7300, sr: '' },
+  // Scan's sr comes from the visitor's sample too, since its recording does.
+  { id: 'scan', label: 'Scan a bill', ms: 15500, sr: '' },
   { id: 'ask', label: 'Ask Aviary', ms: 16000, sr: 'You ask “Can I afford 90k iPhone?” and Aviary answers from your budget: not yet. You have ₹36,802 left to spend this month, so it suggests a gadget envelope you add to each month.' },
 ]
 // Clip chapters run ~1.5s past their recording so the finished screen holds before the cut.
@@ -89,12 +92,17 @@ export function HeroStage() {
     setTake((t) => t + 1)
   }
   const current = CHAPTERS[chapter]
+  const { learns, scan } = useSample()
+  const { formatMoney } = useCurrency()
+  const sr = current.id === 'learns'
+    ? `Aviary saw ${learns.item.toLowerCase()} logged around 4pm on three Tuesdays. The next Tuesday at 4:15pm it asks “${learns.ask}”, one tap on “Log ${formatMoney(learns.amount)}” logs it, and Snacks drops to ${formatMoney(learns.of * 2 / 5 - learns.amount)} left.`
+    : current.id === 'scan' ? scan.sr : current.sr
   // Reduced motion holds each scene's finished state.
   const learnBeat = reduced ? 3 : beat
 
   return <div className="lp-stage-shell">
     <div className="lp-stage" ref={ref} data-chapter={current.id} data-step={learnBeat} data-paused={!playing || undefined}>
-      <p className="lp-sr-only" aria-live="polite">{current.label}. Sample: {current.sr}</p>
+      <p className="lp-sr-only" aria-live="polite">{current.label}. Sample: {sr}</p>
       <Scene id={current.id} beat={learnBeat} playing={playing} key={`${current.id}:${take}`} />
       {!reduced && <button type="button" className="lp-stage-pause" onClick={() => setPaused((p) => !p)} aria-label={paused ? 'Play the demo' : 'Pause the demo'}>
         {paused ? <Play size={14} /> : <Pause size={14} />}
@@ -138,6 +146,7 @@ function Phone({ children, lock = false }: { children: ReactNode; lock?: boolean
 
 /** A screen recording that plays while `playing` and holds its poster (the finished state) when paused or reduced. */
 export function Clip({ name, playing, loop = false }: { name: string; playing: boolean; loop?: boolean }) {
+  const { media } = useSample()
   const ref = useRef<HTMLVideoElement>(null)
   useEffect(() => {
     const v = ref.current
@@ -145,16 +154,19 @@ export function Clip({ name, playing, loop = false }: { name: string; playing: b
     if (playing) v.play()?.catch(() => {})
     else v.pause()
   }, [playing])
-  return <video ref={ref} className="lp-clip" src={`/landing/clip-${name}.mp4`} poster={`/landing/poster-${name}.jpg`} muted loop={loop} playsInline preload="metadata" />
+  return <video ref={ref} className="lp-clip" src={media(`clip-${name}.mp4`)} poster={media(`poster-${name}.jpg`)} muted loop={loop} playsInline preload="metadata" />
 }
 
 function LearnsScene({ beat }: { beat: number }) {
+  const { learns: s } = useSample()
+  const { formatMoney: m } = useCurrency()
   const logged = beat === 3
-  const left = logged ? 220 : 240
+  // Snacks starts the scene 40% left, then the log comes out of it.
+  const left = s.of * 2 / 5 - (logged ? s.amount : 0)
   return <>
     <Card label="It noticed" className="lp-stage-noticed">
-      <Rows rows={[['Chai', 'Tue, 15 Sep · 4:02pm', '₹20'], ['Chai', 'Tue, 22 Sep · 4:11pm', '₹20'], ['Chai', 'Tue, 29 Sep · 3:56pm', '₹20']]} />
-      <div className="lp-stage-habit"><BirdMark size={18} perched />Chai on Tuesdays, around 4pm</div>
+      <Rows rows={[[s.item, 'Tue, 15 Sep · 4:02pm', m(s.amount)], [s.item, 'Tue, 22 Sep · 4:11pm', m(s.amount)], [s.item, 'Tue, 29 Sep · 3:56pm', m(s.amount)]]} />
+      <div className="lp-stage-habit"><BirdMark size={18} perched />{s.habit}</div>
     </Card>
     <Phone lock>
       <div className="lp-lock-time">4:15</div>
@@ -162,33 +174,34 @@ function LearnsScene({ beat }: { beat: number }) {
       <div className="lp-notif">
         <div className="lp-notif-app"><span className="lp-notif-icon"><BirdMark size={14} perched /></span>Aviary<span className="lp-notif-time">• now</span><ChevronUp size={14} strokeWidth={2.4} /></div>
         {logged
-          ? <div className="lp-notif-body" key="done"><strong><Check size={15} strokeWidth={3} /> Logged ₹20</strong><span>Chai is in. Nice one.</span></div>
-          : <div className="lp-notif-body" key="ask"><strong>Afternoon chai?</strong><span>Time for your Tuesday chai fix? Tap Log and it’s in.</span></div>}
-        {!logged && <div className="lp-notif-actions"><span className="lp-notif-log">Log ₹20<span className="lp-thumb" /></span><span>Not this one</span></div>}
+          ? <div className="lp-notif-body" key="done"><strong><Check size={15} strokeWidth={3} /> Logged {m(s.amount)}</strong><span>{s.done}</span></div>
+          : <div className="lp-notif-body" key="ask"><strong>{s.ask}</strong><span>{s.body}</span></div>}
+        {!logged && <div className="lp-notif-actions"><span className="lp-notif-log">Log {m(s.amount)}<span className="lp-thumb" /></span><span>Not this one</span></div>}
       </div>
     </Phone>
     <Card label="It’s logged" className="lp-stage-logged">
-      <div className="lp-envelope-line"><span>🍪 Snacks</span><strong>{`₹${left}`}<small> left of ₹600</small></strong></div>
-      <div className="lp-envelope-bar"><i style={{ transform: `scaleX(${(600 - left) / 600})` }} /></div>
+      <div className="lp-envelope-line"><span>{s.envelope}</span><strong>{m(left)}<small> left of {m(s.of)}</small></strong></div>
+      <div className="lp-envelope-bar"><i style={{ transform: `scaleX(${(s.of - left) / s.of})` }} /></div>
       <div className="lp-today">Today</div>
-      <div className="lp-today-row is-new"><span>Chai</span><span>UPI · 4:15pm</span><strong>₹20</strong></div>
-      <div className="lp-today-row"><span>Metro card</span><span>UPI · 9:02am</span><strong>₹100</strong></div>
+      <div className="lp-today-row is-new"><span>{s.item}</span><span>{s.pay} · 4:15pm</span><strong>{m(s.amount)}</strong></div>
+      <div className="lp-today-row"><span>{s.other[0]}</span><span>{s.pay} · 9:02am</span><strong>{m(s.other[1])}</strong></div>
       <p className="lp-stage-note">No app opened. No form filled.</p>
     </Card>
   </>
 }
 
 function ScanScene({ playing }: { playing: boolean }) {
+  const { scan } = useSample()
   return <>
     <Card label="Snap the bill" className="lp-reveal">
-      <p className="lp-card-copy">Point your camera at a receipt. Aviary reads every line, taxes included.</p>
-      <Rows rows={[['Paneer Biryani', 'Split 3 ways', '₹380'], ['Gobi Manchurian', 'Split 2 ways', '₹155'], ['Coke Tin 330 ML', 'Split 2 ways', '₹133']]} />
+      <p className="lp-card-copy">{scan.copy}</p>
+      <Rows rows={scan.rows} />
     </Card>
     <Phone><Clip name="scan" playing={playing} /></Phone>
     <Card label="Split it fair" className="lp-reveal lp-reveal-late">
-      <div className="lp-envelope-line"><span>Bill</span><strong>₹1,725.70</strong></div>
-      <div className="lp-envelope-line"><span>Shared items</span><strong>2 or 3 ways</strong></div>
-      <div className="lp-split-share"><span>Your share, logged</span><strong>₹672.96</strong><small>to Eating out</small></div>
+      <div className="lp-envelope-line"><span>Bill</span><strong>{scan.bill}</strong></div>
+      <div className="lp-envelope-line"><span>Shared items</span><strong>{scan.shared}</strong></div>
+      <div className="lp-split-share"><span>Your share, logged</span><strong>{scan.share}</strong><small>to {scan.envelope}</small></div>
     </Card>
   </>
 }
@@ -218,6 +231,7 @@ function ShotClip({ name }: { name: string }) {
 
 /** Three more screens of the app, in the "log from anywhere" phone frames. */
 export function MoreInside() {
+  const { investments, media, headsUp } = useSample()
   return <div className="lp-shots">
     <figure className="lp-shot">
       <div className="lp-shot-art" aria-hidden="true"><ShotClip name="insights" /></div>
@@ -227,11 +241,11 @@ export function MoreInside() {
       <div className="lp-shot-art" aria-hidden="true">
         <div className="lp-shot-phone">
           {/* eslint-disable-next-line @next/next/no-img-element -- fills the phone frame; next/image adds nothing at this size */}
-          <img className="lp-clip" src="/landing/subscriptions.png" alt="" />
+          <img className="lp-clip" src={media('subscriptions.png')} alt="" />
           {/* An Android heads-up, in the app's real bill-reminder copy (Mobile's tour/content.ts). */}
           <div className="lp-app-banner lp-heads-up">
             <div className="lp-notif-app"><span className="lp-notif-icon"><BirdMark size={13} perched /></span>Aviary<span className="lp-heads-up-time">· now</span><ChevronDown size={14} strokeWidth={2.4} /></div>
-            <div className="lp-heads-up-row"><b>Netflix renews soon</b><span>₹199 due in 3 days (Oct 28).</span></div>
+            <div className="lp-heads-up-row"><b>Netflix renews soon</b><span>{headsUp}</span></div>
           </div>
         </div>
       </div>
@@ -239,7 +253,7 @@ export function MoreInside() {
     </figure>
     <figure className="lp-shot">
       <div className="lp-shot-art" aria-hidden="true"><ShotClip name="invest" /></div>
-      <figcaption><strong>Investments</strong><span>Equity, FDs, gold and crypto, with your net worth charted since day one.</span></figcaption>
+      <figcaption><strong>Investments</strong><span>{investments}, with your net worth charted since day one.</span></figcaption>
     </figure>
   </div>
 }
@@ -252,6 +266,7 @@ const noop = () => () => {}
 
 /** Draws itself once, the first time it's scrolled into view. Without JS or with reduced motion it's simply there. */
 export function LearnDiagram() {
+  const cab = useCurrency().formatMoney(useSample().cabHome)
   const reduced = useReducedMotion()
   // A low bar: stacked on a short or zoomed screen, 40% of it may never fit in view at once.
   const { ref, visible } = useOnScreen<HTMLElement>(0.1)
@@ -263,7 +278,7 @@ export function LearnDiagram() {
 
   return <figure className="lp-learn" ref={ref} data-in={drawn}>
     <ol className="lp-learn-col" aria-label="What you logged">
-      {LEARNED.map(([d, t]) => <li key={d}><span>Fri, {d}</span><strong>Cab home · ₹240</strong><em>{t}</em></li>)}
+      {LEARNED.map(([d, t]) => <li key={d}><span>Fri, {d}</span><strong>Cab home · {cab}</strong><em>{t}</em></li>)}
     </ol>
     <svg className="lp-learn-lines" viewBox="0 0 80 240" preserveAspectRatio="none" aria-hidden="true"><path d="M0 40 C 40 40, 40 120, 80 120 M0 120 L 80 120 M0 200 C 40 200, 40 120, 80 120" /></svg>
     <div className="lp-learn-habit"><BirdMark size={34} perched /><strong>Habit learned</strong><span>Cab home on Fridays,<br />around 7:45pm</span></div>
@@ -277,27 +292,12 @@ export function LearnDiagram() {
 
 // ─── Noticing is the point: the bank way vs the Aviary way ────────────────────
 
-const STATEMENT: [string, string, string][] = [
-  ['06 Oct', 'UPI/DR/6021843/SWIGGY/YESB/swiggy@ybl', '349.00'],
-  ['06 Oct', 'POS 4419XXXXXXXX2231 ZEPTO MUMBAI', '612.00'],
-  ['06 Oct', 'UPI/DR/6021977/PAYTM/PYTM/paytmqr28', '20.00'],
-  ['05 Oct', 'NACH DR ACH-91X8820 CULTFIT', '1,299.00'],
-  ['05 Oct', 'IMPS/P2A/88123/XXXXXX4410/JAKE', '500.00'],
-  ['05 Oct', 'UPI/DR/6019022/BLINKIT/ICIC/blinkit', '486.00'],
-  ['04 Oct', 'ATM WDL 0442 HSR LAYOUT BLR', '2,000.00'],
-  ['04 Oct', 'UPI/DR/6017718/UBER/HDFC/uber.rides', '231.00'],
-  ['04 Oct', 'POS 4419XXXXXXXX2231 SHELL FUEL', '1,800.00'],
-  ['03 Oct', 'UPI/DR/6016004/PAYTM/PYTM/paytmqr91', '40.00'],
-  ['03 Oct', 'NETFLIX.COM SI 0310 AUTOPAY', '649.00'],
-  ['03 Oct', 'UPI/DR/6015530/SWIGGY/YESB/swiggy@ybl', '412.00'],
-  ['02 Oct', 'IMPS/P2A/87990/XXXXXX9012/EMMA', '1,200.00'],
-  ['02 Oct', 'UPI/DR/6014471/AMAZON/AXIS/amazon', '1,149.00'],
-]
-// Matches the top row of activity-today.png and the Metro envelope in the log-expense recording.
-const STEPS = ['Noticed it’s Friday, 9:15am, like the last three', 'Filled in Bike to office · Metro · ₹150 · UPI', 'Logged with one tap on the notification', 'Metro has ₹960 left this month']
 const STEP_MS = 750
 
 export function NoticeSplit() {
+  // The steps match the top row of activity-today.png and its envelope.
+  const { statement: STATEMENT, notice, media } = useSample()
+  const STEPS = notice.steps
   const reduced = useReducedMotion()
   const { ref, visible } = useOnScreen<HTMLDivElement>(0.4)
   const [take, setTake] = useState(0)
@@ -310,7 +310,7 @@ export function NoticeSplit() {
     if (!started || reduced || step > STEPS.length) return
     const id = setTimeout(() => setStep((s) => s + 1), step === 0 ? 500 : STEP_MS)
     return () => clearTimeout(id)
-  }, [started, reduced, step, take])
+  }, [started, reduced, step, take, STEPS.length])
 
   return <div className="lp-split2" ref={ref}>
     <div className="lp-split2-without" role="img" aria-label="Without Aviary: a bank statement">
@@ -321,7 +321,7 @@ export function NoticeSplit() {
     </div>
     <span className="lp-split2-pill" aria-hidden="true">Without Aviary <span>→</span> With Aviary</span>
     <div className="lp-split2-with">
-      <p className="lp-split2-quote">“Bike to office? Log it while it’s fresh.”</p>
+      <p className="lp-split2-quote">{notice.quote}</p>
       <div className="lp-split2-who"><span className="lp-split2-avatar"><BirdMark size={26} perched /></span>{done > STEPS.length ? 'Aviary is done' : 'Aviary is on it'}</div>
       <ol className="lp-split2-steps">
         {STEPS.map((s, i) => <li key={s} className={done > i + 1 ? 'is-done' : done === i + 1 ? 'is-busy' : ''}>
@@ -331,8 +331,8 @@ export function NoticeSplit() {
       {/* Hidden from assistive tech until it lands: before that it's a faded
           placeholder for a result that hasn't happened yet. */}
       <div className={`lp-split2-result${done > STEPS.length ? ' is-in' : ''}`} aria-hidden={done > STEPS.length ? undefined : true}>
-        <span className="lp-stage-label">Today in Aviary</span>
-        <Image src="/landing/activity-today.png" alt="Today's logs in the app: Bike to office ₹150, Shopping ₹1,500, Trip with friends ₹1,500, Electricity ₹6,000, Groceries ₹5,000, Gym membership ₹1,500." width={720} height={665} sizes="(max-width: 760px) 90vw, 420px" />
+        <span className="lp-stage-label">{notice.label}</span>
+        <Image src={media('activity-today.png')} alt={notice.alt} width={720} height={665} sizes="(max-width: 760px) 90vw, 420px" />
       </div>
       {!reduced && <button type="button" className="lp-replay" onClick={() => { setStep(0); setTake((t) => t + 1) }}><RotateCcw size={15} aria-hidden="true" />Replay</button>}
     </div>

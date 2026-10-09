@@ -83,12 +83,15 @@ export function ExpenseAdded({
   expense,
   undoing,
   undoError,
+  notice = '',
   onUndo,
   onDone,
 }: {
   expense: AddedExpense
   undoing: boolean
   undoError: string
+  /** A non-blocking heads-up, e.g. the photo didn't upload. */
+  notice?: string
   onUndo: () => void
   onDone: () => void
 }) {
@@ -147,8 +150,8 @@ export function ExpenseAdded({
   const subtitle = item || categoryName
   // A small "we're learning you" moment: only once the item is a habit this week.
   const noticed = useMemo(
-    () => noticedLine(weeklyRepeat(expensesQ.data ?? EMPTY, { id: expense.id, timestamp, item, date, amount }), formatMoney),
-    [expensesQ.data, expense.id, timestamp, item, date, amount, formatMoney],
+    () => noticedLine(weeklyRepeat(expensesQ.data ?? EMPTY, { id: expense.id, timestamp, item, date, amount }).count),
+    [expensesQ.data, expense.id, timestamp, item, date, amount],
   )
 
   return (
@@ -197,6 +200,11 @@ export function ExpenseAdded({
       )}
 
       <FadeInDown delay={at(STAGGER.footer)} duration={at(440)} className="erd-added-footer">
+        {notice !== '' && (
+          <p className="erd-log-error" role="status">
+            {notice}
+          </p>
+        )}
         {undoError !== '' && (
           <p className="erd-log-error" role="alert">
             {undoError}

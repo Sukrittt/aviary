@@ -39,7 +39,7 @@ import { useSubscriptions, useCancelSubscription, useReactivateSubscription } fr
 import { useHideAmounts } from "../hooks/useHideAmounts";
 import { GetStartedCard } from "../components/home/GetStartedCard";
 import { LearningCard } from "../components/home/LearningCard";
-import { BalanceCheckCard } from "../components/balance/BalanceCheckCard";
+import { BALANCE_CHECK_ENABLED, BalanceCheckCard } from "../components/balance/BalanceCheckCard";
 import { useUser } from "../hooks/useUser";
 import { WeekRecapGate } from "../components/wrapped/WeekRecap";
 import { usePersistentState } from "../hooks/usePersistentState";
@@ -177,8 +177,10 @@ export function ExpensePage() {
     [budgetRows, expenseRows, previousMonth, categoryRows, groupNames],
   );
   const previousLeftover = previousState.income - previousState.totalSpent;
+  // Unknown until budgets load; counting it done avoids flashing the income step.
+  const incomeDone = !envelopeState || envelopeState.income > 0;
   const showGetStarted = !getStartedSkipped && !!user?.getStartedAt &&
-    !(user.manualTransactionCompletedAt && user.guidedTourCompletedAt);
+    !(incomeDone && user.manualTransactionCompletedAt && user.guidedTourCompletedAt);
   const [showFluidDemo, setShowFluidDemo] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   useEffect(() => {
@@ -454,8 +456,10 @@ export function ExpensePage() {
                     transition={{ duration: reduceMotion ? 0 : 0.32, ease: [0.22, 1, 0.36, 1] }}
                   >
                     <GetStartedCard
+                      incomeDone={incomeDone}
                       manualTransactionDone={!!user.manualTransactionCompletedAt}
                       guidedTourDone={!!user.guidedTourCompletedAt}
+                      onAddIncome={() => setIncomeScreen("monthly")}
                       onAddTransaction={() => setShowLogModal(true)}
                       onTakeTour={() => router.push('/account/guided-tour')}
                       onSkip={() => setGetStartedSkipped(true)}
@@ -468,7 +472,7 @@ export function ExpensePage() {
 
               {/* The weekly balance check keeps these totals honest without bank
                   linking: a prompt when one is due, else the logged meter. */}
-              <BalanceCheckCard />
+              {BALANCE_CHECK_ENABLED && <BalanceCheckCard />}
 
               {envelopeState && (
                 <motion.article

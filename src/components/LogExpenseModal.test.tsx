@@ -15,6 +15,7 @@ vi.mock('../hooks/useExpenses', () => ({
   useAddExpense: () => ({ mutateAsync: addExpenseMutation }),
   useDeleteExpense: () => ({ mutateAsync: deleteExpenseMutation, isPending: false }),
   useRecentExpenses: () => ({ data: history.rows }),
+  useUploadExpensePhoto: () => ({ mutateAsync: vi.fn() }),
 }))
 vi.mock('../api/categoryMap', () => ({ getCategoryMap: vi.fn(async () => ({ words: {}, updatedAt: '' })) }))
 vi.mock('../lib/autoCategory', () => ({ suggestCategoryLLM: vi.fn() }))

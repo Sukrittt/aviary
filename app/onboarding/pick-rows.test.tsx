@@ -9,7 +9,7 @@ function toGroupsStep() {
   render(<QueryClientProvider client={new QueryClient()}><SetupWizardPage /></QueryClientProvider>)
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
   fireEvent.click(screen.getByRole('button', { name: /50,000/ }))
-  fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Pick my own groups and categories' }))
 }
 
 function toCategoriesStep() {

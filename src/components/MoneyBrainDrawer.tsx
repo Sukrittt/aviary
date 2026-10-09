@@ -1,5 +1,6 @@
 'use client'
 
+import { pickAck } from '@/src/lib/captureAck'
 import { useCurrency } from '@/src/context/CurrencyContext'
 import { useAppearance } from '@/components/AppearanceProvider'
 
@@ -47,30 +48,19 @@ interface Props {
  * land before the proposal exists. A few spaced retries cover that; after them
  * it's best effort, since client_ids already stop a second log.
  */
-function persistSettle(
-  sessionId: string,
-  settle: PendingSettle,
-  onReply: (proposalId: string, reply: string | null) => void,
-  attempt = 0,
-) {
-  updateProposalStatus(sessionId, settle.proposalId, settle.status, settle.expenseIds)
-    .then((reply) => onReply(settle.proposalId, reply))
-    .catch(() => {
-      if (attempt < 3) setTimeout(() => persistSettle(sessionId, settle, onReply, attempt + 1), 600 * (attempt + 1))
-      else onReply(settle.proposalId, null)
-    })
+function persistSettle(sessionId: string, settle: PendingSettle, attempt = 0) {
+  updateProposalStatus(sessionId, settle.proposalId, settle.status, settle.expenseIds, settle.reply).catch(() => {
+    if (attempt < 3) setTimeout(() => persistSettle(sessionId, settle, attempt + 1), 600 * (attempt + 1))
+  })
 }
 
-type PendingSettle = { proposalId: string; status: 'submitted' | 'dismissed'; expenseIds: string[] }
+type PendingSettle = { proposalId: string; status: 'submitted' | 'dismissed'; expenseIds: string[]; reply?: string }
 
 /** The line over Ask Aviary's reply to logged rows; a reopened chat may not know the count. */
 function loggedLabel(count: number | undefined) {
   if (!count) return 'Logged'
   return count === 1 ? '1 spend logged' : `${count} spends logged`
 }
-
-/** Said when the server's reply to logged rows never arrives. */
-const LOGGED_FALLBACK = "All set, your books are up to date."
 
 
 function timeAgo(iso: string) {
@@ -115,7 +105,6 @@ export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onL
   // hasn't saved the reply, so they're recorded once the stream ends.
   const pendingSettles = useRef<PendingSettle[]>([])
   // Proposals whose rows were just logged, waiting on Ask Aviary's reply to them.
-  const [acking, setAcking] = useState<ReadonlySet<string>>(new Set())
   const streamingRef = useRef(false)
   const bodyRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -252,7 +241,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onL
       setSessionId(resolved)
       streamingRef.current = false
       if (resolved) {
-        for (const p of pendingSettles.current.splice(0)) persistSettle(resolved, p, onSettleReply)
+        for (const p of pendingSettles.current.splice(0)) persistSettle(resolved, p)
       }
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['chatSessions'] }),
@@ -273,39 +262,31 @@ export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onL
     } finally {
       streamingRef.current = false
       setSending(false)
-      // Cards logged mid-stream whose stream then failed: record them on the chat
-      // they came from, or, with no saved chat, just stop waiting on a reply.
-      for (const p of pendingSettles.current.splice(0)) {
-        if (sessionId) persistSettle(sessionId, p, onSettleReply)
-        else onSettleReply(p.proposalId, null)
-      }
+      // Cards logged mid-stream whose stream then failed: record them on the chat they came from, if it was saved.
+      for (const p of pendingSettles.current.splice(0)) if (sessionId) persistSettle(sessionId, p)
     }
   }
 
   const awaitingFirstDelta = sending && messages.at(-1)?.role === 'model' && !messages.at(-1)?.text
 
-  /** Records a proposal's outcome on the chat, so reopening it shows the card read-only. */
+  /**
+   * Records a proposal's outcome on the chat, so reopening it shows the card
+   * read-only. Logged rows get Ask Aviary's line right under the card at once
+   * (src/lib/captureAck.ts); the server saves the same line. Dismissals get none.
+   */
   function settleProposal(proposalId: string, status: 'submitted' | 'dismissed', expenseIds: string[]) {
-    setMessages((current) => current.map((m) => (m.proposal?.id === proposalId ? { ...m, proposal: { ...m.proposal, status, expenseIds } } : m)))
-    if (status === 'submitted') setAcking((current) => new Set(current).add(proposalId))
-    const settle = { proposalId, status, expenseIds }
-    if (sessionId && !streamingRef.current) persistSettle(sessionId, settle, onSettleReply)
-    else pendingSettles.current.push(settle)
-  }
-
-  /** Puts Ask Aviary's reply to logged rows right under their card. Dismissals get none. */
-  function onSettleReply(proposalId: string, reply: string | null) {
-    setAcking((current) => {
-      if (!current.has(proposalId)) return current
-      const next = new Set(current)
-      next.delete(proposalId)
+    const reply = status === 'submitted' ? pickAck() : undefined
+    setMessages((current) => {
+      const at = current.findIndex((m) => m.proposal?.id === proposalId)
+      if (at < 0) return current
+      const next = [...current]
+      next[at] = { ...next[at], proposal: { ...next[at].proposal!, status, expenseIds } }
+      if (reply && !next[at + 1]?.ack) next.splice(at + 1, 0, { role: 'model', text: reply, ack: true })
       return next
     })
-    setMessages((messages) => {
-      const at = messages.findIndex((m) => m.proposal?.id === proposalId)
-      if (at < 0 || messages[at].proposal?.status !== 'submitted' || messages[at + 1]?.ack) return messages
-      return [...messages.slice(0, at + 1), { role: 'model', text: reply ?? LOGGED_FALLBACK, ack: true }, ...messages.slice(at + 1)]
-    })
+    const settle = { proposalId, status, expenseIds, reply }
+    if (sessionId && !streamingRef.current) persistSettle(sessionId, settle)
+    else pendingSettles.current.push(settle)
   }
 
   return (
@@ -474,7 +455,6 @@ export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onL
                           onSettled={(status, ids) => settleProposal(message.proposal!.id, status, ids)}
                         />
                       )}
-                      {message.proposal && acking.has(message.proposal.id) && <BirdThinking size={30} />}
                     </div>
                   ) : null)}
                   {awaitingFirstDelta && <BirdThinking size={30} />}

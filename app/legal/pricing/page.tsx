@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { Bell, Brain, Gift, Landmark, Mail, Monitor, PieChart, Repeat, ScanLine, Smartphone, Wallet, WifiOff } from 'lucide-react'
 import { pageMetadata } from '@/lib/seo'
-import { getPlanPrices, type PlanPrice } from '@/lib/billing/razorpay'
+import { visitorCheckoutProvider, visitorPlanPrices } from '@/lib/billing/prices'
 import { formatPrice, PLAY_STORE_URL, yearlySavingsPercent } from '@/src/components/billing/copy'
 import { BirdLanding } from '@/src/components/BirdMark'
 import { TrackedLink } from '@/src/components/TrackedLink'
@@ -10,20 +10,14 @@ import { LandingFooter, LandingHeader } from '@/src/components/landing/Chrome'
 import '@/src/landing.css'
 
 export const metadata = pageMetadata('/legal/pricing')
-// Read from Razorpay (cached in-process), so the page always shows the price that's actually charged.
+// Read from Razorpay or PayPal (cached in-process) by the visitor's country, so the page always shows the price that's actually charged.
 export const dynamic = 'force-dynamic'
 
-async function loadPrices(): Promise<PlanPrice[] | null> {
-  try {
-    return await getPlanPrices()
-  } catch {
-    // Razorpay unreachable: say so rather than failing the whole page.
-    return null
-  }
+/** A plan's price split over `parts`, rounded to a whole rupee, or to a cent for other currencies. */
+const perUnit = (amount: number, parts: number, currency: string) => {
+  const step = currency === 'INR' ? 100 : 1
+  return Math.round(amount / parts / step) * step
 }
-
-/** A plan's price split over `parts`, rounded to a whole rupee (amounts are in paise). */
-const perUnit = (amount: number, parts: number) => Math.round(amount / parts / 100) * 100
 
 const INCLUDED = [
   { icon: Wallet, tone: 'rent', title: 'Envelopes', body: 'Set money aside by purpose. See what’s left before you spend.' },
@@ -48,7 +42,7 @@ const FAQS = [
 ]
 
 export default async function PricingPage() {
-  const prices = await loadPrices()
+  const [prices, provider] = await Promise.all([visitorPlanPrices(), visitorCheckoutProvider()])
   const monthly = prices?.find((p) => p.period === 'monthly')
   const yearly = prices?.find((p) => p.period === 'yearly')
   const saving = monthly && yearly ? yearlySavingsPercent(monthly.amount, yearly.amount) : null
@@ -74,13 +68,13 @@ export default async function PricingPage() {
           <section className="lp-plan" aria-labelledby="monthly-plan-title">
             <div className="lp-plan-head"><h3 id="monthly-plan-title">Monthly</h3></div>
             <p className="lp-plan-price"><strong>{formatPrice(monthly.amount, monthly.currency)}</strong><span>/ month</span></p>
-            <p className="lp-plan-eq">About {formatPrice(perUnit(monthly.amount, 30), monthly.currency)} a day.</p>
+            <p className="lp-plan-eq">About {formatPrice(perUnit(monthly.amount, 30, monthly.currency), monthly.currency)} a day.</p>
             <p className="lp-plan-billing">Billed monthly. Cancel any time.</p>
           </section>
           <section className="lp-plan lp-plan--yearly" aria-labelledby="yearly-plan-title">
             <div className="lp-plan-head"><h3 id="yearly-plan-title">Yearly</h3>{saving ? <span className="lp-plan-save">Save {saving}%</span> : null}</div>
             <p className="lp-plan-price"><strong>{formatPrice(yearly.amount, yearly.currency)}</strong><span>/ year</span></p>
-            <p className="lp-plan-eq">Works out to {formatPrice(perUnit(yearly.amount, 12), yearly.currency)} a month.</p>
+            <p className="lp-plan-eq">Works out to {formatPrice(perUnit(yearly.amount, 12, yearly.currency), yearly.currency)} a month.</p>
             <p className="lp-plan-billing">Billed once a year. Cancel any time.</p>
           </section>
         </div>
@@ -108,7 +102,7 @@ export default async function PricingPage() {
         <div className="lp-card lp-pay-card">
           <span className="lp-include-icon lp-tone-savings" aria-hidden="true"><Monitor size={22} strokeWidth={2.2} /></span>
           <strong>On the website</strong>
-          <span>UPI AutoPay or a card, through Razorpay. Manage it any time from Account, then Subscription.</span>
+          <span>{provider === 'paypal' ? 'PayPal or a card, through PayPal.' : 'UPI AutoPay or a card, through Razorpay.'} Manage it any time from Account, then Subscription.</span>
         </div>
         <div className="lp-card lp-pay-card">
           <span className="lp-include-icon lp-tone-food" aria-hidden="true"><Smartphone size={22} strokeWidth={2.2} /></span>

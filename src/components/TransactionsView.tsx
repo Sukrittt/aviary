@@ -899,6 +899,7 @@ export function TransactionsView({
             date={editingTxn.date}
             category={editingTxn.category}
             accountId={editingTxn.accountId}
+            hasPhoto={editingTxn.hasPhoto}
             onClose={() => setEditingTxn(null)}
             onSaved={refreshTransactions}
           />

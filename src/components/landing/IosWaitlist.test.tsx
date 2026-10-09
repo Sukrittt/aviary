@@ -1,11 +1,11 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { IosWaitlist } from './IosWaitlist'
+import { IosWaitlist, JOINED_KEY } from './IosWaitlist'
 import { track } from '../../lib/analytics'
 
 vi.mock('../../lib/analytics', () => ({ track: vi.fn() }))
 
-afterEach(() => vi.unstubAllGlobals())
+afterEach(() => { vi.unstubAllGlobals(); vi.mocked(track).mockClear(); localStorage.clear() })
 
 function join(email: string) {
   fireEvent.change(screen.getByLabelText('Email for the iPhone waitlist'), { target: { value: email } })
@@ -29,7 +29,20 @@ describe('IosWaitlist', () => {
     render(<IosWaitlist />)
     join('me@example.com')
     await screen.findByRole('button', { name: 'You’re on the list' })
-    expect(track).toHaveBeenCalledWith('waitlist_joined', { waitlist_platform: 'ios' })
+    expect(track).toHaveBeenCalledWith('waitlist_joined', { waitlist_platform: 'ios', placement: 'footer_cta' })
+  })
+
+  it('shows a reload as already joined instead of joining and reporting again', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('{"ok":true}')))
+    const { unmount } = render(<IosWaitlist placement="hero" />)
+    join('me@example.com')
+    await screen.findByRole('button', { name: 'You’re on the list' })
+    expect(localStorage.getItem(JOINED_KEY)).toBe('1')
+    unmount()
+    vi.mocked(track).mockClear()
+    render(<IosWaitlist placement="hero" />)
+    expect(await screen.findByRole('button', { name: 'You’re on the list' })).toBeDisabled()
+    expect(track).not.toHaveBeenCalled()
   })
 
   it('shows a written error, not the server text, when the request fails', async () => {

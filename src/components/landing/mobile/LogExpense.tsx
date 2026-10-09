@@ -4,7 +4,7 @@ import { useCurrency } from '@/src/context/CurrencyContext'
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { animate, motion, useMotionValue, useTransform, type MotionValue } from 'motion/react'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, MessageSquareText } from 'lucide-react'
 import { DotLottieReact } from '@lottiefiles/dotlottie-react'
 import { categoryEmoji, groupEmoji, splitEmoji } from '@/src/lib/emoji'
 import { formatDateTimeLong } from '@/src/lib/format'
@@ -31,6 +31,8 @@ import {
 import { DAYS_LEFT, WORDS, toEnvelope, type DemoCategory } from './demo'
 import { AutoCategoryPill } from './AutoCategoryPill'
 import { chime } from '../LandingClient'
+import { CaptureTipBubble } from './CaptureTipBubble'
+import { evaluateAmount, formatExpression, hasOperator } from '@/src/lib/calcAmount'
 
 /** Twins of Mobile's app/modals/log-expense.tsx, expense-added.tsx, CategoryPickerSheet and DeltaBar. */
 
@@ -83,18 +85,26 @@ export function LogExpenseScreen({
   prefill,
   publish,
   onAdded,
+  onSeveral,
+  tip,
 }: {
   categories: DemoCategory[]
   groups: string[]
   prefill?: LoggedExpense | null
   publish: (state: SubmitState) => void
   onAdded: (expense: LoggedExpense) => void
+  /** The header's chat icon: Mobile opens Ask Aviary to type several spends at once. */
+  onSeveral: () => void
+  /** Mobile's batch capture tip, off the chat icon. */
+  tip?: { body: string; onTry: () => void; onDismiss: () => void } | null
 }) {
   const { formatAmountInput } = useCurrency()
 
-  const { amount, setAmount, pushDigit, handleBackspace, shakeRef } = useAmountEntry(
+  // `expr` is what was typed, maybe a sum ("5+5"); `amount` is its total.
+  const { amount: expr, setAmount, pushDigit, handleBackspace, shakeRef } = useAmountEntry(
     prefill ? String(prefill.amount) : '',
   )
+  const amount = hasOperator(expr) ? String(evaluateAmount(expr)) : expr
   const [item, setItem] = useState(prefill?.item ?? '')
   const [category, setCategory] = useState(prefill?.category ?? '')
   const [categoryTouched, setCategoryTouched] = useState(!!prefill?.category)
@@ -134,7 +144,8 @@ export function LogExpenseScreen({
   const selectedCategory = categories.find((c) => c.name === category)
   const rollEmojis = useMemo(() => categories.map((c) => categoryEmoji(c.name, c.group)), [categories])
   const parsedAmount = Number(amount)
-  const canSubmit = item.trim() !== '' && category !== '' && !Number.isNaN(parsedAmount) && parsedAmount > 0
+  // "What was it for?" is optional: left blank, the row is named after its category.
+  const canSubmit = category !== '' && !Number.isNaN(parsedAmount) && parsedAmount > 0
 
   // Let the nav circle's ripple -> tick (~950ms) finish before the success screen replaces this one.
   useEffect(() => {
@@ -155,7 +166,7 @@ export function LogExpenseScreen({
 
   const handleSubmit = useCallback(() => {
     if (!canSubmit) return
-    pending.current = { item: item.trim(), amount: parsedAmount, category, loggedAt: new Date().toISOString() }
+    pending.current = { item: item.trim() || splitEmoji(category).text, amount: parsedAmount, category, loggedAt: new Date().toISOString() }
     setSaving(true)
   }, [canSubmit, item, parsedAmount, category])
 
@@ -165,10 +176,15 @@ export function LogExpenseScreen({
   useEffect(() => () => publish(EMPTY_SUBMIT), [publish])
 
   return (
-    <div style={{ ...col, height: '100%', background: T.accent }}>
+    <div style={{ ...col, height: '100%', background: T.accent, position: 'relative' }}>
       <div style={{ ...row, justifyContent: 'center', paddingTop: PHONE.top + space.sm, paddingInline: space.lg, paddingBottom: 8 }}>
         <span style={{ color: '#ffffff', ...font.displaySemiBold, fontSize: type.bodyLg }}>Log expense</span>
       </div>
+      <button type="button" className="m-several" onClick={onSeveral} aria-label="Log several spends at once"
+        style={{ ...pressable, ...row, justifyContent: 'center', position: 'absolute', left: space.lg, top: PHONE.top + space.xs, width: 36, height: 36, borderRadius: 18, background: FIELD_BG }}>
+        <MessageSquareText size={18} color="#ffffff" />
+      </button>
+      {tip && <CaptureTipBubble anchor={{ top: PHONE.top + space.xs, left: space.lg, size: 36 }} title="Logging a few?" body={tip.body} onTry={tip.onTry} onDismiss={tip.onDismiss} />}
 
       <div style={{ ...col, flex: 1, paddingTop: 8, paddingInline: space.lg }}>
         <div style={{ ...col, flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.sm }}>
@@ -182,6 +198,7 @@ export function LogExpenseScreen({
               animate
             />
           </div>
+          {hasOperator(expr) && <span style={{ color: ON_ACCENT_DIM, ...font.bodySemiBold, fontSize: type.caption }}>{formatExpression(expr)}</span>}
           <button type="button" onClick={() => setShowMore(true)} style={{ ...pressable, ...row, gap: space.xs }}>
             <span style={{ color: ON_ACCENT_DIM, ...font.bodySemiBold, fontSize: type.caption }}>More</span>
             <ChevronDown size={16} color={ON_ACCENT_DIM} />
@@ -224,7 +241,7 @@ export function LogExpenseScreen({
           </div>
         </div>
 
-        <Numpad onDigit={pushDigit} onBackspace={handleBackspace} onClear={() => setAmount('')} extraKey="." />
+        <Numpad onDigit={pushDigit} onBackspace={handleBackspace} onClear={() => setAmount('')} calculator />
       </div>
 
       <CategoryPickerSheet

@@ -1,24 +1,25 @@
+import { headers } from 'next/headers'
 import { pageMetadata, pages, SITE_URL } from '@/lib/seo'
-import { getPlanPrices } from '@/lib/billing/razorpay'
+import { visitorPlanPrices } from '@/lib/billing/prices'
 import { formatPrice } from '@/src/components/billing/copy'
 import { LandingPage } from '../src/views/LandingPage'
 
-// Static page with the post-trial price refreshed hourly from Razorpay.
-export const revalidate = 3600
-
 async function loadMonthlyPrice(): Promise<string | undefined> {
-  try {
-    const monthly = (await getPlanPrices())?.find((p) => p.period === 'monthly')
-    return monthly && formatPrice(monthly.amount, monthly.currency)
-  } catch {
-    // Razorpay unreachable: the hero just leaves the price out.
-    return undefined
-  }
+  // Rendered per request: the price depends on the visitor's country.
+  const monthly = (await visitorPlanPrices())?.find((p) => p.period === 'monthly')
+  return monthly && formatPrice(monthly.amount, monthly.currency)
 }
-
 
 export default async function Home() {
   const monthlyPrice = await loadMonthlyPrice()
+  // iPadOS Safari sends a Mac user agent, so iPads still see the Android CTA.
+  const h = await headers()
+  const ua = h.get('user-agent') ?? ''
+  // Same rule as the price: no geo header (local dev) counts as India.
+  const country = h.get('x-vercel-ip-country')
+  const intl = !!country && country !== 'IN'
+  const ios = /iPhone|iPad|iPod/.test(ua)
+  const android = /Android/.test(ua)
   const structuredData = {
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
@@ -36,7 +37,7 @@ export default async function Home() {
       type="application/ld+json"
       dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, '\\u003c') }}
     />
-    <LandingPage monthlyPrice={monthlyPrice} />
+    <LandingPage monthlyPrice={monthlyPrice} ios={ios} android={android} intl={intl} />
   </>
 }
 

@@ -15,12 +15,12 @@ const getAccessMock = vi.fn(async (): Promise<Record<string, unknown>> => ({ mod
 const recordMock = vi.fn(async (): Promise<Record<string, unknown>> => ({ mode: 'paid', store: 'web' }))
 const cancelRowMock = vi.fn(async () => undefined)
 vi.mock('@/lib/billing/service', async () => {
-  class RazorpaySubscriptionOwnerError extends Error {}
+  class SubscriptionOwnerError extends Error {}
   return {
     getAccess: () => getAccessMock(),
     recordRazorpaySubscription: () => recordMock(),
-    cancelRazorpayRow: () => cancelRowMock(),
-    RazorpaySubscriptionOwnerError,
+    cancelWebRow: () => cancelRowMock(),
+    SubscriptionOwnerError,
   }
 })
 
@@ -123,7 +123,7 @@ describe('POST /api/billing/razorpay/verify', () => {
   })
 
   it("refuses a subscription that belongs to another account", async () => {
-    recordMock.mockRejectedValueOnce(new service.RazorpaySubscriptionOwnerError('nope'))
+    recordMock.mockRejectedValueOnce(new service.SubscriptionOwnerError('nope'))
     expect((await verify(post(signed('pay_1', 'sub_1')))).status).toBe(403)
   })
 

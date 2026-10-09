@@ -224,11 +224,13 @@ export async function updateProposalStatus(
   proposalId: string,
   status: Exclude<ProposalStatus, 'pending'>,
   expenseIds?: string[],
+  /** The line the app already showed under the card (src/lib/captureAck.ts), saved so a reopened chat matches. */
+  reply?: string,
 ): Promise<string | null> {
   const resp = await apiFetch(`/api/ai/chat/sessions/${encodeURIComponent(sessionId)}/proposals/${encodeURIComponent(proposalId)}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(expenseIds && expenseIds.length ? { status, expenseIds } : { status }),
+    body: JSON.stringify({ status, ...(expenseIds && expenseIds.length ? { expenseIds } : {}), ...(reply ? { reply } : {}) }),
   })
   if (!resp.ok && resp.status !== 409) throw new Error(`Failed to update proposal: ${resp.status}`)
   // The first `submitted` answers with Ask Aviary's reply to the logged rows.

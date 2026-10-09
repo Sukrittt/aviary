@@ -17,6 +17,7 @@ import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { ChevronLeft, type LucideIcon } from 'lucide-react'
 import { darkTokens, lightTokens } from '@/src/theme/tokens'
+import { OPERATORS, pushAmountKey } from '@/src/lib/calcAmount'
 
 
 /**
@@ -422,8 +423,15 @@ export function Chip({
 // ─── Numpad ──────────────────────────────────────────────────────────────────
 
 const PAD_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'del']
+const CALC_TOGGLE = '+/.'
+const CALC_KEYS = [...OPERATORS, '.']
+const CALC_WIDTH = 56
+const CALC_FILL = 'rgba(255, 255, 255, 0.16)'
 
-/** Numpad: long-press delete clears. `onAccent` (the landing's log screen) is transparent keys with white labels; otherwise themed card keys. */
+/**
+ * Numpad: long-press delete clears. `onAccent` (the landing's log screen) is transparent keys with white labels; otherwise themed card keys.
+ * `calculator` (Mobile's Numpad) turns the blank slot into a "+/." key that slides a column of operators and '.' in from the screen edge.
+ */
 export function Numpad({
   onDigit,
   onBackspace,
@@ -431,6 +439,7 @@ export function Numpad({
   extraKey,
   onAccent = true,
   disabled = false,
+  calculator = false,
 }: {
   onDigit: (digit: string) => void
   onBackspace: () => void
@@ -438,32 +447,43 @@ export function Numpad({
   extraKey?: string
   onAccent?: boolean
   disabled?: boolean
+  calculator?: boolean
 }) {
   const keyColor = onAccent ? '#ffffff' : 'var(--tk-text)'
   const timer = useRef(0)
   const longFired = useRef(false)
-  const keys = PAD_KEYS.map((k, i) => (i === 9 ? (extraKey ?? '') : k))
+  const [calcOpen, setCalcOpen] = useState(false)
+  const keys = PAD_KEYS.map((k, i) => (i === 9 ? (calculator ? CALC_TOGGLE : extraKey ?? '') : k))
+  // The column hugs the screen edge, out past the footer's side padding.
+  const bleed = space.lg
+  const transition = `260ms ${cssEase(ease.outCubic)}`
+  const label = (k: string) => <span style={{ color: keyColor, ...font.displaySemiBold, fontSize: 22 }}>{k}</span>
 
-  return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: space.md - 2 }}>
-      {keys.map((k, i) => {
+  const grid = (
+    // Fixed rows, not a wrapping grid: the rows narrow as the calculator column slides in without a key wrapping.
+    <div style={{ ...col, gap: space.md - 2, paddingRight: calculator && calcOpen ? CALC_WIDTH - bleed + space.sm : 0, transition: `padding-right ${transition}` }}>
+      {[0, 3, 6, 9].map((start) => <div key={start} style={{ ...row, gap: space.md - 2 }}>{keys.slice(start, start + 3).map((k, j) => {
+        const i = start + j
         const keyStyle: CSSProperties = {
-          width: '31.3%',
+          flex: 1,
           minHeight: 56,
           border: `1px solid ${onAccent ? 'transparent' : 'var(--tk-border)'}`,
           background: onAccent ? 'transparent' : 'var(--tk-card)',
           borderRadius: radius.lg,
           ...row,
           justifyContent: 'center',
+          position: 'relative',
         }
         if (k === '') return <div key={i} style={keyStyle} />
         const isDel = k === 'del'
+        const isToggle = k === CALC_TOGGLE
         return (
           <button
             key={i}
             type="button"
             className="m-key"
-            aria-label={isDel ? 'Delete' : k}
+            aria-label={isDel ? 'Delete' : isToggle ? 'Calculator' : k}
+            aria-expanded={isToggle ? calcOpen : undefined}
             disabled={disabled}
             style={{ ...resetButton, ...keyStyle, opacity: disabled ? 0.5 : 1 }}
             onPointerDown={() => {
@@ -479,33 +499,56 @@ export function Numpad({
             onClick={() => {
               if (longFired.current) return
               if (isDel) onBackspace()
+              else if (isToggle) setCalcOpen((o) => !o)
               else onDigit(k)
             }}
           >
-            {isDel ? (
-              <ChevronLeft size={22} color={keyColor} />
-            ) : (
-              <span style={{ color: keyColor, ...font.displaySemiBold, fontSize: 22 }}>{k}</span>
-            )}
+            {isToggle && calcOpen && <span style={{ position: 'absolute', width: 56, height: 56, borderRadius: 28, background: CALC_FILL }} />}
+            {isDel ? <ChevronLeft size={22} color={keyColor} /> : <span style={{ position: 'relative' }}>{label(k)}</span>}
           </button>
         )
-      })}
+      })}</div>)}
+    </div>
+  )
+  if (!calculator) return grid
+
+  return (
+    <div style={{ position: 'relative' }}>
+      {grid}
+      <div
+        inert={!calcOpen}
+        style={{
+          ...col,
+          position: 'absolute',
+          top: 4,
+          bottom: 0,
+          right: -bleed,
+          width: CALC_WIDTH,
+          justifyContent: 'space-evenly',
+          background: CALC_FILL,
+          borderTopLeftRadius: radius.xl,
+          borderBottomLeftRadius: radius.xl,
+          transform: `translateX(${calcOpen ? 0 : CALC_WIDTH + space.sm}px)`,
+          transition: `transform ${transition}`,
+        }}
+      >
+        {CALC_KEYS.map((k) => (
+          <button key={k} type="button" className="m-key" aria-label={k} disabled={disabled} onClick={() => onDigit(k)}
+            style={{ ...resetButton, flex: 1, ...row, justifyContent: 'center', opacity: disabled ? 0.5 : 1 }}>
+            {label(k)}
+          </button>
+        ))}
+      </div>
     </div>
   )
 }
 
-/** useAmountEntry: numpad editing with a 2-decimal cap and 9-char limit. `onChange` lets a screen reset state derived from the amount. */
+/** useAmountEntry: numpad editing per operand (2-decimal cap, 9-char limit) through Mobile's calculator rules. `onChange` lets a screen reset state derived from the amount. */
 export function useAmountEntry(initial = '', { onChange, shakeAtZero = true }: { onChange?: () => void; shakeAtZero?: boolean } = {}) {
   const [amount, setAmount] = useState(initial)
   const [shakeRef, shake] = useShake<HTMLDivElement>()
   const pushDigit = useCallback((digit: string) => {
-    setAmount((prev) => {
-      if (digit === '.') return prev.includes('.') ? prev : prev === '' ? '0.' : prev + '.'
-      const dot = prev.indexOf('.')
-      if (dot !== -1 && prev.length - dot - 1 >= 2) return prev
-      const next = (prev + digit).replace(/^0+(?=\d)/, '')
-      return next.length > 9 ? prev : next
-    })
+    setAmount((prev) => pushAmountKey(prev, digit))
     onChange?.()
   }, [onChange])
   const handleBackspace = useCallback(() => {

@@ -1,11 +1,11 @@
 import { expenseInputError } from '@/lib/inputValidation'
 import { ObjectId } from 'mongodb'
 import { json, error, readBody, getCollection, parsePageParams, pageMeta } from '@/lib/http'
-import { getAuth, readOnlyGuard } from '@/lib/access'
+import { getAuth, readOnlyGuard, type Auth } from '@/lib/access'
 import { requireAccess } from '@/lib/billing/guard'
 import { EXPENSE_HEADERS, toRow } from '@/lib/models'
 import { invalidate } from '@/lib/cache'
-import { invalidateCategoryMap } from '@/lib/categoryMap'
+import { getCachedCategoryMap, invalidateCategoryMap, learnCategoryCorrection, type CategoryMap } from '@/lib/categoryMap'
 import { notifyThresholdCrossed } from '@/lib/notifications/instant'
 import { withTx } from '@/lib/mongodb'
 import { createExpense, adjustCreditCardEnvelope } from '@/lib/createExpense'
@@ -13,10 +13,33 @@ import { resolveCategoryName } from '@/lib/categoryName'
 import { flagIfDuplicate } from '@/lib/duplicates'
 import { markManualTransactionComplete } from '@/lib/users'
 import { AccountError, liveAccount, paymentMethodFor } from '@/lib/accounts'
+import { deleteExpensePhotoQuietly } from '@/lib/expensePhoto'
 
 export const dynamic = 'force-dynamic'
 
 const SORT = { date: -1, timestamp: -1, _id: -1 } as const
+
+// Read before the write, so the new row's own vote can't hide a correction.
+// Best effort: a failure here only skips learning, never the save.
+async function mapBeforeWrite(auth: Auth): Promise<CategoryMap | null> {
+  try {
+    const expenses = await getCollection('expenses', auth)
+    const overrides = await getCollection('category_map_overrides', auth)
+    return await getCachedCategoryMap(auth.userId, expenses, overrides)
+  } catch {
+    return null
+  }
+}
+
+async function learnFromSave(auth: Auth, map: CategoryMap | null, item: string, category: string) {
+  if (!map) return
+  try {
+    const overrides = await getCollection('category_map_overrides', auth)
+    if (await learnCategoryCorrection(map, item, category, overrides)) invalidateCategoryMap(auth.userId)
+  } catch {
+    // Learning is a nicety; the expense is already saved.
+  }
+}
 
 // Where a client says an expense came from. `text` is a row typed into the
 // money brain and confirmed on its review card (lib/ai/capture.ts);
@@ -150,9 +173,10 @@ export async function GET(req: Request) {
 }
 
 // Existing records without a version start at 0; no backfill is required.
+// `has_photo` rides alongside like `id`/`version`, outside the CSV columns.
 function expenseRow(doc: Record<string, unknown>) {
   // `account_id` rides outside EXPENSE_HEADERS like `id`: that array is also the CSV export's columns.
-  return { ...toRow(EXPENSE_HEADERS, doc), id: String(doc._id), version: Number(doc.version ?? 0), account_id: String(doc.account_id ?? '') }
+  return { ...toRow(EXPENSE_HEADERS, doc), id: String(doc._id), version: Number(doc.version ?? 0), account_id: String(doc.account_id ?? ''), has_photo: typeof doc.photo_file === 'string' }
 }
 
 class ExpenseWriteError extends Error {
@@ -197,6 +221,7 @@ export async function POST(req: Request) {
   }
   if (body.source !== undefined && !CLIENT_SOURCES.has(String(body.source))) return error('invalid source')
 
+  const mapBefore = await mapBeforeWrite(auth)
   // The insert itself lives in `lib/createExpense.ts` so the recurring-expense
   // cron can reuse it verbatim instead of forking a simplified copy.
   const result = await createExpense(auth, {
@@ -216,6 +241,7 @@ export async function POST(req: Request) {
   // entry screen sends this source marker; scans and recurring charges do not
   // accidentally complete the step. Idempotent replays keep the first instant.
   if (body.source === 'manual') await markManualTransactionComplete(auth.userId)
+  if (!result.duplicate) await learnFromSave(auth, mapBefore, String(body.item), result.category)
 
   // Replays were checked on their first attempt. Mobile's offline queue lands
   // here too, which is where accidental double entries mostly come from.
@@ -283,7 +309,8 @@ export async function PUT(req: Request) {
 
   const update: Record<string, string> = Object.fromEntries(Object.entries(rawUpdate).map(([key, value]) => [key, String(value)]))
 
-  let outcome: { category: string; affectsCC: boolean; version: number }
+  const mapBefore = update.category !== undefined ? await mapBeforeWrite(auth) : null
+  let outcome: { category: string; affectsCC: boolean; version: number; item: string; recategorized: boolean }
   try {
     outcome = await withTx(async (session) => {
       // Every retry must read again inside its snapshot. Never capture old
@@ -300,6 +327,7 @@ export async function PUT(req: Request) {
         const ts = String(found.timestamp)
         next.timestamp = `${String(body.new_date)}${ts.includes('T') ? ts.slice(ts.indexOf('T')) : ''}`
       }
+      const oldCategory = String(found.category ?? '')
       const oldIsCC = found.payment_method === 'credit_card'
       const newIsCC = (update.payment_method ?? found.payment_method) === 'credit_card'
       const oldMonth = String(found.date ?? '').slice(0, 7)
@@ -318,7 +346,13 @@ export async function PUT(req: Request) {
         if (oldIsCC) await adjustCreditCardEnvelope(auth, oldMonth, -oldAmount, session)
         if (newIsCC) await adjustCreditCardEnvelope(auth, newMonth, newAmount, session)
       }
-      return { category: update.category ?? String(found.category ?? ''), affectsCC: oldIsCC || newIsCC, version: version + 1 }
+      return {
+        category: update.category ?? String(found.category ?? ''),
+        affectsCC: oldIsCC || newIsCC,
+        version: version + 1,
+        item: update.item ?? String(found.item ?? ''),
+        recategorized: update.category !== undefined && update.category !== oldCategory,
+      }
     })
   } catch (err) {
     return writeError(err)
@@ -328,6 +362,7 @@ export async function PUT(req: Request) {
   invalidate('wrapped', auth.userId)
   if (outcome.affectsCC) invalidate('budgets', auth.userId)
   invalidateCategoryMap(auth.userId)
+  if (outcome.recategorized) await learnFromSave(auth, mapBefore, outcome.item, outcome.category)
   // The category that could newly be over its threshold: wherever the edit
   // landed the expense, not where it used to be.
   await notifyThresholdCrossed(auth, outcome.category)
@@ -345,11 +380,15 @@ export async function DELETE(req: Request) {
   const precondition = writePrecondition(body)
   if (precondition) return precondition
   const coll = await getCollection('expenses', auth)
-  let outcome: { category: string; affectsCC: boolean }
+  let outcome: { category: string; affectsCC: boolean; photoFile: string | null }
   try {
     outcome = await withTx(async (session) => {
       const found = await coll.findOne({ _id: new ObjectId(String(body.id)) }, { session })
       checkExpense(found, body.version)
+      // The photo blob is deleted below, so a row restored from Archive must
+      // not still claim one. Unsetting leaves `version` alone for the delete's own check.
+      const photoFile = typeof found.photo_file === 'string' ? found.photo_file : null
+      if (photoFile) await coll.updateOne({ _id: found._id }, { $unset: { photo_file: '' } }, { session })
       const result = await coll.deleteOne(
         { _id: found._id, version: found.version ?? { $exists: false } }, { session },
       )
@@ -359,11 +398,13 @@ export async function DELETE(req: Request) {
       if (affectsCC && amount > 0) {
         await adjustCreditCardEnvelope(auth, String(found.date ?? '').slice(0, 7), -amount, session)
       }
-      return { category: String(found.category ?? ''), affectsCC }
+      return { category: String(found.category ?? ''), affectsCC, photoFile }
     })
   } catch (err) {
     return writeError(err)
   }
+
+  if (outcome.photoFile) await deleteExpensePhotoQuietly(auth.userId, String(body.id), outcome.photoFile)
 
   invalidate('expenses', auth.userId)
   invalidate('wrapped', auth.userId)
