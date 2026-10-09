@@ -8,11 +8,13 @@ export const dynamic = 'force-dynamic'
 
 type Ctx = { params: Promise<{ id: string }> }
 
+const fileOf = (doc: Record<string, unknown>) => (typeof doc.photo_file === 'string' ? doc.photo_file : null)
+
 /**
  * Auth, access, read-only guard (writes only), id check, then the caller's
  * own live expense. Returns a Response to send back on any failure.
  *
- * Photo writes touch only `photo_ext`, never `version`: the version guards the
+ * Photo writes touch only `photo_file`, never `version`: the version guards the
  * row's fields, and attaching a photo mustn't 409 someone's concurrent edit.
  */
 async function load(req: Request, ctx: Ctx, method: string) {
@@ -29,14 +31,14 @@ async function load(req: Request, ctx: Ctx, method: string) {
   const id = _id.toHexString()
   const found = await coll.findOne({ _id })
   if (!found) return error('expense not found', 404)
-  return { auth, coll, _id, id, ext: typeof found.photo_ext === 'string' ? found.photo_ext : null }
+  return { auth, coll, _id, id, file: fileOf(found) }
 }
 
 /** `POST /api/expenses/[id]/photo` — `{ image: base64, mimeType }`. Attaches or replaces the photo. */
 export async function POST(req: Request, ctx: Ctx) {
   const loaded = await load(req, ctx, 'POST')
   if (loaded instanceof Response) return loaded
-  const { auth, coll, _id, id, ext: oldExt } = loaded
+  const { auth, coll, _id, id } = loaded
 
   const body = await readBody(req)
   const image = typeof body.image === 'string' ? body.image : ''
@@ -51,35 +53,42 @@ export async function POST(req: Request, ctx: Ctx) {
   if (buffer.length === 0) return error('image required', 400)
   if (buffer.length > MAX_PHOTO_BYTES) return error('image too large (max 5MB)', 413)
 
-  const ext = await putExpensePhoto(auth.userId, id, buffer, mimeType)
-  const stamped = await coll.updateOne({ _id }, { $set: { photo_ext: ext } })
-  // Deleted mid-upload: the expense's own delete already ran its cleanup, so this blob would be an orphan.
-  if (stamped.matchedCount !== 1) {
-    await deleteExpensePhotoQuietly(auth.userId, id, ext)
-    return error('expense not found', 404)
+  const file = await putExpensePhoto(auth.userId, id, buffer, mimeType)
+  // Swap only from the file we last read, so two uploads racing each other
+  // each delete exactly the blob they replaced and nothing is orphaned.
+  let prev = loaded.file
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const swapped = await coll.updateOne({ _id, photo_file: prev }, { $set: { photo_file: file } })
+    if (swapped.matchedCount === 1) {
+      if (prev) await deleteExpensePhotoQuietly(auth.userId, id, prev)
+      return json({ ok: true, url: await getExpensePhotoUrl(auth.userId, id, file) })
+    }
+    const current = await coll.findOne({ _id })
+    // Deleted mid-upload: the expense's own delete already ran its cleanup, so this blob would be an orphan.
+    if (!current) break
+    prev = fileOf(current)
   }
-  if (oldExt && oldExt !== ext) await deleteExpensePhotoQuietly(auth.userId, id, oldExt)
-
-  return json({ ok: true, url: await getExpensePhotoUrl(auth.userId, id, ext) })
+  await deleteExpensePhotoQuietly(auth.userId, id, file)
+  return error('expense not found', 404)
 }
 
 /** `GET /api/expenses/[id]/photo` — `{ url }`, a short-lived signed GET, or 404 when there's no photo. */
 export async function GET(req: Request, ctx: Ctx) {
   const loaded = await load(req, ctx, 'GET')
   if (loaded instanceof Response) return loaded
-  if (!loaded.ext) return error('no photo', 404)
-  return json({ url: await getExpensePhotoUrl(loaded.auth.userId, loaded.id, loaded.ext) })
+  if (!loaded.file) return error('no photo', 404)
+  return json({ url: await getExpensePhotoUrl(loaded.auth.userId, loaded.id, loaded.file) })
 }
 
 /** `DELETE /api/expenses/[id]/photo` — idempotent. */
 export async function DELETE(req: Request, ctx: Ctx) {
   const loaded = await load(req, ctx, 'DELETE')
   if (loaded instanceof Response) return loaded
-  const { auth, coll, _id, id, ext } = loaded
-  if (ext) {
-    await deleteExpensePhoto(auth.userId, id, ext)
-    // Only clear the ext we deleted: a replacement stamped meanwhile keeps its pointer.
-    await coll.updateOne({ _id, photo_ext: ext }, { $unset: { photo_ext: '' } })
+  const { auth, coll, _id, id, file } = loaded
+  if (file) {
+    await deleteExpensePhoto(auth.userId, id, file)
+    // Only clear the file we deleted: a replacement stamped meanwhile has its own blob and keeps it.
+    await coll.updateOne({ _id, photo_file: file }, { $unset: { photo_file: '' } })
   }
   return json({ ok: true })
 }

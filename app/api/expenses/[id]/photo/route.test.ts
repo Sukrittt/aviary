@@ -32,7 +32,7 @@ vi.mock('@/lib/http', async (importOriginal) => ({
       findOne: async ({ _id }: { _id: ObjectId }) => own(_id) ?? null,
       updateOne: async ({ _id, ...match }: { _id: ObjectId } & Record<string, unknown>, update: { $set?: Record<string, unknown>; $unset?: Record<string, unknown> }) => {
         const found = own(_id)
-        const d = found && Object.entries(match).every(([k, v]) => found[k] === v) ? found : undefined
+        const d = found && Object.entries(match).every(([k, v]) => (found[k] ?? null) === v) ? found : undefined
         if (d) {
           Object.assign(d, update.$set ?? {})
           for (const k of Object.keys(update.$unset ?? {})) delete d[k]
@@ -69,31 +69,43 @@ beforeEach(() => {
 })
 
 describe('POST /api/expenses/[id]/photo', () => {
-  it('uploads privately, stamps photo_ext without bumping version, and returns a signed url', async () => {
+  it('uploads privately, stamps photo_file without bumping version, and returns a signed url', async () => {
     const d = expense()
     const res = await POST(request('POST', jpeg), ctx(String(d._id)))
     expect(res.status).toBe(200)
-    expect(await res.json()).toEqual({ ok: true, url: `https://signed.example/expense-photos/user_a/${d._id}.jpg` })
+    // Each upload gets its own file name, so no two uploads share a blob.
+    expect(d.photo_file).toMatch(/^[0-9a-f]{16}\.jpg$/)
+    expect(await res.json()).toEqual({ ok: true, url: `https://signed.example/expense-photos/user_a/${d._id}-${d.photo_file}` })
     expect(put).toHaveBeenCalledWith(
-      `expense-photos/user_a/${d._id}.jpg`,
+      `expense-photos/user_a/${d._id}-${d.photo_file}`,
       expect.any(Buffer),
-      expect.objectContaining({ access: 'private', addRandomSuffix: false, allowOverwrite: true, contentType: 'image/jpeg' }),
+      expect.objectContaining({ access: 'private', addRandomSuffix: false, contentType: 'image/jpeg' }),
     )
-    expect(d.photo_ext).toBe('jpg')
     expect(d.version).toBe(3)
   })
 
-  it('deletes the old blob when a replacement has a different extension', async () => {
-    const d = expense({ photo_ext: 'png' })
+  it('deletes the blob it replaced', async () => {
+    const d = expense({ photo_file: 'old.png' })
     await POST(request('POST', jpeg), ctx(String(d._id)))
-    expect(del).toHaveBeenCalledWith(`expense-photos/user_a/${d._id}.png`)
-    expect(d.photo_ext).toBe('jpg')
+    expect(del).toHaveBeenCalledWith(`expense-photos/user_a/${d._id}-old.png`)
+    expect(d.photo_file).toMatch(/\.jpg$/)
   })
 
-  it("leaves the blob alone when the replacement overwrites the same pathname", async () => {
-    const d = expense({ photo_ext: 'jpg' })
-    await POST(request('POST', jpeg), ctx(String(d._id)))
-    expect(del).not.toHaveBeenCalled()
+  it('deletes what a racing upload stamped, not the file it first read', async () => {
+    const d = expense({ photo_file: 'old.png' })
+    // Another upload swaps in its own file while this one is uploading.
+    put.mockImplementationOnce(async () => { d.photo_file = 'other.jpg'; return { url: '' } })
+    expect((await POST(request('POST', jpeg), ctx(String(d._id)))).status).toBe(200)
+    expect(del).toHaveBeenCalledTimes(1)
+    expect(del).toHaveBeenCalledWith(`expense-photos/user_a/${d._id}-other.jpg`)
+    expect(d.photo_file).toMatch(/^[0-9a-f]{16}\.jpg$/)
+  })
+
+  it('removes its own blob and 404s when the expense was deleted mid-upload', async () => {
+    const d = expense()
+    put.mockImplementationOnce(async () => { docs = []; return { url: '' } })
+    expect((await POST(request('POST', jpeg), ctx(String(d._id)))).status).toBe(404)
+    expect(del).toHaveBeenCalledWith(expect.stringMatching(new RegExp(`^expense-photos/user_a/${d._id}-[0-9a-f]{16}\\.jpg$`)))
   })
 
   it('rejects a malformed id, and 404s another user\'s expense', async () => {
@@ -121,7 +133,7 @@ describe('POST /api/expenses/[id]/photo', () => {
   it('keys the blob by the canonical lowercase id even when called with uppercase', async () => {
     const d = expense()
     await POST(request('POST', jpeg), ctx(String(d._id).toUpperCase()))
-    expect(put).toHaveBeenCalledWith(`expense-photos/user_a/${d._id}.jpg`, expect.any(Buffer), expect.anything())
+    expect(put).toHaveBeenCalledWith(expect.stringMatching(new RegExp(`^expense-photos/user_a/${d._id}-`)), expect.any(Buffer), expect.anything())
   })
 
   it('rejects images over 5MB decoded with 413', async () => {
@@ -150,19 +162,19 @@ describe('GET /api/expenses/[id]/photo', () => {
   it('404s when there is no photo, and returns a signed url when there is', async () => {
     const none = expense()
     expect((await GET(request('GET'), ctx(String(none._id)))).status).toBe(404)
-    const d = expense({ photo_ext: 'webp' })
+    const d = expense({ photo_file: 'a1.webp' })
     const res = await GET(request('GET'), ctx(String(d._id)))
-    expect(await res.json()).toEqual({ url: `https://signed.example/expense-photos/user_a/${d._id}.webp` })
+    expect(await res.json()).toEqual({ url: `https://signed.example/expense-photos/user_a/${d._id}-a1.webp` })
   })
 })
 
 describe('DELETE /api/expenses/[id]/photo', () => {
-  it('removes the blob and photo_ext without bumping version, and is idempotent', async () => {
-    const d = expense({ photo_ext: 'jpg' })
+  it('removes the blob and photo_file without bumping version, and is idempotent', async () => {
+    const d = expense({ photo_file: 'a1.jpg' })
     const first = await DELETE(request('DELETE'), ctx(String(d._id)))
     expect(await first.json()).toEqual({ ok: true })
-    expect(del).toHaveBeenCalledWith(`expense-photos/user_a/${d._id}.jpg`)
-    expect(d.photo_ext).toBeUndefined()
+    expect(del).toHaveBeenCalledWith(`expense-photos/user_a/${d._id}-a1.jpg`)
+    expect(d.photo_file).toBeUndefined()
     expect(d.version).toBe(3)
 
     const again = await DELETE(request('DELETE'), ctx(String(d._id)))
@@ -173,10 +185,10 @@ describe('DELETE /api/expenses/[id]/photo', () => {
 
 describe('DELETE /api/expenses/[id]/photo concurrency', () => {
   it('keeps a replacement stamped while the delete was running', async () => {
-    const d = expense({ photo_ext: 'png' })
-    // A POST lands a jpg between DELETE loading the row and clearing it.
-    del.mockImplementationOnce(async () => { d.photo_ext = 'jpg' })
+    const d = expense({ photo_file: 'a1.png' })
+    // A POST lands a new file between DELETE loading the row and clearing it.
+    del.mockImplementationOnce(async () => { d.photo_file = 'b2.jpg' })
     expect((await DELETE(request('DELETE'), ctx(String(d._id)))).status).toBe(200)
-    expect(d.photo_ext).toBe('jpg')
+    expect(d.photo_file).toBe('b2.jpg')
   })
 })
