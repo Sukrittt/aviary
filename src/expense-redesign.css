@@ -10355,19 +10355,11 @@ button.account-feature-card {
   color: var(--erd-text);
 }
 .currency-selected-code {
+  /* Plain text, not a pill: a bordered chip here read as a tappable button. */
   flex-shrink: 0;
-  min-height: 34px;
-  padding: 0 11px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-  border-radius: 100px;
-  border: 1px solid var(--erd-border-strong);
-  background: var(--erd-pill-bg);
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
-  color: var(--erd-text);
+  color: var(--gold-ink);
 }
 .scan-subtitle {
   margin: 2px 0 0;
