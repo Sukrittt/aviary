@@ -12243,3 +12243,62 @@ button.account-feature-card {
 .expense-redesign .balance-back {
   justify-self: center;
 }
+
+/* ── "More" disclosure on log/edit expense (src/components/ExpensePhotoMore.tsx) ── */
+.erd-more {
+  margin-top: 16px;
+}
+.erd-more-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 0;
+  border: none;
+  background: none;
+  color: var(--erd-text2);
+  font: 600 13px var(--font-nunito);
+  cursor: pointer;
+}
+.erd-more-toggle:hover {
+  color: var(--gold-ink);
+}
+.erd-more-toggle svg {
+  transition: transform 0.15s ease;
+}
+.erd-more-toggle svg.is-open {
+  transform: rotate(180deg);
+}
+.erd-more-panel {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  margin-top: 8px;
+}
+.erd-photo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.erd-photo-thumb {
+  display: block;
+  width: 72px;
+  height: 72px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--erd-border-strong);
+}
+.erd-photo-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.erd-photo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.erd-more-panel .erd-date-chip:disabled {
+  opacity: 0.6;
+  cursor: default;
+}

@@ -26,6 +26,9 @@ import { missingFields, missingFieldsMessage } from '../features/log-expense/mis
 import { Toast } from './Toast'
 import { ExpenseAdded, PreloadExpenseAddedTick, type AddedExpense } from '../features/log-expense/ExpenseAdded'
 import { useNudge, useShake } from './landing/mobile/kit'
+import { ExpensePhotoMore } from './ExpensePhotoMore'
+import { base64Of, dataUrlFromFile, PHOTO_ENCODING } from '../features/scan-bill/image'
+import { uploadExpensePhoto } from '../api/expenses'
 
 interface Props {
   onClose: () => void
@@ -77,6 +80,10 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
   const [added, setAdded] = useState<AddedExpense | null>(null)
   const deleteExpenseM = useDeleteExpense()
   const [undoError, setUndoError] = useState('')
+  // Optional photo, picked behind "More": a downscaled JPEG data URL, uploaded once the expense exists.
+  const [photo, setPhoto] = useState<string | null>(null)
+  const [photoError, setPhotoError] = useState('')
+  const [photoNotice, setPhotoNotice] = useState('')
   const [categoryWords, setCategoryWords] = useState<Record<string, string>>({})
   const [categoryPickTick, setCategoryPickTick] = useState(0)
   // True while the category is one we picked, not one the user chose (the
@@ -238,12 +245,40 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
     setShowCalendar(false)
   }
 
+  async function handlePhotoPick(file: File) {
+    setPhotoError('')
+    try {
+      setPhoto(await dataUrlFromFile(file, PHOTO_ENCODING))
+    } catch {
+      // createImageBitmap rejects what the browser can't decode (HEIC outside Safari, a corrupt file).
+      setPhotoError("Couldn't read that photo. Try another one.")
+    }
+  }
+
+  // The expense is already saved, so a failed upload only costs the photo, never the expense.
+  async function uploadPhoto(id: string | undefined, dataUrl: string) {
+    const notice = "Your expense is saved, but the photo didn't upload. Try adding it again from Activity."
+    if (!id) {
+      setPhotoNotice(notice)
+      return
+    }
+    try {
+      await uploadExpensePhoto(id, base64Of(dataUrl))
+      onSaved()
+    } catch {
+      setPhotoNotice(notice)
+    }
+  }
+
   function closeAndReset() {
     setItem('')
     setAmount('')
     setCategory('')
     setDate(toDateInputValue(new Date()))
     setShowCalendar(false)
+    setPhoto(null)
+    setPhotoError('')
+    setPhotoNotice('')
     categoryTouchedRef.current = false
     setAutoPicked(false)
     gateRef.current?.cancel()
@@ -289,6 +324,8 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
         loggedAt: result.timestamp || new Date().toISOString(),
         categorySnapshot: createdCategory?.name === effectiveCategory ? createdCategory : undefined,
       })
+      setPhotoNotice('')
+      if (photo) void uploadPhoto(result.id, photo)
     } catch {
       setError('Could not save — try again.')
       fail()
@@ -326,6 +363,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
             expense={added}
             undoing={deleteExpenseM.isPending}
             undoError={undoError}
+            notice={photoNotice}
             onUndo={() => void handleUndo()}
             onDone={closeAndReset}
           />
@@ -460,6 +498,13 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
                   anchorRef={pickDateChipRef}
                 />
               </section>
+
+              <ExpensePhotoMore
+                photoUrl={photo}
+                error={photoError}
+                onPick={(file) => void handlePhotoPick(file)}
+                onRemove={() => setPhoto(null)}
+              />
 
               {error && <p className="erd-log-error">{error}</p>}
             </div>

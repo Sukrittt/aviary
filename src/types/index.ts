@@ -30,6 +30,8 @@ export interface ExpenseRow {
   amount: string
   description: string
   payment_method: string
+  /** Set by the server when a photo is attached (app/api/expenses/[id]/photo). */
+  has_photo?: boolean
 }
 
 export interface CategoryRow {
