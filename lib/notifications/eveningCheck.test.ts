@@ -23,6 +23,7 @@ vi.mock('@/lib/mongodb', () => ({
       if (name === 'users') return { find: usersFind }
       if (name === 'expenses') return { findOne: expensesFindOne }
       if (name === 'recurring_expenses') return { findOne: async (f: { user_id: string }) => recurringDue.find((r) => r.user_id === f.user_id) ?? null }
+      if (name === 'notification_log') return { countDocuments: async (f: { user_id: string; key: { $in: string[] } }) => f.key.$in.filter((k) => claimed.has(`${f.user_id}:${k}`)).length }
       if (name === 'subscriptions') return { find: (f: { user_id: string }) => ({ toArray: async () => subs.filter((x) => x.user_id === f.user_id) }) }
       throw new Error(`unexpected collection ${name}`)
     },
@@ -173,5 +174,14 @@ describe('runEveningCheck', () => {
     claimed.clear()
     subs = [{ user_id: 'u1', next_due_date: '2026-10-06', billing_cycle: 'monthly', status: 'active' }]
     expect(await runEveningCheck(at)).toEqual({ sent: 0, failed: 0 })
+  })
+
+  it('nudges when today\'s subscription was already auto-added and then deleted', async () => {
+    tokenUsers = ['u1']
+    users = [{ _id: 'u1', timezone: 'Asia/Kolkata' }]
+    subs = [{ user_id: 'u1', service: 'Claude Pro', next_due_date: '2026-10-06', billing_cycle: 'monthly', status: 'active' }]
+    claimed.add('u1:sub-expense:Claude Pro:2026-10-06')
+
+    expect(await runEveningCheck(at)).toEqual({ sent: 1, failed: 0 })
   })
 })
