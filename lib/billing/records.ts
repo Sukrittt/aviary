@@ -59,8 +59,8 @@ export interface BillingAccountDoc {
   createdAt: Date
 }
 
-/** Who verified a purchase. RevenueCat fronts Google Play; Razorpay sells on the web directly. */
-export type BillingProvider = 'revenuecat' | 'razorpay'
+/** Who verified a purchase. RevenueCat fronts Google Play; Razorpay (India) and PayPal (everywhere else) sell on the web directly. */
+export type BillingProvider = 'revenuecat' | 'razorpay' | 'paypal'
 
 /**
  * Where the purchase lives, which is where the user manages it. Rows written
@@ -110,7 +110,7 @@ export interface BillingSubscriptionDoc {
   verifiedAt: Date
   providerRefs: { customerId?: string; entitlementId?: string; originalTransactionId?: string }
   /**
-   * Razorpay only: the user asked us to stop renewing. Razorpay keeps the
+   * Web only: the user asked us to stop renewing. Razorpay keeps the
    * subscription `active` until the paid cycle ends, so this is the one place
    * that knows it will not renew. Written by the cancel route, never by a
    * provider refresh.
