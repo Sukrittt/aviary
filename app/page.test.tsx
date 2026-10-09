@@ -36,3 +36,24 @@ describe('landing hero note', () => {
     expect(out.match(/Free for 45 days · No card needed/g)).toHaveLength(2)
   })
 })
+
+describe('landing sample data', () => {
+  it('keeps rupees, chai and UPI for India', async () => {
+    vi.mocked(getPlanPrices).mockResolvedValue([])
+    const out = await html()
+    expect(out).toContain('4pm chai')
+    expect(out).toContain('Log ₹850')
+    expect(out).toContain('UPI/DR/6021843/SWIGGY')
+  })
+
+  it('shows dollars and examples that read anywhere outside India', async () => {
+    country = 'US'
+    const out = await html()
+    expect(out).toContain('4pm coffee')
+    expect(out).toContain('Log $64')
+    expect(out).toContain('Cab home · $18')
+    expect(out).toContain('SQ *BLUE BOTTLE COFFEE SF')
+    expect(out).toContain('every dollar')
+    expect(out).not.toMatch(/chai|UPI\/DR|NACH|metro card|every rupee in/i)
+  })
+})

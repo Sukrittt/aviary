@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
-import { motion } from 'motion/react'
+import { motion, useReducedMotion } from 'motion/react'
 import { Plus } from 'lucide-react'
-import { CheckIcon, PHONE, T, elevation, pressable, radius, row, spring, springTight, useShake } from './kit'
+import { CheckIcon, PHONE, T, elevation, font, pressable, radius, row, spring, springTight, useShake } from './kit'
 
 /** Twin of Mobile/src/components/nav/{FloatingNav,NavIcons,AddCircleAnim}.tsx. */
 
@@ -83,6 +83,7 @@ export function FloatingNav({
   addSuccess = false,
   addInvalid = false,
   addDisabled = false,
+  addHint = false,
 }: {
   active: NavRoute | null
   onSelect: (name: NavRoute) => boolean
@@ -92,6 +93,8 @@ export function FloatingNav({
   addSuccess?: boolean
   addInvalid?: boolean
   addDisabled?: boolean
+  /** Meaningful only when addActive: a first-timer's form is ready, so pulse the add slot and say it saves. */
+  addHint?: boolean
 }) {
   const [shakeRef, shake] = useShake<HTMLDivElement>()
   const idle = addActive ? '#ffffff' : T.cardSolid
@@ -173,6 +176,11 @@ export function FloatingNav({
           borderTopRightRadius: radius.xl,
         }}
       />
+      {addActive && addHint && (
+        <div style={{ position: 'absolute', left: 0, right: 0, bottom: 4 + (ROW_HEIGHT + PHONE.bottom + RING_SIZE) / 2 + 6, ...row, justifyContent: 'center', pointerEvents: 'none' }}>
+          <span style={{ color: T.onAccent, ...font.bodySemiBold, fontSize: 13, padding: '5px 12px', borderRadius: 999, background: 'rgba(0, 0, 0, 0.22)' }}>Tap + to save</span>
+        </div>
+      )}
       <div
         ref={scrollRef}
         className="m-noscroll"
@@ -221,7 +229,8 @@ export function FloatingNav({
       >
         {NAV_SLOTS.map((slot, i) =>
           slot.kind === 'add' ? (
-            <div key="add" ref={shakeRef} style={{ flexShrink: 0 }}>
+            <div key="add" ref={shakeRef} style={{ flexShrink: 0, position: 'relative' }}>
+              {addActive && addHint && <AddHalo color={T.onAccent} />}
               <NavCircle
                 glyph={PlusGlyph}
                 label="Log expense"
@@ -257,6 +266,19 @@ export function FloatingNav({
       </div>
     </div>
   )
+}
+
+/** Mobile's AddHalo: a soft ring breathing out from the add circle. Reduced motion keeps it still. */
+function AddHalo({ color }: { color: string }) {
+  const reduced = useReducedMotion()
+  return <motion.span
+    data-testid="nav-add-hint"
+    aria-hidden="true"
+    style={{ position: 'absolute', left: (SLOT - CIRCLE) / 2, top: (RING_SIZE - CIRCLE) / 2, width: CIRCLE, height: CIRCLE, borderRadius: CIRCLE / 2, background: color, pointerEvents: 'none' }}
+    initial={false}
+    animate={reduced ? { opacity: 0.3, scale: 1.2 } : { opacity: [0.45, 0], scale: [1, 1.45] }}
+    transition={reduced ? { duration: 0 } : { duration: 1.4, ease: 'easeOut', repeat: Infinity }}
+  />
 }
 
 function NavCircle({

@@ -13,12 +13,13 @@ import { BirdLanding, BirdMark } from '../components/BirdMark'
 import { HeroStage, LearnDiagram, MoreInside, NoticeSplit, RotatingHabit } from '../components/landing/Nudges'
 import { FEEDBACK_BOARD_URL } from '@/lib/links'
 import { GITHUB, LandingFooter, LandingHeader } from '../components/landing/Chrome'
+import { SampleScope } from '../components/landing/sample'
 import '../landing.css'
 
 const PLAY_STORE = 'https://play.google.com/store/apps/details?id=com.sukrit04.envelope'
 
-const ANYWHERE = [
-  { icon: MessageSquareText, tone: 'rent', title: 'A few at once', body: 'Type “lunch 150, coffee 80”. Both logged.' },
+const anywhere = (intl: boolean) => [
+  { icon: MessageSquareText, tone: 'rent', title: 'A few at once', body: intl ? 'Type “lunch 15, coffee 5”. Both logged.' : 'Type “lunch 150, coffee 80”. Both logged.' },
   { icon: ScanLine, tone: 'food', title: 'A receipt', body: 'Snap the bill. Aviary reads every line and splits it if you shared.' },
   { icon: Repeat, tone: 'savings', title: 'On repeat', body: 'Rent and subscriptions log themselves.' },
   { icon: WifiOff, tone: 'fun', title: 'No signal', body: 'Logs wait on your phone, then sync.' },
@@ -35,12 +36,12 @@ const RULES = [
 ]
 
 
-const FAQS = [
+const faqs = (intl: boolean) => [
   { q: 'How does Aviary learn my habits?', a: 'It looks at what you’ve logged. Log the same thing on the same weekday, around the same time, three times in eight weeks, and Aviary treats it as a habit. It then nudges you 15 minutes after your usual time with the details filled in. You can turn nudges off in notification settings.' },
   { q: 'Do I connect my bank? How do expenses get added?', a: 'There’s no bank connection. You log purchases yourself, which makes spending a deliberate check-in. Habit nudges, the home-screen widget, recurring expenses, receipt scanning and typing a few spends at once keep that quick. Transactions aren’t imported from your bank.' },
-  { q: 'What if I miss a few days?', a: 'Nothing breaks. Open Ask Aviary and type whatever you remember, like “auto 240, lunch 150, Friday dinner 900”. Aviary turns it into separate spends, picks the envelopes, and you check them before they’re logged. Two missed days take about a minute.' },
+  { q: 'What if I miss a few days?', a: `Nothing breaks. Open Ask Aviary and type whatever you remember, like ${intl ? '“bus 3, lunch 15, Friday dinner 60”' : '“auto 240, lunch 150, Friday dinner 900”'}. Aviary turns it into separate spends, picks the envelopes, and you check them before they’re logged. Two missed days take about a minute.` },
   { q: 'What’s an envelope?', a: 'An envelope is a slice of your money set aside for one purpose, like rent, groceries or fun. Your bank balance mixes all of those together. Envelopes show what’s available for each one before you spend. Savings is a purpose too: you don’t have to spend everything you set aside.' },
-  { q: 'I’ve put every rupee in an envelope. Am I out of money?', a: 'No. It means all your money has a purpose. It’s still yours until you spend it. Check each envelope to see what’s left for that purpose.' },
+  { q: `I’ve put every ${intl ? 'dollar' : 'rupee'} in an envelope. Am I out of money?`, a: 'No. It means all your money has a purpose. It’s still yours until you spend it. Check each envelope to see what’s left for that purpose.' },
   { q: 'Why not just use a spreadsheet?', a: 'A spreadsheet can do the math. The hard part is keeping it up on your phone, at the counter, every day. Aviary has the envelope method built in, and most logs take one tap.' },
   { q: 'Does it work if my income changes every month?', a: 'Yes. You only budget money you already have. When a payment lands, give it jobs: rent first, then essentials. A slow month just fills fewer envelopes.' },
   { q: 'Is Aviary free?', a: <>You can try Aviary free for 45 days, with no payment details needed to get started. After the trial, you’ll need a paid subscription to keep using the app. <Link href="/legal/pricing">See plans and pricing</Link>. Aviary is also open source; you can inspect the code on GitHub.</> },
@@ -58,13 +59,14 @@ function StoreLink({ placement, children = 'Get it on Android' }: { placement: s
  * `ios` swaps every Play Store CTA for the iPhone waitlist: the Android link is a dead end on iPhone.
  * `android` drops the waitlist: they can install today. Desktop keeps both, since it could be either phone.
  */
-export function LandingPage({ monthlyPrice, ios = false, android = false }: { monthlyPrice?: string; ios?: boolean; android?: boolean }) {
+/** `intl` (any visitor outside India) swaps the sample data to dollars and examples that read anywhere. */
+export function LandingPage({ monthlyPrice, ios = false, android = false, intl = false }: { monthlyPrice?: string; ios?: boolean; android?: boolean; intl?: boolean }) {
   const afterTrial = monthlyPrice ? <> · Then {monthlyPrice}/month</> : null
   // The hero stage is the mobile LCP element, and this background is its paint.
   // As a CSS url() it's only found once the stylesheet has loaded; the preload
   // puts it in the document head so it downloads alongside the CSS instead.
   preload('/landing/doodles-stage.svg', { as: 'image', fetchPriority: 'high' })
-  return <LandingMotion><div className="lp" id="top">
+  return <LandingMotion><SampleScope intl={intl}><div className="lp" id="top">
     {/* THESIS: Aviary learns your spending, so logging by hand costs one tap. Refuses the bank-sync pitch of "we'll do it for you".
         OWN-WORLD: Warm near-white page, ink pill buttons, Fredoka display, Nunito body, Aviary orange for the learned moment, pastel envelope tones for the ways to log.
         STORY: See a habit learned and a nudge answered, see every way to log, understand why noticing beats syncing, try the app, meet the maker, get it.
@@ -117,7 +119,7 @@ export function LandingPage({ monthlyPrice, ios = false, android = false }: { mo
               <div className="lp-notif lp-notif--still">
                 <div className="lp-notif-app"><span className="lp-notif-icon"><BirdMark size={14} perched /></span>Aviary<span className="lp-notif-time">• now</span><ChevronUp size={14} strokeWidth={2.4} /></div>
                 <div className="lp-notif-body"><strong>Sunday groceries?</strong><span>Back from the market? Tap Log and it’s in.</span></div>
-                <div className="lp-notif-actions"><span className="lp-notif-log">Log ₹850</span><span>Not this one</span></div>
+                <div className="lp-notif-actions"><span className="lp-notif-log">Log {intl ? '$64' : '₹850'}</span><span>Not this one</span></div>
               </div>
             </div>
           </div>
@@ -131,7 +133,7 @@ export function LandingPage({ monthlyPrice, ios = false, android = false }: { mo
         </figure>
       </div>
       <ul className="lp-ways lp-ways--compact">
-        {ANYWHERE.map(({ icon: Icon, tone, title, body }) => <li key={title}>
+        {anywhere(intl).map(({ icon: Icon, tone, title, body }) => <li key={title}>
           <span className={`lp-way-icon lp-tone-${tone}`}><Icon size={22} strokeWidth={2.2} aria-hidden="true" /></span>
           <span><strong>{title}</strong><span>{body}</span></span>
         </li>)}
@@ -189,7 +191,7 @@ export function LandingPage({ monthlyPrice, ios = false, android = false }: { mo
         <figure className="lp-road">
           <div className="lp-road-tiles">
             <span className="lp-road-tile lp-road-sheet" aria-hidden="true"><i /><i /><i /><i /><i /><i /></span>
-            <span className="lp-road-tile lp-road-bank" aria-hidden="true">UPI/DR<br />POS<br />NACH</span>
+            <span className="lp-road-tile lp-road-bank" aria-hidden="true">{intl ? <>ACH<br />POS<br />ATM</> : <>UPI/DR<br />POS<br />NACH</>}</span>
             <span className="lp-road-tile lp-road-ynab" aria-hidden="true">$$$</span>
             <TrackedLink className="lp-road-tile lp-road-aviary" href={PLAY_STORE} event="store_cta_clicked" properties={{ placement: 'founder_icon' }}><BirdMark size={64} perched /><span className="lp-sr-only">Get Aviary on Google Play</span></TrackedLink>
           </div>
@@ -199,7 +201,7 @@ export function LandingPage({ monthlyPrice, ios = false, android = false }: { mo
     </section>
 
 
-    <section id="faq" className="lp-section lp-faq-section" aria-labelledby="faq-title"><h2 id="faq-title" className="lp-h2">Good questions.</h2><Faq items={FAQS} /></section>
+    <section id="faq" className="lp-section lp-faq-section" aria-labelledby="faq-title"><h2 id="faq-title" className="lp-h2">Good questions.</h2><Faq items={faqs(intl)} /></section>
 
     <section id="get" className="lp-section lp-close" aria-labelledby="get-title">
       <span className="lp-close-bird"><BirdLanding size={120} alive /></span>
@@ -209,5 +211,5 @@ export function LandingPage({ monthlyPrice, ios = false, android = false }: { mo
       {!android && <IosWaitlist />}
     </section>
     <LandingFooter />
-  </div></LandingMotion>
+  </div></SampleScope></LandingMotion>
 }

@@ -17,6 +17,8 @@ beforeEach(() => {
     observe() { this.cb([{ isIntersecting: true, intersectionRatio: 1 } as IntersectionObserverEntry], this as unknown as IntersectionObserver) }
     disconnect() {}
   })
+  // The category sheet measures itself.
+  vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} })
 })
 afterEach(() => {
   vi.useRealTimers()
@@ -81,5 +83,44 @@ describe('log playground', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Done' }))
     await run(600)
     expect(field()).toHaveValue('')
+  })
+
+  it('matches the app’s log screen: calculator, optional name, + hint, and the capture tip after two logs', async () => {
+    vi.useFakeTimers()
+    const { container } = render(<Playground />)
+    fireEvent.click(screen.getByRole('button', { name: 'Try it yourself' }))
+    await run(600)
+    const key = (k: string) => fireEvent.click([...container.querySelectorAll(`button.m-key[aria-label="${k}"]`)].at(-1)!)
+
+    // Calculator: the amount is the sum, the line under it the sum written out.
+    fireEvent.click(screen.getAllByRole('button', { name: 'Calculator' }).at(-1)!)
+    for (const k of ['1', '2', '+', '8']) key(k)
+    expect(screen.getByText('12 + 8')).toBeInTheDocument()
+    expect(screen.queryByTestId('nav-add-hint')).not.toBeInTheDocument()
+
+    // No name needed: a category is enough, and + says it saves.
+    fireEvent.click(screen.getAllByRole('button', { name: 'Category' }).at(-1)!)
+    fireEvent.click(screen.getAllByRole('button', { name: /Outings/ }).at(-1)!)
+    await run(400)
+    expect(screen.getByText('Tap + to save')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('tab', { name: 'Log expense' }))
+    await run(2500)
+    expect(screen.getByText('Added')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }))
+    await run(600)
+
+    // Second log by hand: the hint is gone, and then the capture tip pops off the chat icon.
+    fireEvent.click(screen.getByRole('button', { name: 'Netflix' }))
+    await run(3000)
+    for (const k of ['9', '9']) key(k)
+    expect(screen.queryByText('Tap + to save')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('tab', { name: 'Log expense' }))
+    await run(2500)
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }))
+    await run(1500)
+    expect(screen.getByText('Logging a few?')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Try logging several at once' }))
+    expect(screen.getByText(/happens in Ask Aviary/)).toBeInTheDocument()
+    expect(screen.queryByText('Logging a few?')).not.toBeInTheDocument()
   })
 })
