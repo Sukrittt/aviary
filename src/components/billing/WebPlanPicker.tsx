@@ -176,7 +176,7 @@ export function WebPlanPicker({ trialEndsAt = null, trigger = 'plan_screen' }: {
               : 'Subscribe'}
         </button>
         <p style={{ ...note, fontSize: 11, lineHeight: '16px', textAlign: 'center', color: 'var(--tk-text3)' }}>
-          {trialEndsAt && defersFirstCharge(trialEndsAt) ? `Nothing's charged until your trial ends on ${formatDate(trialEndsAt)}. ` : ''}
+          {trialEndsAt && defersFirstCharge(trialEndsAt) ? `Nothing's charged until your trial ends on ${formatDate(trialEndsAt)}${provider === 'paypal' ? '' : ', except a refundable ₹5 to set up autopay'}. ` : ''}
           Renews every {isYearly ? 'year' : 'month'} until you cancel. {provider === 'paypal' ? 'Pay with PayPal or a card.' : 'Pay with UPI or card.'} Cancel anytime from your account page.
         </p>
       </div>

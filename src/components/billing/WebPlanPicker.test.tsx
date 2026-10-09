@@ -60,7 +60,14 @@ describe('WebPlanPicker', () => {
 
   it('says nothing is charged until the trial ends when bought mid-trial', () => {
     render(<WebPlanPicker trialEndsAt={new Date(Date.now() + 12 * 86_400_000).toISOString()} />)
+    expect(screen.getByText(/Nothing's charged until your trial ends on .+, except a refundable ₹5 to set up autopay\./)).toBeTruthy()
+  })
+
+  it("doesn't mention Razorpay's ₹5 mandate charge on PayPal", () => {
+    plansMock.mockReturnValue({ data: { plans, provider: 'paypal' }, isLoading: false, isError: false })
+    render(<WebPlanPicker trialEndsAt={new Date(Date.now() + 12 * 86_400_000).toISOString()} />)
     expect(screen.getByText(/Nothing's charged until your trial ends/)).toBeTruthy()
+    expect(screen.queryByText(/₹5/)).toBeNull()
   })
 
   it("doesn't promise a deferred charge in the trial's last minutes, when the server charges now", () => {
