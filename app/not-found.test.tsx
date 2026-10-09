@@ -20,3 +20,13 @@ it('error page retries the route without showing the raw error', () => {
   fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
   expect(reset).toHaveBeenCalledTimes(1)
 })
+
+it('global error page retries without showing the raw error', async () => {
+  vi.doMock('next/font/google', () => ({ Fredoka: () => ({ variable: 'f' }), Nunito: () => ({ variable: 'n' }) }))
+  const { default: GlobalError } = await import('./global-error')
+  const reset = vi.fn()
+  render(<GlobalError error={new Error('Mongo exploded')} reset={reset} />)
+  expect(screen.queryByText(/Mongo exploded/)).not.toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+  expect(reset).toHaveBeenCalledTimes(1)
+})
