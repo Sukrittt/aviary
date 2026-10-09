@@ -59,18 +59,18 @@ export function ExpensePhotoMore({ photoUrl, hasPhoto, busy, error, onOpen, onPi
           />
           {photoUrl ? (
             <div className="erd-photo">
-              <a href={photoUrl} target="_blank" rel="noreferrer" className="erd-photo-thumb">
-                {/* eslint-disable-next-line @next/next/no-img-element -- a data URL or short-lived signed Blob URL, nothing to optimize */}
-                <img src={photoUrl} alt="Expense photo" />
-              </a>
-              <div className="erd-photo-actions">
-                <button type="button" className="erd-date-chip" disabled={busy} onClick={() => inputRef.current?.click()}>
-                  Replace
-                </button>
-                <button type="button" className="erd-date-chip" disabled={busy} onClick={onRemove}>
-                  <X size={14} aria-hidden="true" /> Remove
+              <div className="erd-photo-frame">
+                <a href={photoUrl} target="_blank" rel="noreferrer" className="erd-photo-thumb" aria-label="View photo">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- a data URL or short-lived signed Blob URL, nothing to optimize */}
+                  <img src={photoUrl} alt="Expense photo" />
+                </a>
+                <button type="button" className="erd-photo-remove" aria-label="Remove photo" disabled={busy} onClick={onRemove}>
+                  <X size={12} aria-hidden="true" />
                 </button>
               </div>
+              <button type="button" className="erd-photo-replace" disabled={busy} onClick={() => inputRef.current?.click()}>
+                Replace photo
+              </button>
             </div>
           ) : (
             <button type="button" className="erd-date-chip" disabled={busy} onClick={() => inputRef.current?.click()}>
