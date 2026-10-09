@@ -12,6 +12,7 @@ import { createExpense, adjustCreditCardEnvelope } from '@/lib/createExpense'
 import { resolveCategoryName } from '@/lib/categoryName'
 import { flagIfDuplicate } from '@/lib/duplicates'
 import { markManualTransactionComplete } from '@/lib/users'
+import { deleteExpensePhotoQuietly } from '@/lib/expensePhoto'
 
 export const dynamic = 'force-dynamic'
 
@@ -147,8 +148,9 @@ export async function GET(req: Request) {
 }
 
 // Existing records without a version start at 0; no backfill is required.
+// `has_photo` rides alongside like `id`/`version`, outside the CSV columns.
 function expenseRow(doc: Record<string, unknown>) {
-  return { ...toRow(EXPENSE_HEADERS, doc), id: String(doc._id), version: Number(doc.version ?? 0) }
+  return { ...toRow(EXPENSE_HEADERS, doc), id: String(doc._id), version: Number(doc.version ?? 0), has_photo: typeof doc.photo_file === 'string' }
 }
 
 class ExpenseWriteError extends Error {
@@ -323,11 +325,15 @@ export async function DELETE(req: Request) {
   const precondition = writePrecondition(body)
   if (precondition) return precondition
   const coll = await getCollection('expenses', auth)
-  let outcome: { category: string; affectsCC: boolean }
+  let outcome: { category: string; affectsCC: boolean; photoFile: string | null }
   try {
     outcome = await withTx(async (session) => {
       const found = await coll.findOne({ _id: new ObjectId(String(body.id)) }, { session })
       checkExpense(found, body.version)
+      // The photo blob is deleted below, so a row restored from Archive must
+      // not still claim one. Unsetting leaves `version` alone for the delete's own check.
+      const photoFile = typeof found.photo_file === 'string' ? found.photo_file : null
+      if (photoFile) await coll.updateOne({ _id: found._id }, { $unset: { photo_file: '' } }, { session })
       const result = await coll.deleteOne(
         { _id: found._id, version: found.version ?? { $exists: false } }, { session },
       )
@@ -337,11 +343,13 @@ export async function DELETE(req: Request) {
       if (affectsCC && amount > 0) {
         await adjustCreditCardEnvelope(auth, String(found.date ?? '').slice(0, 7), -amount, session)
       }
-      return { category: String(found.category ?? ''), affectsCC }
+      return { category: String(found.category ?? ''), affectsCC, photoFile }
     })
   } catch (err) {
     return writeError(err)
   }
+
+  if (outcome.photoFile) await deleteExpensePhotoQuietly(auth.userId, String(body.id), outcome.photoFile)
 
   invalidate('expenses', auth.userId)
   invalidate('wrapped', auth.userId)

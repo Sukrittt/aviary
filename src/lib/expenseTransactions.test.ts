@@ -28,6 +28,7 @@ describe('toTransactions', () => {
         category: 'Food',
         notes: '',
         source: 'manual',
+        hasPhoto: false,
       },
     ])
   })

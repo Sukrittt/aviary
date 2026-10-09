@@ -11,6 +11,7 @@ export interface Transaction {
   category: string
   notes: string
   source: string
+  hasPhoto: boolean
 }
 
 /**
@@ -29,5 +30,6 @@ export function toTransactions(rows: ExpenseRow[]): Transaction[] {
     category: r.category ?? '',
     notes: r.notes ?? '',
     source: r.source ?? '',
+    hasPhoto: r.has_photo === true,
   }))
 }
