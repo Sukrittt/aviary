@@ -23,8 +23,9 @@ export const BENEFITS = [
 ]
 
 /**
- * Monthly or yearly, paid on the web through Razorpay. Twin of Mobile's
- * PlanPicker, which does the same through Google Play.
+ * Monthly or yearly, paid on the web: Razorpay in India, PayPal elsewhere
+ * (the server picks). Twin of Mobile's PlanPicker, which does the same
+ * through Google Play.
  *
  * Shown only when the server says purchases are open; the server re-checks
  * that (and refuses anyone already paying) on its own anyway.
@@ -39,24 +40,27 @@ export function WebPlanPicker({ trialEndsAt = null, trigger = 'plan_screen' }: {
   const paywallSeen = useRef(false)
   // The same condition the picker renders plans under, so an error state or an
   // empty list isn't counted as a view.
-  const shown = !plans.isError && !!plans.data?.length
+  const shown = !plans.isError && !!plans.data?.plans.length
   useEffect(() => {
     if (!shown || paywallSeen.current) return
     paywallSeen.current = true
     track('paywall_viewed', { trigger })
   }, [shown, trigger])
   const { data: user } = useUser()
-  const checkout = useWebCheckout(user ? { email: user.email, name: user.name ?? undefined } : undefined)
+  const provider = plans.data?.provider ?? 'razorpay'
+  const checkout = useWebCheckout(user ? { email: user.email, name: user.name ?? undefined } : undefined, provider)
   const [period, setPeriod] = useState<PlanPeriod>('yearly')
 
   if (plans.isLoading) return <p style={note}>Loading plans…</p>
   if (plans.isError || !plans.data) return <p style={note}>Plans aren&apos;t loading right now. Check your connection and try again.</p>
 
-  const monthly = plans.data.find((p) => p.period === 'monthly')
-  const yearly = plans.data.find((p) => p.period === 'yearly')
+  const monthly = plans.data.plans.find((p) => p.period === 'monthly')
+  const yearly = plans.data.plans.find((p) => p.period === 'yearly')
   const saving = monthly && yearly ? yearlySavingsPercent(monthly.amount, yearly.amount) : null
-  const selected = plans.data.find((p) => p.period === period)
+  const selected = plans.data.plans.find((p) => p.period === period)
   const outcome = checkout.data
+  // Leaving for PayPal: keep everything locked until the page goes.
+  const busy = checkout.isPending || outcome?.status === 'redirecting'
   const isYearly = period === 'yearly'
 
   return (
@@ -81,7 +85,7 @@ export function WebPlanPicker({ trialEndsAt = null, trigger = 'plan_screen' }: {
               role="radio"
               aria-checked={on}
               onClick={() => setPeriod(plan.period)}
-              disabled={checkout.isPending}
+              disabled={busy}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -90,8 +94,8 @@ export function WebPlanPicker({ trialEndsAt = null, trigger = 'plan_screen' }: {
                 borderRadius: 16,
                 font: 'inherit',
                 textAlign: 'left',
-                cursor: checkout.isPending ? 'not-allowed' : 'pointer',
-                opacity: checkout.isPending && !on ? 0.55 : 1,
+                cursor: busy ? 'not-allowed' : 'pointer',
+                opacity: busy && !on ? 0.55 : 1,
                 color: 'var(--tk-text)',
                 border: `1.5px solid ${on ? 'var(--tk-accent)' : 'var(--tk-border)'}`,
                 background: on ? 'var(--tk-accent-soft)' : 'var(--tk-input-bg)',
@@ -148,7 +152,7 @@ export function WebPlanPicker({ trialEndsAt = null, trigger = 'plan_screen' }: {
         <button
           type="button"
           onClick={() => checkout.mutate(period)}
-          disabled={checkout.isPending || !selected}
+          disabled={busy || !selected}
           style={{
             font: 'inherit',
             padding: '13px 18px',
@@ -158,20 +162,22 @@ export function WebPlanPicker({ trialEndsAt = null, trigger = 'plan_screen' }: {
             color: 'var(--tk-on-accent)',
             fontWeight: 800,
             fontSize: 15,
-            opacity: checkout.isPending || !selected ? 0.55 : 1,
-            cursor: checkout.isPending || !selected ? 'not-allowed' : 'pointer',
+            opacity: busy || !selected ? 0.55 : 1,
+            cursor: busy || !selected ? 'not-allowed' : 'pointer',
             transition: 'opacity 150ms',
           }}
         >
-          {checkout.isPending
-            ? 'Opening checkout…'
+          {busy
+            ? provider === 'paypal'
+              ? 'Taking you to PayPal…'
+              : 'Opening checkout…'
             : selected
               ? `Subscribe ${isYearly ? 'yearly' : 'monthly'} · ${formatPrice(selected.amount, selected.currency)}`
               : 'Subscribe'}
         </button>
         <p style={{ ...note, fontSize: 11, lineHeight: '16px', textAlign: 'center', color: 'var(--tk-text3)' }}>
           {trialEndsAt && defersFirstCharge(trialEndsAt) ? `Nothing's charged until your trial ends on ${formatDate(trialEndsAt)}. ` : ''}
-          Renews every {isYearly ? 'year' : 'month'} until you cancel. Pay with UPI or card. Cancel anytime from your account page.
+          Renews every {isYearly ? 'year' : 'month'} until you cancel. {provider === 'paypal' ? 'Pay with PayPal or a card.' : 'Pay with UPI or card.'} Cancel anytime from your account page.
         </p>
       </div>
 

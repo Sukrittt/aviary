@@ -1,7 +1,7 @@
 import { json, error, readBody } from '@/lib/http'
 import { getAuth } from '@/lib/access'
 import { isRateLimited } from '@/lib/rateLimit'
-import { getAccess, recordRazorpaySubscription, RazorpaySubscriptionOwnerError } from '@/lib/billing/service'
+import { getAccess, recordRazorpaySubscription, SubscriptionOwnerError } from '@/lib/billing/service'
 import { billingFlagsFor } from '@/lib/billing/flags'
 import { BillingProviderError } from '@/lib/billing/providerError'
 import { razorpayConfig, verifyCheckoutSignature } from '@/lib/billing/razorpay'
@@ -39,7 +39,7 @@ export async function POST(req: Request) {
     const access = await recordRazorpaySubscription(auth.userId, subscriptionId)
     return json({ ...access, purchaseEnabled })
   } catch (err) {
-    if (err instanceof RazorpaySubscriptionOwnerError) return error('this subscription belongs to another account', 403)
+    if (err instanceof SubscriptionOwnerError) return error('this subscription belongs to another account', 403)
     if (err instanceof BillingProviderError) {
       // Paid, but we couldn't confirm it this second. Same contract as sync:
       // the existing access, unchanged, and the webhook finishes the job.

@@ -3,10 +3,12 @@ import { render, screen, fireEvent } from '@testing-library/react'
 
 const useBillingStatusMock = vi.fn()
 const cancelMutate = vi.fn()
+const paypalReturnMock = vi.fn(() => null as string | null)
 vi.mock('@/src/hooks/useBillingStatus', () => ({
   useBillingStatus: () => useBillingStatusMock(),
   useSyncBilling: () => ({ mutate: vi.fn(), isPending: false, isSuccess: false, data: undefined }),
   useCancelWebSubscription: () => ({ mutate: cancelMutate, isPending: false, isError: false }),
+  usePayPalReturn: () => paypalReturnMock(),
 }))
 vi.mock('./WebPlanPicker', () => ({ WebPlanPicker: () => <div>plan picker</div> }))
 
@@ -34,7 +36,10 @@ const renderWith = (over: Record<string, unknown>) => {
   return render(<SubscriptionSection />)
 }
 
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => {
+  vi.clearAllMocks()
+  paypalReturnMock.mockReturnValue(null)
+})
 
 describe('SubscriptionSection', () => {
   it('lets a web subscriber cancel here, and never sends them to Google Play', () => {
@@ -75,5 +80,15 @@ describe('SubscriptionSection', () => {
   it("doesn't offer plans to someone already paying", () => {
     renderWith({ store: 'play' })
     expect(screen.queryByText('plan picker')).toBeNull()
+  })
+
+  it('confirms a PayPal purchase on the way back, and says when it was cancelled', () => {
+    paypalReturnMock.mockReturnValue('paid')
+    const { unmount } = renderWith({})
+    expect(screen.getByText("You're all set")).toBeTruthy()
+    unmount()
+    paypalReturnMock.mockReturnValue('cancelled')
+    renderWith({ mode: 'trial', store: null, renewalState: null })
+    expect(screen.getByText('Checkout cancelled')).toBeTruthy()
   })
 })

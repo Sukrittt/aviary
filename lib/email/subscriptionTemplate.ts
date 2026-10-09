@@ -1,11 +1,16 @@
 import { transactionalTemplate } from './transactionalTemplate'
+import type { BillingProvider } from '@/lib/billing/records'
 
 export type SubscriptionEmailKind = 'paid' | 'failed' | 'cancelled'
-export function subscriptionEmailKind(provider: 'razorpay' | 'revenuecat', type: string, period?: string, reason?: string, price?: number): SubscriptionEmailKind | null {
+export function subscriptionEmailKind(provider: BillingProvider, type: string, period?: string, reason?: string, price?: number): SubscriptionEmailKind | null {
   if (provider === 'razorpay') {
     if (type === 'subscription.charged') return 'paid'
     if (type === 'subscription.pending' || type === 'subscription.halted') return 'failed'
     if (type === 'subscription.cancelled') return 'cancelled'
+  } else if (provider === 'paypal') {
+    if (type === 'PAYMENT.SALE.COMPLETED') return 'paid'
+    if (type === 'BILLING.SUBSCRIPTION.PAYMENT.FAILED' || type === 'BILLING.SUBSCRIPTION.SUSPENDED') return 'failed'
+    if (type === 'BILLING.SUBSCRIPTION.CANCELLED') return 'cancelled'
   } else {
     if (['INITIAL_PURCHASE', 'RENEWAL'].includes(type) && period !== 'TRIAL' && (price === undefined || price > 0)) return 'paid'
     if (type === 'BILLING_ISSUE') return 'failed'
@@ -14,8 +19,8 @@ export function subscriptionEmailKind(provider: 'razorpay' | 'revenuecat', type:
   return null
 }
 
-export function subscriptionTemplate(kind: SubscriptionEmailKind, name: string | null, store: 'play' | 'web', expiresAt: Date | null) {
-  const provider = store === 'play' ? 'Google Play' : 'Razorpay'
+export function subscriptionTemplate(kind: SubscriptionEmailKind, name: string | null, store: 'play' | 'web', expiresAt: Date | null, via: BillingProvider = store === 'play' ? 'revenuecat' : 'razorpay') {
+  const provider = store === 'play' ? 'Google Play' : via === 'paypal' ? 'PayPal' : 'Razorpay'
   const expiry = expiresAt && Number.isFinite(expiresAt.getTime()) ? expiresAt.toISOString().slice(0, 10) + ' (UTC)' : null
   const content = {
     paid: {

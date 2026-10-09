@@ -3,7 +3,7 @@ import { json, error } from '@/lib/http'
 import { getAuth } from '@/lib/access'
 import { getDb } from '@/lib/mongodb'
 import { isRateLimited } from '@/lib/rateLimit'
-import { cancelRazorpayRow, getAccess } from '@/lib/billing/service'
+import { cancelWebRow, getAccess } from '@/lib/billing/service'
 import { billingFlagsFor } from '@/lib/billing/flags'
 import { BillingProviderError } from '@/lib/billing/providerError'
 import { BILLING_SUBSCRIPTIONS, type BillingSubscriptionDoc } from '@/lib/billing/records'
@@ -30,18 +30,18 @@ export async function POST(req: Request) {
   const db = await getDb()
   const rows = await db
     .collection<BillingSubscriptionDoc>(BILLING_SUBSCRIPTIONS)
-    .find({ userId: auth.userId, provider: 'razorpay', status: { $in: ['active', 'grace', 'scheduled'] }, cancelAtPeriodEnd: { $ne: true } })
+    .find({ userId: auth.userId, provider: { $in: ['razorpay', 'paypal'] }, status: { $in: ['active', 'grace', 'scheduled'] }, cancelAtPeriodEnd: { $ne: true } })
     .toArray()
   if (rows.length === 0) return error('no renewing web subscription', 404)
 
   const { purchaseEnabled } = await billingFlagsFor(auth.userId)
   try {
-    for (const row of rows) await cancelRazorpayRow(db, row)
+    for (const row of rows) await cancelWebRow(db, row)
     scheduleSubscriptionEmails()
     return json({ ...(await getAccess(auth.userId)), purchaseEnabled })
   } catch (err) {
     if (err instanceof BillingProviderError) {
-      console.error('billing cancel: Razorpay unavailable for', auth.userId, err.message)
+      console.error('billing cancel: provider unavailable for', auth.userId, err.message)
       return error('cancelling is unavailable right now', 503)
     }
     throw err
