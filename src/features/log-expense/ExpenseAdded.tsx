@@ -150,8 +150,8 @@ export function ExpenseAdded({
   const subtitle = item || categoryName
   // A small "we're learning you" moment: only once the item is a habit this week.
   const noticed = useMemo(
-    () => noticedLine(weeklyRepeat(expensesQ.data ?? EMPTY, { id: expense.id, timestamp, item, date, amount }), formatMoney),
-    [expensesQ.data, expense.id, timestamp, item, date, amount, formatMoney],
+    () => noticedLine(weeklyRepeat(expensesQ.data ?? EMPTY, { id: expense.id, timestamp, item, date, amount }).count),
+    [expensesQ.data, expense.id, timestamp, item, date, amount],
   )
 
   return (
