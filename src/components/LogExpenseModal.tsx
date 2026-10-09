@@ -16,7 +16,7 @@ import { AddCategoryModal } from './AddCategoryModal'
 import type { CategoryRow } from '../types'
 import { CategoryPicker } from './CategoryPicker'
 import { useCategories } from '../hooks/useCategories'
-import { useAddExpense, useDeleteExpense, useRecentExpenses } from '../hooks/useExpenses'
+import { useAddExpense, useDeleteExpense, useRecentExpenses, useUploadExpensePhoto } from '../hooks/useExpenses'
 import { unusualAmount } from '../lib/unusualAmount'
 import { categoryEmoji, splitEmoji } from '../lib/emoji'
 import { createThinkingGate, type ThinkingGate } from '../lib/thinkingGate'
@@ -28,7 +28,6 @@ import { ExpenseAdded, PreloadExpenseAddedTick, type AddedExpense } from '../fea
 import { useNudge, useShake } from './landing/mobile/kit'
 import { ExpensePhotoMore } from './ExpensePhotoMore'
 import { base64Of, dataUrlFromFile, PHOTO_ENCODING } from '../features/scan-bill/image'
-import { uploadExpensePhoto } from '../api/expenses'
 
 interface Props {
   onClose: () => void
@@ -76,6 +75,8 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
   const pickDateChipRef = useRef<HTMLButtonElement>(null)
   const [error, setError] = useState('')
   const { saving, success, start, fail, reset } = useButtonPhase()
+  const uploadPhotoM = useUploadExpensePhoto()
+  const photoSeq = useRef(0)
   // Set by a successful add: the dialog swaps the form for Mobile's expense-added beats.
   const [added, setAdded] = useState<AddedExpense | null>(null)
   const deleteExpenseM = useDeleteExpense()
@@ -246,13 +247,21 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
   }
 
   async function handlePhotoPick(file: File) {
+    // Decoding is async: only the latest pick (or a later remove) may land.
+    const seq = ++photoSeq.current
     setPhotoError('')
     try {
-      setPhoto(await dataUrlFromFile(file, PHOTO_ENCODING))
+      const dataUrl = await dataUrlFromFile(file, PHOTO_ENCODING)
+      if (seq === photoSeq.current) setPhoto(dataUrl)
     } catch {
       // createImageBitmap rejects what the browser can't decode (HEIC outside Safari, a corrupt file).
-      setPhotoError("Couldn't read that photo. Try another one.")
+      if (seq === photoSeq.current) setPhotoError("Couldn't read that photo. Try another one.")
     }
+  }
+
+  function handlePhotoRemove() {
+    photoSeq.current++
+    setPhoto(null)
   }
 
   // The expense is already saved, so a failed upload only costs the photo, never the expense.
@@ -263,7 +272,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
       return
     }
     try {
-      await uploadExpensePhoto(id, base64Of(dataUrl))
+      await uploadPhotoM.mutateAsync({ id, image: base64Of(dataUrl) })
       onSaved()
     } catch {
       setPhotoNotice(notice)
@@ -300,6 +309,8 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
     }
     start()
     setError('')
+    // The photo controls are locked while saving, so this is what the user sees.
+    const pickedPhoto = photo
     try {
       const result = await addExpenseM.mutateAsync({
         item: item.trim(),
@@ -325,7 +336,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
         categorySnapshot: createdCategory?.name === effectiveCategory ? createdCategory : undefined,
       })
       setPhotoNotice('')
-      if (photo) void uploadPhoto(result.id, photo)
+      if (pickedPhoto) void uploadPhoto(result.id, pickedPhoto)
     } catch {
       setError('Could not save — try again.')
       fail()
@@ -502,8 +513,9 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
               <ExpensePhotoMore
                 photoUrl={photo}
                 error={photoError}
+                busy={saving || success}
                 onPick={(file) => void handlePhotoPick(file)}
-                onRemove={() => setPhoto(null)}
+                onRemove={handlePhotoRemove}
               />
 
               {error && <p className="erd-log-error">{error}</p>}

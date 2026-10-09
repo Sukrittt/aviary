@@ -9,6 +9,7 @@ import {
   mintExpensePayload,
   postExpensePayload,
   updateExpense,
+  uploadExpensePhoto,
   type ExpensesPageParams,
   type NewExpenseRow,
   type RecentExpenses,
@@ -112,6 +113,16 @@ export function useAddExpense() {
       // Manual creates complete a server-owned getting started milestone.
       qc.invalidateQueries({ queryKey: userKey })
     },
+  })
+}
+
+// Rows carry has_photo, so a new photo has to bust the list. Most
+// LogExpenseModal callers pass a no-op onSaved, so it can't rely on them.
+export function useUploadExpensePhoto() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, image }: { id: string; image: string }) => uploadExpensePhoto(id, image),
+    onSuccess: () => qc.invalidateQueries({ queryKey: key }),
   })
 }
 
