@@ -97,6 +97,10 @@ export default function PrivacyPage() {
           to Razorpay, not to us. We keep your subscription&apos;s id, plan and renewal dates.
         </li>
         <li>
+          <strong>PayPal</strong> — takes payment when you subscribe on the website from outside India. Your PayPal
+          account and card details stay with PayPal. We keep your subscription&apos;s id, plan and renewal dates.
+        </li>
+        <li>
           <strong>Google Play and RevenueCat</strong> — take payment when you subscribe in the Android app. We
           keep the purchase id, plan and renewal dates, never your payment details.
         </li>

@@ -41,7 +41,7 @@ export default function TermsPage() {
       </p>
       <ul>
         <li>
-          <strong>On the website</strong>, paid through Razorpay with UPI or a card.
+          <strong>On the website</strong>, paid through Razorpay with UPI or a card in India, or through PayPal everywhere else.
         </li>
         <li>
           <strong>In the Android app</strong>, paid through Google Play.

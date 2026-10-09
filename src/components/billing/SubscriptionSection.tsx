@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { AnimatePresence } from 'motion/react'
 import { ExternalLink, RefreshCw, XCircle } from 'lucide-react'
 import { ConfirmDialog } from '@/src/components/ConfirmDialog'
-import { useBillingStatus, useCancelWebSubscription, useSyncBilling } from '@/src/hooks/useBillingStatus'
+import { useBillingStatus, useCancelWebSubscription, usePayPalReturn, useSyncBilling, type PayPalReturn } from '@/src/hooks/useBillingStatus'
 import { billingVisible, formatDate, PLAY_STORE_URL, trialRemainingLabel } from './copy'
 import { WebPlanPicker } from './WebPlanPicker'
 
@@ -22,6 +22,7 @@ export function SubscriptionSection() {
   const sync = useSyncBilling()
   const cancel = useCancelWebSubscription()
   const [confirmingCancel, setConfirmingCancel] = useState(false)
+  const paypalReturn = usePayPalReturn()
 
   // Hidden entirely until subscriptions are switched on, so nobody is shown a
   // plan they cannot buy and a countdown that does not apply to them yet.
@@ -47,6 +48,15 @@ export function SubscriptionSection() {
           </span>
           <span style={{ color: 'var(--tk-text2)', fontSize: 14 }}>{statusChip(data)}</span>
         </div>
+
+        {paypalReturn && (
+          <div className="account-row" role="status" style={{ cursor: 'default' }}>
+            <span className="account-row-label" style={paypalReturn === 'failed' ? { color: 'var(--tk-warn)' } : undefined}>
+              {PAYPAL_RETURN[paypalReturn].title}
+              <span className="account-row-hint">{PAYPAL_RETURN[paypalReturn].hint}</span>
+            </span>
+          </div>
+        )}
 
         {data.renewalState === 'grace' && (
           <div className="account-row" style={{ cursor: 'default' }}>
@@ -170,4 +180,13 @@ function statusChip(data: { mode: string; trialDaysRemaining: number; renewalSta
   if (data.renewalState === 'pending') return 'Pending'
   if (data.mode === 'paid') return 'Active'
   return 'Expired'
+}
+
+/** What to say once PayPal sends the buyer back here. */
+const PAYPAL_RETURN: Record<Exclude<PayPalReturn, null>, { title: string; hint: string }> = {
+  confirming: { title: 'Confirming your payment…', hint: 'This takes a few seconds.' },
+  paid: { title: "You're all set", hint: 'Thanks for subscribing. Everything is unlocked.' },
+  pending: { title: 'Almost there', hint: "PayPal is still confirming your payment. Give it a minute. No need to pay again." },
+  cancelled: { title: 'Checkout cancelled', hint: "Nothing was charged. Pick a plan whenever you're ready." },
+  failed: { title: "We couldn't confirm that yet", hint: "If PayPal took the payment, it'll show up here shortly. Check your connection and refresh." },
 }
