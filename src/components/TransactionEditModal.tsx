@@ -113,7 +113,8 @@ export function TransactionEditModal({
   }
 
   function loadPhoto() {
-    if (!hasPhoto || photoUrl) return
+    // Signed URLs expire after minutes, so only a local data: preview is reused.
+    if (!hasPhoto || photoUrl?.startsWith('data:')) return
     void photoStep(async () => {
       const url = id ? await getExpensePhotoUrl(id) : null
       setPhotoUrl(url)

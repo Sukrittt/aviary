@@ -21,10 +21,12 @@ async function load(req: Request, ctx: Ctx, method: string) {
   if (gate) return gate
   const guard = readOnlyGuard(auth, method)
   if (guard) return guard
-  const { id } = await ctx.params
-  if (!ObjectId.isValid(id)) return error('a valid expense id is required', 400)
+  const { id: rawId } = await ctx.params
+  if (!ObjectId.isValid(rawId)) return error('a valid expense id is required', 400)
   const coll = await getCollection('expenses', auth)
-  const _id = new ObjectId(id)
+  const _id = new ObjectId(rawId)
+  // The blob key uses the canonical hex, so an uppercase id still finds the same photo.
+  const id = _id.toHexString()
   const found = await coll.findOne({ _id })
   if (!found) return error('expense not found', 404)
   return { auth, coll, _id, id, ext: typeof found.photo_ext === 'string' ? found.photo_ext : null }
@@ -39,10 +41,12 @@ export async function POST(req: Request, ctx: Ctx) {
   const body = await readBody(req)
   const image = typeof body.image === 'string' ? body.image : ''
   const mimeType = typeof body.mimeType === 'string' ? body.mimeType : ''
-  if (!PHOTO_EXT_BY_MIME[mimeType]) return error('mimeType must be image/jpeg, image/png, or image/webp', 400)
+  if (!Object.hasOwn(PHOTO_EXT_BY_MIME, mimeType)) return error('mimeType must be image/jpeg, image/png, or image/webp', 400)
   if (!image) return error('image required', 400)
   // Reject on length before decoding so a huge body is never buffered twice.
   if (image.length > Math.ceil((MAX_PHOTO_BYTES * 4) / 3) + 4) return error('image too large (max 5MB)', 413)
+  // Buffer.from skips bad characters instead of failing, so junk would store as an unviewable photo.
+  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(image)) return error('image must be base64', 400)
   const buffer = Buffer.from(image, 'base64')
   if (buffer.length === 0) return error('image required', 400)
   if (buffer.length > MAX_PHOTO_BYTES) return error('image too large (max 5MB)', 413)
@@ -74,7 +78,8 @@ export async function DELETE(req: Request, ctx: Ctx) {
   const { auth, coll, _id, id, ext } = loaded
   if (ext) {
     await deleteExpensePhoto(auth.userId, id, ext)
-    await coll.updateOne({ _id }, { $unset: { photo_ext: '' } })
+    // Only clear the ext we deleted: a replacement stamped meanwhile keeps its pointer.
+    await coll.updateOne({ _id, photo_ext: ext }, { $unset: { photo_ext: '' } })
   }
   return json({ ok: true })
 }

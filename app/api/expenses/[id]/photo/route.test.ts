@@ -30,8 +30,9 @@ vi.mock('@/lib/http', async (importOriginal) => ({
     const own = (_id: ObjectId) => docs.find((d) => d.user_id === a.userId && d._id.equals(_id))
     return {
       findOne: async ({ _id }: { _id: ObjectId }) => own(_id) ?? null,
-      updateOne: async ({ _id }: { _id: ObjectId }, update: { $set?: Record<string, unknown>; $unset?: Record<string, unknown> }) => {
-        const d = own(_id)
+      updateOne: async ({ _id, ...match }: { _id: ObjectId } & Record<string, unknown>, update: { $set?: Record<string, unknown>; $unset?: Record<string, unknown> }) => {
+        const found = own(_id)
+        const d = found && Object.entries(match).every(([k, v]) => found[k] === v) ? found : undefined
         if (d) {
           Object.assign(d, update.$set ?? {})
           for (const k of Object.keys(update.$unset ?? {})) delete d[k]
@@ -106,7 +107,21 @@ describe('POST /api/expenses/[id]/photo', () => {
     const d = expense()
     expect((await POST(request('POST', { ...jpeg, mimeType: 'image/gif' }), ctx(String(d._id)))).status).toBe(400)
     expect((await POST(request('POST', { ...jpeg, image: '' }), ctx(String(d._id)))).status).toBe(400)
+    // Inherited object keys aren't mime types.
+    expect((await POST(request('POST', { ...jpeg, mimeType: 'constructor' }), ctx(String(d._id)))).status).toBe(400)
     expect(put).not.toHaveBeenCalled()
+  })
+
+  it('rejects malformed base64 instead of storing the junk Buffer.from would decode', async () => {
+    const d = expense()
+    expect((await POST(request('POST', { ...jpeg, image: 'not base64!!' }), ctx(String(d._id)))).status).toBe(400)
+    expect(put).not.toHaveBeenCalled()
+  })
+
+  it('keys the blob by the canonical lowercase id even when called with uppercase', async () => {
+    const d = expense()
+    await POST(request('POST', jpeg), ctx(String(d._id).toUpperCase()))
+    expect(put).toHaveBeenCalledWith(`expense-photos/user_a/${d._id}.jpg`, expect.any(Buffer), expect.anything())
   })
 
   it('rejects images over 5MB decoded with 413', async () => {
@@ -153,5 +168,15 @@ describe('DELETE /api/expenses/[id]/photo', () => {
     const again = await DELETE(request('DELETE'), ctx(String(d._id)))
     expect(again.status).toBe(200)
     expect(del).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('DELETE /api/expenses/[id]/photo concurrency', () => {
+  it('keeps a replacement stamped while the delete was running', async () => {
+    const d = expense({ photo_ext: 'png' })
+    // A POST lands a jpg between DELETE loading the row and clearing it.
+    del.mockImplementationOnce(async () => { d.photo_ext = 'jpg' })
+    expect((await DELETE(request('DELETE'), ctx(String(d._id)))).status).toBe(200)
+    expect(d.photo_ext).toBe('jpg')
   })
 })
