@@ -57,7 +57,7 @@ async function autoAddDueToday(db: Db, userId: string, date: string): Promise<bo
     .findOne({ ...live, status: 'active', next_run_date: { $lte: date } }, { projection: { _id: 1 } })
   if (recurring) return true
   const subs = await db.collection(COLLECTIONS.subscriptions).find(live).toArray()
-  return subs.some((sub) =>
+  const due = subs.filter((sub) =>
     isSubscriptionDueToday(
       {
         nextDueDate: String(sub.next_due_date ?? ''),
@@ -69,6 +69,12 @@ async function autoAddDueToday(db: Db, userId: string, date: string): Promise<bo
       date,
     ),
   )
+  if (due.length === 0) return false
+  // next_due_date doesn't advance after the auto-add, so a sub still reads as due
+  // once it's been added (and maybe deleted). Its push claim marks it done.
+  const keys = [...new Set(due.map((sub) => `sub-expense:${String(sub.service)}:${date}`))]
+  const added = await db.collection(COLLECTIONS.notificationLog).countDocuments({ user_id: userId, key: { $in: keys } })
+  return added < keys.length
 }
 
 /**
