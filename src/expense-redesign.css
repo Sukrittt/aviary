@@ -12281,9 +12281,9 @@ button.account-feature-card {
   margin-top: 8px;
 }
 .erd-photo {
-  display: grid;
-  gap: 6px;
-  justify-items: start;
+  display: flex;
+  align-items: center;
+  gap: 14px;
 }
 .erd-photo-frame {
   position: relative;
@@ -12322,9 +12322,7 @@ button.account-feature-card {
   border: 0;
   background: none;
   color: var(--erd-text2);
-  font: 600 12px var(--font-nunito);
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  font: 600 13px var(--font-nunito);
   cursor: pointer;
 }
 .erd-photo-remove:disabled,
