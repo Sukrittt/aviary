@@ -105,8 +105,13 @@ function fakeCollection(base: string) {
       store.push(withId)
       return { insertedId: withId._id }
     },
-    updateOne: async (filter: Record<string, unknown>, update: { $set?: Record<string, unknown>; $unset?: Record<string, unknown> }) => {
+    updateOne: async (
+      filter: Record<string, unknown>,
+      update: { $set?: Record<string, unknown>; $unset?: Record<string, unknown> },
+      opts?: { upsert?: boolean },
+    ) => {
       const doc = store.find((d) => matches(d, filter))
+      if (!doc && opts?.upsert) store.push({ ...filter, ...update.$set, _id: new ObjectId() } as Doc)
       if (doc) {
         Object.assign(doc, update.$set ?? {})
         for (const k of Object.keys(update.$unset ?? {})) delete doc[k]
@@ -130,6 +135,12 @@ vi.mock('@/lib/http', async (importOriginal) => {
 })
 
 const { GET, POST, PUT, DELETE } = await import('./route')
+const { getCachedCategoryMap, invalidateCategoryMap } = await import('@/lib/categoryMap')
+
+async function mapWord(word: string) {
+  const map = await getCachedCategoryMap('user_a', fakeCollection('expenses') as never, fakeCollection('category_map_overrides') as never)
+  return map.words[word]
+}
 
 function req(method: string, body: Record<string, unknown>): Request {
   // Existing arithmetic tests use a freshly loaded identity/version. Stale and
@@ -152,6 +163,8 @@ function budgetFor(month: string) {
 beforeEach(() => {
   stores.expenses = []
   stores.budgets = []
+  stores.category_map_overrides = []
+  invalidateCategoryMap('user_a')
 })
 
 describe('PUT /api/expenses — credit-card envelope rebalance (C1)', () => {
@@ -542,5 +555,32 @@ describe('expense photos', () => {
     await POST(req('POST', { item: 'Tea', amount_inr: '50', category: 'Food' }))
     await DELETE(req('DELETE', { id: String(stores.expenses[0]._id) }))
     expect(blobDel).not.toHaveBeenCalled()
+  })
+})
+
+describe('/api/expenses — learning category corrections', () => {
+  const log = (category: string) => POST(req('POST', { item: 'Apple', amount_inr: '200', category }))
+
+  it('a new expense saved under a different category than the map suggests wins next time', async () => {
+    await log('Groceries')
+    await log('Groceries')
+    expect(await mapWord('apple')).toBe('Groceries')
+
+    await log('Eating out')
+    expect(await mapWord('apple')).toBe('Eating out')
+  })
+
+  it('recategorizing an existing expense teaches the map too', async () => {
+    await log('Groceries')
+    await log('Groceries')
+    const row = stores.expenses[1]
+    await PUT(req('PUT', { id: String(row._id), category: 'Eating out' }))
+    expect(await mapWord('apple')).toBe('Eating out')
+  })
+
+  it('accepting the suggestion writes no override', async () => {
+    await log('Groceries')
+    await log('Groceries')
+    expect(stores.category_map_overrides).toEqual([])
   })
 })
