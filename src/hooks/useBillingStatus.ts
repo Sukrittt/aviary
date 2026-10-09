@@ -131,17 +131,19 @@ export function useWebCheckout(prefill?: { email?: string; name?: string }, prov
   })
 }
 
+const tidyCheckoutUrl = () => window.history.replaceState(null, '', window.location.pathname + window.location.hash)
+
 export type PayPalReturn = 'confirming' | 'paid' | 'pending' | 'cancelled' | 'failed' | null
 
 /**
  * The second half of PayPal checkout. PayPal sends the buyer back to
  * `/account?checkout=paypal&subscription_id=…`; this confirms that
- * subscription with the server once, then tidies the URL so a reload doesn't
- * confirm it again.
+ * subscription with the server (retrying while PayPal is unreachable), then
+ * tidies the URL so a reload doesn't confirm it again.
  */
 export function usePayPalReturn(): PayPalReturn {
   const qc = useQueryClient()
-  // Read once, on the client's first render: the URL is tidied straight after.
+  // Read once, on the client's first render.
   const [arrival] = useState(() => {
     if (typeof window === 'undefined') return null
     const params = new URLSearchParams(window.location.search)
@@ -151,10 +153,18 @@ export function usePayPalReturn(): PayPalReturn {
     return checkout === 'paypal' && subscriptionId ? { subscriptionId } : { subscriptionId: null }
   })
   const confirm = useMutation({
-    mutationFn: verifyPayPalCheckout,
+    // A 503 (PayPal unreachable) comes back as the old access. Throw it so it's
+    // retried: the id in the URL is the browser's only pointer to this purchase.
+    mutationFn: async (subscriptionId: string) => {
+      const access = await verifyPayPalCheckout(subscriptionId)
+      if (access.refreshed === false) throw new Error('PayPal unreachable')
+      return access
+    },
+    retry: 3,
     onSuccess: (access) => {
       track('purchase_completed', { package: access.basePlanId ?? 'unknown', verified: access.mode === 'paid', pending: access.mode !== 'paid' })
       seedBillingStatus(qc, access)
+      tidyCheckoutUrl()
     },
     onError: () => track('purchase_failed', { package: 'unknown', error_code: 'error' }),
   })
@@ -162,9 +172,13 @@ export function usePayPalReturn(): PayPalReturn {
 
   useEffect(() => {
     if (!arrival) return
-    window.history.replaceState(null, '', window.location.pathname + window.location.hash)
+    // The URL keeps the subscription id until it's confirmed, so a reload
+    // after a failed confirm tries again.
     if (arrival.subscriptionId) mutate(arrival.subscriptionId)
-    else track('purchase_cancelled', { package: 'unknown' })
+    else {
+      tidyCheckoutUrl()
+      track('purchase_cancelled', { package: 'unknown' })
+    }
   }, [arrival, mutate])
 
   if (confirm.isPending) return 'confirming'

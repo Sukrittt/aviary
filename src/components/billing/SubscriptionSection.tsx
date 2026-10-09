@@ -188,5 +188,5 @@ const PAYPAL_RETURN: Record<Exclude<PayPalReturn, null>, { title: string; hint: 
   paid: { title: "You're all set", hint: 'Thanks for subscribing. Everything is unlocked.' },
   pending: { title: 'Almost there', hint: "PayPal is still confirming your payment. Give it a minute. No need to pay again." },
   cancelled: { title: 'Checkout cancelled', hint: "Nothing was charged. Pick a plan whenever you're ready." },
-  failed: { title: "We couldn't confirm that yet", hint: "If PayPal took the payment, it'll show up here shortly. Check your connection and refresh." },
+  failed: { title: "We couldn't confirm that yet", hint: "If PayPal took the payment, it'll show up here shortly. Reload this page to try again." },
 }
