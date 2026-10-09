@@ -5,6 +5,7 @@ import { getAccess } from '@/lib/billing/service'
 import { billingFlagsFor } from '@/lib/billing/flags'
 import { BillingProviderError } from '@/lib/billing/providerError'
 import { createPayPalSubscription, paypalConfig } from '@/lib/billing/paypal'
+import { checkoutProviderFor } from '@/lib/billing/prices'
 import type { PlanPeriod } from '@/lib/billing/razorpay'
 import { defersFirstCharge } from '@/src/components/billing/copy'
 
@@ -31,6 +32,8 @@ export async function POST(req: Request) {
 
   const config = paypalConfig()
   if (!config) return error('web checkout is not available', 503)
+  // Same routing as the plans route, so a direct call can't pick the other checkout.
+  if (checkoutProviderFor(req.headers.get('x-vercel-ip-country')) !== 'paypal') return error('checkout here is through Razorpay', 403)
 
   const body = await readBody(req)
   const period = body.period

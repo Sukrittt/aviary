@@ -44,6 +44,12 @@ describe('projectPayPalSubscription', () => {
     expect(row.expiresAt).toEqual(new Date(at(12)))
   })
 
+  it('schedules an approved plan whose first charge waits for the trial to end', () => {
+    const row = project(sub({ status: 'APPROVED', start_time: at(12) }, { last_payment: undefined, next_billing_time: undefined }))
+    expect(row).toMatchObject({ status: 'scheduled', autoRenew: true })
+    expect(row.expiresAt).toEqual(new Date(at(12)))
+  })
+
   it('grants a bounded grace while PayPal retries a failed renewal', () => {
     const row = project(sub({}, { last_payment: { time: at(-31) }, failed_payments_count: 1 }))
     expect(row.status).toBe('grace')
@@ -66,5 +72,10 @@ describe('addPeriod', () => {
   it('adds calendar months and years in UTC', () => {
     expect(addPeriod(new Date('2026-01-15T00:00:00Z'), 'monthly')).toEqual(new Date('2026-02-15T00:00:00Z'))
     expect(addPeriod(new Date('2026-01-15T00:00:00Z'), 'yearly')).toEqual(new Date('2027-01-15T00:00:00Z'))
+  })
+
+  it("stops at the end of a shorter month instead of spilling into the next", () => {
+    expect(addPeriod(new Date('2026-01-31T10:00:00Z'), 'monthly')).toEqual(new Date('2026-02-28T10:00:00Z'))
+    expect(addPeriod(new Date('2028-02-29T10:00:00Z'), 'yearly')).toEqual(new Date('2029-02-28T10:00:00Z'))
   })
 })

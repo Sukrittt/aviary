@@ -29,8 +29,8 @@ const verify = (await import('./verify/route')).POST
 const service = await import('@/lib/billing/service')
 const { BillingProviderError } = await import('@/lib/billing/providerError')
 
-const post = (body: unknown = {}) =>
-  new Request('https://www.useaviary.com/api', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+const post = (body: unknown = {}, country = 'US') =>
+  new Request('https://www.useaviary.com/api', { method: 'POST', headers: { 'content-type': 'application/json', 'x-vercel-ip-country': country }, body: JSON.stringify(body) })
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -69,6 +69,11 @@ describe('POST /api/billing/paypal/subscribe', () => {
     expect((await subscribe(post({ period: 'yearly' }))).status).toBe(403)
     vi.stubEnv('PAYPAL_PLAN_YEARLY', '')
     expect((await subscribe(post({ period: 'yearly' }))).status).toBe(503)
+    expect(createMock).not.toHaveBeenCalled()
+  })
+
+  it('sends visitors in India back to Razorpay', async () => {
+    expect((await subscribe(post({ period: 'yearly' }, 'IN'))).status).toBe(403)
     expect(createMock).not.toHaveBeenCalled()
   })
 

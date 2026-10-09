@@ -18,11 +18,14 @@ const DAY_MS = 24 * 60 * 60 * 1000
 
 const date = (value: string | undefined): Date | null => (value ? new Date(value) : null)
 
-/** One billing period after `from`, in UTC. */
+/** One billing period after `from`, in UTC. Jan 31 plus a month is Feb 28, not Mar 3. */
 export function addPeriod(from: Date, period: PlanPeriod): Date {
+  const months = period === 'monthly' ? 1 : 12
   const d = new Date(from)
-  if (period === 'monthly') d.setUTCMonth(d.getUTCMonth() + 1)
-  else d.setUTCFullYear(d.getUTCFullYear() + 1)
+  d.setUTCDate(1)
+  d.setUTCMonth(d.getUTCMonth() + months)
+  const lastDay = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate()
+  d.setUTCDate(Math.min(from.getUTCDate(), lastDay))
   return d
 }
 
@@ -56,10 +59,18 @@ export function projectPayPalSubscription({ subscription: sub, period, environme
         expiresAt = paidUntil ? new Date(paidUntil.getTime() + RETRY_GRACE_DAYS * DAY_MS) : null
       } else status = 'active'
       break
-    // The buyer hasn't approved yet, or approved and the first payment hasn't
-    // landed. Grants nothing.
+    // Approved with a start in the future (subscribed during the trial):
+    // scheduled to its start, the same as an ACTIVE one with no payment yet.
+    case 'APPROVED': {
+      const start = date(sub.start_time)
+      if (start && start.getTime() > fetchedAt.getTime()) {
+        status = 'scheduled'
+        expiresAt = start
+      } else status = 'pending'
+      break
+    }
+    // The buyer hasn't approved yet. Grants nothing.
     case 'APPROVAL_PENDING':
-    case 'APPROVED':
       status = 'pending'
       break
     // Missed payments ran past the plan's threshold, or someone paused it.
