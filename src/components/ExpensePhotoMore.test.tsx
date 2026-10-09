@@ -24,7 +24,7 @@ it('hands a picked file over, and shows a picked photo with remove', () => {
 
   rerender(<ExpensePhotoMore photoUrl="data:image/jpeg;base64,eA==" onPick={onPick} onRemove={onRemove} />)
   expect(screen.getByRole('img', { name: 'Expense photo' })).toBeInTheDocument()
-  fireEvent.click(screen.getByRole('button', { name: 'Remove' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Remove photo' }))
   expect(onRemove).toHaveBeenCalledOnce()
 })
 
