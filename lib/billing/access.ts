@@ -103,6 +103,16 @@ export function extendTrialEnd(currentEnd: Date, days: number, now: Date): Date 
 }
 
 /**
+ * Whether purchases from `environment` can grant access. Only production
+ * ones do, except where `BILLING_ACCEPT_SANDBOX=1` (staging, never
+ * production) lets test purchases unlock access so the paid flow can be
+ * tried end to end.
+ */
+export function countsForAccess(environment: BillingSubscriptionDoc['environment']): boolean {
+  return environment === 'production' || process.env.BILLING_ACCEPT_SANDBOX === '1'
+}
+
+/**
  * Resolve what an account may do right now.
  *
  * Order matters: a paid entitlement wins over a trial (so a user who bought
@@ -112,7 +122,7 @@ export function extendTrialEnd(currentEnd: Date, days: number, now: Date): Date 
  */
 export function resolveAccess({ now, account, subscription, enforced }: AccessInput): Access {
   // Test purchases must never become live access after provider keys change.
-  if (subscription?.environment !== 'production') subscription = null
+  if (subscription && !countsForAccess(subscription.environment)) subscription = null
   const purchased = subscriptionEntitles(subscription, now)
   // A purchase outranks a gift for display: it is the one with a renewal to
   // explain. The gift keeps entitling underneath either way.
@@ -153,7 +163,7 @@ export function resolveAccess({ now, account, subscription, enforced }: AccessIn
  * the most recently verified is kept so the client can explain the failure.
  */
 export function pickSubscription(subs: BillingSubscriptionDoc[], now: Date): BillingSubscriptionDoc | null {
-  subs = subs.filter((sub) => sub.environment === 'production')
+  subs = subs.filter((sub) => countsForAccess(sub.environment))
   if (subs.length === 0) return null
   const entitling = subs.filter((s) => subscriptionEntitles(s, now))
   if (entitling.length > 0) {
