@@ -10,6 +10,7 @@ const { addExpenseMutation, deleteExpenseMutation, addCategoryMutation, history 
   addCategoryMutation: vi.fn(),
   history: { rows: [] as unknown[] },
 }))
+vi.mock('../hooks/useAccounts', () => ({ useAccounts: () => ({ data: [] }), liveAccounts: () => [] }))
 vi.mock('../hooks/useExpenses', () => ({
   useAddExpense: () => ({ mutateAsync: addExpenseMutation }),
   useDeleteExpense: () => ({ mutateAsync: deleteExpenseMutation, isPending: false }),

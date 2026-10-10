@@ -21,7 +21,6 @@ import {
   EditReadyToAssignScreen,
   AssignMoneyScreen,
   AddIncomeScreen,
-  EditMonthIncomeScreen,
 } from "../components/MoneyScreens";
 import { ExpenseSidebar } from "../components/ExpenseSidebar";
 import { Scrim, Sheet } from "../components/MotionSheet";
@@ -45,6 +44,9 @@ import { useUser } from "../hooks/useUser";
 import { WeekRecapGate } from "../components/wrapped/WeekRecap";
 import { usePersistentState } from "../hooks/usePersistentState";
 import { LogExpenseModal } from "../components/LogExpenseModal";
+import { RecurringIncomeModal } from "../components/RecurringIncomeModal";
+import { useRecurringIncomes } from "../hooks/useIncomes";
+import { useAccounts } from "../hooks/useAccounts";
 import { SuccessButton, useButtonPhase } from "../components/SuccessButton";
 import type { EnvelopeState } from "../types/expense";
 import { computeEnvelopeState, currentMonthKey, daysLeftInMonth, monthLabel, prevMonthKey } from "../lib/envelope";
@@ -139,6 +141,13 @@ export function ExpensePage() {
   const [editReady, setEditReady] = useState(false);
   const [incomeScreen, setIncomeScreen] = useState<"add" | "monthly" | null>(null);
   const [incomeMenuOpen, setIncomeMenuOpen] = useState(false);
+  // Change income edits the monthly schedule Ready to Assign counts from day 1.
+  // With more than one, or before they've loaded (a create form then could
+  // duplicate one), the Income page is the place to pick.
+  const schedulesQ = useRecurringIncomes();
+  // Warms the accounts cache so Log expense has them on its first open.
+  useAccounts();
+  const monthlySchedules = (schedulesQ.data ?? []).filter((r) => r.frequency === "monthly" && r.status === "active");
   const incomeMenuRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     if (!incomeMenuOpen) return;
@@ -382,10 +391,22 @@ export function ExpensePage() {
                           className="env-menu-item"
                           onClick={() => {
                             setIncomeMenuOpen(false);
-                            setIncomeScreen("monthly");
+                            if (!schedulesQ.data || monthlySchedules.length > 1) router.push("/account/income");
+                            else setIncomeScreen("monthly");
                           }}
                         >
                           Change income
+                        </button>
+                        <button
+                          type="button"
+                          role="menuitem"
+                          className="env-menu-item"
+                          onClick={() => {
+                            setIncomeMenuOpen(false);
+                            router.push("/account/income");
+                          }}
+                        >
+                          Manage income
                         </button>
                         <button
                           type="button"
@@ -607,9 +628,9 @@ export function ExpensePage() {
             <AddIncomeScreen onClose={() => setIncomeScreen(null)} />
           )}
           {incomeScreen === "monthly" && envelopeState && (
-            <EditMonthIncomeScreen
-              month={envelopeState.month}
-              initial={envelopeState.incomeBase}
+            <RecurringIncomeModal
+              id={monthlySchedules[0]?.id}
+              initial={{ label: "Monthly income", amount: envelopeState.incomeBase > 0 ? String(envelopeState.incomeBase) : "", frequency: "monthly" }}
               onClose={() => setIncomeScreen(null)}
             />
           )}

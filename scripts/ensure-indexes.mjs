@@ -56,6 +56,18 @@ const INDEXES = {
   chat_sessions: [[{ user_id: 1, updatedAt: -1 }, {}]],
   // Weekly balance checks: the latest one is read on every Home load.
   balance_checks: [[{ user_id: 1, timestamp: -1 }, {}]],
+  // Income ledger: listed by date; `client_id` makes a payday or a retried
+  // one-off post once (lib/income.ts).
+  incomes: [
+    [{ user_id: 1, date: -1 }, {}],
+    [{ user_id: 1, client_id: 1 }, { unique: true, partialFilterExpression: { client_id: { $type: 'string' } } }],
+  ],
+  // Same cron query as recurring_expenses, plus the one-time migration marker.
+  recurring_incomes: [
+    [{ user_id: 1, status: 1, next_run_date: 1 }, {}],
+    [{ user_id: 1, client_id: 1 }, { unique: true, partialFilterExpression: { client_id: { $type: 'string' } } }],
+  ],
+  accounts: [[{ user_id: 1 }, {}]],
   // TTL index: hits older than an hour (the longest window lib/rateLimit.ts
   // checks against) are garbage-collected automatically. Correctness never
   // depends on this running promptly — every check bounds by its own cutoff.

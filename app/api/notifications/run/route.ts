@@ -16,6 +16,7 @@ import { isDueToday, isDueTomorrow, tomorrowOf } from '@/lib/holdingRecurrence'
 import { isSubscriptionDueToday } from '@/lib/subscriptions'
 import { applySubscriptionExpense } from '@/lib/subscriptionExpense'
 import { occurrencesDue, isExpired, advance } from '@/lib/recurringExpense'
+import { runRecurringIncomes } from '@/lib/income'
 import { createExpense } from '@/lib/createExpense'
 import { notifyThresholdCrossed } from '@/lib/notifications/instant'
 import { sendPushNotification } from '@/lib/push'
@@ -408,6 +409,12 @@ async function runAll(): Promise<{ sent: number }> {
       sent += await runRecurringExpensesForUser(db, user, nowIn(user.timezone).date)
     } catch (err) {
       console.error('notifications/run: recurring expenses failed for', user._id, err)
+    }
+    // Paydays post quietly: no push, the Income screen and Activity show them.
+    try {
+      await runRecurringIncomes({ userId: user._id, readOnly: false, sessionId: null }, nowIn(user.timezone).date)
+    } catch (err) {
+      console.error('notifications/run: recurring incomes failed for', user._id, err)
     }
   }
 

@@ -85,12 +85,15 @@ it('keeps getting started out of the way for existing or finished users', async 
 it('asks for income first when setup skipped it, opening the monthly income screen', async () => {
   vi.mocked(getBudgets).mockResolvedValue([{ month, category: 'Food', assigned: '0', rolled_over: '0', version: 1 }])
   vi.mocked(getUser).mockResolvedValue({ ...baseUser, getStartedAt: '2026-09-01' })
+  // The schedule modal's date pickers read the viewport; jsdom has no matchMedia.
+  vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }))
   const client = renderPage()
   fireEvent.click(await screen.findByRole('button', { name: 'Add your income' }))
   expect(screen.queryByRole('button', { name: /Set up your budget/ })).not.toBeInTheDocument()
   expect(screen.getByRole('progressbar', { name: 'Getting started' })).toHaveAttribute('aria-valuenow', '0')
-  expect(await screen.findByText('Monthly income')).toBeInTheDocument()
+  expect(await screen.findByDisplayValue('Monthly income')).toBeInTheDocument()
   client.clear()
+  vi.unstubAllGlobals()
 })
 
 it('keeps getting started up without income, even with both other milestones done', async () => {

@@ -30,8 +30,50 @@ export interface ExpenseRow {
   amount: string
   description: string
   payment_method: string
+  /** One of the user's accounts, or '' / absent for an unlabelled row. */
+  account_id?: string
   /** Set by the server when a photo is attached (app/api/expenses/[id]/photo). */
   has_photo?: boolean
+}
+
+/** One payment that came in. `counted: 'extra'` rows are part of their month's Ready to Assign; 'monthly' rows are a payday of the monthly income, already counted from day 1. */
+export interface IncomeRow {
+  id: string
+  version: number
+  date: string
+  amount: string
+  label: string
+  notes: string
+  account_id: string
+  recurring_id: string
+  source: 'manual' | 'recurring' | 'balance_gap' | string
+  counted: 'extra' | 'monthly' | string
+  created_at: string
+}
+
+export interface RecurringIncomeRow {
+  id: string
+  label: string
+  amount: string
+  frequency: string
+  /** The first payday. */
+  start_date: string
+  end_date: string
+  /** Computed by the server; never recomputed on the client. */
+  next_run_date: string
+  account_id: string
+  status: string
+  created_at: string
+}
+
+export type AccountType = 'bank' | 'cash' | 'credit_card'
+
+export interface AccountRow {
+  id: string
+  name: string
+  type: AccountType
+  archived: boolean
+  created_at: string
 }
 
 export interface CategoryRow {

@@ -15,6 +15,9 @@ import { SuccessButton, useButtonPhase } from './SuccessButton'
 import { AddCategoryModal } from './AddCategoryModal'
 import type { CategoryRow } from '../types'
 import { CategoryPicker } from './CategoryPicker'
+import { AccountChips } from './AccountChips'
+import { liveAccounts, useAccounts } from '../hooks/useAccounts'
+import { defaultAccountFor } from '../lib/defaultAccount'
 import { useCategories } from '../hooks/useCategories'
 import { useAddExpense, useDeleteExpense, useRecentExpenses, useUploadExpensePhoto } from '../hooks/useExpenses'
 import { unusualAmount } from '../lib/unusualAmount'
@@ -71,6 +74,10 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
   const [showAddCategory, setShowAddCategory] = useState(false)
   const [createdCategory, setCreatedCategory] = useState<CategoryRow | null>(null)
   const [date, setDate] = useState(toDateInputValue(new Date()))
+  // null: follow the category's usual account (src/lib/defaultAccount.ts).
+  const [accountPick, setAccountPick] = useState<string | null>(null)
+  const accountsQ = useAccounts()
+  const accounts = liveAccounts(accountsQ.data)
   const [showCalendar, setShowCalendar] = useState(false)
   const pickDateChipRef = useRef<HTMLButtonElement>(null)
   const [error, setError] = useState('')
@@ -105,6 +112,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
   // No suggestion means nothing selected. Defaulting to the first category
   // silently filed items like "Travel" under whatever category came first.
   const effectiveCategory = category
+  const accountId = accountPick ?? defaultAccountFor(expensesQ.data ?? [], effectiveCategory, accounts)
   // Typo guard: an amount far above the category's usual blocks the first
   // save with a warning; the relabelled button then saves it as entered.
   const [unusualWarnedFor, setUnusualWarnedFor] = useState('')
@@ -284,6 +292,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
     setAmount('')
     setCategory('')
     setDate(toDateInputValue(new Date()))
+    setAccountPick(null)
     setShowCalendar(false)
     setPhoto(null)
     setPhotoError('')
@@ -295,6 +304,8 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
   }
 
   async function handleSubmit() {
+    // Waits out a cold accounts fetch so the expense lands on the account it would default to.
+    if (accountsQ.isLoading) return
     const parsed = Number(amount)
     if (missing.length > 0) {
       setError('')
@@ -318,6 +329,9 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
         category: effectiveCategory,
         date: date || undefined,
         source: 'manual',
+        // The account's type goes too, so a late create on an account archived
+        // since still lands on the right payment method.
+        ...(accountId ? { account_id: accountId, payment_method: accounts.find((a) => a.id === accountId)?.type ?? 'bank' } : {}),
       })
       if (suggestedBy.current) track('ai_category_suggested', { accepted: autoPicked, source: suggestedBy.current })
       window.dispatchEvent(new Event(MANUAL_LOG_EVENT))
@@ -467,6 +481,12 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
                 </div>
                 <CategoryPicker value={effectiveCategory} onChange={handleCategoryPick} additionalCategory={createdCategory} />
               </section>
+
+              {accounts.length > 0 && (
+                <section className="erd-log-section">
+                  <AccountChips accounts={accounts} value={accountId} onChange={setAccountPick} />
+                </section>
+              )}
 
               <section className="erd-log-section">
                 <div className="erd-log-label">Date</div>

@@ -27,8 +27,12 @@ const CADENCE_LABELS: Record<string, string> = {
 
 /** Rough monthly cost, only for the hero total and allocation bar. Twin of Mobile's account/recurring.tsx. */
 export function monthlyEquivalent(row: RecurringExpenseRow): number {
-  const amount = Number(row.amount_inr) || 0
-  switch (row.frequency) {
+  return monthlyAmount(Number(row.amount_inr) || 0, row.frequency)
+}
+
+/** `amount` every `frequency`, as a rough monthly figure. Also used for recurring income. */
+export function monthlyAmount(amount: number, frequency: string): number {
+  switch (frequency) {
     case 'daily':
       return amount * 30
     case 'weekly':

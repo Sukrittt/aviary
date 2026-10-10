@@ -15,6 +15,9 @@ import { useCategories } from '../hooks/useCategories'
 import { useRecentExpenses } from '../hooks/useExpenses'
 import { useGroups } from '../hooks/useGroups'
 import { useHideAmounts } from '../hooks/useHideAmounts'
+import { useAddIncome } from '../hooks/useIncomes'
+import { liveAccounts, useAccounts } from '../hooks/useAccounts'
+import { AccountChips } from './AccountChips'
 import { EMPTY } from '../lib/constants'
 import { categoryEmoji, splitEmoji } from '../lib/emoji'
 import { BudgetWriteError } from '../lib/budgetConflict'
@@ -958,19 +961,24 @@ export function EditMonthIncomeScreen({ month, onClose, initial }: { month: stri
 
 // ─── Add income ──────────────────────────────────────────────────────────────
 
-/** Opened from "+ Add income" under the Ready to Assign hero. Adds a one-off
- * amount to this month's income extra, so Ready to Assign goes up by exactly
- * that much and next month doesn't repeat it. */
+/** Opened from Home's income menu and the Income page. Records a one-off in
+ * the income ledger; the server adds it to this month's income extra in the
+ * same write (Web/lib/income.ts), so Ready to Assign goes up by exactly that
+ * much and next month doesn't repeat it. */
 export function AddIncomeScreen({ onClose }: { onClose: () => void }) {
   const { formatCurrency } = useCurrency()
   const [hideAmounts] = useHideAmounts()
   const data = useMoneyData()
-  const fetchFreshBudgets = useFreshBudgets()
-  const updateBudget = useUpdateBudget()
+  const addIncome = useAddIncome()
+  const accounts = liveAccounts(useAccounts().data)
   const phase = useButtonPhase()
   const busy = phase.saving || phase.success
   const [amountText, setAmountText] = useState('')
+  const [label, setLabel] = useState('')
+  const [accountId, setAccountId] = useState('')
   const [error, setError] = useState('')
+  // One id per screen, so a retried save after a lost response can't count twice.
+  const [clientId] = useState(() => crypto.randomUUID())
   const value = Number(amountText) || 0
 
   if (data.isLoading) return <Screen title="Add income" onClose={onClose} busy={false}><LoadingCaption /></Screen>
@@ -981,30 +989,18 @@ export function AddIncomeScreen({ onClose }: { onClose: () => void }) {
     if (busy || value <= 0) return
     phase.start()
     setError('')
-    // Adding is order-independent, so a save that lost a race to another
-    // device just re-reads the row and adds on top of it.
-    let budgets = data.budgets
-    for (let attempt = 0; attempt < 2; attempt++) {
-      const row = budgets.find((b) => b.month === month && b.category === INCOME_CATEGORY)
-      try {
-        await updateBudget.mutateAsync({
-          month,
-          category: INCOME_CATEGORY,
-          version: row?.version ?? 0,
-          updates: { extra: String(cents((Number(row?.extra) || 0) + value)) },
-        })
-        phase.succeed(onClose)
-        return
-      } catch (err) {
-        if (attempt === 0 && err instanceof BudgetWriteError && err.status === 409) {
-          budgets = await fetchFreshBudgets().catch(() => budgets)
-          continue
-        }
-        break
-      }
+    try {
+      await addIncome.mutateAsync({
+        amount: value,
+        label: label.trim() || 'Extra income',
+        ...(accountId ? { account_id: accountId } : {}),
+        client_id: clientId,
+      })
+      phase.succeed(onClose)
+    } catch {
+      phase.fail()
+      setError("Couldn't save. Check your connection and try again.")
     }
-    phase.fail()
-    setError("Couldn't save. Check your connection and try again.")
   }
 
   const detail = state.incomeExtra === 0
@@ -1028,6 +1024,17 @@ export function AddIncomeScreen({ onClose }: { onClose: () => void }) {
               : 'What came in on top of your monthly income'}
           </motion.p>
         </HeroAmount>
+        <input
+          className="erd-log-input"
+          aria-label="What was it"
+          placeholder="What was it? A bonus, a refund, a gift…"
+          maxLength={200}
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+        />
+        {accounts.length > 0 && (
+          <AccountChips accounts={accounts} value={accountId} onChange={setAccountId} allowNone label="Paid into" />
+        )}
         {error !== '' && <p role="alert" className="money-error">{error}</p>}
       </div>
       <div className="money-foot">

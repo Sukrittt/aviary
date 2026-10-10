@@ -12,6 +12,7 @@ import { createExpense, adjustCreditCardEnvelope } from '@/lib/createExpense'
 import { resolveCategoryName } from '@/lib/categoryName'
 import { flagIfDuplicate } from '@/lib/duplicates'
 import { markManualTransactionComplete } from '@/lib/users'
+import { AccountError, liveAccount, paymentMethodFor } from '@/lib/accounts'
 import { deleteExpensePhotoQuietly } from '@/lib/expensePhoto'
 
 export const dynamic = 'force-dynamic'
@@ -103,12 +104,14 @@ export async function GET(req: Request) {
 
   const { page, limit } = parsePageParams(url, { defaultLimit: 50, maxLimit: 200 })
   const category = url.searchParams.get('category') || undefined
+  const account = url.searchParams.get('account') || undefined
   const from = url.searchParams.get('from') || undefined
   const to = url.searchParams.get('to') || undefined
   const q = url.searchParams.get('q')?.trim().toLowerCase() || undefined
 
   const mongoFilter: Record<string, unknown> = {}
   if (category) mongoFilter.category = category
+  if (account) mongoFilter.account_id = account
   if (from || to) mongoFilter.date = { ...(from ? { $gte: from } : {}), ...(to ? { $lte: to } : {}) }
 
   let pageDocs: Record<string, unknown>[]
@@ -172,7 +175,8 @@ export async function GET(req: Request) {
 // Existing records without a version start at 0; no backfill is required.
 // `has_photo` rides alongside like `id`/`version`, outside the CSV columns.
 function expenseRow(doc: Record<string, unknown>) {
-  return { ...toRow(EXPENSE_HEADERS, doc), id: String(doc._id), version: Number(doc.version ?? 0), has_photo: typeof doc.photo_file === 'string' }
+  // `account_id` rides outside EXPENSE_HEADERS like `id`: that array is also the CSV export's columns.
+  return { ...toRow(EXPENSE_HEADERS, doc), id: String(doc._id), version: Number(doc.version ?? 0), account_id: String(doc.account_id ?? ''), has_photo: typeof doc.photo_file === 'string' }
 }
 
 class ExpenseWriteError extends Error {
@@ -228,6 +232,7 @@ export async function POST(req: Request) {
     date: body.date === undefined ? undefined : String(body.date),
     timestamp: body.timestamp === undefined ? undefined : String(body.timestamp),
     payment_method: body.payment_method === undefined ? undefined : String(body.payment_method),
+    account_id: typeof body.account_id === 'string' && body.account_id ? body.account_id : undefined,
     client_id: typeof body.client_id === 'string' ? body.client_id : undefined,
     source: body.source === undefined ? undefined : String(body.source),
   })
@@ -246,7 +251,7 @@ export async function POST(req: Request) {
     amount_inr: String(body.amount_inr),
     timestamp: result.timestamp,
     date: result.timestamp.slice(0, 10),
-    payment_method: body.payment_method === undefined ? 'bank' : String(body.payment_method),
+    payment_method: result.paymentMethod,
   })
 
   // The id and the server-generated timestamp go back to the caller so it can
@@ -281,7 +286,24 @@ export async function PUT(req: Request) {
   if (body.new_date !== undefined) rawUpdate.date = body.new_date
   if (body.new_notes !== undefined) rawUpdate.notes = body.new_notes
   if (body.new_payment_method !== undefined) rawUpdate.payment_method = body.new_payment_method
-  if (Object.keys(rawUpdate).length === 0) return error('no fields to update')
+  // A new account brings its payment method with it; '' just clears the label.
+  let accountUpdate: string | undefined
+  if (body.new_account_id !== undefined) {
+    if (typeof body.new_account_id !== 'string') return error('invalid account')
+    if (body.new_account_id) {
+      try {
+        const account = await liveAccount(auth, body.new_account_id)
+        accountUpdate = account.id
+        rawUpdate.payment_method = paymentMethodFor(account.type)
+      } catch (err) {
+        if (err instanceof AccountError) return error('That account is gone. Pick another one.')
+        throw err
+      }
+    } else {
+      accountUpdate = ''
+    }
+  }
+  if (Object.keys(rawUpdate).length === 0 && accountUpdate === undefined) return error('no fields to update')
   const invalid = expenseInputError(rawUpdate, true)
   if (invalid) return error(invalid)
 
@@ -300,7 +322,7 @@ export async function PUT(req: Request) {
       // row under a name no category has any more (lib/categoryName.ts).
       // Idempotent on retry: a live name resolves to itself.
       if (update.category !== undefined) update.category = await resolveCategoryName(auth, update.category, session)
-      const next: Record<string, unknown> = { ...update, version: version + 1 }
+      const next: Record<string, unknown> = { ...update, ...(accountUpdate !== undefined ? { account_id: accountUpdate } : {}), version: version + 1 }
       if (body.new_date !== undefined && found.timestamp !== undefined) {
         const ts = String(found.timestamp)
         next.timestamp = `${String(body.new_date)}${ts.includes('T') ? ts.slice(ts.indexOf('T')) : ''}`
