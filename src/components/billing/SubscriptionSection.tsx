@@ -43,10 +43,18 @@ export function SubscriptionSection() {
       <div className="account-card">
         <div className="account-row" style={{ cursor: 'default' }}>
           <span className="account-row-label">
-            Plan
+            {data.mode === 'paid' ? (
+              <span style={{ fontWeight: 800, color: 'var(--tk-accent-ink)' }}>Aviary Pro</span>
+            ) : (
+              'Plan'
+            )}
             <span className="account-row-hint">{describePlan(data)}</span>
           </span>
-          <span style={{ color: 'var(--tk-text2)', fontSize: 14 }}>{statusChip(data)}</span>
+          {data.mode === 'paid' ? (
+            <span style={{ fontSize: 12, fontWeight: 800, padding: '4px 10px', borderRadius: 999, whiteSpace: 'nowrap', ...CHIP_TONE[chipTone(data)] }}>{statusChip(data)}</span>
+          ) : (
+            <span style={{ color: 'var(--tk-text2)', fontSize: 14 }}>{statusChip(data)}</span>
+          )}
         </div>
 
         {paypalReturn && (
@@ -173,13 +181,26 @@ function describePlan(data: { mode: string; trialEndsAt: string | null; paidExpi
 }
 
 function statusChip(data: { mode: string; trialDaysRemaining: number; renewalState: string | null }): string {
-  if (data.mode === 'trial' || data.renewalState === 'scheduled') return trialRemainingLabel(data.trialDaysRemaining)
+  if (data.mode === 'trial') return trialRemainingLabel(data.trialDaysRemaining)
+  // Bought mid-trial: they're subscribed, the plan line says when the first charge is.
+  if (data.renewalState === 'scheduled') return 'Subscribed'
   if (data.renewalState === 'grace') return 'Payment failed'
   if (data.renewalState === 'on_hold') return 'On hold'
   if (data.renewalState === 'paused') return 'Paused'
   if (data.renewalState === 'pending') return 'Pending'
   if (data.mode === 'paid') return 'Active'
   return 'Expired'
+}
+
+/** Colour of the paid-plan status pill: green when all's well, amber when it needs attention. */
+function chipTone(data: { renewalState: string | null }): keyof typeof CHIP_TONE {
+  if (data.renewalState && ['grace', 'on_hold', 'paused', 'pending'].includes(data.renewalState)) return 'warn'
+  return 'good'
+}
+
+const CHIP_TONE = {
+  good: { background: 'var(--tk-mint-soft)', color: 'var(--tk-mint)' },
+  warn: { background: 'var(--tk-warn-soft)', color: 'var(--tk-warn-ink)' },
 }
 
 /** What to say once PayPal sends the buyer back here. */

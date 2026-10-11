@@ -52,6 +52,18 @@ describe('SubscriptionSection', () => {
     expect(cancelMutate).toHaveBeenCalled()
   })
 
+  it('shows a paying subscriber they are on Aviary Pro', () => {
+    renderWith({})
+    expect(screen.getByText('Aviary Pro')).toBeTruthy()
+    expect(screen.getByText('Active')).toBeTruthy()
+  })
+
+  it('keeps the plain plan row during the free trial', () => {
+    renderWith({ mode: 'trial', store: null, trialDaysRemaining: 10, renewalState: null })
+    expect(screen.queryByText('Aviary Pro')).toBeNull()
+    expect(screen.getByText('Plan')).toBeTruthy()
+  })
+
   it('tells a web subscriber who already cancelled when access ends', () => {
     renderWith({ autoRenew: false, renewalState: 'cancelled' })
     expect(screen.getByText('Renewal is off')).toBeTruthy()
@@ -60,7 +72,8 @@ describe('SubscriptionSection', () => {
 
   it('lets someone who subscribed mid-trial cancel before the first charge', () => {
     renderWith({ renewalState: 'scheduled', trialDaysRemaining: 13, paidExpiresAt: '2026-10-17T12:00:00.000Z' })
-    expect(screen.getByText('13 days left')).toBeTruthy()
+    expect(screen.getByText('Aviary Pro')).toBeTruthy()
+    expect(screen.getByText('Subscribed')).toBeTruthy()
     fireEvent.click(screen.getByText('Cancel subscription'))
     fireEvent.click(screen.getAllByText('Cancel subscription').at(-1)!)
     expect(cancelMutate).toHaveBeenCalled()
