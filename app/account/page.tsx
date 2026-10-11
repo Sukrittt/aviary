@@ -34,6 +34,7 @@ import { useMoneyBrain } from '../../components/MoneyBrainProvider'
 import { LogExpenseModal } from '../../src/components/LogExpenseModal'
 import { ScanBillModal } from '../../src/features/scan-bill/ScanBillModal'
 import { SignOutDialog } from '../../src/components/ConfirmDialog'
+import { GetAppDialog } from '../../src/components/GetAppDialog'
 import { SubscriptionSection } from '../../src/components/billing/SubscriptionSection'
 import { billingVisible, planSummary } from '../../src/components/billing/copy'
 import { useBillingStatus } from '../../src/hooks/useBillingStatus'
@@ -74,6 +75,7 @@ export default function AccountPage() {
   const [showScan, setShowScan] = useState(false)
   const [showLog, setShowLog] = useState(false)
   const [confirmSignOut, setConfirmSignOut] = useState(false)
+  const [showGetApp, setShowGetApp] = useState(false)
 
   useEffect(() => {
     void (async () => {
@@ -199,9 +201,9 @@ export default function AccountPage() {
               Notifications
               <span className="account-row-hint">
                 Alerts only arrive on the Android app.{' '}
-                <a href={PLAY_STORE_URL} target="_blank" rel="noreferrer" style={{ color: 'var(--gold-ink)', fontWeight: 700 }}>
+                <button type="button" className="account-inline-link" onClick={() => setShowGetApp(true)}>
                   Get it
-                </a>
+                </button>
               </span>
             </span>
             <div className="account-segmented" role="group" aria-label="Notification cadence">
@@ -267,6 +269,7 @@ export default function AccountPage() {
 
       <AnimatePresence>
         {confirmSignOut && <SignOutDialog onCancel={() => setConfirmSignOut(false)} />}
+        {showGetApp && <GetAppDialog email={email || undefined} onClose={() => setShowGetApp(false)} />}
       </AnimatePresence>
       <AnimatePresence>
         {showLog && <LogExpenseModal onClose={() => setShowLog(false)} onSaved={() => {}} />}
