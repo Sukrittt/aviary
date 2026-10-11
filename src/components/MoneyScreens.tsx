@@ -1006,8 +1006,8 @@ export function AddIncomeScreen({ onClose }: { onClose: () => void }) {
 
   const hint = value > 0
     ? state
-      ? `Ready to Assign ${formatCurrency(state.readyToAssign + value, hideAmounts)} · this month only`
-      : 'Adds to Ready to Assign · this month only'
+      ? `Ready to Assign ${formatCurrency(state.readyToAssign + value, hideAmounts)} · This month only`
+      : 'Adds to Ready to Assign · This month only'
     : 'What came in on top of your monthly income'
 
   return (

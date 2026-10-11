@@ -130,7 +130,7 @@ describe('money screens', () => {
     mocks.budgetsLoading = true
     render(<AddIncomeScreen onClose={vi.fn()} />)
     typeAmount('300')
-    expect(screen.getByText('Adds to Ready to Assign · this month only')).toBeInTheDocument()
+    expect(screen.getByText('Adds to Ready to Assign · This month only')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Add income' }))
     await waitFor(() => expect(mocks.addIncome).toHaveBeenCalledWith(expect.objectContaining({ amount: 300 })))
   })
