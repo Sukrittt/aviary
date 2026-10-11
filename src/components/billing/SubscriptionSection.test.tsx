@@ -67,6 +67,8 @@ describe('SubscriptionSection', () => {
   it('tells a web subscriber who already cancelled when access ends', () => {
     renderWith({ autoRenew: false, renewalState: 'cancelled' })
     expect(screen.getByText('Renewal is off')).toBeTruthy()
+    expect(screen.getByText(/^Ends /)).toBeTruthy()
+    expect(screen.queryByText('Active')).toBeNull()
     expect(screen.queryByText('Cancel renewal')).toBeNull()
   })
 

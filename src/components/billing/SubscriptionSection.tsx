@@ -189,7 +189,7 @@ function describePlan(data: { mode: string; trialEndsAt: string | null; paidExpi
   return 'No active subscription'
 }
 
-function statusChip(data: { mode: string; trialDaysRemaining: number; renewalState: string | null }): string {
+function statusChip(data: { mode: string; trialDaysRemaining: number; renewalState: string | null; autoRenew: boolean; paidExpiresAt: string | null; gifted?: boolean }): string {
   if (data.mode === 'trial') return trialRemainingLabel(data.trialDaysRemaining)
   // Bought mid-trial: they're subscribed, the plan line says when the first charge is.
   if (data.renewalState === 'scheduled') return 'Subscribed'
@@ -197,13 +197,18 @@ function statusChip(data: { mode: string; trialDaysRemaining: number; renewalSta
   if (data.renewalState === 'on_hold') return 'On hold'
   if (data.renewalState === 'paused') return 'Paused'
   if (data.renewalState === 'pending') return 'Pending'
+  // Renewal switched off: say when it stops, not "Active" like nothing changed.
+  if (data.mode === 'paid' && !data.autoRenew && !data.gifted && data.paidExpiresAt) {
+    return `Ends ${new Date(data.paidExpiresAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}`
+  }
   if (data.mode === 'paid') return 'Active'
   return 'Expired'
 }
 
 /** Colour of the paid-plan status pill: green when all's well, amber when it needs attention. */
-function chipTone(data: { renewalState: string | null }): keyof typeof CHIP_TONE {
+function chipTone(data: { renewalState: string | null; autoRenew: boolean; gifted?: boolean }): keyof typeof CHIP_TONE {
   if (data.renewalState && ['grace', 'on_hold', 'paused', 'pending'].includes(data.renewalState)) return 'warn'
+  if (!data.autoRenew && !data.gifted) return 'warn'
   return 'good'
 }
 
