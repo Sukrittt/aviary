@@ -5,9 +5,9 @@ import userEvent from '@testing-library/user-event'
 import { currentMonthKey } from '../lib/envelope'
 import { BudgetWriteError } from '../lib/budgetConflict'
 
-const mocks = vi.hoisted(() => ({ fresh: vi.fn(), update: vi.fn(), add: vi.fn(), transfer: vi.fn(), addIncome: vi.fn(), accounts: [] as { id: string; name: string; type: string; archived: boolean; created_at: string }[], budgets: [] as {month: string; category: string; assigned: string; rolled_over: string; extra?: string; version: number}[] }))
+const mocks = vi.hoisted(() => ({ fresh: vi.fn(), update: vi.fn(), add: vi.fn(), transfer: vi.fn(), addIncome: vi.fn(), budgetsLoading: false, accounts: [] as { id: string; name: string; type: string; archived: boolean; created_at: string }[], budgets: [] as {month: string; category: string; assigned: string; rolled_over: string; extra?: string; version: number}[] }))
 vi.mock('../hooks/useBudgets', () => ({
-  useBudgets: () => ({ data: mocks.budgets }),
+  useBudgets: () => (mocks.budgetsLoading ? { data: undefined, isLoading: true } : { data: mocks.budgets }),
   useFreshBudgets: () => mocks.fresh,
   useUpdateBudget: () => ({ mutateAsync: mocks.update }),
   useAddBudget: () => ({ mutateAsync: mocks.add }),
@@ -28,6 +28,7 @@ beforeEach(() => {
   mocks.transfer.mockResolvedValue(undefined)
   mocks.addIncome.mockResolvedValue({ id: 'i1' })
   mocks.accounts = []
+  mocks.budgetsLoading = false
   mocks.budgets = [['__income__', '2000'], ['Food', '100'], ['Rent', '500']].map(([category, assigned]) => ({ month: currentMonthKey(), category, assigned, rolled_over: '0', version: 3 }))
 })
 
@@ -123,6 +124,15 @@ describe('money screens', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add' }))
     await waitFor(() => expect(mocks.addIncome).toHaveBeenCalledWith(expect.objectContaining({ amount: 10000, label: 'Diwali bonus', client_id: expect.any(String) })))
     expect(mocks.update).not.toHaveBeenCalled()
+  })
+
+  it('lets you type a one-off before the budget data has loaded', async () => {
+    mocks.budgetsLoading = true
+    render(<AddIncomeScreen onClose={vi.fn()} />)
+    typeAmount('300')
+    expect(screen.getByText('Adds to Ready to Assign · this month only')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    await waitFor(() => expect(mocks.addIncome).toHaveBeenCalledWith(expect.objectContaining({ amount: 300 })))
   })
 
   it('names an unnamed one-off and offers accounts once there are some', async () => {

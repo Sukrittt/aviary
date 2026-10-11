@@ -981,9 +981,9 @@ export function AddIncomeScreen({ onClose }: { onClose: () => void }) {
   const [clientId] = useState(() => crypto.randomUUID())
   const value = Number(amountText) || 0
 
-  if (data.isLoading) return <Screen title="Add income" onClose={onClose} busy={false}><LoadingCaption /></Screen>
   const month = currentMonthKey()
-  const state = computeEnvelopeState(data.budgets, data.expenses, month, data.categories, data.groups)
+  // Only the two preview lines need the budget data; the form never waits on it.
+  const state = data.isLoading ? null : computeEnvelopeState(data.budgets, data.expenses, month, data.categories, data.groups)
 
   async function submit() {
     if (busy || value <= 0) return
@@ -1003,9 +1003,11 @@ export function AddIncomeScreen({ onClose }: { onClose: () => void }) {
     }
   }
 
-  const detail = state.incomeExtra === 0
-    ? `${formatCurrency(state.incomeBase, hideAmounts)} monthly`
-    : `${formatCurrency(state.incomeBase, hideAmounts)} monthly · ${formatCurrency(state.incomeExtra, hideAmounts)} extra`
+  const detail = !state
+    ? '…'
+    : state.incomeExtra === 0
+      ? `${formatCurrency(state.incomeBase, hideAmounts)} monthly`
+      : `${formatCurrency(state.incomeBase, hideAmounts)} monthly · ${formatCurrency(state.incomeExtra, hideAmounts)} extra`
 
   return (
     <Screen title="Add income" onClose={onClose} busy={busy} showHeader={false}>
@@ -1020,7 +1022,9 @@ export function AddIncomeScreen({ onClose }: { onClose: () => void }) {
         <HeroAmount amountText={amountText} onChange={setAmountText}>
           <motion.p key={value > 0 ? 'impact' : 'hint'} className="money-hint" {...FADE_IN}>
             {value > 0
-              ? `Ready to Assign ${formatCurrency(state.readyToAssign + value, hideAmounts)} · this month only`
+              ? state
+                ? `Ready to Assign ${formatCurrency(state.readyToAssign + value, hideAmounts)} · this month only`
+                : 'Adds to Ready to Assign · this month only'
               : 'What came in on top of your monthly income'}
           </motion.p>
         </HeroAmount>
