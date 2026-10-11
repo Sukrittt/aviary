@@ -90,7 +90,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
   const [added, setAdded] = useState<AddedExpense | null>(null)
   const deleteExpenseM = useDeleteExpense()
   const [undoError, setUndoError] = useState('')
-  // Optional photo, picked behind "More": a downscaled JPEG data URL, uploaded once the expense exists.
+  // Optional photo: a downscaled JPEG data URL, uploaded once the expense exists.
   const [photo, setPhoto] = useState<string | null>(null)
   const [photoError, setPhotoError] = useState('')
   const [photoNotice, setPhotoNotice] = useState('')
@@ -472,28 +472,35 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
               </section>
 
               <section className="erd-log-section">
-                <div className="erd-log-label-row">
-                  <div ref={categoryNudgeRef} className={`erd-log-label${flag('category') ? ' is-missing' : ''}`}>
-                    Category
-                  </div>
-                  <button type="button" className="erd-chip" style={{ marginInlineStart: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6 }} onClick={() => setShowAddCategory(true)}>
-                    <Plus size={15} aria-hidden="true" />
-                    Add
-                  </button>
+                <div ref={categoryNudgeRef} className={`erd-log-label${flag('category') ? ' is-missing' : ''}`}>
+                  Category
                 </div>
-                <CategoryPicker value={effectiveCategory} onChange={handleCategoryPick} additionalCategory={createdCategory} />
+                <CategoryPicker
+                  value={effectiveCategory}
+                  onChange={handleCategoryPick}
+                  additionalCategory={createdCategory}
+                  trailing={
+                    <button type="button" className="erd-chip erd-chip--add" onClick={() => setShowAddCategory(true)}>
+                      <Plus size={15} aria-hidden="true" />
+                      Add
+                    </button>
+                  }
+                />
               </section>
 
               {accountsQ.isSuccess && (
                 <section className="erd-log-section">
-                  <div className="erd-log-label-row">
-                    <div className="erd-log-label">Paid from</div>
-                    <button type="button" className="erd-chip" style={{ marginInlineStart: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6 }} aria-label="Add account" onClick={() => setShowAddAccount(true)}>
-                      <Plus size={15} aria-hidden="true" />
-                      Add
-                    </button>
-                  </div>
-                  {accounts.length > 0 && <AccountChips accounts={accounts} value={accountId} onChange={setAccountPick} showLabel={false} />}
+                  <AccountChips
+                    accounts={accounts}
+                    value={accountId}
+                    onChange={setAccountPick}
+                    trailing={
+                      <button type="button" className="erd-chip erd-chip--add" aria-label="Add account" onClick={() => setShowAddAccount(true)}>
+                        <Plus size={15} aria-hidden="true" />
+                        Add
+                      </button>
+                    }
+                  />
                 </section>
               )}
 
@@ -540,6 +547,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
               </section>
 
               <ExpensePhotoMore
+                inline
                 photoUrl={photo}
                 error={photoError}
                 busy={saving || success}

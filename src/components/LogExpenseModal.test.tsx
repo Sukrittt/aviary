@@ -31,11 +31,12 @@ vi.mock('../hooks/useCategories', () => ({
 }))
 vi.mock('@/src/context/CurrencyContext', () => ({ useCurrency: () => ({ currencySymbol: '₹', formatMoney: (n: number) => `₹${n}` }) }))
 vi.mock('./CategoryPicker', () => ({
-  CategoryPicker: ({ value, onChange }: { value: string; onChange: (value: string) => void }) => (
+  CategoryPicker: ({ value, onChange, trailing }: { value: string; onChange: (value: string) => void; trailing?: React.ReactNode }) => (
     <>
       <output aria-label="Category">{value}</output>
       <button type="button" onClick={() => onChange(history.rows.length ? '🛒 Groceries' : 'Groceries')}>Choose Groceries</button>
       <button type="button" onClick={() => onChange('Eating out')}>Choose Eating out</button>
+      {trailing}
     </>
   ),
 }))
@@ -378,4 +379,10 @@ it('cancels category creation while preserving the expense and previous category
   expect(addCategoryMutation).not.toHaveBeenCalled()
   fireEvent.click(screen.getByRole('button', { name: 'Add' }))
   expect(screen.getByLabelText('Name')).toHaveValue('')
+})
+
+it('shows Add a photo right away, with no More toggle', () => {
+  render(<LogExpenseModal onClose={vi.fn()} onSaved={vi.fn()} />)
+  expect(screen.getByRole('button', { name: 'Add a photo' })).toBeTruthy()
+  expect(screen.queryByRole('button', { name: 'More' })).toBeNull()
 })

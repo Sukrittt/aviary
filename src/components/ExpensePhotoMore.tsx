@@ -13,6 +13,8 @@ interface Props {
   onOpen?: () => void
   onPick: (file: File) => void
   onRemove: () => void
+  /** Show the photo control right away, without the "More" toggle. */
+  inline?: boolean
 }
 
 /**
@@ -20,14 +22,14 @@ interface Props {
  * feature, so they never sit on the quick-log path: the control only appears
  * once the user asks for more.
  */
-export function ExpensePhotoMore({ photoUrl, hasPhoto, busy, error, onOpen, onPick, onRemove }: Props) {
-  const [open, setOpen] = useState(false)
+export function ExpensePhotoMore({ photoUrl, hasPhoto, busy, error, onOpen, onPick, onRemove, inline = false }: Props) {
+  const [open, setOpen] = useState(inline)
   const inputRef = useRef<HTMLInputElement>(null)
   const panelId = useId()
 
   return (
-    <section className="erd-more">
-      <button
+    <section className={inline ? 'erd-log-section' : 'erd-more'}>
+      {!inline && <button
         type="button"
         className="erd-more-toggle"
         aria-expanded={open}
@@ -39,10 +41,10 @@ export function ExpensePhotoMore({ photoUrl, hasPhoto, busy, error, onOpen, onPi
       >
         {hasPhoto && !open ? 'More · 1 photo' : 'More'}
         <ChevronDown size={14} aria-hidden="true" className={open ? 'is-open' : undefined} />
-      </button>
+      </button>}
 
       {open && (
-        <div id={panelId} className="erd-more-panel">
+        <div id={panelId} className={inline ? undefined : 'erd-more-panel'}>
           <div className="erd-log-label">Photo</div>
           <input
             ref={inputRef}

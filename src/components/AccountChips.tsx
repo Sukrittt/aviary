@@ -1,5 +1,6 @@
 'use client'
 
+import type { ReactNode } from 'react'
 import type { AccountRow } from '../types'
 import { splitEmoji } from '../lib/emoji'
 
@@ -27,18 +28,19 @@ export function AccountChips({
   onChange,
   allowNone = false,
   label = 'Paid from',
-  showLabel = true,
+  trailing,
 }: {
   accounts: AccountRow[]
   value: string
   onChange: (id: string) => void
   allowNone?: boolean
   label?: string
-  showLabel?: boolean
+  /** Rendered after the last chip, e.g. an Add button. */
+  trailing?: ReactNode
 }) {
   return (
     <div>
-      {showLabel && <div className="erd-log-label">{label}</div>}
+      <div className="erd-log-label">{label}</div>
       <div className="erd-chip-row" role="radiogroup" aria-label={label}>
         {allowNone && (
           <button type="button" role="radio" aria-checked={value === ''} className={`erd-chip ${value === '' ? 'is-selected' : ''}`} onClick={() => onChange('')}>
@@ -57,6 +59,7 @@ export function AccountChips({
             <span aria-hidden="true">{accountEmoji(a)}</span> {accountLabel(a)}
           </button>
         ))}
+        {trailing}
       </div>
     </div>
   )
