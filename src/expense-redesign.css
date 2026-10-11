@@ -3078,6 +3078,11 @@
 .erd-recurring-section .erd-log-label {
   margin: 0 0 8px;
 }
+/* A few cadence chips, never a long list: no scroll box to clip their edges. */
+.erd-recurring-section .erd-chip-row {
+  max-height: none;
+  overflow: visible;
+}
 .erd-recurring-section .erd-log-input {
   height: 50px;
   margin-top: 0;
