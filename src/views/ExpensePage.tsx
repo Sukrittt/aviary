@@ -140,7 +140,8 @@ export function ExpensePage() {
   const [assignTarget, setAssignTarget] = useState<string | null>(null);
   const [editReady, setEditReady] = useState(false);
   const [incomeScreen, setIncomeScreen] = useState<"add" | "monthly" | null>(null);
-  const [incomeMenuOpen, setIncomeMenuOpen] = useState(false);
+  // The pencil and the income pill open the same menu, each under itself.
+  const [incomeMenuAt, setIncomeMenuAt] = useState<"pencil" | "pill" | null>(null);
   // Change income edits the monthly schedule Ready to Assign counts from day 1.
   // With more than one, or before they've loaded (a create form then could
   // duplicate one), the Income page is the place to pick.
@@ -149,13 +150,15 @@ export function ExpensePage() {
   useAccounts();
   const monthlySchedules = (schedulesQ.data ?? []).filter((r) => r.frequency === "monthly" && r.status === "active");
   const incomeMenuRef = useRef<HTMLDivElement | null>(null);
+  const incomePillRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
-    if (!incomeMenuOpen) return;
+    if (!incomeMenuAt) return;
+    const anchor = incomeMenuAt === "pill" ? incomePillRef : incomeMenuRef;
     function onPointer(e: MouseEvent) {
-      if (!incomeMenuRef.current?.contains(e.target as Node)) setIncomeMenuOpen(false);
+      if (!anchor.current?.contains(e.target as Node)) setIncomeMenuAt(null);
     }
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setIncomeMenuOpen(false);
+      if (e.key === "Escape") setIncomeMenuAt(null);
     }
     document.addEventListener("mousedown", onPointer);
     document.addEventListener("keydown", onKey);
@@ -163,7 +166,56 @@ export function ExpensePage() {
       document.removeEventListener("mousedown", onPointer);
       document.removeEventListener("keydown", onKey);
     };
-  }, [incomeMenuOpen]);
+  }, [incomeMenuAt]);
+  const incomeMenu = (
+    <div className="env-menu" role="menu">
+      <button
+        type="button"
+        role="menuitem"
+        className="env-menu-item"
+        onClick={() => {
+          setIncomeMenuAt(null);
+          if (!schedulesQ.data || monthlySchedules.length > 1) router.push("/account/income");
+          else setIncomeScreen("monthly");
+        }}
+      >
+        Change income
+      </button>
+      <button
+        type="button"
+        role="menuitem"
+        className="env-menu-item"
+        onClick={() => {
+          setIncomeMenuAt(null);
+          router.push("/account/income");
+        }}
+      >
+        Manage income
+      </button>
+      <button
+        type="button"
+        role="menuitem"
+        className="env-menu-item"
+        onClick={() => {
+          setIncomeMenuAt(null);
+          setIncomeScreen("add");
+        }}
+      >
+        Add income
+      </button>
+      <button
+        type="button"
+        role="menuitem"
+        className="env-menu-item"
+        onClick={() => {
+          setIncomeMenuAt(null);
+          setEditReady(true);
+        }}
+      >
+        Set Ready to Assign
+      </button>
+    </div>
+  );
   const [showBulkReturnConfirm, setShowBulkReturnConfirm] = useState(false);
   const previousMonth = prevMonthKey(panel?.month ?? currentMonthKey());
   const [leftoverDismissed, setLeftoverDismissed] = usePersistentState(
@@ -371,6 +423,27 @@ export function ExpensePage() {
                         ? "Less than 24 hrs"
                         : `${daysLeftInMonth()} days left`}
                     </span>
+                    {/* The pencil is easy to miss, so this pill names where the
+                        number comes from. With no income yet it goes straight to
+                        setting it. */}
+                    <div className="env-action-wrap erd-home-pill-wrap" ref={incomePillRef}>
+                      <button
+                        type="button"
+                        aria-haspopup={envelopeState.income === 0 ? undefined : "menu"}
+                        aria-expanded={envelopeState.income === 0 ? undefined : incomeMenuAt === "pill"}
+                        className={`erd-home-income-pill ${envelopeState.income === 0 ? "is-empty" : ""}`}
+                        onClick={() => {
+                          if (envelopeState.income === 0) setIncomeScreen("monthly");
+                          else setIncomeMenuAt((at) => (at === "pill" ? null : "pill"));
+                        }}
+                      >
+                        {envelopeState.income === 0
+                          ? "Set your income"
+                          : `Income · ${formatCurrency(envelopeState.income, hideAmounts)}`}
+                        <ChevronRight size={14} aria-hidden="true" />
+                      </button>
+                      {incomeMenuAt === "pill" && incomeMenu}
+                    </div>
                   </div>
                   <div className="env-action-wrap erd-home-hero-menu" ref={incomeMenuRef}>
                     <button
@@ -378,60 +451,12 @@ export function ExpensePage() {
                       className="env-menu-trigger"
                       aria-label="Income options"
                       aria-haspopup="menu"
-                      aria-expanded={incomeMenuOpen}
-                      onClick={() => setIncomeMenuOpen((open) => !open)}
+                      aria-expanded={incomeMenuAt === "pencil"}
+                      onClick={() => setIncomeMenuAt((at) => (at === "pencil" ? null : "pencil"))}
                     >
                       <Pencil size={15} aria-hidden="true" />
                     </button>
-                    {incomeMenuOpen && (
-                      <div className="env-menu" role="menu">
-                        <button
-                          type="button"
-                          role="menuitem"
-                          className="env-menu-item"
-                          onClick={() => {
-                            setIncomeMenuOpen(false);
-                            if (!schedulesQ.data || monthlySchedules.length > 1) router.push("/account/income");
-                            else setIncomeScreen("monthly");
-                          }}
-                        >
-                          Change income
-                        </button>
-                        <button
-                          type="button"
-                          role="menuitem"
-                          className="env-menu-item"
-                          onClick={() => {
-                            setIncomeMenuOpen(false);
-                            router.push("/account/income");
-                          }}
-                        >
-                          Manage income
-                        </button>
-                        <button
-                          type="button"
-                          role="menuitem"
-                          className="env-menu-item"
-                          onClick={() => {
-                            setIncomeMenuOpen(false);
-                            setIncomeScreen("add");
-                          }}
-                        >
-                          Add income
-                        </button>
-                        <button
-                          type="button"
-                          role="menuitem"
-                          className="env-menu-item"
-                          onClick={() => {
-                            setIncomeMenuOpen(false);
-                            setEditReady(true);
-                          }}
-                        >
-                          Set Ready to Assign
-                        </button>
-                      </div>
-                    )}
+                    {incomeMenuAt === "pencil" && incomeMenu}
                   </div>
                 </article>
               )}

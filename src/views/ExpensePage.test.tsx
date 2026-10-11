@@ -184,3 +184,23 @@ it('renders the finished home screen from a filled cache on the first render, an
   expect(onRecoverableError).not.toHaveBeenCalled()
   container.remove()
 })
+
+it('names income in a pill under the hero that opens the income menu', async () => {
+  const client = renderPage()
+  const pill = await screen.findByRole('button', { name: 'Income · ₹20,000' })
+  fireEvent.click(pill)
+  expect(pill.parentElement).toContainElement(screen.getByRole('menuitem', { name: 'Change income' }))
+  expect(pill).toHaveAttribute('aria-expanded', 'true')
+  client.clear()
+})
+
+it('asks to set income from the hero pill when there is none', async () => {
+  vi.mocked(getBudgets).mockResolvedValue([{ month, category: 'Food', assigned: '0', rolled_over: '0', version: 1 }])
+  vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }))
+  const client = renderPage()
+  const pill = await screen.findByRole('button', { name: 'Set your income' })
+  fireEvent.click(pill)
+  expect(await screen.findByDisplayValue('Monthly income')).toBeInTheDocument()
+  client.clear()
+  vi.unstubAllGlobals()
+})
