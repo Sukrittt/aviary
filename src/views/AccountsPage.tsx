@@ -56,7 +56,7 @@ export function AccountsPage() {
         <div className="txn-page-heading">
           <span className="txn-page-eyebrow">Where your money lives</span>
           <h1>Accounts</h1>
-          <p>{live.length === 0 ? 'Add a bank, card or wallet to get started.' : `${live.length} in use`}</p>
+          <p>{live.length === 0 ? 'Add a bank, card or wallet to get started.' : 'Each expense says which one paid.'}</p>
         </div>
         <div className="txn-page-actions">
           <button type="button" className="erd-log-btn txn-page-log-btn" onClick={() => setEditing('')}>
@@ -67,7 +67,7 @@ export function AccountsPage() {
       </header>
 
       {accountsQ.isLoading ? (
-        <LoadingCaption placement="page" />
+        <LoadingCaption placement="page" feature="accounts" />
       ) : accountsQ.isError ? (
         <div className="account-empty">
           <p className="account-row-meta">Couldn&apos;t load your accounts. Check your connection and try again.</p>
@@ -90,7 +90,7 @@ export function AccountsPage() {
             ))}
           </ul>
           <p className="recurring-hint" style={{ padding: '0 4px' }}>
-            Pick one when you log an expense. Your weekly balance check asks about each bank account.
+            These are just labels, so there&apos;s no balance to keep up. Pick one when you log an expense. Your weekly balance check asks about each bank account.
           </p>
           {archived.length > 0 && (
             <div>
@@ -124,7 +124,7 @@ export function AccountsPage() {
 function StarterAccounts() {
   const balance = useBalanceStatus()
   // The picks are seeded once, so wait for the names to arrive first.
-  if (balance.isLoading) return <LoadingCaption placement="page" />
+  if (balance.isLoading) return <LoadingCaption placement="page" feature="accounts" />
   return <StarterPicks names={balance.data?.accounts ?? []} />
 }
 
@@ -159,7 +159,7 @@ function StarterPicks({ names }: { names: string[] }) {
     <div className="account-card" style={{ padding: 18 }}>
       <div className="account-row-label">Start with these?</div>
       <p className="account-row-meta" style={{ margin: '4px 0 12px' }}>
-        Name where your money lives. Then each expense can say which one it came from.
+        Name where your money lives. Then each expense can say which one it came from. They&apos;re just labels, so there&apos;s no balance to keep up.
       </p>
       <div className="erd-chip-row">
         {choices.map((c, i) => (

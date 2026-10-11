@@ -111,6 +111,7 @@ export const LOADING_PHRASES = {
   exports: ['Loading your exports…', 'Almost there…'],
   exportBuilding: ['Packing your data…', 'Tidying the columns…', 'Almost ready…'],
   appEntry: ['Opening the nest…', 'Finding your perch…', 'Smoothing the feathers…', 'Almost there…'],
+  accounts: ['Opening your wallet…', 'Shaking the piggy bank…', 'Shuffling your cards…', 'Counting the coin jar…'],
   wrappedStatus: ['Checking last month…', 'Counting transactions…', 'Tallying it up…', 'Almost there…'],
 } as const
 
