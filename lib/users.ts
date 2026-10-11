@@ -5,7 +5,7 @@ import { purgesAt } from './archive'
 import { queueWelcomeEmail, type WelcomeDelivery } from './email/welcome'
 
 /** Features a user can hide from Mobile's More page for a simpler app. Hiding removes entry points only; data is untouched. */
-export const HIDEABLE_FEATURES = ['askAviary', 'investments', 'billScan', 'recurring', 'subscriptions', 'insights', 'wrapped'] as const
+export const HIDEABLE_FEATURES = ['askAviary', 'investments', 'billScan', 'recurring', 'subscriptions', 'insights', 'wrapped', 'income', 'accounts'] as const
 export type HideableFeature = (typeof HIDEABLE_FEATURES)[number]
 
 export interface UserDoc {

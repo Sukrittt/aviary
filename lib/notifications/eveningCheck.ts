@@ -2,7 +2,7 @@ import type { Db } from 'mongodb'
 import { getDb } from '@/lib/mongodb'
 import { COLLECTIONS } from '@/lib/models'
 import { nowIn } from '@/lib/http'
-import { sendPushNotification } from '@/lib/push'
+import { checkPushReceipts, sendPushNotification } from '@/lib/push'
 import type { UserDoc } from '@/lib/users'
 import { isSubscriptionDueToday } from '@/lib/subscriptions'
 import { claim, unclaim } from './deliver'
@@ -57,7 +57,7 @@ async function autoAddDueToday(db: Db, userId: string, date: string): Promise<bo
     .findOne({ ...live, status: 'active', next_run_date: { $lte: date } }, { projection: { _id: 1 } })
   if (recurring) return true
   const subs = await db.collection(COLLECTIONS.subscriptions).find(live).toArray()
-  return subs.some((sub) =>
+  const due = subs.filter((sub) =>
     isSubscriptionDueToday(
       {
         nextDueDate: String(sub.next_due_date ?? ''),
@@ -69,6 +69,12 @@ async function autoAddDueToday(db: Db, userId: string, date: string): Promise<bo
       date,
     ),
   )
+  if (due.length === 0) return false
+  // next_due_date doesn't advance after the auto-add, so a sub still reads as due
+  // once it's been added (and maybe deleted). Its push claim marks it done.
+  const keys = [...new Set(due.map((sub) => `sub-expense:${String(sub.service)}:${date}`))]
+  const added = await db.collection(COLLECTIONS.notificationLog).countDocuments({ user_id: userId, key: { $in: keys } })
+  return added < keys.length
 }
 
 /**
@@ -80,7 +86,12 @@ async function autoAddDueToday(db: Db, userId: string, date: string): Promise<bo
  * ponytail: one user at a time, same as notifications/run. Batch the expense
  * lookup into one aggregation if the push-token population outgrows a run.
  */
-export async function runEveningCheck(at = new Date()): Promise<{ sent: number; failed: number }> {
+export async function runEveningCheck(at = new Date()): Promise<{ sent: number; failed: number; pruned: number }> {
+  // Hourly is a good beat for this: dead tokens leave before the next nudge counts them as delivered.
+  const { pruned } = await checkPushReceipts(at).catch((err) => {
+    console.error('evening-check: push receipt check failed', err)
+    return { pruned: 0 }
+  })
   const db = await getDb()
   const withDevice = await db.collection(COLLECTIONS.pushTokens).distinct('user_id')
   const users = await db
@@ -118,5 +129,5 @@ export async function runEveningCheck(at = new Date()): Promise<{ sent: number; 
       failed++
     }
   }
-  return { sent, failed }
+  return { sent, failed, pruned }
 }

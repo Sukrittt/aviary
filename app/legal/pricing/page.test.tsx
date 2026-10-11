@@ -4,6 +4,9 @@ import { getPlanPrices } from '@/lib/billing/razorpay'
 import PricingPage from './page'
 
 vi.mock('@/lib/billing/razorpay', () => ({ getPlanPrices: vi.fn() }))
+let paypalOn = false
+const paypalPricesMock = vi.fn()
+vi.mock('@/lib/billing/paypal', () => ({ paypalConfig: () => (paypalOn ? {} : null), getPayPalPlanPrices: () => paypalPricesMock() }))
 let country: string | null = null
 vi.mock('next/headers', () => ({ headers: async () => new Headers(country ? { 'x-vercel-ip-country': country } : {}) }))
 
@@ -15,6 +18,7 @@ const prices = [
 beforeEach(() => {
   vi.mocked(getPlanPrices).mockReset()
   country = null
+  paypalOn = false
 })
 
 describe('public pricing', () => {
@@ -82,5 +86,18 @@ describe('public pricing', () => {
     expect(screen.getByText('Money Brain')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /What happens when my trial ends\?/ })).toBeInTheDocument()
     expect(screen.getByRole('navigation', { name: 'Footer' })).toBeInTheDocument()
+  })
+
+  it("shows PayPal's own prices and checkout to visitors outside India once PayPal is set up", async () => {
+    country = 'GB'
+    paypalOn = true
+    paypalPricesMock.mockResolvedValue([
+      { period: 'monthly', amount: 590, currency: 'USD' },
+      { period: 'yearly', amount: 5900, currency: 'USD' },
+    ])
+    render(await PricingPage())
+    expect(within(screen.getByRole('region', { name: 'Monthly' })).getByText('$5.90')).toBeInTheDocument()
+    expect(screen.getByText(/PayPal or a card, through PayPal/)).toBeInTheDocument()
+    expect(getPlanPrices).not.toHaveBeenCalled()
   })
 })

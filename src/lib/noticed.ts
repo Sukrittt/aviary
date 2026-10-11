@@ -36,15 +36,12 @@ export function weeklyRepeat(
   }
 }
 
-function ordinal(n: number): string {
-  const teen = n % 100 >= 11 && n % 100 <= 13
-  const suffix = teen ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' } as Record<number, string>)[n % 10] ?? 'th'
-  return `${n}${suffix}`
-}
-
-/** "3rd time this week · ₹750 so far" from the third time on. Twice a week is just life. */
-export function noticedLine(repeat: { count: number; total: number }, formatMoney: (n: number) => string): string | null {
-  return repeat.count >= 3 ? `${ordinal(repeat.count)} time this week · ${formatMoney(Math.round(repeat.total))} so far` : null
+/**
+ * "One of your regulars this week" from the third time on. Twice a week is just
+ * life. No count or running total: a tally after every log reads as a scolding.
+ */
+export function noticedLine(count: number): string | null {
+  return count >= 3 ? 'One of your regulars this week' : null
 }
 
 // Logged by the server on a schedule, so they don't count toward the recap (see Web lib/weekRecap.ts).

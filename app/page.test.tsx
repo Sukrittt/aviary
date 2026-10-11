@@ -44,6 +44,8 @@ describe('landing sample data', () => {
     expect(out).toContain('4pm chai')
     expect(out).toContain('Log ₹850')
     expect(out).toContain('UPI/DR/6021843/SWIGGY')
+    expect(out).toContain('src="/landing/clip-log.mp4"')
+    expect(out).not.toContain('/landing/intl/')
   })
 
   it('shows dollars and examples that read anywhere outside India', async () => {
@@ -54,6 +56,9 @@ describe('landing sample data', () => {
     expect(out).toContain('Cab home · $18')
     expect(out).toContain('SQ *BLUE BOTTLE COFFEE SF')
     expect(out).toContain('every dollar')
+    expect(out).toContain('src="/landing/intl/clip-log.mp4"')
+    expect(out).toContain('Added $50 for Movie Tickets')
+    expect(out).toContain('Coffee with Sam · Eating out · $6')
     expect(out).not.toMatch(/chai|UPI\/DR|NACH|metro card|every rupee in/i)
   })
 })

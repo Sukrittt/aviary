@@ -15,7 +15,11 @@ vi.mock('@/lib/billing/guard', () => ({ requireAccess: async () => null }))
 vi.mock('@/lib/cache', () => ({ invalidate: vi.fn() }))
 // The expenses route imports lib/users, which drags in the server-only WorkOS client.
 vi.mock('@/lib/workosClient', () => ({ getWorkOSClient: vi.fn() }))
-vi.mock('@/lib/categoryMap', () => ({ invalidateCategoryMap: vi.fn() }))
+vi.mock('@/lib/categoryMap', () => ({
+  invalidateCategoryMap: vi.fn(),
+  getCachedCategoryMap: vi.fn(async () => ({ words: {}, updatedAt: '' })),
+  learnCategoryCorrection: vi.fn(async () => false),
+}))
 vi.mock('@/lib/notifications/instant', () => ({ notifyThresholdCrossed: vi.fn() }))
 // Real scoped/encrypted collections and real Mongo transactions. The barrier
 // only schedules both reads before either write; retries pass straight through.

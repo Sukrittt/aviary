@@ -78,6 +78,9 @@ export type AppEvent =
   | 'ai_allowance_hit'
   // Other features
   | 'recurring_created'
+  | 'income_added'
+  | 'recurring_income_created'
+  | 'account_created'
   | 'recurring_suggestion_accepted'
   | 'recurring_suggestion_dismissed'
   | 'holding_added'

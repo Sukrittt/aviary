@@ -1,7 +1,7 @@
 // Subscription access, as the server sees it. Twin of Mobile/src/api/billing.ts.
 //
-// Two ways to pay, one account: Google Play in the Android app, and Razorpay
-// checkout here on the web. Either one unlocks both clients, because the
+// Several ways to pay, one account: Google Play in the Android app, and on
+// the web Razorpay (India) or PayPal (everywhere else). Either one unlocks both clients, because the
 // server decides access from its own verified records, not the client.
 import type { UserProfile } from './account'
 import { apiFetch } from './client'
@@ -71,10 +71,20 @@ export interface PlanPrice {
   currency: string
 }
 
-export async function getWebPlans(): Promise<PlanPrice[]> {
+/** Who sells to this visitor. The server picks by country. */
+export type WebCheckoutProvider = 'razorpay' | 'paypal'
+
+export interface WebPlans {
+  plans: PlanPrice[]
+  /** Absent from older servers, which only sold through Razorpay. */
+  provider: WebCheckoutProvider
+}
+
+export async function getWebPlans(): Promise<WebPlans> {
   const resp = await apiFetch('/api/billing/razorpay/plans')
   if (!resp.ok) throw new Error(`Failed to load plans: ${resp.status}`)
-  return (await resp.json()).plans
+  const body = await resp.json()
+  return { plans: body.plans, provider: body.provider ?? 'razorpay' }
 }
 
 /** Thrown by startWebCheckout when the account already has a paid plan somewhere. */
@@ -93,6 +103,30 @@ export async function startWebCheckout(period: PlanPeriod): Promise<{ subscripti
   })
   if (resp.status === 409) throw new AlreadySubscribedError((await resp.json()).store ?? null)
   if (!resp.ok) throw new Error(`Failed to start checkout: ${resp.status}`)
+  return resp.json()
+}
+
+/** Create a PayPal subscription for this account. Returns PayPal's approval page to send the browser to. */
+export async function startPayPalCheckout(period: PlanPeriod): Promise<{ approveUrl: string }> {
+  const resp = await apiFetch('/api/billing/paypal/subscribe', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ period }),
+  })
+  if (resp.status === 409) throw new AlreadySubscribedError((await resp.json()).store ?? null)
+  if (!resp.ok) throw new Error(`Failed to start checkout: ${resp.status}`)
+  return resp.json()
+}
+
+/** Back from PayPal: the server re-checks the subscription with PayPal. Same 503 contract as verifyWebCheckout. */
+export async function verifyPayPalCheckout(subscriptionId: string): Promise<BillingStatus> {
+  const resp = await apiFetch('/api/billing/paypal/verify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ subscriptionId }),
+  })
+  if (resp.status === 503) return resp.json()
+  if (!resp.ok) throw new Error(`Failed to confirm payment: ${resp.status}`)
   return resp.json()
 }
 

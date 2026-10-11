@@ -23,6 +23,7 @@ vi.mock('@/lib/mongodb', () => ({
       if (name === 'users') return { find: usersFind }
       if (name === 'expenses') return { findOne: expensesFindOne }
       if (name === 'recurring_expenses') return { findOne: async (f: { user_id: string }) => recurringDue.find((r) => r.user_id === f.user_id) ?? null }
+      if (name === 'notification_log') return { countDocuments: async (f: { user_id: string; key: { $in: string[] } }) => f.key.$in.filter((k) => claimed.has(`${f.user_id}:${k}`)).length }
       if (name === 'subscriptions') return { find: (f: { user_id: string }) => ({ toArray: async () => subs.filter((x) => x.user_id === f.user_id) }) }
       throw new Error(`unexpected collection ${name}`)
     },
@@ -41,7 +42,10 @@ vi.mock('@/lib/notifications/deliver', () => ({
 }))
 
 const sendPushNotification = vi.fn(async (_msg: { userId: string; title: string; body: string; data?: Record<string, unknown> }) => 1)
-vi.mock('@/lib/push', () => ({ sendPushNotification: (msg: Parameters<typeof sendPushNotification>[0]) => sendPushNotification(msg) }))
+vi.mock('@/lib/push', () => ({
+  sendPushNotification: (msg: Parameters<typeof sendPushNotification>[0]) => sendPushNotification(msg),
+  checkPushReceipts: async () => ({ checked: 0, pruned: 0 }),
+}))
 
 const { eveningDateFor, eveningCopy, runEveningCheck } = await import('./eveningCheck')
 
@@ -97,7 +101,7 @@ describe('runEveningCheck', () => {
     tokenUsers = ['u1']
     users = [{ _id: 'u1', timezone: 'Asia/Kolkata' }]
 
-    expect(await runEveningCheck(at)).toEqual({ sent: 1, failed: 0 })
+    expect(await runEveningCheck(at)).toEqual({ sent: 1, failed: 0, pruned: 0 })
     expect(sendPushNotification).toHaveBeenCalledTimes(1)
     expect(sendPushNotification.mock.calls[0][0]).toMatchObject({ userId: 'u1', data: { route: '/modals/log-expense' } })
     expect(expensesFindOne).toHaveBeenCalledWith({ user_id: 'u1', date: '2026-10-06', deleted_at: null }, expect.anything())
@@ -108,7 +112,7 @@ describe('runEveningCheck', () => {
     users = [{ _id: 'u1', timezone: 'Asia/Kolkata' }]
     loggedToday = [{ user_id: 'u1', date: '2026-10-06' }]
 
-    expect(await runEveningCheck(at)).toEqual({ sent: 0, failed: 0 })
+    expect(await runEveningCheck(at)).toEqual({ sent: 0, failed: 0, pruned: 0 })
     expect(sendPushNotification).not.toHaveBeenCalled()
   })
 
@@ -116,7 +120,7 @@ describe('runEveningCheck', () => {
     tokenUsers = ['u1']
     users = [{ _id: 'u1', timezone: 'America/Los_Angeles' }]
 
-    expect(await runEveningCheck(at)).toEqual({ sent: 0, failed: 0 })
+    expect(await runEveningCheck(at)).toEqual({ sent: 0, failed: 0, pruned: 0 })
     expect(expensesFindOne).not.toHaveBeenCalled()
   })
 
@@ -125,7 +129,7 @@ describe('runEveningCheck', () => {
     users = [{ _id: 'u1', timezone: 'Asia/Kolkata' }]
 
     await runEveningCheck(at)
-    expect(await runEveningCheck(new Date('2026-10-06T16:00:00Z'))).toEqual({ sent: 0, failed: 0 })
+    expect(await runEveningCheck(new Date('2026-10-06T16:00:00Z'))).toEqual({ sent: 0, failed: 0, pruned: 0 })
     expect(sendPushNotification).toHaveBeenCalledTimes(1)
   })
 
@@ -134,8 +138,8 @@ describe('runEveningCheck', () => {
     users = [{ _id: 'u1', timezone: 'Asia/Kolkata' }]
     sendPushNotification.mockRejectedValueOnce(new Error('expo down'))
 
-    expect(await runEveningCheck(at)).toEqual({ sent: 0, failed: 1 })
-    expect(await runEveningCheck(new Date('2026-10-06T16:00:00Z'))).toEqual({ sent: 1, failed: 0 })
+    expect(await runEveningCheck(at)).toEqual({ sent: 0, failed: 1, pruned: 0 })
+    expect(await runEveningCheck(new Date('2026-10-06T16:00:00Z'))).toEqual({ sent: 1, failed: 0, pruned: 0 })
   })
 
   it('only looks at live users who have a device registered', async () => {
@@ -152,8 +156,8 @@ describe('runEveningCheck', () => {
     users = [{ _id: 'u1', timezone: 'Asia/Kolkata' }]
     sendPushNotification.mockResolvedValueOnce(0)
 
-    expect(await runEveningCheck(at)).toEqual({ sent: 0, failed: 1 })
-    expect(await runEveningCheck(new Date('2026-10-06T16:00:00Z'))).toEqual({ sent: 1, failed: 0 })
+    expect(await runEveningCheck(at)).toEqual({ sent: 0, failed: 1, pruned: 0 })
+    expect(await runEveningCheck(new Date('2026-10-06T16:00:00Z'))).toEqual({ sent: 1, failed: 0, pruned: 0 })
   })
 
   it('skips a user with a recurring expense still to be auto-added today', async () => {
@@ -161,17 +165,26 @@ describe('runEveningCheck', () => {
     users = [{ _id: 'u1', timezone: 'Asia/Kolkata' }]
     recurringDue = [{ user_id: 'u1' }]
 
-    expect(await runEveningCheck(at)).toEqual({ sent: 0, failed: 0 })
+    expect(await runEveningCheck(at)).toEqual({ sent: 0, failed: 0, pruned: 0 })
   })
 
   it('skips a user with a subscription due today, but not one due another day', async () => {
     tokenUsers = ['u1']
     users = [{ _id: 'u1', timezone: 'Asia/Kolkata' }]
     subs = [{ user_id: 'u1', next_due_date: '2026-10-09', billing_cycle: 'monthly', status: 'active' }]
-    expect(await runEveningCheck(at)).toEqual({ sent: 1, failed: 0 })
+    expect(await runEveningCheck(at)).toEqual({ sent: 1, failed: 0, pruned: 0 })
 
     claimed.clear()
     subs = [{ user_id: 'u1', next_due_date: '2026-10-06', billing_cycle: 'monthly', status: 'active' }]
-    expect(await runEveningCheck(at)).toEqual({ sent: 0, failed: 0 })
+    expect(await runEveningCheck(at)).toEqual({ sent: 0, failed: 0, pruned: 0 })
+  })
+
+  it('nudges when today\'s subscription was already auto-added and then deleted', async () => {
+    tokenUsers = ['u1']
+    users = [{ _id: 'u1', timezone: 'Asia/Kolkata' }]
+    subs = [{ user_id: 'u1', service: 'Claude Pro', next_due_date: '2026-10-06', billing_cycle: 'monthly', status: 'active' }]
+    claimed.add('u1:sub-expense:Claude Pro:2026-10-06')
+
+    expect(await runEveningCheck(at)).toEqual({ sent: 1, failed: 0, pruned: 0 })
   })
 })

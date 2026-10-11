@@ -56,6 +56,18 @@ const INDEXES = {
   chat_sessions: [[{ user_id: 1, updatedAt: -1 }, {}]],
   // Weekly balance checks: the latest one is read on every Home load.
   balance_checks: [[{ user_id: 1, timestamp: -1 }, {}]],
+  // Income ledger: listed by date; `client_id` makes a payday or a retried
+  // one-off post once (lib/income.ts).
+  incomes: [
+    [{ user_id: 1, date: -1 }, {}],
+    [{ user_id: 1, client_id: 1 }, { unique: true, partialFilterExpression: { client_id: { $type: 'string' } } }],
+  ],
+  // Same cron query as recurring_expenses, plus the one-time migration marker.
+  recurring_incomes: [
+    [{ user_id: 1, status: 1, next_run_date: 1 }, {}],
+    [{ user_id: 1, client_id: 1 }, { unique: true, partialFilterExpression: { client_id: { $type: 'string' } } }],
+  ],
+  accounts: [[{ user_id: 1 }, {}]],
   // TTL index: hits older than an hour (the longest window lib/rateLimit.ts
   // checks against) are garbage-collected automatically. Correctness never
   // depends on this running promptly — every check bounds by its own cutoff.
@@ -80,6 +92,11 @@ const INDEXES = {
   // what makes a repeat `insertOne` throw E11000 for an already-sent key.
   // The TTL index reclaims rows after 90 days — well past any lead-day or
   // digest window, so nothing correctness-relevant depends on its timing.
+  // Expo push tickets awaiting a receipt (lib/push.ts checkPushReceipts).
+  // Expo keeps receipts for a day, so anything older will never get one.
+  push_tickets: [
+    [{ sentAt: 1 }, { expireAfterSeconds: 60 * 60 * 24 }],
+  ],
   notification_log: [
     [{ user_id: 1, key: 1 }, { unique: true }],
     [{ sentAt: 1 }, { expireAfterSeconds: 60 * 60 * 24 * 90 }],

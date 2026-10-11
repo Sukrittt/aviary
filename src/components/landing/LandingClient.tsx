@@ -3,6 +3,7 @@
 import { useRef, useState, type ReactNode } from 'react'
 import { AnimatePresence, MotionConfig, motion, useReducedMotion } from 'motion/react'
 import { Volume2 } from 'lucide-react'
+import { useSample } from './sample'
 
 
 export function LandingMotion({ children }: { children: ReactNode }) {
@@ -33,6 +34,7 @@ export function chime() {
 
 /** The Added recording, with a button that replays it from the top with the chime and the buzz. */
 export function AddedClip() {
+  const { media, added } = useSample()
   const ref = useRef<HTMLVideoElement>(null)
   const replay = () => {
     const v = ref.current
@@ -43,7 +45,7 @@ export function AddedClip() {
     chime()
   }
   return <div className="lp-win-added">
-    <video ref={ref} className="lp-win-shot" src="/landing/clip-added.mp4" poster="/landing/poster-added.jpg" autoPlay muted loop playsInline preload="metadata" aria-label="Added ₹150 for Bike to office. Metro has ₹960 left of ₹1,110." />
+    <video ref={ref} className="lp-win-shot" src={media('clip-added.mp4')} poster={media('poster-added.jpg')} autoPlay muted loop playsInline preload="metadata" aria-label={added} />
     <button type="button" className="lp-hear" onClick={replay}><Volume2 size={16} aria-hidden="true" />Hear the chime</button>
   </div>
 }

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { resolveAccess, trialWindow, pickSubscription, extendTrialEnd } from './access'
 import { TRIAL_DAYS, type BillingAccountDoc, type BillingSubscriptionDoc, type SubscriptionStatus } from './records'
 
@@ -216,5 +216,16 @@ describe('sandbox isolation', () => {
     expect(pickSubscription([sandbox], NOW)).toBeNull()
     expect(pickSubscription([live, sandbox], NOW)).toBe(live)
     expect(resolve({ subscription: sandbox })).toMatchObject({ allowed: false, store: null, renewalState: null })
+  })
+
+  it('lets sandbox purchases grant access where BILLING_ACCEPT_SANDBOX=1 (staging)', () => {
+    vi.stubEnv('BILLING_ACCEPT_SANDBOX', '1')
+    try {
+      const sandbox = sub('active', new Date(NOW.getTime() + 365 * DAY), { environment: 'sandbox' })
+      expect(pickSubscription([sandbox], NOW)).toBe(sandbox)
+      expect(resolve({ subscription: sandbox })).toMatchObject({ allowed: true })
+    } finally {
+      vi.unstubAllEnvs()
+    }
   })
 })

@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { Bell, Brain, Gift, Landmark, Mail, Monitor, PieChart, Repeat, ScanLine, Smartphone, Wallet, WifiOff } from 'lucide-react'
 import { pageMetadata } from '@/lib/seo'
-import { visitorPlanPrices } from '@/lib/billing/prices'
+import { visitorCheckoutProvider, visitorPlanPrices } from '@/lib/billing/prices'
 import { formatPrice, PLAY_STORE_URL, yearlySavingsPercent } from '@/src/components/billing/copy'
 import { BirdLanding } from '@/src/components/BirdMark'
 import { TrackedLink } from '@/src/components/TrackedLink'
@@ -10,7 +10,7 @@ import { LandingFooter, LandingHeader } from '@/src/components/landing/Chrome'
 import '@/src/landing.css'
 
 export const metadata = pageMetadata('/legal/pricing')
-// Read from Razorpay (cached in-process) and the visitor's country, so the page always shows the price that's actually charged.
+// Read from Razorpay or PayPal (cached in-process) by the visitor's country, so the page always shows the price that's actually charged.
 export const dynamic = 'force-dynamic'
 
 /** A plan's price split over `parts`, rounded to a whole rupee, or to a cent for other currencies. */
@@ -42,7 +42,7 @@ const FAQS = [
 ]
 
 export default async function PricingPage() {
-  const prices = await visitorPlanPrices()
+  const [prices, provider] = await Promise.all([visitorPlanPrices(), visitorCheckoutProvider()])
   const monthly = prices?.find((p) => p.period === 'monthly')
   const yearly = prices?.find((p) => p.period === 'yearly')
   const saving = monthly && yearly ? yearlySavingsPercent(monthly.amount, yearly.amount) : null
@@ -102,7 +102,7 @@ export default async function PricingPage() {
         <div className="lp-card lp-pay-card">
           <span className="lp-include-icon lp-tone-savings" aria-hidden="true"><Monitor size={22} strokeWidth={2.2} /></span>
           <strong>On the website</strong>
-          <span>UPI AutoPay or a card, through Razorpay. Manage it any time from Account, then Subscription.</span>
+          <span>{provider === 'paypal' ? 'PayPal or a card, through PayPal.' : 'UPI AutoPay or a card, through Razorpay.'} Manage it any time from Account, then Subscription.</span>
         </div>
         <div className="lp-card lp-pay-card">
           <span className="lp-include-icon lp-tone-food" aria-hidden="true"><Smartphone size={22} strokeWidth={2.2} /></span>

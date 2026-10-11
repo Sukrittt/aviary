@@ -26,6 +26,8 @@ export type ExpensesPageParams = {
   page: number
   limit: number
   category?: string
+  /** One of the user's accounts: only expenses paid from it. */
+  account?: string
   from?: string
   to?: string
   q?: string
@@ -43,6 +45,7 @@ export type ExpensesPage = {
 export async function getExpensesPage(params: ExpensesPageParams): Promise<ExpensesPage> {
   const qs = new URLSearchParams({ page: String(params.page), limit: String(params.limit) })
   if (params.category) qs.set('category', params.category)
+  if (params.account) qs.set('account', params.account)
   if (params.from) qs.set('from', params.from)
   if (params.to) qs.set('to', params.to)
   if (params.q) qs.set('q', params.q)
@@ -60,6 +63,8 @@ export type NewExpenseRow = {
   date?: string
   notes?: string
   payment_method?: string
+  /** One of the user's accounts; the server takes the payment method from its type. */
+  account_id?: string
   /**
    * Where it came from. Only manual entry completes the getting started
    * milestone; 'text' is a row confirmed from the money brain and
@@ -125,6 +130,8 @@ export async function updateExpense(
     new_amount_inr?: string
     new_date?: string
     new_payment_method?: string
+    /** '' clears the account. */
+    new_account_id?: string
     category?: string
   },
   version?: number,
@@ -187,4 +194,28 @@ export async function dismissDuplicate(id: string): Promise<void> {
     body: JSON.stringify({ id }),
   })
   if (!resp.ok) throw new HttpError(resp.status, `Failed to dismiss duplicate: ${resp.status}`)
+}
+
+/** Attaches (or replaces) an expense's photo. `image` is base64 with no `data:` prefix. */
+export async function uploadExpensePhoto(id: string, image: string): Promise<string> {
+  const resp = await apiFetch(`/api/expenses/${encodeURIComponent(id)}/photo`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ image, mimeType: 'image/jpeg' }),
+  })
+  if (!resp.ok) throw new HttpError(resp.status, `Failed to upload photo: ${resp.status}`)
+  return ((await resp.json()) as { url: string }).url
+}
+
+/** A short-lived signed URL for the expense's photo, or null when it has none. */
+export async function getExpensePhotoUrl(id: string): Promise<string | null> {
+  const resp = await apiFetch(`/api/expenses/${encodeURIComponent(id)}/photo`)
+  if (resp.status === 404) return null
+  if (!resp.ok) throw new HttpError(resp.status, `Failed to load photo: ${resp.status}`)
+  return ((await resp.json()) as { url: string }).url
+}
+
+export async function removeExpensePhoto(id: string): Promise<void> {
+  const resp = await apiFetch(`/api/expenses/${encodeURIComponent(id)}/photo`, { method: 'DELETE' })
+  if (!resp.ok) throw new HttpError(resp.status, `Failed to remove photo: ${resp.status}`)
 }

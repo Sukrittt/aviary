@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { type ReactNode, useMemo, useState } from 'react'
 import { useCategories } from '../hooks/useCategories'
 import { useRecentExpenses } from '../hooks/useExpenses'
 import { useRecentCategories } from '../hooks/useRecentCategories'
@@ -17,6 +17,8 @@ interface Props {
   onChange: (category: string) => void
   /** Newly saved category while the server list refreshes. */
   additionalCategory?: CategoryRow | null
+  /** Rendered after the last chip, e.g. an Add button. */
+  trailing?: ReactNode
 }
 
 /** Plain category name (leading emoji stripped, lowercased) — the dedupe + match key. */
@@ -82,7 +84,7 @@ function rankCategories(
  * Twin of Mobile's CategoryPickerSheet, flattened to match the log-expense
  * redesign (no group headers, no recents rail).
  */
-export function CategoryPicker({ value, onChange, additionalCategory }: Props) {
+export function CategoryPicker({ value, onChange, additionalCategory, trailing }: Props) {
   const categoriesQ = useCategories()
   const expensesQ = useRecentExpenses()
   const { recents, record } = useRecentCategories()
@@ -147,6 +149,7 @@ export function CategoryPicker({ value, onChange, additionalCategory }: Props) {
             </button>
           )
         })}
+        {trailing}
       </div>
       {q && !hasResults && <p className="category-picker-empty">No categories found</p>}
     </div>

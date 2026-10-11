@@ -13,6 +13,9 @@ vi.mock('@/lib/access', () => ({
   readOnlyGuard: vi.fn(() => null),
 }))
 
+const blobDel = vi.fn(async () => {})
+vi.mock('@vercel/blob', () => ({ del: (...a: unknown[]) => blobDel(...(a as [])) }))
+
 vi.mock('@/lib/cache', () => ({
   invalidate: vi.fn(),
 }))
@@ -102,9 +105,17 @@ function fakeCollection(base: string) {
       store.push(withId)
       return { insertedId: withId._id }
     },
-    updateOne: async (filter: Record<string, unknown>, update: { $set: Record<string, unknown> }) => {
+    updateOne: async (
+      filter: Record<string, unknown>,
+      update: { $set?: Record<string, unknown>; $unset?: Record<string, unknown> },
+      opts?: { upsert?: boolean },
+    ) => {
       const doc = store.find((d) => matches(d, filter))
-      if (doc) Object.assign(doc, update.$set)
+      if (!doc && opts?.upsert) store.push({ ...filter, ...update.$set, _id: new ObjectId() } as Doc)
+      if (doc) {
+        Object.assign(doc, update.$set ?? {})
+        for (const k of Object.keys(update.$unset ?? {})) delete doc[k]
+      }
       return { matchedCount: doc ? 1 : 0 }
     },
     deleteOne: async (filter: Record<string, unknown>) => {
@@ -124,6 +135,12 @@ vi.mock('@/lib/http', async (importOriginal) => {
 })
 
 const { GET, POST, PUT, DELETE } = await import('./route')
+const { getCachedCategoryMap, invalidateCategoryMap } = await import('@/lib/categoryMap')
+
+async function mapWord(word: string) {
+  const map = await getCachedCategoryMap('user_a', fakeCollection('expenses') as never, fakeCollection('category_map_overrides') as never)
+  return map.words[word]
+}
 
 function req(method: string, body: Record<string, unknown>): Request {
   // Existing arithmetic tests use a freshly loaded identity/version. Stale and
@@ -146,6 +163,8 @@ function budgetFor(month: string) {
 beforeEach(() => {
   stores.expenses = []
   stores.budgets = []
+  stores.category_map_overrides = []
+  invalidateCategoryMap('user_a')
 })
 
 describe('PUT /api/expenses — credit-card envelope rebalance (C1)', () => {
@@ -494,4 +513,74 @@ it('lets an edit correct an amount to zero, matching the transaction editor', as
   await POST(req('POST', { item: 'Coffee', amount_inr: '100', category: 'Food' }))
   const res = await PUT(req('PUT', { id: String(stores.expenses[0]._id), new_amount_inr: '0' }))
   expect(res.status).toBe(200)
+})
+
+describe('expense photos', () => {
+  it('rows carry has_photo, outside the CSV headers', async () => {
+    await POST(req('POST', { item: 'Plant', amount_inr: '300', category: 'Home' }))
+    await POST(req('POST', { item: 'Tea', amount_inr: '50', category: 'Food' }))
+    stores.expenses[0].photo_file = 'jpg'
+    const body = (await (await GET(new Request('https://example.com/api/expenses'))).json()) as {
+      headers: string[]
+      rows: Array<{ item: string; has_photo: boolean }>
+    }
+    expect(body.headers).not.toContain('has_photo')
+    expect(Object.fromEntries(body.rows.map((r) => [r.item, r.has_photo]))).toEqual({ Plant: true, Tea: false })
+  })
+
+  it('DELETE removes the photo blob and clears photo_file, so a restored row claims no photo', async () => {
+    blobDel.mockClear()
+    await POST(req('POST', { item: 'Plant', amount_inr: '300', category: 'Home' }))
+    const row = stores.expenses[0]
+    row.photo_file = 'a1.png'
+    const res = await DELETE(req('DELETE', { id: String(row._id) }))
+    expect(res.status).toBe(200)
+    expect(blobDel).toHaveBeenCalledWith(`expense-photos/user_a/${row._id}-a1.png`)
+    expect(row.photo_file).toBeUndefined()
+  })
+
+  it('DELETE still succeeds when the blob delete fails', async () => {
+    blobDel.mockClear().mockRejectedValueOnce(new Error('blob down'))
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    await POST(req('POST', { item: 'Plant', amount_inr: '300', category: 'Home' }))
+    stores.expenses[0].photo_file = 'jpg'
+    const res = await DELETE(req('DELETE', { id: String(stores.expenses[0]._id) }))
+    expect(res.status).toBe(200)
+    expect(spy).toHaveBeenCalled()
+    spy.mockRestore()
+  })
+
+  it('DELETE without a photo never touches Blob', async () => {
+    blobDel.mockClear()
+    await POST(req('POST', { item: 'Tea', amount_inr: '50', category: 'Food' }))
+    await DELETE(req('DELETE', { id: String(stores.expenses[0]._id) }))
+    expect(blobDel).not.toHaveBeenCalled()
+  })
+})
+
+describe('/api/expenses — learning category corrections', () => {
+  const log = (category: string) => POST(req('POST', { item: 'Apple', amount_inr: '200', category }))
+
+  it('a new expense saved under a different category than the map suggests wins next time', async () => {
+    await log('Groceries')
+    await log('Groceries')
+    expect(await mapWord('apple')).toBe('Groceries')
+
+    await log('Eating out')
+    expect(await mapWord('apple')).toBe('Eating out')
+  })
+
+  it('recategorizing an existing expense teaches the map too', async () => {
+    await log('Groceries')
+    await log('Groceries')
+    const row = stores.expenses[1]
+    await PUT(req('PUT', { id: String(row._id), category: 'Eating out' }))
+    expect(await mapWord('apple')).toBe('Eating out')
+  })
+
+  it('accepting the suggestion writes no override', async () => {
+    await log('Groceries')
+    await log('Groceries')
+    expect(stores.category_map_overrides).toEqual([])
+  })
 })

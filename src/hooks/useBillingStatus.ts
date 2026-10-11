@@ -1,17 +1,20 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   AlreadySubscribedError,
   cancelWebSubscription,
   getBillingStatus,
   getWebPlans,
+  startPayPalCheckout,
   startWebCheckout,
   syncBilling,
+  verifyPayPalCheckout,
   verifyWebCheckout,
   type BillingStatus,
   type PlanPeriod,
+  type WebCheckoutProvider,
 } from '@/src/api/billing'
 import { openCheckout } from '@/src/lib/razorpayCheckout'
 import { setEventContext, track } from '@/src/lib/analytics'
@@ -67,7 +70,7 @@ function seedBillingStatus(qc: ReturnType<typeof useQueryClient>, status: Billin
   if (status.allowed) void qc.invalidateQueries()
 }
 
-/** The web plans and their live prices. */
+/** The web plans, their live prices, and who sells them to this visitor. */
 export function useWebPlans(enabled = true) {
   return useQuery({ queryKey: ['billing-web-plans'], queryFn: getWebPlans, staleTime: 10 * 60_000, enabled })
 }
@@ -79,18 +82,25 @@ export type WebCheckoutOutcome =
   | { status: 'pending'; access: BillingStatus }
   | { status: 'dismissed' }
   | { status: 'already_subscribed'; store: 'play' | 'web' | null }
+  /** On the way to PayPal. The account page picks it up when they come back. */
+  | { status: 'redirecting' }
 
 /**
  * Web checkout, end to end: the server creates the subscription, Razorpay's
  * sheet takes the payment, and the server re-checks it before anything
  * unlocks. The access that comes back is the server's, never the sheet's.
  */
-export function useWebCheckout(prefill?: { email?: string; name?: string }) {
+export function useWebCheckout(prefill?: { email?: string; name?: string }, provider: WebCheckoutProvider = 'razorpay') {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (period: PlanPeriod): Promise<WebCheckoutOutcome> => {
       let session: { subscriptionId: string; keyId: string }
       try {
+        if (provider === 'paypal') {
+          const { approveUrl } = await startPayPalCheckout(period)
+          window.location.assign(approveUrl)
+          return { status: 'redirecting' }
+        }
         session = await startWebCheckout(period)
       } catch (err) {
         if (err instanceof AlreadySubscribedError) return { status: 'already_subscribed', store: err.store }
@@ -113,11 +123,69 @@ export function useWebCheckout(prefill?: { email?: string; name?: string }) {
       if (outcome.status === 'paid' || outcome.status === 'pending') {
         track('purchase_completed', { package: period, verified: outcome.status === 'paid', pending: outcome.status === 'pending' })
       } else if (outcome.status === 'dismissed') track('purchase_cancelled', { package: period })
+      else if (outcome.status === 'redirecting') return
       else track('purchase_failed', { package: period, error_code: 'already_subscribed' })
       if (outcome.status === 'paid' || outcome.status === 'pending') seedBillingStatus(qc, outcome.access)
       if (outcome.status === 'already_subscribed') void qc.invalidateQueries({ queryKey: billingKey })
     },
   })
+}
+
+const tidyCheckoutUrl = () => window.history.replaceState(null, '', window.location.pathname + window.location.hash)
+
+export type PayPalReturn = 'confirming' | 'paid' | 'pending' | 'cancelled' | 'failed' | null
+
+/**
+ * The second half of PayPal checkout. PayPal sends the buyer back to
+ * `/account?checkout=paypal&subscription_id=…`; this confirms that
+ * subscription with the server (retrying while PayPal is unreachable), then
+ * tidies the URL so a reload doesn't confirm it again.
+ */
+export function usePayPalReturn(): PayPalReturn {
+  const qc = useQueryClient()
+  // Read once, on the client's first render.
+  const [arrival] = useState(() => {
+    if (typeof window === 'undefined') return null
+    const params = new URLSearchParams(window.location.search)
+    const checkout = params.get('checkout')
+    const subscriptionId = params.get('subscription_id')
+    if (!checkout?.startsWith('paypal')) return null
+    return checkout === 'paypal' && subscriptionId ? { subscriptionId } : { subscriptionId: null }
+  })
+  const confirm = useMutation({
+    // A 503 (PayPal unreachable) comes back as the old access. Throw it so it's
+    // retried: the id in the URL is the browser's only pointer to this purchase.
+    mutationFn: async (subscriptionId: string) => {
+      const access = await verifyPayPalCheckout(subscriptionId)
+      if (access.refreshed === false) throw new Error('PayPal unreachable')
+      return access
+    },
+    retry: 3,
+    onSuccess: (access) => {
+      track('purchase_completed', { package: access.basePlanId ?? 'unknown', verified: access.mode === 'paid', pending: access.mode !== 'paid' })
+      seedBillingStatus(qc, access)
+      tidyCheckoutUrl()
+    },
+    onError: () => track('purchase_failed', { package: 'unknown', error_code: 'error' }),
+  })
+  const { mutate } = confirm
+
+  useEffect(() => {
+    if (!arrival) return
+    // The URL keeps the subscription id until it's confirmed, so a reload
+    // after a failed confirm tries again.
+    if (arrival.subscriptionId) mutate(arrival.subscriptionId)
+    else {
+      tidyCheckoutUrl()
+      track('purchase_cancelled', { package: 'unknown' })
+    }
+  }, [arrival, mutate])
+
+  if (confirm.isPending) return 'confirming'
+  if (confirm.isError) return 'failed'
+  if (confirm.isSuccess) return confirm.data.mode === 'paid' ? 'paid' : 'pending'
+  // Before the confirm starts, or back without a subscription (cancelled at PayPal).
+  return arrival ? (arrival.subscriptionId ? 'confirming' : 'cancelled') : null
 }
 
 /** Stop renewing a web subscription. */

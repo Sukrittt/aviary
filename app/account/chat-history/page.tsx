@@ -1,5 +1,6 @@
 'use client'
 
+import { Plus } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useMoneyBrain } from '../../../components/MoneyBrainProvider'
 import { LoadingCaption } from '@/src/components/LoadingCaption'
@@ -95,10 +96,19 @@ export default function ChatHistoryPage() {
 
   return (
     <>
-      <div className="account-page-heading">
-        <div className="account-section-label">Chat history</div>
-        <button type="button" className="account-compact-btn" onClick={() => openMoneyBrain(null)}>New chat</button>
-      </div>
+      <header className="txn-page-header account-header">
+        <div className="txn-page-heading">
+          <span className="txn-page-eyebrow">Money brain</span>
+          <h1>Chat history</h1>
+          <p>Pick up any past conversation.</p>
+        </div>
+        <div className="txn-page-actions">
+          <button type="button" className="erd-log-btn txn-page-log-btn" onClick={() => openMoneyBrain(null)}>
+            <Plus size={14} aria-hidden="true" />
+            New chat
+          </button>
+        </div>
+      </header>
       {sessions === null ? (
         loadError ? <div className="account-row-meta" role="alert">Couldn&apos;t load chat history.</div> : <LoadingCaption placement="page" />
       ) : sessions.length === 0 ? (

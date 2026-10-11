@@ -13,10 +13,14 @@ import { MANUAL_LOG_EVENT } from '@/src/lib/captureTip'
 import { track } from '../lib/analytics'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
 import { AddCategoryModal } from './AddCategoryModal'
+import { AccountModal } from '../views/AccountsPage'
 import type { CategoryRow } from '../types'
 import { CategoryPicker } from './CategoryPicker'
+import { AccountChips } from './AccountChips'
+import { liveAccounts, useAccounts } from '../hooks/useAccounts'
+import { defaultAccountFor } from '../lib/defaultAccount'
 import { useCategories } from '../hooks/useCategories'
-import { useAddExpense, useDeleteExpense, useRecentExpenses } from '../hooks/useExpenses'
+import { useAddExpense, useDeleteExpense, useRecentExpenses, useUploadExpensePhoto } from '../hooks/useExpenses'
 import { unusualAmount } from '../lib/unusualAmount'
 import { categoryEmoji, splitEmoji } from '../lib/emoji'
 import { createThinkingGate, type ThinkingGate } from '../lib/thinkingGate'
@@ -26,6 +30,8 @@ import { missingFields, missingFieldsMessage } from '../features/log-expense/mis
 import { Toast } from './Toast'
 import { ExpenseAdded, PreloadExpenseAddedTick, type AddedExpense } from '../features/log-expense/ExpenseAdded'
 import { useNudge, useShake } from './landing/mobile/kit'
+import { ExpensePhotoMore } from './ExpensePhotoMore'
+import { base64Of, dataUrlFromFile, PHOTO_ENCODING } from '../features/scan-bill/image'
 
 interface Props {
   onClose: () => void
@@ -67,16 +73,27 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
   const [amount, setAmount] = useState('')
   const [category, setCategory] = useState<string>('')
   const [showAddCategory, setShowAddCategory] = useState(false)
+  const [showAddAccount, setShowAddAccount] = useState(false)
   const [createdCategory, setCreatedCategory] = useState<CategoryRow | null>(null)
   const [date, setDate] = useState(toDateInputValue(new Date()))
+  // null: follow the category's usual account (src/lib/defaultAccount.ts).
+  const [accountPick, setAccountPick] = useState<string | null>(null)
+  const accountsQ = useAccounts()
+  const accounts = liveAccounts(accountsQ.data)
   const [showCalendar, setShowCalendar] = useState(false)
   const pickDateChipRef = useRef<HTMLButtonElement>(null)
   const [error, setError] = useState('')
   const { saving, success, start, fail, reset } = useButtonPhase()
+  const uploadPhotoM = useUploadExpensePhoto()
+  const photoSeq = useRef(0)
   // Set by a successful add: the dialog swaps the form for Mobile's expense-added beats.
   const [added, setAdded] = useState<AddedExpense | null>(null)
   const deleteExpenseM = useDeleteExpense()
   const [undoError, setUndoError] = useState('')
+  // Optional photo: a downscaled JPEG data URL, uploaded once the expense exists.
+  const [photo, setPhoto] = useState<string | null>(null)
+  const [photoError, setPhotoError] = useState('')
+  const [photoNotice, setPhotoNotice] = useState('')
   const [categoryWords, setCategoryWords] = useState<Record<string, string>>({})
   const [categoryPickTick, setCategoryPickTick] = useState(0)
   // True while the category is one we picked, not one the user chose (the
@@ -97,6 +114,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
   // No suggestion means nothing selected. Defaulting to the first category
   // silently filed items like "Travel" under whatever category came first.
   const effectiveCategory = category
+  const accountId = accountPick ?? defaultAccountFor(expensesQ.data ?? [], effectiveCategory, accounts)
   // Typo guard: an amount far above the category's usual blocks the first
   // save with a warning; the relabelled button then saves it as entered.
   const [unusualWarnedFor, setUnusualWarnedFor] = useState('')
@@ -238,12 +256,49 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
     setShowCalendar(false)
   }
 
+  async function handlePhotoPick(file: File) {
+    // Decoding is async: only the latest pick (or a later remove) may land.
+    const seq = ++photoSeq.current
+    setPhotoError('')
+    try {
+      const dataUrl = await dataUrlFromFile(file, PHOTO_ENCODING)
+      if (seq === photoSeq.current) setPhoto(dataUrl)
+    } catch {
+      // createImageBitmap rejects what the browser can't decode (HEIC outside Safari, a corrupt file).
+      if (seq === photoSeq.current) setPhotoError("Couldn't read that photo. Try another one.")
+    }
+  }
+
+  function handlePhotoRemove() {
+    photoSeq.current++
+    setPhoto(null)
+  }
+
+  // The expense is already saved, so a failed upload only costs the photo, never the expense.
+  async function uploadPhoto(id: string | undefined, dataUrl: string) {
+    const notice = "Your expense is saved, but the photo didn't upload. Try adding it again from Activity."
+    if (!id) {
+      setPhotoNotice(notice)
+      return
+    }
+    try {
+      await uploadPhotoM.mutateAsync({ id, image: base64Of(dataUrl) })
+      onSaved()
+    } catch {
+      setPhotoNotice(notice)
+    }
+  }
+
   function closeAndReset() {
     setItem('')
     setAmount('')
     setCategory('')
     setDate(toDateInputValue(new Date()))
+    setAccountPick(null)
     setShowCalendar(false)
+    setPhoto(null)
+    setPhotoError('')
+    setPhotoNotice('')
     categoryTouchedRef.current = false
     setAutoPicked(false)
     gateRef.current?.cancel()
@@ -251,6 +306,8 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
   }
 
   async function handleSubmit() {
+    // Waits out a cold accounts fetch so the expense lands on the account it would default to.
+    if (accountsQ.isLoading) return
     const parsed = Number(amount)
     if (missing.length > 0) {
       setError('')
@@ -265,6 +322,8 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
     }
     start()
     setError('')
+    // The photo controls are locked while saving, so this is what the user sees.
+    const pickedPhoto = photo
     try {
       const result = await addExpenseM.mutateAsync({
         item: item.trim(),
@@ -272,6 +331,9 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
         category: effectiveCategory,
         date: date || undefined,
         source: 'manual',
+        // The account's type goes too, so a late create on an account archived
+        // since still lands on the right payment method.
+        ...(accountId ? { account_id: accountId, payment_method: accounts.find((a) => a.id === accountId)?.type ?? 'bank' } : {}),
       })
       if (suggestedBy.current) track('ai_category_suggested', { accepted: autoPicked, source: suggestedBy.current })
       window.dispatchEvent(new Event(MANUAL_LOG_EVENT))
@@ -289,6 +351,8 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
         loggedAt: result.timestamp || new Date().toISOString(),
         categorySnapshot: createdCategory?.name === effectiveCategory ? createdCategory : undefined,
       })
+      setPhotoNotice('')
+      if (pickedPhoto) void uploadPhoto(result.id, pickedPhoto)
     } catch {
       setError('Could not save — try again.')
       fail()
@@ -319,13 +383,14 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
 
   return (
     <>
-    <Scrim className="erd-modal-overlay" onClick={success || showAddCategory ? undefined : onClose}>
-      <Sheet className="erd-modal-card erd-log-card" inert={showAddCategory} onClick={(e) => e.stopPropagation()}>
+    <Scrim className="erd-modal-overlay" onClick={success || showAddCategory || showAddAccount ? undefined : onClose}>
+      <Sheet className="erd-modal-card erd-log-card" inert={showAddCategory || showAddAccount} onClick={(e) => e.stopPropagation()}>
         {added ? (
           <ExpenseAdded
             expense={added}
             undoing={deleteExpenseM.isPending}
             undoError={undoError}
+            notice={photoNotice}
             onUndo={() => void handleUndo()}
             onDone={closeAndReset}
           />
@@ -407,17 +472,37 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
               </section>
 
               <section className="erd-log-section">
-                <div className="erd-log-label-row">
-                  <div ref={categoryNudgeRef} className={`erd-log-label${flag('category') ? ' is-missing' : ''}`}>
-                    Category
-                  </div>
-                  <button type="button" className="erd-chip" style={{ marginInlineStart: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6 }} onClick={() => setShowAddCategory(true)}>
-                    <Plus size={15} aria-hidden="true" />
-                    Add
-                  </button>
+                <div ref={categoryNudgeRef} className={`erd-log-label${flag('category') ? ' is-missing' : ''}`}>
+                  Category
                 </div>
-                <CategoryPicker value={effectiveCategory} onChange={handleCategoryPick} additionalCategory={createdCategory} />
+                <CategoryPicker
+                  value={effectiveCategory}
+                  onChange={handleCategoryPick}
+                  additionalCategory={createdCategory}
+                  trailing={
+                    <button type="button" className="erd-chip erd-chip--add" onClick={() => setShowAddCategory(true)}>
+                      <Plus size={15} aria-hidden="true" />
+                      Add
+                    </button>
+                  }
+                />
               </section>
+
+              {accountsQ.isSuccess && (
+                <section className="erd-log-section">
+                  <AccountChips
+                    accounts={accounts}
+                    value={accountId}
+                    onChange={setAccountPick}
+                    trailing={
+                      <button type="button" className="erd-chip erd-chip--add" aria-label="Add account" onClick={() => setShowAddAccount(true)}>
+                        <Plus size={15} aria-hidden="true" />
+                        Add
+                      </button>
+                    }
+                  />
+                </section>
+              )}
 
               <section className="erd-log-section">
                 <div className="erd-log-label">Date</div>
@@ -461,6 +546,15 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
                 />
               </section>
 
+              <ExpensePhotoMore
+                inline
+                photoUrl={photo}
+                error={photoError}
+                busy={saving || success}
+                onPick={(file) => void handlePhotoPick(file)}
+                onRemove={handlePhotoRemove}
+              />
+
               {error && <p className="erd-log-error">{error}</p>}
             </div>
 
@@ -503,6 +597,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
         }}
       />
     )}
+    {showAddAccount && <AccountModal onClose={() => setShowAddAccount(false)} />}
     </>
   )
 }

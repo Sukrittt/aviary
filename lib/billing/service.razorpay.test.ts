@@ -48,7 +48,7 @@ vi.mock('./razorpay', async (orig) => ({
   cancelSubscription: (id: string, atCycleEnd: boolean) => cancelSubscriptionMock(id, atCycleEnd),
 }))
 
-const { recordRazorpaySubscription, refreshFromProvider, cancelWebSubscriptions, RazorpaySubscriptionOwnerError } = await import('./service')
+const { recordRazorpaySubscription, refreshFromProvider, cancelWebSubscriptions, SubscriptionOwnerError } = await import('./service')
 const { RevenueCatError } = await import('./revenuecat')
 
 const NOW = new Date('2026-09-18T12:00:00.000Z')
@@ -91,7 +91,7 @@ describe('recordRazorpaySubscription', () => {
 
   it("refuses someone else's subscription and writes nothing", async () => {
     fetchSubscriptionMock.mockResolvedValue(sub({ notes: { userId: 'user_b' } }))
-    await expect(recordRazorpaySubscription('user_a', 'sub_1', NOW)).rejects.toBeInstanceOf(RazorpaySubscriptionOwnerError)
+    await expect(recordRazorpaySubscription('user_a', 'sub_1', NOW)).rejects.toBeInstanceOf(SubscriptionOwnerError)
     expect(subs()).toHaveLength(0)
   })
 

@@ -26,7 +26,10 @@
  * expense_id, people_count, items.qty, items.divisor, image_url, image_status,
  * created_at (filter/sort/join keys, or not money/PII to begin with); on
  * `balance_checks` — timestamp, date, status, kind, money_in, resolved_at
- * (sort keys and labels; every amount on a check is encrypted).
+ * (sort keys and labels; every amount on a check is encrypted); on `incomes` —
+ * date, source, counted, account_id, recurring_id (filter keys); on
+ * `recurring_incomes` — frequency, the dates, status, account_id (the nightly
+ * cron filters on them); on `accounts` — type and archived (filter keys).
  */
 export const ENCRYPTED_FIELDS: Record<string, string[]> = {
   expenses: ['item', 'notes', 'description', 'amount_inr', 'amount'],
@@ -38,6 +41,9 @@ export const ENCRYPTED_FIELDS: Record<string, string[]> = {
   holding_events: ['amount', 'previous_value', 'new_value'],
   chat_sessions: ['title', 'messages.text', 'messages.proposal'],
   bill_scans: ['merchant', 'total', 'my_share', 'items.name', 'items.price'],
+  incomes: ['amount', 'label', 'notes'],
+  recurring_incomes: ['amount', 'label'],
+  accounts: ['name'],
   balance_checks: ['balance', 'gap', 'expected', 'logged', 'tolerance', 'forgotten', 'card_bill', 'card_shortfall', 'moved_out', 'accounts.name', 'accounts.balance'],
 }
 

@@ -28,6 +28,8 @@ describe('toTransactions', () => {
         category: 'Food',
         notes: '',
         source: 'manual',
+        accountId: '',
+        hasPhoto: false,
       },
     ])
   })

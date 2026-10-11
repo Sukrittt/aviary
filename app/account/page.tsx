@@ -6,6 +6,8 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { AnimatePresence } from 'motion/react'
 import {
+  Wallet,
+  Landmark,
   Archive,
   Brain,
   ChevronRight,
@@ -21,6 +23,7 @@ import {
   Receipt,
   Repeat,
   ScanLine,
+  ScrollText,
   TrendingUp,
   type LucideIcon,
 } from 'lucide-react'
@@ -31,6 +34,7 @@ import { useMoneyBrain } from '../../components/MoneyBrainProvider'
 import { LogExpenseModal } from '../../src/components/LogExpenseModal'
 import { ScanBillModal } from '../../src/features/scan-bill/ScanBillModal'
 import { SignOutDialog } from '../../src/components/ConfirmDialog'
+import { GetAppDialog } from '../../src/components/GetAppDialog'
 import { SubscriptionSection } from '../../src/components/billing/SubscriptionSection'
 import { billingVisible, planSummary } from '../../src/components/billing/copy'
 import { useBillingStatus } from '../../src/hooks/useBillingStatus'
@@ -71,6 +75,7 @@ export default function AccountPage() {
   const [showScan, setShowScan] = useState(false)
   const [showLog, setShowLog] = useState(false)
   const [confirmSignOut, setConfirmSignOut] = useState(false)
+  const [showGetApp, setShowGetApp] = useState(false)
 
   useEffect(() => {
     void (async () => {
@@ -148,6 +153,8 @@ export default function AccountPage() {
           <FeatureCard icon={Brain} tone="gold" label="Ask Aviary" blurb="Ask about your spending" onClick={() => openMoneyBrain()} />
           <FeatureCard icon={TrendingUp} tone="mint" label="Investments" blurb="Portfolio at a glance" href="/investments" />
           <FeatureCard icon={ScanLine} tone="mint" label="Scan a bill" blurb="Split a cart or receipt" onClick={() => setShowScan(true)} />
+          <FeatureCard icon={Wallet} tone="mint" label="Income" blurb="What comes in and when" href="/account/income" />
+          <FeatureCard icon={Landmark} tone="gold" label="Accounts" blurb="Bank, card and cash" href="/account/accounts" />
           <FeatureCard icon={Repeat} tone="violet" label="Recurring expenses" blurb="Plan upcoming payments" href="/account/recurring" />
           <FeatureCard icon={Archive} tone="blue" label="Archive" blurb="Restore deleted items" href="/account/archive" />
           <FeatureCard icon={Receipt} tone="violet" label="Subscriptions" blurb="What renews and when" href="/account/subscriptions" />
@@ -194,9 +201,9 @@ export default function AccountPage() {
               Notifications
               <span className="account-row-hint">
                 Alerts only arrive on the Android app.{' '}
-                <a href={PLAY_STORE_URL} target="_blank" rel="noreferrer" style={{ color: 'var(--gold-ink)', fontWeight: 700 }}>
+                <button type="button" className="account-inline-link" onClick={() => setShowGetApp(true)}>
                   Get it
-                </a>
+                </button>
               </span>
             </span>
             <div className="account-segmented" role="group" aria-label="Notification cadence">
@@ -250,7 +257,7 @@ export default function AccountPage() {
             </a>
           </div>
           <AccountRow icon={Compass} label="How this works" href="/account/guided-tour" />
-          <AccountRow icon={FileText} label="Changelog" href="/account/changelog" />
+          <AccountRow icon={ScrollText} label="Changelog" href="/account/changelog" />
           <AccountRow icon={MessageCircle} label="Help & feedback" hint="We read every one" href="/account/help" />
           <AccountRow icon={FileText} label="Terms & privacy" href="/legal/privacy" />
         </div>
@@ -262,6 +269,7 @@ export default function AccountPage() {
 
       <AnimatePresence>
         {confirmSignOut && <SignOutDialog onCancel={() => setConfirmSignOut(false)} />}
+        {showGetApp && <GetAppDialog email={email || undefined} onClose={() => setShowGetApp(false)} />}
       </AnimatePresence>
       <AnimatePresence>
         {showLog && <LogExpenseModal onClose={() => setShowLog(false)} onSaved={() => {}} />}

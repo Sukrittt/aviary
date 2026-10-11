@@ -5,7 +5,7 @@ const plansMock = vi.fn()
 const checkoutMock = vi.fn()
 vi.mock('@/src/hooks/useBillingStatus', () => ({
   useWebPlans: () => plansMock(),
-  useWebCheckout: () => checkoutMock(),
+  useWebCheckout: (...args: unknown[]) => checkoutMock(...args),
 }))
 const trackMock = vi.fn()
 vi.mock('@/src/lib/analytics', () => ({ track: (...args: unknown[]) => trackMock(...args) }))
@@ -22,7 +22,7 @@ const checkout = (over: Record<string, unknown> = {}) => checkoutMock.mockReturn
 
 beforeEach(() => {
   vi.clearAllMocks()
-  plansMock.mockReturnValue({ data: plans, isLoading: false, isError: false })
+  plansMock.mockReturnValue({ data: { plans, provider: 'razorpay' }, isLoading: false, isError: false })
   checkout()
 })
 
@@ -34,7 +34,7 @@ describe('WebPlanPicker', () => {
   })
 
   it('counts no paywall view when the plans failed to load, even with stale ones cached', () => {
-    plansMock.mockReturnValue({ data: plans, isLoading: false, isError: true })
+    plansMock.mockReturnValue({ data: { plans, provider: 'razorpay' }, isLoading: false, isError: true })
     render(<WebPlanPicker />)
     expect(trackMock).not.toHaveBeenCalled()
   })
@@ -60,7 +60,14 @@ describe('WebPlanPicker', () => {
 
   it('says nothing is charged until the trial ends when bought mid-trial', () => {
     render(<WebPlanPicker trialEndsAt={new Date(Date.now() + 12 * 86_400_000).toISOString()} />)
+    expect(screen.getByText(/Nothing's charged until your trial ends on .+, except a refundable ₹5 to set up autopay\./)).toBeTruthy()
+  })
+
+  it("doesn't mention Razorpay's ₹5 mandate charge on PayPal", () => {
+    plansMock.mockReturnValue({ data: { plans, provider: 'paypal' }, isLoading: false, isError: false })
+    render(<WebPlanPicker trialEndsAt={new Date(Date.now() + 12 * 86_400_000).toISOString()} />)
     expect(screen.getByText(/Nothing's charged until your trial ends/)).toBeTruthy()
+    expect(screen.queryByText(/₹5/)).toBeNull()
   })
 
   it("doesn't promise a deferred charge in the trial's last minutes, when the server charges now", () => {
@@ -91,5 +98,20 @@ describe('WebPlanPicker', () => {
     plansMock.mockReturnValue({ data: undefined, isLoading: false, isError: true })
     render(<WebPlanPicker />)
     expect(screen.getByText(/Check your connection and try again/)).toBeTruthy()
+  })
+
+  it('checks out through PayPal for visitors the server routes there, and says so', () => {
+    plansMock.mockReturnValue({ data: { plans: [{ period: 'monthly', amount: 490, currency: 'USD' }, { period: 'yearly', amount: 4900, currency: 'USD' }], provider: 'paypal' }, isLoading: false, isError: false })
+    render(<WebPlanPicker />)
+    expect(checkoutMock).toHaveBeenCalledWith(expect.anything(), 'paypal')
+    expect(screen.getByText(/Pay with PayPal or a card/)).toBeTruthy()
+    expect(screen.queryByText(/UPI/)).toBeNull()
+  })
+
+  it('stays locked while the browser heads to PayPal', () => {
+    plansMock.mockReturnValue({ data: { plans, provider: 'paypal' }, isLoading: false, isError: false })
+    checkout({ data: { status: 'redirecting' } })
+    render(<WebPlanPicker />)
+    expect((screen.getByText('Taking you to PayPal…').closest('button') as HTMLButtonElement).disabled).toBe(true)
   })
 })

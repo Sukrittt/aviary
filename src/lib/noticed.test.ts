@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 import { learnedDates, noticedLine, weeklyRepeat } from './noticed'
 
 const row = (id: string, date: string, item: string, amount_inr = '20') => ({ id, date, item, amount_inr })
-const money = (n: number) => `₹${n}`
 
 describe('weeklyRepeat', () => {
   const rows = [
@@ -38,19 +37,13 @@ describe('weeklyRepeat', () => {
 
 describe('noticedLine', () => {
   it('stays quiet until the third time', () => {
-    expect(noticedLine({ count: 1, total: 20 }, money)).toBeNull()
-    expect(noticedLine({ count: 2, total: 40 }, money)).toBeNull()
+    expect(noticedLine(1)).toBeNull()
+    expect(noticedLine(2)).toBeNull()
   })
 
-  it('gives the ordinal and the week so far from the third time', () => {
-    expect(noticedLine({ count: 3, total: 750 }, money)).toBe('3rd time this week · ₹750 so far')
-    expect(noticedLine({ count: 4, total: 80 }, money)).toBe('4th time this week · ₹80 so far')
-    expect(noticedLine({ count: 11, total: 220 }, money)).toBe('11th time this week · ₹220 so far')
-    expect(noticedLine({ count: 21, total: 420 }, money)).toBe('21st time this week · ₹420 so far')
-  })
-
-  it('rounds the total', () => {
-    expect(noticedLine({ count: 3, total: 749.6 }, money)).toBe('3rd time this week · ₹750 so far')
+  it('calls it a regular from the third time, with no count or total', () => {
+    expect(noticedLine(3)).toBe('One of your regulars this week')
+    expect(noticedLine(21)).toBe('One of your regulars this week')
   })
 })
 

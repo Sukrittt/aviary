@@ -64,7 +64,7 @@ it('keeps subscription discovery inside the standalone subscriptions screen', as
   expect(await screen.findByText('1 active')).toBeInTheDocument()
   expect(screen.getByText('Netflix')).toBeInTheDocument()
 
-  fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Add subscription' }))
   expect(screen.getByRole('dialog')).toHaveTextContent('New subscription')
 })
 

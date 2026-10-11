@@ -107,3 +107,60 @@ export async function getCachedCategoryMap(
 export function invalidateCategoryMap(userId: string): void {
   cache.delete(userId)
 }
+
+/** Item words the map keys on: lowercased, whitespace-split, 2+ chars. */
+function itemWords(item: string): string[] {
+  return item.toLowerCase().split(/\s+/).filter((word) => word.length >= 2)
+}
+
+/**
+ * What the log-expense screens would have auto-picked for `item`: the category
+ * most of its words map to. Mirrors Mobile's/Web's client-side suggestCategory.
+ */
+export function suggestFromMap(map: CategoryMap, item: string): string {
+  const scores = new Map<string, number>()
+  for (const word of itemWords(item)) {
+    const cat = map.words[word]
+    if (cat) scores.set(cat, (scores.get(cat) ?? 0) + 1)
+  }
+  let best = ''
+  let bestScore = 0
+  for (const [cat, score] of scores) {
+    if (score > bestScore) {
+      best = cat
+      bestScore = score
+    }
+  }
+  return best
+}
+
+/**
+ * Remember a correction. When the map (as it stood before this save) would
+ * have suggested a different category than the one the user saved, store
+ * their choice as an override for every word in the item. Without this a
+ * correction was one more frequency vote, so it lost to older votes and never
+ * beat an earlier LLM override at all.
+ *
+ * Pass the map from *before* the write: afterwards the new row is already a
+ * vote and can hide the mismatch. Returns whether anything was written.
+ */
+export async function learnCategoryCorrection(
+  map: CategoryMap,
+  item: string,
+  category: string,
+  overridesCollection: ScopedCollection,
+): Promise<boolean> {
+  const suggested = suggestFromMap(map, item)
+  if (!suggested || suggested === category) return false
+  const now = new Date().toISOString()
+  await Promise.all(
+    itemWords(item).map((word) =>
+      overridesCollection.updateOne(
+        { word },
+        { $set: { word, category, source: 'user', createdAt: now } },
+        { upsert: true },
+      ),
+    ),
+  )
+  return true
+}

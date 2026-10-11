@@ -602,6 +602,42 @@
   font-weight: 500;
   color: var(--erd-text2);
 }
+.erd-home-income-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--erd-input-bg);
+  color: var(--erd-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+.erd-home-income-pill svg {
+  color: var(--erd-text2);
+}
+.erd-home-income-pill.is-empty {
+  background: var(--tk-accent-soft);
+  color: var(--tk-accent-ink);
+}
+.erd-home-income-pill.is-empty svg {
+  color: inherit;
+}
+/* `translate`, not `transform`, so it doesn't fight erd-menuPop. */
+.expense-redesign .erd-home-pill-wrap .env-menu {
+  top: calc(100% + 6px);
+  left: 50%;
+  right: auto;
+  translate: -50% 0;
+}
+.erd-home-income-pill:active {
+  transform: scale(0.96);
+}
 
 .erd-home-insights-link {
   display: flex;
@@ -2838,6 +2874,19 @@
   max-height: none;
   overflow: visible;
 }
+/* Add chip after the last option: dashed and quiet, so it never reads as a choice. */
+.erd-chip.erd-chip--add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-style: dashed;
+  background: transparent;
+  color: var(--erd-text2);
+}
+.erd-chip.erd-chip--add:hover {
+  border-color: var(--gold);
+  color: var(--gold-hover);
+}
 .erd-chip-icon {
   font-size: 16px;
   line-height: 1;
@@ -2874,6 +2923,10 @@
   width: 640px;
   padding: 24px;
   overflow: hidden;
+}
+/* One-off income: three short fields, so the base modal width. */
+.expense-redesign .erd-modal-card.erd-sub-card.erd-one-off-card {
+  width: 480px;
 }
 .expense-redesign .erd-sub-card .erd-modal-head {
   margin-bottom: 24px;
@@ -3037,6 +3090,11 @@
 }
 .erd-recurring-section .erd-log-label {
   margin: 0 0 8px;
+}
+/* A few cadence chips, never a long list: no scroll box to clip their edges. */
+.erd-recurring-section .erd-chip-row {
+  max-height: none;
+  overflow: visible;
 }
 .erd-recurring-section .erd-log-input {
   height: 50px;
@@ -5452,6 +5510,12 @@
   min-height: 15px;
 }
 
+/* No hint (setup step with income filled in): don't hold a blank line above "Pick my own". */
+.setup-cta-hint:empty {
+  min-height: 0;
+  margin: 0;
+}
+
 .setup-pick-own {
   display: block;
   margin: 4px auto 0;
@@ -5755,6 +5819,7 @@
   font-size: 14px;
   cursor: pointer;
   text-decoration: none;
+  transition: background-color 150ms ease;
 }
 
 a.account-row:hover,
@@ -7940,12 +8005,6 @@ button.account-feature-card {
   text-align: left;
   cursor: pointer;
 }
-.account-page-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 10px;
-}
 .account-compact-btn {
   padding: 7px 12px;
   border: 1px solid var(--gold);
@@ -9849,7 +9908,8 @@ button.account-feature-card {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 18px;
+  /* Sides match .account-row so hero and row text share one left edge. */
+  padding: 18px 16px;
 }
 .recurring-hero .account-section-label {
   padding: 0;
@@ -9940,15 +10000,6 @@ button.account-feature-card {
 .recurring-list .recurring-meta {
   margin: 4px 0 2px;
 }
-.recurring-pill {
-  display: inline-block;
-  padding: 1px 7px;
-  border-radius: 999px;
-  background: var(--erd-input-bg);
-  color: var(--erd-text2);
-  font-size: 11px;
-  font-weight: 700;
-}
 .recurring-list .recurring-due {
   color: var(--gold-ink);
   font-weight: 700;
@@ -9969,9 +10020,10 @@ button.account-feature-card {
 }
 .recurring-danger-zone {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  justify-content: center;
   align-items: center;
-  gap: 2px;
+  gap: 2px 24px;
   margin-top: 20px;
   padding-top: 14px;
   border-top: 1px solid var(--erd-border);
@@ -9981,7 +10033,7 @@ button.account-feature-card {
   font-size: 13px;
 }
 .recurring-danger-zone .account-confirm-panel {
-  align-self: stretch;
+  flex-basis: 100%;
   margin-top: 0;
 }
 
@@ -10087,11 +10139,6 @@ button.account-feature-card {
 }
 .archive-row.is-selected {
   background: color-mix(in oklab, var(--gold) 7%, transparent);
-}
-.archive-heading-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 /* Select mode: a transparent button covers the whole row; the tick slot and
    its animation are Activity's (.txn-check-slot / .txn-check). */
@@ -10280,6 +10327,73 @@ button.account-feature-card {
   color: var(--erd-on-accent);
 }
 
+/* Get the app (account > Notifications): Play link, then the iPhone waitlist form */
+.account-inline-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--gold-ink);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.expense-redesign .erd-modal-card.get-app-dialog {
+  width: 460px;
+}
+.get-app-waitlist .lp-waitlist-row > .action-button:only-child {
+  flex: 1;
+}
+.get-app-play {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-decoration: none;
+}
+.get-app-waitlist {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--erd-border);
+}
+.get-app-waitlist .lp-waitlist-title {
+  margin: 0;
+  font: 600 15px/1.3 var(--font-fredoka);
+}
+.get-app-waitlist .lp-waitlist-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+.get-app-waitlist input {
+  flex: 1;
+  min-width: 0;
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid var(--erd-border-strong);
+  border-radius: 100px;
+  background: var(--erd-input-bg);
+  color: var(--erd-text);
+  font: inherit;
+  font-size: 14px;
+}
+.get-app-waitlist .action-button {
+  flex-shrink: 0;
+  min-height: 42px;
+  padding: 0 16px;
+}
+/* Secondary to Open Google Play: one filled CTA per dialog */
+.get-app-waitlist .action-button:not(.is-success) {
+  border-color: var(--gold);
+  background: var(--gold-soft);
+  color: var(--gold-ink);
+}
+.get-app-waitlist .lp-waitlist-note {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--erd-text3);
+}
+
 /* Scan a bill */
 .expense-redesign .erd-modal-card.scan-modal {
   width: 560px;
@@ -10355,19 +10469,11 @@ button.account-feature-card {
   color: var(--erd-text);
 }
 .currency-selected-code {
+  /* Plain text, not a pill: a bordered chip here read as a tappable button. */
   flex-shrink: 0;
-  min-height: 34px;
-  padding: 0 11px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-  border-radius: 100px;
-  border: 1px solid var(--erd-border-strong);
-  background: var(--erd-pill-bg);
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
-  color: var(--erd-text);
+  color: var(--gold-ink);
 }
 .scan-subtitle {
   margin: 2px 0 0;
@@ -12250,4 +12356,191 @@ button.account-feature-card {
 }
 .expense-redesign .balance-back {
   justify-self: center;
+}
+
+/* ── "More" disclosure on log/edit expense (src/components/ExpensePhotoMore.tsx) ── */
+.erd-more {
+  margin-top: 16px;
+}
+.erd-more-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 0;
+  border: none;
+  background: none;
+  color: var(--erd-text2);
+  font: 600 13px var(--font-nunito);
+  cursor: pointer;
+}
+.erd-more-toggle:hover {
+  color: var(--gold-ink);
+}
+.erd-more-toggle svg {
+  transition: transform 0.15s ease;
+}
+.erd-more-toggle svg.is-open {
+  transform: rotate(180deg);
+}
+.erd-more-panel {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  margin-top: 8px;
+}
+.erd-photo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.erd-photo-frame {
+  position: relative;
+}
+.erd-photo-thumb {
+  display: block;
+  width: 72px;
+  height: 72px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--erd-border-strong);
+}
+.erd-photo-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.erd-photo-remove {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--erd-border-strong);
+  background: var(--erd-input-bg);
+  color: var(--erd-text);
+  cursor: pointer;
+}
+.erd-photo-remove:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.erd-more-panel .erd-date-chip:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* One tone per cadence, shared by the income hero tiles and the income and recurring row pills. */
+.tone-monthly { --tone: var(--mint); --tone-soft: var(--mint-soft); }
+.tone-weekly { --tone: var(--blue); --tone-soft: var(--blue-soft); }
+.tone-daily { --tone: var(--violet); --tone-soft: var(--violet-soft); }
+.tone-yearly { --tone: var(--gold-ink); --tone-soft: var(--gold-soft); }
+.expense-redesign .account-header {
+  border-bottom: 1px solid var(--erd-border);
+}
+/* The panel's flex gap already spaces cards; drop the card's own margin. */
+.account-panel > .recurring-discovery.account-card {
+  margin-bottom: 0;
+}
+@media (max-width: 900px) {
+  /* Activity hides its heading on small screens; account pages have no other title. */
+  .expense-redesign .account-header {
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+  .expense-redesign .account-header .txn-page-heading {
+    display: block;
+  }
+}
+.income-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 20px 16px;
+}
+.income-hero .account-section-label {
+  padding: 0;
+}
+.income-hero-amount {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  color: var(--mint);
+  font: 600 40px/1.1 var(--font-fredoka);
+  font-variant-numeric: tabular-nums;
+}
+.income-hero-per {
+  color: var(--erd-text2);
+  font: 700 15px var(--font-nunito);
+}
+.income-cadence-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+  margin: 8px 0 4px;
+  padding: 0;
+  list-style: none;
+}
+.income-cadence-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--tone-soft);
+}
+.income-cadence-name {
+  color: var(--tone);
+  font-size: 12px;
+  font-weight: 800;
+}
+.income-cadence-tile strong {
+  font: 600 20px/1.2 var(--font-fredoka);
+  font-variant-numeric: tabular-nums;
+}
+.income-cadence-count {
+  color: var(--erd-text2);
+  font-size: 11px;
+}
+.income-progress {
+  height: 8px;
+  margin-top: 8px;
+  border-radius: 999px;
+  background: var(--erd-border-strong);
+  overflow: hidden;
+}
+.income-progress > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--mint);
+  transition: width 0.4s ease;
+}
+.income-row-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: 12px;
+  margin-right: -6px;
+}
+.income-row-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.income-row-title .account-row-label {
+  flex: 0 1 auto;
+}
+.income-cadence-pill {
+  flex-shrink: 0;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--tone-soft);
+  color: var(--tone);
+  font-size: 11px;
+  font-weight: 800;
 }

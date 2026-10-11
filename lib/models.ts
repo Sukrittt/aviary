@@ -92,6 +92,7 @@ export const COLLECTIONS = {
   holdings: 'holdings',
   holdingEvents: 'holding_events',
   pushTokens: 'push_tokens',
+  pushTickets: 'push_tickets',
   categoryMapOverrides: 'category_map_overrides',
   chatSessions: 'chat_sessions',
   notificationLog: 'notification_log',
@@ -99,6 +100,9 @@ export const COLLECTIONS = {
   billScans: 'bill_scans',
   recurringDetection: 'recurring_detection',
   balanceChecks: 'balance_checks',
+  incomes: 'incomes',
+  recurringIncomes: 'recurring_incomes',
+  accounts: 'accounts',
 } as const
 
 /** One CSV-ish row; every value is a string so it round-trips exactly. */

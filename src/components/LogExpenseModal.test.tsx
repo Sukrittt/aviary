@@ -10,10 +10,17 @@ const { addExpenseMutation, deleteExpenseMutation, addCategoryMutation, history 
   addCategoryMutation: vi.fn(),
   history: { rows: [] as unknown[] },
 }))
+vi.mock('../hooks/useAccounts', () => ({
+  useAccounts: () => ({ data: [], isSuccess: true }),
+  liveAccounts: () => [],
+  useAddAccount: () => ({ mutateAsync: vi.fn() }),
+  useUpdateAccount: () => ({ mutateAsync: vi.fn(), isPending: false }),
+}))
 vi.mock('../hooks/useExpenses', () => ({
   useAddExpense: () => ({ mutateAsync: addExpenseMutation }),
   useDeleteExpense: () => ({ mutateAsync: deleteExpenseMutation, isPending: false }),
   useRecentExpenses: () => ({ data: history.rows }),
+  useUploadExpensePhoto: () => ({ mutateAsync: vi.fn() }),
 }))
 vi.mock('../api/categoryMap', () => ({ getCategoryMap: vi.fn(async () => ({ words: {}, updatedAt: '' })) }))
 vi.mock('../lib/autoCategory', () => ({ suggestCategoryLLM: vi.fn() }))
@@ -24,11 +31,12 @@ vi.mock('../hooks/useCategories', () => ({
 }))
 vi.mock('@/src/context/CurrencyContext', () => ({ useCurrency: () => ({ currencySymbol: '₹', formatMoney: (n: number) => `₹${n}` }) }))
 vi.mock('./CategoryPicker', () => ({
-  CategoryPicker: ({ value, onChange }: { value: string; onChange: (value: string) => void }) => (
+  CategoryPicker: ({ value, onChange, trailing }: { value: string; onChange: (value: string) => void; trailing?: React.ReactNode }) => (
     <>
       <output aria-label="Category">{value}</output>
       <button type="button" onClick={() => onChange(history.rows.length ? '🛒 Groceries' : 'Groceries')}>Choose Groceries</button>
       <button type="button" onClick={() => onChange('Eating out')}>Choose Eating out</button>
+      {trailing}
     </>
   ),
 }))
@@ -113,6 +121,12 @@ it('hands off to Ask Aviary to log several spends at once', () => {
 it('leaves the hand-off out where there is no Ask Aviary to open', () => {
   render(<LogExpenseModal onClose={vi.fn()} onSaved={vi.fn()} />)
   expect(screen.queryByRole('button', { name: 'Log several at once' })).toBeNull()
+})
+
+it('offers to add an account right here when there are none', () => {
+  render(<LogExpenseModal onClose={vi.fn()} onSaved={vi.fn()} />)
+  fireEvent.click(screen.getByRole('button', { name: 'Add account' }))
+  expect(screen.getByRole('dialog', { name: 'New account' })).toBeTruthy()
 })
 
 it('closes from Done on the added receipt', async () => {
@@ -365,4 +379,10 @@ it('cancels category creation while preserving the expense and previous category
   expect(addCategoryMutation).not.toHaveBeenCalled()
   fireEvent.click(screen.getByRole('button', { name: 'Add' }))
   expect(screen.getByLabelText('Name')).toHaveValue('')
+})
+
+it('shows Add a photo right away, with no More toggle', () => {
+  render(<LogExpenseModal onClose={vi.fn()} onSaved={vi.fn()} />)
+  expect(screen.getByRole('button', { name: 'Add a photo' })).toBeTruthy()
+  expect(screen.queryByRole('button', { name: 'More' })).toBeNull()
 })

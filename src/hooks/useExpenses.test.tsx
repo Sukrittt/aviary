@@ -3,9 +3,9 @@ import type { Mock } from 'vitest'
 import type { ReactNode } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { renderHook, waitFor } from '@testing-library/react'
-import { getExpenses, postExpensePayload, updateExpense } from '@/src/api/expenses'
+import { getExpenses, postExpensePayload, updateExpense, uploadExpensePhoto } from '@/src/api/expenses'
 import { track, trackFirst } from '@/src/lib/analytics'
-import { useExpenses, useAddExpense, useUpdateExpense, useDeleteExpense } from './useExpenses'
+import { useExpenses, useAddExpense, useUpdateExpense, useDeleteExpense, useUploadExpensePhoto } from './useExpenses'
 
 vi.mock('@/src/api/expenses', () => ({
   getExpenses: vi.fn(),
@@ -13,6 +13,7 @@ vi.mock('@/src/api/expenses', () => ({
   postExpensePayload: vi.fn(),
   updateExpense: vi.fn(),
   deleteExpense: vi.fn(),
+  uploadExpensePhoto: vi.fn(),
 }))
 
 vi.mock('@/src/lib/analytics', () => ({ track: vi.fn(), trackFirst: vi.fn() }))
@@ -95,4 +96,18 @@ it('names the edited fields, and counts a delete', async () => {
   del.result.current.mutate({ timestamp: 't', item: 'Coffee', amountInr: 150 })
   await waitFor(() => expect(del.result.current.isSuccess).toBe(true))
   expect(track).toHaveBeenCalledWith('expense_deleted')
+})
+
+// Rows carry has_photo, and most log-dialog callers pass a no-op onSaved.
+it('useUploadExpensePhoto invalidates the expenses query on success', async () => {
+  ;(uploadExpensePhoto as Mock).mockResolvedValue('https://signed/url')
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries')
+  const { result } = renderHook(() => useUploadExpensePhoto(), { wrapper: wrapper(queryClient) })
+
+  result.current.mutate({ id: 'row-1', image: 'QUJD' })
+
+  await waitFor(() => expect(result.current.isSuccess).toBe(true))
+  expect(uploadExpensePhoto).toHaveBeenCalledWith('row-1', 'QUJD')
+  expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['expenses'] })
 })

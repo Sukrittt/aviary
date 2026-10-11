@@ -23,6 +23,7 @@ const OPEN: Record<string, string> = {
   'notifications/run': 'cron, CRON_SECRET',
   'billing/webhooks/revenuecat': 'provider webhook, shared secret',
   'billing/webhooks/razorpay': 'provider webhook, HMAC signature',
+  'billing/webhooks/paypal': 'provider webhook, verified with PayPal',
 
   // Signing in cannot require a subscription — that is how someone reaches
   // the screen that sells them one.
@@ -39,6 +40,8 @@ const OPEN: Record<string, string> = {
   'billing/razorpay/subscribe': 'how an expired account pays',
   'billing/razorpay/verify': 'how a web purchase is recognised',
   'billing/razorpay/cancel': 'stopping renewal must work while expired too',
+  'billing/paypal/subscribe': 'how an expired account outside India pays',
+  'billing/paypal/verify': 'how a PayPal purchase is recognised',
   'onboarding/complete': 'starts the trial; gating it would need the trial it creates',
 
   // Account controls stay available to someone who has stopped paying.
@@ -59,6 +62,7 @@ const OPEN: Record<string, string> = {
   // The two reads an expired user is still entitled to.
   'privacy/proof': 'shows how their data is stored; no budgeting content',
   'system/status': 'public; maintenance banner and update prompt',
+  'changelog': 'signed-in release list; no budgeting content',
   'changelog/latest': 'signed-in release notes; no budgeting content',
   'changelog/[id]/seen': 'account-level release announcement tracking, available while expired',
   waitlist: 'public landing-page signup; no session, no budgeting content',

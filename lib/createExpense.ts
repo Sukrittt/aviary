@@ -9,6 +9,7 @@ import { notifyThresholdCrossed } from '@/lib/notifications/instant'
 import { withTx } from '@/lib/mongodb'
 import { casRetry } from '@/lib/cas'
 import { resolveCategoryName } from '@/lib/categoryName'
+import { AccountError, liveAccount, paymentMethodFor } from '@/lib/accounts'
 
 /**
  * The one way an expense gets created. Lifted out of `app/api/expenses`'s POST
@@ -33,6 +34,8 @@ export interface CreateExpenseInput {
   date?: string
   timestamp?: string
   payment_method?: string
+  /** One of the user's live accounts. When set, `payment_method` comes from its type (lib/accounts.ts). */
+  account_id?: string
   /** Names the intent, so a retry is recognized before it can insert a second row. */
   client_id?: string
   source?: string
@@ -56,6 +59,8 @@ export interface CreateExpenseResult {
    * (lib/categoryName.ts) — clients need the real one to find its envelope.
    */
   category: string
+  /** What was saved: an account's type wins over the method asked for. */
+  paymentMethod: string
 }
 
 export function isDuplicateKeyError(err: unknown): boolean {
@@ -112,7 +117,15 @@ export async function createExpense(auth: Auth, input: CreateExpenseInput): Prom
   const ist = await nowForUser(auth.userId)
   const date = String(input.date || ist.date)
   const timestamp = String(input.timestamp || `${date}T${ist.timestamp.slice(11)}`)
-  const paymentMethod = String(input.payment_method ?? 'bank')
+  // The account decides how it was paid, so the Credit Card envelope and the
+  // balance check read the same field they always have. One archived since
+  // (an offline queue flushing late) drops the label rather than the expense:
+  // a 400 here would dead-letter what the user logged.
+  const account = input.account_id ? await liveAccount(auth, input.account_id).catch((err) => {
+    if (err instanceof AccountError) return null
+    throw err
+  }) : null
+  const paymentMethod = account ? paymentMethodFor(account.type) : String(input.payment_method ?? 'bank')
   const clientId = typeof input.client_id === 'string' ? input.client_id : undefined
 
   const coll = await getCollection('expenses', auth)
@@ -128,7 +141,7 @@ export async function createExpense(auth: Auth, input: CreateExpenseInput): Prom
     if (existing) {
       // Replay acknowledges the original create, not a newer edit the caller
       // has never seen. In particular, Undo must still check creation version 0.
-      return { id: String(existing._id), timestamp: String(existing.timestamp), version: 0, duplicate: true, category: String(existing.category ?? input.category) }
+      return { id: String(existing._id), timestamp: String(existing.timestamp), version: 0, duplicate: true, category: String(existing.category ?? input.category), paymentMethod: String(existing.payment_method ?? paymentMethod) }
     }
   }
 
@@ -153,6 +166,7 @@ export async function createExpense(auth: Auth, input: CreateExpenseInput): Prom
         amount: '',
         description: '',
         payment_method: paymentMethod,
+        ...(account ? { account_id: account.id } : {}),
         ...(clientId ? { client_id: clientId } : {}),
       },
       { session },
@@ -179,5 +193,5 @@ export async function createExpense(auth: Auth, input: CreateExpenseInput): Prom
   // failure risk.
   if (input.notify !== false) await notifyThresholdCrossed(auth, category)
 
-  return { id: String(insertedId), timestamp, version: 0, duplicate: false, category }
+  return { id: String(insertedId), timestamp, version: 0, duplicate: false, category, paymentMethod }
 }

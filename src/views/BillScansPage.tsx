@@ -38,14 +38,13 @@ export function BillScansPage() {
 
   return (
     <>
-      <div className="account-page-heading">
-        <div>
-          <div className="account-section-label">Bills Scanned</div>
-          <div className="account-row-meta" style={{ padding: '2px 4px 0' }}>
-            {loading ? 'Fetching your bills' : rows.length === 0 ? 'Nothing scanned yet' : `${rows.length} scanned`}
-          </div>
+      <header className="txn-page-header account-header">
+        <div className="txn-page-heading">
+          <span className="txn-page-eyebrow">Receipts</span>
+          <h1>Bills scanned</h1>
+          <p>{loading ? 'Fetching your bills…' : rows.length === 0 ? 'Nothing scanned yet' : `${rows.length} scanned`}</p>
         </div>
-      </div>
+      </header>
 
       {loading ? (
         <LoadingCaption feature="billScans" placement="page" />

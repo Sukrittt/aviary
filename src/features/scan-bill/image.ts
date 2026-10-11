@@ -7,8 +7,11 @@
 const MAX_EDGE = 2000
 const QUALITY = 0.7
 
-function encode(source: CanvasImageSource, width: number, height: number): string {
-  const scale = Math.min(1, MAX_EDGE / Math.max(width, height))
+/** Expense photos are just for looking back at, so they go smaller than a bill the model has to read. */
+export const PHOTO_ENCODING = { maxEdge: 1280, quality: 0.8 }
+
+function encode(source: CanvasImageSource, width: number, height: number, { maxEdge = MAX_EDGE, quality = QUALITY } = {}): string {
+  const scale = Math.min(1, maxEdge / Math.max(width, height))
   const canvas = document.createElement('canvas')
   canvas.width = Math.round(width * scale)
   canvas.height = Math.round(height * scale)
@@ -18,14 +21,14 @@ function encode(source: CanvasImageSource, width: number, height: number): strin
   ctx.fillStyle = '#fff'
   ctx.fillRect(0, 0, canvas.width, canvas.height)
   ctx.drawImage(source, 0, 0, canvas.width, canvas.height)
-  return canvas.toDataURL('image/jpeg', QUALITY)
+  return canvas.toDataURL('image/jpeg', quality)
 }
 
 /** A data URL: shown as the bill preview during review, and the base64 after its comma is what gets sent. */
-export async function dataUrlFromFile(file: File): Promise<string> {
+export async function dataUrlFromFile(file: File, opts?: { maxEdge: number; quality: number }): Promise<string> {
   const bitmap = await createImageBitmap(file)
   try {
-    return encode(bitmap, bitmap.width, bitmap.height)
+    return encode(bitmap, bitmap.width, bitmap.height, opts)
   } finally {
     bitmap.close()
   }

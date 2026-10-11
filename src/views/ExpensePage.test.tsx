@@ -85,12 +85,15 @@ it('keeps getting started out of the way for existing or finished users', async 
 it('asks for income first when setup skipped it, opening the monthly income screen', async () => {
   vi.mocked(getBudgets).mockResolvedValue([{ month, category: 'Food', assigned: '0', rolled_over: '0', version: 1 }])
   vi.mocked(getUser).mockResolvedValue({ ...baseUser, getStartedAt: '2026-09-01' })
+  // The schedule modal's date pickers read the viewport; jsdom has no matchMedia.
+  vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }))
   const client = renderPage()
   fireEvent.click(await screen.findByRole('button', { name: 'Add your income' }))
   expect(screen.queryByRole('button', { name: /Set up your budget/ })).not.toBeInTheDocument()
   expect(screen.getByRole('progressbar', { name: 'Getting started' })).toHaveAttribute('aria-valuenow', '0')
-  expect(await screen.findByText('Monthly income')).toBeInTheDocument()
+  expect(await screen.findByDisplayValue('Monthly income')).toBeInTheDocument()
   client.clear()
+  vi.unstubAllGlobals()
 })
 
 it('keeps getting started up without income, even with both other milestones done', async () => {
@@ -180,4 +183,24 @@ it('renders the finished home screen from a filled cache on the first render, an
   await act(async () => { hydrateRoot(container, tree(filled()), { onRecoverableError }) })
   expect(onRecoverableError).not.toHaveBeenCalled()
   container.remove()
+})
+
+it('names income in a pill under the hero that opens the income menu', async () => {
+  const client = renderPage()
+  const pill = await screen.findByRole('button', { name: 'Income · ₹20,000' })
+  fireEvent.click(pill)
+  expect(pill.parentElement).toContainElement(screen.getByRole('menuitem', { name: 'Change income' }))
+  expect(pill).toHaveAttribute('aria-expanded', 'true')
+  client.clear()
+})
+
+it('asks to set income from the hero pill when there is none', async () => {
+  vi.mocked(getBudgets).mockResolvedValue([{ month, category: 'Food', assigned: '0', rolled_over: '0', version: 1 }])
+  vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }))
+  const client = renderPage()
+  const pill = await screen.findByRole('button', { name: 'Set your income' })
+  fireEvent.click(pill)
+  expect(await screen.findByDisplayValue('Monthly income')).toBeInTheDocument()
+  client.clear()
+  vi.unstubAllGlobals()
 })

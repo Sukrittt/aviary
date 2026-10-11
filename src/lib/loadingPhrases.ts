@@ -77,6 +77,14 @@ export const LOADING_PHRASES = {
     "Working out what's next…",
     'Almost there…',
   ],
+  income: [
+    'Counting what came in…',
+    'Checking your paydays…',
+    'Adding up the salary…',
+    'Looking for bonuses…',
+    'Lining up the next payday…',
+    'Almost there…',
+  ],
   billScans: [
     'Pulling up your scans…',
     'Sorting by date…',
@@ -103,6 +111,7 @@ export const LOADING_PHRASES = {
   exports: ['Loading your exports…', 'Almost there…'],
   exportBuilding: ['Packing your data…', 'Tidying the columns…', 'Almost ready…'],
   appEntry: ['Opening the nest…', 'Finding your perch…', 'Smoothing the feathers…', 'Almost there…'],
+  accounts: ['Opening your wallet…', 'Shaking the piggy bank…', 'Shuffling your cards…', 'Counting the coin jar…'],
   wrappedStatus: ['Checking last month…', 'Counting transactions…', 'Tallying it up…', 'Almost there…'],
 } as const
 
@@ -111,6 +120,7 @@ export type LoadingFeature = keyof typeof LOADING_PHRASES
 export const ORDERED_LOADING_FEATURES = new Set<LoadingFeature>([
   'recurring',
   'recurringScan',
+  'income',
   'billScans',
   'billScanDetail',
   'archive',

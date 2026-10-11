@@ -3,10 +3,12 @@ import { render, screen, fireEvent } from '@testing-library/react'
 
 const useBillingStatusMock = vi.fn()
 const cancelMutate = vi.fn()
+const paypalReturnMock = vi.fn(() => null as string | null)
 vi.mock('@/src/hooks/useBillingStatus', () => ({
   useBillingStatus: () => useBillingStatusMock(),
   useSyncBilling: () => ({ mutate: vi.fn(), isPending: false, isSuccess: false, data: undefined }),
   useCancelWebSubscription: () => ({ mutate: cancelMutate, isPending: false, isError: false }),
+  usePayPalReturn: () => paypalReturnMock(),
 }))
 vi.mock('./WebPlanPicker', () => ({ WebPlanPicker: () => <div>plan picker</div> }))
 
@@ -34,7 +36,10 @@ const renderWith = (over: Record<string, unknown>) => {
   return render(<SubscriptionSection />)
 }
 
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => {
+  vi.clearAllMocks()
+  paypalReturnMock.mockReturnValue(null)
+})
 
 describe('SubscriptionSection', () => {
   it('lets a web subscriber cancel here, and never sends them to Google Play', () => {
@@ -47,15 +52,30 @@ describe('SubscriptionSection', () => {
     expect(cancelMutate).toHaveBeenCalled()
   })
 
+  it('shows a paying subscriber they are on Aviary Pro', () => {
+    renderWith({})
+    expect(screen.getByText('Aviary Pro')).toBeTruthy()
+    expect(screen.getByText('Active')).toBeTruthy()
+  })
+
+  it('keeps the plain plan row during the free trial', () => {
+    renderWith({ mode: 'trial', store: null, trialDaysRemaining: 10, renewalState: null })
+    expect(screen.queryByText('Aviary Pro')).toBeNull()
+    expect(screen.getByText('Plan')).toBeTruthy()
+  })
+
   it('tells a web subscriber who already cancelled when access ends', () => {
     renderWith({ autoRenew: false, renewalState: 'cancelled' })
     expect(screen.getByText('Renewal is off')).toBeTruthy()
+    expect(screen.getByText(/^Ends /)).toBeTruthy()
+    expect(screen.queryByText('Active')).toBeNull()
     expect(screen.queryByText('Cancel renewal')).toBeNull()
   })
 
   it('lets someone who subscribed mid-trial cancel before the first charge', () => {
     renderWith({ renewalState: 'scheduled', trialDaysRemaining: 13, paidExpiresAt: '2026-10-17T12:00:00.000Z' })
-    expect(screen.getByText('13 days left')).toBeTruthy()
+    expect(screen.getByText('Aviary Pro')).toBeTruthy()
+    expect(screen.getByText('Subscribed')).toBeTruthy()
     fireEvent.click(screen.getByText('Cancel subscription'))
     fireEvent.click(screen.getAllByText('Cancel subscription').at(-1)!)
     expect(cancelMutate).toHaveBeenCalled()
@@ -75,5 +95,15 @@ describe('SubscriptionSection', () => {
   it("doesn't offer plans to someone already paying", () => {
     renderWith({ store: 'play' })
     expect(screen.queryByText('plan picker')).toBeNull()
+  })
+
+  it('confirms a PayPal purchase on the way back, and says when it was cancelled', () => {
+    paypalReturnMock.mockReturnValue('paid')
+    const { unmount } = renderWith({})
+    expect(screen.getByText("You're all set")).toBeTruthy()
+    unmount()
+    paypalReturnMock.mockReturnValue('cancelled')
+    renderWith({ mode: 'trial', store: null, renewalState: null })
+    expect(screen.getByText('Checkout cancelled')).toBeTruthy()
   })
 })

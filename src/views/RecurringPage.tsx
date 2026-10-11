@@ -1,5 +1,6 @@
 'use client'
 
+import { Plus } from 'lucide-react'
 import { useCurrency } from '@/src/context/CurrencyContext'
 
 import { useState } from 'react'
@@ -27,8 +28,12 @@ const CADENCE_LABELS: Record<string, string> = {
 
 /** Rough monthly cost, only for the hero total and allocation bar. Twin of Mobile's account/recurring.tsx. */
 export function monthlyEquivalent(row: RecurringExpenseRow): number {
-  const amount = Number(row.amount_inr) || 0
-  switch (row.frequency) {
+  return monthlyAmount(Number(row.amount_inr) || 0, row.frequency)
+}
+
+/** `amount` every `frequency`, as a rough monthly figure. Also used for recurring income. */
+export function monthlyAmount(amount: number, frequency: string): number {
+  switch (frequency) {
     case 'daily':
       return amount * 30
     case 'weekly':
@@ -78,7 +83,6 @@ export function RecurringPage() {
   const segments: AllocationSegment[] = Array.from(byCategory.entries())
     .sort((a, b) => b[1] - a[1])
     .map(([label, value], i) => ({ label, value, color: CHART_COLORS[i % CHART_COLORS.length] }))
-  const categoryColor = new Map(segments.map((s) => [s.label, s.color]))
 
   // `offset` continues the stagger across sections, as Mobile's row index does.
   function section(title: string, list: RecurringExpenseRow[], offset: number) {
@@ -95,21 +99,18 @@ export function RecurringPage() {
             return (
               <motion.li key={row.id} {...popIn(staggerDelay(offset + i))}>
                 <button type="button" className="account-row" onClick={() => setEditing(row.id)}>
-                  <span
-                    className="recurring-dot"
-                    style={{
-                      background: categoryColor.get(category.text || row.category) ?? 'var(--erd-text3)',
-                      opacity: isActive ? 1 : 0.5,
-                    }}
-                  />
-                  <span style={{ flex: 1, minWidth: 0 }}>
-                    <span className="account-row-label recurring-title">{row.item}</span>
-                    <span className="account-row-meta recurring-meta">
-                      <span className="recurring-pill">{CADENCE_LABELS[row.frequency] ?? row.frequency}</span>
-                      {category.text ? ` · ${category.text}` : ''}
+                  <span style={{ flex: 1, minWidth: 0, opacity: isActive ? 1 : 0.5 }}>
+                    <span className="income-row-title">
+                      <span className="account-row-label recurring-title">{row.item}</span>
+                      <span className={`income-cadence-pill tone-${row.frequency}`}>
+                        {CADENCE_LABELS[row.frequency] ?? row.frequency}
+                      </span>
                     </span>
-                    <span className={`account-row-meta ${isActive && row.next_run_date ? 'recurring-due' : ''}`}>
-                      {row.status === 'ended' ? 'Finished' : !isActive ? 'Paused' : dueLabel(row.next_run_date)}
+                    <span className="account-row-meta recurring-meta">
+                      <span className={isActive && row.next_run_date ? 'recurring-due' : ''}>
+                        {row.status === 'ended' ? 'Finished' : !isActive ? 'Paused' : dueLabel(row.next_run_date)}
+                      </span>
+                      {category.text ? ` · ${category.text}` : ''}
                     </span>
                   </span>
                   <strong style={{ opacity: isActive ? 1 : 0.5 }}>
@@ -126,17 +127,19 @@ export function RecurringPage() {
 
   return (
     <>
-      <div className="account-page-heading">
-        <div>
-          <div className="account-section-label">Recurring</div>
-          <div className="account-row-meta" style={{ padding: '2px 4px 0' }}>
-            {active.length === 0 ? 'Nothing repeating yet' : `${active.length} active`}
-          </div>
+      <header className="txn-page-header account-header">
+        <div className="txn-page-heading">
+          <span className="txn-page-eyebrow">Bills on repeat</span>
+          <h1>Recurring</h1>
+          <p>{active.length === 0 ? 'Nothing repeating yet' : `${active.length} active`}</p>
         </div>
-        <button type="button" className="account-compact-btn" onClick={() => setEditing('')}>
-          + Add
-        </button>
-      </div>
+        <div className="txn-page-actions">
+          <button type="button" className="erd-log-btn txn-page-log-btn" onClick={() => setEditing('')}>
+            <Plus size={14} aria-hidden="true" />
+            Add recurring
+          </button>
+        </div>
+      </header>
 
       <RecurringSuggestions />
 

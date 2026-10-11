@@ -6,8 +6,8 @@ import { useCurrency } from '@/src/context/CurrencyContext'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { AnimatePresence, LayoutGroup, MotionConfig, motion, useReducedMotion } from 'motion/react'
 import { ArrowLeft, ArrowRight, RotateCw, Search, Trash2, X } from 'lucide-react'
-import { Scrim } from './MotionSheet'
-import { useButtonPhase } from './SuccessButton'
+import { Scrim, Sheet } from './MotionSheet'
+import { SuccessButton, useButtonPhase } from './SuccessButton'
 import { LoadingCaption } from './LoadingCaption'
 import { AmountText, CheckIcon, cssEase, ease, type as typeScale } from './landing/mobile/kit'
 import { useBudgets, useFreshBudgets, useTransferBudget, useUpdateBudget } from '../hooks/useBudgets'
@@ -15,10 +15,13 @@ import { useCategories } from '../hooks/useCategories'
 import { useRecentExpenses } from '../hooks/useExpenses'
 import { useGroups } from '../hooks/useGroups'
 import { useHideAmounts } from '../hooks/useHideAmounts'
+import { useAddIncome, useUpdateIncome } from '../hooks/useIncomes'
+import { liveAccounts, useAccounts } from '../hooks/useAccounts'
+import { AccountChips } from './AccountChips'
 import { EMPTY } from '../lib/constants'
 import { categoryEmoji, splitEmoji } from '../lib/emoji'
 import { BudgetWriteError } from '../lib/budgetConflict'
-import type { BudgetRow } from '../types'
+import type { BudgetRow, IncomeRow } from '../types'
 import {
   computeEnvelopeState,
   currentMonthKey,
@@ -958,82 +961,159 @@ export function EditMonthIncomeScreen({ month, onClose, initial }: { month: stri
 
 // ─── Add income ──────────────────────────────────────────────────────────────
 
-/** Opened from "+ Add income" under the Ready to Assign hero. Adds a one-off
- * amount to this month's income extra, so Ready to Assign goes up by exactly
- * that much and next month doesn't repeat it. */
-export function AddIncomeScreen({ onClose }: { onClose: () => void }) {
+/** The labelled-form modal the subscription and income forms share. */
+function FormSheet({ title, onClose, busy, footer, children }: {
+  title: string
+  onClose: () => void
+  busy: boolean
+  footer?: ReactNode
+  children: ReactNode
+}) {
+  return (
+    <Scrim className="erd-modal-overlay" onClick={busy ? undefined : onClose}>
+      <Sheet className="erd-modal-card erd-sub-card erd-one-off-card" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={title}>
+        <div className="erd-modal-head">
+          <h3>{title}</h3>
+          <button type="button" className="erd-modal-close" onClick={onClose} aria-label="Close" disabled={busy}>
+            ✕
+          </button>
+        </div>
+        <div className="erd-sub-body">{children}</div>
+        {footer && <div className="erd-sub-footer">{footer}</div>}
+      </Sheet>
+    </Scrim>
+  )
+}
+
+/** "Amount" with the currency glued to the digits and a hint underneath. */
+function AmountField({ id, value, onChange, hint, autoFocus }: {
+  id: string
+  value: string
+  onChange: (value: string) => void
+  hint: string
+  autoFocus?: boolean
+}) {
+  const { currencySymbol } = useCurrency()
+  return (
+    <section className="erd-sub-section">
+      <label className="erd-log-label" htmlFor={id}>Amount</label>
+      <div className="erd-amount-field">
+        <span className="erd-amount-symbol" aria-hidden="true">{currencySymbol}</span>
+        <input
+          id={id}
+          className="erd-amount-input"
+          type="text"
+          inputMode="decimal"
+          placeholder="0"
+          autoFocus={autoFocus}
+          value={value}
+          onChange={(e) => {
+            if (/^\d{0,9}(\.\d{0,2})?$/.test(e.target.value)) onChange(e.target.value)
+          }}
+        />
+      </div>
+      <p className="erd-sub-hint">{hint}</p>
+    </section>
+  )
+}
+
+/** Opened from Home's income menu and the Income page. Records a one-off in
+ * the income ledger; the server adds it to this month's income extra in the
+ * same write (Web/lib/income.ts), so Ready to Assign goes up by exactly that
+ * much and next month doesn't repeat it. */
+export function AddIncomeScreen({ onClose, existing }: { onClose: () => void; /** Present: edit this income row. */ existing?: IncomeRow }) {
   const { formatCurrency } = useCurrency()
   const [hideAmounts] = useHideAmounts()
   const data = useMoneyData()
-  const fetchFreshBudgets = useFreshBudgets()
-  const updateBudget = useUpdateBudget()
+  const addIncome = useAddIncome()
+  const updateIncome = useUpdateIncome()
+  const accounts = liveAccounts(useAccounts().data)
   const phase = useButtonPhase()
   const busy = phase.saving || phase.success
-  const [amountText, setAmountText] = useState('')
+  const [amountText, setAmountText] = useState(existing ? String(Number(existing.amount) || '') : '')
+  const [label, setLabel] = useState(existing?.label ?? '')
+  const [accountId, setAccountId] = useState(existing?.account_id ?? '')
   const [error, setError] = useState('')
+  // One id per screen, so a retried save after a lost response can't count twice.
+  const [clientId] = useState(() => crypto.randomUUID())
   const value = Number(amountText) || 0
 
-  if (data.isLoading) return <Screen title="Add income" onClose={onClose} busy={false}><LoadingCaption /></Screen>
-  const month = currentMonthKey()
-  const state = computeEnvelopeState(data.budgets, data.expenses, month, data.categories, data.groups)
+  // Only the preview line needs the budget data; the form never waits on it.
+  const state = data.isLoading
+    ? null
+    : computeEnvelopeState(data.budgets, data.expenses, currentMonthKey(), data.categories, data.groups)
 
   async function submit() {
     if (busy || value <= 0) return
     phase.start()
     setError('')
-    // Adding is order-independent, so a save that lost a race to another
-    // device just re-reads the row and adds on top of it.
-    let budgets = data.budgets
-    for (let attempt = 0; attempt < 2; attempt++) {
-      const row = budgets.find((b) => b.month === month && b.category === INCOME_CATEGORY)
-      try {
-        await updateBudget.mutateAsync({
-          month,
-          category: INCOME_CATEGORY,
-          version: row?.version ?? 0,
-          updates: { extra: String(cents((Number(row?.extra) || 0) + value)) },
+    try {
+      if (existing) {
+        await updateIncome.mutateAsync({
+          id: existing.id,
+          version: existing.version,
+          // The account goes only when it changed: an archived one the row still names would fail the save.
+          updates: { amount: value, label: label.trim() || existing.label, ...(accountId !== existing.account_id ? { account_id: accountId } : {}) },
         })
-        phase.succeed(onClose)
-        return
-      } catch (err) {
-        if (attempt === 0 && err instanceof BudgetWriteError && err.status === 409) {
-          budgets = await fetchFreshBudgets().catch(() => budgets)
-          continue
-        }
-        break
+      } else {
+        await addIncome.mutateAsync({
+          amount: value,
+          label: label.trim() || 'Extra income',
+          ...(accountId ? { account_id: accountId } : {}),
+          client_id: clientId,
+        })
       }
+      phase.succeed(onClose)
+    } catch {
+      phase.fail()
+      setError("Couldn't save. Check your connection and try again.")
     }
-    phase.fail()
-    setError("Couldn't save. Check your connection and try again.")
   }
 
-  const detail = state.incomeExtra === 0
-    ? `${formatCurrency(state.incomeBase, hideAmounts)} monthly`
-    : `${formatCurrency(state.incomeBase, hideAmounts)} monthly · ${formatCurrency(state.incomeExtra, hideAmounts)} extra`
+  // A payday on the monthly schedule is already counted by the monthly income, so editing it moves nothing.
+  const countsAsExtra = !existing || existing.counted === 'extra'
+  const change = value - (existing ? Number(existing.amount) || 0 : 0)
+  const hint = !countsAsExtra
+    ? 'This only changes the record. Your monthly income still counts.'
+    : value > 0
+      ? state
+        ? `Ready to Assign ${formatCurrency(state.readyToAssign + change, hideAmounts)} · This month only`
+        : 'Adds to Ready to Assign · This month only'
+      : 'What came in on top of your monthly income'
 
   return (
-    <Screen title="Add income" onClose={onClose} busy={busy} showHeader={false}>
-      <div className="money-body">
-        <div className="money-month-row">
-          <span className="money-label">{monthLabel(month).toUpperCase()}</span>
-          <button type="button" className="money-head-btn" aria-label="Close" onClick={onClose} disabled={busy}>
-            <X size={16} />
-          </button>
-        </div>
-        <SubjectCard emoji="💰" label="ADDING" name="Income" detail={detail} />
-        <HeroAmount amountText={amountText} onChange={setAmountText}>
-          <motion.p key={value > 0 ? 'impact' : 'hint'} className="money-hint" {...FADE_IN}>
-            {value > 0
-              ? `Ready to Assign ${formatCurrency(state.readyToAssign + value, hideAmounts)} · this month only`
-              : 'What came in on top of your monthly income'}
-          </motion.p>
-        </HeroAmount>
-        {error !== '' && <p role="alert" className="money-error">{error}</p>}
-      </div>
-      <div className="money-foot">
-        <Cta label={phase.saving ? 'Saving…' : 'Add'} enabled={value > 0} saving={phase.saving} success={phase.success} onPress={submit} checkSize={16} />
-      </div>
-    </Screen>
+    <FormSheet
+      title={existing ? 'Edit income' : 'One-off income'}
+      onClose={onClose}
+      busy={busy}
+      footer={
+        <SuccessButton type="button" baseClass="erd-log-submit" saving={phase.saving} success={phase.success} successLabel={existing ? 'Saved' : 'Income added'} disabled={value <= 0 || busy} onClick={submit}>
+          {existing ? 'Save changes' : 'Add income'}
+        </SuccessButton>
+      }
+    >
+      <AmountField id="one-off-amount" value={amountText} onChange={setAmountText} hint={hint} autoFocus={!existing} />
+
+      <section className="erd-sub-section">
+        <label className="erd-log-label" htmlFor="one-off-label">What was it (optional)</label>
+        <input
+          id="one-off-label"
+          className="erd-log-input"
+          placeholder="A bonus, a refund, a gift…"
+          maxLength={200}
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+        />
+      </section>
+
+      {accounts.length > 0 && (
+        <section className="erd-sub-section">
+          <AccountChips accounts={accounts} value={accountId} onChange={setAccountId} allowNone label="Paid into" />
+        </section>
+      )}
+
+      {error !== '' && <p role="alert" className="erd-log-error">{error}</p>}
+    </FormSheet>
   )
 }
 
@@ -1045,7 +1125,7 @@ export function AddIncomeScreen({ onClose }: { onClose: () => void }) {
 export function EditReadyToAssignScreen({ onClose }: { onClose: () => void }) {
   const data = useMoneyData()
   const fetchFreshBudgets = useFreshBudgets()
-  if (data.isLoading) return <Screen title="Edit Ready to Assign" onClose={onClose} busy={false}><LoadingCaption /></Screen>
+  if (data.isLoading) return <FormSheet title="Set Ready to Assign" onClose={onClose} busy={false}><LoadingCaption /></FormSheet>
   const month = currentMonthKey()
   const state = computeEnvelopeState(data.budgets, data.expenses, month, data.categories, data.groups)
   const incomeBudget = data.budgets.find((b) => b.month === month && b.category === INCOME_CATEGORY)
@@ -1105,7 +1185,10 @@ function EditReadyToAssignBody({
   const value = Number(amountText) || 0
   const newIncome = cents(incomeBase + extraForReadyToAssign(incomeBase, totalAssigned, value))
   const delta = Math.round((newIncome - baseIncome) * 100) / 100
-  const impactText = delta === 0 ? "Type what's left to assign" : `Income ${formatCurrency(newIncome, hideAmounts)}`
+  // The difference lands in this month's income, so say where income ends up once it moves.
+  const hint = delta === 0
+    ? `${formatCurrency(baseIncome, hideAmounts)} income · ${formatCurrency(totalAssigned, hideAmounts)} assigned`
+    : `Income becomes ${formatCurrency(newIncome, hideAmounts)} this month`
 
   async function submit() {
     if (busy) return
@@ -1141,49 +1224,31 @@ function EditReadyToAssignBody({
   }
 
   return (
-    <Screen title="Edit Ready to Assign" onClose={onClose} busy={busy} showHeader={false}>
-      <div className="money-body">
-        {!conflict && (
-          <div className="money-month-row">
-            <span className="money-label">{monthLabel(month).toUpperCase()}</span>
-            <button type="button" className="money-head-btn" aria-label="Close" onClick={onClose} disabled={busy}>
-              <X size={16} />
-            </button>
-          </div>
-        )}
-        {conflict ? (
-          <ConflictReview
-            heading="Ready to Assign was updated"
-            description="A newer amount was saved elsewhere. Your amount is still here."
-            label="Ready to Assign"
-            saved={formatCurrency((Number(conflict.assigned) || 0) + (Number(conflict.extra) || 0) - totalAssigned, hideAmounts)}
-            next={formatCurrency(value, hideAmounts)}
-            guidance="Continue with your amount or use the latest saved value. You can review it before saving."
-            onContinue={() => reviewLatest(true)}
-            onUseLatest={() => reviewLatest(false)}
-          />
-        ) : (
-          <>
-            <SubjectCard
-              emoji="💰"
-              label="EDITING"
-              name="Ready to Assign"
-              detail={`${formatCurrency(baseIncome, hideAmounts)} income · ${formatCurrency(totalAssigned, hideAmounts)} assigned`}
-            />
-            <HeroAmount amountText={amountText} onChange={setAmountText}>
-              <motion.p key={impactText} className="money-hint" {...FADE_IN}>
-                {impactText}
-              </motion.p>
-            </HeroAmount>
-          </>
-        )}
-        {error !== '' && <p role="alert" className="money-error">{error}</p>}
-      </div>
-      {!conflict && (
-        <div className="money-foot">
-          <Cta label={phase.saving ? 'Saving…' : 'Save'} enabled saving={phase.saving} success={phase.success} onPress={submit} checkSize={16} />
-        </div>
+    <FormSheet
+      title="Set Ready to Assign"
+      onClose={onClose}
+      busy={busy}
+      footer={conflict ? undefined : (
+        <SuccessButton type="button" baseClass="erd-log-submit" saving={phase.saving} success={phase.success} successLabel="Saved" disabled={busy} onClick={submit}>
+          Save
+        </SuccessButton>
       )}
-    </Screen>
+    >
+      {conflict ? (
+        <ConflictReview
+          heading="Ready to Assign was updated"
+          description="A newer amount was saved elsewhere. Your amount is still here."
+          label="Ready to Assign"
+          saved={formatCurrency((Number(conflict.assigned) || 0) + (Number(conflict.extra) || 0) - totalAssigned, hideAmounts)}
+          next={formatCurrency(value, hideAmounts)}
+          guidance="Continue with your amount or use the latest saved value. You can review it before saving."
+          onContinue={() => reviewLatest(true)}
+          onUseLatest={() => reviewLatest(false)}
+        />
+      ) : (
+        <AmountField id="rta-amount" value={amountText} onChange={setAmountText} hint={hint} autoFocus />
+      )}
+      {error !== '' && <p role="alert" className="erd-log-error">{error}</p>}
+    </FormSheet>
   )
 }
