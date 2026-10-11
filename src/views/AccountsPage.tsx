@@ -9,7 +9,8 @@ import { LoadingCaption } from '../components/LoadingCaption'
 import { Scrim, Sheet } from '../components/MotionSheet'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { SuccessButton, useButtonPhase } from '../components/SuccessButton'
-import { ACCOUNT_TYPE_EMOJI } from '../components/AccountChips'
+import { ACCOUNT_TYPE_EMOJI, accountEmoji, accountLabel } from '../components/AccountChips'
+import { splitEmoji } from '../lib/emoji'
 import { AccountWriteError } from '../api/accounts'
 import { liveAccounts, useAccounts, useAddAccount, useUpdateAccount } from '../hooks/useAccounts'
 import { useBalanceStatus } from '../hooks/useBalanceCheck'
@@ -95,9 +96,9 @@ export function AccountsPage() {
           <ul className="account-card recurring-list" aria-label="Accounts">
             {live.map((a, i) => (
               <motion.li key={a.id} className="account-row" style={{ cursor: 'default' }} {...popIn(staggerDelay(i))}>
-                <span aria-hidden="true" style={{ fontSize: 20 }}>{ACCOUNT_TYPE_EMOJI[a.type] ?? '🏦'}</span>
+                <span aria-hidden="true" style={{ fontSize: 20 }}>{accountEmoji(a)}</span>
                 <span style={{ flex: 1, minWidth: 0 }}>
-                  <span className="account-row-label recurring-title">{a.name}</span>
+                  <span className="account-row-label recurring-title">{accountLabel(a)}</span>
                   <span className="account-row-meta">{TYPE_LABEL[a.type] ?? 'Account'}</span>
                 </span>
                 <span className="income-row-actions">
@@ -124,8 +125,8 @@ export function AccountsPage() {
               <ul className="account-card recurring-list" aria-label="Archived accounts">
                 {archived.map((a) => (
                   <li key={a.id} className="account-row" style={{ cursor: 'default' }}>
-                    <span aria-hidden="true" style={{ fontSize: 20, opacity: 0.5 }}>{ACCOUNT_TYPE_EMOJI[a.type] ?? '🏦'}</span>
-                    <span style={{ flex: 1, minWidth: 0, opacity: 0.6 }} className="account-row-label">{a.name}</span>
+                    <span aria-hidden="true" style={{ fontSize: 20, opacity: 0.5 }}>{accountEmoji(a)}</span>
+                    <span style={{ flex: 1, minWidth: 0, opacity: 0.6 }} className="account-row-label">{accountLabel(a)}</span>
                     <button type="button" className="scan-link-btn is-mint" disabled={update.isPending} onClick={() => restore(a)}>Restore</button>
                   </li>
                 ))}
@@ -209,7 +210,7 @@ function StarterPicks({ names }: { names: string[] }) {
             aria-pressed={c.picked}
             onClick={() => setChoices((all) => all.map((x, j) => (j === i ? { ...x, picked: !x.picked } : x)))}
           >
-            <span aria-hidden="true">{ACCOUNT_TYPE_EMOJI[c.type]}</span> {c.name}
+            <span aria-hidden="true">{accountEmoji(c)}</span> {accountLabel(c)}
           </button>
         ))}
       </div>
@@ -272,7 +273,13 @@ export function AccountModal({ id, onClose }: { id?: string; onClose: () => void
         <div className="erd-recurring-body">
           <section className="erd-recurring-section">
             <label className="erd-log-label" htmlFor="account-name">Name</label>
-            <input id="account-name" className="erd-log-input" placeholder="e.g. HDFC" maxLength={30} value={name} onChange={(e) => setName(e.target.value)} autoFocus={!existing} />
+            <div className="env-sheet-name-row">
+              <div className="env-sheet-icon-swatch" aria-hidden="true">{accountEmoji({ name, type })}</div>
+              <input id="account-name" className="erd-log-input" style={{ flex: 1, minWidth: 0 }} placeholder="e.g. HDFC" maxLength={30} value={name} onChange={(e) => setName(e.target.value)} autoFocus={!existing} />
+            </div>
+            {name.trim() && !splitEmoji(name).icon && (
+              <p className="recurring-hint">💡 Tip: start the name with an emoji, like 🐷 Savings, to give it its own icon.</p>
+            )}
           </section>
           <section className="erd-recurring-section">
             <div className="erd-log-label">Type</div>

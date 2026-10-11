@@ -28,7 +28,7 @@ import { BirdEmptyState } from "./BirdEmptyState";
 import { useIncomes } from "../hooks/useIncomes";
 import { liveAccounts, useAccounts } from "../hooks/useAccounts";
 import { incomesForPage, periodEnd } from "../lib/incomeActivity";
-import { accountName } from "./AccountChips";
+import { accountEmoji, accountLabel, accountName } from "./AccountChips";
 import type { IncomeRow } from "../types";
 
 type PeriodKey = "week" | "month" | "custom";
@@ -561,7 +561,7 @@ export function TransactionsView({
                 placeholder="All accounts"
                 options={[
                   { value: "", label: "All accounts" },
-                  ...accountOptions.map((a) => ({ value: a.id, label: a.name })),
+                  ...accountOptions.map((a) => ({ value: a.id, label: accountLabel(a), icon: accountEmoji(a) })),
                 ]}
               />
             </div>

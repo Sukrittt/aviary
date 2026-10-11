@@ -1,8 +1,19 @@
 'use client'
 
 import type { AccountRow } from '../types'
+import { splitEmoji } from '../lib/emoji'
 
 export const ACCOUNT_TYPE_EMOJI: Record<string, string> = { bank: '🏦', cash: '💵', credit_card: '💳' }
+
+/** A leading emoji in the name is the account's icon, like envelopes; else its type's. */
+export function accountEmoji(a: { name: string; type: string }): string {
+  return splitEmoji(a.name).icon || ACCOUNT_TYPE_EMOJI[a.type] || '🏦'
+}
+
+/** The name without its leading emoji, for next to `accountEmoji`. */
+export function accountLabel(a: { name: string }): string {
+  return splitEmoji(a.name).text
+}
 
 /**
  * One chip per live account. Replaces the old Bank / Credit card toggle once a
@@ -41,7 +52,7 @@ export function AccountChips({
             className={`erd-chip ${value === a.id ? 'is-selected' : ''}`}
             onClick={() => onChange(a.id)}
           >
-            <span aria-hidden="true">{ACCOUNT_TYPE_EMOJI[a.type] ?? '🏦'}</span> {a.name}
+            <span aria-hidden="true">{accountEmoji(a)}</span> {accountLabel(a)}
           </button>
         ))}
       </div>

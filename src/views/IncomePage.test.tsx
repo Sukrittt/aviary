@@ -25,6 +25,7 @@ vi.mock('@/src/api/balanceChecks', () => ({ getBalanceStatus: vi.fn(async () => 
 vi.mock('@/src/api/budgets', () => ({ getBudgets: vi.fn(async () => []) }))
 vi.mock('@/src/context/CurrencyContext', () => ({ useCurrency: () => ({ currencySymbol: '₹', formatCurrency: (n: number) => `₹${n}` }) }))
 vi.mock('../hooks/useHideAmounts', () => ({ useHideAmounts: () => [false] }))
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }))
 
 function renderPage(node: ReactNode) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
