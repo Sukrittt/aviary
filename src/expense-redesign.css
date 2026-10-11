@@ -9976,15 +9976,6 @@ button.account-feature-card {
 .recurring-list .recurring-meta {
   margin: 4px 0 2px;
 }
-.recurring-pill {
-  display: inline-block;
-  padding: 1px 7px;
-  border-radius: 999px;
-  background: var(--erd-input-bg);
-  color: var(--erd-text2);
-  font-size: 11px;
-  font-weight: 700;
-}
 .recurring-list .recurring-due {
   color: var(--gold-ink);
   font-weight: 700;
@@ -12351,7 +12342,7 @@ button.account-feature-card {
   cursor: default;
 }
 
-/* Income: one tone per cadence, shared by the hero tiles and each row's pill. */
+/* One tone per cadence, shared by the income hero tiles and the income and recurring row pills. */
 .tone-monthly { --tone: var(--mint); --tone-soft: var(--mint-soft); }
 .tone-weekly { --tone: var(--blue); --tone-soft: var(--blue-soft); }
 .tone-daily { --tone: var(--violet); --tone-soft: var(--violet-soft); }

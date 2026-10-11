@@ -83,7 +83,6 @@ export function RecurringPage() {
   const segments: AllocationSegment[] = Array.from(byCategory.entries())
     .sort((a, b) => b[1] - a[1])
     .map(([label, value], i) => ({ label, value, color: CHART_COLORS[i % CHART_COLORS.length] }))
-  const categoryColor = new Map(segments.map((s) => [s.label, s.color]))
 
   // `offset` continues the stagger across sections, as Mobile's row index does.
   function section(title: string, list: RecurringExpenseRow[], offset: number) {
@@ -100,21 +99,18 @@ export function RecurringPage() {
             return (
               <motion.li key={row.id} {...popIn(staggerDelay(offset + i))}>
                 <button type="button" className="account-row" onClick={() => setEditing(row.id)}>
-                  <span
-                    className="recurring-dot"
-                    style={{
-                      background: categoryColor.get(category.text || row.category) ?? 'var(--erd-text3)',
-                      opacity: isActive ? 1 : 0.5,
-                    }}
-                  />
-                  <span style={{ flex: 1, minWidth: 0 }}>
-                    <span className="account-row-label recurring-title">{row.item}</span>
-                    <span className="account-row-meta recurring-meta">
-                      <span className="recurring-pill">{CADENCE_LABELS[row.frequency] ?? row.frequency}</span>
-                      {category.text ? ` · ${category.text}` : ''}
+                  <span style={{ flex: 1, minWidth: 0, opacity: isActive ? 1 : 0.5 }}>
+                    <span className="income-row-title">
+                      <span className="account-row-label recurring-title">{row.item}</span>
+                      <span className={`income-cadence-pill tone-${row.frequency}`}>
+                        {CADENCE_LABELS[row.frequency] ?? row.frequency}
+                      </span>
                     </span>
-                    <span className={`account-row-meta ${isActive && row.next_run_date ? 'recurring-due' : ''}`}>
-                      {row.status === 'ended' ? 'Finished' : !isActive ? 'Paused' : dueLabel(row.next_run_date)}
+                    <span className="account-row-meta recurring-meta">
+                      <span className={isActive && row.next_run_date ? 'recurring-due' : ''}>
+                        {row.status === 'ended' ? 'Finished' : !isActive ? 'Paused' : dueLabel(row.next_run_date)}
+                      </span>
+                      {category.text ? ` · ${category.text}` : ''}
                     </span>
                   </span>
                   <strong style={{ opacity: isActive ? 1 : 0.5 }}>
