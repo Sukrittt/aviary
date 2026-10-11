@@ -10,7 +10,12 @@ const { addExpenseMutation, deleteExpenseMutation, addCategoryMutation, history 
   addCategoryMutation: vi.fn(),
   history: { rows: [] as unknown[] },
 }))
-vi.mock('../hooks/useAccounts', () => ({ useAccounts: () => ({ data: [] }), liveAccounts: () => [] }))
+vi.mock('../hooks/useAccounts', () => ({
+  useAccounts: () => ({ data: [], isSuccess: true }),
+  liveAccounts: () => [],
+  useAddAccount: () => ({ mutateAsync: vi.fn() }),
+  useUpdateAccount: () => ({ mutateAsync: vi.fn(), isPending: false }),
+}))
 vi.mock('../hooks/useExpenses', () => ({
   useAddExpense: () => ({ mutateAsync: addExpenseMutation }),
   useDeleteExpense: () => ({ mutateAsync: deleteExpenseMutation, isPending: false }),
@@ -115,6 +120,12 @@ it('hands off to Ask Aviary to log several spends at once', () => {
 it('leaves the hand-off out where there is no Ask Aviary to open', () => {
   render(<LogExpenseModal onClose={vi.fn()} onSaved={vi.fn()} />)
   expect(screen.queryByRole('button', { name: 'Log several at once' })).toBeNull()
+})
+
+it('offers to add an account right here when there are none', () => {
+  render(<LogExpenseModal onClose={vi.fn()} onSaved={vi.fn()} />)
+  fireEvent.click(screen.getByRole('button', { name: 'Add account' }))
+  expect(screen.getByRole('dialog', { name: 'New account' })).toBeTruthy()
 })
 
 it('closes from Done on the added receipt', async () => {

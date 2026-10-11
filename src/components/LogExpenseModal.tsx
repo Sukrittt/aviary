@@ -13,6 +13,7 @@ import { MANUAL_LOG_EVENT } from '@/src/lib/captureTip'
 import { track } from '../lib/analytics'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
 import { AddCategoryModal } from './AddCategoryModal'
+import { AccountModal } from '../views/AccountsPage'
 import type { CategoryRow } from '../types'
 import { CategoryPicker } from './CategoryPicker'
 import { AccountChips } from './AccountChips'
@@ -72,6 +73,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
   const [amount, setAmount] = useState('')
   const [category, setCategory] = useState<string>('')
   const [showAddCategory, setShowAddCategory] = useState(false)
+  const [showAddAccount, setShowAddAccount] = useState(false)
   const [createdCategory, setCreatedCategory] = useState<CategoryRow | null>(null)
   const [date, setDate] = useState(toDateInputValue(new Date()))
   // null: follow the category's usual account (src/lib/defaultAccount.ts).
@@ -381,8 +383,8 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
 
   return (
     <>
-    <Scrim className="erd-modal-overlay" onClick={success || showAddCategory ? undefined : onClose}>
-      <Sheet className="erd-modal-card erd-log-card" inert={showAddCategory} onClick={(e) => e.stopPropagation()}>
+    <Scrim className="erd-modal-overlay" onClick={success || showAddCategory || showAddAccount ? undefined : onClose}>
+      <Sheet className="erd-modal-card erd-log-card" inert={showAddCategory || showAddAccount} onClick={(e) => e.stopPropagation()}>
         {added ? (
           <ExpenseAdded
             expense={added}
@@ -482,9 +484,19 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
                 <CategoryPicker value={effectiveCategory} onChange={handleCategoryPick} additionalCategory={createdCategory} />
               </section>
 
-              {accounts.length > 0 && (
+              {accounts.length > 0 ? (
                 <section className="erd-log-section">
                   <AccountChips accounts={accounts} value={accountId} onChange={setAccountPick} />
+                </section>
+              ) : accountsQ.isSuccess && (
+                // No accounts yet: offer one right here. A new one is the only
+                // live account, so it becomes the default pick on its own.
+                <section className="erd-log-section">
+                  <div className="erd-log-label">Paid from</div>
+                  <button type="button" className="erd-chip" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }} onClick={() => setShowAddAccount(true)}>
+                    <Plus size={15} aria-hidden="true" />
+                    Add account
+                  </button>
                 </section>
               )}
 
@@ -580,6 +592,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
         }}
       />
     )}
+    {showAddAccount && <AccountModal onClose={() => setShowAddAccount(false)} />}
     </>
   )
 }

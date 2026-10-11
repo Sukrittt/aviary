@@ -184,7 +184,7 @@ function StarterPicks({ names }: { names: string[] }) {
   )
 }
 
-function AccountModal({ id, onClose }: { id?: string; onClose: () => void }) {
+export function AccountModal({ id, onClose }: { id?: string; onClose: () => void }) {
   const accounts = useAccounts().data ?? []
   const existing = id ? accounts.find((a) => a.id === id) : undefined
   const add = useAddAccount()
