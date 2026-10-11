@@ -77,6 +77,14 @@ export const LOADING_PHRASES = {
     "Working out what's next…",
     'Almost there…',
   ],
+  income: [
+    'Counting what came in…',
+    'Checking your paydays…',
+    'Adding up the salary…',
+    'Looking for bonuses…',
+    'Lining up the next payday…',
+    'Almost there…',
+  ],
   billScans: [
     'Pulling up your scans…',
     'Sorting by date…',
@@ -111,6 +119,7 @@ export type LoadingFeature = keyof typeof LOADING_PHRASES
 export const ORDERED_LOADING_FEATURES = new Set<LoadingFeature>([
   'recurring',
   'recurringScan',
+  'income',
   'billScans',
   'billScanDetail',
   'archive',

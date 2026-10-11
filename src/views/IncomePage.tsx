@@ -148,7 +148,7 @@ export function IncomePage() {
       </header>
 
       {loading ? (
-        <LoadingCaption placement="page" />
+        <LoadingCaption feature="income" placement="page" />
       ) : loadError ? (
         <div className="account-empty">
           <p className="account-row-meta">Couldn&apos;t load your income. Check your connection and try again.</p>
