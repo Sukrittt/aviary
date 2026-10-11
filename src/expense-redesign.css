@@ -9885,7 +9885,8 @@ button.account-feature-card {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 18px;
+  /* Sides match .account-row so hero and row text share one left edge. */
+  padding: 18px 16px;
 }
 .recurring-hero .account-section-label {
   padding: 0;
@@ -12368,7 +12369,7 @@ button.account-feature-card {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 20px;
+  padding: 20px 16px;
 }
 .income-hero .account-section-label {
   padding: 0;
