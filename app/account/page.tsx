@@ -23,6 +23,7 @@ import {
   Receipt,
   Repeat,
   ScanLine,
+  ScrollText,
   TrendingUp,
   type LucideIcon,
 } from 'lucide-react'
@@ -254,7 +255,7 @@ export default function AccountPage() {
             </a>
           </div>
           <AccountRow icon={Compass} label="How this works" href="/account/guided-tour" />
-          <AccountRow icon={FileText} label="Changelog" href="/account/changelog" />
+          <AccountRow icon={ScrollText} label="Changelog" href="/account/changelog" />
           <AccountRow icon={MessageCircle} label="Help & feedback" hint="We read every one" href="/account/help" />
           <AccountRow icon={FileText} label="Terms & privacy" href="/legal/privacy" />
         </div>
