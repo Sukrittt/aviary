@@ -4,7 +4,7 @@ import { useCurrency } from '@/src/context/CurrencyContext'
 import { useState } from 'react'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
-import { AmountText, popIn, staggerDelay } from '../components/landing/mobile/kit'
+import { AmountText, popIn, STAGGER, staggerDelay } from '../components/landing/mobile/kit'
 import { LoadingCaption } from '../components/LoadingCaption'
 import { BirdEmptyState } from '../components/BirdEmptyState'
 import { RecurringIncomeModal } from '../components/RecurringIncomeModal'
@@ -164,11 +164,13 @@ export function IncomePage() {
         />
       ) : (
         <>
-          <div className="account-card income-hero">
+          <motion.div className="account-card income-hero" {...popIn(STAGGER.mount)}>
             {active.length === 0 ? (
               <>
                 <div className="account-section-label">Recorded in {monthLabel(month)}</div>
-                <div className="income-hero-amount">{formatCurrency(receivedTotal, hideAmounts)}</div>
+                <div className="income-hero-amount">
+                  {hideAmounts ? formatCurrency(receivedTotal, true) : <AmountText value={receivedTotal} animate />}
+                </div>
               </>
             ) : (
               <>
@@ -206,9 +208,10 @@ export function IncomePage() {
                 </div>
               </>
             )}
-          </div>
-          {scheduleSection('Recurring', active, 0)}
-          {scheduleSection('Paused and finished', inactive, active.length)}
+          </motion.div>
+          {/* Rows continue the stagger after the hero, top to bottom. */}
+          {scheduleSection('Recurring', active, 1)}
+          {scheduleSection('Paused and finished', inactive, 1 + active.length)}
 
           <div>
             <div className="account-section-label" style={{ marginBottom: 10 }}>{monthLabel(month)}</div>
@@ -216,10 +219,18 @@ export function IncomePage() {
               <p className="account-row-meta" style={{ padding: '0 4px' }}>Nothing recorded yet this month.</p>
             ) : (
               <ul className="account-card recurring-list" aria-label={`Income in ${monthLabel(month)}`}>
-                {thisMonth.map((row) => {
+                <AnimatePresence mode="popLayout">
+                {thisMonth.map((row, i) => {
                   const account = accountName(accounts, row.account_id)
                   return (
-                    <li key={row.id} className="account-row" style={{ cursor: 'default' }}>
+                    <motion.li
+                      key={row.id}
+                      layout
+                      className="account-row"
+                      style={{ cursor: 'default' }}
+                      {...popIn(staggerDelay(1 + schedules.length + i))}
+                      exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.18 } }}
+                    >
                       <span style={{ flex: 1, minWidth: 0 }}>
                         <span className="account-row-label recurring-title">{row.label}</span>
                         <span className="account-row-meta">
@@ -236,9 +247,10 @@ export function IncomePage() {
                           <Trash2 size={15} aria-hidden="true" />
                         </button>
                       </span>
-                    </li>
+                    </motion.li>
                   )
                 })}
+                </AnimatePresence>
               </ul>
             )}
             {error && <p className="erd-log-error">{error}</p>}
