@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { AnimatePresence } from 'motion/react'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { ExternalLink, RefreshCw, XCircle } from 'lucide-react'
 import { ConfirmDialog } from '@/src/components/ConfirmDialog'
 import { useBillingStatus, useCancelWebSubscription, usePayPalReturn, useSyncBilling, type PayPalReturn } from '@/src/hooks/useBillingStatus'
@@ -23,6 +23,7 @@ export function SubscriptionSection() {
   const cancel = useCancelWebSubscription()
   const [confirmingCancel, setConfirmingCancel] = useState(false)
   const paypalReturn = usePayPalReturn()
+  const reduceMotion = useReducedMotion()
 
   // Hidden entirely until subscriptions are switched on, so nobody is shown a
   // plan they cannot buy and a countdown that does not apply to them yet.
@@ -131,7 +132,15 @@ export function SubscriptionSection() {
                 : 'Use this if you just subscribed on your phone.'}
             </span>
           </span>
-          <RefreshCw size={16} className="account-row-arrow" aria-hidden />
+          <motion.span
+            aria-hidden
+            className="account-row-arrow"
+            style={{ display: 'inline-flex' }}
+            animate={{ rotate: sync.isPending && !reduceMotion ? 360 : 0 }}
+            transition={sync.isPending ? { repeat: Infinity, duration: 0.9, ease: 'linear' } : { duration: 0 }}
+          >
+            <RefreshCw size={16} />
+          </motion.span>
         </button>
       </div>
 
