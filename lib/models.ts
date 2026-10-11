@@ -92,6 +92,7 @@ export const COLLECTIONS = {
   holdings: 'holdings',
   holdingEvents: 'holding_events',
   pushTokens: 'push_tokens',
+  pushTickets: 'push_tickets',
   categoryMapOverrides: 'category_map_overrides',
   chatSessions: 'chat_sessions',
   notificationLog: 'notification_log',
