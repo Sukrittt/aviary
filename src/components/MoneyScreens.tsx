@@ -1012,7 +1012,7 @@ export function AddIncomeScreen({ onClose }: { onClose: () => void }) {
 
   return (
     <Scrim className="erd-modal-overlay" onClick={busy ? undefined : onClose}>
-      <Sheet className="erd-modal-card erd-sub-card" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="One-off income">
+      <Sheet className="erd-modal-card erd-sub-card erd-one-off-card" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="One-off income">
         <div className="erd-modal-head">
           <h3>One-off income</h3>
           <button type="button" className="erd-modal-close" onClick={onClose} aria-label="Close" disabled={busy}>

@@ -2911,6 +2911,10 @@
   padding: 24px;
   overflow: hidden;
 }
+/* One-off income: three short fields, so the base modal width. */
+.expense-redesign .erd-modal-card.erd-sub-card.erd-one-off-card {
+  width: 480px;
+}
 .expense-redesign .erd-sub-card .erd-modal-head {
   margin-bottom: 24px;
   flex: 0 0 auto;
