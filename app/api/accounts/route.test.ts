@@ -155,8 +155,9 @@ describe('/api/incomes and /api/recurring-incomes', () => {
     const migrated = before.rows[0].id
     await recurring.PUT(req('/api/recurring-incomes', 'PUT', { id: migrated, amount: 42000 }))
     expect(Number((await budget('2026-10', '__income__'))?.assigned)).toBe(47000)
+    // Deleting stops it from next month; this month's pay already landed.
     await recurring.DELETE(req('/api/recurring-incomes', 'DELETE', { id: migrated }))
-    expect(Number((await budget('2026-10', '__income__'))?.assigned)).toBe(5000)
+    expect(Number((await budget('2026-10', '__income__'))?.assigned)).toBe(47000)
   })
 
   it('a weekly payday due today posts at once', async () => {

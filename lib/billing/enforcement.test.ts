@@ -62,6 +62,7 @@ const OPEN: Record<string, string> = {
   // The two reads an expired user is still entitled to.
   'privacy/proof': 'shows how their data is stored; no budgeting content',
   'system/status': 'public; maintenance banner and update prompt',
+  'changelog': 'signed-in release list; no budgeting content',
   'changelog/latest': 'signed-in release notes; no budgeting content',
   'changelog/[id]/seen': 'account-level release announcement tracking, available while expired',
   waitlist: 'public landing-page signup; no session, no budgeting content',
