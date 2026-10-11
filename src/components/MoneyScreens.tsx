@@ -961,12 +961,68 @@ export function EditMonthIncomeScreen({ month, onClose, initial }: { month: stri
 
 // ─── Add income ──────────────────────────────────────────────────────────────
 
+/** The labelled-form modal the subscription and income forms share. */
+function FormSheet({ title, onClose, busy, footer, children }: {
+  title: string
+  onClose: () => void
+  busy: boolean
+  footer?: ReactNode
+  children: ReactNode
+}) {
+  return (
+    <Scrim className="erd-modal-overlay" onClick={busy ? undefined : onClose}>
+      <Sheet className="erd-modal-card erd-sub-card erd-one-off-card" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={title}>
+        <div className="erd-modal-head">
+          <h3>{title}</h3>
+          <button type="button" className="erd-modal-close" onClick={onClose} aria-label="Close" disabled={busy}>
+            ✕
+          </button>
+        </div>
+        <div className="erd-sub-body">{children}</div>
+        {footer && <div className="erd-sub-footer">{footer}</div>}
+      </Sheet>
+    </Scrim>
+  )
+}
+
+/** "Amount" with the currency glued to the digits and a hint underneath. */
+function AmountField({ id, value, onChange, hint, autoFocus }: {
+  id: string
+  value: string
+  onChange: (value: string) => void
+  hint: string
+  autoFocus?: boolean
+}) {
+  const { currencySymbol } = useCurrency()
+  return (
+    <section className="erd-sub-section">
+      <label className="erd-log-label" htmlFor={id}>Amount</label>
+      <div className="erd-amount-field">
+        <span className="erd-amount-symbol" aria-hidden="true">{currencySymbol}</span>
+        <input
+          id={id}
+          className="erd-amount-input"
+          type="text"
+          inputMode="decimal"
+          placeholder="0"
+          autoFocus={autoFocus}
+          value={value}
+          onChange={(e) => {
+            if (/^\d{0,9}(\.\d{0,2})?$/.test(e.target.value)) onChange(e.target.value)
+          }}
+        />
+      </div>
+      <p className="erd-sub-hint">{hint}</p>
+    </section>
+  )
+}
+
 /** Opened from Home's income menu and the Income page. Records a one-off in
  * the income ledger; the server adds it to this month's income extra in the
  * same write (Web/lib/income.ts), so Ready to Assign goes up by exactly that
  * much and next month doesn't repeat it. */
 export function AddIncomeScreen({ onClose, existing }: { onClose: () => void; /** Present: edit this income row. */ existing?: IncomeRow }) {
-  const { formatCurrency, currencySymbol } = useCurrency()
+  const { formatCurrency } = useCurrency()
   const [hideAmounts] = useHideAmounts()
   const data = useMoneyData()
   const addIncome = useAddIncome()
@@ -1026,64 +1082,38 @@ export function AddIncomeScreen({ onClose, existing }: { onClose: () => void; /*
       : 'What came in on top of your monthly income'
 
   return (
-    <Scrim className="erd-modal-overlay" onClick={busy ? undefined : onClose}>
-      <Sheet className="erd-modal-card erd-sub-card erd-one-off-card" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={existing ? 'Edit income' : 'One-off income'}>
-        <div className="erd-modal-head">
-          <h3>{existing ? 'Edit income' : 'One-off income'}</h3>
-          <button type="button" className="erd-modal-close" onClick={onClose} aria-label="Close" disabled={busy}>
-            ✕
-          </button>
-        </div>
+    <FormSheet
+      title={existing ? 'Edit income' : 'One-off income'}
+      onClose={onClose}
+      busy={busy}
+      footer={
+        <SuccessButton type="button" baseClass="erd-log-submit" saving={phase.saving} success={phase.success} successLabel={existing ? 'Saved' : 'Income added'} disabled={value <= 0 || busy} onClick={submit}>
+          {existing ? 'Save changes' : 'Add income'}
+        </SuccessButton>
+      }
+    >
+      <AmountField id="one-off-amount" value={amountText} onChange={setAmountText} hint={hint} autoFocus={!existing} />
 
-        <div className="erd-sub-body">
-          <section className="erd-sub-section">
-            <label className="erd-log-label" htmlFor="one-off-amount">Amount</label>
-            <div className="erd-amount-field">
-              <span className="erd-amount-symbol" aria-hidden="true">{currencySymbol}</span>
-              <input
-                id="one-off-amount"
-                className="erd-amount-input"
-                type="text"
-                inputMode="decimal"
-                placeholder="0"
-                autoFocus={!existing}
-                value={amountText}
-                onChange={(e) => {
-                  if (/^\d{0,9}(\.\d{0,2})?$/.test(e.target.value)) setAmountText(e.target.value)
-                }}
-              />
-            </div>
-            <p className="erd-sub-hint">{hint}</p>
-          </section>
+      <section className="erd-sub-section">
+        <label className="erd-log-label" htmlFor="one-off-label">What was it (optional)</label>
+        <input
+          id="one-off-label"
+          className="erd-log-input"
+          placeholder="A bonus, a refund, a gift…"
+          maxLength={200}
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+        />
+      </section>
 
-          <section className="erd-sub-section">
-            <label className="erd-log-label" htmlFor="one-off-label">What was it (optional)</label>
-            <input
-              id="one-off-label"
-              className="erd-log-input"
-              placeholder="A bonus, a refund, a gift…"
-              maxLength={200}
-              value={label}
-              onChange={(e) => setLabel(e.target.value)}
-            />
-          </section>
+      {accounts.length > 0 && (
+        <section className="erd-sub-section">
+          <AccountChips accounts={accounts} value={accountId} onChange={setAccountId} allowNone label="Paid into" />
+        </section>
+      )}
 
-          {accounts.length > 0 && (
-            <section className="erd-sub-section">
-              <AccountChips accounts={accounts} value={accountId} onChange={setAccountId} allowNone label="Paid into" />
-            </section>
-          )}
-
-          {error !== '' && <p role="alert" className="erd-log-error">{error}</p>}
-        </div>
-
-        <div className="erd-sub-footer">
-          <SuccessButton type="button" baseClass="erd-log-submit" saving={phase.saving} success={phase.success} successLabel={existing ? 'Saved' : 'Income added'} disabled={value <= 0 || busy} onClick={submit}>
-            {existing ? 'Save changes' : 'Add income'}
-          </SuccessButton>
-        </div>
-      </Sheet>
-    </Scrim>
+      {error !== '' && <p role="alert" className="erd-log-error">{error}</p>}
+    </FormSheet>
   )
 }
 
@@ -1095,7 +1125,7 @@ export function AddIncomeScreen({ onClose, existing }: { onClose: () => void; /*
 export function EditReadyToAssignScreen({ onClose }: { onClose: () => void }) {
   const data = useMoneyData()
   const fetchFreshBudgets = useFreshBudgets()
-  if (data.isLoading) return <Screen title="Edit Ready to Assign" onClose={onClose} busy={false}><LoadingCaption /></Screen>
+  if (data.isLoading) return <FormSheet title="Set Ready to Assign" onClose={onClose} busy={false}><LoadingCaption /></FormSheet>
   const month = currentMonthKey()
   const state = computeEnvelopeState(data.budgets, data.expenses, month, data.categories, data.groups)
   const incomeBudget = data.budgets.find((b) => b.month === month && b.category === INCOME_CATEGORY)
@@ -1155,7 +1185,10 @@ function EditReadyToAssignBody({
   const value = Number(amountText) || 0
   const newIncome = cents(incomeBase + extraForReadyToAssign(incomeBase, totalAssigned, value))
   const delta = Math.round((newIncome - baseIncome) * 100) / 100
-  const impactText = delta === 0 ? "Type what's left to assign" : `Income ${formatCurrency(newIncome, hideAmounts)}`
+  // The difference lands in this month's income, so say where income ends up once it moves.
+  const hint = delta === 0
+    ? `${formatCurrency(baseIncome, hideAmounts)} income · ${formatCurrency(totalAssigned, hideAmounts)} assigned`
+    : `Income becomes ${formatCurrency(newIncome, hideAmounts)} this month`
 
   async function submit() {
     if (busy) return
@@ -1191,49 +1224,31 @@ function EditReadyToAssignBody({
   }
 
   return (
-    <Screen title="Edit Ready to Assign" onClose={onClose} busy={busy} showHeader={false}>
-      <div className="money-body">
-        {!conflict && (
-          <div className="money-month-row">
-            <span className="money-label">{monthLabel(month).toUpperCase()}</span>
-            <button type="button" className="money-head-btn" aria-label="Close" onClick={onClose} disabled={busy}>
-              <X size={16} />
-            </button>
-          </div>
-        )}
-        {conflict ? (
-          <ConflictReview
-            heading="Ready to Assign was updated"
-            description="A newer amount was saved elsewhere. Your amount is still here."
-            label="Ready to Assign"
-            saved={formatCurrency((Number(conflict.assigned) || 0) + (Number(conflict.extra) || 0) - totalAssigned, hideAmounts)}
-            next={formatCurrency(value, hideAmounts)}
-            guidance="Continue with your amount or use the latest saved value. You can review it before saving."
-            onContinue={() => reviewLatest(true)}
-            onUseLatest={() => reviewLatest(false)}
-          />
-        ) : (
-          <>
-            <SubjectCard
-              emoji="💰"
-              label="EDITING"
-              name="Ready to Assign"
-              detail={`${formatCurrency(baseIncome, hideAmounts)} income · ${formatCurrency(totalAssigned, hideAmounts)} assigned`}
-            />
-            <HeroAmount amountText={amountText} onChange={setAmountText}>
-              <motion.p key={impactText} className="money-hint" {...FADE_IN}>
-                {impactText}
-              </motion.p>
-            </HeroAmount>
-          </>
-        )}
-        {error !== '' && <p role="alert" className="money-error">{error}</p>}
-      </div>
-      {!conflict && (
-        <div className="money-foot">
-          <Cta label={phase.saving ? 'Saving…' : 'Save'} enabled saving={phase.saving} success={phase.success} onPress={submit} checkSize={16} />
-        </div>
+    <FormSheet
+      title="Set Ready to Assign"
+      onClose={onClose}
+      busy={busy}
+      footer={conflict ? undefined : (
+        <SuccessButton type="button" baseClass="erd-log-submit" saving={phase.saving} success={phase.success} successLabel="Saved" disabled={busy} onClick={submit}>
+          Save
+        </SuccessButton>
       )}
-    </Screen>
+    >
+      {conflict ? (
+        <ConflictReview
+          heading="Ready to Assign was updated"
+          description="A newer amount was saved elsewhere. Your amount is still here."
+          label="Ready to Assign"
+          saved={formatCurrency((Number(conflict.assigned) || 0) + (Number(conflict.extra) || 0) - totalAssigned, hideAmounts)}
+          next={formatCurrency(value, hideAmounts)}
+          guidance="Continue with your amount or use the latest saved value. You can review it before saving."
+          onContinue={() => reviewLatest(true)}
+          onUseLatest={() => reviewLatest(false)}
+        />
+      ) : (
+        <AmountField id="rta-amount" value={amountText} onChange={setAmountText} hint={hint} autoFocus />
+      )}
+      {error !== '' && <p role="alert" className="erd-log-error">{error}</p>}
+    </FormSheet>
   )
 }
