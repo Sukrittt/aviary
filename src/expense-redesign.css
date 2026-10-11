@@ -10006,9 +10006,10 @@ button.account-feature-card {
 }
 .recurring-danger-zone {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  justify-content: center;
   align-items: center;
-  gap: 2px;
+  gap: 2px 24px;
   margin-top: 20px;
   padding-top: 14px;
   border-top: 1px solid var(--erd-border);
@@ -10018,7 +10019,7 @@ button.account-feature-card {
   font-size: 13px;
 }
 .recurring-danger-zone .account-confirm-panel {
-  align-self: stretch;
+  flex-basis: 100%;
   margin-top: 0;
 }
 
