@@ -269,10 +269,18 @@ export async function deleteIncome(auth: Auth, id: string, version: number): Pro
  * then, not paused, and not past its end date. An ended schedule still counts
  * in the months up to its end.
  */
+/**
+ * Whether a monthly schedule counts toward `month`'s income. Pausing or
+ * deleting one stamps `stops_after` with that month: the pay already counted
+ * there stays, and it drops out from the next month on.
+ */
 function countsIn(r: Record<string, unknown>, month: string): boolean {
   const start = String(r.start_date ?? '').slice(0, 7)
   const end = String(r.end_date ?? '').slice(0, 7)
+  const stopsAfter = String(r.stops_after ?? '')
   if (start && start > month) return false
+  if (r.deleted_at && !stopsAfter) return false
+  if (stopsAfter) return month <= stopsAfter && (!end || end >= month)
   if (end) return end >= month && (r.status === 'active' || r.status === 'ended')
   return r.status === 'active'
 }
@@ -286,7 +294,7 @@ function countsIn(r: Record<string, unknown>, month: string): boolean {
  */
 export async function syncMonthlyIncome(auth: Auth, month: string): Promise<void> {
   const rec = await getCollection('recurring_incomes', auth)
-  const monthly = (await rec.find({ frequency: 'monthly' }).toArray()).filter((r) => countsIn(r, month))
+  const monthly = (await rec.find({ frequency: 'monthly' }, undefined, { includeDeleted: true }).toArray()).filter((r) => countsIn(r, month))
   const total = round2(monthly.reduce((sum, r) => sum + (Number(r.amount) || 0), 0))
   await withTx((session) => writeIncomeRow(auth, month, (row) => ({ ...row, assigned: total }), session))
   invalidateIncome(auth)
@@ -340,13 +348,16 @@ export async function runRecurringIncomes(auth: Auth, today: string): Promise<nu
   const rec = await getCollection('recurring_incomes', auth)
   const schedules = await rec.find({ status: 'active' }).toArray()
   // A monthly schedule starting this month (a new job set up ahead) counts
-  // from day 1, and one that ended last month stops. Later months carry this
+  // from day 1, and one that ended, or was paused or deleted, last month stops. Later months carry this
   // month's row, so it has to be right. Re-syncing during the month is idempotent.
   const month = monthOf(today)
   const [y, m] = month.split('-').map(Number)
   const lastMonth = new Date(Date.UTC(y, m - 2, 1)).toISOString().slice(0, 7)
-  const monthly = await rec.find({ frequency: 'monthly' }).toArray()
-  if (monthly.some((s) => String(s.start_date ?? '').slice(0, 7) === month || String(s.end_date ?? '').slice(0, 7) === lastMonth)) {
+  const monthly = await rec.find({ frequency: 'monthly' }, undefined, { includeDeleted: true }).toArray()
+  const changesThisMonth = (s: Record<string, unknown>) =>
+    String(s.end_date ?? '').slice(0, 7) === lastMonth || String(s.stops_after ?? '') === lastMonth ||
+    (!s.deleted_at && String(s.start_date ?? '').slice(0, 7) === month)
+  if (monthly.some(changesThisMonth)) {
     await syncMonthlyIncome(auth, month)
   }
   let posted = 0

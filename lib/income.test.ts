@@ -166,6 +166,25 @@ describe('syncMonthlyIncome', () => {
     expect(await incomeRow('2026-11')).toMatchObject({ assigned: 59000 })
   })
 
+  it('keeps counting a schedule paused or deleted this month until the month ends', async () => {
+    const rec = await coll('recurring_incomes')
+    await rec.insertOne({ label: 'Salary', amount: '50000', frequency: 'monthly', status: 'paused', stops_after: '2026-10' })
+    const gig = await rec.insertOne({ label: 'Old gig', amount: '7000', frequency: 'monthly', status: 'active', stops_after: '2026-10' })
+    await rec.deleteOne({ _id: gig.insertedId })
+    await syncMonthlyIncome(auth, '2026-10')
+    expect(await incomeRow('2026-10')).toMatchObject({ assigned: 57000 })
+    await syncMonthlyIncome(auth, '2026-11')
+    expect(await incomeRow('2026-11')).toMatchObject({ assigned: 0 })
+  })
+
+  it('never counts a deleted schedule that has no stop month', async () => {
+    const rec = await coll('recurring_incomes')
+    const mistake = await rec.insertOne({ label: 'Mistake', amount: '9000', frequency: 'monthly', status: 'active' })
+    await rec.deleteOne({ _id: mistake.insertedId })
+    await syncMonthlyIncome(auth, '2026-10')
+    expect(await incomeRow('2026-10')).toMatchObject({ assigned: 0 })
+  })
+
   it('creates the row when the month has none', async () => {
     await (await coll('recurring_incomes')).insertOne({ label: 'Salary', amount: '42000', frequency: 'monthly', status: 'active' })
     await syncMonthlyIncome(auth, '2026-10')
@@ -201,6 +220,16 @@ describe('ensureIncomeMigrated', () => {
 })
 
 describe('runRecurringIncomes', () => {
+  it('drops a schedule stopped last month from the new month, so later months stop carrying it', async () => {
+    await seedIncomeRow('2026-09', 50000)
+    const rec = await coll('recurring_incomes')
+    const salary = await rec.insertOne({ label: 'Salary', amount: '50000', frequency: 'monthly', status: 'active', stops_after: '2026-09' })
+    await rec.deleteOne({ _id: salary.insertedId })
+    await runRecurringIncomes(auth, '2026-10-01')
+    expect(await incomeRow('2026-10')).toMatchObject({ assigned: 0 })
+    expect(await incomeRow('2026-09')).toMatchObject({ assigned: 50000 })
+  })
+
   it('posts each payday once, counting non-monthly ones into the month', async () => {
     await seedIncomeRow('2026-10', 50000)
     const rec = await coll('recurring_incomes')

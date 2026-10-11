@@ -150,17 +150,21 @@ export async function PUT(req: Request) {
   // Resuming starts from now rather than making up the paused stretch, and a
   // new payday or frequency moves the next one: same rules as recurring expenses.
   const resuming = update.status === 'active' && String(existing.status) !== 'active'
+  const today = (await nowForUser(auth.userId)).date
   if (resuming || update.frequency !== undefined || update.start_date !== undefined) {
     const frequency = update.frequency ?? String(existing.frequency)
-    update.next_run_date = firstRunOnOrAfter(startDate, frequency, (await nowForUser(auth.userId)).date)
+    update.next_run_date = firstRunOnOrAfter(startDate, frequency, today)
   }
+  // Pausing keeps this month's pay counted and stops it from next month (see countsIn).
+  if (update.status === 'paused' && String(existing.status) === 'active') update.stops_after = today.slice(0, 7)
+  if (resuming) update.stops_after = ''
 
   await coll.updateOne({ _id: existing._id }, { $set: update })
   await settle(auth)
   return json({ ok: true })
 }
 
-/** `DELETE /api/recurring-incomes` `{ id }`. Paydays already posted stay in the ledger. */
+/** `DELETE /api/recurring-incomes` `{ id }`. Paydays already posted stay in the ledger, and this month keeps counting it. */
 export async function DELETE(req: Request) {
   const auth = await getAuth(req)
   const gate = await requireAccess(auth)
@@ -172,7 +176,14 @@ export async function DELETE(req: Request) {
   const id = typeof body.id === 'string' ? body.id : ''
   if (!ObjectId.isValid(id)) return error('id required')
   const coll = await getCollection('recurring_incomes', auth)
-  const result = await coll.deleteOne({ _id: new ObjectId(id) })
+  const existing = await coll.findOne({ _id: new ObjectId(id) })
+  if (!existing) return error('recurring income not found', 404)
+  // Like pausing, deleting keeps this month's pay counted and stops it from next
+  // month. A paused one already stopped, so it keeps its own month.
+  if (String(existing.status) === 'active') {
+    await coll.updateOne({ _id: existing._id }, { $set: { stops_after: (await nowForUser(auth.userId)).date.slice(0, 7) } })
+  }
+  const result = await coll.deleteOne({ _id: existing._id })
   if (result.deletedCount === 0) return error('recurring income not found', 404)
   await settle(auth)
   return json({ ok: true })

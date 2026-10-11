@@ -162,7 +162,7 @@ export function RecurringIncomeModal({ id, initial, onClose }: Props) {
             <div className="recurring-danger-zone">
               {confirmingDelete ? (
                 <div className="account-confirm-panel">
-                  <div className="account-confirm-copy">Remove &quot;{existing.label}&quot;? Paydays already recorded stay put.</div>
+                  <div className="account-confirm-copy">Remove &quot;{existing.label}&quot;? It still counts this month and stops from next month.</div>
                   <div className="account-confirm-actions">
                     <button type="button" className="account-confirm-cancel" disabled={busy} onClick={() => setConfirmingDelete(false)}>Back</button>
                     <button type="button" className="account-danger-btn" style={{ marginTop: 0 }} disabled={busy} onClick={() => runAction('delete')}>
