@@ -1,5 +1,6 @@
 'use client'
 
+import { Plus } from 'lucide-react'
 import { useCurrency } from '@/src/context/CurrencyContext'
 
 import { useState } from 'react'
@@ -130,17 +131,19 @@ export function RecurringPage() {
 
   return (
     <>
-      <div className="account-page-heading">
-        <div>
-          <div className="account-section-label">Recurring</div>
-          <div className="account-row-meta" style={{ padding: '2px 4px 0' }}>
-            {active.length === 0 ? 'Nothing repeating yet' : `${active.length} active`}
-          </div>
+      <header className="txn-page-header account-header">
+        <div className="txn-page-heading">
+          <span className="txn-page-eyebrow">Bills on repeat</span>
+          <h1>Recurring</h1>
+          <p>{active.length === 0 ? 'Nothing repeating yet' : `${active.length} active`}</p>
         </div>
-        <button type="button" className="account-compact-btn" onClick={() => setEditing('')}>
-          + Add
-        </button>
-      </div>
+        <div className="txn-page-actions">
+          <button type="button" className="erd-log-btn txn-page-log-btn" onClick={() => setEditing('')}>
+            <Plus size={14} aria-hidden="true" />
+            Add recurring
+          </button>
+        </div>
+      </header>
 
       <RecurringSuggestions />
 

@@ -185,24 +185,25 @@ export function ArchivePage() {
 
   return (
     <>
-      <div className="account-page-heading">
-        <div>
-          <div className="account-section-label">Archive</div>
-          <div className="account-row-meta" style={{ padding: '2px 4px 0' }}>
-            {items.length === 0 ? 'Nothing waiting to be purged' : `${items.length} item${items.length === 1 ? '' : 's'} · kept 7 days`}
-          </div>
+      <header className="txn-page-header account-header">
+        <div className="txn-page-heading">
+          <span className="txn-page-eyebrow">Recently deleted</span>
+          <h1>Archive</h1>
+          <p>{items.length === 0 ? 'Nothing waiting to be purged' : `${items.length} item${items.length === 1 ? '' : 's'} · kept 7 days`}</p>
         </div>
-        {items.length > 0 && !selecting && (
-          <div className="archive-heading-actions">
-            <button type="button" className="account-pill-btn" onClick={() => setSelecting(true)}>
-              Select
-            </button>
-            <button type="button" className="account-compact-btn" onClick={() => setRestoreBatch(sorted)}>
-              Restore all
-            </button>
-          </div>
-        )}
-      </div>
+        <div className="txn-page-actions">
+          {items.length > 0 && !selecting && (
+            <>
+              <button type="button" className="action-button txn-page-duplicates-btn" onClick={() => setSelecting(true)}>
+                Select
+              </button>
+              <button type="button" className="erd-log-btn txn-page-log-btn" onClick={() => setRestoreBatch(sorted)}>
+                Restore all
+              </button>
+            </>
+          )}
+        </div>
+      </header>
 
       {notice && (
         <div className="account-warn-banner" role="status">

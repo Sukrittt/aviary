@@ -16,7 +16,7 @@ describe('expense screen visual regressions', () => {
   })
 
   it('keeps the subscription add button and selected activity filter on the solid accent', () => {
-    expect(subscriptions).toContain('action-button is-active erd-accent-action subp-add-button')
+    expect(subscriptions).toContain('erd-log-btn txn-page-log-btn')
     expect(transactions).toContain('period === key ? "is-active erd-accent-action" : ""')
     expect(expenseCss).toMatch(
       /\.expense-redesign \.action-button\.is-active\.erd-accent-action\s*{[\s\S]*?background:\s*var\(--gold\)/,

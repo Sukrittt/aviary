@@ -7982,12 +7982,6 @@ button.account-feature-card {
   text-align: left;
   cursor: pointer;
 }
-.account-page-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 10px;
-}
 .account-compact-btn {
   padding: 7px 12px;
   border: 1px solid var(--gold);
@@ -10129,11 +10123,6 @@ button.account-feature-card {
 }
 .archive-row.is-selected {
   background: color-mix(in oklab, var(--gold) 7%, transparent);
-}
-.archive-heading-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 /* Select mode: a transparent button covers the whole row; the tick slot and
    its animation are Activity's (.txn-check-slot / .txn-check). */
@@ -12367,12 +12356,25 @@ button.account-feature-card {
 .tone-weekly { --tone: var(--blue); --tone-soft: var(--blue-soft); }
 .tone-daily { --tone: var(--violet); --tone-soft: var(--violet-soft); }
 .tone-yearly { --tone: var(--gold-ink); --tone-soft: var(--gold-soft); }
+.expense-redesign .account-header {
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--erd-border);
+}
+@media (max-width: 900px) {
+  /* Activity hides its heading on small screens; account pages have no other title. */
+  .expense-redesign .account-header {
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+  .expense-redesign .account-header .txn-page-heading {
+    display: block;
+  }
+}
 .income-hero {
   display: flex;
   flex-direction: column;
   gap: 6px;
   padding: 20px;
-  background-image: linear-gradient(135deg, var(--mint-soft), transparent 65%);
 }
 .income-hero .account-section-label {
   padding: 0;
@@ -12422,7 +12424,7 @@ button.account-feature-card {
   height: 8px;
   margin-top: 8px;
   border-radius: 999px;
-  background: var(--erd-input-bg);
+  background: var(--erd-border-strong);
   overflow: hidden;
 }
 .income-progress > span {
@@ -12432,18 +12434,21 @@ button.account-feature-card {
   background: var(--mint);
   transition: width 0.4s ease;
 }
-.income-dot {
-  background: var(--tone);
+.income-row-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.income-row-title .account-row-label {
+  flex: 0 1 auto;
 }
 .income-cadence-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 10px;
+  flex-shrink: 0;
+  padding: 1px 8px;
   border-radius: 999px;
   background: var(--tone-soft);
   color: var(--tone);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
-  vertical-align: middle;
 }

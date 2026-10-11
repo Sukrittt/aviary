@@ -85,23 +85,19 @@ export function SubscriptionsPage() {
 
   return (
     <>
-      <div className="account-page-heading">
-        <div>
-          <div className="account-section-label">Subscriptions</div>
-          <div className="account-row-meta" style={{ padding: '2px 4px 0' }}>
-            {subscriptions.active.length === 0 ? 'Nothing active yet' : `${subscriptions.active.length} active`}
-          </div>
+      <header className="txn-page-header account-header">
+        <div className="txn-page-heading">
+          <span className="txn-page-eyebrow">Paid on repeat</span>
+          <h1>Subscriptions</h1>
+          <p>{subscriptions.active.length === 0 ? 'Nothing active yet' : `${subscriptions.active.length} active`}</p>
         </div>
-        <button
-          type="button"
-          className="action-button is-active erd-accent-action subp-add-button"
-          onClick={() => setEditing(null)}
-          disabled={subscriptionsQ.isLoading}
-        >
-          <Plus size={14} aria-hidden="true" />
-          Add
-        </button>
-      </div>
+        <div className="txn-page-actions">
+          <button type="button" className="erd-log-btn txn-page-log-btn" onClick={() => setEditing(null)} disabled={subscriptionsQ.isLoading}>
+            <Plus size={14} aria-hidden="true" />
+            Add subscription
+          </button>
+        </div>
+      </header>
 
       <RecurringSuggestions kind="subscription" />
 

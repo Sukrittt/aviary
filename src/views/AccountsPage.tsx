@@ -1,5 +1,6 @@
 'use client'
 
+import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { popIn, staggerDelay } from '../components/landing/mobile/kit'
@@ -51,15 +52,19 @@ export function AccountsPage() {
 
   return (
     <>
-      <div className="account-page-heading">
-        <div>
-          <div className="account-section-label">Accounts</div>
-          <div className="account-row-meta" style={{ padding: '2px 4px 0' }}>
-            {live.length === 0 ? 'Where your money lives' : `${live.length} in use`}
-          </div>
+      <header className="txn-page-header account-header">
+        <div className="txn-page-heading">
+          <span className="txn-page-eyebrow">Where your money lives</span>
+          <h1>Accounts</h1>
+          <p>{live.length === 0 ? 'Add a bank, card or wallet to get started.' : `${live.length} in use`}</p>
         </div>
-        <button type="button" className="account-compact-btn" onClick={() => setEditing('')}>+ Add</button>
-      </div>
+        <div className="txn-page-actions">
+          <button type="button" className="erd-log-btn txn-page-log-btn" onClick={() => setEditing('')}>
+            <Plus size={14} aria-hidden="true" />
+            Add account
+          </button>
+        </div>
+      </header>
 
       {accountsQ.isLoading ? (
         <LoadingCaption placement="page" />

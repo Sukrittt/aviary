@@ -2,8 +2,8 @@
 
 import { useCurrency } from '@/src/context/CurrencyContext'
 import { useState } from 'react'
+import { Plus } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
-import { Repeat } from 'lucide-react'
 import { AmountText, popIn, staggerDelay } from '../components/landing/mobile/kit'
 import { LoadingCaption } from '../components/LoadingCaption'
 import { BirdEmptyState } from '../components/BirdEmptyState'
@@ -105,17 +105,17 @@ export function IncomePage() {
             return (
               <motion.li key={row.id} {...popIn(staggerDelay(offset + i))}>
                 <button type="button" className="account-row" onClick={() => setEditing(row.id)}>
-                  <span className={`recurring-dot income-dot tone-${row.frequency}`} style={{ opacity: isActive ? 1 : 0.5 }} />
-                  <span style={{ flex: 1, minWidth: 0 }}>
-                    <span className="account-row-label recurring-title">{row.label}</span>
-                    <span className="account-row-meta recurring-meta">
+                  <span style={{ flex: 1, minWidth: 0, opacity: isActive ? 1 : 0.5 }}>
+                    <span className="income-row-title">
+                      <span className="account-row-label recurring-title">{row.label}</span>
                       <span className={`income-cadence-pill tone-${row.frequency}`}>
-                        <Repeat size={12} strokeWidth={2.6} aria-hidden />
                         {CADENCE_LABELS[row.frequency] ?? row.frequency}
                       </span>
+                    </span>
+                    <span className="account-row-meta recurring-meta">
+                      <span className={isActive && row.next_run_date ? 'recurring-due' : ''}>{payLabel(row)}</span>
                       {account ? ` · ${account}` : ''}
                     </span>
-                    <span className={`account-row-meta ${isActive && row.next_run_date ? 'recurring-due' : ''}`}>{payLabel(row)}</span>
                   </span>
                   <strong style={{ opacity: isActive ? 1 : 0.5 }}>{formatCurrency(Number(row.amount) || 0, hideAmounts)}</strong>
                 </button>
@@ -129,18 +129,23 @@ export function IncomePage() {
 
   return (
     <>
-      <div className="account-page-heading">
-        <div>
-          <div className="account-section-label">Income</div>
-          <div className="account-row-meta" style={{ padding: '2px 4px 0' }}>
-            {active.length === 0 ? 'Nothing coming in on repeat yet' : `${active.length} coming in on repeat`}
-          </div>
+      <header className="txn-page-header account-header">
+        <div className="txn-page-heading">
+          <span className="txn-page-eyebrow">Money coming in</span>
+          <h1>Income</h1>
+          <p>{active.length === 0 ? 'Nothing coming in on repeat yet.' : `${active.length} coming in on repeat. Each payday counts toward Ready to Assign.`}</p>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button type="button" className="account-compact-btn" onClick={() => setAddingOneOff(true)}>+ One-off</button>
-          <button type="button" className="account-compact-btn" onClick={() => setEditing('')}>+ Recurring</button>
+        <div className="txn-page-actions">
+          <button type="button" className="action-button txn-page-duplicates-btn" onClick={() => setAddingOneOff(true)}>
+            <Plus size={14} aria-hidden="true" />
+            One-off
+          </button>
+          <button type="button" className="erd-log-btn txn-page-log-btn" onClick={() => setEditing('')}>
+            <Plus size={14} aria-hidden="true" />
+            Recurring
+          </button>
         </div>
-      </div>
+      </header>
 
       {loading ? (
         <LoadingCaption placement="page" />
