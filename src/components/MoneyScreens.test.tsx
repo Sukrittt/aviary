@@ -120,8 +120,8 @@ describe('money screens', () => {
     const onClose = vi.fn()
     render(<AddIncomeScreen onClose={onClose} />)
     typeAmount('10000')
-    fireEvent.change(screen.getByRole('textbox', { name: 'What was it' }), { target: { value: 'Diwali bonus' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    fireEvent.change(screen.getByRole('textbox', { name: /What was it/ }), { target: { value: 'Diwali bonus' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add income' }))
     await waitFor(() => expect(mocks.addIncome).toHaveBeenCalledWith(expect.objectContaining({ amount: 10000, label: 'Diwali bonus', client_id: expect.any(String) })))
     expect(mocks.update).not.toHaveBeenCalled()
   })
@@ -131,7 +131,7 @@ describe('money screens', () => {
     render(<AddIncomeScreen onClose={vi.fn()} />)
     typeAmount('300')
     expect(screen.getByText('Adds to Ready to Assign · this month only')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add income' }))
     await waitFor(() => expect(mocks.addIncome).toHaveBeenCalledWith(expect.objectContaining({ amount: 300 })))
   })
 
@@ -140,7 +140,7 @@ describe('money screens', () => {
     render(<AddIncomeScreen onClose={vi.fn()} />)
     typeAmount('500')
     fireEvent.click(screen.getByRole('radio', { name: /HDFC/ }))
-    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add income' }))
     await waitFor(() => expect(mocks.addIncome).toHaveBeenCalledWith(expect.objectContaining({ amount: 500, label: 'Extra income', account_id: 'a1' })))
   })
 
@@ -148,7 +148,7 @@ describe('money screens', () => {
     mocks.addIncome.mockRejectedValueOnce(new Error('503'))
     render(<AddIncomeScreen onClose={vi.fn()} />)
     typeAmount('500')
-    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add income' }))
     expect(await screen.findByRole('alert')).toHaveTextContent("Couldn't save. Check your connection and try again.")
   })
 
