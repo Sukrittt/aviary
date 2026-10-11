@@ -12325,3 +12325,89 @@ button.account-feature-card {
   opacity: 0.6;
   cursor: default;
 }
+
+/* Income: one tone per cadence, shared by the hero tiles and each row's pill. */
+.tone-monthly { --tone: var(--mint); --tone-soft: var(--mint-soft); }
+.tone-weekly { --tone: var(--blue); --tone-soft: var(--blue-soft); }
+.tone-daily { --tone: var(--violet); --tone-soft: var(--violet-soft); }
+.tone-yearly { --tone: var(--gold-ink); --tone-soft: var(--gold-soft); }
+.income-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 20px;
+  background-image: linear-gradient(135deg, var(--mint-soft), transparent 65%);
+}
+.income-hero .account-section-label {
+  padding: 0;
+}
+.income-hero-amount {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  color: var(--mint);
+  font: 600 40px/1.1 var(--font-fredoka);
+  font-variant-numeric: tabular-nums;
+}
+.income-hero-per {
+  color: var(--erd-text2);
+  font: 700 15px var(--font-nunito);
+}
+.income-cadence-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+  margin: 8px 0 4px;
+  padding: 0;
+  list-style: none;
+}
+.income-cadence-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--tone-soft);
+}
+.income-cadence-name {
+  color: var(--tone);
+  font-size: 12px;
+  font-weight: 800;
+}
+.income-cadence-tile strong {
+  font: 600 20px/1.2 var(--font-fredoka);
+  font-variant-numeric: tabular-nums;
+}
+.income-cadence-count {
+  color: var(--erd-text2);
+  font-size: 11px;
+}
+.income-progress {
+  height: 8px;
+  margin-top: 8px;
+  border-radius: 999px;
+  background: var(--erd-input-bg);
+  overflow: hidden;
+}
+.income-progress > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--mint);
+  transition: width 0.4s ease;
+}
+.income-dot {
+  background: var(--tone);
+}
+.income-cadence-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--tone-soft);
+  color: var(--tone);
+  font-size: 12px;
+  font-weight: 800;
+  vertical-align: middle;
+}
