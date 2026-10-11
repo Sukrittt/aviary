@@ -113,17 +113,6 @@ export function RecurringIncomeModal({ id, initial, onClose }: Props) {
             </section>
 
             <section className="erd-recurring-section">
-              <div className="erd-log-label">How often</div>
-              <div className="erd-chip-row">
-                {FREQUENCIES.map((f) => (
-                  <button key={f} type="button" className={`erd-chip ${frequency === f ? 'is-selected' : ''}`} aria-pressed={frequency === f} onClick={() => setFrequency(f)} style={{ textTransform: 'capitalize' }}>
-                    {f}
-                  </button>
-                ))}
-              </div>
-            </section>
-
-            <section className="erd-recurring-section">
               <div className="erd-log-label">{isEdit ? 'Payday' : 'Next payday'}</div>
               <DatePicker mode="single" value={payday} onChange={setPayday} disableFuture={false} popoverOnDesktop />
             </section>
@@ -137,6 +126,17 @@ export function RecurringIncomeModal({ id, initial, onClose }: Props) {
               </div>
               <DatePicker mode="single" value={endDate} onChange={setEndDate} disableFuture={false} popoverOnDesktop />
               {endsBeforeStart && <p className="erd-log-error">The end date can&apos;t be before payday.</p>}
+            </section>
+
+            <section className="erd-recurring-section erd-recurring-span">
+              <div className="erd-log-label">How often</div>
+              <div className="erd-chip-row">
+                {FREQUENCIES.map((f) => (
+                  <button key={f} type="button" className={`erd-chip ${frequency === f ? 'is-selected' : ''}`} aria-pressed={frequency === f} onClick={() => setFrequency(f)} style={{ textTransform: 'capitalize' }}>
+                    {f}
+                  </button>
+                ))}
+              </div>
             </section>
 
             {accounts.length > 0 && (
