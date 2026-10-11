@@ -27,16 +27,18 @@ export function AccountChips({
   onChange,
   allowNone = false,
   label = 'Paid from',
+  showLabel = true,
 }: {
   accounts: AccountRow[]
   value: string
   onChange: (id: string) => void
   allowNone?: boolean
   label?: string
+  showLabel?: boolean
 }) {
   return (
     <div>
-      <div className="erd-log-label">{label}</div>
+      {showLabel && <div className="erd-log-label">{label}</div>}
       <div className="erd-chip-row" role="radiogroup" aria-label={label}>
         {allowNone && (
           <button type="button" role="radio" aria-checked={value === ''} className={`erd-chip ${value === '' ? 'is-selected' : ''}`} onClick={() => onChange('')}>

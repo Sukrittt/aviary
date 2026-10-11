@@ -484,19 +484,16 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
                 <CategoryPicker value={effectiveCategory} onChange={handleCategoryPick} additionalCategory={createdCategory} />
               </section>
 
-              {accounts.length > 0 ? (
+              {accountsQ.isSuccess && (
                 <section className="erd-log-section">
-                  <AccountChips accounts={accounts} value={accountId} onChange={setAccountPick} />
-                </section>
-              ) : accountsQ.isSuccess && (
-                // No accounts yet: offer one right here. A new one is the only
-                // live account, so it becomes the default pick on its own.
-                <section className="erd-log-section">
-                  <div className="erd-log-label">Paid from</div>
-                  <button type="button" className="erd-chip" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }} onClick={() => setShowAddAccount(true)}>
-                    <Plus size={15} aria-hidden="true" />
-                    Add account
-                  </button>
+                  <div className="erd-log-label-row">
+                    <div className="erd-log-label">Paid from</div>
+                    <button type="button" className="erd-chip" style={{ marginInlineStart: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6 }} aria-label="Add account" onClick={() => setShowAddAccount(true)}>
+                      <Plus size={15} aria-hidden="true" />
+                      Add
+                    </button>
+                  </div>
+                  {accounts.length > 0 && <AccountChips accounts={accounts} value={accountId} onChange={setAccountPick} showLabel={false} />}
                 </section>
               )}
 
