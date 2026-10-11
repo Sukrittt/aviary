@@ -108,6 +108,7 @@ export function TransactionsView({
   const reduce = useReducedMotion();
   const dateParam = searchParams.get("date");
   const categoryParam = searchParams.get("category");
+  const accountParam = searchParams.get("account");
 
   const budgetCategories = useMemo(
     () =>
@@ -179,6 +180,14 @@ export function TransactionsView({
     setSelectedCategory(categoryParam);
     setPeriod("month");
   }, [categoryParam]);
+
+  // Arriving from an account's transactions action: adopt that account.
+  useEffect(() => {
+    if (!accountParam) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSelectedAccount(accountParam);
+    setPeriod("month");
+  }, [accountParam]);
 
   const categories = useMemo(() => {
     // A new category has no budget row until it's assigned money, so the
@@ -324,6 +333,15 @@ export function TransactionsView({
     const next = new URLSearchParams(searchParams.toString());
     if (category) next.set("category", category);
     else next.delete("category");
+    const qs = next.toString();
+    router.replace(`/expense/transactions${qs ? `?${qs}` : ""}`);
+  }
+
+  function applyAccount(account: string) {
+    setSelectedAccount(account);
+    const next = new URLSearchParams(searchParams.toString());
+    if (account) next.set("account", account);
+    else next.delete("account");
     const qs = next.toString();
     router.replace(`/expense/transactions${qs ? `?${qs}` : ""}`);
   }
@@ -539,7 +557,7 @@ export function TransactionsView({
               <Select
                 aria-label="Filter by account"
                 value={selectedAccount}
-                onChange={setSelectedAccount}
+                onChange={applyAccount}
                 placeholder="All accounts"
                 options={[
                   { value: "", label: "All accounts" },

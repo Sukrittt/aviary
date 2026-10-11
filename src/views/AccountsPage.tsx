@@ -1,11 +1,13 @@
 'use client'
 
-import { Plus } from 'lucide-react'
+import { Pencil, Plus, ReceiptText, Trash2 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { popIn, staggerDelay } from '../components/landing/mobile/kit'
 import { LoadingCaption } from '../components/LoadingCaption'
 import { Scrim, Sheet } from '../components/MotionSheet'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { SuccessButton, useButtonPhase } from '../components/SuccessButton'
 import { ACCOUNT_TYPE_EMOJI } from '../components/AccountChips'
 import { AccountWriteError } from '../api/accounts'
@@ -40,6 +42,20 @@ export function AccountsPage() {
   // undefined: closed. '': adding. An id: editing.
   const [editing, setEditing] = useState<string | undefined>(undefined)
   const [error, setError] = useState('')
+  const [deleting, setDeleting] = useState<AccountRow | null>(null)
+  const router = useRouter()
+
+  // Deleting archives: the account leaves every picker, its expenses keep the
+  // label, and Restore brings it back.
+  async function remove(a: AccountRow) {
+    setError('')
+    try {
+      await update.mutateAsync({ id: a.id, updates: { archived: true } })
+    } catch (err) {
+      setError(friendly(err))
+    }
+    setDeleting(null)
+  }
 
   async function restore(a: AccountRow) {
     setError('')
@@ -78,14 +94,24 @@ export function AccountsPage() {
         <>
           <ul className="account-card recurring-list" aria-label="Accounts">
             {live.map((a, i) => (
-              <motion.li key={a.id} {...popIn(staggerDelay(i))}>
-                <button type="button" className="account-row" onClick={() => setEditing(a.id)}>
-                  <span aria-hidden="true" style={{ fontSize: 20 }}>{ACCOUNT_TYPE_EMOJI[a.type] ?? '🏦'}</span>
-                  <span style={{ flex: 1, minWidth: 0 }}>
-                    <span className="account-row-label recurring-title">{a.name}</span>
-                    <span className="account-row-meta">{TYPE_LABEL[a.type] ?? 'Account'}</span>
-                  </span>
-                </button>
+              <motion.li key={a.id} className="account-row" style={{ cursor: 'default' }} {...popIn(staggerDelay(i))}>
+                <span aria-hidden="true" style={{ fontSize: 20 }}>{ACCOUNT_TYPE_EMOJI[a.type] ?? '🏦'}</span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span className="account-row-label recurring-title">{a.name}</span>
+                  <span className="account-row-meta">{TYPE_LABEL[a.type] ?? 'Account'}</span>
+                </span>
+                <span className="income-row-actions">
+                  {/* The actions pop in one by one once the row has landed. */}
+                  {[
+                    { icon: ReceiptText, label: `View ${a.name} transactions`, onClick: () => router.push(`/expense/transactions?account=${encodeURIComponent(a.id)}`) },
+                    { icon: Pencil, label: `Edit ${a.name}`, onClick: () => setEditing(a.id) },
+                    { icon: Trash2, label: `Delete ${a.name}`, onClick: () => setDeleting(a) },
+                  ].map(({ icon: Icon, label, onClick }, j) => (
+                    <motion.button key={label} type="button" className="env2-icon-btn" aria-label={label} title={label} onClick={onClick} {...popIn(staggerDelay(i) + 120 + j * 45)}>
+                      <Icon size={15} aria-hidden="true" />
+                    </motion.button>
+                  ))}
+                </span>
               </motion.li>
             ))}
           </ul>
@@ -112,6 +138,19 @@ export function AccountsPage() {
 
       <AnimatePresence>
         {editing !== undefined && <AccountModal id={editing || undefined} onClose={() => setEditing(undefined)} />}
+        {deleting && (
+          <ConfirmDialog
+            title={`Delete ${deleting.name}?`}
+            body={`Expenses on it keep the label. You can bring it back from Archived.${deleting.type === 'bank' ? ' Your next balance check starts fresh.' : ''}`}
+            cancelLabel="Cancel"
+            onCancel={() => setDeleting(null)}
+            busy={update.isPending}
+          >
+            <button type="button" className="account-danger-btn" style={{ marginTop: 0 }} onClick={() => remove(deleting)} disabled={update.isPending}>
+              {update.isPending ? 'Deleting…' : 'Delete'}
+            </button>
+          </ConfirmDialog>
+        )}
       </AnimatePresence>
     </>
   )
