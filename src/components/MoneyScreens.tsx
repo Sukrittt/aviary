@@ -15,13 +15,13 @@ import { useCategories } from '../hooks/useCategories'
 import { useRecentExpenses } from '../hooks/useExpenses'
 import { useGroups } from '../hooks/useGroups'
 import { useHideAmounts } from '../hooks/useHideAmounts'
-import { useAddIncome } from '../hooks/useIncomes'
+import { useAddIncome, useUpdateIncome } from '../hooks/useIncomes'
 import { liveAccounts, useAccounts } from '../hooks/useAccounts'
 import { AccountChips } from './AccountChips'
 import { EMPTY } from '../lib/constants'
 import { categoryEmoji, splitEmoji } from '../lib/emoji'
 import { BudgetWriteError } from '../lib/budgetConflict'
-import type { BudgetRow } from '../types'
+import type { BudgetRow, IncomeRow } from '../types'
 import {
   computeEnvelopeState,
   currentMonthKey,
@@ -965,17 +965,18 @@ export function EditMonthIncomeScreen({ month, onClose, initial }: { month: stri
  * the income ledger; the server adds it to this month's income extra in the
  * same write (Web/lib/income.ts), so Ready to Assign goes up by exactly that
  * much and next month doesn't repeat it. */
-export function AddIncomeScreen({ onClose }: { onClose: () => void }) {
+export function AddIncomeScreen({ onClose, existing }: { onClose: () => void; /** Present: edit this income row. */ existing?: IncomeRow }) {
   const { formatCurrency, currencySymbol } = useCurrency()
   const [hideAmounts] = useHideAmounts()
   const data = useMoneyData()
   const addIncome = useAddIncome()
+  const updateIncome = useUpdateIncome()
   const accounts = liveAccounts(useAccounts().data)
   const phase = useButtonPhase()
   const busy = phase.saving || phase.success
-  const [amountText, setAmountText] = useState('')
-  const [label, setLabel] = useState('')
-  const [accountId, setAccountId] = useState('')
+  const [amountText, setAmountText] = useState(existing ? String(Number(existing.amount) || '') : '')
+  const [label, setLabel] = useState(existing?.label ?? '')
+  const [accountId, setAccountId] = useState(existing?.account_id ?? '')
   const [error, setError] = useState('')
   // One id per screen, so a retried save after a lost response can't count twice.
   const [clientId] = useState(() => crypto.randomUUID())
@@ -991,12 +992,21 @@ export function AddIncomeScreen({ onClose }: { onClose: () => void }) {
     phase.start()
     setError('')
     try {
-      await addIncome.mutateAsync({
-        amount: value,
-        label: label.trim() || 'Extra income',
-        ...(accountId ? { account_id: accountId } : {}),
-        client_id: clientId,
-      })
+      if (existing) {
+        await updateIncome.mutateAsync({
+          id: existing.id,
+          version: existing.version,
+          // The account goes only when it changed: an archived one the row still names would fail the save.
+          updates: { amount: value, label: label.trim() || existing.label, ...(accountId !== existing.account_id ? { account_id: accountId } : {}) },
+        })
+      } else {
+        await addIncome.mutateAsync({
+          amount: value,
+          label: label.trim() || 'Extra income',
+          ...(accountId ? { account_id: accountId } : {}),
+          client_id: clientId,
+        })
+      }
       phase.succeed(onClose)
     } catch {
       phase.fail()
@@ -1004,17 +1014,22 @@ export function AddIncomeScreen({ onClose }: { onClose: () => void }) {
     }
   }
 
-  const hint = value > 0
-    ? state
-      ? `Ready to Assign ${formatCurrency(state.readyToAssign + value, hideAmounts)} · This month only`
-      : 'Adds to Ready to Assign · This month only'
-    : 'What came in on top of your monthly income'
+  // A payday on the monthly schedule is already counted by the monthly income, so editing it moves nothing.
+  const countsAsExtra = !existing || existing.counted === 'extra'
+  const change = value - (existing ? Number(existing.amount) || 0 : 0)
+  const hint = !countsAsExtra
+    ? 'This only changes the record. Your monthly income still counts.'
+    : value > 0
+      ? state
+        ? `Ready to Assign ${formatCurrency(state.readyToAssign + change, hideAmounts)} · This month only`
+        : 'Adds to Ready to Assign · This month only'
+      : 'What came in on top of your monthly income'
 
   return (
     <Scrim className="erd-modal-overlay" onClick={busy ? undefined : onClose}>
-      <Sheet className="erd-modal-card erd-sub-card erd-one-off-card" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="One-off income">
+      <Sheet className="erd-modal-card erd-sub-card erd-one-off-card" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={existing ? 'Edit income' : 'One-off income'}>
         <div className="erd-modal-head">
-          <h3>One-off income</h3>
+          <h3>{existing ? 'Edit income' : 'One-off income'}</h3>
           <button type="button" className="erd-modal-close" onClick={onClose} aria-label="Close" disabled={busy}>
             ✕
           </button>
@@ -1031,7 +1046,7 @@ export function AddIncomeScreen({ onClose }: { onClose: () => void }) {
                 type="text"
                 inputMode="decimal"
                 placeholder="0"
-                autoFocus
+                autoFocus={!existing}
                 value={amountText}
                 onChange={(e) => {
                   if (/^\d{0,9}(\.\d{0,2})?$/.test(e.target.value)) setAmountText(e.target.value)
@@ -1063,8 +1078,8 @@ export function AddIncomeScreen({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="erd-sub-footer">
-          <SuccessButton type="button" baseClass="erd-log-submit" saving={phase.saving} success={phase.success} successLabel="Income added" disabled={value <= 0 || busy} onClick={submit}>
-            Add income
+          <SuccessButton type="button" baseClass="erd-log-submit" saving={phase.saving} success={phase.success} successLabel={existing ? 'Saved' : 'Income added'} disabled={value <= 0 || busy} onClick={submit}>
+            {existing ? 'Save changes' : 'Add income'}
           </SuccessButton>
         </div>
       </Sheet>

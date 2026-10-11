@@ -2,12 +2,13 @@
 
 import { useCurrency } from '@/src/context/CurrencyContext'
 import { useState } from 'react'
-import { Plus } from 'lucide-react'
+import { Pencil, Plus, Trash2 } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { AmountText, popIn, staggerDelay } from '../components/landing/mobile/kit'
 import { LoadingCaption } from '../components/LoadingCaption'
 import { BirdEmptyState } from '../components/BirdEmptyState'
 import { RecurringIncomeModal } from '../components/RecurringIncomeModal'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { AddIncomeScreen } from '../components/MoneyScreens'
 import { accountName } from '../components/AccountChips'
 import { useDeleteIncome, useIncomes, useRecurringIncomes } from '../hooks/useIncomes'
@@ -65,7 +66,8 @@ export function IncomePage() {
   // undefined: closed. '': adding. An id: editing that schedule.
   const [editing, setEditing] = useState<string | undefined>(undefined)
   const [addingOneOff, setAddingOneOff] = useState(false)
-  const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState<IncomeRow | null>(null)
+  const [editingIncome, setEditingIncome] = useState<IncomeRow | null>(null)
   const [error, setError] = useState('')
 
   const month = currentMonthKey()
@@ -225,26 +227,19 @@ export function IncomePage() {
                           {account ? ` · ${account}` : ''}
                         </span>
                       </span>
-                      {confirmDelete === row.id ? (
-                        <span style={{ display: 'flex', gap: 8 }}>
-                          <button type="button" className="account-confirm-cancel" onClick={() => setConfirmDelete(null)} disabled={removeIncome.isPending}>Back</button>
-                          <button type="button" className="account-danger-btn" style={{ marginTop: 0 }} onClick={() => remove(row)} disabled={removeIncome.isPending}>
-                            {removeIncome.isPending ? 'Working…' : 'Delete'}
-                          </button>
-                        </span>
-                      ) : (
-                        <>
-                          <strong style={{ color: 'var(--mint)' }}>+{formatCurrency(Number(row.amount) || 0, hideAmounts)}</strong>
-                          <button type="button" className="scan-link-btn" aria-label={`Delete ${row.label}`} onClick={() => setConfirmDelete(row.id)}>Delete</button>
-                        </>
-                      )}
+                      <strong style={{ color: 'var(--mint)' }}>+{formatCurrency(Number(row.amount) || 0, hideAmounts)}</strong>
+                      <span className="income-row-actions">
+                        <button type="button" className="env2-icon-btn" aria-label={`Edit ${row.label}`} onClick={() => setEditingIncome(row)}>
+                          <Pencil size={15} aria-hidden="true" />
+                        </button>
+                        <button type="button" className="env2-icon-btn" aria-label={`Delete ${row.label}`} onClick={() => setConfirmDelete(row)}>
+                          <Trash2 size={15} aria-hidden="true" />
+                        </button>
+                      </span>
                     </li>
                   )
                 })}
               </ul>
-            )}
-            {confirmDelete && thisMonth.find((r) => r.id === confirmDelete)?.counted === 'monthly' && (
-              <p className="recurring-hint" style={{ padding: '6px 4px 0' }}>This only removes the record. Your monthly income still counts.</p>
             )}
             {error && <p className="erd-log-error">{error}</p>}
           </div>
@@ -254,6 +249,22 @@ export function IncomePage() {
       <AnimatePresence>
         {editing !== undefined && <RecurringIncomeModal id={editing || undefined} onClose={() => setEditing(undefined)} />}
         {addingOneOff && <AddIncomeScreen onClose={() => setAddingOneOff(false)} />}
+        {editingIncome && <AddIncomeScreen key={editingIncome.id} existing={editingIncome} onClose={() => setEditingIncome(null)} />}
+        {confirmDelete && (
+          <ConfirmDialog
+            title={`Delete ${confirmDelete.label}?`}
+            body={confirmDelete.counted === 'monthly'
+              ? 'This only removes the record. Your monthly income still counts.'
+              : `${formatCurrency(Number(confirmDelete.amount) || 0, hideAmounts)} comes off Ready to Assign for ${monthLabel(confirmDelete.date.slice(0, 7))}.`}
+            cancelLabel="Cancel"
+            onCancel={() => setConfirmDelete(null)}
+            busy={removeIncome.isPending}
+          >
+            <button type="button" className="account-danger-btn" style={{ marginTop: 0 }} onClick={() => remove(confirmDelete)} disabled={removeIncome.isPending}>
+              {removeIncome.isPending ? 'Deleting…' : 'Delete'}
+            </button>
+          </ConfirmDialog>
+        )}
       </AnimatePresence>
     </>
   )

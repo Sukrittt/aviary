@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import { IncomePage } from './IncomePage'
@@ -40,6 +40,19 @@ beforeEach(() => {
 })
 
 describe('IncomePage', () => {
+  it('asks before deleting a recorded income, then deletes it', async () => {
+    vi.mocked(incomesApi.getIncomes).mockResolvedValue([
+      { id: 'i1', version: 3, date: `${month}-02`, amount: '1500', label: 'Freelance', notes: '', account_id: '', recurring_id: '', source: 'manual', counted: 'extra', created_at: '' },
+    ])
+    vi.mocked(incomesApi.deleteIncome).mockResolvedValue(undefined as never)
+    renderPage(<IncomePage />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Delete Freelance' }))
+    const dialog = await screen.findByRole('alertdialog', { name: 'Delete Freelance?' })
+    expect(incomesApi.deleteIncome).not.toHaveBeenCalled()
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }))
+    await waitFor(() => expect(incomesApi.deleteIncome).toHaveBeenCalledWith('i1', 3))
+  })
+
   it('shows what comes in on repeat and what was recorded this month', async () => {
     vi.mocked(incomesApi.getRecurringIncomes).mockResolvedValue([
       { id: 'r1', label: 'Salary', amount: '50000', frequency: 'monthly', start_date: `${month}-01`, end_date: '', next_run_date: '2099-01-01', account_id: '', status: 'active', created_at: '' },

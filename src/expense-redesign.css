@@ -12433,6 +12433,11 @@ button.account-feature-card {
   background: var(--mint);
   transition: width 0.4s ease;
 }
+.income-row-actions {
+  display: flex;
+  gap: 2px;
+  margin-right: -6px;
+}
 .income-row-title {
   display: flex;
   align-items: center;
