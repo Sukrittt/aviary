@@ -12357,8 +12357,11 @@ button.account-feature-card {
 .tone-daily { --tone: var(--violet); --tone-soft: var(--violet-soft); }
 .tone-yearly { --tone: var(--gold-ink); --tone-soft: var(--gold-soft); }
 .expense-redesign .account-header {
-  margin-bottom: 20px;
   border-bottom: 1px solid var(--erd-border);
+}
+/* The panel's flex gap already spaces cards; drop the card's own margin. */
+.account-panel > .recurring-discovery.account-card {
+  margin-bottom: 0;
 }
 @media (max-width: 900px) {
   /* Activity hides its heading on small screens; account pages have no other title. */
