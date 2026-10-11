@@ -54,6 +54,22 @@ describe('IncomePage', () => {
     expect(screen.getByText(/Added by you/)).toBeInTheDocument()
   })
 
+  it('splits the header by cadence and shows how much was recorded', async () => {
+    vi.mocked(incomesApi.getRecurringIncomes).mockResolvedValue([
+      { id: 'r1', label: 'Salary', amount: '50000', frequency: 'monthly', start_date: `${month}-01`, end_date: '', next_run_date: '2099-01-01', account_id: '', status: 'active', created_at: '' },
+      { id: 'r2', label: 'Tutoring', amount: '1200', frequency: 'weekly', start_date: `${month}-01`, end_date: '', next_run_date: '2099-01-01', account_id: '', status: 'active', created_at: '' },
+    ])
+    vi.mocked(incomesApi.getIncomes).mockResolvedValue([
+      { id: 'i1', version: 0, date: `${month}-02`, amount: '1200', label: 'Tutoring', notes: '', account_id: '', recurring_id: 'r2', source: 'recurring', counted: 'extra', created_at: '' },
+    ])
+    renderPage(<IncomePage />)
+    const tiles = await screen.findByRole('list', { name: 'Income by schedule' })
+    expect(tiles).toHaveTextContent('Every month₹500001 source')
+    expect(tiles).toHaveTextContent('Every week₹12001 source')
+    expect(screen.getByText(/₹1200 of ₹55200 recorded in/)).toBeInTheDocument()
+    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '2')
+  })
+
   it('deletes a recorded income after a confirm', async () => {
     vi.mocked(incomesApi.getIncomes).mockResolvedValue([
       { id: 'i1', version: 2, date: `${month}-02`, amount: '1500', label: 'Freelance', notes: '', account_id: '', recurring_id: '', source: 'manual', counted: 'extra', created_at: '' },

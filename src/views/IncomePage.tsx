@@ -3,6 +3,7 @@
 import { useCurrency } from '@/src/context/CurrencyContext'
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
+import { Repeat } from 'lucide-react'
 import { AmountText, popIn, staggerDelay } from '../components/landing/mobile/kit'
 import { LoadingCaption } from '../components/LoadingCaption'
 import { BirdEmptyState } from '../components/BirdEmptyState'
@@ -22,6 +23,17 @@ const CADENCE_LABELS: Record<string, string> = {
   weekly: 'Every week',
   monthly: 'Every month',
   yearly: 'Every year',
+}
+
+const CADENCE_ORDER = ['monthly', 'weekly', 'daily', 'yearly'] as const
+const CADENCE_PER: Record<string, string> = { daily: 'a day', weekly: 'a week', monthly: 'a month', yearly: 'a year' }
+
+/** Active schedules summed per cadence, in a fixed order, skipping cadences nobody uses. */
+export function cadenceTotals(rows: RecurringIncomeRow[]): { frequency: string; total: number; count: number }[] {
+  return CADENCE_ORDER.map((frequency) => {
+    const list = rows.filter((r) => r.frequency === frequency)
+    return { frequency, total: list.reduce((sum, r) => sum + (Number(r.amount) || 0), 0), count: list.length }
+  }).filter((c) => c.count > 0)
 }
 
 const SOURCE_LABELS: Record<string, string> = {
@@ -63,6 +75,10 @@ export function IncomePage() {
   const thisMonth = (incomesQ.data ?? []).filter((r) => r.date.startsWith(month))
   const monthlyTotal = active.reduce((sum, r) => sum + monthlyAmount(Number(r.amount) || 0, r.frequency), 0)
   const receivedTotal = thisMonth.reduce((sum, r) => sum + (Number(r.amount) || 0), 0)
+  const cadences = cadenceTotals(active)
+  const single = cadences.length === 1 ? cadences[0] : null
+  const headline = single ? single.total : monthlyTotal
+  const landedPct = monthlyTotal > 0 ? Math.min(100, Math.round((receivedTotal / monthlyTotal) * 100)) : 0
   const loading = recurringQ.isLoading || incomesQ.isLoading
   const loadError = recurringQ.isError || incomesQ.isError
 
@@ -89,11 +105,14 @@ export function IncomePage() {
             return (
               <motion.li key={row.id} {...popIn(staggerDelay(offset + i))}>
                 <button type="button" className="account-row" onClick={() => setEditing(row.id)}>
-                  <span className="recurring-dot" style={{ background: 'var(--mint)', opacity: isActive ? 1 : 0.5 }} />
+                  <span className={`recurring-dot income-dot tone-${row.frequency}`} style={{ opacity: isActive ? 1 : 0.5 }} />
                   <span style={{ flex: 1, minWidth: 0 }}>
                     <span className="account-row-label recurring-title">{row.label}</span>
                     <span className="account-row-meta recurring-meta">
-                      <span className="recurring-pill">{CADENCE_LABELS[row.frequency] ?? row.frequency}</span>
+                      <span className={`income-cadence-pill tone-${row.frequency}`}>
+                        <Repeat size={12} strokeWidth={2.6} aria-hidden />
+                        {CADENCE_LABELS[row.frequency] ?? row.frequency}
+                      </span>
                       {account ? ` · ${account}` : ''}
                     </span>
                     <span className={`account-row-meta ${isActive && row.next_run_date ? 'recurring-due' : ''}`}>{payLabel(row)}</span>
@@ -138,14 +157,48 @@ export function IncomePage() {
         />
       ) : (
         <>
-          <div className="account-card recurring-hero">
-            <div className="account-section-label">Comes in each month</div>
-            <div className="recurring-hero-amount">
-              {hideAmounts ? formatCurrency(monthlyTotal, true) : <AmountText value={monthlyTotal} animate />}
-            </div>
-            <div className="account-row-meta">
-              {formatCurrency(receivedTotal, hideAmounts)} recorded in {monthLabel(month)}
-            </div>
+          <div className="account-card income-hero">
+            {active.length === 0 ? (
+              <>
+                <div className="account-section-label">Recorded in {monthLabel(month)}</div>
+                <div className="income-hero-amount">{formatCurrency(receivedTotal, hideAmounts)}</div>
+              </>
+            ) : (
+              <>
+                <div className="account-section-label">Coming in</div>
+                <div className="income-hero-amount">
+                  {hideAmounts ? formatCurrency(headline, true) : <AmountText value={headline} animate />}
+                  <span className="income-hero-per">{single ? CADENCE_PER[single.frequency] : 'a month'}</span>
+                </div>
+                {single && single.frequency !== 'monthly' && (
+                  <div className="account-row-meta">About {formatCurrency(monthlyTotal, hideAmounts)} a month</div>
+                )}
+                {cadences.length > 1 && (
+                  <ul className="income-cadence-grid" aria-label="Income by schedule">
+                    {cadences.map((c) => (
+                      <li key={c.frequency} className={`income-cadence-tile tone-${c.frequency}`}>
+                        <span className="income-cadence-name">{CADENCE_LABELS[c.frequency]}</span>
+                        <strong>{formatCurrency(c.total, hideAmounts)}</strong>
+                        <span className="income-cadence-count">{c.count === 1 ? '1 source' : `${c.count} sources`}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <div
+                  className="income-progress"
+                  role="progressbar"
+                  aria-label={`Recorded in ${monthLabel(month)}`}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={landedPct}
+                >
+                  <span style={{ width: `${landedPct}%` }} />
+                </div>
+                <div className="account-row-meta">
+                  {formatCurrency(receivedTotal, hideAmounts)} of {formatCurrency(monthlyTotal, hideAmounts)} recorded in {monthLabel(month)}
+                </div>
+              </>
+            )}
           </div>
           {scheduleSection('Recurring', active, 0)}
           {scheduleSection('Paused and finished', inactive, active.length)}
