@@ -6,6 +6,7 @@ import { checkPushReceipts, sendPushNotification } from '@/lib/push'
 import type { UserDoc } from '@/lib/users'
 import { isSubscriptionDueToday } from '@/lib/subscriptions'
 import { claim, unclaim } from './deliver'
+import { quietDays, reengageCopy, reengageStep, type ReengageStep } from './reengage'
 
 /**
  * Evening check: a push at the end of the user's own day when nothing is
@@ -20,6 +21,9 @@ import { claim, unclaim } from './deliver'
  * calls /api/cron/evening-check from 24 daily crons, one per UTC hour. A two
  * hour window always contains at least one run whatever the jitter or
  * half-hour offset, and the claim makes sure only the first one sends.
+ *
+ * From quiet day 3 (no app open, per `lastSeenAt`) the evening check steps
+ * aside and the come-back nudges in ./reengage take this slot instead.
  */
 
 const WINDOW_START_HOUR = 20
@@ -96,7 +100,7 @@ export async function runEveningCheck(at = new Date()): Promise<{ sent: number; 
   const withDevice = await db.collection(COLLECTIONS.pushTokens).distinct('user_id')
   const users = await db
     .collection<UserDoc>('users')
-    .find({ _id: { $in: withDevice }, deleted_at: null }, { projection: { timezone: 1 } })
+    .find({ _id: { $in: withDevice }, deleted_at: null }, { projection: { timezone: 1, lastSeenAt: 1, createdAt: 1, lastReengage: 1 } })
     .toArray()
 
   let sent = 0
@@ -105,6 +109,15 @@ export async function runEveningCheck(at = new Date()): Promise<{ sent: number; 
     const date = eveningDateFor(user.timezone, at)
     if (!date) continue
     try {
+      const lastSeen = user.lastSeenAt ?? user.createdAt
+      const step = lastSeen ? reengageStep(quietDays(lastSeen, user.timezone, at)) : null
+      if (step) {
+        const outcome = await sendReengage(db, user, nowIn(user.timezone, lastSeen).date, step, date)
+        if (outcome === 'sent') sent++
+        else if (outcome === 'failed') failed++
+        continue
+      }
+
       const logged = await db
         .collection(COLLECTIONS.expenses)
         .findOne({ user_id: user._id, date, deleted_at: null }, { projection: { _id: 1 } })
@@ -130,4 +143,32 @@ export async function runEveningCheck(at = new Date()): Promise<{ sent: number; 
     }
   }
   return { sent, failed, pruned }
+}
+
+/**
+ * Claimed on the user doc rather than notification_log: the log's 90-day TTL
+ * would let day 30 fire again for someone gone four months. A lapse is keyed
+ * by its last-seen date, so coming back starts a fresh one.
+ */
+async function sendReengage(db: Db, user: UserDoc, lapse: string, step: ReengageStep, date: string): Promise<'sent' | 'failed' | 'skipped'> {
+  const users = db.collection<UserDoc>('users')
+  const { modifiedCount } = await users.updateOne(
+    { _id: user._id, $or: [{ 'lastReengage.lapse': { $ne: lapse } }, { 'lastReengage.step': { $lt: step } }] },
+    { $set: { lastReengage: { lapse, step } } },
+  )
+  if (modifiedCount === 0) return 'skipped'
+  const release = () =>
+    users.updateOne({ _id: user._id }, user.lastReengage ? { $set: { lastReengage: user.lastReengage } } : { $unset: { lastReengage: '' } })
+  try {
+    const delivered = await sendPushNotification({
+      userId: user._id,
+      ...reengageCopy(step, date),
+      data: { route: '/modals/log-expense', kind: 'reengage', step },
+    })
+    if (delivered > 0) return 'sent'
+  } catch (err) {
+    console.error('evening-check: come-back push failed for', user._id, err)
+  }
+  await release()
+  return 'failed'
 }
