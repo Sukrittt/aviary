@@ -12435,7 +12435,8 @@ button.account-feature-card {
 }
 .income-row-actions {
   display: flex;
-  gap: 2px;
+  gap: 8px;
+  margin-left: 12px;
   margin-right: -6px;
 }
 .income-row-title {
