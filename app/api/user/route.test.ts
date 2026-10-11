@@ -120,6 +120,12 @@ describe('PATCH /api/user', () => {
     expect(usersUpdateOneMock).toHaveBeenCalledWith({ _id: 'user_a' }, { $set: { hiddenFeatures: ['insights', 'wrapped'] } })
   })
 
+  it('accepts income and accounts as hideable features', async () => {
+    const res = await PATCH(patchRequest({ hiddenFeatures: ['income', 'accounts'] }))
+    expect(res.status).toBe(200)
+    expect(usersUpdateOneMock).toHaveBeenCalledWith({ _id: 'user_a' }, { $set: { hiddenFeatures: ['income', 'accounts'] } })
+  })
+
   it('accepts an empty hiddenFeatures list to show everything again', async () => {
     const res = await PATCH(patchRequest({ hiddenFeatures: [] }))
     expect(res.status).toBe(200)
