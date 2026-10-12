@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getUser, getIdentityProviders, getSessions, getPrivacyProof, updateUser, restoreAccount, completeGuidedTour, type UserProfile } from '@/src/api/account'
+import { hiddenFeatures } from '@/src/lib/features'
 
 export const userKey = ['user'] as const
 const sessionsKey = ['user', 'sessions'] as const
@@ -8,6 +9,11 @@ const privacyProofKey = ['user', 'privacy-proof'] as const
 
 export function useUser() {
   return useQuery({ queryKey: userKey, queryFn: getUser, staleTime: 30_000 })
+}
+
+/** Features this user has hidden. Empty until the profile loads, same as Mobile. */
+export function useHiddenFeatures() {
+  return hiddenFeatures(useUser().data)
 }
 
 export function useCompleteGuidedTour() {

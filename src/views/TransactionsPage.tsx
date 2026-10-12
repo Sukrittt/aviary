@@ -4,6 +4,7 @@ import { useAppearance } from '../../components/AppearanceProvider'
 import { TransactionsView } from '../components/TransactionsView'
 import { ExpenseSidebar } from '../components/ExpenseSidebar'
 import { LoadingCaption } from '../components/LoadingCaption'
+import { InsightsTab } from '@/src/components/InsightsTab'
 
 export function TransactionsPage() {
   const { theme, setTheme } = useAppearance()
@@ -46,10 +47,7 @@ export function TransactionsPage() {
           <span aria-hidden="true">🧾</span>
           <span>Activity</span>
         </Link>
-        <Link href="/insights" className="erd-tab">
-          <span aria-hidden="true">📊</span>
-          <span>Insights</span>
-        </Link>
+        <InsightsTab />
         <Link href="/account" className="erd-tab">
           <span aria-hidden="true">⚙️</span>
           <span>More</span>

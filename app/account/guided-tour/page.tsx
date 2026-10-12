@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useCompleteGuidedTour } from '@/src/hooks/useUser'
+import { useCompleteGuidedTour, useHiddenFeatures } from '@/src/hooks/useUser'
 import { track } from '@/src/lib/analytics'
 import { useTourProgress } from '../../../src/hooks/useTourProgress'
 import { useMoneyBrain } from '../../../components/MoneyBrainProvider'
@@ -33,6 +33,7 @@ export default function GuidedTourPage() {
 
   const router = useRouter()
   const { openMoneyBrain } = useMoneyBrain()
+  const hidden = useHiddenFeatures()
   const [done, setDone] = useTourProgress()
   const [view, setView] = useState<View3>('hub')
   const [chapter, setChapter] = useState(0)
@@ -124,7 +125,7 @@ export default function GuidedTourPage() {
             <ChapterDemo index={chapter} onComplete={() => complete(chapter)} />
           </FadeIn>
 
-          {!isLast && (
+          {!isLast && !(current.feature && hidden.includes(current.feature)) && (
             <button type="button" className="tour-try-real" onClick={openReal}>
               <div className="tour-try-real-tile">↗</div>
               <div className="tour-row-body">

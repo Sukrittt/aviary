@@ -53,6 +53,7 @@ import {
 } from "@/src/lib/monthly";
 import { EMPTY } from "@/src/lib/constants";
 import { BirdEmptyState } from "@/src/components/BirdEmptyState";
+import { InsightsTab } from "@/src/components/InsightsTab";
 
 const TREND_MONTHS = 12;
 const HEATMAP_WEEKS = 12;
@@ -681,10 +682,7 @@ export function InsightsPage() {
           <span aria-hidden="true">🧾</span>
           <span>Activity</span>
         </Link>
-        <Link href="/insights" className="erd-tab is-active">
-          <span aria-hidden="true">📊</span>
-          <span>Insights</span>
-        </Link>
+        <InsightsTab active />
         <Link href="/account" className="erd-tab">
           <span aria-hidden="true">⚙️</span>
           <span>More</span>

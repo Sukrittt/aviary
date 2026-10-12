@@ -24,6 +24,7 @@ import {
   Repeat,
   ScanLine,
   ScrollText,
+  SlidersHorizontal,
   TrendingUp,
   type LucideIcon,
 } from 'lucide-react'
@@ -38,6 +39,8 @@ import { GetAppDialog } from '../../src/components/GetAppDialog'
 import { SubscriptionSection } from '../../src/components/billing/SubscriptionSection'
 import { billingVisible, planSummary } from '../../src/components/billing/copy'
 import { useBillingStatus } from '../../src/hooks/useBillingStatus'
+import { useHiddenFeatures } from '../../src/hooks/useUser'
+import type { HideableFeature } from '../../src/lib/features'
 import { FEEDBACK_BOARD_URL } from '../../lib/links'
 
 const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.sukrit04.envelope'
@@ -70,6 +73,8 @@ export default function AccountPage() {
   const { preference, setPreference } = useAppearance()
   const { openMoneyBrain } = useMoneyBrain()
   const [hideAmounts, setHideAmounts] = useHideAmounts()
+  const hidden = useHiddenFeatures()
+  const shown = (key: HideableFeature) => !hidden.includes(key)
   const [doc, setDoc] = useState<UserDoc | null>(null)
   const [notifyCadence, setNotifyCadence] = useState<NotifyCadence>('off')
   const [showScan, setShowScan] = useState(false)
@@ -141,24 +146,26 @@ export default function AccountPage() {
           Features
         </div>
         <div className="account-feature-grid">
-          <FeatureCard
-            icon={Gift}
-            tone="coral"
-            label="Expense Wrapped"
-            blurb={<span className="account-feature-copy">Download the mobile app to view this.</span>}
-            href={PLAY_STORE_URL}
-            external
-            locked
-          />
-          <FeatureCard icon={Brain} tone="gold" label="Ask Aviary" blurb="Ask about your spending" onClick={() => openMoneyBrain()} />
-          <FeatureCard icon={TrendingUp} tone="mint" label="Investments" blurb="Portfolio at a glance" href="/investments" />
-          <FeatureCard icon={ScanLine} tone="mint" label="Scan a bill" blurb="Split a cart or receipt" onClick={() => setShowScan(true)} />
-          <FeatureCard icon={Wallet} tone="mint" label="Income" blurb="What comes in and when" href="/account/income" />
-          <FeatureCard icon={Landmark} tone="gold" label="Accounts" blurb="Bank, card and cash" href="/account/accounts" />
-          <FeatureCard icon={Repeat} tone="violet" label="Recurring expenses" blurb="Plan upcoming payments" href="/account/recurring" />
+          {shown('wrapped') && (
+            <FeatureCard
+              icon={Gift}
+              tone="coral"
+              label="Expense Wrapped"
+              blurb={<span className="account-feature-copy">Download the mobile app to view this.</span>}
+              href={PLAY_STORE_URL}
+              external
+              locked
+            />
+          )}
+          {shown('askAviary') && <FeatureCard icon={Brain} tone="gold" label="Ask Aviary" blurb="Ask about your spending" onClick={() => openMoneyBrain()} />}
+          {shown('investments') && <FeatureCard icon={TrendingUp} tone="mint" label="Investments" blurb="Portfolio at a glance" href="/investments" />}
+          {shown('billScan') && <FeatureCard icon={ScanLine} tone="mint" label="Scan a bill" blurb="Split a cart or receipt" onClick={() => setShowScan(true)} />}
+          {shown('income') && <FeatureCard icon={Wallet} tone="mint" label="Income" blurb="What comes in and when" href="/account/income" />}
+          {shown('accounts') && <FeatureCard icon={Landmark} tone="gold" label="Accounts" blurb="Bank, card and cash" href="/account/accounts" />}
+          {shown('recurring') && <FeatureCard icon={Repeat} tone="violet" label="Recurring expenses" blurb="Plan upcoming payments" href="/account/recurring" />}
           <FeatureCard icon={Archive} tone="blue" label="Archive" blurb="Restore deleted items" href="/account/archive" />
-          <FeatureCard icon={Receipt} tone="violet" label="Subscriptions" blurb="What renews and when" href="/account/subscriptions" />
-          <FeatureCard icon={LineChart} tone="blue" label="Insights" blurb="Trends and breakdowns" href="/insights" />
+          {shown('subscriptions') && <FeatureCard icon={Receipt} tone="violet" label="Subscriptions" blurb="What renews and when" href="/account/subscriptions" />}
+          {shown('insights') && <FeatureCard icon={LineChart} tone="blue" label="Insights" blurb="Trends and breakdowns" href="/insights" />}
         </div>
       </div>
 
@@ -168,6 +175,12 @@ export default function AccountPage() {
         </div>
         <div className="account-card">
           <CurrencySetting />
+          <AccountRow
+            icon={SlidersHorizontal}
+            label="Features"
+            hint={hidden.length ? `${hidden.length} hidden` : 'Everything on'}
+            href="/account/features"
+          />
           <div className="account-row" style={{ cursor: 'default' }}>
             <span className="account-row-label">Appearance</span>
             <div className="account-segmented" role="group" aria-label="Theme">
@@ -229,7 +242,7 @@ export default function AccountPage() {
         <div className="account-card">
           <AccountRow icon={Lock} label="Account & security" href="/account/security" />
           <AccountRow icon={Database} label="Your data" href="/account/data" />
-          <AccountRow icon={History} label="Bills Scanned" href="/account/bill-scans" />
+          {shown('billScan') && <AccountRow icon={History} label="Bills Scanned" href="/account/bill-scans" />}
           {/* Twin of Mobile's Plan & billing row: tapping it shows the plan once
               billing is live, or the trial notice before then. The badge is a
               sibling of the link, since an anchor can't nest inside one. */}

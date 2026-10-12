@@ -9,7 +9,7 @@ import { buildNotifications, prefsFor, weekRecapNotification, weekRecapTeaserNot
 import { claim, claimAndSend, unclaim } from '@/lib/notifications/deliver'
 import { currentEdition, editionStatus } from '@/lib/wrapped'
 import type { UserDoc } from '@/lib/users'
-import { hiddenFeatures } from '@/lib/hiddenFeatures'
+import { hiddenFeatures } from '@/src/lib/features'
 import { computeWeekRecap, learningDay, onboardedDate, recapDue, type RecapRow } from '@/lib/weekRecap'
 import { EXPENSE_HEADERS, toRow } from '@/lib/models'
 import { applyHoldingAction } from '@/lib/holdings'
