@@ -183,7 +183,7 @@ export function LandingPage({ monthlyPrice, ios = false, android = false, intl =
         <div className="lp-founder-copy">
           <h2 id="founder-title" className="lp-h2">Hi, I’m Sukrit <span aria-hidden="true">👋</span></h2>
           <p>I’ve been trying to get budgeting right for years. I built a few apps for it, fell back on spreadsheets, and tried bank sync apps. Sync didn’t change a thing. My spending got filed away and I still had no idea where my money went.</p>
-          <p>YNAB finally clicked. Giving every rupee a job made me actually notice my spending. Then its pricing humbled me.</p>
+          <p>YNAB finally clicked. Giving every {intl ? 'dollar' : 'rupee'} a job made me actually notice my spending. Then its pricing humbled me.</p>
           <p>So I built Aviary. You still log every expense yourself, because that’s the part that makes you notice. Aviary just learns when you usually spend and nudges you while it’s fresh, so logging takes one tap. It’s the app I wanted for years. I hope it clicks for you too.</p>
           <a href={GITHUB} className="lp-button lp-button--ghost"><Github size={17} aria-hidden="true" />Read the source</a>
           <div className="lp-founder-sign"><span aria-hidden="true">S</span><div><strong>Sukrit</strong><small>Builds Aviary</small></div></div>
