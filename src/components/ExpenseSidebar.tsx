@@ -26,6 +26,7 @@ import { useMoneyBrain } from "@/components/MoneyBrainProvider";
 import { useAppearance } from "@/components/AppearanceProvider";
 import { usePersistentState } from "../hooks/usePersistentState";
 import { useAccessAllowed } from "../hooks/useBillingStatus";
+import { useHiddenFeatures } from "../hooks/useUser";
 import { BirdMark } from "./BirdMark";
 import { LogExpenseModal } from "./LogExpenseModal";
 import { ScanBillModal } from "../features/scan-bill/ScanBillModal";
@@ -49,6 +50,7 @@ export function ExpenseSidebar({ onBulkReturn }: Props) {
   const { openMoneyBrain } = useMoneyBrain();
   const { theme, setTheme } = useAppearance();
   const [collapsed, setCollapsed] = usePersistentState("erd-sidebar-collapsed", false, parseBool, serializeBool);
+  const hidden = useHiddenFeatures();
   const [showLog, setShowLog] = useState(false);
   const [showScan, setShowScan] = useState(false);
   const [confirmSignOut, setConfirmSignOut] = useState(false);
@@ -152,14 +154,16 @@ export function ExpenseSidebar({ onBulkReturn }: Props) {
             <Plus size={18} strokeWidth={2.5} />
             <span className="erd-side-label">Log expense</span>
           </button>
-          <button type="button" className="erd-side-cta is-secondary" onClick={() => { closeMobileMenu(); runGated(() => setShowScan(true)); }} title={tip("Scan a bill")}>
-            <ScanLine size={18} />
-            <span className="erd-side-label">Scan a bill</span>
-          </button>
+          {!hidden.includes("billScan") && (
+            <button type="button" className="erd-side-cta is-secondary" onClick={() => { closeMobileMenu(); runGated(() => setShowScan(true)); }} title={tip("Scan a bill")}>
+              <ScanLine size={18} />
+              <span className="erd-side-label">Scan a bill</span>
+            </button>
+          )}
         </div>
 
         <div className="erd-nav-group">
-          {NAV.map(({ href, label, icon: Icon }) => (
+          {NAV.filter(({ href }) => !(href === "/insights" && hidden.includes("insights"))).map(({ href, label, icon: Icon }) => (
             <Link
               key={href}
               href={href}
@@ -172,10 +176,12 @@ export function ExpenseSidebar({ onBulkReturn }: Props) {
               <span className="erd-side-label">{label}</span>
             </Link>
           ))}
-          <button type="button" className="erd-nav-item" onClick={() => { closeMobileMenu(); runGated(() => openMoneyBrain()); }} title={tip("Ask Aviary")}>
-            <Sparkles size={18} />
-            <span className="erd-side-label">Ask Aviary</span>
-          </button>
+          {!hidden.includes("askAviary") && (
+            <button type="button" className="erd-nav-item" onClick={() => { closeMobileMenu(); runGated(() => openMoneyBrain()); }} title={tip("Ask Aviary")}>
+              <Sparkles size={18} />
+              <span className="erd-side-label">Ask Aviary</span>
+            </button>
+          )}
         </div>
 
         {onBulkReturn && (

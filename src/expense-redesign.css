@@ -12544,3 +12544,18 @@ button.account-feature-card {
   font-size: 11px;
   font-weight: 800;
 }
+
+/* Setup's extras step (PickExtras.tsx): setup-done rows with a label, a pitch and a switch. */
+.setup-extra-row {
+  cursor: pointer;
+}
+.setup-extra-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.setup-extra-label {
+  font-weight: 800;
+  font-size: 14px;
+}

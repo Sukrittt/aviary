@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { BirdMark } from './BirdMark'
 import { ExpenseSidebar } from './ExpenseSidebar'
 import { LoadingCaption } from './LoadingCaption'
+import { InsightsTab } from '@/src/components/InsightsTab'
 
 /** Real navigation shell shown while `/expense`'s core queries are in flight. */
 export function ExpensePageLoading() {
@@ -24,7 +25,7 @@ export function ExpensePageLoading() {
         <Link href="/expense" className="erd-tab"><span aria-hidden="true">🏠</span><span>Home</span></Link>
         <Link href="/expense/transactions" className="erd-tab"><span aria-hidden="true">🧾</span><span>Activity</span></Link>
         <button type="button" className="erd-tab-fab" disabled aria-label="Log expense">+</button>
-        <Link href="/insights" className="erd-tab"><span aria-hidden="true">📊</span><span>Insights</span></Link>
+        <InsightsTab />
         <Link href="/account" className="erd-tab"><span aria-hidden="true">⚙️</span><span>More</span></Link>
       </nav>
     </section>

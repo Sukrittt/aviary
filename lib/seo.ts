@@ -29,6 +29,7 @@ export const pages = {
   '/account/bill-scans': { title: 'Bill Scans', description: 'Review your scanned receipts and the expenses created from them in Aviary.' },
   '/account/chat-history': { title: 'Ask Aviary Chat History', description: 'Browse your past Ask Aviary conversations about your Aviary budget and spending.' },
   '/account/data': { title: 'Data & Privacy', description: 'Manage analytics preferences, export your Aviary data, and review your data controls.' },
+  '/account/features': { title: 'Features', description: 'Choose which Aviary extras show up, like Ask Aviary, Insights and Scan a bill.' },
   '/account/guided-tour': { title: 'Guided Tour', description: 'Learn how to assign money, log expenses, and use your budget with Aviary’s guided tour.' },
   '/account/help': { title: 'Help & Support', description: 'Learn how Aviary envelopes work and find help with your budget and account.' },
   '/account/income': { title: 'Income', description: 'Set your salary and other income so Aviary counts it toward Ready to Assign.' },

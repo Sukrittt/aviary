@@ -21,6 +21,7 @@ import { DEFAULT_ALERT_PCTS } from '../../src/lib/alerts'
 import { startTimer, track } from '../../src/lib/analytics'
 import { AmountTicker } from '../../src/components/onboarding/AmountTicker'
 import { Confetti } from '../../src/components/onboarding/Confetti'
+import { PickExtras } from '../../src/components/onboarding/PickExtras'
 import { LoadingCaption } from '../../src/components/LoadingCaption'
 import { Toast } from '../../src/components/Toast'
 
@@ -585,7 +586,15 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
   if (step === 5 && result) {
     return (
       <div className="expense-redesign setup-page">
-        <SetupDone result={result} onFinish={() => router.replace('/account/trial-notice')} />
+        <SetupDone result={result} onFinish={() => setStep(6)} />
+      </div>
+    )
+  }
+
+  if (step === 6) {
+    return (
+      <div className="expense-redesign setup-page">
+        <PickExtras onDone={() => router.replace('/account/trial-notice')} />
       </div>
     )
   }

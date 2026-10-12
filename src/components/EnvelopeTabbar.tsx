@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { InsightsTab } from './InsightsTab'
 
 /**
  * The narrow-viewport tab bar. Desktop navigates from the sidebar; this only
@@ -20,7 +21,7 @@ export function EnvelopeTabbar() {
   return (
     <nav className="erd-tabbar" aria-label="Primary">
       {TABS.map((tab) => (
-        <Link key={tab.href} href={tab.href} className={`erd-tab${pathname === tab.href ? ' is-active' : ''}`}>
+        tab.href === '/insights' ? <InsightsTab key={tab.href} active={pathname === tab.href} /> : <Link key={tab.href} href={tab.href} className={`erd-tab${pathname === tab.href ? ' is-active' : ''}`}>
           <span aria-hidden="true">{tab.icon}</span>
           <span>{tab.label}</span>
         </Link>

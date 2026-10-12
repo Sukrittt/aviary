@@ -7,6 +7,8 @@
 // (log-expense and money-brain are a modal and a drawer, not pages), so their
 // `linkNote` spells out how to reach them from the page they link to instead.
 
+import type { HideableFeature } from '@/src/lib/features'
+
 export interface Chapter {
   /** Row title on the hub, and the header subtitle while the chapter is open. */
   title: string
@@ -21,6 +23,8 @@ export interface Chapter {
   /** Overrides the row's default subtitle — for a chapter whose real screen
    * needs an extra step spelled out (e.g. opening a modal from elsewhere). */
   linkNote?: string
+  /** The extra the real page belongs to; its link hides while that extra is off. */
+  feature?: HideableFeature
 }
 
 export const CHAPTERS: Chapter[] = [
@@ -62,6 +66,7 @@ export const CHAPTERS: Chapter[] = [
     nudge: 'Answer, then flip to October 1.',
     linkLabel: 'Open Insights',
     href: '/insights',
+    feature: 'insights',
   },
   {
     title: 'Understanding your money',
@@ -72,6 +77,7 @@ export const CHAPTERS: Chapter[] = [
     linkLabel: 'Open Ask Aviary',
     href: '/expense',
     linkNote: 'Opens the Ask Aviary drawer',
+    feature: 'askAviary',
   },
   {
     title: 'Notifications',

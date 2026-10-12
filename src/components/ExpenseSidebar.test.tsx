@@ -11,6 +11,8 @@ const openMoneyBrain = vi.fn()
 vi.mock('@/components/MoneyBrainProvider', () => ({ useMoneyBrain: () => ({ openMoneyBrain }) }))
 vi.mock('@/components/AppearanceProvider', () => ({ useAppearance: () => ({ theme: 'dark', setTheme: vi.fn() }) }))
 vi.mock('../hooks/usePersistentState', () => ({ usePersistentState: (_k: string, v: unknown) => [v, vi.fn()] }))
+let hidden: string[] = []
+vi.mock('../hooks/useUser', () => ({ useHiddenFeatures: () => hidden }))
 vi.mock('./LogExpenseModal', () => ({ LogExpenseModal: () => <div>log-expense-dialog</div> }))
 vi.mock('../features/scan-bill/ScanBillModal', () => ({ ScanBillModal: () => <div>scan-dialog</div> }))
 vi.mock('./ConfirmDialog', () => ({ SignOutDialog: () => null }))
@@ -20,9 +22,19 @@ const { ExpenseSidebar } = await import('./ExpenseSidebar')
 beforeEach(() => {
   vi.clearAllMocks()
   allowed = true
+  hidden = []
 })
 
 describe('ExpenseSidebar', () => {
+  it('drops the entry points of features hidden in Features', () => {
+    hidden = ['insights', 'askAviary', 'billScan']
+    render(<ExpenseSidebar />)
+    expect(screen.queryByText('Insights')).toBeNull()
+    expect(screen.queryByText('Ask Aviary')).toBeNull()
+    expect(screen.queryByText('Scan a bill')).toBeNull()
+    expect(screen.getByText('Envelopes')).toBeTruthy()
+  })
+
   it('opens and closes the mobile navigation accessibly', () => {
     render(<ExpenseSidebar />)
     const menu = screen.getByRole('button', { name: 'Open navigation' })

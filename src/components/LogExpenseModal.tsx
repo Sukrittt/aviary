@@ -5,6 +5,7 @@ import { useCurrency } from '@/src/context/CurrencyContext'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Calendar, MessageSquareText, PencilLine, Plus, Tag, TriangleAlert, WalletMinimal } from 'lucide-react'
 import { useOptionalMoneyBrain } from '@/components/moneyBrainContext'
+import { useHiddenFeatures } from '../hooks/useUser'
 import { Scrim, Sheet } from './MotionSheet'
 import { DatePicker, formatShort } from './DatePicker'
 import { getCategoryMap } from '../api/categoryMap'
@@ -60,6 +61,7 @@ function offsetDateValue(daysAgo: number): string {
 export function LogExpenseModal({ onClose, onSaved }: Props) {
   const { currencySymbol, formatMoney } = useCurrency()
   const brain = useOptionalMoneyBrain()
+  const askHidden = useHiddenFeatures().includes('askAviary')
 
   const categoriesQ = useCategories()
   const addExpenseM = useAddExpense()
@@ -570,7 +572,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
               >
                 {warning ? `Save ${formatMoney(parsedAmount)} anyway` : 'Save expense'}
               </SuccessButton>
-              {brain && !saving && !success && (
+              {brain && !askHidden && !saving && !success && (
                 <button
                   type="button"
                   className="erd-log-several"

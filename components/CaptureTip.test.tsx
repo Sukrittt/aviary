@@ -8,6 +8,7 @@ const data = vi.hoisted(() => ({ rows: [] as { date: string; source: string }[] 
 vi.mock('@workos-inc/authkit-nextjs/components', () => ({ useAuth: () => ({ user: { id: 'u1' } }) }))
 vi.mock('next/navigation', () => ({ usePathname: () => '/expense' }))
 vi.mock('./MoneyBrainProvider', () => ({ useMoneyBrain: () => brain }))
+vi.mock('@/src/hooks/useUser', () => ({ useHiddenFeatures: () => [] }))
 vi.mock('@/src/hooks/useExpenses', () => ({ useRecentExpenses: () => ({ data: data.rows }) }))
 
 const { CaptureTip } = await import('./CaptureTip')
