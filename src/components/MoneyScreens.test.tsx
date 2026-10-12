@@ -65,11 +65,13 @@ describe('money screens', () => {
     ] }))
   })
 
-  it('does not let an extra source overfund a fully allocated transfer', () => {
+  it('hides the other sources once the transfer is fully covered', async () => {
     openSources('100')
     fireEvent.click(screen.getByRole('button', { name: /Ready to Assign.*AVAILABLE/ }))
-    fireEvent.click(screen.getByRole('button', { name: /Rent.*AVAILABLE/ }))
-    expect(screen.queryByLabelText('Amount from Rent')).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByRole('button', { name: /Rent.*AVAILABLE/ })).not.toBeInTheDocument())
+    expect(screen.getByText(/You're all covered/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Remove' }))
+    expect(screen.getByRole('button', { name: /Rent.*AVAILABLE/ })).toBeInTheDocument()
   })
 
   it('preserves cents when editing a source allocation', async () => {
