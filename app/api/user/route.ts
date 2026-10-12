@@ -3,11 +3,12 @@ import { json, error, readBody, isValidTimezone } from '@/lib/http'
 import { getAuth } from '@/lib/access'
 import { getDb } from '@/lib/mongodb'
 import { getWorkOSClient } from '@/lib/workosClient'
-import { serializeUser, HIDEABLE_FEATURES, type HideableFeature, type UserDoc } from '@/lib/users'
+import { ensureUserById, serializeUser, HIDEABLE_FEATURES, type HideableFeature, type UserDoc } from '@/lib/users'
 import { purgesAt } from '@/lib/archive'
 import { softDeleteAccount } from '@/lib/accountLifecycle'
 import { cancelWebSubscriptions, completeOnboarding } from '@/lib/billing/service'
 import { BillingProviderError } from '@/lib/billing/providerError'
+import { scheduleWelcomeEmail } from '@/lib/email/welcome'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,7 +18,16 @@ export async function GET(req: Request) {
   if (auth.readOnly) return error('unauthorized', 401)
 
   const db = await getDb()
-  const user = await db.collection<UserDoc>('users').findOne({ _id: auth.userId })
+  const users = db.collection<UserDoc>('users')
+  let user = await users.findOne({ _id: auth.userId })
+  if (!user) {
+    // Mobile's Google sign-in goes straight to WorkOS and never calls
+    // /api/auth/verify, so this can be the first request that knows the
+    // account exists. Answering null here made the app skip setup.
+    await ensureUserById(auth.userId)
+    scheduleWelcomeEmail(auth.userId)
+    user = await users.findOne({ _id: auth.userId })
+  }
   return json(serializeUser(user))
 }
 
