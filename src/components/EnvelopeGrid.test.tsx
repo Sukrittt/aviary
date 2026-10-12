@@ -47,6 +47,22 @@ describe('EnvelopeGrid menu', () => {
     await user.keyboard('{Escape}')
     expect(screen.queryByRole('button', { name: 'Edit assigned amount' })).not.toBeInTheDocument()
   })
+
+  it('opens above the row when there is no room below', async () => {
+    setup()
+    const row = screen.getByRole('button', { name: /Rent/ })
+    vi.spyOn(row, 'getBoundingClientRect').mockReturnValue(
+      { top: window.innerHeight - 60, bottom: window.innerHeight - 10, right: 300 } as DOMRect,
+    )
+    const height = vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(200)
+    try {
+      await userEvent.setup().click(row)
+      const menu = screen.getByRole('button', { name: 'Edit assigned amount' }).parentElement!
+      expect(menu.style.top).toBe(`${window.innerHeight - 64 - 200}px`)
+    } finally {
+      height.mockRestore()
+    }
+  })
 })
 
 describe('EnvelopeGrid last spent label', () => {

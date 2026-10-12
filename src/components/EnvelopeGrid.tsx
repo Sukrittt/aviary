@@ -1,5 +1,5 @@
 import { useCurrency } from '@/src/context/CurrencyContext'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { ChevronsDownUp } from 'lucide-react'
@@ -63,7 +63,7 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
   const router = useRouter()
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [menuCategory, setMenuCategory] = useState<string | null>(null)
-  const [menuAnchor, setMenuAnchor] = useState<{ top: number; right: number } | null>(null)
+  const [menuAnchor, setMenuAnchor] = useState<{ top: number; bottom: number; right: number } | null>(null)
   const [menuPortalTarget, setMenuPortalTarget] = useState<HTMLElement | null>(null)
   const menuRef = useRef<HTMLDivElement | null>(null)
   const menuPortalRef = useRef<HTMLDivElement | null>(null)
@@ -73,6 +73,16 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
     setMenuAnchor(null)
     setMenuPortalTarget(null)
   }
+
+  // Flip above the trigger when the menu would run past the viewport bottom.
+  useLayoutEffect(() => {
+    const el = menuPortalRef.current
+    if (!el || !menuAnchor) return
+    const h = el.offsetHeight
+    if (menuAnchor.top + h > window.innerHeight && menuAnchor.bottom - h >= 0) {
+      el.style.top = `${menuAnchor.bottom - h}px`
+    }
+  }, [menuAnchor])
 
   useEffect(() => {
     if (!menuCategory) return
@@ -99,7 +109,7 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
   function openMenu(category: string, trigger: HTMLElement) {
     if (menuCategory === category) return closeMenu()
     const rect = trigger.getBoundingClientRect()
-    setMenuAnchor({ top: rect.bottom + 4, right: window.innerWidth - rect.right })
+    setMenuAnchor({ top: rect.bottom + 4, bottom: rect.top - 4, right: window.innerWidth - rect.right })
     // Portal inside .expense-redesign (not document.body) so the menu still
     // inherits the --erd-* theme variables scoped to that wrapper; its
     // `overflow: hidden` doesn't clip position:fixed descendants.
