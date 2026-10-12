@@ -15,6 +15,7 @@ import { CATEGORIES, CATEGORIES_INTL } from './mobile/demo'
 const INTL_MEDIA = new Set([
   'clip-log.mp4', 'poster-log.jpg', 'clip-added.mp4', 'poster-added.jpg', 'clip-scan.mp4', 'poster-scan.jpg',
   'clip-insights.mp4', 'poster-insights.jpg', 'clip-invest.mp4', 'poster-invest.jpg', 'activity-today.png', 'subscriptions.png',
+  'clip-ask.mp4', 'poster-ask.jpg',
 ])
 
 const IN = {
@@ -64,6 +65,11 @@ const IN = {
     alt: 'Today’s logs in the app: Bike to office ₹150, Shopping ₹1,500, Trip with friends ₹1,500, Electricity ₹6,000, Groceries ₹5,000, Gym membership ₹1,500.',
   },
   headsUp: '₹199 due in 3 days (Oct 28).',
+  ask: {
+    chips: ['What can I cut back on?', 'How does this month compare?', 'Can I afford 90k iPhone?'],
+    left: '₹36,802', bar: 0.53,
+    sr: 'You ask “Can I afford 90k iPhone?” and Aviary answers from your budget: not yet. You have ₹36,802 left to spend this month, so it suggests a gadget envelope you add to each month.',
+  },
 }
 
 export type Sample = typeof IN
@@ -113,6 +119,11 @@ const INTL: Sample = {
     alt: 'This week’s logs in the app: Coffee with Sam $6, Bus Fare $3, Movie tickets $50, Commute $20, Coffee $4, Rent $1,500.',
   },
   headsUp: '$15.49 due in 3 days (Oct 28).',
+  ask: {
+    chips: ['What can I cut back on?', 'How does this month compare?', 'Can I afford a $900 iPhone?'],
+    left: '$2,568', bar: 0.57,
+    sr: 'You ask “Can I afford a $900 iPhone?” and Aviary answers from your budget: yes, if it comes out of Savings. Your Savings envelope has $1,160 this month, so it suggests moving $900 from there.',
+  },
 }
 
 const SampleContext = createContext(IN)

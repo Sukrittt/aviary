@@ -59,6 +59,7 @@ describe('landing sample data', () => {
     expect(out).toContain('src="/landing/intl/clip-log.mp4"')
     expect(out).toContain('Added $50 for Movie Tickets')
     expect(out).toContain('Coffee with Sam · Eating out · $6')
+    expect(out).toContain('intl%2Fwrapped-persona.png')
     expect(out).not.toMatch(/chai|UPI\/DR|NACH|metro card|every rupee in/i)
   })
 })

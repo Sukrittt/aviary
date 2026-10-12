@@ -37,12 +37,11 @@ export function RotatingHabit() {
 // ─── Hero: a chaptered film of the app at work ────────────────────────────────
 
 type ChapterId = 'learns' | 'scan' | 'ask'
-const CHAPTERS: { id: ChapterId; label: string; ms: number; sr: string }[] = [
-  // Learns' sr is built from the visitor's sample in HeroStage.
-  { id: 'learns', label: 'Learns your habits', ms: 7300, sr: '' },
-  // Scan's sr comes from the visitor's sample too, since its recording does.
-  { id: 'scan', label: 'Scan a bill', ms: 15500, sr: '' },
-  { id: 'ask', label: 'Ask Aviary', ms: 16000, sr: 'You ask “Can I afford 90k iPhone?” and Aviary answers from your budget: not yet. You have ₹36,802 left to spend this month, so it suggests a gadget envelope you add to each month.' },
+// Each chapter's screen-reader text comes from the visitor's sample in HeroStage.
+const CHAPTERS: { id: ChapterId; label: string; ms: number }[] = [
+  { id: 'learns', label: 'Learns your habits', ms: 7300 },
+  { id: 'scan', label: 'Scan a bill', ms: 15500 },
+  { id: 'ask', label: 'Ask Aviary', ms: 16000 },
 ]
 // Clip chapters run ~1.5s past their recording so the finished screen holds before the cut.
 // Learns' beats: lock screen, nudge lands, thumb on "Log", logged.
@@ -92,11 +91,11 @@ export function HeroStage() {
     setTake((t) => t + 1)
   }
   const current = CHAPTERS[chapter]
-  const { learns, scan } = useSample()
+  const { learns, scan, ask } = useSample()
   const { formatMoney } = useCurrency()
   const sr = current.id === 'learns'
     ? `Aviary saw ${learns.item.toLowerCase()} logged around 4pm on three Tuesdays. The next Tuesday at 4:15pm it asks “${learns.ask}”, one tap on “Log ${formatMoney(learns.amount)}” logs it, and Snacks drops to ${formatMoney(learns.of * 2 / 5 - learns.amount)} left.`
-    : current.id === 'scan' ? scan.sr : current.sr
+    : current.id === 'scan' ? scan.sr : ask.sr
   // Reduced motion holds each scene's finished state.
   const learnBeat = reduced ? 3 : beat
 
@@ -207,14 +206,15 @@ function ScanScene({ playing }: { playing: boolean }) {
 }
 
 function AskScene({ playing }: { playing: boolean }) {
+  const { ask } = useSample()
   return <>
     <Card label="Ask in plain words" className="lp-reveal">
-      <div className="lp-ask-chips"><span>What can I cut back on?</span><span>How does this month compare?</span><span>Can I afford 90k iPhone?</span></div>
+      <div className="lp-ask-chips">{ask.chips.map(c => <span key={c}>{c}</span>)}</div>
     </Card>
     <Phone><Clip name="ask" playing={playing} /></Phone>
     <Card label="It reads your budget" className="lp-reveal lp-reveal-late">
-      <div className="lp-envelope-line"><span>Left to spend</span><strong>₹36,802<small> this month</small></strong></div>
-      <div className="lp-envelope-bar"><i style={{ transform: 'scaleX(.53)' }} /></div>
+      <div className="lp-envelope-line"><span>Left to spend</span><strong>{ask.left}<small> this month</small></strong></div>
+      <div className="lp-envelope-bar"><i style={{ transform: `scaleX(${ask.bar})` }} /></div>
       <p className="lp-stage-note">Answers come from your own envelopes and spending.</p>
     </Card>
   </>
