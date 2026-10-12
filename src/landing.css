@@ -109,7 +109,7 @@ html:has(.lp) { scroll-behavior: smooth; }
 .lp-notif-body strong svg { color: #0f7a3d; }
 .lp-notif-body span { font-size: 14px; color: #49454f; line-height: 1.4; }
 .lp-notif-actions { display: flex; gap: 10px; margin: 8px 0 0 -8px; }
-.lp-notif-actions span { padding: 7px 8px; border-radius: 10px; font-size: 14px; font-weight: 700; color: #49454f; transition: background-color .2s ease, transform .2s ease; }
+.lp-notif-actions span { padding: 7px 8px; border-radius: 10px; font-size: 14px; font-weight: 700; color: #49454f; white-space: nowrap; transition: background-color .2s ease, transform .2s ease; }
 .lp-stage[data-step="2"] .lp-notif-log { background: #ffe0cf; transform: scale(.95); }
 .lp-notif-log { position: relative; overflow: hidden; }
 /* Android-style press: a filled touch dot plus a ripple spreading through the button. */
