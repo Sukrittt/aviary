@@ -40,7 +40,8 @@ import { useHideAmounts } from "../hooks/useHideAmounts";
 import { GetStartedCard } from "../components/home/GetStartedCard";
 import { LearningCard } from "../components/home/LearningCard";
 import { BALANCE_CHECK_ENABLED, BalanceCheckCard } from "../components/balance/BalanceCheckCard";
-import { useUser } from "../hooks/useUser";
+import { useHiddenFeatures, useUser } from "../hooks/useUser";
+import { FeatureNudge } from "../components/home/FeatureNudge";
 import { WeekRecapGate } from "../components/wrapped/WeekRecap";
 import { usePersistentState } from "../hooks/usePersistentState";
 import { LogExpenseModal } from "../components/LogExpenseModal";
@@ -50,6 +51,7 @@ import { useAccounts } from "../hooks/useAccounts";
 import { SuccessButton, useButtonPhase } from "../components/SuccessButton";
 import type { EnvelopeState } from "../types/expense";
 import { computeEnvelopeState, currentMonthKey, daysLeftInMonth, monthLabel, prevMonthKey } from "../lib/envelope";
+import { InsightsTab } from "@/src/components/InsightsTab";
 
 const parseDismissed = (raw: string) => raw === "1";
 const serializeDismissed = (value: boolean) => value ? "1" : "0";
@@ -74,6 +76,7 @@ export function ExpensePage() {
   const groupsQuery = useGroups();
   const subscriptionsQuery = useSubscriptions();
   const user = useUser().data;
+  const hidden = useHiddenFeatures();
 
   const updateBudgetM = useUpdateBudget();
   const transferBudgetM = useTransferBudget();
@@ -467,6 +470,8 @@ export function ExpensePage() {
                   <button type="button" onClick={() => setLeftoverDismissed(true)}>Okay</button>
                 </article>
               )}
+              {/* One banner at a time, same as Mobile: the leftover notice goes first. */}
+              {(leftoverDismissed || previousLeftover <= 0) && <FeatureNudge />}
 
               <AnimatePresence mode="popLayout">
                 {showGetStarted && user && (
@@ -518,29 +523,33 @@ export function ExpensePage() {
                 </motion.article>
               )}
 
-              <MotionLink
-                href="/insights"
-                className="erd-home-insights-link"
-                layout={reduceMotion ? false : "position"}
-                transition={homeTransition}
-              >
-                Trends and daily spend <ChevronRight size={16} />
-              </MotionLink>
+              {!hidden.includes("insights") && (
+                <MotionLink
+                  href="/insights"
+                  className="erd-home-insights-link"
+                  layout={reduceMotion ? false : "position"}
+                  transition={homeTransition}
+                >
+                  Trends and daily spend <ChevronRight size={16} />
+                </MotionLink>
+              )}
             </div>
             <aside className="erd-home-rail" aria-label="Subscriptions and recent activity">
-              <SubscriptionsPanel
-                active={panel.subscriptions.active}
-                cancelled={panel.subscriptions.cancelled}
-                hideAmounts={hideAmounts}
-                busyService={subscriptionBusy}
-                loading={subscriptionsQuery.isLoading && !subscriptionsQuery.data}
-                error={subscriptionsQuery.isError && !subscriptionsQuery.data}
-                onAdd={() => setEditingSubscription(null)}
-                onEdit={setEditingSubscription}
-                onCancel={(service) => void changeSubscriptionStatus(service, "cancel")}
-                onReactivate={(service) => void changeSubscriptionStatus(service, "reactivate")}
-                homeRail
-              />
+              {!hidden.includes("subscriptions") && (
+                <SubscriptionsPanel
+                  active={panel.subscriptions.active}
+                  cancelled={panel.subscriptions.cancelled}
+                  hideAmounts={hideAmounts}
+                  busyService={subscriptionBusy}
+                  loading={subscriptionsQuery.isLoading && !subscriptionsQuery.data}
+                  error={subscriptionsQuery.isError && !subscriptionsQuery.data}
+                  onAdd={() => setEditingSubscription(null)}
+                  onEdit={setEditingSubscription}
+                  onCancel={(service) => void changeSubscriptionStatus(service, "cancel")}
+                  onReactivate={(service) => void changeSubscriptionStatus(service, "reactivate")}
+                  homeRail
+                />
+              )}
               <RecentActivity expenses={expenseRows} hideAmounts={hideAmounts} />
             </aside>
           </div>
@@ -777,10 +786,7 @@ export function ExpensePage() {
         >
           +
         </button>
-        <Link href="/insights" className="erd-tab">
-          <span aria-hidden="true">📊</span>
-          <span>Insights</span>
-        </Link>
+        <InsightsTab />
         <Link href="/account" className="erd-tab">
           <span aria-hidden="true">⚙️</span>
           <span>More</span>
