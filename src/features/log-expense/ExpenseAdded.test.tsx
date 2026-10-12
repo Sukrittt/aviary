@@ -35,7 +35,7 @@ function expense(overrides: Partial<AddedExpense> = {}): AddedExpense {
   }
 }
 
-function renderAdded(e: AddedExpense, handlers = { onUndo: vi.fn(), onDone: vi.fn() }) {
+function renderAdded(e: AddedExpense, handlers = { onUndo: vi.fn(), onDone: vi.fn(), onSetBudget: vi.fn(), onCover: vi.fn() }) {
   render(<ExpenseAdded expense={e} undoing={false} undoError="" {...handlers} />)
   return handlers
 }
@@ -68,10 +68,37 @@ describe('ExpenseAdded', () => {
 })
 
 
-it('skips the card for a category with no money assigned', () => {
-  renderAdded(expense({ category: 'Bike repairs', amount: 20, categorySnapshot: { name: 'Bike repairs', group: 'Needs' } }))
+it('asks to budget a category with no money assigned this month, instead of the envelope card', () => {
+  const handlers = renderAdded(expense({ category: 'Bike repairs', amount: 20, categorySnapshot: { name: 'Bike repairs', group: 'Needs' } }))
   expect(screen.getByText('Added')).toBeInTheDocument()
-  expect(document.querySelector('.erd-added-card')).not.toBeInTheDocument()
+  expect(screen.queryByText(/left of/)).not.toBeInTheDocument()
+  expect(screen.getByText('Give Bike repairs a budget?')).toBeInTheDocument()
+  expect(screen.getByText("Nothing's assigned to it this month.")).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Set a budget' }))
+  expect(handlers.onSetBudget).toHaveBeenCalledOnce()
+})
+
+it("doesn't ask to budget an unfunded category for a past-month expense", () => {
+  renderAdded(expense({ category: 'Bike repairs', date: '2020-01-05', categorySnapshot: { name: 'Bike repairs', group: 'Needs' } }))
+  expect(screen.queryByText(/a budget\?/)).not.toBeInTheDocument()
+})
+
+it('shows an overspend as "Over by" with a way to cover it, never a negative left or per-day', () => {
+  // ₹1000 assigned, ₹200 already spent, so ₹900 more lands ₹100 over.
+  const handlers = renderAdded(expense({ amount: 900 }))
+  expect(screen.getByText('Over by ₹100')).toBeInTheDocument()
+  expect(screen.queryByText(/left of/)).not.toBeInTheDocument()
+  expect(screen.queryByText(/\/day/)).not.toBeInTheDocument()
+  expect(screen.getByText('Cover it from another envelope?')).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Cover it' }))
+  expect(handlers.onCover).toHaveBeenCalledOnce()
+})
+
+it('keeps the usual left and per-day lines when the envelope lands exactly on zero', () => {
+  renderAdded(expense({ amount: 800 }))
+  expect(screen.getByText('left of ₹1000')).toBeInTheDocument()
+  expect(screen.queryByText(/Over by/)).not.toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'Cover it' })).not.toBeInTheDocument()
 })
 
 

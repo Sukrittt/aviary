@@ -86,6 +86,8 @@ export function ExpenseAdded({
   notice = '',
   onUndo,
   onDone,
+  onSetBudget,
+  onCover,
 }: {
   expense: AddedExpense
   undoing: boolean
@@ -94,6 +96,10 @@ export function ExpenseAdded({
   notice?: string
   onUndo: () => void
   onDone: () => void
+  /** Opens the assign screen for this expense's category. */
+  onSetBudget: () => void
+  /** Opens Move Money aimed at this expense's (now overspent) category. */
+  onCover: () => void
 }) {
   const { formatMoney } = useCurrency()
   const { theme } = useAppearance()
@@ -123,10 +129,13 @@ export function ExpenseAdded({
   const spent = (envelope?.spent ?? 0) + (counted ? 0 : amount)
   const left = (envelope?.available ?? 0) - (counted ? 0 : amount)
   const funded = (envelope?.assigned ?? 0) + (envelope?.rolledOver ?? 0)
-  // A past-month expense doesn't move this month's envelope, and an unfunded
-  // one has nothing to measure against, so no card for either (as on Mobile).
+  // A past-month expense doesn't move this month's envelope, so no card. An
+  // unfunded one has nothing to measure against, so it asks for a budget instead.
   const isCurrentMonth = date.slice(0, 7) === currentMonthKey()
   const showEnvelope = isCurrentMonth && envelope != null && funded > 0
+  const askForBudget = isCurrentMonth && envelope != null && funded === 0
+  // Over budget reads as "Over by", never a negative "left" or per-day pace.
+  const over = left < 0
   const spentPct = funded > 0 ? Math.min(100, (spent / funded) * 100) : 0
   const prevPct = funded > 0 ? Math.min(100, ((spent - amount) / funded) * 100) : 0
   const preLeft = left + amount
@@ -180,10 +189,14 @@ export function ExpenseAdded({
       {showEnvelope && (
         <FadeInDown delay={at(STAGGER.card)} duration={at(460)} className="erd-added-card">
           <AnimatedUsedPercentage from={prevPct} to={spentPct} categoryName={categoryName} tokens={tokens} pace={PACE} />
-          <div className="erd-added-left">
-            <AmountText value={shownLeft} animate />
-            <span>{`left of ${formatMoney(Math.round(funded))}`}</span>
-          </div>
+          {over ? (
+            <div className="erd-added-left is-over">{`Over by ${formatMoney(Math.round(-left))}`}</div>
+          ) : (
+            <div className="erd-added-left">
+              <AmountText value={shownLeft} animate />
+              <span>{`left of ${formatMoney(Math.round(funded))}`}</span>
+            </div>
+          )}
           <div className="erd-added-bar">
             <DeltaBar from={prevPct} to={spentPct} amount={amount} tokens={tokens} pace={PACE} />
           </div>
@@ -193,9 +206,26 @@ export function ExpenseAdded({
             animate={{ opacity: 1 }}
             transition={{ delay: at(STAGGER.cardFooter) / 1000, duration: at(420) / 1000, ease: ease.inOutQuad }}
           >
-            <span>{daysLeft === 0 ? 'Less than 24 hrs' : `${daysLeft} days left`}</span>
-            <strong>{`${formatMoney(perDay)}/day to stay on track`}</strong>
+            {over ? (
+              <>
+                <span>Cover it from another envelope?</span>
+                <button type="button" className="account-pill-btn" onClick={onCover}>Cover it</button>
+              </>
+            ) : (
+              <>
+                <span>{daysLeft === 0 ? 'Less than 24 hrs' : `${daysLeft} days left`}</span>
+                <strong>{`${formatMoney(perDay)}/day to stay on track`}</strong>
+              </>
+            )}
           </motion.div>
+        </FadeInDown>
+      )}
+
+      {askForBudget && (
+        <FadeInDown delay={at(STAGGER.card)} duration={at(460)} className="erd-added-card erd-added-nudge">
+          <strong>{`Give ${categoryName} a budget?`}</strong>
+          <p>Nothing&apos;s assigned to it this month.</p>
+          <button type="button" className="account-pill-btn" onClick={onSetBudget}>Set a budget</button>
         </FadeInDown>
       )}
 
