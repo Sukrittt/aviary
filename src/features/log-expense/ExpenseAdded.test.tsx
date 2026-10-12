@@ -12,8 +12,15 @@ vi.mock('@/components/AppearanceProvider', () => ({ useAppearance: () => ({ them
 vi.mock('@/src/context/CurrencyContext', () => ({
   useCurrency: () => ({ formatMoney: (n: number) => `₹${n}`, formatCurrency: (n: number) => `₹${n}` }),
 }))
+// ₹5000 income, ₹1000 to Groceries: ₹4000 still in Ready to Assign.
+const budgets = vi.hoisted(() => ({ income: '5000' }))
 vi.mock('@/src/hooks/useBudgets', () => ({
-  useBudgets: () => ({ data: [{ month, category: 'Groceries', assigned: '1000', rolled_over: '0', version: 1 }] }),
+  useBudgets: () => ({
+    data: [
+      { month, category: '__income__', assigned: budgets.income, rolled_over: '0', version: 1 },
+      { month, category: 'Groceries', assigned: '1000', rolled_over: '0', version: 1 },
+    ],
+  }),
 }))
 // The refetch hasn't landed: the new row isn't in the list yet, so the view charges it by hand.
 vi.mock('@/src/hooks/useExpenses', () => ({
@@ -76,6 +83,17 @@ it('asks to budget a category with no money assigned this month, instead of the 
   expect(screen.getByText("Nothing's assigned to it this month.")).toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: 'Set a budget' }))
   expect(handlers.onSetBudget).toHaveBeenCalledOnce()
+})
+
+it("doesn't ask to budget an unfunded category when there's nothing left to assign", () => {
+  // Assign Money only takes amounts up to Ready to Assign, so the form couldn't save.
+  budgets.income = '1000'
+  try {
+    renderAdded(expense({ category: 'Bike repairs', amount: 20, categorySnapshot: { name: 'Bike repairs', group: 'Needs' } }))
+    expect(screen.queryByText(/a budget\?/)).not.toBeInTheDocument()
+  } finally {
+    budgets.income = '5000'
+  }
 })
 
 it("doesn't ask to budget an unfunded category for a past-month expense", () => {

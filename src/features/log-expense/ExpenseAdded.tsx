@@ -110,7 +110,7 @@ export function ExpenseAdded({
   const groupsQ = useGroups()
   const { amount, item, category, date, timestamp } = expense
 
-  const envelope = useMemo(() => {
+  const { envelope, readyToAssign } = useMemo(() => {
     const state = computeEnvelopeState(
       budgetsQ.data ?? EMPTY,
       expensesQ.data ?? EMPTY,
@@ -120,7 +120,7 @@ export function ExpenseAdded({
         : categoriesQ.data ?? EMPTY,
       groupsQ.data ?? EMPTY,
     )
-    return state.envelopes.find((e) => e.category === category)
+    return { envelope: state.envelopes.find((e) => e.category === category), readyToAssign: state.readyToAssign }
   }, [budgetsQ.data, expensesQ.data, categoriesQ.data, groupsQ.data, category, expense.categorySnapshot])
 
   // The refetch this add triggered may not have landed yet. Until the new row
@@ -130,10 +130,11 @@ export function ExpenseAdded({
   const left = (envelope?.available ?? 0) - (counted ? 0 : amount)
   const funded = (envelope?.assigned ?? 0) + (envelope?.rolledOver ?? 0)
   // A past-month expense doesn't move this month's envelope, so no card. An
-  // unfunded one has nothing to measure against, so it asks for a budget instead.
+  // unfunded one has nothing to measure against, so it asks for a budget instead,
+  // but only with money to give it: Assign Money caps at Ready to Assign.
   const isCurrentMonth = date.slice(0, 7) === currentMonthKey()
   const showEnvelope = isCurrentMonth && envelope != null && funded > 0
-  const askForBudget = isCurrentMonth && envelope != null && funded === 0
+  const askForBudget = isCurrentMonth && envelope != null && funded === 0 && readyToAssign > 0
   // Over budget reads as "Over by", never a negative "left" or per-day pace.
   const over = left < 0
   const spentPct = funded > 0 ? Math.min(100, (spent / funded) * 100) : 0
