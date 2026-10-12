@@ -67,7 +67,7 @@ export function LandingPage({ monthlyPrice, ios = false, android = false, intl =
   // puts it in the document head so it downloads alongside the CSS instead.
   preload('/landing/doodles-stage.svg', { as: 'image', fetchPriority: 'high' })
   return <LandingMotion><SampleScope intl={intl}><div className="lp" id="top">
-    {/* THESIS: Aviary learns your spending, so logging by hand costs one tap. Refuses the bank-sync pitch of "we'll do it for you".
+    {/* THESIS: Aviary learns your spending and never touches your bank, so logging by hand costs one tap. Refuses the bank-sync pitch of "we'll do it for you".
         OWN-WORLD: Warm near-white page, ink pill buttons, Fredoka display, Nunito body, Aviary orange for the learned moment, pastel envelope tones for the ways to log.
         STORY: See a habit learned and a nudge answered, see every way to log, understand why noticing beats syncing, try the app, meet the maker, get it.
         FIRST VIEWPORT: Centered headline and rotating habit over a wide stage: noticed logs, a phone taking the nudge, the envelope updating. Android CTA in the header and under the headline.
@@ -78,8 +78,8 @@ export function LandingPage({ monthlyPrice, ios = false, android = false, intl =
 
     <section className="lp-hero" aria-labelledby="landing-title">
       <a className="lp-early" href={FEEDBACK_BOARD_URL} target="_blank" rel="noreferrer"><b>Early access</b><span className="lp-early-desktop">Your feedback shapes what we build next</span><span className="lp-early-mobile">Help shape Aviary</span><ArrowRight size={14} aria-hidden="true" /></a>
-      <h1 id="landing-title">Aviary <span className="lp-learns">learns<svg viewBox="0 0 200 14" preserveAspectRatio="none" aria-hidden="true"><path d="M3 10 C 40 3, 70 3, 100 8 S 160 13, 197 5" /></svg></span><br />your spending.</h1>
-      <p>It notices your <RotatingHabit /> and nudges you<br className="lp-desktop-break" /> while it’s still fresh. One tap and it’s logged.</p>
+      <h1 id="landing-title"><span className="lp-learns">Learns<svg viewBox="0 0 200 14" preserveAspectRatio="none" aria-hidden="true"><path d="M3 10 C 40 3, 70 3, 100 8 S 160 13, 197 5" /></svg></span> your spending.<br />Never touches your bank.</h1>
+      <p>It notices your <RotatingHabit /> and nudges you<br className="lp-desktop-break" /> while it’s still fresh. One tap and it’s logged.<br className="lp-desktop-break" /> No bank link, no loans, no offers.</p>
       {ios
         ? <IosWaitlist placement="hero" className="lp-waitlist--hero" />
         : <div className="lp-hero-actions">

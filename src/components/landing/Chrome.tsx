@@ -26,7 +26,7 @@ export function LandingHeader({ base = '', faq = `${base}#faq`, ios = false }: {
 }
 
 export function LandingFooter({ base = '', faq = `${base}#faq` }: { base?: string; faq?: string }) {
-  return <footer className="lp-footer"><div><a href={base || '#top'} className="lp-logo"><BirdMark size={26} perched /><span>Aviary<b aria-hidden="true">.</b></span></a><p>The budgeting app that learns your spending.</p></div><nav aria-label="Footer">
+  return <footer className="lp-footer"><div><a href={base || '#top'} className="lp-logo"><BirdMark size={26} perched /><span>Aviary<b aria-hidden="true">.</b></span></a><p>Learns your spending. Never touches your bank.</p></div><nav aria-label="Footer">
     <div><h2>Product</h2><a href={PLAY_STORE_URL}>Android app</a><Link href="/expense">Web app</Link><a href={`${base}#get`}>iPhone waitlist</a><Link href="/legal/pricing">Pricing</Link><a href={faq}>Help &amp; FAQ</a></div>
     <div><h2>Community</h2><a href={FEEDBACK_BOARD_URL}>Feedback board</a><a href={GITHUB}>GitHub</a><Link href="/legal/contact">Contact</Link></div>
     <div><h2>Legal</h2><Link href="/legal/privacy">Privacy</Link><Link href="/legal/terms">Terms</Link><Link href="/legal/refunds">Refunds</Link><Link href="/legal/delete-account">Delete account</Link></div>

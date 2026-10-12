@@ -1,4 +1,4 @@
-/* Aviary's public home: Aviary learns your spending. Light page, centered statements, one framed demo per section. */
+/* Aviary's public home: Learns your spending, never touches your bank. Light page, centered statements, one framed demo per section. */
 .lp { --bg: #fafaf7; --ink: #1e1d1a; --muted: #625f58; --line: #e6e3da; --surface: #f2f0e9; --card: #fff; --accent: #f4501a; --accent-ink: #b93c0c; --on-accent: #1f120a; --tint: #fff0e6; --rent: #e7b7fd; --food: #b7e7a2; --savings: #a5d8ee; --fun: #f8cb7b; --text: var(--ink); --shadow: 0 1px 2px rgb(40 30 20 / 5%), 0 18px 40px -24px rgb(60 40 20 / 30%); color: var(--ink); background: var(--bg); font-family: var(--font-nunito), sans-serif; min-height: 100vh; }
 body:has(.lp) { overflow-x: visible; background: #fafaf7; }
 html:has(.lp) { scroll-behavior: smooth; }

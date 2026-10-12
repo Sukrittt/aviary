@@ -1,6 +1,6 @@
 ---
 name: Aviary public landing
-description: The public `/` page inside `.lp`. A warm near-white page where Aviary learns your spending and one orange moment marks it.
+description: The public `/` page inside `.lp`. A warm near-white page where Aviary learns your spending, never touches your bank, and one orange moment marks it.
 colors:
   accent: "#f4501a"
   accent-ink: "#b93c0c"
