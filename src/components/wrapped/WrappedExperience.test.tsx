@@ -1,6 +1,17 @@
-import { describe, expect, it } from 'vitest'
-import { wrappedArchetype } from './WrappedExperience'
+import { describe, expect, it, vi } from 'vitest'
+import { fireEvent, render, screen } from '@testing-library/react'
+import { WrappedExperience, wrappedArchetype } from './WrappedExperience'
 import type { WrappedData } from '@/src/api/wrapped'
+
+const { track, wrappedData } = vi.hoisted(() => ({ track: vi.fn(), wrappedData: { current: null as unknown } }))
+vi.mock('@/src/lib/analytics', () => ({ track }))
+vi.mock('@/src/hooks/useWrapped', () => ({
+  useWrapped: () => ({ data: wrappedData.current, isLoading: false, isError: false }),
+  useWrappedJudgement: () => ({ data: {} }),
+}))
+vi.mock('@/src/hooks/useBudgets', () => ({ useBudgets: () => ({ data: [] }) }))
+vi.mock('@/src/hooks/useHideAmounts', () => ({ useHideAmounts: () => [false] }))
+vi.mock('@/src/context/CurrencyContext', () => ({ useCurrency: () => ({ formatCurrency: (n: number) => `₹${n}` }) }))
 
 function recap(overrides: Partial<WrappedData> = {}): WrappedData {
   return {
@@ -56,4 +67,17 @@ describe('wrappedArchetype', () => {
       { label: '22-end', total: 50 },
     ] })).name).toBe('The Free Spirit')
   })
+})
+
+it('ends Wrapped with a way into planning this month', async () => {
+  wrappedData.current = recap()
+  render(<WrappedExperience />)
+  fireEvent.click(screen.getByRole('button', { name: /Unwrap my month/ }))
+  const next = screen.getByRole('button', { name: 'Next story' })
+  while (!next.hasAttribute('disabled')) fireEvent.click(next)
+  const plan = await screen.findByRole('link', { name: 'Plan this month' })
+  expect(plan).toHaveAttribute('href', '/expense')
+  expect(screen.getByRole('button', { name: /Share my Wrapped/ })).toBeInTheDocument()
+  fireEvent.click(plan)
+  expect(track).toHaveBeenCalledWith('wrapped_plan_tapped')
 })

@@ -182,6 +182,8 @@ function WrappedStory({ data, judgement, moneySaved, hideAmounts }: { data: Wrap
           <span className="wrapped-slide-count">{String(index + 1).padStart(2, '0')} / {slides.length}</span>
           {slide.node}
           {index === slides.length - 1 && <button className="wrapped-share" type="button" onClick={() => void shareStory()}><Share2 size={18} />{copied ? 'Copied' : 'Share my Wrapped'}</button>}
+          {/* End on what's next: last month's story hands off to this month's plan. */}
+          {index === slides.length - 1 && <Link className="wrapped-share wrapped-plan" href="/expense" onClick={() => track('wrapped_plan_tapped')}>Plan this month <ArrowRight size={18} /></Link>}
         </motion.section>
       </AnimatePresence>
       <div className="wrapped-key-hint"><ArrowLeft size={14} /> arrow keys to explore <ArrowRight size={14} /></div>
