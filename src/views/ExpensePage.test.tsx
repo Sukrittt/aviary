@@ -204,3 +204,18 @@ it('asks to set income from the hero pill when there is none', async () => {
   client.clear()
   vi.unstubAllGlobals()
 })
+
+it('drops Ready to Assign to one row once everything is assigned, like Mobile', async () => {
+  vi.mocked(getBudgets).mockResolvedValue([
+    { month, category: '__income__', assigned: '20000', rolled_over: '0', version: 1 },
+    { month, category: 'Food', assigned: '20000', rolled_over: '0', version: 1 },
+  ])
+  const client = renderPage()
+  const row = await screen.findByRole('button', { name: 'Ready to Assign options' })
+  expect(screen.queryByText('READY TO ASSIGN')).not.toBeInTheDocument()
+  expect(screen.getByText(monthLabel(month))).toBeInTheDocument()
+  fireEvent.click(row)
+  expect(row).toHaveAttribute('aria-expanded', 'true')
+  expect(screen.getByRole('menuitem', { name: 'Change income' })).toBeInTheDocument()
+  client.clear()
+})

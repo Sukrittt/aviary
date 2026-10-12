@@ -597,9 +597,58 @@
 .erd-home-hero-amount.is-negative {
   color: var(--coral);
 }
-/* Everything's assigned: the goal, so green (Mobile's slim Ready to Assign row). */
-.erd-home-hero-amount.is-settled {
+/* Settled Ready to Assign (Mobile's slim row): month up top, one tappable row. */
+.erd-home-month {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.erd-home-month strong {
+  font-family: var(--font-fredoka);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--erd-text);
+}
+.erd-home-month span {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--erd-text2);
+}
+.expense-redesign .env-action-wrap.erd-home-rta-slim-wrap {
+  display: block;
+}
+.erd-card.erd-home-rta-slim {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 16px 20px;
+  border: 1px solid var(--erd-border);
+  box-shadow: none;
+  color: var(--erd-text);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.erd-home-rta-slim-amount {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-fredoka);
+  font-weight: 700;
   color: var(--mint);
+  font-variant-numeric: tabular-nums;
+}
+.erd-home-rta-slim-amount svg {
+  color: var(--erd-text2);
+}
+.expense-redesign .erd-home-rta-slim-wrap .env-menu {
+  top: calc(100% + 6px);
+  right: 0;
+  left: auto;
 }
 .erd-home-hero-caption {
   font-size: 13px;

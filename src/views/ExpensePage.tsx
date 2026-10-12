@@ -234,6 +234,9 @@ export function ExpensePage() {
   const previousLeftover = previousState.income - previousState.totalSpent;
   // Unknown until budgets load; counting it done avoids flashing the income step.
   const incomeDone = !envelopeState || envelopeState.income > 0;
+  // Same test as Mobile's Home: income is set and nothing is left to assign.
+  const rtaSettled = !!envelopeState && envelopeState.income > 0 && Math.abs(envelopeState.readyToAssign) < 0.005;
+  const daysLeftLabel = daysLeftInMonth() === 0 ? "Less than 24 hrs" : `${daysLeftInMonth()} days left`;
   const showGetStarted = !getStartedSkipped && !!user?.getStartedAt &&
     !(incomeDone && user.manualTransactionCompletedAt && user.guidedTourCompletedAt);
   const [showFluidDemo, setShowFluidDemo] = useState(false);
@@ -403,12 +406,12 @@ export function ExpensePage() {
             <div className="erd-home-main">
               {/* Income is entered from the menu top-right; RTA is often ₹0,
                   so the hero alone doesn't say where money comes in. */}
-              {envelopeState && (
+              {envelopeState && !rtaSettled && (
                 <article className="erd-card erd-home-hero-card">
                   <div className="erd-home-hero">
                     <span className="erd-home-hero-label">READY TO ASSIGN</span>
                     <strong
-                      className={`erd-home-hero-amount ${envelopeState.readyToAssign < 0 ? "is-negative" : Math.abs(envelopeState.readyToAssign) < 0.005 ? "is-settled" : ""}`}
+                      className={`erd-home-hero-amount ${envelopeState.readyToAssign < 0 ? "is-negative" : ""}`}
                     >
                       {hideAmounts ? (
                         "---"
@@ -421,10 +424,7 @@ export function ExpensePage() {
                       )}
                     </strong>
                     <span className="erd-home-hero-caption">
-                      {monthLabel(panel.month)} ·{" "}
-                      {daysLeftInMonth() === 0
-                        ? "Less than 24 hrs"
-                        : `${daysLeftInMonth()} days left`}
+                      {monthLabel(panel.month)} · {daysLeftLabel}
                     </span>
                     {/* The pencil is easy to miss, so this pill names where the
                         number comes from. With no income yet it goes straight to
@@ -464,6 +464,34 @@ export function ExpensePage() {
                 </article>
               )}
 
+              {/* Mobile's settled state: once every rupee has a job, Ready to
+                  Assign drops from the hero to one row and the month moves up
+                  top. Tapping the row opens the same income menu. */}
+              {envelopeState && rtaSettled && (
+                <>
+                  <div className="erd-home-month">
+                    <strong>{monthLabel(panel.month)}</strong>
+                    <span>{daysLeftLabel}</span>
+                  </div>
+                  <div className="env-action-wrap erd-home-rta-slim-wrap" ref={incomePillRef}>
+                    <button
+                      type="button"
+                      className="erd-card erd-home-rta-slim"
+                      aria-label="Ready to Assign options"
+                      aria-haspopup="menu"
+                      aria-expanded={incomeMenuAt === "pill"}
+                      onClick={() => setIncomeMenuAt((at) => (at === "pill" ? null : "pill"))}
+                    >
+                      <span>💸&nbsp;&nbsp;Ready to Assign</span>
+                      <span className="erd-home-rta-slim-amount">
+                        {hideAmounts ? "---" : <AmountText value={envelopeState.readyToAssign} animate id="ready-to-assign" />}
+                        <ChevronRight size={16} aria-hidden="true" />
+                      </span>
+                    </button>
+                    {incomeMenuAt === "pill" && incomeMenu}
+                  </div>
+                </>
+              )}
               {!leftoverDismissed && previousLeftover > 0 && (
                 <article className="erd-card home-leftover-notice">
                   <p>{formatCurrency(previousLeftover, hideAmounts)} left over from last month.</p>
