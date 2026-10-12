@@ -11,7 +11,7 @@ const compat = new FlatCompat({
 
 export default defineConfig([
   {
-    ignores: ['.next/**', 'dist/**', 'node_modules/**', 'next-env.d.ts', 'mission-control-app/**'],
+    ignores: ['.next/**', 'dist/**', 'node_modules/**', 'next-env.d.ts', 'mission-control-app/**', '.claude/**'],
   },
   ...compat.extends('next/core-web-vitals'),
   ...compat.extends('next/typescript'),

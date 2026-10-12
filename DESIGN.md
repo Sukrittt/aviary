@@ -176,7 +176,7 @@ A warm neutral page with one hot accent and four borrowed pastels, each with a f
 
 ### Primary
 - **Aviary Orange** (`accent`): the learned moment. Fills the "Habit learned" node, the success tick button, the Aviary tile in the founder's road, the notification app icon, and colors the bird mark and the wordmark's dot. Text on it is `on-accent`, never white.
-- **Burnt Orange Ink** (`accent-ink`): orange as text. The hero's "learns", FAQ plus icons, in-answer links, the founder's initial and the "Log ₹20" notification action. Use it wherever orange must be read, because Aviary Orange is too light for text on paper.
+- **Burnt Orange Ink** (`accent-ink`): orange as text. The hero's "day 3", the day numbers in "You know how it goes", FAQ plus icons, in-answer links, the founder's initial and the "Log ₹20" notification action. Use it wherever orange must be read, because Aviary Orange is too light for text on paper.
 - **Orange Wash** (`tint`) with its **Peach Line** border (`tint-line`): the soft half of the accent. The rotating habit word's highlight, the "nudges next" rows, the tick card, the newly logged row, and the habit pill once the hero loop has fired.
 
 ### Secondary
@@ -212,7 +212,7 @@ A warm neutral page with one hot accent and four borrowed pastels, each with a f
 **Character:** Fredoka's rounded, tightly tracked headlines are friendly without being childish. Nunito keeps body copy soft, and its heavy 800 weight does the work small caps or bold sans would elsewhere.
 
 ### Hierarchy
-- **Display** (`display`): the hero `h1` only. Drops to `clamp(42px, 12vw, 56px)` under 640px. The word "learns" sits in Burnt Orange Ink with a hand-drawn Aviary Orange underline that draws on once.
+- **Display** (`display`): the hero `h1` only. Drops to `clamp(42px, 12vw, 56px)` under 640px. The words "day 3" sit in Burnt Orange Ink with a hand-drawn Aviary Orange underline that draws on once.
 - **Headline** (`headline`): every section `h2`, centered, `text-wrap: balance`. 38px under 640px. The closing headline goes up to `clamp(40px, 5.4vw, 72px)`; the playground headline steps down to `clamp(32px, 3.8vw, 48px)` because it sits beside its tabs.
 - **Title** (`title`): card headings in the "little win" cards. The playground's copy column uses a 28px, weight 600 variant.
 - **Statement** (`statement`): one Fredoka sentence that closes an argument ("Aviary keeps the one second where you notice a spend…").
@@ -232,7 +232,7 @@ A single centered column. The header, hero stage, sections and footer cap at 124
 
 Each section opens 150px below the last (100px on mobile) and follows one pattern: centered headline, lede below it, then one framed demo 56px further down (40px on mobile), capped at 1000 to 1100px. Four sections break the pattern on purpose: "Noticing is the point" is a full-bleed Ink band (120px of its own padding, the split card sitting on it); the playground has no frame at all, with left-aligned copy and starter chips beside a live phone; the founder card is a two-column `1.1fr .9fr` split; FAQ narrows to 860px and left-aligns.
 
-Grids inside demos: six "ways to log" across (3 at 1080px, 2 at 640px); the learn diagram as `1fr 80px auto 80px 1fr` with dashed connector lines (stacked and lineless under 900px); six rules, three across (2, then 1); wins as two equal cards (stacked at 900px); comparisons as two equal halves (stacked at 640px). Under 900px the three "log from anywhere" phones become one swipeable snap row instead of a stack, and under 640px the hero's chapter tabs sit above the stage so they're reachable before the demo.
+Grids inside demos: six "ways to log" across (3 at 1080px, 2 at 640px); the learn diagram as `1fr 80px auto 80px 1fr` with dashed connector lines (stacked and lineless under 900px); four day tiles across (2 at 1080px, 1 at 640px); three rules across (1 under 640px); wins as two equal cards (stacked at 900px); comparisons as two equal halves (stacked at 640px). Under 900px the three "log from anywhere" phones become one swipeable snap row instead of a stack, and under 640px the hero's chapter tabs sit above the stage so they're reachable before the demo.
 
 Breakpoints are 1080px, 900px (nav hides), 640px (everything stacks, buttons go full width) and 440px (playground phone zooms to 0.84). Anchored sections keep 90px scroll clearance (72px on mobile) for the sticky header.
 

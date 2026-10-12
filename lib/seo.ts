@@ -5,7 +5,7 @@ export const SITE_URL = new URL('https://useaviary.com')
 // Only public content belongs in search results. Auth, personal finance and
 // admin pages still get descriptive browser titles without exposing user data.
 export const pages = {
-  '/': { title: 'Learns Your Spending. Never Touches Your Bank.', description: 'Aviary learns your spending habits and nudges you to log them in one tap. No bank link, no loans, no offers. Envelope budgeting on Android and the web.', index: true },
+  '/': { title: 'Budgeting Apps Die on Day 3. This One’s Built for Day 4.', description: 'Aviary learns when you usually spend and nudges you to log it in one tap. Miss a day and you catch up in a minute. No bank link, no loans, no offers. Envelope budgeting on Android and the web.', index: true },
   '/legal/privacy': { title: 'Privacy Policy', description: 'Learn how Aviary stores and processes your data, including encryption, AI features, analytics, and your options to export or delete it.', index: true },
   '/legal/terms': { title: 'Terms of Service', description: 'Read the terms for using Aviary, including account requirements, acceptable use, subscriptions, and your responsibilities.', index: true },
   '/legal/pricing': { title: 'Pricing', description: 'Aviary plans and prices: monthly and yearly subscriptions after a free trial, paid on the web or through Google Play.', index: true },

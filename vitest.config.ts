@@ -12,7 +12,7 @@ export default defineConfig({
     // `test` script so `npx vitest` and editor runners get it too.
     execArgv: ['--no-experimental-webstorage'],
     include: ['**/*.test.{ts,tsx}'],
-    exclude: ['node_modules/**', '.next/**', 'dist/**'],
+    exclude: ['node_modules/**', '.next/**', 'dist/**', '.claude/**'],
   },
   resolve: {
     alias: {

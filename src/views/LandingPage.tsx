@@ -19,20 +19,25 @@ import '../landing.css'
 const PLAY_STORE = 'https://play.google.com/store/apps/details?id=com.sukrit04.envelope'
 
 const anywhere = (intl: boolean) => [
-  { icon: MessageSquareText, tone: 'rent', title: 'A few at once', body: intl ? 'Type “lunch 15, coffee 5”. Both logged.' : 'Type “lunch 150, coffee 80”. Both logged.' },
-  { icon: ScanLine, tone: 'food', title: 'A receipt', body: 'Snap the bill. Aviary reads every line and splits it if you shared.' },
-  { icon: Repeat, tone: 'savings', title: 'On repeat', body: 'Rent and subscriptions log themselves.' },
+  { icon: MessageSquareText, tone: 'rent', title: 'Catch up in one line', body: intl ? 'Type “bus 3, lunch 15”. Both logged, each in the right envelope.' : 'Type “auto 240, lunch 150”. Both logged, each in the right envelope.' },
+  { icon: ScanLine, tone: 'food', title: 'The long bill', body: 'Snap it. Aviary reads every line and splits it if you shared.' },
+  { icon: Repeat, tone: 'savings', title: 'On repeat', body: 'Rent and subscriptions log themselves. Nothing to catch up on.' },
   { icon: WifiOff, tone: 'fun', title: 'No signal', body: 'Logs wait on your phone, then sync.' },
   { icon: Monitor, tone: 'rent', title: 'Your browser', body: 'Same budget, bigger screen.' },
 ]
 
 const RULES = [
   { title: 'Fills in the usual', body: 'What it was, how much, which envelope and how you paid. All from your own history.' },
-  { title: 'Shows up after, not before', body: 'A nudge lands 15 minutes after your usual time, while the spend is still fresh.' },
-  { title: 'Two a day, tops', body: 'Your strongest habits go first. The rest wait for another day.' },
-  { title: 'Backs off when you ignore it', body: 'Skip one twice and it moves an hour later. Five times and it goes quiet.' },
+  { title: 'Two a day, and it backs off', body: 'Your strongest habits go first. Skip one twice and it moves an hour later. Five times and it goes quiet. Or switch them off any time.' },
   { title: 'Skips what’s done, asks when it isn’t', body: 'Already logged it today? Then there’s nothing to nudge. Nothing logged by evening? One push asks “Anything today?”' },
-  { title: 'Yours to switch off', body: 'Turn nudges off any time in notification settings.' },
+]
+
+/** The arc every budgeting app shares. Day numbers are a feeling, not a stat. */
+const DAYS: [string, string, string][] = [
+  ['1', 'Fresh start', 'New app. Every envelope filled. You log the coffee with a little thrill.'],
+  ['3', 'Two slip past', 'A cab and a lunch. You’ll add them later.'],
+  ['5', 'Later never came', 'Now there’s a backlog. Opening the app feels like homework.'],
+  ['7', 'Gone', 'Nothing’s logged. The icon just sits there, looking at you. Uninstall.'],
 ]
 
 
@@ -67,9 +72,9 @@ export function LandingPage({ monthlyPrice, ios = false, android = false, intl =
   // puts it in the document head so it downloads alongside the CSS instead.
   preload('/landing/doodles-stage.svg', { as: 'image', fetchPriority: 'high' })
   return <LandingMotion><SampleScope intl={intl}><div className="lp" id="top">
-    {/* THESIS: Aviary learns your spending and never touches your bank, so logging by hand costs one tap. Refuses the bank-sync pitch of "we'll do it for you".
+    {/* THESIS: Budgeting apps die on day 3 because logging costs more than it gives back. Aviary makes logging cheap (nudges, one-line catch-up, recurring) and never touches your bank. Refuses the bank-sync pitch of "we'll do it for you".
         OWN-WORLD: Warm near-white page, ink pill buttons, Fredoka display, Nunito body, Aviary orange for the learned moment, pastel envelope tones for the ways to log.
-        STORY: See a habit learned and a nudge answered, see every way to log, understand why noticing beats syncing, try the app, meet the maker, get it.
+        STORY: Name the day-3 arc everyone knows, then the three fixes (a habit learned and a nudge answered; a missed day typed back in one line; every other way to log), understand why noticing beats syncing, try the app, meet the maker, get it.
         FIRST VIEWPORT: Centered headline and rotating habit over a wide stage: noticed logs, a phone taking the nudge, the envelope updating. Android CTA in the header and under the headline.
         FORM: User-pinned moonjar.ai structure: centered statements, one framed demo per section, founder card, quiet close.
         FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md */}
@@ -78,21 +83,31 @@ export function LandingPage({ monthlyPrice, ios = false, android = false, intl =
 
     <section className="lp-hero" aria-labelledby="landing-title">
       <a className="lp-early" href={FEEDBACK_BOARD_URL} target="_blank" rel="noreferrer"><b>Early access</b><span className="lp-early-desktop">Your feedback shapes what we build next</span><span className="lp-early-mobile">Help shape Aviary</span><ArrowRight size={14} aria-hidden="true" /></a>
-      <h1 id="landing-title"><span className="lp-learns">Learns<svg viewBox="0 0 200 14" preserveAspectRatio="none" aria-hidden="true"><path d="M3 10 C 40 3, 70 3, 100 8 S 160 13, 197 5" /></svg></span> your spending.<br />Never touches your bank.</h1>
-      <p>It notices your <RotatingHabit /> and nudges you<br className="lp-desktop-break" /> while it’s still fresh. One tap and it’s logged.<br className="lp-desktop-break" /> No bank link, no loans, no offers.</p>
+      <h1 id="landing-title">Budgeting apps die on <span className="lp-learns">day 3<svg viewBox="0 0 200 14" preserveAspectRatio="none" aria-hidden="true"><path d="M3 10 C 40 3, 70 3, 100 8 S 160 13, 197 5" /></svg></span>.<br />This one’s built for day 4.</h1>
+      <p>It notices your <RotatingHabit /> and nudges you while it’s still fresh.<br className="lp-desktop-break" /> Miss a day? Type what you remember and you’re caught up.<br className="lp-desktop-break" /> No bank link, no loans, no offers.</p>
       {ios
         ? <IosWaitlist placement="hero" className="lp-waitlist--hero" />
         : <div className="lp-hero-actions">
           <StoreLink placement="hero" />
-          <a className="lp-button lp-button--ghost" href="#learns">See how it learns <ArrowRight size={17} aria-hidden="true" /></a>
+          <a className="lp-button lp-button--ghost" href="#day3">Why day 3? <ArrowRight size={17} aria-hidden="true" /></a>
         </div>}
       <span className="lp-hero-note">Free for 45 days{afterTrial} · No card needed · <Link href="/expense">{ios ? 'Use it on the web today' : 'Also on the web'}</Link></span>
     </section>
     <div className="lp-stage-wrap"><HeroStage /></div>
 
+    <section id="day3" className="lp-section lp-center" aria-labelledby="day3-title">
+      <h2 id="day3-title" className="lp-h2">You know how it goes.</h2>
+      <p className="lp-lede">Every budgeting app starts the same way. So does the ending.</p>
+      <ol className="lp-days">
+        {DAYS.map(([day, title, body]) => <li key={day}><span>Day {day}</span><strong>{title}</strong><p>{body}</p></li>)}
+      </ol>
+      <p className="lp-days-close">That’s not a willpower problem. Logging cost more than it gave back. So Aviary makes it cheap, three ways.</p>
+    </section>
+
     <section id="learns" className="lp-section lp-center" aria-labelledby="learns-title">
-      <h2 id="learns-title" className="lp-h2">It learns from you,<br />not from your bank.</h2>
-      <p className="lp-lede">Log the same thing on the same weekday, around the same time, three times in eight weeks. Aviary picks it up as a habit. No setup in between.</p>
+      <span className="lp-question">Day 4 with Aviary</span>
+      <h2 id="learns-title" className="lp-h2">It already knows your Friday cab.</h2>
+      <p className="lp-lede">Log the same thing on the same weekday, around the same time, three times in eight weeks. Aviary picks it up as a habit and nudges you 15 minutes after, details filled in. One tap and it’s logged.</p>
       <LearnDiagram />
       <dl className="lp-rules">
         {RULES.map((r) => <div key={r.title}><dt>{r.title}</dt><dd>{r.body}</dd></div>)}
@@ -103,8 +118,16 @@ export function LandingPage({ monthlyPrice, ios = false, android = false, intl =
     <div className="lp-lesson-container"><MoneyLesson /></div> */}
 
     <section id="anywhere" className="lp-section lp-center" aria-labelledby="anywhere-title">
-      <h2 id="anywhere-title" className="lp-h2">Log from anywhere.</h2>
-      <p className="lp-lede">Aviary meets you where the spending happens. Most logs take one tap. The rest take a few.</p>
+      <span className="lp-question">Day 5 with Aviary</span>
+      <h2 id="anywhere-title" className="lp-h2">Missed yesterday?<br />Type what you remember.</h2>
+      <p className="lp-lede">Open Ask Aviary and type {intl ? '“bus 3, lunch 15, Friday dinner 60”' : '“auto 240, lunch 150, Friday dinner 900”'}. It turns that into separate spends, picks the envelopes, and you check them before they land. Two missed days take about a minute.</p>
+      <ul className="lp-ways lp-ways--compact">
+        {anywhere(intl).map(({ icon: Icon, tone, title, body }) => <li key={title}>
+          <span className={`lp-way-icon lp-tone-${tone}`}><Icon size={22} strokeWidth={2.2} aria-hidden="true" /></span>
+          <span><strong>{title}</strong><span>{body}</span></span>
+        </li>)}
+      </ul>
+      <p className="lp-lede">And on a normal day, it’s one tap.</p>
       <div className="lp-shots">
         <figure className="lp-shot">
           <div className="lp-shot-art lp-shot-home" aria-hidden="true">
@@ -132,12 +155,6 @@ export function LandingPage({ monthlyPrice, ios = false, android = false, intl =
           <figcaption><strong>The keypad</strong><span>Amount, a word or two, done. The envelope picks itself.</span></figcaption>
         </figure>
       </div>
-      <ul className="lp-ways lp-ways--compact">
-        {anywhere(intl).map(({ icon: Icon, tone, title, body }) => <li key={title}>
-          <span className={`lp-way-icon lp-tone-${tone}`}><Icon size={22} strokeWidth={2.2} aria-hidden="true" /></span>
-          <span><strong>{title}</strong><span>{body}</span></span>
-        </li>)}
-      </ul>
     </section>
 
 
@@ -182,7 +199,7 @@ export function LandingPage({ monthlyPrice, ios = false, android = false, intl =
       <div className="lp-founder">
         <div className="lp-founder-copy">
           <h2 id="founder-title" className="lp-h2">Hi, I’m Sukrit <span aria-hidden="true">👋</span></h2>
-          <p>I’ve been trying to get budgeting right for years. I built a few apps for it, fell back on spreadsheets, and tried bank sync apps. Sync didn’t change a thing. My spending got filed away and I still had no idea where my money went.</p>
+          <p>I’ve quit every budgeting app I ever tried, usually by week two. I built a few myself, fell back on spreadsheets, and tried bank sync. Sync didn’t change a thing. My spending got filed away and I still had no idea where my money went.</p>
           <p>YNAB finally clicked. Giving every {intl ? 'dollar' : 'rupee'} a job made me actually notice my spending. Then its pricing humbled me.</p>
           <p>So I built Aviary. You still log every expense yourself, because that’s the part that makes you notice. Aviary just learns when you usually spend and nudges you while it’s fresh, so logging takes one tap. It’s the app I wanted for years. I hope it clicks for you too.</p>
           <a href={GITHUB} className="lp-button lp-button--ghost"><Github size={17} aria-hidden="true" />Read the source</a>

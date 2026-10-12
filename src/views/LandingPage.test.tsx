@@ -6,6 +6,13 @@ vi.mock('../lib/analytics', () => ({ track: vi.fn() }))
 vi.stubGlobal('IntersectionObserver', class { observe() {} unobserve() {} disconnect() {} })
 
 describe('LandingPage', () => {
+  it('opens with the day 3 arc, then the fixes', () => {
+    render(<LandingPage />)
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Budgeting apps die on day 3')
+    const h2s = screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)
+    expect(h2s.indexOf('You know how it goes.')).toBeLessThan(h2s.indexOf('It already knows your Friday cab.'))
+  })
+
   it('shows Android visitors the Play Store, not the hero waitlist', () => {
     render(<LandingPage />)
     expect(screen.getAllByRole('link', { name: /Get it on Android/ })).toHaveLength(2)
