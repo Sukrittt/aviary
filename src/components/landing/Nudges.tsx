@@ -172,10 +172,12 @@ function LearnsScene({ beat }: { beat: number }) {
       <div className="lp-lock-date">Tuesday, 6 October</div>
       <div className="lp-notif">
         <div className="lp-notif-app"><span className="lp-notif-icon"><BirdMark size={14} perched /></span>Aviary<span className="lp-notif-time">• now</span><ChevronUp size={14} strokeWidth={2.4} /></div>
-        {logged
-          ? <div className="lp-notif-body" key="done"><strong><Check size={15} strokeWidth={3} /> Logged {m(s.amount)}</strong><span>{s.done}</span></div>
-          : <div className="lp-notif-body" key="ask"><strong>{s.ask}</strong><span>{s.body}</span></div>}
-        {!logged && <div className="lp-notif-actions"><span className="lp-notif-log">Log {m(s.amount)}<span className="lp-thumb" /></span><span>Not this one</span></div>}
+        {/* Both bodies share one grid cell and crossfade, and the actions fold away, so the card eases to its new height. */}
+        <div className={`lp-notif-swap${logged ? ' is-logged' : ''}`}>
+          <div className="lp-notif-body"><strong>{s.ask}</strong><span>{s.body}</span></div>
+          <div className="lp-notif-body"><strong><Check size={15} strokeWidth={3} /> Logged {m(s.amount)}</strong><span>{s.done}</span></div>
+        </div>
+        <div className="lp-notif-fold"><div className="lp-notif-actions"><span className="lp-notif-log">Log {m(s.amount)}<span className="lp-thumb" /></span><span>Not this one</span></div></div>
       </div>
     </Phone>
     <Card label="It’s logged" className="lp-stage-logged">
