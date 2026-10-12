@@ -5,7 +5,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "motion/react";
-import { AmountText } from "../components/landing/mobile/kit";
+import { AmountText, CheckIcon } from "../components/landing/mobile/kit";
+import { track } from "../lib/analytics";
 import { ChevronRight, Pencil } from "lucide-react";
 import { useAppearance } from "../../components/AppearanceProvider";
 
@@ -236,6 +237,24 @@ export function ExpensePage() {
   const incomeDone = !envelopeState || envelopeState.income > 0;
   // Same test as Mobile's Home: income is set and nothing is left to assign.
   const rtaSettled = !!envelopeState && envelopeState.income > 0 && Math.abs(envelopeState.readyToAssign) < 0.005;
+  // Mobile's peak-end beat: Ready to Assign reaching zero while you watch (an
+  // assign, a move) gets a short mint celebration on the settled row. Loading
+  // in at zero doesn't count: there was no "before" to celebrate.
+  const readyToAssignNow = envelopeState?.readyToAssign;
+  const prevReadyRef = useRef<number | undefined>(undefined);
+  const [rtaCelebrating, setRtaCelebrating] = useState(false);
+  useEffect(() => {
+    const prev = prevReadyRef.current;
+    prevReadyRef.current = readyToAssignNow;
+    if (prev === undefined || Math.abs(prev) < 0.005 || !rtaSettled || document.visibilityState !== "visible") return;
+    setRtaCelebrating(true);
+    track("rta_zero_celebrated");
+  }, [readyToAssignNow, rtaSettled]);
+  useEffect(() => {
+    if (!rtaCelebrating) return;
+    const t = setTimeout(() => setRtaCelebrating(false), 2500);
+    return () => clearTimeout(t);
+  }, [rtaCelebrating]);
   const daysLeftLabel = daysLeftInMonth() === 0 ? "Less than 24 hrs" : `${daysLeftInMonth()} days left`;
   const showGetStarted = !getStartedSkipped && !!user?.getStartedAt &&
     !(incomeDone && user.manualTransactionCompletedAt && user.guidedTourCompletedAt);
@@ -476,13 +495,20 @@ export function ExpensePage() {
                   <div className="env-action-wrap erd-home-rta-slim-wrap" ref={incomePillRef}>
                     <button
                       type="button"
-                      className="erd-card erd-home-rta-slim"
+                      className={`erd-card erd-home-rta-slim${rtaCelebrating ? " is-celebrating" : ""}`}
                       aria-label="Ready to Assign options"
                       aria-haspopup="menu"
                       aria-expanded={incomeMenuAt === "pill"}
                       onClick={() => setIncomeMenuAt((at) => (at === "pill" ? null : "pill"))}
                     >
-                      <span>💸&nbsp;&nbsp;Ready to Assign</span>
+                      {rtaCelebrating ? (
+                        <span className="erd-home-rta-celebrate" role="status">
+                          <CheckIcon color="var(--mint)" size={18} />
+                          Every rupee has a job.
+                        </span>
+                      ) : (
+                        <span>💸&nbsp;&nbsp;Ready to Assign</span>
+                      )}
                       <span className="erd-home-rta-slim-amount">
                         {hideAmounts ? "---" : <AmountText value={envelopeState.readyToAssign} animate id="ready-to-assign" />}
                         <ChevronRight size={16} aria-hidden="true" />
@@ -494,8 +520,8 @@ export function ExpensePage() {
               )}
               {!leftoverDismissed && previousLeftover > 0 && (
                 <article className="erd-card home-leftover-notice">
-                  <p>{formatCurrency(previousLeftover, hideAmounts)} left over from last month.</p>
-                  <button type="button" onClick={() => setLeftoverDismissed(true)}>Okay</button>
+                  <p>🌱 {formatCurrency(previousLeftover, hideAmounts)} went to savings last month.</p>
+                  <button type="button" onClick={() => setLeftoverDismissed(true)}>Nice</button>
                 </article>
               )}
               {/* One banner at a time, same as Mobile: the leftover notice goes first. */}

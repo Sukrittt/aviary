@@ -56,6 +56,7 @@ export type AppEvent =
   | 'expense_deleted'
   | 'ai_category_suggested'
   | 'money_moved'
+  | 'rta_zero_celebrated'
   | 'envelope_created'
   | 'duplicates_resolved'
   // Bill scanning, start to finish
@@ -89,6 +90,7 @@ export type AppEvent =
   | 'wrapped_opened'
   | 'wrapped_card_viewed'
   | 'wrapped_shared'
+  | 'wrapped_plan_tapped'
   | 'week_recap_opened'
   | 'week_recap_finished'
   // Paying
