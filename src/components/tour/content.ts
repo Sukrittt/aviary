@@ -110,8 +110,8 @@ export const SPEND_ROWS = [
 ] as const
 
 export const LOG_CHIPS = [
-  { id: 'g', category: 'groceries', amount: 450, what: 'Sabzi run', method: 'UPI', emoji: '🛒' },
-  { id: 'e', category: 'eatout', amount: 700, what: 'Dosa night', method: 'Card', emoji: '🍲' },
+  { id: 'g', category: 'groceries', amount: 450, what: 'Grocery run', method: 'Bank', emoji: '🛒' },
+  { id: 'e', category: 'eatout', amount: 700, what: 'Pizza night', method: 'Card', emoji: '🍲' },
   { id: 's', category: 'shopping', amount: 1900, what: 'Running shoes', method: 'Card', emoji: '🛍️' },
 ] as const
 

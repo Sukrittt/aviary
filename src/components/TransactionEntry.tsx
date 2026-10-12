@@ -110,7 +110,7 @@ export function TransactionEntry({ categories, onSaved }: Props) {
           value={notes} onChange={(e) => setNotes(e.target.value)} aria-label="Notes" />
         <label className="txn-entry-paymethod">
           <span className={`txn-entry-paymethod-opt ${paymentMethod === 'bank' ? 'is-active' : ''}`}
-            onClick={() => setPaymentMethod('bank')}>Bank/UPI</span>
+            onClick={() => setPaymentMethod('bank')}>Bank</span>
           <span className={`txn-entry-paymethod-opt ${paymentMethod === 'credit_card' ? 'is-active' : ''}`}
             onClick={() => setPaymentMethod('credit_card')}>Credit Card</span>
         </label>
