@@ -408,7 +408,7 @@ export function ExpensePage() {
                   <div className="erd-home-hero">
                     <span className="erd-home-hero-label">READY TO ASSIGN</span>
                     <strong
-                      className={`erd-home-hero-amount ${envelopeState.readyToAssign < 0 ? "is-negative" : ""}`}
+                      className={`erd-home-hero-amount ${envelopeState.readyToAssign < 0 ? "is-negative" : Math.abs(envelopeState.readyToAssign) < 0.005 ? "is-settled" : ""}`}
                     >
                       {hideAmounts ? (
                         "---"

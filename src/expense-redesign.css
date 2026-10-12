@@ -597,6 +597,10 @@
 .erd-home-hero-amount.is-negative {
   color: var(--coral);
 }
+/* Everything's assigned: the goal, so green (Mobile's slim Ready to Assign row). */
+.erd-home-hero-amount.is-settled {
+  color: var(--mint);
+}
 .erd-home-hero-caption {
   font-size: 13px;
   font-weight: 500;
@@ -722,12 +726,11 @@
   text-align: right;
   font-size: 13px;
   font-weight: 600;
-  color: var(--mint);
+  color: var(--erd-text2);
   font-variant-numeric: tabular-nums;
 }
-.env2-group-left.is-neg,
-.env2-available.is-neg {
-  color: var(--coral);
+.env2-group-left.is-neg {
+  color: var(--tk-pill-over);
 }
 .env2-group-rows {
   margin-left: 11px;
@@ -809,13 +812,23 @@
   color: var(--erd-text2);
 }
 .env2-available {
-  min-width: 84px;
+  /* Fixed width so every row's bar ends at the same x, whatever the amount. */
+  flex: 0 0 104px;
   text-align: right;
   font-size: 14px;
   font-weight: 600;
-  color: var(--mint);
   font-variant-numeric: tabular-nums;
 }
+/* Mobile's "left" pills (availablePill in EnvelopeRow.tsx). */
+.env2-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+.env2-pill.is-good { color: var(--tk-pill-good); background: var(--tk-pill-good-bg); }
+.env2-pill.is-low { color: var(--tk-pill-low); background: var(--tk-pill-low-bg); }
+.env2-pill.is-over { color: var(--tk-pill-over); background: var(--tk-pill-over-bg); }
+.env2-pill.is-empty { color: var(--erd-text3); }
 .env2-category-icon {
   display: grid;
   place-items: center;
@@ -845,7 +858,7 @@
     margin-left: 0;
     font-size: 11px;
   }
-  .env2-available { min-width: 64px; font-size: 13px; }
+  .env2-available { flex-basis: 84px; font-size: 13px; }
 }
 .env2-menu-title {
   padding: 8px 12px 4px;

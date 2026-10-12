@@ -9,7 +9,7 @@
    AppearanceProvider. */
 
 :root {
-  --tk-bg: #faf8f5;
+  --tk-bg: #ffffff;
   --tk-text: #060606;
   --tk-text2: #424242;
   --tk-text3: #717171;
@@ -19,10 +19,10 @@
   --tk-sidebar-box: rgba(242, 238, 232, 0.7);
   --tk-input-bg: #f2eee8;
   --tk-pill-bg: rgba(255, 255, 255, 0.9);
-  --tk-modal-bg: rgba(250, 248, 245, 0.98);
-  --tk-modal-strong: rgba(250, 248, 245, 0.96);
-  --tk-tabbar-bg: rgba(250, 248, 245, 0.92);
-  --tk-header-bg: rgba(250, 248, 245, 0.92);
+  --tk-modal-bg: rgba(255, 255, 255, 0.98);
+  --tk-modal-strong: rgba(255, 255, 255, 0.96);
+  --tk-tabbar-bg: rgba(255, 255, 255, 0.92);
+  --tk-header-bg: rgba(255, 255, 255, 0.92);
   --tk-hero-a: rgba(255, 232, 220, 0.65);
   --tk-hero-b: rgba(245, 238, 234, 0.7);
   --tk-border: rgba(60, 40, 20, 0.08);
@@ -44,10 +44,16 @@
   --tk-warn: #eab308;
   --tk-warn-ink: #a16207;
   --tk-warn-soft: rgba(234, 179, 8, 0.18);
+  --tk-pill-good: #15803d;
+  --tk-pill-good-bg: #dcfce7;
+  --tk-pill-low: #b45309;
+  --tk-pill-low-bg: #fef3c7;
+  --tk-pill-over: #b91c1c;
+  --tk-pill-over-bg: #fee2e2;
 }
 
 .theme-light {
-  --tk-bg: #faf8f5;
+  --tk-bg: #ffffff;
   --tk-text: #060606;
   --tk-text2: #424242;
   --tk-text3: #717171;
@@ -57,10 +63,10 @@
   --tk-sidebar-box: rgba(242, 238, 232, 0.7);
   --tk-input-bg: #f2eee8;
   --tk-pill-bg: rgba(255, 255, 255, 0.9);
-  --tk-modal-bg: rgba(250, 248, 245, 0.98);
-  --tk-modal-strong: rgba(250, 248, 245, 0.96);
-  --tk-tabbar-bg: rgba(250, 248, 245, 0.92);
-  --tk-header-bg: rgba(250, 248, 245, 0.92);
+  --tk-modal-bg: rgba(255, 255, 255, 0.98);
+  --tk-modal-strong: rgba(255, 255, 255, 0.96);
+  --tk-tabbar-bg: rgba(255, 255, 255, 0.92);
+  --tk-header-bg: rgba(255, 255, 255, 0.92);
   --tk-hero-a: rgba(255, 232, 220, 0.65);
   --tk-hero-b: rgba(245, 238, 234, 0.7);
   --tk-border: rgba(60, 40, 20, 0.08);
@@ -82,6 +88,12 @@
   --tk-warn: #eab308;
   --tk-warn-ink: #a16207;
   --tk-warn-soft: rgba(234, 179, 8, 0.18);
+  --tk-pill-good: #15803d;
+  --tk-pill-good-bg: #dcfce7;
+  --tk-pill-low: #b45309;
+  --tk-pill-low-bg: #fef3c7;
+  --tk-pill-over: #b91c1c;
+  --tk-pill-over-bg: #fee2e2;
 }
 
 .theme-dark {
@@ -120,4 +132,10 @@
   --tk-warn: #facc15;
   --tk-warn-ink: #fde047;
   --tk-warn-soft: rgba(250, 204, 21, 0.22);
+  --tk-pill-good: #26e085;
+  --tk-pill-good-bg: rgba(38, 224, 133, 0.16);
+  --tk-pill-low: #fde047;
+  --tk-pill-low-bg: rgba(250, 204, 21, 0.16);
+  --tk-pill-over: #ff646f;
+  --tk-pill-over-bg: rgba(255, 100, 111, 0.16);
 }

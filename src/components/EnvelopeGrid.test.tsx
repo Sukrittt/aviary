@@ -89,3 +89,44 @@ describe('EnvelopeGrid last spent label', () => {
     }
   })
 })
+
+function renderOne(overrides: Partial<typeof envelope> & { isOverspent?: boolean }) {
+  const { container } = render(<EnvelopeGrid envelopes={[{ ...envelope, ...overrides }]} groups={['Essentials']}
+    hideAmounts={false} onManage={vi.fn()} onMoveMoney={vi.fn()}
+    onAssignFromRTA={vi.fn()} onSetAssigned={vi.fn()} />)
+  return container
+}
+
+describe('EnvelopeGrid row status', () => {
+  it('drops the used percentage, since the bar already shows it', () => {
+    renderOne({})
+    expect(screen.queryByText(/Used/)).not.toBeInTheDocument()
+    expect(screen.getByText(/Last spent/)).toBeInTheDocument()
+  })
+
+  // Red means overspent and nothing else, so almost-out stays amber.
+  it('keeps an almost-empty envelope amber, not red', () => {
+    const c = renderOne({ spent: 960, available: 40, spentPct: 96 })
+    expect(c.querySelector('.env-bar-fill')).toHaveClass('is-warn')
+    expect(c.querySelector('.env2-pill')).toHaveClass('is-low')
+  })
+
+  it('goes red only when overspent', () => {
+    const c = renderOne({ spent: 1200, available: -200, spentPct: 100, isOverspent: true })
+    expect(c.querySelector('.env-bar-fill')).toHaveClass('is-coral')
+    expect(c.querySelector('.env2-pill')).toHaveClass('is-over')
+  })
+
+  it('calls out spending with nothing assigned instead of "of ₹0" and ∞', () => {
+    renderOne({ assigned: 0, spent: 713, available: -713, spentPct: 100, isOverspent: true })
+    expect(screen.getByText(/Not budgeted/)).toBeInTheDocument()
+    expect(screen.queryByText(/∞/)).not.toBeInTheDocument()
+    expect(screen.queryByText('of')).not.toBeInTheDocument()
+  })
+
+  it('shows the group total neutral, and "over" when the group is overspent', () => {
+    renderOne({ spent: 1200, available: -200, spentPct: 100, isOverspent: true })
+    expect(screen.getByText('Over in group')).toBeInTheDocument()
+    expect(screen.getByText('₹200')).toBeInTheDocument()
+  })
+})
