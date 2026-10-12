@@ -358,7 +358,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onL
             ) : (
               <BirdEmptyState
                 compact
-                mood={query ? 'searching' : 'snoozing'}
+                mood={query ? 'searching' : undefined}
                 subject="chat"
                 title={query ? 'Nothing turned up' : 'No past chats yet'}
                 description={query ? `No chats match “${query}”.` : 'Start a conversation and it’ll wait for you here.'}
