@@ -3,7 +3,7 @@
 import { useCurrency } from '@/src/context/CurrencyContext'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Calendar, MessageSquareText, PencilLine, Plus, Tag, TriangleAlert, WalletMinimal } from 'lucide-react'
+import { CalendarBlankIcon, ChatTextIcon, PencilLineIcon, PlusIcon, TagIcon, WarningIcon, WalletIcon } from '@/src/components/icons'
 import { useOptionalMoneyBrain } from '@/components/moneyBrainContext'
 import { useHiddenFeatures } from '../hooks/useUser'
 import { Scrim, Sheet } from './MotionSheet'
@@ -411,7 +411,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
             <Toast
               trigger={nudge}
               message={missingFieldsMessage(missing)}
-              icon={missing[0] === 'amount' ? WalletMinimal : missing[0] === 'item' ? PencilLine : Tag}
+              icon={missing[0] === 'amount' ? WalletIcon : missing[0] === 'item' ? PencilLineIcon : TagIcon}
             />
             <Toast
               trigger={unusualNudge}
@@ -420,7 +420,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
                   ? `${formatMoney(parsedAmount)} is ${unusual.ratio}× your usual ${splitEmoji(effectiveCategory).text} (${formatMoney(Math.round(unusual.typical))}). Save again to keep it.`
                   : ''
               }
-              icon={TriangleAlert}
+              icon={WarningIcon}
             />
             <div className="erd-modal-head">
               <h3>Log expense</h3>
@@ -492,7 +492,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
                   additionalCategory={createdCategory}
                   trailing={
                     <button type="button" className="erd-chip erd-chip--add" onClick={() => setShowAddCategory(true)}>
-                      <Plus size={15} aria-hidden="true" />
+                      <PlusIcon size={15} aria-hidden="true" />
                       Add
                     </button>
                   }
@@ -507,7 +507,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
                     onChange={setAccountPick}
                     trailing={
                       <button type="button" className="erd-chip erd-chip--add" aria-label="Add account" onClick={() => setShowAddAccount(true)}>
-                        <Plus size={15} aria-hidden="true" />
+                        <PlusIcon size={15} aria-hidden="true" />
                         Add
                       </button>
                     }
@@ -538,7 +538,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
                     className={`erd-date-chip${showCalendar || (date !== today && date !== yesterday) ? ' is-active' : ''}`}
                     onClick={() => setShowCalendar((v) => !v)}
                   >
-                    <Calendar size={15} aria-hidden="true" />
+                    <CalendarBlankIcon size={15} aria-hidden="true" />
                     {showCalendar
                       ? 'Close'
                       : date !== today && date !== yesterday
@@ -590,7 +590,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
                     brain.openCapture()
                   }}
                 >
-                  <MessageSquareText size={14} aria-hidden="true" /> Log several at once
+                  <ChatTextIcon size={14} aria-hidden="true" /> Log several at once
                 </button>
               )}
             </div>

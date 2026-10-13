@@ -2,7 +2,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { preload } from 'react-dom'
 import { MiniWidget, EnvelopeWidget } from '../components/landing/mobile/Widget'
-import { ArrowRight, ChevronUp, Github, MessageSquareText, Monitor, Repeat, ScanLine, Smartphone, WifiOff } from 'lucide-react'
+import { ArrowRightIcon, CaretUpIcon, GithubLogoIcon, ChatTextIcon, MonitorIcon, RepeatIcon, ScanIcon, DeviceMobileIcon, WifiSlashIcon } from '@/src/components/icons'
 import { Playground } from '../components/landing/Playground'
 import { AddedClip, Faq, LandingMotion } from '../components/landing/LandingClient'
 import { TrackedLink } from '../components/TrackedLink'
@@ -19,11 +19,11 @@ import '../landing.css'
 const PLAY_STORE = 'https://play.google.com/store/apps/details?id=com.sukrit04.envelope'
 
 const anywhere = (intl: boolean) => [
-  { icon: MessageSquareText, tone: 'rent', title: 'Catch up in one line', body: intl ? 'Type “bus 3, lunch 15”. Both logged, each in the right envelope.' : 'Type “auto 240, lunch 150”. Both logged, each in the right envelope.' },
-  { icon: ScanLine, tone: 'food', title: 'The long bill', body: 'Snap it. Aviary reads every line and splits it if you shared.' },
-  { icon: Repeat, tone: 'savings', title: 'On repeat', body: 'Rent and subscriptions log themselves. Nothing to catch up on.' },
-  { icon: WifiOff, tone: 'fun', title: 'No signal', body: 'Logs wait on your phone, then sync.' },
-  { icon: Monitor, tone: 'rent', title: 'Your browser', body: 'Same budget, bigger screen.' },
+  { icon: ChatTextIcon, tone: 'rent', title: 'Catch up in one line', body: intl ? 'Type “bus 3, lunch 15”. Both logged, each in the right envelope.' : 'Type “auto 240, lunch 150”. Both logged, each in the right envelope.' },
+  { icon: ScanIcon, tone: 'food', title: 'The long bill', body: 'Snap it. Aviary reads every line and splits it if you shared.' },
+  { icon: RepeatIcon, tone: 'savings', title: 'On repeat', body: 'Rent and subscriptions log themselves. Nothing to catch up on.' },
+  { icon: WifiSlashIcon, tone: 'fun', title: 'No signal', body: 'Logs wait on your phone, then sync.' },
+  { icon: MonitorIcon, tone: 'rent', title: 'Your browser', body: 'Same budget, bigger screen.' },
 ]
 
 const RULES = [
@@ -57,7 +57,7 @@ const faqs = (intl: boolean) => [
 ]
 
 function StoreLink({ placement, children = 'Get it on Android' }: { placement: string; children?: string }) {
-  return <TrackedLink className="lp-button lp-button--dark" href={PLAY_STORE} event="store_cta_clicked" properties={{ placement }}><Smartphone size={18} aria-hidden="true" />{children}</TrackedLink>
+  return <TrackedLink className="lp-button lp-button--dark" href={PLAY_STORE} event="store_cta_clicked" properties={{ placement }}><DeviceMobileIcon size={18} aria-hidden="true" />{children}</TrackedLink>
 }
 
 /**
@@ -82,14 +82,14 @@ export function LandingPage({ monthlyPrice, ios = false, android = false, intl =
     <LandingHeader ios={ios} />
 
     <section className="lp-hero" aria-labelledby="landing-title">
-      <Link className="lp-early" href={FEEDBACK_BOARD_PATH}><b>Early access</b><span className="lp-early-desktop">Your feedback shapes what we build next</span><span className="lp-early-mobile">Help shape Aviary</span><ArrowRight size={14} aria-hidden="true" /></Link>
+      <Link className="lp-early" href={FEEDBACK_BOARD_PATH}><b>Early access</b><span className="lp-early-desktop">Your feedback shapes what we build next</span><span className="lp-early-mobile">Help shape Aviary</span><ArrowRightIcon size={14} aria-hidden="true" /></Link>
       <h1 id="landing-title">Budgeting apps die on <span className="lp-learns">day 3<svg viewBox="0 0 200 14" preserveAspectRatio="none" aria-hidden="true"><path d="M3 10 C 40 3, 70 3, 100 8 S 160 13, 197 5" /></svg></span>.<br />This one’s built for day 4.</h1>
       <p>It notices your <RotatingHabit /> and nudges you while it’s still fresh.<br className="lp-desktop-break" /> Miss a day? Type what you remember and you’re caught up.<br className="lp-desktop-break" /> No bank link, no loans, no offers.</p>
       {ios
         ? <IosWaitlist placement="hero" className="lp-waitlist--hero" />
         : <div className="lp-hero-actions">
           <StoreLink placement="hero" />
-          <a className="lp-button lp-button--ghost" href="#day3">Why day 3? <ArrowRight size={17} aria-hidden="true" /></a>
+          <a className="lp-button lp-button--ghost" href="#day3">Why day 3? <ArrowRightIcon size={17} aria-hidden="true" /></a>
         </div>}
       <span className="lp-hero-note">Free for 45 days{afterTrial} · No card needed · <Link href="/expense">{ios ? 'Use it on the web today' : 'Also on the web'}</Link></span>
     </section>
@@ -123,7 +123,7 @@ export function LandingPage({ monthlyPrice, ios = false, android = false, intl =
       <p className="lp-lede">Open Ask Aviary and type {intl ? '“bus 3, lunch 15, Friday dinner 60”' : '“auto 240, lunch 150, Friday dinner 900”'}. It turns that into separate spends, picks the envelopes, and you check them before they land. Two missed days take about a minute.</p>
       <ul className="lp-ways lp-ways--compact">
         {anywhere(intl).map(({ icon: Icon, tone, title, body }) => <li key={title}>
-          <span className={`lp-way-icon lp-tone-${tone}`}><Icon size={22} strokeWidth={2.2} aria-hidden="true" /></span>
+          <span className={`lp-way-icon lp-tone-${tone}`}><Icon size={22} aria-hidden="true" /></span>
           <span><strong>{title}</strong><span>{body}</span></span>
         </li>)}
       </ul>
@@ -140,7 +140,7 @@ export function LandingPage({ monthlyPrice, ios = false, android = false, intl =
             <div className="lp-shot-phone lp-shot-phone--lock">
               <div className="lp-lock-time">11:30</div>
               <div className="lp-notif lp-notif--still">
-                <div className="lp-notif-app"><span className="lp-notif-icon"><BirdMark size={14} perched /></span>Aviary<span className="lp-notif-time">• now</span><ChevronUp size={14} strokeWidth={2.4} /></div>
+                <div className="lp-notif-app"><span className="lp-notif-icon"><BirdMark size={14} perched /></span>Aviary<span className="lp-notif-time">• now</span><CaretUpIcon size={14} weight="bold" /></div>
                 <div className="lp-notif-body"><strong>Sunday groceries?</strong><span>Back from the market? Tap Log and it’s in.</span></div>
                 <div className="lp-notif-actions"><span className="lp-notif-log">Log {intl ? '$64' : '₹850'}</span><span>Not this one</span></div>
               </div>
@@ -202,7 +202,7 @@ export function LandingPage({ monthlyPrice, ios = false, android = false, intl =
           <p>I’ve quit every budgeting app I ever tried, usually by week two. I built a few myself, fell back on spreadsheets, and tried bank sync. Sync didn’t change a thing. My spending got filed away and I still had no idea where my money went.</p>
           <p>YNAB finally clicked. Giving every {intl ? 'dollar' : 'rupee'} a job made me actually notice my spending. Then its pricing humbled me.</p>
           <p>So I built Aviary. You still log every expense yourself, because that’s the part that makes you notice. Aviary just learns when you usually spend and nudges you while it’s fresh, so logging takes one tap. It’s the app I wanted for years. I hope it clicks for you too.</p>
-          <a href={GITHUB} className="lp-button lp-button--ghost"><Github size={17} aria-hidden="true" />Read the source</a>
+          <a href={GITHUB} className="lp-button lp-button--ghost"><GithubLogoIcon size={17} aria-hidden="true" />Read the source</a>
           <div className="lp-founder-sign"><span aria-hidden="true">S</span><div><strong>Sukrit</strong><small>Builds Aviary</small></div></div>
         </div>
         <figure className="lp-road">
@@ -223,7 +223,7 @@ export function LandingPage({ monthlyPrice, ios = false, android = false, intl =
     <section id="get" className="lp-section lp-close" aria-labelledby="get-title">
       <span className="lp-close-bird"><BirdLanding size={120} alive /></span>
       <h2 id="get-title" className="lp-h2">Your money, noticed.</h2>
-      <div className="lp-hero-actions">{!ios && <StoreLink placement="footer_cta" />}<Link href="/expense" className="lp-button lp-button--ghost"><Monitor size={18} aria-hidden="true" />Open web app</Link></div>
+      <div className="lp-hero-actions">{!ios && <StoreLink placement="footer_cta" />}<Link href="/expense" className="lp-button lp-button--ghost"><MonitorIcon size={18} aria-hidden="true" />Open web app</Link></div>
       <span className="lp-hero-note">Free for 45 days{afterTrial} · No card needed · <a href={GITHUB} target="_blank" rel="noreferrer">Open source</a></span>
       {!android && <IosWaitlist />}
     </section>

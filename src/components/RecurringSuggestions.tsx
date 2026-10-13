@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { ArrowRight, Check, LoaderCircle, Repeat2 } from "lucide-react";
+import { ArrowRightIcon, CheckIcon, CircleNotchIcon, ArrowsClockwiseIcon } from "@/src/components/icons";
 import { AnimatePresence, motion } from "motion/react";
 import { popIn, staggerDelay } from "./landing/mobile/kit";
 import "./RecurringSuggestions.css";
@@ -71,7 +71,7 @@ export function RecurringSuggestions({ kind = "other_recurring" }: { kind?: Sugg
       <div className="recurring-discovery-header">
         <div className="recurring-discovery-intro">
           <span className="recurring-discovery-icon" aria-hidden="true">
-            <Repeat2 size={22} strokeWidth={1.7} />
+            <ArrowsClockwiseIcon size={22} />
           </span>
           <div>
             <h2>{subscriptionMode ? "Find subscriptions" : "Find recurring expenses"}</h2>
@@ -105,7 +105,7 @@ export function RecurringSuggestions({ kind = "other_recurring" }: { kind?: Sugg
             onClick={() => scan.mutate(months)}
           >
             {scan.isPending && (
-              <LoaderCircle
+              <CircleNotchIcon
                 size={16}
                 className="recurring-discovery-spinner"
                 aria-hidden="true"
@@ -116,7 +116,7 @@ export function RecurringSuggestions({ kind = "other_recurring" }: { kind?: Sugg
               : data?.scannedAt && data.remaining > 0
                 ? "Scan remaining patterns"
                 : subscriptionMode ? "Find subscriptions" : "Find recurring expenses"}
-            {!scan.isPending && <ArrowRight size={16} aria-hidden="true" />}
+            {!scan.isPending && <ArrowRightIcon size={16} aria-hidden="true" />}
           </button>
         </div>
       </div>
@@ -181,7 +181,7 @@ export function RecurringSuggestions({ kind = "other_recurring" }: { kind?: Sugg
                   className="recurring-discovery-empty-icon"
                   aria-hidden="true"
                 >
-                  <Check size={19} />
+                  <CheckIcon size={19} />
                 </span>
                 <div>
                   <h3>{subscriptionMode ? "No new subscriptions" : "No new recurring payments"}</h3>

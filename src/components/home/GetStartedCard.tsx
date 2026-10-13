@@ -1,5 +1,5 @@
 import { motion, useReducedMotion } from 'motion/react'
-import { Check, ChevronRight, CirclePlus, Compass, WalletCards } from 'lucide-react'
+import { CheckIcon, CaretRightIcon, PlusCircleIcon, CompassIcon, CardholderIcon } from '@/src/components/icons'
 
 type Props = {
   incomeDone: boolean
@@ -17,10 +17,10 @@ export function GetStartedCard({ incomeDone, manualTransactionDone, guidedTourDo
   const reduce = useReducedMotion()
   const steps = [
     incomeDone
-      ? { key: 'budget', icon: WalletCards, label: 'Set up your budget', hint: 'Your envelopes are ready', done: true }
-      : { key: 'budget', icon: WalletCards, label: 'Add your income', hint: 'Give your envelopes money to hold', done: false, onClick: onAddIncome },
-    { key: 'transaction', icon: CirclePlus, label: 'Add a manual transaction', hint: 'Log one expense by hand', done: manualTransactionDone, onClick: onAddTransaction },
-    { key: 'tour', icon: Compass, label: 'Take a guided tour', hint: 'See where everything lives', done: guidedTourDone, onClick: onTakeTour },
+      ? { key: 'budget', icon: CardholderIcon, label: 'Set up your budget', hint: 'Your envelopes are ready', done: true }
+      : { key: 'budget', icon: CardholderIcon, label: 'Add your income', hint: 'Give your envelopes money to hold', done: false, onClick: onAddIncome },
+    { key: 'transaction', icon: PlusCircleIcon, label: 'Add a manual transaction', hint: 'Log one expense by hand', done: manualTransactionDone, onClick: onAddTransaction },
+    { key: 'tour', icon: CompassIcon, label: 'Take a guided tour', hint: 'See where everything lives', done: guidedTourDone, onClick: onTakeTour },
   ]
   const count = steps.filter((step) => step.done).length
   const next = steps.find((step) => !step.done)?.key
@@ -49,7 +49,7 @@ export function GetStartedCard({ incomeDone, manualTransactionDone, guidedTourDo
       </div>
       <div className="get-started-steps">
         {steps.map((step, i) => {
-          const Icon = step.done ? Check : step.icon
+          const Icon = step.done ? CheckIcon : step.icon
           return (
             <motion.div
               key={step.key}
@@ -68,7 +68,7 @@ export function GetStartedCard({ incomeDone, manualTransactionDone, guidedTourDo
               >
                 <span className="get-started-icon"><Icon size={16} aria-hidden="true" /></span>
                 <span className="get-started-step-copy"><strong>{step.label}</strong><span>{step.done ? 'Done' : step.hint}</span></span>
-                {!step.done && <ChevronRight size={17} aria-hidden="true" />}
+                {!step.done && <CaretRightIcon size={17} aria-hidden="true" />}
               </motion.button>
             </motion.div>
           )

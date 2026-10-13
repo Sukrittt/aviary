@@ -1,7 +1,7 @@
 import { pageMetadata } from '@/lib/seo'
 import Link from 'next/link'
 import type { Filter } from 'mongodb'
-import { Inbox } from 'lucide-react'
+import { TrayIcon } from '@/src/components/icons'
 import { getDb } from '@/lib/mongodb'
 import { escapeRegExp } from '@/lib/http'
 import { FEEDBACK, type FeedbackDoc } from '@/lib/feedback'
@@ -74,7 +74,7 @@ export default async function AdminFeedback({ searchParams }: { searchParams: Pa
       <section className="erd-card adm-card adm-card-fill">
         {rows.length === 0 ? (
           <div className="adm-empty-fill">
-            <Inbox size={32} aria-hidden="true" />
+            <TrayIcon size={32} aria-hidden="true" />
             <span>{filtered ? 'No feedback matches these filters.' : 'No feedback yet.'}</span>
           </div>
         ) : (

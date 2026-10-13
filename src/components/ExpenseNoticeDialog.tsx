@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef } from 'react'
-import { ArrowLeft, RotateCw } from 'lucide-react'
+import { ArrowLeftIcon, ArrowClockwiseIcon } from '@/src/components/icons'
 import { Scrim, Sheet } from './MotionSheet'
 import { expenseNotice } from '../lib/expenseNotice'
 
@@ -20,12 +20,12 @@ export function ExpenseNoticeDialog({ status, action, onBack }: { status?: numbe
           if (event.key === 'Tab') { event.preventDefault(); button.current?.focus() }
         }}>
         <div className="txn-review txn-review-notice">
-          <span className="txn-review-icon" aria-hidden="true"><RotateCw size={24} /></span>
+          <span className="txn-review-icon" aria-hidden="true"><ArrowClockwiseIcon size={24} /></span>
           <h4 id={`${id}-title`}>{copy.title}</h4>
           <p className="txn-review-intro" id={`${id}-description`}>{copy.message}</p>
           <div className="txn-review-actions">
             <button type="button" ref={button} className="txn-review-primary" onClick={onBack}>
-              <ArrowLeft size={16} aria-hidden="true" style={{ verticalAlign: 'middle', marginRight: 8 }} />{copy.backLabel}
+              <ArrowLeftIcon size={16} aria-hidden="true" style={{ verticalAlign: 'middle', marginRight: 8 }} />{copy.backLabel}
             </button>
           </div>
         </div>

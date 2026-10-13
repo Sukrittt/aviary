@@ -2,7 +2,7 @@ import { useCurrency } from '@/src/context/CurrencyContext'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
-import { ChevronsDownUp } from 'lucide-react'
+import { ArrowsInLineVerticalIcon } from '@/src/components/icons'
 import { SpringChevron, SpringCollapse } from './SpringCollapse'
 import { avatarColorFor, categoryEmoji, groupEmoji, splitEmoji } from '../lib/emoji'
 import type { Envelope } from '../types/expense'
@@ -230,7 +230,7 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
             aria-label={allCollapsed ? 'Expand all' : 'Collapse all'}
             title={allCollapsed ? 'Expand all' : 'Collapse all'}
           >
-            <ChevronsDownUp size={16} />
+            <ArrowsInLineVerticalIcon size={16} />
           </button>
         </div>
         <button type="button" className="erd-manage-btn" onClick={onManage}>

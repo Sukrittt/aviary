@@ -5,13 +5,7 @@ import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence } from "motion/react";
 import { useRouter } from "next/navigation";
-import {
-  ArrowLeft,
-  ChevronLeft,
-  ChevronRight,
-  TrendingDown,
-  TrendingUp,
-} from "lucide-react";
+import { ArrowLeftIcon, CaretLeftIcon, CaretRightIcon, TrendDownIcon, TrendUpIcon } from "@/src/components/icons";
 import { useAppearance } from "@/components/AppearanceProvider";
 import { ExpenseSidebar } from "@/src/components/ExpenseSidebar";
 import { LoadingCaption } from "@/src/components/LoadingCaption";
@@ -400,7 +394,7 @@ export function InsightsPage() {
           onClick={() => router.back()}
           aria-label="Back"
         >
-          <ArrowLeft size={18} />
+          <ArrowLeftIcon size={18} />
         </button>
         <div className="erd-mobile-greet">Insights</div>
       </header>
@@ -428,7 +422,7 @@ export function InsightsPage() {
                     : "No earlier months"
                 }
               >
-                <ChevronLeft size={18} />
+                <CaretLeftIcon size={18} />
               </button>
               <div className="ins-period-copy">
                 <h1>{monthLabel(insightMonth)}</h1>
@@ -462,7 +456,7 @@ export function InsightsPage() {
                     : "Already on this month"
                 }
               >
-                <ChevronRight size={18} />
+                <CaretRightIcon size={18} />
               </button>
             </div>
           </header>
@@ -497,9 +491,9 @@ export function InsightsPage() {
                           }
                         >
                           {trendSummary.deltaPct > 0 ? (
-                            <TrendingUp size={14} />
+                            <TrendUpIcon size={14} />
                           ) : (
-                            <TrendingDown size={14} />
+                            <TrendDownIcon size={14} />
                           )}
                           {Math.abs(trendSummary.deltaPct).toFixed(0)}%
                         </span>

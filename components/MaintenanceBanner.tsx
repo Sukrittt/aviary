@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { TriangleAlert, X } from 'lucide-react'
+import { WarningIcon, XIcon } from '@/src/components/icons'
 
 const DISMISSED_KEY = 'aviary.maintenanceDismissed'
 
@@ -49,7 +49,7 @@ export function MaintenanceBanner() {
         fontWeight: 600,
       }}
     >
-      <TriangleAlert size={16} color="var(--tk-warn)" aria-hidden style={{ flexShrink: 0 }} />
+      <WarningIcon size={16} color="var(--tk-warn)" aria-hidden style={{ flexShrink: 0 }} />
       <span>{message}</span>
       <button
         type="button"
@@ -71,7 +71,7 @@ export function MaintenanceBanner() {
           cursor: 'pointer',
         }}
       >
-        <X size={14} aria-hidden />
+        <XIcon size={14} aria-hidden />
       </button>
     </div>
   )

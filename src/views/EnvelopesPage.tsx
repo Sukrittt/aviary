@@ -3,15 +3,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
-import {
-  ReceiptText,
-  Bell,
-  ChevronsDownUp,
-  Pencil,
-  Plus,
-  Trash2,
-  X,
-} from "lucide-react";
+import { InvoiceIcon, BellIcon, ArrowsInLineVerticalIcon, PencilSimpleIcon, PlusIcon, TrashIcon, XIcon } from "@/src/components/icons";
 import { useAppearance } from "../../components/AppearanceProvider";
 import { ExpenseSidebar } from "../components/ExpenseSidebar";
 import { LoadingCaption } from "../components/LoadingCaption";
@@ -298,7 +290,7 @@ export function EnvelopesPage() {
                 className="erd-log-btn txn-page-log-btn"
                 onClick={() => beginDraft({ kind: "new-group" })}
               >
-                <Plus size={14} aria-hidden="true" />
+                <PlusIcon size={14} aria-hidden="true" />
                 New group
               </button>
             </div>
@@ -321,7 +313,7 @@ export function EnvelopesPage() {
                 )
               }
             >
-              <ChevronsDownUp size={14} aria-hidden="true" />
+              <ArrowsInLineVerticalIcon size={14} aria-hidden="true" />
               {allCollapsed ? "Expand all" : "Collapse all"}
             </button>
           </div>
@@ -397,7 +389,7 @@ export function EnvelopesPage() {
                         aria-label={`Add a category to ${text}`}
                         title="Add category"
                       >
-                        <Plus size={14} aria-hidden="true" />
+                        <PlusIcon size={14} aria-hidden="true" />
                       </button>
                       {group.name && (
                         <button
@@ -412,7 +404,7 @@ export function EnvelopesPage() {
                           aria-label={`Rename ${text}`}
                           title="Rename group"
                         >
-                          <Pencil size={14} aria-hidden="true" />
+                          <PencilSimpleIcon size={14} aria-hidden="true" />
                         </button>
                       )}
                       {group.name && (
@@ -428,7 +420,7 @@ export function EnvelopesPage() {
                           aria-label={`Delete ${text}`}
                           title="Delete group"
                         >
-                          <Trash2 size={14} aria-hidden="true" />
+                          <TrashIcon size={14} aria-hidden="true" />
                         </button>
                       )}
                     </div>
@@ -467,7 +459,7 @@ export function EnvelopesPage() {
                                 title="Get notified when spending in this envelope reaches these points"
                                 aria-label={`Spending alerts for ${parts.text}: ${thresholds.map((p) => `${p}%`).join(", ")}`}
                               >
-                                <Bell size={14} aria-hidden="true" />
+                                <BellIcon size={14} aria-hidden="true" />
                                 <span className="env-alert-copy">
                                   <span className="env-alert-label">
                                     Spending alerts
@@ -484,7 +476,7 @@ export function EnvelopesPage() {
                                   aria-label={`View transactions for ${parts.text}`}
                                   title="View transactions"
                                 >
-                                  <ReceiptText size={14} aria-hidden="true" />
+                                  <InvoiceIcon size={14} aria-hidden="true" />
                                 </Link>
                                 <button
                                   type="button"
@@ -502,7 +494,7 @@ export function EnvelopesPage() {
                                   aria-label={`Rename ${parts.text}`}
                                   title="Rename category"
                                 >
-                                  <Pencil size={14} aria-hidden="true" />
+                                  <PencilSimpleIcon size={14} aria-hidden="true" />
                                 </button>
                                 <button
                                   type="button"
@@ -516,7 +508,7 @@ export function EnvelopesPage() {
                                   aria-label={`Delete ${parts.text}`}
                                   title="Delete category"
                                 >
-                                  <Trash2 size={14} aria-hidden="true" />
+                                  <TrashIcon size={14} aria-hidden="true" />
                                 </button>
                               </div>
                             </>
@@ -606,7 +598,7 @@ export function EnvelopesPage() {
                     onClick={() => setDraft(null)}
                     aria-label="Close dialog"
                   >
-                    <X size={18} aria-hidden="true" />
+                    <XIcon size={18} aria-hidden="true" />
                   </button>
                 </div>
               ) : (

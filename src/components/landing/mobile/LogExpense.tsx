@@ -4,7 +4,7 @@ import { useCurrency } from '@/src/context/CurrencyContext'
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { animate, motion, useMotionValue, useTransform, type MotionValue } from 'motion/react'
-import { ChevronDown, MessageSquareText } from 'lucide-react'
+import { CaretDownIcon, ChatTextIcon } from '@/src/components/icons'
 import { DotLottieReact } from '@lottiefiles/dotlottie-react'
 import { categoryEmoji, groupEmoji, splitEmoji } from '@/src/lib/emoji'
 import { formatDateTimeLong } from '@/src/lib/format'
@@ -182,7 +182,7 @@ export function LogExpenseScreen({
       </div>
       <button type="button" className="m-several" onClick={onSeveral} aria-label="Log several spends at once"
         style={{ ...pressable, ...row, justifyContent: 'center', position: 'absolute', left: space.lg, top: PHONE.top + space.xs, width: 36, height: 36, borderRadius: 18, background: FIELD_BG }}>
-        <MessageSquareText size={18} color="#ffffff" />
+        <ChatTextIcon size={18} color="#ffffff" />
       </button>
       {tip && <CaptureTipBubble anchor={{ top: PHONE.top + space.xs, left: space.lg, size: 36 }} title="Logging a few?" body={tip.body} onTry={tip.onTry} onDismiss={tip.onDismiss} />}
 
@@ -201,7 +201,7 @@ export function LogExpenseScreen({
           {hasOperator(expr) && <span style={{ color: ON_ACCENT_DIM, ...font.bodySemiBold, fontSize: type.caption }}>{formatExpression(expr)}</span>}
           <button type="button" onClick={() => setShowMore(true)} style={{ ...pressable, ...row, gap: space.xs }}>
             <span style={{ color: ON_ACCENT_DIM, ...font.bodySemiBold, fontSize: type.caption }}>More</span>
-            <ChevronDown size={16} color={ON_ACCENT_DIM} />
+            <CaretDownIcon size={16} color={ON_ACCENT_DIM} />
           </button>
         </div>
       </div>

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
-import { X } from 'lucide-react'
+import { XIcon } from '@/src/components/icons'
 
 /**
  * The per-account controls, in a native `<dialog>`.
@@ -42,7 +42,7 @@ export function ManageDialog({ title, subtitle, badge, closeHref, children }: { 
         <div className="adm-dialog-head-end">
           {badge}
           <button type="button" className="adm-icon-btn" onClick={() => ref.current?.close()} aria-label="Close">
-            <X size={17} />
+            <XIcon size={17} />
           </button>
         </div>
       </div>

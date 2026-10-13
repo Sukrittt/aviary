@@ -3,7 +3,7 @@ import { ExpenseWriteError } from '../lib/expenseConflict';
 import { useCurrency } from "@/src/context/CurrencyContext";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { Copy, Plus, Search, X } from "lucide-react";
+import { CopyIcon, PlusIcon, MagnifyingGlassIcon, XIcon } from "@/src/components/icons";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { toTransactions, type Transaction } from "../lib/expenseTransactions";
@@ -482,7 +482,7 @@ export function TransactionsView({
               className="action-button txn-page-duplicates-btn"
               onClick={() => setReviewingDuplicates(true)}
             >
-              <Copy size={15} strokeWidth={2.2} aria-hidden="true" />
+              <CopyIcon size={15} aria-hidden="true" />
               Review {duplicates.length} possible duplicate{duplicates.length === 1 ? "" : "s"}
             </button>
           )}
@@ -491,7 +491,7 @@ export function TransactionsView({
             className="erd-log-btn txn-page-log-btn"
             onClick={() => setShowLogModal(true)}
           >
-            <Plus size={17} strokeWidth={2.4} aria-hidden="true" />
+            <PlusIcon size={17} weight="bold" aria-hidden="true" />
             Log expense
           </button>
         </div>
@@ -568,7 +568,7 @@ export function TransactionsView({
           )}
 
           <label className="txn-search-field">
-            <Search size={16} strokeWidth={2} aria-hidden="true" />
+            <MagnifyingGlassIcon size={16} aria-hidden="true" />
             <span className="sr-only">Search transactions</span>
             <input
               type="search"
@@ -825,7 +825,7 @@ export function TransactionsView({
               disabled={bulkDeleting}
               onClick={exitSelecting}
             >
-              <X size={16} strokeWidth={2.4} aria-hidden="true" />
+              <XIcon size={16} weight="bold" aria-hidden="true" />
             </button>
           </motion.div>
         )}

@@ -43,7 +43,7 @@ The web frontend and API for Aviary, alongside the Expo app in [`Sukrittt/aviary
 - [MongoDB](https://www.mongodb.com/) via the official `mongodb` driver (Atlas or local)
 - [@workos-inc/authkit-nextjs](https://github.com/workos/authkit-nextjs) + `@workos-inc/node` for sessions and user management
 - [@google/genai](https://github.com/googleapis/js-genai) (Gemini) for AI features
-- [lucide-react](https://lucide.dev/) for icons
+- [Phosphor](https://phosphoricons.com/) (`@phosphor-icons/react`) for icons
 
 ## How data is stored
 

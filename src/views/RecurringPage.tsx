@@ -1,6 +1,6 @@
 'use client'
 
-import { Plus } from 'lucide-react'
+import { PlusIcon } from '@/src/components/icons'
 import { useCurrency } from '@/src/context/CurrencyContext'
 
 import { useState } from 'react'
@@ -135,7 +135,7 @@ export function RecurringPage() {
         </div>
         <div className="txn-page-actions">
           <button type="button" className="erd-log-btn txn-page-log-btn" onClick={() => setEditing('')}>
-            <Plus size={14} aria-hidden="true" />
+            <PlusIcon size={14} aria-hidden="true" />
             Add recurring
           </button>
         </div>

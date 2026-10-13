@@ -1,6 +1,6 @@
 import { pageMetadata } from '@/lib/seo'
 import Link from 'next/link'
-import { ArrowUpRight, Ban, CalendarClock, FlaskConical, Gift, RefreshCw, ShieldCheck, ShieldOff, ShoppingBag, TriangleAlert, UserPlus } from 'lucide-react'
+import { ArrowUpRightIcon, ProhibitIcon, CalendarDotsIcon, FlaskIcon, GiftIcon, ArrowsClockwiseIcon, ShieldCheckIcon, ShieldSlashIcon, ShoppingBagIcon, WarningIcon, UserPlusIcon } from '@/src/components/icons'
 import { getDb } from '@/lib/mongodb'
 import { escapeRegExp } from '@/lib/http'
 import { getSystemSettings } from '@/lib/systemSettings'
@@ -144,15 +144,15 @@ export default async function AdminSubscriptions({ searchParams }: { searchParam
         <h1>Subscriptions</h1>
         <div className="adm-status">
           <span className={`adm-chip ${settings.billing.enforced ? 'adm-tone t-paid' : ''}`}>
-            {settings.billing.enforced ? <ShieldCheck size={14} /> : <ShieldOff size={14} />}
+            {settings.billing.enforced ? <ShieldCheckIcon size={14} /> : <ShieldSlashIcon size={14} />}
             {settings.billing.enforced ? 'Access enforced' : 'Not enforced'}
           </span>
           <span className={`adm-chip ${settings.billing.purchaseEnabled ? '' : 'is-off'}`}>
-            <ShoppingBag size={14} />
+            <ShoppingBagIcon size={14} />
             Purchases {settings.billing.purchaseEnabled ? 'on' : 'off'}
           </span>
           <span className={`adm-chip ${settings.billing.audience === 'everyone' ? '' : 'is-off'}`}>
-            <FlaskConical size={14} />
+            <FlaskIcon size={14} />
             {settings.billing.audience === 'everyone' ? 'Everyone' : 'Testers only'}
           </span>
           <Link className="adm-btn" href="/admin/system">
@@ -163,7 +163,7 @@ export default async function AdminSubscriptions({ searchParams }: { searchParam
 
       {!settings.billing.enforced && (
         <div className="adm-notice">
-          <TriangleAlert size={17} />
+          <WarningIcon size={17} />
           <p>
             Enforcement is off, so everyone keeps full access whatever their state below. These are resolved honestly — this is what would apply the moment the
             switch flips.
@@ -223,9 +223,9 @@ export default async function AdminSubscriptions({ searchParams }: { searchParam
           <div className="adm-funnel">
             {(
               [
-                { label: 'Signed up', icon: UserPlus, value: liveUsers, tone: 'trial', of: null },
-                { label: 'Started a trial', icon: CalendarClock, value: live.length, tone: 'gift', of: liveUsers },
-                { label: 'Ever purchased', icon: ShoppingBag, value: payers.size, tone: 'paid', of: live.length },
+                { label: 'Signed up', icon: UserPlusIcon, value: liveUsers, tone: 'trial', of: null },
+                { label: 'Started a trial', icon: CalendarDotsIcon, value: live.length, tone: 'gift', of: liveUsers },
+                { label: 'Ever purchased', icon: ShoppingBagIcon, value: payers.size, tone: 'paid', of: live.length },
               ] as const
             ).map(({ label, icon: Icon, value, tone, of }) => (
               <div key={label} className={`adm-funnel-row adm-tone t-${tone}`}>
@@ -306,7 +306,7 @@ export default async function AdminSubscriptions({ searchParams }: { searchParam
           </p>
           {failedEvents.length === 0 ? (
             <p className="adm-empty">
-              <ShieldCheck size={16} /> Every event applied cleanly.
+              <ShieldCheckIcon size={16} /> Every event applied cleanly.
             </p>
           ) : (
             <div className="adm-table-wrap">
@@ -333,7 +333,7 @@ export default async function AdminSubscriptions({ searchParams }: { searchParam
           </p>
           {grants.length === 0 ? (
             <p className="adm-empty">
-              <Gift size={16} /> Nothing has been granted by hand yet.
+              <GiftIcon size={16} /> Nothing has been granted by hand yet.
             </p>
           ) : (
             <div className="adm-table-wrap">
@@ -490,7 +490,7 @@ function ManageBody({ row: { account, user, access, state, endsAt, daysLeft } }:
 
       <div className="adm-group">
         <h3>
-          <CalendarClock size={13} /> Extend the trial
+          <CalendarDotsIcon size={13} /> Extend the trial
         </h3>
         <ActionForm action={extendTrialAction.bind(null, id)}>
           <label className="adm-field">
@@ -504,7 +504,7 @@ function ManageBody({ row: { account, user, access, state, endsAt, daysLeft } }:
 
       <div className="adm-group">
         <h3>
-          <Gift size={13} /> {account.comp ? 'Gifted plan' : 'Gift a plan'}
+          <GiftIcon size={13} /> {account.comp ? 'Gifted plan' : 'Gift a plan'}
         </h3>
         <ActionForm action={grantGiftAction.bind(null, id)} confirm="Give this user a free plan? They get full access with no purchase.">
           <label className="adm-field">
@@ -517,7 +517,7 @@ function ManageBody({ row: { account, user, access, state, endsAt, daysLeft } }:
         {account.comp && (
           <ActionForm action={revokeGiftAction.bind(null, id)} confirm="Revoke the gifted plan? They fall back to whatever else grants them access.">
             <SubmitButton variant="danger">
-              <Ban size={14} /> Revoke gift
+              <ProhibitIcon size={14} /> Revoke gift
             </SubmitButton>
             <span className="adm-hint">Granted {fmtDate(account.comp.grantedAt)}, runs to {fmtDate(account.comp.until)}.</span>
           </ActionForm>
@@ -526,7 +526,7 @@ function ManageBody({ row: { account, user, access, state, endsAt, daysLeft } }:
 
       <div className="adm-group">
         <h3>
-          <RefreshCw size={13} /> Account
+          <ArrowsClockwiseIcon size={13} /> Account
         </h3>
         <ActionForm action={resyncAction.bind(null, id)}>
           <SubmitButton>Re-sync purchases</SubmitButton>
@@ -541,7 +541,7 @@ function ManageBody({ row: { account, user, access, state, endsAt, daysLeft } }:
       </div>
 
       <Link className="adm-dialog-foot" href={`/admin/users/${encodeURIComponent(id)}`}>
-        Open the full user record <ArrowUpRight size={15} />
+        Open the full user record <ArrowUpRightIcon size={15} />
       </Link>
     </>
   )

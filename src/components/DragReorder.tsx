@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { Reorder, useDragControls } from "motion/react";
-import { GripVertical } from "lucide-react";
+import { DotsSixVerticalIcon } from "@/src/components/icons";
 
 /**
  * Local order while a drag runs. Motion's Reorder needs `values` updated on every swap, but
@@ -100,7 +100,7 @@ export function DragItem({
             }
           }}
         >
-          <GripVertical size={14} aria-hidden="true" />
+          <DotsSixVerticalIcon size={14} aria-hidden="true" />
         </button>,
       )}
     </Reorder.Item>

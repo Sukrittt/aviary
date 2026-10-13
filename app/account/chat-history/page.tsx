@@ -1,6 +1,6 @@
 'use client'
 
-import { Plus } from 'lucide-react'
+import { PlusIcon } from '@/src/components/icons'
 import { useEffect, useState } from 'react'
 import { useMoneyBrain } from '../../../components/MoneyBrainProvider'
 import { LoadingCaption } from '@/src/components/LoadingCaption'
@@ -104,7 +104,7 @@ export default function ChatHistoryPage() {
         </div>
         <div className="txn-page-actions">
           <button type="button" className="erd-log-btn txn-page-log-btn" onClick={() => openMoneyBrain(null)}>
-            <Plus size={14} aria-hidden="true" />
+            <PlusIcon size={14} aria-hidden="true" />
             New chat
           </button>
         </div>

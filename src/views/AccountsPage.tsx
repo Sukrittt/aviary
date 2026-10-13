@@ -1,6 +1,6 @@
 'use client'
 
-import { Pencil, Plus, ReceiptText, Trash2 } from 'lucide-react'
+import { PencilSimpleIcon, PlusIcon, InvoiceIcon, TrashIcon } from '@/src/components/icons'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
@@ -77,7 +77,7 @@ export function AccountsPage() {
         </div>
         <div className="txn-page-actions">
           <button type="button" className="erd-log-btn txn-page-log-btn" onClick={() => setEditing('')}>
-            <Plus size={14} aria-hidden="true" />
+            <PlusIcon size={14} aria-hidden="true" />
             Add account
           </button>
         </div>
@@ -104,9 +104,9 @@ export function AccountsPage() {
                 <span className="income-row-actions">
                   {/* The actions pop in one by one once the row has landed. */}
                   {[
-                    { icon: ReceiptText, label: `View ${a.name} transactions`, onClick: () => router.push(`/expense/transactions?account=${encodeURIComponent(a.id)}`) },
-                    { icon: Pencil, label: `Edit ${a.name}`, onClick: () => setEditing(a.id) },
-                    { icon: Trash2, label: `Delete ${a.name}`, onClick: () => setDeleting(a) },
+                    { icon: InvoiceIcon, label: `View ${a.name} transactions`, onClick: () => router.push(`/expense/transactions?account=${encodeURIComponent(a.id)}`) },
+                    { icon: PencilSimpleIcon, label: `Edit ${a.name}`, onClick: () => setEditing(a.id) },
+                    { icon: TrashIcon, label: `Delete ${a.name}`, onClick: () => setDeleting(a) },
                   ].map(({ icon: Icon, label, onClick }, j) => (
                     <motion.button key={label} type="button" className="env2-icon-btn" aria-label={label} title={label} onClick={onClick} {...popIn(staggerDelay(i) + 120 + j * 45)}>
                       <Icon size={15} aria-hidden="true" />

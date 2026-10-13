@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
-import { Check } from 'lucide-react'
+import { CheckIcon } from '@/src/components/icons'
 import type { WeekRecap } from '@/src/api/weekRecap'
 import { BirdMark } from '@/src/components/BirdMark'
 import { Confetti } from '@/src/components/onboarding/Confetti'
@@ -162,7 +162,7 @@ function DayDots({ recap }: { recap: WeekRecap }) {
     <div className="week-recap-dots">
       {days.map((day, i) => (
         <Pop key={day.date} delay={0.45 + i * 0.09} className="week-recap-dot-col">
-          <span className="week-recap-dot is-on"><Check size={20} strokeWidth={3} /></span>
+          <span className="week-recap-dot is-on"><CheckIcon size={20} weight="bold" /></span>
           <small>{day.letter}</small>
         </Pop>
       ))}

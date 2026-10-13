@@ -5,7 +5,7 @@ import { useCurrency } from '@/src/context/CurrencyContext'
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react'
-import { ArrowLeft, ArrowRight, Pause, Play, Share2, X } from 'lucide-react'
+import { ArrowLeftIcon, ArrowRightIcon, PauseIcon, PlayIcon, ShareNetworkIcon, XIcon } from '@/src/components/icons'
 import { useWrapped, useWrappedJudgement } from '@/src/hooks/useWrapped'
 import { useBudgets } from '@/src/hooks/useBudgets'
 import { useHideAmounts } from '@/src/hooks/useHideAmounts'
@@ -157,12 +157,12 @@ function WrappedStory({ data, judgement, moneySaved, hideAmounts }: { data: Wrap
   if (!started) {
     return (
       <main className="wrapped-cover">
-        <Link className="wrapped-close" href="/account" aria-label="Close Wrapped"><X /></Link>
+        <Link className="wrapped-close" href="/account" aria-label="Close Wrapped"><XIcon size={24} /></Link>
         <div className="wrapped-cover-mark" aria-hidden="true">✦</div>
         <span>Your spending has a story</span>
         <h1>{monthName(data.month)}<br />Wrapped</h1>
         <p>{data.totalTransactions} transactions, distilled into the moments that shaped your month.</p>
-        <button type="button" onClick={() => { track('wrapped_opened'); setFrozen(judgement); setStarted(true) }}>Unwrap my month <ArrowRight size={18} /></button>
+        <button type="button" onClick={() => { track('wrapped_opened'); setFrozen(judgement); setStarted(true) }}>Unwrap my month <ArrowRightIcon size={18} /></button>
       </main>
     )
   }
@@ -172,8 +172,8 @@ function WrappedStory({ data, judgement, moneySaved, hideAmounts }: { data: Wrap
     <main className="wrapped-player" style={{ '--wrapped-bg': slide.color, '--wrapped-ink': slide.ink } as CSSProperties}>
       <div className="wrapped-progress" aria-label={`Story ${index + 1} of ${slides.length}`}>{slides.map((_, itemIndex) => <i key={itemIndex}><b className={itemIndex < index ? 'is-done' : itemIndex === index ? 'is-current' : ''} style={itemIndex === index && !paused && !reduceMotion ? { animationDuration: `${STORY_MS}ms` } : undefined} /></i>)}</div>
       <div className="wrapped-controls">
-        <Link href="/account" aria-label="Close Wrapped"><X /></Link>
-        <button type="button" onClick={() => setPaused((value) => !value)} aria-label={paused ? 'Resume stories' : 'Pause stories'}>{paused ? <Play /> : <Pause />}</button>
+        <Link href="/account" aria-label="Close Wrapped"><XIcon size={24} /></Link>
+        <button type="button" onClick={() => setPaused((value) => !value)} aria-label={paused ? 'Resume stories' : 'Pause stories'}>{paused ? <PlayIcon size={24} /> : <PauseIcon size={24} />}</button>
       </div>
       <button className="wrapped-tap wrapped-tap--left" type="button" onClick={goBack} aria-label="Previous story" disabled={index === 0} />
       <button className="wrapped-tap wrapped-tap--right" type="button" onClick={goNext} aria-label="Next story" disabled={index === slides.length - 1} />
@@ -181,12 +181,12 @@ function WrappedStory({ data, judgement, moneySaved, hideAmounts }: { data: Wrap
         <motion.section key={index} className="wrapped-slide" initial={reduceMotion ? false : { opacity: 0, y: 24, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={reduceMotion ? undefined : { opacity: 0, y: -18 }} transition={{ duration: 0.35 }}>
           <span className="wrapped-slide-count">{String(index + 1).padStart(2, '0')} / {slides.length}</span>
           {slide.node}
-          {index === slides.length - 1 && <button className="wrapped-share" type="button" onClick={() => void shareStory()}><Share2 size={18} />{copied ? 'Copied' : 'Share my Wrapped'}</button>}
+          {index === slides.length - 1 && <button className="wrapped-share" type="button" onClick={() => void shareStory()}><ShareNetworkIcon size={18} />{copied ? 'Copied' : 'Share my Wrapped'}</button>}
           {/* End on what's next: last month's story hands off to this month's plan. */}
-          {index === slides.length - 1 && <Link className="wrapped-share wrapped-plan" href="/expense" onClick={() => track('wrapped_plan_tapped')}>Plan this month <ArrowRight size={18} /></Link>}
+          {index === slides.length - 1 && <Link className="wrapped-share wrapped-plan" href="/expense" onClick={() => track('wrapped_plan_tapped')}>Plan this month <ArrowRightIcon size={18} /></Link>}
         </motion.section>
       </AnimatePresence>
-      <div className="wrapped-key-hint"><ArrowLeft size={14} /> arrow keys to explore <ArrowRight size={14} /></div>
+      <div className="wrapped-key-hint"><ArrowLeftIcon size={14} /> arrow keys to explore <ArrowRightIcon size={14} /></div>
     </main>
   )
 }

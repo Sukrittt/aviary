@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { ChevronRight, Compass, Database, ExternalLink, Lock, MessageCircle, RefreshCw, type LucideIcon } from 'lucide-react'
+import { CaretRightIcon, CompassIcon, DatabaseIcon, ArrowSquareOutIcon, LockIcon, ChatCircleIcon, ArrowsClockwiseIcon, type PhosphorIcon } from '@/src/components/icons'
 import '@/src/expense-redesign.css'
 import { useBillingStatus, useSyncBilling } from '@/src/hooks/useBillingStatus'
 import { lockedReason, PLAY_STORE_URL } from './copy'
@@ -39,7 +39,7 @@ export function RestrictedNotice() {
             background: 'var(--tk-warn-soft)',
           }}
         >
-          <Lock size={20} color="var(--tk-warn)" />
+          <LockIcon size={20} color="var(--tk-warn)" />
         </div>
         <h1 style={{ margin: 0, fontFamily: 'var(--font-fredoka), system-ui', fontSize: 26, color: 'var(--tk-text)' }}>
           Subscription needed
@@ -86,7 +86,7 @@ export function RestrictedNotice() {
               textDecoration: 'none',
             }}
           >
-            {status?.purchaseEnabled ? 'Get the Android app' : 'Open Google Play'} <ExternalLink size={15} aria-hidden />
+            {status?.purchaseEnabled ? 'Get the Android app' : 'Open Google Play'} <ArrowSquareOutIcon size={15} aria-hidden />
           </a>
           {/* For someone who already paid on their phone and is waiting for
               this tab to catch up, rather than a second way to buy. */}
@@ -107,7 +107,7 @@ export function RestrictedNotice() {
               cursor: sync.isPending ? 'progress' : 'pointer',
             }}
           >
-            <RefreshCw size={15} aria-hidden />
+            <ArrowsClockwiseIcon size={15} aria-hidden />
             {sync.isPending ? 'Checking…' : 'Already subscribed? Refresh'}
           </button>
         </div>
@@ -124,21 +124,21 @@ export function RestrictedNotice() {
           (bill scans) or has nothing to say here (plan, legal). Each one
           opens the real page, so nothing is duplicated on this screen. */}
       <div className="account-card">
-        <ExitRow icon={Lock} label="Account & security" href="/account/security" />
-        <ExitRow icon={Database} label="Your data" href="/account/data" />
-        <ExitRow icon={Compass} label="How this works" href="/account/guided-tour" />
-        <ExitRow icon={MessageCircle} label="Help & feedback" href="/account/help" />
+        <ExitRow icon={LockIcon} label="Account & security" href="/account/security" />
+        <ExitRow icon={DatabaseIcon} label="Your data" href="/account/data" />
+        <ExitRow icon={CompassIcon} label="How this works" href="/account/guided-tour" />
+        <ExitRow icon={ChatCircleIcon} label="Help & feedback" href="/account/help" />
       </div>
     </div>
   )
 }
 
-function ExitRow({ icon: Icon, label, href }: { icon: LucideIcon; label: string; href: string }) {
+function ExitRow({ icon: Icon, label, href }: { icon: PhosphorIcon; label: string; href: string }) {
   return (
     <Link href={href} className="account-row">
       <Icon size={16} aria-hidden="true" />
       <span className="account-row-label">{label}</span>
-      <ChevronRight size={16} className="account-row-arrow" aria-hidden="true" />
+      <CaretRightIcon size={16} className="account-row-arrow" aria-hidden="true" />
     </Link>
   )
 }

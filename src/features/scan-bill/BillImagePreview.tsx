@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { X } from 'lucide-react'
+import { XIcon } from '@/src/components/icons'
 
 /** Render the image directly: browsers block opening a data URL in a new tab. */
 export function BillImagePreview({ src, onClose }: { src: string; onClose: () => void }) {
@@ -32,7 +32,7 @@ export function BillImagePreview({ src, onClose }: { src: string; onClose: () =>
       <div className="scan-photo-preview-head">
         <h3>Bill photo</h3>
         <button type="button" className="erd-modal-close" aria-label="Close bill photo" onClick={onClose}>
-          <X size={22} aria-hidden="true" />
+          <XIcon size={22} aria-hidden="true" />
         </button>
       </div>
       {/* eslint-disable-next-line @next/next/no-img-element -- a local data URL rendered without navigation */}

@@ -1,5 +1,5 @@
 import { pageMetadata } from '@/lib/seo'
-import { Lightbulb } from 'lucide-react'
+import { LightbulbIcon } from '@/src/components/icons'
 import { getDb } from '@/lib/mongodb'
 import { IDEA_STATUSES, IDEAS, type IdeaDoc } from '@/lib/ideas'
 import type { UserDoc } from '@/lib/users'
@@ -36,7 +36,7 @@ export default async function AdminIdeas() {
       <section className="erd-card adm-card adm-card-fill">
         {rows.length === 0 ? (
           <div className="adm-empty-fill">
-            <Lightbulb size={32} aria-hidden="true" />
+            <LightbulbIcon size={32} aria-hidden="true" />
             <span>No ideas yet.</span>
           </div>
         ) : (

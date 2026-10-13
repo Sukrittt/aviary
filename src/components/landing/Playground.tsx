@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { Pause, Play, RotateCcw } from 'lucide-react'
+import { PauseIcon, PlayIcon, ArrowCounterClockwiseIcon } from '@/src/components/icons'
 
 import { PHONE, PhoneScreenContext, T } from './mobile/kit'
 import { FloatingNav } from './mobile/nav'
@@ -216,9 +216,9 @@ export function Playground() {
         </div>
         <p className="lp-phone-hint" aria-live="polite">{hint}</p>
         {!reduced && (mine
-          ? <button type="button" className="lp-replay" onClick={() => { fresh(); setTookOver(false); setPaused(false) }}><RotateCcw size={15} aria-hidden="true" />Watch the demo instead</button>
+          ? <button type="button" className="lp-replay" onClick={() => { fresh(); setTookOver(false); setPaused(false) }}><ArrowCounterClockwiseIcon size={15} aria-hidden="true" />Watch the demo instead</button>
           : <button type="button" className="lp-stage-pause lp-play-pause" onClick={() => setPaused((p) => !p)} aria-label={paused ? 'Play the demo' : 'Pause the demo'}>
-              {paused ? <Play size={14} /> : <Pause size={14} />}
+              {paused ? <PlayIcon size={14} /> : <PauseIcon size={14} />}
             </button>)}
       </div>
     </section>

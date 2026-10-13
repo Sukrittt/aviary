@@ -8,7 +8,7 @@ import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "motion/r
 import { AmountText, CheckIcon } from "../components/landing/mobile/kit";
 import { track } from "../lib/analytics";
 import { currencyUnit } from "../lib/currencies";
-import { ChevronRight, Pencil } from "lucide-react";
+import { CaretRightIcon, PencilSimpleIcon } from "@/src/components/icons";
 import { useAppearance } from "../../components/AppearanceProvider";
 
 import { FluidDemo } from "../components/FluidDemo";
@@ -479,7 +479,7 @@ export function ExpensePage() {
                         {envelopeState.income === 0
                           ? "Set your income"
                           : `Income · ${formatCurrency(envelopeState.income, hideAmounts)}`}
-                        <ChevronRight size={14} aria-hidden="true" />
+                        <CaretRightIcon size={14} aria-hidden="true" />
                       </button>
                       {incomeMenuAt === "pill" && incomeMenu}
                     </div>
@@ -493,7 +493,7 @@ export function ExpensePage() {
                       aria-expanded={incomeMenuAt === "pencil"}
                       onClick={() => setIncomeMenuAt((at) => (at === "pencil" ? null : "pencil"))}
                     >
-                      <Pencil size={15} aria-hidden="true" />
+                      <PencilSimpleIcon size={15} aria-hidden="true" />
                     </button>
                     {incomeMenuAt === "pencil" && incomeMenu}
                   </div>
@@ -540,7 +540,7 @@ export function ExpensePage() {
                       </AnimatePresence>
                       <span className="erd-home-rta-slim-amount">
                         {hideAmounts ? "---" : <AmountText value={envelopeState.readyToAssign} animate id="ready-to-assign" />}
-                        <ChevronRight size={16} aria-hidden="true" />
+                        <CaretRightIcon size={16} aria-hidden="true" />
                       </span>
                     </button>
                     {incomeMenuAt === "pill" && incomeMenu}
@@ -636,7 +636,7 @@ export function ExpensePage() {
                   layout={reduceMotion ? false : "position"}
                   transition={homeTransition}
                 >
-                  Trends and daily spend <ChevronRight size={16} />
+                  Trends and daily spend <CaretRightIcon size={16} />
                 </MotionLink>
               )}
             </div>
