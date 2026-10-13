@@ -754,6 +754,9 @@ export function ExpensePage() {
                 >
                   <Sheet
                     className="move-money-modal bulk-return-modal"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Return all to Ready to Assign"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <div className="move-money-header">
