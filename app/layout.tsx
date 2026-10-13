@@ -1,6 +1,9 @@
 import type { Metadata } from 'next'
 import { Fredoka, Nunito } from 'next/font/google'
-// tokens.css first: every other sheet reads its --tk-* custom properties.
+// globals.css (Tailwind + shadcn) first: its rules sit in cascade layers, so the
+// unlayered app sheets below always win.
+import './globals.css'
+// Then tokens.css: every other app sheet reads its --tk-* custom properties.
 import '../src/theme/tokens.css'
 import '../src/theme/scale.css'
 import '../src/index.css'
