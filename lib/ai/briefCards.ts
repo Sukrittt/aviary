@@ -39,7 +39,7 @@ export function buildBriefCandidates(ctx: SummarizeExpensesResult, currencyCode:
     cards.push({
       icon: '🚨',
       title: worstOverspent.category,
-      subtitle: "You've gone past this envelope",
+      subtitle: "You've gone past this budget",
       valueLabel,
       amount: Math.round(Math.abs(worstOverspent.available)),
       tone: 'warn',
@@ -52,7 +52,7 @@ export function buildBriefCandidates(ctx: SummarizeExpensesResult, currencyCode:
     cards.push({
       icon: '🔥',
       title: heaviest.category,
-      subtitle: 'Your heaviest envelope this month',
+      subtitle: 'Your heaviest category this month',
       valueLabel,
       amount: Math.round(heaviest.spent),
       tone: 'violet',
@@ -143,8 +143,8 @@ function buildQuestions(ctx: SummarizeExpensesResult): string[] {
   ]
   if (heaviest && heaviest.spent > 0) questions.push(`Why is ${heaviest.category} so high?`)
   if (ctx.highlights.subscriptionMonthlyBurn > 0) questions.push('Which subscriptions should I drop?')
-  if (spending.some((e) => e.isOverspent)) questions.push('Which envelopes did I overspend?')
-  questions.push('What was my biggest spend?', 'Which envelope is closest to empty?')
+  if (spending.some((e) => e.isOverspent)) questions.push('Which categories did I overspend?')
+  questions.push('What was my biggest spend?', 'Which category is closest to empty?')
   return [...new Set(questions)]
 }
 

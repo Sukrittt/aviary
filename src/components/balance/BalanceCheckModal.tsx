@@ -30,7 +30,7 @@ const SAVE_FAILED = "Couldn't save your balance. Check your connection and try a
 const RESOLVE_FAILED = "Couldn't save that. Check your connection and try again."
 
 const GAP_OPTIONS: { reason: GapReason; title: string; body: string }[] = [
-  { reason: 'unlogged', title: "Spends I didn't log", body: "We'll split it across your usual envelopes. You can fix it before it's logged." },
+  { reason: 'unlogged', title: "Spends I didn't log", body: "We'll split it across your usual categories. You can fix it before it's logged." },
   { reason: 'card_bill', title: 'Card bill', body: 'You paid a credit card bill from this account.' },
   { reason: 'moved', title: 'Moved, lent or cash', body: 'Sent to savings, lent to someone or took out cash.' },
   { reason: 'mix', title: 'A mix', body: 'Some of each. Tell us the amounts.' },
@@ -464,7 +464,7 @@ function Estimates({ proposal, cardShortfall, loggedPct, onReviewing, onDone }: 
   return (
     <div className="balance-step">
       <h4 className="balance-title">Here&apos;s our best guess</h4>
-      <p className="balance-hint">Split across the envelopes you usually spend from, and marked as estimates. Fix anything that&apos;s off, then log.</p>
+      <p className="balance-hint">Split across the categories you usually spend from, and marked as estimates. Fix anything that&apos;s off, then log.</p>
       {cardShortfall > 0 && (
         <p className="balance-hint">{`Your card bill was ${formatMoney(cardShortfall)} more than the card spends you logged, so those are in here too.`}</p>
       )}

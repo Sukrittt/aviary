@@ -22,7 +22,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         </Link>
         <div className="auth-brand-body">
           <p className="auth-brand-headline">
-            Envelope budgeting that{' '}
+            Budgeting that{' '}
             <span className="auth-brand-learns">
               learns
               <svg viewBox="0 0 200 14" preserveAspectRatio="none" aria-hidden="true">

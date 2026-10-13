@@ -280,7 +280,7 @@ export function RecurringExpenseModal({ id, initialValues, suggestionId, onAdded
               <p className="recurring-hint">
                 {category
                   ? `We'll add this expense in ${splitEmoji(category).text} on every due date.`
-                  : 'Pick one so we know which envelope to file it under.'}
+                  : 'Pick one so we know which category to file it under.'}
               </p>
             </section>
           </div>

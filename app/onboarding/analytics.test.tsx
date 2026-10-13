@@ -90,7 +90,7 @@ describe('onboarding analytics', () => {
       finish = () => resolve({ onboardedAt: '2026-09-18T12:00:00.000Z', user: { currencyCode: 'USD' } as never, access: {} as never })
     }))
     const client = walkToFinish()
-    expect(screen.getByText('Creating your envelopes…')).toBeInTheDocument()
+    expect(screen.getByText('Creating your categories…')).toBeInTheDocument()
     expect(await screen.findByText('Starting your budget…')).toBeInTheDocument()
     finish()
     expect(await screen.findByRole('heading', { name: 'Your budget is ready to go.' }, { timeout: 3000 })).toBeInTheDocument()

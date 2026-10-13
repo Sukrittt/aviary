@@ -107,7 +107,7 @@ it('shows an overspend as "Over by" with a way to cover it, never a negative lef
   expect(screen.getByText('Over by ₹100')).toBeInTheDocument()
   expect(screen.queryByText(/left of/)).not.toBeInTheDocument()
   expect(screen.queryByText(/\/day/)).not.toBeInTheDocument()
-  expect(screen.getByText('Cover it from another envelope?')).toBeInTheDocument()
+  expect(screen.getByText('Cover it from another category?')).toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: 'Cover it' }))
   expect(handlers.onCover).toHaveBeenCalledOnce()
 })

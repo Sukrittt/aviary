@@ -32,7 +32,7 @@ describe('ExpenseSidebar', () => {
     expect(screen.queryByText('Insights')).toBeNull()
     expect(screen.queryByText('Ask Aviary')).toBeNull()
     expect(screen.queryByText('Scan a bill')).toBeNull()
-    expect(screen.getByText('Envelopes')).toBeTruthy()
+    expect(screen.getByText('Categories')).toBeTruthy()
   })
 
   it('opens and closes the mobile navigation accessibly', () => {

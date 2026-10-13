@@ -155,7 +155,7 @@ export function NotifyDemo({ onComplete }: { onComplete: () => void }) {
           ))}
         </div>
         <p className="tour-result-note">
-          Pings the moment you log past 50%, 90% or 100%, and again if you go over. Pick your own lines per envelope, up to five.
+          Pings the moment you log past 50%, 90% or 100%, and again if you go over. Pick your own lines per category, up to five.
           Only the highest line crossed pings, so one big spend never sends three.
         </p>
       </div>

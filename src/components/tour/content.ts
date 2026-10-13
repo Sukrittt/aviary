@@ -29,10 +29,10 @@ export interface Chapter {
 
 export const CHAPTERS: Chapter[] = [
   {
-    title: 'Envelopes & Ready to Assign',
+    title: 'Categories & Ready to Assign',
     blurb: 'Money gets a job before it gets spent.',
     kicker: 'CHAPTER 1 OF 7',
-    lede: "Every category is an envelope. Your income shows up as one number, Ready to Assign, and you hand it out until there's nothing left to hand out.",
+    lede: "Your income shows up as one number, Ready to Assign. Hand it out to your categories until there's nothing left.",
     nudge: 'Fund all four. Get Ready to Assign to zero.',
     linkLabel: 'Open Home',
     href: '/expense',
@@ -40,9 +40,9 @@ export const CHAPTERS: Chapter[] = [
   },
   {
     title: 'Logging money',
-    blurb: 'One expense drains one envelope. Nothing else.',
+    blurb: 'One expense drains one category. Nothing else.',
     kicker: 'CHAPTER 2 OF 7',
-    lede: 'Log what you spent and it comes out of that envelope only. So Fun going wild never quietly eats Groceries.',
+    lede: 'Log what you spent and it comes out of that category only. So Fun going wild never quietly eats Groceries.',
     nudge: 'Log one and watch exactly one bar move.',
     linkLabel: 'Open Log expense',
     href: '/expense',
@@ -52,11 +52,11 @@ export const CHAPTERS: Chapter[] = [
     title: 'Pull money',
     blurb: 'Short somewhere? Borrow from somewhere with slack.',
     kicker: 'CHAPTER 3 OF 7',
-    lede: "An envelope can't cover a bill. Pull the difference from one that can. Sources are ranked by how much room they actually have.",
+    lede: "A category can't cover a bill. Pull the difference from one that can. Sources are ranked by how much room they actually have.",
     nudge: 'Cover the ₹1,400 shortfall. Pick a source.',
     linkLabel: 'Open Home',
     href: '/expense',
-    linkNote: 'Click a category, then "Pull money from envelopes"',
+    linkNote: 'Click a category, then "Pull money from categories"',
   },
   {
     title: 'The new month',
@@ -72,7 +72,7 @@ export const CHAPTERS: Chapter[] = [
     title: 'Understanding your money',
     blurb: 'Insights, plus a brain you can interrogate.',
     kicker: 'CHAPTER 5 OF 7',
-    lede: 'Insights steps back month by month: normal or not, where it went, a daily heatmap. Ask Aviary answers in plain language, having actually read your envelopes.',
+    lede: 'Insights steps back month by month: normal or not, where it went, a daily heatmap. Ask Aviary answers in plain language, having actually read your categories.',
     nudge: 'Ask it something nosy.',
     linkLabel: 'Open Ask Aviary',
     href: '/expense',
@@ -83,7 +83,7 @@ export const CHAPTERS: Chapter[] = [
     title: 'Notifications',
     blurb: 'What pings you, when, and how to hush it.',
     kicker: 'CHAPTER 6 OF 7',
-    lede: 'Nothing here pings you for fun. Every notification is tied to your envelopes, your bills or your month, and every one has a switch.',
+    lede: 'Nothing here pings you for fun. Every notification is tied to your categories, your bills or your month, and every one has a switch.',
     nudge: 'Push Groceries past its thresholds, then try three kinds.',
     linkLabel: 'Open Account',
     href: '/account',
@@ -178,7 +178,7 @@ export const BRAIN_ASKS = [
   },
   {
     q: 'Where did Fun go?',
-    a: "₹2,400 of Fun this month: two dinners out and a concert ticket. There's still ₹2,600 sitting in the envelope.",
+    a: "₹2,400 of Fun this month: two dinners out and a concert ticket. There's still ₹2,600 left in Fun.",
   },
   {
     q: 'Can I afford a ₹8,000 trip?',
@@ -210,7 +210,7 @@ export const EXTRAS = [
   {
     name: 'Scan a bill',
     emoji: '📷',
-    desc: 'Photograph or drag in a receipt and it reads the line items, splits them by however many people ate, and files each into an envelope before logging.',
+    desc: 'Photograph or drag in a receipt and it reads the line items, splits them by however many people ate, and files each into a category before logging.',
   },
   {
     name: 'Your data & privacy',
@@ -257,7 +257,7 @@ export const NOTIFY_KINDS = [
     emoji: '🧠',
     title: 'Heads up on this month',
     body: 'Shopping is running hot. Fun has ₹4,000 of slack that could cover it guilt-free.',
-    when: "At most once a week, and only when you're on pace to overspend or an envelope already has. AI reads your real envelopes and writes one concrete fix. It never invents a number, and if AI is down you get the plain math instead.",
+    when: "At most once a week, and only when you're on pace to overspend or a category already has. AI reads your real categories and writes one concrete fix. It never invents a number, and if AI is down you get the plain math instead.",
     control: 'Smart nudge switch. Rides along with the digest, so Off silences it.',
     digestGated: true,
   },

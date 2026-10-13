@@ -266,7 +266,7 @@ export function EnvelopesPage() {
 
       <header className="erd-mobile-header">
         <div className="erd-mobile-greet">
-          Envelopes <span>✉️</span>
+          Categories <span>✉️</span>
         </div>
         <div className="erd-mobile-sub">
           <span>Every category, and the group it lives in</span>
@@ -279,9 +279,9 @@ export function EnvelopesPage() {
           <header className="txn-page-header env-page-header">
             <div className="txn-page-heading">
               <span className="txn-page-eyebrow">Your spending, organized</span>
-              <h1>Envelopes</h1>
+              <h1>Categories</h1>
               <p>
-                A place for every category. A heads-up before you overspend.
+                A place for all your money. A heads-up before you overspend.
               </p>
             </div>
             <div className="txn-page-actions">
@@ -329,7 +329,7 @@ export function EnvelopesPage() {
           {!loading && grouped.length === 0 && (
             <BirdEmptyState
               subject="envelopes"
-              title="Your envelopes are waiting"
+              title="Your categories are waiting"
               description="Make a group, add a category, and give all your money a place to land."
               action={{
                 label: "Create your first group",
@@ -341,7 +341,7 @@ export function EnvelopesPage() {
           <DragList
             drag={groupDrag}
             className="env-group-list"
-            label="Envelope groups"
+            label="Category groups"
           >
             {orderedGroups.map((group) => {
               // Like Mobile, every group folds to its header while one is dragged, so each
@@ -456,7 +456,7 @@ export function EnvelopesPage() {
                                   setEditing(category);
                                   setDraftPcts(thresholds);
                                 }}
-                                title="Get notified when spending in this envelope reaches these points"
+                                title="Get notified when spending in this category reaches these points"
                                 aria-label={`Spending alerts for ${parts.text}: ${thresholds.map((p) => `${p}%`).join(", ")}`}
                               >
                                 <BellIcon size={14} aria-hidden="true" />

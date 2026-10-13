@@ -141,7 +141,7 @@ export default function DataPage() {
       <div className="account-export-row">
         <div className="account-export-title">Export</div>
         <div className="account-export-meta">
-          {summary ? `${summary.transactionCount} transactions · ${summary.envelopeCount} envelopes` : '—'}
+          {summary ? `${summary.transactionCount} transactions · ${summary.envelopeCount} categories` : '—'}
           {exports
             ? ` · ${Math.min(exports.usedThisMonth, exports.limit)} of ${exports.limit} exports used this month`
             : ''}
@@ -223,7 +223,7 @@ export default function DataPage() {
           <span>
             <span style={{ display: 'block', fontSize: 14, fontWeight: 700 }}>Clear all transactions</span>
             <span style={{ display: 'block', fontSize: 11, color: 'var(--erd-text2)', marginTop: 2 }}>
-              Keeps envelopes, wipes history
+              Keeps categories, wipes history
             </span>
           </span>
         </span>
@@ -232,7 +232,7 @@ export default function DataPage() {
       {confirmingClear ? (
         <div className="account-confirm-panel">
           <div className="account-confirm-copy">
-            This deletes every transaction. Envelopes and budgets stay. There is no undo.
+            This deletes every transaction. Categories and budgets stay. There&apos;s no undo.
           </div>
           <div className="account-confirm-actions">
             <button type="button" className="account-confirm-cancel" onClick={() => setConfirmingClear(false)} disabled={clearing}>

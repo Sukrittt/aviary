@@ -474,8 +474,8 @@ function MoveMoneyBody({
           <strong>{target ? 'Nothing to pull from' : "Can't pull into this one"}</strong>
           <p>
             {target
-              ? "Your other envelopes are empty and there's nothing in Ready to Assign. Add some income first."
-              : `${targetCategoryName} isn't set up as an envelope.`}
+              ? "Your other categories are empty and there's nothing in Ready to Assign. Add some income first."
+              : `${targetCategoryName} isn't in your budget yet.`}
           </p>
         </div>
       </FormSheet>
@@ -585,7 +585,7 @@ function MoveMoneyBody({
         <div className="money-search-row">
           <label className="money-search">
             <MagnifyingGlassIcon size={14} />
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Find an envelope" />
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Find a category" />
           </label>
           <button type="button" className="money-autofill" onClick={autoFillNow} disabled={busy}>
             Auto-fill

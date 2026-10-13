@@ -20,7 +20,7 @@ interface Props {
 const NAV: Array<{ href: string; label: string; icon: PhosphorIcon }> = [
   { href: "/expense", label: "Home", icon: HouseIcon },
   { href: "/expense/transactions", label: "Activity", icon: InvoiceIcon },
-  { href: "/expense/envelopes", label: "Envelopes", icon: EnvelopeSimpleIcon },
+  { href: "/expense/envelopes", label: "Categories", icon: EnvelopeSimpleIcon },
   { href: "/insights", label: "Insights", icon: ChartLineIcon },
 ];
 

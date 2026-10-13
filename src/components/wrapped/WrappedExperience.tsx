@@ -101,7 +101,7 @@ function WrappedStory({ data, judgement, moneySaved, hideAmounts }: { data: Wrap
       color: '#e89161', ink: '#341b10', node: <Story eyebrow="Consistency check" title={`${data.longestStreak?.days ?? 0} day streak`} emoji="🔥"><p>{data.longestStreak ? `${formatDateShort(data.longestStreak.startDate)} to ${formatDateShort(data.longestStreak.endDate)}. Your longest run of logged spending.` : 'Every habit starts with day one.'}</p></Story>,
     },
     {
-      color: '#b8d4ab', ink: '#1d3019', node: <Story eyebrow="Money still yours" title={formatCurrency(moneySaved, hideAmounts)} emoji="🌱"><p>left across this month&apos;s envelopes. Quiet progress counts.</p></Story>,
+      color: '#b8d4ab', ink: '#1d3019', node: <Story eyebrow="Money still yours" title={formatCurrency(moneySaved, hideAmounts)} emoji="🌱"><p>left across this month&apos;s categories. Quiet progress counts.</p></Story>,
     },
     {
       color: '#7268a8', ink: '#fffaf5', node: <Story eyebrow="Your money personality" title={archetype.name} emoji={archetype.emoji}><p>{archetype.copy}</p></Story>,

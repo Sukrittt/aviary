@@ -209,7 +209,7 @@ export function ExpenseAdded({
           >
             {over ? (
               <>
-                <span>Cover it from another envelope?</span>
+                <span>Cover it from another category?</span>
                 <button type="button" className="account-pill-btn" onClick={onCover}>Cover it</button>
               </>
             ) : (

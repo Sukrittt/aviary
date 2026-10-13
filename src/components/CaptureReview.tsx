@@ -52,7 +52,7 @@ function blockerHint(kept: CaptureRow[]): string | null {
     const out: string[] = []
     if (!name) out.push('Name each spend')
     if (Number.isNaN(rowTotal(row))) out.push(name ? `Fix the amount for ${name}` : 'Fix the amounts')
-    if (!row.category) out.push(name ? `Pick an envelope for ${name}` : 'Pick an envelope for each spend')
+    if (!row.category) out.push(name ? `Pick a category for ${name}` : 'Pick a category for each spend')
     return out
   })
   if (fixes.length === 0) return null
@@ -217,8 +217,8 @@ export function CaptureReview({ proposal, onSettled, origin = CAPTURE_ORIGIN, lo
                   value={row.category}
                   onChange={(category) => update(row.id, { category })}
                   options={categoryOptions}
-                  placeholder="Pick an envelope"
-                  aria-label={row.category ? `Envelope: ${row.category}. Change it` : 'Pick an envelope'}
+                  placeholder="Pick a category"
+                  aria-label={row.category ? `Category: ${row.category}. Change it` : 'Pick a category'}
                   disabled={busy || locked}
                   searchable
                 />

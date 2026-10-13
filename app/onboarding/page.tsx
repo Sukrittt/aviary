@@ -125,7 +125,7 @@ const TITLES: Record<number, [string, string]> = {
   0: ['Choose your currency', 'The currency you use for your budget. You can change it later in More.'],
   1: ['What lands each month?', 'Your take-home income. This becomes the pot you assign from. Not sure yet? Skip it and add it from Home later.'],
   2: ['Group your money', 'Groups are the big buckets. Accept these or rename them to fit your life.'],
-  3: ['Add your categories', 'These are the envelopes you actually spend from. Pick the ones you recognize.'],
+  3: ['Add your categories', 'These are the buckets you actually spend from. Pick the ones you recognize.'],
   4: ['Assign your money', 'We suggested a split based on what each category is for. Change any amount. Anything you leave waits in Ready to Assign.'],
 }
 
@@ -486,7 +486,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
     let doneWrites = 0
     const tick = () => setSaveProgress(++doneWrites / totalWrites)
     setSaveProgress(0)
-    setSaveStep('Creating your envelopes…')
+    setSaveStep('Creating your categories…')
     // Each step stays readable for at least STEP_MIN_MS, so a fast write never
     // flashes its text past the user or cuts straight to the next screen.
     let stepShownAt = Date.now()
@@ -1059,7 +1059,7 @@ function SetupDone({
       <Confetti />
       <div className="setup-done-badge"><CheckIcon size={30} weight="bold" aria-hidden="true" /></div>
       <h1 className="setup-done-title">Your budget is ready to go.</h1>
-      <p className="setup-done-blurb">Everything below can be changed later from Envelopes.</p>
+      <p className="setup-done-blurb">Everything below can be changed later from Categories.</p>
       <p className="setup-done-promise">Your first-week recap lands in 7 days</p>
       <div className="setup-done-list">
         {summary.map((s) => (

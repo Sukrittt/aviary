@@ -17,8 +17,8 @@ export function GetStartedCard({ incomeDone, manualTransactionDone, guidedTourDo
   const reduce = useReducedMotion()
   const steps = [
     incomeDone
-      ? { key: 'budget', icon: CardholderIcon, label: 'Set up your budget', hint: 'Your envelopes are ready', done: true }
-      : { key: 'budget', icon: CardholderIcon, label: 'Add your income', hint: 'Give your envelopes money to hold', done: false, onClick: onAddIncome },
+      ? { key: 'budget', icon: CardholderIcon, label: 'Set up your budget', hint: 'Your categories are ready', done: true }
+      : { key: 'budget', icon: CardholderIcon, label: 'Add your income', hint: 'Give your categories money to hold', done: false, onClick: onAddIncome },
     { key: 'transaction', icon: PlusCircleIcon, label: 'Add a manual transaction', hint: 'Log one expense by hand', done: manualTransactionDone, onClick: onAddTransaction },
     { key: 'tour', icon: CompassIcon, label: 'Take a guided tour', hint: 'See where everything lives', done: guidedTourDone, onClick: onTakeTour },
   ]
