@@ -470,9 +470,14 @@ function MoveMoneyBody({
         busy={false}
         footer={<button type="button" className="erd-log-submit" onClick={onClose}>Close</button>}
       >
-        <p className="erd-sub-hint">
-          {!target ? `${targetCategoryName} isn't set up as an envelope.` : 'No funds available to pull from.'}
-        </p>
+        <div className="erd-sub-empty">
+          <strong>{target ? 'Nothing to pull from' : "Can't pull into this one"}</strong>
+          <p>
+            {target
+              ? "Your other envelopes are empty and there's nothing in Ready to Assign. Add some income first."
+              : `${targetCategoryName} isn't set up as an envelope.`}
+          </p>
+        </div>
       </FormSheet>
     )
   }
