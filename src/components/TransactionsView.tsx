@@ -24,7 +24,7 @@ import { DatePicker } from "./DatePicker";
 import { Select } from "./Select";
 import { avatarColorFor, categoryEmoji, splitEmoji } from "../lib/emoji";
 import { formatShortDate } from "../lib/format";
-import { parseLocalDate } from "../lib/date";
+import { parseLocalDate, toLocalDateString } from "../lib/date";
 import { BirdEmptyState } from "./BirdEmptyState";
 import { useIncomes } from "../hooks/useIncomes";
 import { liveAccounts, useAccounts } from "../hooks/useAccounts";
@@ -36,10 +36,6 @@ type PeriodKey = "week" | "month" | "custom";
 
 const PAGE_SIZE = 40;
 
-
-function toDateInput(d: Date): string {
-  return d.toISOString().slice(0, 10);
-}
 
 function formatDateHeading(iso: string): string {
   const date = new Date(`${iso}T00:00:00`);
@@ -162,8 +158,8 @@ export function TransactionsView({
     if (dateParam) return { start: dateParam, end: dateParam };
     const latest = anchorDate ?? new Date();
     return {
-      start: toDateInput(new Date(latest.getFullYear(), latest.getMonth(), 1)),
-      end: toDateInput(latest),
+      start: toLocalDateString(new Date(latest.getFullYear(), latest.getMonth(), 1)),
+      end: toLocalDateString(latest),
     };
   }, [dateParam, anchorDate]);
 
@@ -223,7 +219,7 @@ export function TransactionsView({
       start = parseLocalDate(customStart);
       end.setTime(parseLocalDate(customEnd).getTime());
     }
-    return { from: toDateInput(start), to: toDateInput(end) };
+    return { from: toLocalDateString(start), to: toLocalDateString(end) };
   }, [period, customStart, customEnd, latestDate]);
 
   const expensesQuery = useExpensesPage({
