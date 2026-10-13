@@ -52,7 +52,7 @@ it('starts a new month automatically and shows only a dismissible leftover notic
   expect(screen.queryByText(/Copy last month/)).not.toBeInTheDocument()
   expect(screen.getByLabelText('₹15,000')).toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: 'Nice' }))
-  expect(screen.queryByText(/went to savings last month/)).not.toBeInTheDocument()
+  await waitFor(() => expect(screen.queryByText(/went to savings last month/)).not.toBeInTheDocument())
   expect(addBudget).not.toHaveBeenCalled()
   expect(updateBudget).not.toHaveBeenCalled()
   fireEvent.click(screen.getByRole('button', { name: 'Income options' }))
@@ -111,14 +111,15 @@ it('preserves the cards below when getting started arrives after the dashboard a
   vi.mocked(getUser).mockReturnValueOnce(new Promise((resolve) => { resolveUser = resolve }))
   const client = renderPage()
   const envelopes = await screen.findByText('Envelope content')
-  const trends = screen.getByRole('link', { name: 'Trends and daily spend' })
   expect(screen.queryByRole('heading', { name: 'Get started' })).not.toBeInTheDocument()
+  // Insights is an opt-in extra, so it waits for the profile instead of flashing in.
+  expect(screen.queryByRole('link', { name: 'Trends and daily spend' })).not.toBeInTheDocument()
 
   await act(async () => resolveUser({ ...baseUser, getStartedAt: '2026-09-01', manualTransactionCompletedAt: '2026-09-02' }))
   expect(await screen.findByRole('heading', { name: 'Get started' })).toBeInTheDocument()
   expect(screen.getByRole('progressbar', { name: 'Getting started' })).toHaveAttribute('aria-valuenow', '2')
   expect(screen.getByText('Envelope content')).toBe(envelopes)
-  expect(screen.getByRole('link', { name: 'Trends and daily spend' })).toBe(trends)
+  const trends = screen.getByRole('link', { name: 'Trends and daily spend' })
 
   fireEvent.click(screen.getByRole('button', { name: 'Skip getting started' }))
   await waitFor(() => expect(screen.queryByRole('heading', { name: 'Get started' })).not.toBeInTheDocument())

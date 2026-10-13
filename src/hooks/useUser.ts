@@ -11,7 +11,7 @@ export function useUser() {
   return useQuery({ queryKey: userKey, queryFn: getUser, staleTime: 30_000 })
 }
 
-/** Features this user has hidden. Empty until the profile loads, same as Mobile. */
+/** Features this user has hidden. The opt-in extras until the profile loads. */
 export function useHiddenFeatures() {
   return hiddenFeatures(useUser().data)
 }

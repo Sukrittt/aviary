@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { CURRENCIES, createCurrencyFormat, formatMoney, formatMoneyInput, isCurrencyCode, resolveCurrency, searchCurrencies } from './currencies'
+import { CURRENCIES, createCurrencyFormat, currencyUnit, formatMoney, formatMoneyInput, isCurrencyCode, resolveCurrency, searchCurrencies } from './currencies'
 
 describe('display currency', () => {
   it('includes current currencies and excludes obsolete, fund and testing codes', () => {
@@ -48,5 +48,22 @@ describe('display currency', () => {
     expect(usd.formatCurrency(42)).toBe('$42')
     expect(eur.formatCurrency(42)).toBe('€42')
     expect(usd.formatCurrency(42)).toBe('$42')
+  })
+})
+
+describe('currencyUnit', () => {
+  it('names the everyday unit, not the ISO name', () => {
+    expect(currencyUnit('INR')).toBe('rupee')
+    expect(currencyUnit('USD')).toBe('dollar')
+    expect(currencyUnit('MXN')).toBe('peso')
+    expect(currencyUnit('EUR')).toBe('euro')
+    expect(currencyUnit('JPY')).toBe('yen')
+    expect(currencyUnit('GBP')).toBe('pound')
+    expect(currencyUnit('CNY')).toBe('yuan')
+    expect(currencyUnit('XOF')).toBe('franc')
+  })
+
+  it('falls back to the default currency for an unknown code', () => {
+    expect(currencyUnit('???')).toBe('rupee')
   })
 })

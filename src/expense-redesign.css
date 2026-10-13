@@ -636,8 +636,8 @@
 }
 /* Ready to Assign just hit zero: a mint beat, then back to the plain row. */
 .erd-card.erd-home-rta-slim.is-celebrating {
-  border-color: var(--mint);
-  background: var(--mint-soft);
+  border-color: transparent;
+  background: var(--tk-pill-good-bg);
 }
 .erd-home-rta-celebrate {
   display: inline-flex;
@@ -11772,12 +11772,18 @@ button.account-feature-card {
 }
 
 /* Mobile's month-end heads-up and optional onboarding milestones. */
+/* Clips the strip as "Nice" slides it off to the right. */
+.expense-redesign .home-leftover-slot { overflow: hidden; flex-shrink: 0; }
+/* Same size and green as the settled Ready to Assign row above it. */
 .expense-redesign .home-leftover-notice {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 8px 22px;
-  background: var(--mint-soft);
+  padding: 16px 20px;
+  border-color: transparent;
+  background: var(--tk-pill-good-bg);
+  font-size: 15px;
+  font-weight: 600;
 }
 .expense-redesign .home-leftover-notice p { flex: 1; margin: 0; color: var(--erd-text); }
 .expense-redesign .home-leftover-notice button {
@@ -11787,8 +11793,9 @@ button.account-feature-card {
   font: inherit;
   font-weight: 800;
   cursor: pointer;
-  min-height: 44px;
-  padding: 4px 8px;
+  /* A 44px tap target that doesn't make the strip taller than the row above. */
+  margin: -12px -8px;
+  padding: 12px 8px;
 }
 .expense-redesign .home-get-started {
   flex-shrink: 0;
@@ -11980,7 +11987,7 @@ button.account-feature-card {
 .expense-redesign .home-leftover-notice button:focus-visible { outline: 2px solid var(--mint); outline-offset: 3px; }
 @media (max-width: 600px) {
   .expense-redesign .home-get-started { padding: var(--tk-space-lg); }
-  .expense-redesign .home-leftover-notice { padding: 8px 16px; }
+  .expense-redesign .home-leftover-notice { padding: 16px; }
 }
 
 .setup-top { justify-content: space-between; }
