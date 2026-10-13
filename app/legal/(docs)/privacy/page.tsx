@@ -99,6 +99,10 @@ export default function PrivacyPage() {
         <li><strong>Expo / Google Firebase</strong> — delivers push notifications.</li>
         <li><strong>Vercel</strong> — hosts the app and its API, and stores data exports you request.</li>
         <li>
+          <strong>TypeSafe AI</strong>, through Vercel&apos;s AI Gateway: receives the title and details of a bug
+          report to sort it by area and severity. Nothing else about you or your account is sent.
+        </li>
+        <li>
           <strong>Razorpay</strong> — takes payment when you subscribe on the website. Your card or UPI details go
           to Razorpay, not to us. We keep your subscription&apos;s id, plan and renewal dates.
         </li>
