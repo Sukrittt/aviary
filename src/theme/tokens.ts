@@ -49,6 +49,14 @@ export interface ThemeTokens {
   warn: string
   warnInk: string
   warnSoft: string
+  /** Home's "left" pills. Solid in light mode: an alpha tint of mint/warn/coral
+   *  over white reads muddy grey. Dark keeps the alpha tints. */
+  pillGood: string
+  pillGoodBg: string
+  pillLow: string
+  pillLowBg: string
+  pillOver: string
+  pillOverBg: string
 }
 
 export const darkTokens: ThemeTokens = {
@@ -87,10 +95,16 @@ export const darkTokens: ThemeTokens = {
   warn: '#facc15',
   warnInk: '#fde047',
   warnSoft: 'rgba(250, 204, 21, 0.22)',
+  pillGood: '#26e085',
+  pillGoodBg: 'rgba(38, 224, 133, 0.16)',
+  pillLow: '#fde047',
+  pillLowBg: 'rgba(250, 204, 21, 0.16)',
+  pillOver: '#ff646f',
+  pillOverBg: 'rgba(255, 100, 111, 0.16)',
 }
 
 export const lightTokens: ThemeTokens = {
-  bg: '#faf8f5',
+  bg: '#ffffff',
   text: '#060606',
   text2: '#424242',
   text3: '#717171',
@@ -100,10 +114,10 @@ export const lightTokens: ThemeTokens = {
   sidebarBox: 'rgba(242, 238, 232, 0.7)',
   inputBg: '#f2eee8',
   pillBg: 'rgba(255, 255, 255, 0.9)',
-  modalBg: 'rgba(250, 248, 245, 0.98)',
-  modalStrong: 'rgba(250, 248, 245, 0.96)',
-  tabbarBg: 'rgba(250, 248, 245, 0.92)',
-  headerBg: 'rgba(250, 248, 245, 0.92)',
+  modalBg: 'rgba(255, 255, 255, 0.98)',
+  modalStrong: 'rgba(255, 255, 255, 0.96)',
+  tabbarBg: 'rgba(255, 255, 255, 0.92)',
+  headerBg: 'rgba(255, 255, 255, 0.92)',
   heroA: 'rgba(255, 232, 220, 0.65)',
   heroB: 'rgba(245, 238, 234, 0.7)',
   border: 'rgba(60, 40, 20, 0.08)',
@@ -125,4 +139,10 @@ export const lightTokens: ThemeTokens = {
   warn: '#eab308',
   warnInk: '#a16207',
   warnSoft: 'rgba(234, 179, 8, 0.18)',
+  pillGood: '#15803d',
+  pillGoodBg: '#dcfce7',
+  pillLow: '#b45309',
+  pillLowBg: '#fef3c7',
+  pillOver: '#b91c1c',
+  pillOverBg: '#fee2e2',
 }

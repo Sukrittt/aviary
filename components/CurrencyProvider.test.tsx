@@ -32,4 +32,21 @@ describe('profile currency', () => {
     expect(getUser).toHaveBeenCalled()
     unmount(); client.clear()
   })
+
+  it("keeps the server-rendered profile when the session finishes loading for the same account", () => {
+    // Home's HTML ships the profile in the cache; AuthKit only learns who's signed in after hydration.
+    identity = null
+    vi.mocked(getUser).mockClear()
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } })
+    client.setQueryData(['user'], { _id: 'a', currencyCode: 'USD' })
+    const tree = () => <QueryClientProvider client={client}><CurrencyProvider><Amount /></CurrencyProvider></QueryClientProvider>
+    const { rerender, unmount } = render(tree())
+    identity = { id: 'a' }
+    rerender(tree())
+    // Dropping it here blanks everything that reads the profile (hidden features, currency) for a frame.
+    expect(client.getQueryData(['user'])).toEqual({ _id: 'a', currencyCode: 'USD' })
+    expect(screen.getByText('$500')).toBeTruthy()
+    expect(getUser).not.toHaveBeenCalled()
+    unmount(); client.clear()
+  })
 })

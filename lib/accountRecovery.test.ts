@@ -2,7 +2,7 @@ import { beforeAll, afterAll, it, expect, vi } from 'vitest'
 import { MongoMemoryReplSet } from 'mongodb-memory-server'
 vi.mock('./workosClient', () => ({ getWorkOSClient: () => ({ userManagement: { deleteUser: vi.fn() } }) }))
 vi.mock('./cache', () => ({ invalidate: vi.fn() }))
-vi.mock('./ai/briefCache', () => ({ BRIEF_SOURCES: new Set(), invalidateBrief: vi.fn(async () => {}) }))
+vi.mock('./ai/briefCache', () => ({ BRIEF_SOURCES: new Set(), BRIEF_CACHE_COLLECTION: 'ai_brief', invalidateBrief: vi.fn(async () => {}) }))
 import { getDb, getClient } from './mongodb'
 import { softDeleteAccount, restoreAccount } from './accountLifecycle'
 let server: MongoMemoryReplSet

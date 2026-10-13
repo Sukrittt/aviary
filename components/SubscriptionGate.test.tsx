@@ -2,7 +2,8 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 
 const usePathnameMock = vi.fn(() => '/expense')
-vi.mock('next/navigation', () => ({ usePathname: () => usePathnameMock() }))
+const replaceMock = vi.fn()
+vi.mock('next/navigation', () => ({ usePathname: () => usePathnameMock(), useRouter: () => ({ replace: replaceMock }) }))
 
 const useBillingStatusMock = vi.fn()
 vi.mock('@/src/hooks/useBillingStatus', () => ({
@@ -62,6 +63,16 @@ describe('SubscriptionGate', () => {
     // a retry, for every anonymous visitor.
     renderAt('/', expired)
     expect(useBillingStatusMock).toHaveBeenCalledWith(false)
+  })
+
+  it('sends an account with no trial yet to onboarding, not the lock screen', () => {
+    // setup_incomplete means onboarding never finished (e.g. the onboarding
+    // check failed and let them through). There's no subscription to have
+    // ended, so "Subscription needed" would be a lie.
+    renderAt('/expense', { data: { ...expired.data, mode: 'setup_incomplete', trialEndsAt: null } })
+    expect(screen.queryByText('Subscription needed')).toBeNull()
+    expect(screen.queryByText('budgeting app')).toBeNull()
+    expect(replaceMock).toHaveBeenCalledWith('/onboarding')
   })
 
   it('renders the app for an allowed account', () => {

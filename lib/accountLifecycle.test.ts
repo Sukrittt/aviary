@@ -9,7 +9,8 @@ const listMock = vi.fn(async (_opts: { prefix: string }) => ({ blobs: [] as { ur
 vi.mock('@vercel/blob', () => ({ list: (opts: { prefix: string }) => listMock(opts), del: vi.fn() }))
 
 const { purgeAccountNow } = await import('./accountLifecycle')
-const db = { collection: () => ({ deleteMany: deleteManyMock, deleteOne: deleteOneMock }) } as never
+const collectionMock = vi.fn((_name: string) => ({ deleteMany: deleteManyMock, deleteOne: deleteOneMock }))
+const db = { collection: collectionMock } as never
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -36,5 +37,11 @@ describe('purgeAccountNow', () => {
     process.env.BLOB_READ_WRITE_TOKEN = 'token'
     await purgeAccountNow(db, 'user_1')
     expect(listMock.mock.calls.map(([o]) => o.prefix)).toEqual(['bills/user_1/', 'exports/user_1/', 'expense-photos/user_1/'])
+  })
+
+  it("deletes every per-user collection, the Ask Aviary brief cache included", async () => {
+    await purgeAccountNow(db, 'user_1')
+    const swept = collectionMock.mock.calls.map(([name]) => name)
+    for (const name of ['ai_brief', 'incomes', 'recurring_incomes', 'accounts', 'ai_usage']) expect(swept).toContain(name)
   })
 })

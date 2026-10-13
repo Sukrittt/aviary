@@ -8,7 +8,7 @@ import { track } from '@/src/lib/analytics'
 const { replace } = vi.hoisted(() => ({ replace: vi.fn() }))
 vi.mock('next/navigation', () => ({ useRouter: () => ({ replace }) }))
 vi.mock('@/components/MoneyBrainProvider', () => ({ useMoneyBrain: () => ({ openMoneyBrain: vi.fn() }) }))
-vi.mock('@/src/api/account', () => ({ completeGuidedTour: vi.fn() }))
+vi.mock('@/src/api/account', () => ({ completeGuidedTour: vi.fn(), getUser: vi.fn(async () => ({})) }))
 vi.mock('@/src/lib/analytics', () => ({ track: vi.fn() }))
 vi.mock('@/src/components/tour/useTourContent', () => ({ useTourContent: () => ({
   CHAPTERS: [{ title: 'Assign', kicker: 'Assign', lede: 'Demo', nudge: 'Try it', href: '/expense' }, { title: 'Log', kicker: 'Log', lede: 'Demo', nudge: 'Try it', href: '/expense/transactions' }],

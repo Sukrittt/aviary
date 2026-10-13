@@ -19,7 +19,7 @@ function prompt(status: BalanceStatus): { title: string; body: string } {
   if (status.open) {
     return { title: 'Finish your balance check', body: "Your last check found money you haven't explained yet." }
   }
-  return { title: 'Time for a balance check', body: 'Open GPay or your bank app and type the balance. It takes ten seconds.' }
+  return { title: 'Time for a balance check', body: 'Open your bank app and type the balance. It takes ten seconds.' }
 }
 
 /** Off for now: group splits make the bank balance a poor proxy for spending. Flip to bring the check back. */

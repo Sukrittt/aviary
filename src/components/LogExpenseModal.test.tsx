@@ -24,6 +24,7 @@ vi.mock('../hooks/useExpenses', () => ({
 }))
 vi.mock('../api/categoryMap', () => ({ getCategoryMap: vi.fn(async () => ({ words: {}, updatedAt: '' })) }))
 vi.mock('../lib/autoCategory', () => ({ suggestCategoryLLM: vi.fn() }))
+vi.mock('../hooks/useUser', () => ({ useHiddenFeatures: () => [] }))
 vi.mock('../hooks/useGroups', () => ({ useGroups: () => ({ data: ['Food', 'Home'] }) }))
 vi.mock('../hooks/useCategories', () => ({
   useAddCategory: () => ({ mutateAsync: addCategoryMutation }),
@@ -44,13 +45,19 @@ vi.mock('./DatePicker', () => ({ DatePicker: () => null }))
 // The animated receipt itself is chrome here; this file tests the dialog's hand-off to it.
 vi.mock('../features/log-expense/ExpenseAdded', () => ({
   PreloadExpenseAddedTick: () => null,
-  ExpenseAdded: ({ expense, onUndo, onDone }: { expense: { amount: number; item: string; categorySnapshot?: { name: string; group: string } }; onUndo: () => void; onDone: () => void }) => (
+  ExpenseAdded: ({ expense, onUndo, onDone, onSetBudget, onCover }: { expense: { amount: number; item: string; categorySnapshot?: { name: string; group: string } }; onUndo: () => void; onDone: () => void; onSetBudget: () => void; onCover: () => void }) => (
     <div data-category-name={expense.categorySnapshot?.name} data-category-group={expense.categorySnapshot?.group}>
       <p>Added ₹{expense.amount} · {expense.item}</p>
       <button type="button" onClick={onUndo}>Undo</button>
       <button type="button" onClick={onDone}>Done</button>
+      <button type="button" onClick={onSetBudget}>Set a budget</button>
+      <button type="button" onClick={onCover}>Cover it</button>
     </div>
   ),
+}))
+vi.mock('./MoneyScreens', () => ({
+  AssignMoneyScreen: ({ category, onClose }: { category: string; onClose: () => void }) => <button type="button" onClick={onClose}>{`Assign to ${category}`}</button>,
+  MoveMoneyScreen: ({ targetCategory, onClose }: { targetCategory: string; onClose: () => void }) => <button type="button" onClick={onClose}>{`Move money to ${targetCategory}`}</button>,
 }))
 
 const llm = vi.mocked(suggestCategoryLLM)
@@ -385,4 +392,35 @@ it('shows Add a photo right away, with no More toggle', () => {
   render(<LogExpenseModal onClose={vi.fn()} onSaved={vi.fn()} />)
   expect(screen.getByRole('button', { name: 'Add a photo' })).toBeTruthy()
   expect(screen.queryByRole('button', { name: 'More' })).toBeNull()
+})
+
+async function saveMilk() {
+  fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '450' } })
+  type('Milk')
+  fireEvent.click(screen.getByRole('button', { name: 'Choose Groceries' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Save expense' }))
+}
+
+it('keeps the entry after a failed save and says so', async () => {
+  addExpenseMutation.mockRejectedValue(new Error('503'))
+  render(<LogExpenseModal onClose={vi.fn()} onSaved={vi.fn()} />)
+  await saveMilk()
+  expect(await screen.findByText("Couldn't save. Your entry's safe. Fix anything and try again.")).toBeInTheDocument()
+  expect(screen.queryByText(/503/)).not.toBeInTheDocument()
+  expect(screen.getByLabelText('Amount')).toHaveValue('450')
+  expect(screen.getByLabelText('What was it for?')).toHaveValue('Milk')
+})
+
+it.each([
+  ['Set a budget', 'Assign to Groceries'],
+  ['Cover it', 'Move money to Groceries'],
+])('hands the receipt\'s %s over to its money screen, and closing that closes the dialog', async (action, screenLabel) => {
+  addExpenseMutation.mockResolvedValue({ id: 'expense-1', timestamp: '2026-09-24T10:00:00Z', version: 0, pending: false })
+  const onClose = vi.fn()
+  render(<LogExpenseModal onClose={onClose} onSaved={vi.fn()} />)
+  await saveMilk()
+  fireEvent.click(await screen.findByRole('button', { name: action }))
+  expect(screen.queryByText('Added ₹450 · Milk')).not.toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: screenLabel }))
+  expect(onClose).toHaveBeenCalledOnce()
 })

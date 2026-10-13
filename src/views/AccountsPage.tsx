@@ -275,7 +275,7 @@ export function AccountModal({ id, onClose }: { id?: string; onClose: () => void
             <label className="erd-log-label" htmlFor="account-name">Name</label>
             <div className="env-sheet-name-row">
               <div className="env-sheet-icon-swatch" aria-hidden="true">{accountEmoji({ name, type })}</div>
-              <input id="account-name" className="erd-log-input" style={{ flex: 1, minWidth: 0 }} placeholder="e.g. HDFC" maxLength={30} value={name} onChange={(e) => setName(e.target.value)} autoFocus={!existing} />
+              <input id="account-name" className="erd-log-input" style={{ flex: 1, minWidth: 0 }} placeholder="e.g. Main bank" maxLength={30} value={name} onChange={(e) => setName(e.target.value)} autoFocus={!existing} />
             </div>
             {name.trim() && !splitEmoji(name).icon && (
               <p className="recurring-hint">💡 Tip: start the name with an emoji, like 🐷 Savings, to give it its own icon.</p>

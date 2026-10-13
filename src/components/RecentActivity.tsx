@@ -23,6 +23,7 @@ export function RecentActivity({ expenses, hideAmounts }: { expenses: ExpenseRow
       {recent.length === 0 ? (
         <BirdEmptyState
           compact
+          mood="snoozing"
           subject="expenses"
           title="Your story starts here"
           description="Log your first expense and the little details will gather here."

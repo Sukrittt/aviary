@@ -5,7 +5,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "motion/react";
-import { AmountText } from "../components/landing/mobile/kit";
+import { AmountText, CheckIcon } from "../components/landing/mobile/kit";
+import { track } from "../lib/analytics";
+import { currencyUnit } from "../lib/currencies";
 import { ChevronRight, Pencil } from "lucide-react";
 import { useAppearance } from "../../components/AppearanceProvider";
 
@@ -40,7 +42,8 @@ import { useHideAmounts } from "../hooks/useHideAmounts";
 import { GetStartedCard } from "../components/home/GetStartedCard";
 import { LearningCard } from "../components/home/LearningCard";
 import { BALANCE_CHECK_ENABLED, BalanceCheckCard } from "../components/balance/BalanceCheckCard";
-import { useUser } from "../hooks/useUser";
+import { useHiddenFeatures, useUser } from "../hooks/useUser";
+import { FeatureNudge } from "../components/home/FeatureNudge";
 import { WeekRecapGate } from "../components/wrapped/WeekRecap";
 import { usePersistentState } from "../hooks/usePersistentState";
 import { LogExpenseModal } from "../components/LogExpenseModal";
@@ -50,6 +53,7 @@ import { useAccounts } from "../hooks/useAccounts";
 import { SuccessButton, useButtonPhase } from "../components/SuccessButton";
 import type { EnvelopeState } from "../types/expense";
 import { computeEnvelopeState, currentMonthKey, daysLeftInMonth, monthLabel, prevMonthKey } from "../lib/envelope";
+import { InsightsTab } from "@/src/components/InsightsTab";
 
 const parseDismissed = (raw: string) => raw === "1";
 const serializeDismissed = (value: boolean) => value ? "1" : "0";
@@ -74,6 +78,7 @@ export function ExpensePage() {
   const groupsQuery = useGroups();
   const subscriptionsQuery = useSubscriptions();
   const user = useUser().data;
+  const hidden = useHiddenFeatures();
 
   const updateBudgetM = useUpdateBudget();
   const transferBudgetM = useTransferBudget();
@@ -231,6 +236,43 @@ export function ExpensePage() {
   const previousLeftover = previousState.income - previousState.totalSpent;
   // Unknown until budgets load; counting it done avoids flashing the income step.
   const incomeDone = !envelopeState || envelopeState.income > 0;
+  // Same test as Mobile's Home: income is set and nothing is left to assign.
+  const rtaSettled = !!envelopeState && envelopeState.income > 0 && Math.abs(envelopeState.readyToAssign) < 0.005;
+  // Mobile's peak-end beat: Ready to Assign reaching zero while you watch (an
+  // assign, a move) gets a short mint celebration on the settled row. Loading
+  // in at zero doesn't count: there was no "before" to celebrate.
+  const readyToAssignNow = envelopeState?.readyToAssign;
+  const prevReadyRef = useRef<number | undefined>(undefined);
+  const [rtaCelebrationPending, setRtaCelebrationPending] = useState(false);
+  const [rtaCelebrating, setRtaCelebrating] = useState(false);
+  useEffect(() => {
+    const prev = prevReadyRef.current;
+    prevReadyRef.current = readyToAssignNow;
+    if (prev === undefined || Math.abs(prev) < 0.005 || !rtaSettled || document.visibilityState !== "visible") return;
+    setRtaCelebrationPending(true);
+  }, [readyToAssignNow, rtaSettled]);
+  // The save that zeroes it usually lands while its sheet is still open, so the
+  // beat waits for every modal to leave the page, same as Mobile waiting for focus.
+  useEffect(() => {
+    if (!rtaCelebrationPending) return;
+    const start = () => {
+      if (document.querySelector('[aria-modal="true"]')) return false;
+      setRtaCelebrationPending(false);
+      setRtaCelebrating(true);
+      track("rta_zero_celebrated");
+      return true;
+    };
+    if (start()) return;
+    const observer = new MutationObserver(() => { if (start()) observer.disconnect(); });
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["aria-modal"] });
+    return () => observer.disconnect();
+  }, [rtaCelebrationPending]);
+  useEffect(() => {
+    if (!rtaCelebrating) return;
+    const t = setTimeout(() => setRtaCelebrating(false), 2500);
+    return () => clearTimeout(t);
+  }, [rtaCelebrating]);
+  const daysLeftLabel = daysLeftInMonth() === 0 ? "Less than 24 hrs" : `${daysLeftInMonth()} days left`;
   const showGetStarted = !getStartedSkipped && !!user?.getStartedAt &&
     !(incomeDone && user.manualTransactionCompletedAt && user.guidedTourCompletedAt);
   const [showFluidDemo, setShowFluidDemo] = useState(false);
@@ -400,7 +442,7 @@ export function ExpensePage() {
             <div className="erd-home-main">
               {/* Income is entered from the menu top-right; RTA is often ₹0,
                   so the hero alone doesn't say where money comes in. */}
-              {envelopeState && (
+              {envelopeState && !rtaSettled && (
                 <article className="erd-card erd-home-hero-card">
                   <div className="erd-home-hero">
                     <span className="erd-home-hero-label">READY TO ASSIGN</span>
@@ -418,10 +460,7 @@ export function ExpensePage() {
                       )}
                     </strong>
                     <span className="erd-home-hero-caption">
-                      {monthLabel(panel.month)} ·{" "}
-                      {daysLeftInMonth() === 0
-                        ? "Less than 24 hrs"
-                        : `${daysLeftInMonth()} days left`}
+                      {monthLabel(panel.month)} · {daysLeftLabel}
                     </span>
                     {/* The pencil is easy to miss, so this pill names where the
                         number comes from. With no income yet it goes straight to
@@ -461,12 +500,84 @@ export function ExpensePage() {
                 </article>
               )}
 
-              {!leftoverDismissed && previousLeftover > 0 && (
-                <article className="erd-card home-leftover-notice">
-                  <p>{formatCurrency(previousLeftover, hideAmounts)} left over from last month.</p>
-                  <button type="button" onClick={() => setLeftoverDismissed(true)}>Okay</button>
-                </article>
+              {/* Mobile's settled state: once every rupee has a job, Ready to
+                  Assign drops from the hero to one row and the month moves up
+                  top. Tapping the row opens the same income menu. */}
+              {envelopeState && rtaSettled && (
+                <>
+                  <div className="erd-home-month">
+                    <strong>{monthLabel(panel.month)}</strong>
+                    <span>{daysLeftLabel}</span>
+                  </div>
+                  <div className="env-action-wrap erd-home-rta-slim-wrap" ref={incomePillRef}>
+                    <button
+                      type="button"
+                      className={`erd-card erd-home-rta-slim${rtaCelebrating ? " is-celebrating" : ""}`}
+                      aria-label="Ready to Assign options"
+                      aria-haspopup="menu"
+                      aria-expanded={incomeMenuAt === "pill"}
+                      onClick={() => setIncomeMenuAt((at) => (at === "pill" ? null : "pill"))}
+                    >
+                      <AnimatePresence mode="wait" initial={false}>
+                        <motion.span
+                          key={rtaCelebrating ? "celebrate" : "label"}
+                          className={rtaCelebrating ? "erd-home-rta-celebrate" : undefined}
+                          role={rtaCelebrating ? "status" : undefined}
+                          initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
+                          transition={{ duration: 0.22, ease: "easeOut" }}
+                        >
+                          {rtaCelebrating ? (
+                            <>
+                              <CheckIcon color="var(--mint)" size={18} />
+                              Every {currencyUnit(currencyCode)} has a job.
+                            </>
+                          ) : (
+                            <>💸&nbsp;&nbsp;Ready to Assign</>
+                          )}
+                        </motion.span>
+                      </AnimatePresence>
+                      <span className="erd-home-rta-slim-amount">
+                        {hideAmounts ? "---" : <AmountText value={envelopeState.readyToAssign} animate id="ready-to-assign" />}
+                        <ChevronRight size={16} aria-hidden="true" />
+                      </span>
+                    </button>
+                    {incomeMenuAt === "pill" && incomeMenu}
+                  </div>
+                </>
               )}
+              {/* One banner at a time, same as Mobile: the leftover notice goes first,
+                  and the next one waits for it to fade out. */}
+              <AnimatePresence mode="wait">
+                {!leftoverDismissed && previousLeftover > 0 ? (
+                  <motion.div
+                    key="leftover"
+                    className="home-leftover-slot"
+                    initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.22, ease: "easeOut" }}
+                    // "Nice" slides it off to the right, then its height (and the
+                    // column's 20px gap) closes so the cards below glide up.
+                    exit={reduceMotion ? { opacity: 0 } : {
+                      x: "100%", opacity: 0, height: 0, marginBottom: -20,
+                      transition: {
+                        x: { duration: 0.3, ease: [0.4, 0, 1, 1] },
+                        opacity: { duration: 0.3 },
+                        height: { delay: 0.22, duration: 0.32, ease: [0.22, 1, 0.36, 1] },
+                        marginBottom: { delay: 0.22, duration: 0.32, ease: [0.22, 1, 0.36, 1] },
+                      },
+                    }}
+                  >
+                    <article className="erd-card home-leftover-notice">
+                      <p>🌱 {formatCurrency(previousLeftover, hideAmounts)} went to savings last month.</p>
+                      <button type="button" onClick={() => setLeftoverDismissed(true)}>Nice</button>
+                    </article>
+                  </motion.div>
+                ) : (
+                  <FeatureNudge key="nudge" />
+                )}
+              </AnimatePresence>
 
               <AnimatePresence mode="popLayout">
                 {showGetStarted && user && (
@@ -518,29 +629,33 @@ export function ExpensePage() {
                 </motion.article>
               )}
 
-              <MotionLink
-                href="/insights"
-                className="erd-home-insights-link"
-                layout={reduceMotion ? false : "position"}
-                transition={homeTransition}
-              >
-                Trends and daily spend <ChevronRight size={16} />
-              </MotionLink>
+              {!hidden.includes("insights") && (
+                <MotionLink
+                  href="/insights"
+                  className="erd-home-insights-link"
+                  layout={reduceMotion ? false : "position"}
+                  transition={homeTransition}
+                >
+                  Trends and daily spend <ChevronRight size={16} />
+                </MotionLink>
+              )}
             </div>
             <aside className="erd-home-rail" aria-label="Subscriptions and recent activity">
-              <SubscriptionsPanel
-                active={panel.subscriptions.active}
-                cancelled={panel.subscriptions.cancelled}
-                hideAmounts={hideAmounts}
-                busyService={subscriptionBusy}
-                loading={subscriptionsQuery.isLoading && !subscriptionsQuery.data}
-                error={subscriptionsQuery.isError && !subscriptionsQuery.data}
-                onAdd={() => setEditingSubscription(null)}
-                onEdit={setEditingSubscription}
-                onCancel={(service) => void changeSubscriptionStatus(service, "cancel")}
-                onReactivate={(service) => void changeSubscriptionStatus(service, "reactivate")}
-                homeRail
-              />
+              {!hidden.includes("subscriptions") && (
+                <SubscriptionsPanel
+                  active={panel.subscriptions.active}
+                  cancelled={panel.subscriptions.cancelled}
+                  hideAmounts={hideAmounts}
+                  busyService={subscriptionBusy}
+                  loading={subscriptionsQuery.isLoading && !subscriptionsQuery.data}
+                  error={subscriptionsQuery.isError && !subscriptionsQuery.data}
+                  onAdd={() => setEditingSubscription(null)}
+                  onEdit={setEditingSubscription}
+                  onCancel={(service) => void changeSubscriptionStatus(service, "cancel")}
+                  onReactivate={(service) => void changeSubscriptionStatus(service, "reactivate")}
+                  homeRail
+                />
+              )}
               <RecentActivity expenses={expenseRows} hideAmounts={hideAmounts} />
             </aside>
           </div>
@@ -675,6 +790,9 @@ export function ExpensePage() {
                 >
                   <Sheet
                     className="move-money-modal bulk-return-modal"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Return all to Ready to Assign"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <div className="move-money-header">
@@ -777,10 +895,7 @@ export function ExpensePage() {
         >
           +
         </button>
-        <Link href="/insights" className="erd-tab">
-          <span aria-hidden="true">📊</span>
-          <span>Insights</span>
-        </Link>
+        <InsightsTab />
         <Link href="/account" className="erd-tab">
           <span aria-hidden="true">⚙️</span>
           <span>More</span>

@@ -28,17 +28,24 @@
 }
 .money-screen *,
 .money-screen *::before,
-.money-screen *::after {
+.money-screen *::after,
+.money-form *,
+.money-form *::before,
+.money-form *::after {
   box-sizing: border-box;
 }
 .money-screen button,
-.money-screen input {
+.money-screen input,
+.money-form button,
+.money-form input {
   font: inherit;
 }
-.money-screen button {
+.money-screen button,
+.money-form button {
   cursor: pointer;
 }
-.money-screen button:disabled {
+.money-screen button:disabled,
+.money-form button:disabled {
   cursor: default;
 }
 .money-screen :focus-visible {
@@ -79,19 +86,6 @@
   display: flex;
   gap: 6px;
   align-items: center;
-}
-.money-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 99px;
-  background: var(--tk-border-strong);
-  transition:
-    width 200ms,
-    background-color 200ms;
-}
-.money-dot.is-active {
-  width: 18px;
-  background: var(--tk-accent);
 }
 .money-content {
   display: flex;
@@ -172,31 +166,12 @@
   text-align: center;
 }
 .money-hint.is-neg,
+.erd-sub-hint.is-neg,
 .money-error {
   color: var(--tk-coral);
 }
 .money-error {
   font-size: 13px;
-}
-.money-chips {
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.money-chip {
-  border: 1px solid var(--tk-border-strong);
-  border-radius: 999px;
-  padding: 8px 14px;
-  background: var(--tk-input-bg);
-  color: var(--tk-text2);
-  font-size: 12px !important;
-  font-weight: 800 !important;
-}
-.money-chip.is-active {
-  background: var(--tk-accent-soft);
-  border-color: var(--tk-accent);
-  color: var(--tk-accent-ink);
 }
 .money-foot {
   padding: 8px 24px 24px;
@@ -232,12 +207,6 @@
 .money-cta.is-plain {
   border: 1px solid var(--tk-border);
   color: var(--tk-text);
-}
-.money-sources-head {
-  padding: 16px 16px 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
 }
 .money-cover-row {
   display: flex;
@@ -381,9 +350,6 @@
   color: var(--tk-text);
   text-align: right;
 }
-.money-empty {
-  padding: 24px;
-}
 @media (max-width: 600px) {
   .money-overlay {
     padding: 16px;
@@ -460,21 +426,6 @@
 .money-amount-field:focus-within .money-amount-preview {
   visibility: hidden;
 }
-/* Only the source list scrolls; reserve viewport room for the summary and actions. */
-.money-sources {
-  flex: 0 1 auto;
-  min-height: 0;
-  max-height: clamp(0px, calc(100dvh - 400px), 360px);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-gutter: stable;
-}
-.money-sources > .money-source-block {
-  flex-shrink: 0;
-}
-.money-sources-head {
-  flex-shrink: 0;
-}
 
 .money-month-row {
   display: flex;
@@ -483,17 +434,6 @@
   gap: 16px;
 }
 
-.money-step-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-.money-step-label {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
 .money-back {
   display: flex;
   align-items: center;
@@ -588,4 +528,18 @@
   text-align: center;
   margin: 20px 0 0;
   padding-top: 5px;
+}
+
+/* Move money's sources step inside the shared form sheet. */
+.money-form .money-progress {
+  margin-top: 12px;
+}
+.money-form .money-source-block .erd-log-label {
+  margin: 0;
+}
+.money-form .erd-sub-footer {
+  gap: 4px;
+}
+.money-form .money-form-error {
+  margin: 0 0 8px;
 }

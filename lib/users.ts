@@ -55,6 +55,8 @@ export interface UserDoc {
   billingTester?: boolean
   /** Last authenticated request, stamped at most hourly by lib/lastSeen.ts. */
   lastSeenAt?: Date
+  /** Furthest come-back nudge sent for the current quiet spell, keyed by its last-seen date. Server-owned, see lib/notifications/reengage.ts. */
+  lastReengage?: { lapse: string; step: number }
   /** Set when the account is soft-deleted; the GC cron purges the account (and its WorkOS user) `GRACE_DAYS` after this. Null/absent = active. */
   deleted_at?: string | null
   account_deletion_version?: 1

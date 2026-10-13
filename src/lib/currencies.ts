@@ -176,6 +176,16 @@ export function searchCurrencies(query: string) {
 export function currencyInfo(code: string = DEFAULT_CURRENCY) {
   return CURRENCIES.find(c => c.code === code) ?? CURRENCIES.find(c => c.code === DEFAULT_CURRENCY)!
 }
+// ISO names put the unit last ("Mexican Peso"), except these.
+const UNIT_OVERRIDES: Record<string, string> = {
+  GBP: 'pound', CNY: 'yuan', OMR: 'rial', UYU: 'peso', NIO: 'córdoba',
+  VES: 'bolívar', VED: 'bolívar', XOF: 'franc', XAF: 'franc', ZWG: 'ZiG',
+}
+/** The currency's everyday unit for copy like "Every peso has a job.": rupee, dollar, euro. */
+export function currencyUnit(code: string = DEFAULT_CURRENCY): string {
+  const { code: resolved, name } = currencyInfo(code)
+  return UNIT_OVERRIDES[resolved] ?? name.split(' ').pop()!.toLowerCase()
+}
 export function currencyPrefix(code: string = DEFAULT_CURRENCY): string {
   const { symbol } = currencyInfo(code)
   return /^[A-Z]{3}$/.test(symbol) ? `${symbol} ` : symbol

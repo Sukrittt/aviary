@@ -597,6 +597,72 @@
 .erd-home-hero-amount.is-negative {
   color: var(--coral);
 }
+/* Settled Ready to Assign (Mobile's slim row): month up top, one tappable row. */
+.erd-home-month {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.erd-home-month strong {
+  font-family: var(--font-fredoka);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--erd-text);
+}
+.erd-home-month span {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--erd-text2);
+}
+.expense-redesign .env-action-wrap.erd-home-rta-slim-wrap {
+  display: block;
+}
+.erd-card.erd-home-rta-slim {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 16px 20px;
+  border: 1px solid var(--erd-border);
+  box-shadow: none;
+  color: var(--erd-text);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.4s ease, border-color 0.4s ease;
+}
+/* Ready to Assign just hit zero: a mint beat, then back to the plain row. */
+.erd-card.erd-home-rta-slim.is-celebrating {
+  border-color: transparent;
+  background: var(--tk-pill-good-bg);
+}
+.erd-home-rta-celebrate {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--mint);
+  font-weight: 700;
+}
+.erd-home-rta-slim-amount {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-fredoka);
+  font-weight: 700;
+  color: var(--mint);
+  font-variant-numeric: tabular-nums;
+}
+.erd-home-rta-slim-amount svg {
+  color: var(--erd-text2);
+}
+.expense-redesign .erd-home-rta-slim-wrap .env-menu {
+  top: calc(100% + 6px);
+  right: 0;
+  left: auto;
+}
 .erd-home-hero-caption {
   font-size: 13px;
   font-weight: 500;
@@ -722,12 +788,11 @@
   text-align: right;
   font-size: 13px;
   font-weight: 600;
-  color: var(--mint);
+  color: var(--erd-text2);
   font-variant-numeric: tabular-nums;
 }
-.env2-group-left.is-neg,
-.env2-available.is-neg {
-  color: var(--coral);
+.env2-group-left.is-neg {
+  color: var(--tk-pill-over);
 }
 .env2-group-rows {
   margin-left: 11px;
@@ -809,13 +874,23 @@
   color: var(--erd-text2);
 }
 .env2-available {
-  min-width: 84px;
+  /* Fixed width so every row's bar ends at the same x, whatever the amount. */
+  flex: 0 0 104px;
   text-align: right;
   font-size: 14px;
   font-weight: 600;
-  color: var(--mint);
   font-variant-numeric: tabular-nums;
 }
+/* Mobile's "left" pills (availablePill in EnvelopeRow.tsx). */
+.env2-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+.env2-pill.is-good { color: var(--tk-pill-good); background: var(--tk-pill-good-bg); }
+.env2-pill.is-low { color: var(--tk-pill-low); background: var(--tk-pill-low-bg); }
+.env2-pill.is-over { color: var(--tk-pill-over); background: var(--tk-pill-over-bg); }
+.env2-pill.is-empty { color: var(--erd-text3); }
 .env2-category-icon {
   display: grid;
   place-items: center;
@@ -845,7 +920,7 @@
     margin-left: 0;
     font-size: 11px;
   }
-  .env2-available { min-width: 64px; font-size: 13px; }
+  .env2-available { flex-basis: 84px; font-size: 13px; }
 }
 .env2-menu-title {
   padding: 8px 12px 4px;
@@ -8611,6 +8686,10 @@ button.account-feature-card {
   cursor: pointer;
   pointer-events: auto;
 }
+.wrapped-share.wrapped-plan {
+  margin-top: 12px;
+  text-decoration: none;
+}
 .wrapped-key-hint {
   position: absolute;
   z-index: 20;
@@ -11563,6 +11642,26 @@ button.account-feature-card {
   font-weight: 800;
   color: var(--erd-text);
 }
+.erd-added-left.is-over {
+  font-size: 26px;
+  color: var(--coral);
+}
+/* An unfunded envelope: asks for a budget in place of the envelope card. */
+.erd-added-nudge {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+.erd-added-nudge strong {
+  font: 600 18px/1.3 var(--font-fredoka);
+  color: var(--erd-text);
+}
+.erd-added-nudge p {
+  margin: 0 0 6px;
+  font: 700 13px/1.3 var(--font-nunito);
+  color: var(--erd-text2);
+}
 .erd-added-footer {
   align-self: stretch;
   display: flex;
@@ -11673,22 +11772,30 @@ button.account-feature-card {
 }
 
 /* Mobile's month-end heads-up and optional onboarding milestones. */
+/* Clips the strip as "Nice" slides it off to the right. */
+.expense-redesign .home-leftover-slot { overflow: hidden; flex-shrink: 0; }
+/* Same size and green as the settled Ready to Assign row above it. */
 .expense-redesign .home-leftover-notice {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 8px 22px;
+  padding: 16px 20px;
+  border-color: transparent;
+  background: var(--tk-pill-good-bg);
+  font-size: 15px;
+  font-weight: 600;
 }
-.expense-redesign .home-leftover-notice p { flex: 1; margin: 0; color: var(--erd-text2); }
+.expense-redesign .home-leftover-notice p { flex: 1; margin: 0; color: var(--erd-text); }
 .expense-redesign .home-leftover-notice button {
   border: 0;
   background: transparent;
-  color: var(--gold-ink);
+  color: var(--mint);
   font: inherit;
   font-weight: 800;
   cursor: pointer;
-  min-height: 44px;
-  padding: 4px 8px;
+  /* A 44px tap target that doesn't make the strip taller than the row above. */
+  margin: -12px -8px;
+  padding: 12px 8px;
 }
 .expense-redesign .home-get-started {
   flex-shrink: 0;
@@ -11877,10 +11984,10 @@ button.account-feature-card {
 .expense-redesign .get-started-step.is-next > svg { color: var(--gold-ink); }
 .expense-redesign .get-started-step:focus-visible,
 .expense-redesign .get-started-skip:focus-visible,
-.expense-redesign .home-leftover-notice button:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+.expense-redesign .home-leftover-notice button:focus-visible { outline: 2px solid var(--mint); outline-offset: 3px; }
 @media (max-width: 600px) {
   .expense-redesign .home-get-started { padding: var(--tk-space-lg); }
-  .expense-redesign .home-leftover-notice { padding: 8px 16px; }
+  .expense-redesign .home-leftover-notice { padding: 16px; }
 }
 
 .setup-top { justify-content: space-between; }
@@ -12543,4 +12650,19 @@ button.account-feature-card {
   color: var(--tone);
   font-size: 11px;
   font-weight: 800;
+}
+
+/* Setup's extras step (PickExtras.tsx): setup-done rows with a label, a pitch and a switch. */
+.setup-extra-row {
+  cursor: pointer;
+}
+.setup-extra-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.setup-extra-label {
+  font-weight: 800;
+  font-size: 14px;
 }

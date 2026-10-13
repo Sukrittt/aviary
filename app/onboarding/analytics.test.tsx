@@ -59,7 +59,10 @@ describe('onboarding analytics', () => {
     expect(eventsNamed('onboarding_completed')[0]).toMatchObject({ total_seconds: 7, groups_count: 2, currency: 'USD', customized: true, skipped_income: false })
     expect(screen.queryByText('Assigned')).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
-    expect(replace).toHaveBeenCalledWith('/account/trial-notice')
+    // Extras come last, then the trial notice.
+    fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }))
+    await waitFor(() => expect(replace).toHaveBeenCalledWith('/account/trial-notice'))
+    expect(eventsNamed('onboarding_extras_chosen')).toEqual([{ extras: '', count: 0 }])
     client.clear()
   })
 

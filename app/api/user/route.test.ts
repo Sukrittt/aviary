@@ -32,7 +32,12 @@ const cancelWebSubscriptionsMock = vi.fn(async (_userId: string) => 0)
 vi.mock('@/lib/billing/service', () => ({ completeOnboarding: completeOnboardingMock, cancelWebSubscriptions: cancelWebSubscriptionsMock }))
 const { BillingProviderError } = await import('@/lib/billing/providerError')
 
-const { DELETE, PATCH } = await import('./route')
+const ensureUserByIdMock = vi.fn(async (_userId: string) => undefined)
+vi.mock('@/lib/users', async (importOriginal) => ({ ...(await importOriginal<typeof import('@/lib/users')>()), ensureUserById: ensureUserByIdMock }))
+const scheduleWelcomeEmailMock = vi.fn()
+vi.mock('@/lib/email/welcome', () => ({ scheduleWelcomeEmail: scheduleWelcomeEmailMock }))
+
+const { DELETE, GET, PATCH } = await import('./route')
 
 function patchRequest(body: unknown): Request {
   return new Request('https://example.com/api/user', {
@@ -238,5 +243,30 @@ describe('PATCH /api/user — onboarding from a released app version', () => {
     const res = await PATCH(patchRequest({ notifyCadence: 'weekly' }))
     expect(res.status).toBe(200)
     expect(completeOnboardingMock).not.toHaveBeenCalled()
+  })
+})
+
+describe('GET /api/user', () => {
+  it('returns the existing profile without touching WorkOS', async () => {
+    usersFindOneMock.mockResolvedValueOnce({ _id: 'user_a', email: 'a@example.com', onboardedAt: null } as never)
+    const res = await GET(new Request('https://example.com/api/user'))
+    expect((await res.json()).email).toBe('a@example.com')
+    expect(ensureUserByIdMock).not.toHaveBeenCalled()
+  })
+
+  it('creates the row for a first-time Mobile Google sign-in instead of answering null', async () => {
+    // Mobile's Google sign-in goes straight to WorkOS and never calls
+    // /api/auth/verify, so the first request here can find no row. Answering
+    // `null` made the app skip setup and land on the billing lock screen.
+    usersFindOneMock
+      .mockResolvedValueOnce(null as never)
+      .mockResolvedValueOnce({ _id: 'user_a', email: 'new@example.com', onboardedAt: null } as never)
+    const res = await GET(new Request('https://example.com/api/user'))
+    const body = await res.json()
+    expect(ensureUserByIdMock).toHaveBeenCalledWith('user_a')
+    expect(scheduleWelcomeEmailMock).toHaveBeenCalledWith('user_a')
+    expect(body).not.toBeNull()
+    expect(body.email).toBe('new@example.com')
+    expect(body.onboardedAt).toBeNull()
   })
 })

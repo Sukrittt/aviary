@@ -6,6 +6,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useAuth } from '@workos-inc/authkit-nextjs/components'
 import { MessageSquareText, X } from 'lucide-react'
 import { useMoneyBrain } from './MoneyBrainProvider'
+import { useHiddenFeatures } from '@/src/hooks/useUser'
 import { interrupted, subscribeInterruptions } from './ChangelogAnnouncement'
 import { useRecentExpenses } from '@/src/hooks/useExpenses'
 import { usePersistentState } from '@/src/hooks/usePersistentState'
@@ -37,6 +38,7 @@ export function CaptureTip() {
   const { user } = useAuth()
   const pathname = usePathname() ?? ''
   const brain = useMoneyBrain()
+  const askHidden = useHiddenFeatures().includes('askAviary')
   const reduceMotion = useReducedMotion()
   const blocked = useSyncExternalStore(subscribeInterruptions, blockedNow, () => true)
   const onApp = pathname === '/expense' || pathname.startsWith('/expense/')
@@ -54,7 +56,7 @@ export function CaptureTip() {
     return () => window.removeEventListener(MANUAL_LOG_EVENT, onLog)
   }, [])
 
-  const ready = Boolean(user && onApp && rows && !blocked && !brain.isMoneyBrainOpen)
+  const ready = Boolean(user && !askHidden && onApp && rows && !blocked && !brain.isMoneyBrainOpen)
   if (ready && shown === null) {
     // eslint-disable-next-line react-hooks/purity -- read once, when deciding whether to latch
     const reason = captureTipReason({ rows: rows!, today: todayIST(), now: Date.now(), manualLogs, state: { ...state, done: tried } })

@@ -9,7 +9,7 @@ import { ArrowLeft, ArrowRight, RotateCw, Search, Trash2, X } from 'lucide-react
 import { Scrim, Sheet } from './MotionSheet'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
 import { LoadingCaption } from './LoadingCaption'
-import { AmountText, CheckIcon, cssEase, ease, type as typeScale } from './landing/mobile/kit'
+import { AmountText, CheckIcon, ease, type as typeScale } from './landing/mobile/kit'
 import { useBudgets, useFreshBudgets, useTransferBudget, useUpdateBudget } from '../hooks/useBudgets'
 import { useCategories } from '../hooks/useCategories'
 import { useRecentExpenses } from '../hooks/useExpenses'
@@ -167,10 +167,6 @@ function Screen({
   )
 }
 
-function StepDot({ active }: { active: boolean }) {
-  return <span className={`money-dot ${active ? 'is-active' : ''}`} style={{ transitionTimingFunction: cssEase(ease.ease) }} />
-}
-
 function SubjectCard({ emoji, label, name, detail }: { emoji: string; label: string; name: string; detail: string }) {
   return (
     <div className="money-card">
@@ -237,9 +233,9 @@ function ConflictReview({
   )
 }
 
-function QuickChip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+function QuickChip({ label, active, disabled, onPress }: { label: string; active: boolean; disabled?: boolean; onPress: () => void }) {
   return (
-    <button type="button" className={`money-chip ${active ? 'is-active' : ''}`} onClick={onPress}>
+    <button type="button" className={`erd-chip ${active ? 'is-selected' : ''}`} onClick={onPress} disabled={disabled}>
       {label}
     </button>
   )
@@ -341,7 +337,7 @@ interface SourceItem {
 
 export function MoveMoneyScreen({ targetCategory, onClose }: { targetCategory: string; onClose: () => void }) {
   const data = useMoneyData()
-  if (data.isLoading) return <Screen title="Pull money" onClose={onClose} busy={false}><LoadingCaption /></Screen>
+  if (data.isLoading) return <FormSheet title="Pull money" onClose={onClose} busy={false}><LoadingCaption /></FormSheet>
   return <MoveMoneyBody targetCategoryName={targetCategory} onClose={onClose} data={data} />
 }
 
@@ -407,6 +403,8 @@ function MoveMoneyBody({
   })()
 
   const pickedRows = sources.filter((s) => s.key in allocs)
+  // Nothing left to allocate: the pool can't take a tap, so it gets out of the way.
+  const covered = amount > 0 && remaining === 0 && pickedRows.length > 0
   const q = query.trim().toLowerCase()
   const poolRows = sources.filter((s) => !(s.key in allocs) && (!q || s.name.toLowerCase().includes(q)))
 
@@ -462,65 +460,55 @@ function MoveMoneyBody({
 
   const noOptions = !target || (envelopeSources.length === 0 && readyToAssign <= 0)
 
+  const title = `Pull money into ${targetName}`
+
   if (noOptions) {
     return (
-      <Screen title="Pull money" onClose={onClose} busy={false}>
-        <div className="money-body">
-          <p className="money-hint">
-            {!target ? `${targetCategoryName} isn't set up as an envelope.` : 'No funds available to pull from.'}
-          </p>
-          <button type="button" className="money-cta is-plain" onClick={onClose}>
-            Close
-          </button>
-        </div>
-      </Screen>
+      <FormSheet
+        title="Pull money"
+        onClose={onClose}
+        busy={false}
+        footer={<button type="button" className="erd-log-submit" onClick={onClose}>Close</button>}
+      >
+        <p className="erd-sub-hint">
+          {!target ? `${targetCategoryName} isn't set up as an envelope.` : 'No funds available to pull from.'}
+        </p>
+      </FormSheet>
     )
   }
 
-  const stepRow = (
-    <div className="money-step-row">
-      <div className="money-step-label">
-        <span className="money-label">{step === 'amount' ? 'STEP 1 OF 2 · AMOUNT' : 'STEP 2 OF 2 · SOURCES'}</span>
-        <span className="money-dots" aria-hidden="true">
-          <StepDot active />
-          <StepDot active={step === 'sources'} />
-        </span>
-      </div>
-      <button type="button" className="money-head-btn" aria-label="Close" onClick={onClose} disabled={busy}>
-        <X size={16} />
-      </button>
-    </div>
-  )
-
   if (step === 'amount') {
     return (
-      <Screen title="Pull money" onClose={onClose} busy={busy} showHeader={false}>
-        <div className="money-body">
-          {stepRow}
-          <SubjectCard
-            emoji={splitEmoji(targetCategoryName).icon || categoryEmoji(targetCategoryName)}
-            label="MOVING TO"
-            name={targetName}
-            detail={
-              isOverspent
+      <FormSheet
+        title={title}
+        onClose={onClose}
+        busy={busy}
+        footer={
+          <button type="button" className="erd-log-submit" disabled={amount <= 0} onClick={() => setStep('sources')}>
+            {amount > 0 ? 'Pick sources →' : 'Add an amount'}
+          </button>
+        }
+      >
+        <AmountField
+          id="move-amount"
+          value={amountStr}
+          onChange={(value) => { setAmountStr(value); setAllocs({}) }}
+          autoFocus
+          hint={
+            amount === 0
+              ? isOverspent
                 ? `${formatCurrency(shortfall, hideAmounts)} overspent`
-                : `${formatCurrency(targetAvail, hideAmounts)} available`
-            }
-          />
-          <HeroAmount amountText={amountStr} onChange={(value) => { setAmountStr(value); setAllocs({}) }}>
-            <p className="money-hint">
-              {amount === 0
-                ? 'Type an amount to get started'
-                : isOverspent && amount >= shortfall
-                  ? amount > shortfall
-                    ? `Clears the overspend, ${formatCurrency(amount - shortfall, hideAmounts)} extra`
-                    : 'Clears the overspend exactly'
-                  : isOverspent
-                    ? `${formatCurrency(shortfall - amount, hideAmounts)} more needed to clear it`
-                    : `Adds to ${targetName}`}
-            </p>
-          </HeroAmount>
-          <div className="money-chips">
+                : `${formatCurrency(targetAvail, hideAmounts)} available now`
+              : isOverspent && amount >= shortfall
+                ? amount > shortfall
+                  ? `Clears the overspend, ${formatCurrency(amount - shortfall, hideAmounts)} extra`
+                  : 'Clears the overspend exactly'
+                : isOverspent
+                  ? `${formatCurrency(shortfall - amount, hideAmounts)} more needed to clear it`
+                  : `Adds to ${targetName}`
+          }
+        >
+          <div className="erd-sub-picks">
             {isOverspent && shortfall > 0 && (
               <QuickChip
                 label={`Cover overspend · ${formatCurrency(shortfall, hideAmounts)}`}
@@ -543,58 +531,70 @@ function MoveMoneyBody({
               />
             ))}
           </div>
-        </div>
-        <div className="money-foot">
-          <Cta
-            label={amount > 0 ? 'Pick sources →' : 'Add an amount'}
-            enabled={amount > 0}
-            saving={false}
-            success={false}
-            onPress={() => amount > 0 && setStep('sources')}
-          />
-        </div>
-      </Screen>
+        </AmountField>
+      </FormSheet>
     )
   }
 
   return (
-    <Screen title="Pull money" onClose={onClose} onBack={() => setStep('amount')} busy={busy} showHeader={false}>
-      <div className="money-sources-head">
-        {stepRow}
+    <FormSheet
+      title={title}
+      onClose={onClose}
+      onBack={() => setStep('amount')}
+      busy={busy}
+      className="money-form"
+      footer={
+        <>
+          {error !== '' && <p role="alert" className="erd-log-error money-form-error">{error}</p>}
+          <SuccessButton type="button" baseClass="erd-log-submit" saving={phase.saving} savingLabel="Moving…" success={phase.success} successLabel="Moved" disabled={!ready || busy} onClick={handleSubmit}>
+            {ready
+              ? `Move ${formatCurrency(amount, hideAmounts)}`
+              : remaining === amount
+                ? 'Choose where to pull from'
+                : `${formatCurrency(remaining, hideAmounts)} more to allocate`}
+          </SuccessButton>
+          <button type="button" className="money-back" onClick={() => setStep('amount')} disabled={busy}>
+            <ArrowLeft size={14} /> Back to amount
+          </button>
+        </>
+      }
+    >
+      <section className="erd-sub-section">
+        <p className="erd-log-label">{remaining > 0 ? 'Still needed' : 'Fully covered'}</p>
         <div className="money-cover-row">
-          <div>
-            <span className="money-label">{remaining > 0 ? 'STILL NEEDED' : 'FULLY COVERED'}</span>
-            <AmountText
-              value={remaining > 0 ? remaining : amount}
-              size={typeScale.heading}
-              weight="displayBold"
-              color={remaining > 0 ? 'var(--tk-text)' : 'var(--tk-mint)'}
-              style={{ display: 'block' }}
-            />
-          </div>
+          <AmountText
+            value={remaining > 0 ? remaining : amount}
+            size={typeScale.heading}
+            weight="displayBold"
+            color={remaining > 0 ? 'var(--tk-text)' : 'var(--tk-mint)'}
+            style={{ display: 'block' }}
+          />
           <span className="money-cover-to">
             → {formatCurrency(amount, hideAmounts)} to {targetName}
           </span>
         </div>
         <ProgressBar pct={progressPct} done={remaining === 0} />
+      </section>
+
+      {!covered && <section className="erd-sub-section">
         <div className="money-search-row">
           <label className="money-search">
             <Search size={14} />
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Find an envelope" />
           </label>
-          <button type="button" className="money-autofill" onClick={autoFillNow}>
+          <button type="button" className="money-autofill" onClick={autoFillNow} disabled={busy}>
             Auto-fill
           </button>
         </div>
-      </div>
+      </section>}
 
-      <div className="money-body money-sources">
+      <section className="erd-sub-section">
         <LayoutGroup>
           <AnimatePresence mode="popLayout">
             {pickedRows.length > 0 && (
-              // One block, so the FROM label stays attached to its rows as the block grows or shrinks.
+              // One block, so the From label stays attached to its rows as the block grows or shrinks.
               <motion.div key="picked" className="money-source-block" layout="position" transition={SOURCE_SPRING} {...FADE_IN} exit={FADE_OUT}>
-                <span className="money-label">FROM</span>
+                <p className="erd-log-label">From</p>
                 <AnimatePresence mode="popLayout">
                   {pickedRows.map((item) => {
                     const alloc = allocs[item.key] ?? 0
@@ -615,7 +615,7 @@ function MoveMoneyBody({
                               {formatCurrency(item.available, hideAmounts)} → {formatCurrency(item.available - alloc, hideAmounts)}
                             </span>
                           </div>
-                          <button type="button" className="money-remove" aria-label="Remove" onClick={() => removeAlloc(item.key)}>
+                          <button type="button" className="money-remove" aria-label="Remove" onClick={() => removeAlloc(item.key)} disabled={busy}>
                             <Trash2 size={14} />
                           </button>
                         </div>
@@ -631,14 +631,14 @@ function MoveMoneyBody({
               </motion.div>
             )}
 
-            <motion.div
+            {!covered && <motion.div
               key="pool"
               className="money-source-block"
               layout="position"
               transition={SOURCE_SPRING}
-              style={{ marginTop: pickedRows.length > 0 ? 8 : 0 }}
+              style={{ marginTop: pickedRows.length > 0 ? 16 : 0 }}
             >
-              <span className="money-label">{q ? 'SEARCH RESULTS' : 'SUGGESTED SOURCES'}</span>
+              <p className="erd-log-label">{q ? 'Search results' : 'Suggested sources'}</p>
               <AnimatePresence mode="popLayout">
                 {poolRows.map((item) => (
                   <motion.button
@@ -661,36 +661,16 @@ function MoveMoneyBody({
                   </motion.button>
                 ))}
               </AnimatePresence>
-            </motion.div>
+            </motion.div>}
           </AnimatePresence>
         </LayoutGroup>
-        {poolRows.length === 0 && pickedRows.length === 0 && (
-          <p className="money-hint money-empty">{q ? `Nothing named "${query}"` : 'Nothing else to pull from'}</p>
+        {covered ? (
+          <p className="erd-sub-hint">{"You're all covered. Remove a source to pick a different one."}</p>
+        ) : poolRows.length === 0 && pickedRows.length === 0 && (
+          <p className="erd-sub-hint">{q ? `Nothing named "${query}"` : 'Nothing else to pull from'}</p>
         )}
-      </div>
-
-      <div className="money-foot">
-        <button type="button" className="money-back" onClick={() => setStep('amount')} disabled={busy}>
-          <ArrowLeft size={14} /> Back to amount
-        </button>
-        {error !== '' && <p role="alert" className="money-error">{error}</p>}
-        <Cta
-          label={
-            phase.saving
-              ? 'Moving…'
-              : ready
-                ? `Move ${formatCurrency(amount, hideAmounts)}`
-                : remaining === amount
-                  ? 'Choose where to pull from'
-                  : `${formatCurrency(remaining, hideAmounts)} more to allocate`
-          }
-          enabled={ready}
-          saving={phase.saving}
-          success={phase.success}
-          onPress={handleSubmit}
-        />
-      </div>
-    </Screen>
+      </section>
+    </FormSheet>
   )
 }
 
@@ -715,7 +695,7 @@ function ProgressBar({ pct, done }: { pct: number; done: boolean }) {
 export function EditAssignedScreen({ category, onClose, assign = false }: { category: string; onClose: () => void; assign?: boolean }) {
   const data = useMoneyData()
   // Mounted only once data has settled, so the numpad seeds from the real envelope.
-  if (data.isLoading) return <Screen title={assign ? 'Assign money' : 'Edit amount'} onClose={onClose} busy={false}><LoadingCaption /></Screen>
+  if (data.isLoading) return <FormSheet title={assign ? 'Assign money' : 'Edit amount'} onClose={onClose} busy={false}><LoadingCaption /></FormSheet>
 
   const month = currentMonthKey()
   const state = computeEnvelopeState(data.budgets, data.expenses, month, data.categories, data.groups)
@@ -732,7 +712,6 @@ export function EditAssignedScreen({ category, onClose, assign = false }: { cate
       currentAssigned={envelope?.assigned ?? 0}
       spent={envelope?.spent ?? 0}
       isCreditCardPayment={!!envelope?.isCreditCardPayment}
-      group={envelope?.group ?? ''}
       lastMonthAssigned={prevState.envelopes.find((e) => e.category === category)?.assigned}
       readyToAssign={state.readyToAssign}
       onClose={onClose}
@@ -752,7 +731,6 @@ function EditAssignedBody({
   currentAssigned,
   spent,
   isCreditCardPayment,
-  group,
   lastMonthAssigned,
   readyToAssign,
   onClose,
@@ -764,7 +742,6 @@ function EditAssignedBody({
   currentAssigned: number
   spent: number
   isCreditCardPayment: boolean
-  group: string
   lastMonthAssigned: number | undefined
   readyToAssign: number
   onClose: () => void
@@ -777,7 +754,6 @@ function EditAssignedBody({
   const busy = phase.saving || phase.success
 
   const name = isCreditCardPayment ? 'Credit Card Payment' : splitEmoji(category).text
-  const emoji = isCreditCardPayment ? '💳' : categoryEmoji(category, group)
 
   const [amountText, setAmountText] = useState(assign ? '' : String(currentAssigned))
   const [error, setError] = useState('')
@@ -790,12 +766,6 @@ function EditAssignedBody({
   const delta = assign ? value : cents(value - baseAssigned)
   const projectedRTA = cents(baseReadyToAssign - delta)
   const valid = !assign || (value > 0 && value <= baseReadyToAssign)
-  const impactText =
-    delta === 0
-        ? `${formatCurrency(baseAssigned, hideAmounts)} already assigned this month`
-        : delta > 0
-          ? `Pulls ${formatCurrency(delta, hideAmounts)} from Ready to Assign`
-          : `Frees ${formatCurrency(-delta, hideAmounts)} back to Ready to Assign`
 
   async function submit() {
     if (busy) return
@@ -835,70 +805,55 @@ function EditAssignedBody({
     setError('')
   }
 
+  const over = value > 0 && projectedRTA < 0
+  const hint =
+    delta === 0
+      ? `${formatCurrency(spent, hideAmounts)} spent · ${formatCurrency(baseAssigned, hideAmounts)} assigned`
+      : delta > 0
+        ? `Pulls ${formatCurrency(delta, hideAmounts)} from Ready to Assign${over ? ` · ${formatCurrency(-projectedRTA, hideAmounts)} over` : ''}`
+        : `Frees ${formatCurrency(-delta, hideAmounts)} back to Ready to Assign`
+
   return (
-    <Screen title={assign ? "Assign money" : "Edit amount"} onClose={onClose} busy={busy} showHeader={false}>
-      <div className="money-body">
-        {!conflict && (
-          <div className="money-month-row">
-            <span className="money-label">{assign ? "FROM READY TO ASSIGN" : "ASSIGNED AMOUNT"}</span>
-            <button type="button" className="money-head-btn" aria-label="Close" onClick={onClose} disabled={busy}>
-              <X size={16} />
-            </button>
-          </div>
-        )}
-        {conflict ? (
-          <ConflictReview
-            heading="This assignment was updated"
-            description="A newer amount was saved elsewhere. Your amount is still here."
-            label="Assigned amount"
-            saved={formatCurrency(Number(conflict.assigned) || 0, hideAmounts)}
-            next={formatCurrency(value, hideAmounts)}
-            guidance="Continue with your amount or use the latest saved value. You can review it before saving."
-            onContinue={() => reviewLatest(true)}
-            onUseLatest={() => reviewLatest(false)}
-          />
-        ) : (
-          <>
-            <SubjectCard
-              emoji={emoji}
-              label={assign ? "ASSIGNING TO" : "EDITING"}
-              name={name}
-              detail={`${formatCurrency(spent, hideAmounts)} spent · ${formatCurrency(baseAssigned, hideAmounts)} assigned`}
-            />
-            <HeroAmount amountText={amountText} onChange={setAmountText}>
-              <motion.p
-                key={impactText}
-                className={`money-hint ${projectedRTA < 0 ? 'is-neg' : ''}`}
-                {...FADE_IN}
-              >
-                {impactText}
-                {value > 0 && projectedRTA < 0 ? ` · ${formatCurrency(-projectedRTA, hideAmounts)} over` : ''}
-              </motion.p>
-            </HeroAmount>
-            <div className="money-chips">
-              {QUICK_PICKS.map((v) => (
-                <QuickChip key={v} label={formatMoney(v)} active={value === v} onPress={() => setAmountText(String(v))} />
-              ))}
-            </div>
-            {!assign && !isCreditCardPayment && !!lastMonthAssigned && (
-              <div className="money-chips">
-                <QuickChip
-                  label={`Last month · ${formatCurrency(lastMonthAssigned, hideAmounts)}`}
-                  active={value === lastMonthAssigned}
-                  onPress={() => setAmountText(String(lastMonthAssigned))}
-                />
-              </div>
-            )}
-          </>
-        )}
-        {error !== '' && <p role="alert" className="money-error">{error}</p>}
-      </div>
-      {!conflict && (
-        <div className="money-foot">
-          <Cta label={phase.saving ? 'Saving…' : assign ? 'Assign' : 'Save'} enabled={valid} saving={phase.saving} success={phase.success} onPress={submit} checkSize={16} />
-        </div>
+    <FormSheet
+      title={assign ? `Assign to ${name}` : `Edit ${name}`}
+      onClose={onClose}
+      busy={busy}
+      footer={conflict ? undefined : (
+        <SuccessButton type="button" baseClass="erd-log-submit" saving={phase.saving} success={phase.success} successLabel={assign ? 'Assigned' : 'Saved'} disabled={!valid || busy} onClick={submit}>
+          {assign ? 'Assign' : 'Save'}
+        </SuccessButton>
       )}
-    </Screen>
+    >
+      {conflict ? (
+        <ConflictReview
+          heading="This assignment was updated"
+          description="A newer amount was saved elsewhere. Your amount is still here."
+          label="Assigned amount"
+          saved={formatCurrency(Number(conflict.assigned) || 0, hideAmounts)}
+          next={formatCurrency(value, hideAmounts)}
+          guidance="Continue with your amount or use the latest saved value. You can review it before saving."
+          onContinue={() => reviewLatest(true)}
+          onUseLatest={() => reviewLatest(false)}
+        />
+      ) : (
+        <AmountField id="assign-amount" value={amountText} onChange={setAmountText} hint={hint} warn={over} autoFocus>
+          <div className="erd-sub-picks">
+            {QUICK_PICKS.map((v) => (
+              <QuickChip key={v} label={formatMoney(v)} active={value === v} disabled={busy} onPress={() => setAmountText(String(v))} />
+            ))}
+            {!assign && !isCreditCardPayment && !!lastMonthAssigned && (
+              <QuickChip
+                label={`Last month · ${formatCurrency(lastMonthAssigned, hideAmounts)}`}
+                active={value === lastMonthAssigned}
+                disabled={busy}
+                onPress={() => setAmountText(String(lastMonthAssigned))}
+              />
+            )}
+          </div>
+        </AmountField>
+      )}
+      {error !== '' && <p role="alert" className="erd-log-error">{error}</p>}
+    </FormSheet>
   )
 }
 
@@ -962,16 +917,26 @@ export function EditMonthIncomeScreen({ month, onClose, initial }: { month: stri
 // ─── Add income ──────────────────────────────────────────────────────────────
 
 /** The labelled-form modal the subscription and income forms share. */
-function FormSheet({ title, onClose, busy, footer, children }: {
+function FormSheet({ title, onClose, onBack, busy, footer, className = '', children }: {
   title: string
   onClose: () => void
+  /** Where Escape goes instead of closing (move money's sources step). */
+  onBack?: () => void
   busy: boolean
   footer?: ReactNode
+  className?: string
   children: ReactNode
 }) {
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape' && !busy) (onBack ?? onClose)()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [busy, onBack, onClose])
   return (
     <Scrim className="erd-modal-overlay" onClick={busy ? undefined : onClose}>
-      <Sheet className="erd-modal-card erd-sub-card erd-one-off-card" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={title}>
+      <Sheet className={`erd-modal-card erd-sub-card erd-one-off-card ${className}`} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={title}>
         <div className="erd-modal-head">
           <h3>{title}</h3>
           <button type="button" className="erd-modal-close" onClick={onClose} aria-label="Close" disabled={busy}>
@@ -986,12 +951,16 @@ function FormSheet({ title, onClose, busy, footer, children }: {
 }
 
 /** "Amount" with the currency glued to the digits and a hint underneath. */
-function AmountField({ id, value, onChange, hint, autoFocus }: {
+function AmountField({ id, value, onChange, hint, warn, autoFocus, children }: {
   id: string
   value: string
   onChange: (value: string) => void
   hint: string
+  /** Over what's available: the hint goes coral. */
+  warn?: boolean
   autoFocus?: boolean
+  /** Quick picks under the hint. */
+  children?: ReactNode
 }) {
   const { currencySymbol } = useCurrency()
   return (
@@ -1012,7 +981,8 @@ function AmountField({ id, value, onChange, hint, autoFocus }: {
           }}
         />
       </div>
-      <p className="erd-sub-hint">{hint}</p>
+      <p className={`erd-sub-hint ${warn ? 'is-neg' : ''}`}>{hint}</p>
+      {children}
     </section>
   )
 }

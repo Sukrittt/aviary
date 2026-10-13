@@ -4,7 +4,7 @@ import { nowIST } from './http'
 import { withTx } from './mongodb'
 import { invalidate } from './cache'
 import { invalidateCategoryMap } from './categoryMap'
-import { invalidateBrief } from './ai/briefCache'
+import { BRIEF_CACHE_COLLECTION, invalidateBrief } from './ai/briefCache'
 import { COLLECTIONS } from './models'
 import type { UserDoc } from './users'
 import { getWorkOSClient } from './workosClient'
@@ -64,7 +64,7 @@ async function invalidateAccount(userId: string): Promise<void> {
 }
 
 /** Per-user collections outside COLLECTIONS that still carry `user_id`. */
-const EXTRA_USER_COLLECTIONS = ['notification_threshold_state', 'ai_usage', 'email_outbox']
+const EXTRA_USER_COLLECTIONS = ['notification_threshold_state', 'ai_usage', 'email_outbox', BRIEF_CACHE_COLLECTION]
 
 /**
  * Irreversible, immediate account purge (admin only): WorkOS user, every

@@ -5,7 +5,7 @@ export const SITE_URL = new URL('https://useaviary.com')
 // Only public content belongs in search results. Auth, personal finance and
 // admin pages still get descriptive browser titles without exposing user data.
 export const pages = {
-  '/': { title: 'The Budgeting App That Learns Your Spending', description: 'Aviary learns your spending habits and nudges you to log them in one tap. Envelope budgeting without bank sync, on Android and the web.', index: true },
+  '/': { title: 'Budgeting Apps Die on Day 3. This One’s Built for Day 4.', description: 'Aviary learns when you usually spend and nudges you to log it in one tap. Miss a day and you catch up in a minute. No bank link, no loans, no offers. Envelope budgeting on Android and the web.', index: true },
   '/legal/privacy': { title: 'Privacy Policy', description: 'Learn how Aviary stores and processes your data, including encryption, AI features, analytics, and your options to export or delete it.', index: true },
   '/legal/terms': { title: 'Terms of Service', description: 'Read the terms for using Aviary, including account requirements, acceptable use, subscriptions, and your responsibilities.', index: true },
   '/legal/pricing': { title: 'Pricing', description: 'Aviary plans and prices: monthly and yearly subscriptions after a free trial, paid on the web or through Google Play.', index: true },
@@ -29,6 +29,7 @@ export const pages = {
   '/account/bill-scans': { title: 'Bill Scans', description: 'Review your scanned receipts and the expenses created from them in Aviary.' },
   '/account/chat-history': { title: 'Ask Aviary Chat History', description: 'Browse your past Ask Aviary conversations about your Aviary budget and spending.' },
   '/account/data': { title: 'Data & Privacy', description: 'Manage analytics preferences, export your Aviary data, and review your data controls.' },
+  '/account/features': { title: 'Features', description: 'Choose which Aviary extras show up, like Ask Aviary, Insights and Scan a bill.' },
   '/account/guided-tour': { title: 'Guided Tour', description: 'Learn how to assign money, log expenses, and use your budget with Aviary’s guided tour.' },
   '/account/help': { title: 'Help & Support', description: 'Learn how Aviary envelopes work and find help with your budget and account.' },
   '/account/income': { title: 'Income', description: 'Set your salary and other income so Aviary counts it toward Ready to Assign.' },

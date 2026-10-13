@@ -1,5 +1,5 @@
 import { useCurrency } from '@/src/context/CurrencyContext'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { ChevronsDownUp } from 'lucide-react'
@@ -29,9 +29,11 @@ function usedPct(e: Envelope): number {
   return e.spent > 0 ? Infinity : 0
 }
 
-function usedPctLabel(e: Envelope): string {
-  if (e.assigned > 0) return `${usedPct(e)}%`
-  return e.spent > 0 ? '∞' : '—'
+/** Mobile's availablePill(): red only when overspent, no pill at all for an envelope spent exactly to zero. */
+function pillClass(e: Envelope): string {
+  if (e.isOverspent) return 'is-over'
+  if (usedPct(e) === 100) return 'is-empty'
+  return usedPct(e) > 75 ? 'is-low' : 'is-good'
 }
 
 const DAY_MS = 86_400_000
@@ -61,7 +63,7 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
   const router = useRouter()
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [menuCategory, setMenuCategory] = useState<string | null>(null)
-  const [menuAnchor, setMenuAnchor] = useState<{ top: number; right: number } | null>(null)
+  const [menuAnchor, setMenuAnchor] = useState<{ top: number; bottom: number; right: number } | null>(null)
   const [menuPortalTarget, setMenuPortalTarget] = useState<HTMLElement | null>(null)
   const menuRef = useRef<HTMLDivElement | null>(null)
   const menuPortalRef = useRef<HTMLDivElement | null>(null)
@@ -71,6 +73,16 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
     setMenuAnchor(null)
     setMenuPortalTarget(null)
   }
+
+  // Flip above the trigger when the menu would run past the viewport bottom.
+  useLayoutEffect(() => {
+    const el = menuPortalRef.current
+    if (!el || !menuAnchor) return
+    const h = el.offsetHeight
+    if (menuAnchor.top + h > window.innerHeight && menuAnchor.bottom - h >= 0) {
+      el.style.top = `${menuAnchor.bottom - h}px`
+    }
+  }, [menuAnchor])
 
   useEffect(() => {
     if (!menuCategory) return
@@ -97,7 +109,7 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
   function openMenu(category: string, trigger: HTMLElement) {
     if (menuCategory === category) return closeMenu()
     const rect = trigger.getBoundingClientRect()
-    setMenuAnchor({ top: rect.bottom + 4, right: window.innerWidth - rect.right })
+    setMenuAnchor({ top: rect.bottom + 4, bottom: rect.top - 4, right: window.innerWidth - rect.right })
     // Portal inside .expense-redesign (not document.body) so the menu still
     // inherits the --erd-* theme variables scoped to that wrapper; its
     // `overflow: hidden` doesn't clip position:fixed descendants.
@@ -132,10 +144,12 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
     const isCC = e.isCreditCardPayment
     const name = isCC ? 'Credit Card Payment' : splitEmoji(e.category).text
     const pct = Math.max(0, Math.min(100, e.spentPct))
-    // Unclamped, for color only — see Mobile's ProgressBar thresholds: muted
-    // at exactly 100%, coral past 90%, warn past 75%.
+    // Unclamped, for color only. Matches Mobile's ProgressBar: coral only when
+    // overspent, muted at exactly 100%, warn past 75%.
     const rawPct = usedPct(e)
-    const fill = (!e.assigned && !e.spent) || rawPct === 100 ? 'is-done' : rawPct > 90 ? 'is-coral' : rawPct > 75 ? 'is-warn' : 'is-mint'
+    const fill = e.isOverspent ? 'is-coral' : (!e.assigned && !e.spent) || rawPct === 100 ? 'is-done' : rawPct > 75 ? 'is-warn' : 'is-mint'
+    // Spending with nothing assigned: "of ₹0" and "Used ∞" said nothing useful.
+    const unbudgeted = !e.assigned && e.spent > 0
     const isMenuOpen = menuCategory === e.category
 
     return (
@@ -150,7 +164,8 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
             <span className="env2-emoji env2-category-icon" style={{ background: avatarColorFor(name) }} aria-hidden="true">{isCC ? '💳' : categoryEmoji(e.category, group)}</span>
             <span className="env2-name">{name}</span>
             <span className="env2-spent-of">
-              <span className="env2-spent-label">Spent</span> {money(e.spent)} <span className="env2-spent-label">of</span> {money(e.assigned)}
+              <span className="env2-spent-label">Spent</span> {money(e.spent)}
+              {!unbudgeted && <> <span className="env2-spent-label">of</span> {money(e.assigned)}</>}
             </span>
           </span>
           <span className="env-bar-track env2-bar">
@@ -158,13 +173,13 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
           </span>
           {!isCC && (
             <span className="env2-meta">
-              Used {usedPctLabel(e)} · Last spent {lastSpentLabel(e.lastSpentDate)}
+              {unbudgeted ? 'Not budgeted · ' : ''}Last spent {lastSpentLabel(e.lastSpentDate)}
             </span>
           )}
         </button>
-        <span className={`env2-available ${e.isOverspent ? 'is-neg' : ''}`}>
+        <span className="env2-available">
           <span className="env2-balance-label">{e.isOverspent ? 'Overspent' : 'Left'}</span>
-          {money(e.available)}
+          <span className={`env2-pill ${pillClass(e)}`}>{money(e.available)}</span>
         </span>
 
         {isMenuOpen && menuAnchor && createPortal(
@@ -243,7 +258,11 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
                     <span className="env2-emoji">{groupEmoji(label)}</span>
                     <span>{splitEmoji(label).text}</span>
                   </span>
-                  <span className={`env2-group-left ${totalAvailable < 0 ? 'is-neg' : ''}`}><span className="env2-balance-label">Left in group</span>{money(totalAvailable)}</span>
+                  {/* A summary, so neutral: color is the rows' pills' job. Red only when the group as a whole is over. */}
+                  <span className={`env2-group-left ${totalAvailable < 0 ? 'is-neg' : ''}`}>
+                    <span className="env2-balance-label">{totalAvailable < 0 ? 'Over in group' : 'Left in group'}</span>
+                    {money(Math.abs(totalAvailable))}
+                  </span>
                 </button>
                 <SpringCollapse open={expanded}>
                   <div className="env2-group-rows">{items.map((e) => renderRow(e, label))}</div>

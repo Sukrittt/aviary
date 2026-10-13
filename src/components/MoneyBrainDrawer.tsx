@@ -358,7 +358,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onL
             ) : (
               <BirdEmptyState
                 compact
-                mood={query ? 'searching' : 'snoozing'}
+                mood={query ? 'searching' : undefined}
                 subject="chat"
                 title={query ? 'Nothing turned up' : 'No past chats yet'}
                 description={query ? `No chats match “${query}”.` : 'Start a conversation and it’ll wait for you here.'}
@@ -379,7 +379,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onL
               {capture && messages.length === 0 && (
                 <motion.section className="brain-summary-card" {...popIn(STAGGER.mount)}>
                   <span className="brain-kicker">Log several at once</span>
-                  <p>Try “auto 240, lunch 150, turf 1200 split 6”. You&apos;ll check them before anything is logged.</p>
+                  <p>Try “taxi 240, lunch 150, dinner 1200 split 6”. You&apos;ll check them before anything is logged.</p>
                 </motion.section>
               )}
               {!capture && (<>

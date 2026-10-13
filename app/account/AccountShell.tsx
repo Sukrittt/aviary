@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import { useAppearance } from '@/components/AppearanceProvider'
 import { ExpenseSidebar } from '@/src/components/ExpenseSidebar'
 import '../../src/expense-redesign.css'
+import { InsightsTab } from '@/src/components/InsightsTab'
 
 export default function AccountShell({ children }: { children: ReactNode }) {
   const pathname = usePathname() ?? ''
@@ -33,7 +34,7 @@ export default function AccountShell({ children }: { children: ReactNode }) {
       <nav className="erd-tabbar" aria-label="Primary">
         <Link href="/expense" className="erd-tab"><span aria-hidden="true">🏠</span><span>Home</span></Link>
         <Link href="/expense/transactions" className="erd-tab"><span aria-hidden="true">🧾</span><span>Activity</span></Link>
-        <Link href="/insights" className="erd-tab"><span aria-hidden="true">📊</span><span>Insights</span></Link>
+        <InsightsTab />
         <Link href="/account" className={`erd-tab ${pathname.startsWith('/account') ? 'is-active' : ''}`}><span aria-hidden="true">⚙️</span><span>More</span></Link>
       </nav>
     </section>

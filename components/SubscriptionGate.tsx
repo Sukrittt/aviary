@@ -1,7 +1,7 @@
 'use client'
 
-import type { ReactNode } from 'react'
-import { usePathname } from 'next/navigation'
+import { useEffect, type ReactNode } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
 import { useBillingStatus } from '@/src/hooks/useBillingStatus'
 import { RestrictedNotice } from '@/src/components/billing/RestrictedNotice'
 import { TrialBanner } from '@/src/components/billing/TrialBanner'
@@ -53,8 +53,17 @@ export function SubscriptionGate({ children }: { children: ReactNode }) {
   // Every gated route is also a middleware-protected app route, so asking
   // only here guarantees the request always carries a session.
   const { data } = useBillingStatus(gated)
+  const router = useRouter()
+  // No trial on the server means onboarding never finished, even if
+  // OnboardingGate's fail-open check let the user past it. There's no
+  // subscription to have ended, so this goes to onboarding, not the lock.
+  const setupIncomplete = gated && data?.mode === 'setup_incomplete' && !data.allowed
+  useEffect(() => {
+    if (setupIncomplete) router.replace('/onboarding')
+  }, [setupIncomplete, router])
 
   if (!gated) return <>{children}</>
+  if (setupIncomplete) return null
   if (data && !data.allowed) return <RestrictedNotice />
   return (
     <>

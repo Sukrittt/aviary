@@ -183,8 +183,8 @@ function EnterBalance({ status: fetched, onDone, onMeasured }: {
           <strong>{first ? 'Your starting balance' : status?.open ? "Let's finish your last check" : "What's your balance now?"}</strong>
           <p>
             {first
-              ? 'Add each account you pay from with UPI. Check them in GPay, PhonePe or your bank app.'
-              : 'Check it in GPay, PhonePe or your bank app.'}
+              ? 'Add each account you pay from. Check them in your bank app.'
+              : 'Check it in your bank app.'}
           </p>
         </div>
       </div>

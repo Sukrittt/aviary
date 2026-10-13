@@ -1,6 +1,5 @@
 'use client'
 
-import Image from 'next/image'
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
 import { useReducedMotion } from 'motion/react'
 import { Check, ChevronDown, ChevronUp, Pause, Play, RotateCcw } from 'lucide-react'
@@ -37,12 +36,11 @@ export function RotatingHabit() {
 // ─── Hero: a chaptered film of the app at work ────────────────────────────────
 
 type ChapterId = 'learns' | 'scan' | 'ask'
-const CHAPTERS: { id: ChapterId; label: string; ms: number; sr: string }[] = [
-  // Learns' sr is built from the visitor's sample in HeroStage.
-  { id: 'learns', label: 'Learns your habits', ms: 7300, sr: '' },
-  // Scan's sr comes from the visitor's sample too, since its recording does.
-  { id: 'scan', label: 'Scan a bill', ms: 15500, sr: '' },
-  { id: 'ask', label: 'Ask Aviary', ms: 16000, sr: 'You ask “Can I afford 90k iPhone?” and Aviary answers from your budget: not yet. You have ₹36,802 left to spend this month, so it suggests a gadget envelope you add to each month.' },
+// Each chapter's screen-reader text comes from the visitor's sample in HeroStage.
+const CHAPTERS: { id: ChapterId; label: string; ms: number }[] = [
+  { id: 'learns', label: 'Learns your habits', ms: 7300 },
+  { id: 'scan', label: 'Scan a bill', ms: 15500 },
+  { id: 'ask', label: 'Ask Aviary', ms: 16000 },
 ]
 // Clip chapters run ~1.5s past their recording so the finished screen holds before the cut.
 // Learns' beats: lock screen, nudge lands, thumb on "Log", logged.
@@ -92,11 +90,11 @@ export function HeroStage() {
     setTake((t) => t + 1)
   }
   const current = CHAPTERS[chapter]
-  const { learns, scan } = useSample()
+  const { learns, scan, ask } = useSample()
   const { formatMoney } = useCurrency()
   const sr = current.id === 'learns'
     ? `Aviary saw ${learns.item.toLowerCase()} logged around 4pm on three Tuesdays. The next Tuesday at 4:15pm it asks “${learns.ask}”, one tap on “Log ${formatMoney(learns.amount)}” logs it, and Snacks drops to ${formatMoney(learns.of * 2 / 5 - learns.amount)} left.`
-    : current.id === 'scan' ? scan.sr : current.sr
+    : current.id === 'scan' ? scan.sr : ask.sr
   // Reduced motion holds each scene's finished state.
   const learnBeat = reduced ? 3 : beat
 
@@ -173,10 +171,12 @@ function LearnsScene({ beat }: { beat: number }) {
       <div className="lp-lock-date">Tuesday, 6 October</div>
       <div className="lp-notif">
         <div className="lp-notif-app"><span className="lp-notif-icon"><BirdMark size={14} perched /></span>Aviary<span className="lp-notif-time">• now</span><ChevronUp size={14} strokeWidth={2.4} /></div>
-        {logged
-          ? <div className="lp-notif-body" key="done"><strong><Check size={15} strokeWidth={3} /> Logged {m(s.amount)}</strong><span>{s.done}</span></div>
-          : <div className="lp-notif-body" key="ask"><strong>{s.ask}</strong><span>{s.body}</span></div>}
-        {!logged && <div className="lp-notif-actions"><span className="lp-notif-log">Log {m(s.amount)}<span className="lp-thumb" /></span><span>Not this one</span></div>}
+        {/* Each part folds open or shut, so the card eases from the ask's height to the logged one's. */}
+        <div className={logged ? 'is-logged' : undefined}>
+          <div className="lp-notif-fold lp-notif-ask"><div className="lp-notif-body"><strong>{s.ask}</strong><span>{s.body}</span></div></div>
+          <div className="lp-notif-fold lp-notif-done"><div className="lp-notif-body"><strong><Check size={15} strokeWidth={3} /> Logged {m(s.amount)}</strong><span>{s.done}</span></div></div>
+          <div className="lp-notif-fold lp-notif-act"><div className="lp-notif-actions"><span className="lp-notif-log">Log {m(s.amount)}<span className="lp-thumb" /></span><span>Not this one</span></div></div>
+        </div>
       </div>
     </Phone>
     <Card label="It’s logged" className="lp-stage-logged">
@@ -207,14 +207,15 @@ function ScanScene({ playing }: { playing: boolean }) {
 }
 
 function AskScene({ playing }: { playing: boolean }) {
+  const { ask } = useSample()
   return <>
     <Card label="Ask in plain words" className="lp-reveal">
-      <div className="lp-ask-chips"><span>What can I cut back on?</span><span>How does this month compare?</span><span>Can I afford 90k iPhone?</span></div>
+      <div className="lp-ask-chips">{ask.chips.map(c => <span key={c}>{c}</span>)}</div>
     </Card>
     <Phone><Clip name="ask" playing={playing} /></Phone>
     <Card label="It reads your budget" className="lp-reveal lp-reveal-late">
-      <div className="lp-envelope-line"><span>Left to spend</span><strong>₹36,802<small> this month</small></strong></div>
-      <div className="lp-envelope-bar"><i style={{ transform: 'scaleX(.53)' }} /></div>
+      <div className="lp-envelope-line"><span>Left to spend</span><strong>{ask.left}<small> this month</small></strong></div>
+      <div className="lp-envelope-bar"><i style={{ transform: `scaleX(${ask.bar})` }} /></div>
       <p className="lp-stage-note">Answers come from your own envelopes and spending.</p>
     </Card>
   </>
@@ -295,8 +296,8 @@ export function LearnDiagram() {
 const STEP_MS = 750
 
 export function NoticeSplit() {
-  // The steps match the top row of activity-today.png and its envelope.
-  const { statement: STATEMENT, notice, media } = useSample()
+  // The steps match the first row of notice.rows and its envelope.
+  const { statement: STATEMENT, notice } = useSample()
   const STEPS = notice.steps
   const reduced = useReducedMotion()
   const { ref, visible } = useOnScreen<HTMLDivElement>(0.4)
@@ -328,11 +329,15 @@ export function NoticeSplit() {
           <span className="lp-split2-icon">{done > i + 1 ? <Check size={13} strokeWidth={3.2} /> : null}</span>{s}
         </li>)}
       </ol>
-      {/* Hidden from assistive tech until it lands: before that it's a faded
-          placeholder for a result that hasn't happened yet. */}
+      {/* The logged row is absent until the steps finish, then it grows in and
+          pushes the rest down. Hidden from assistive tech until it lands. */}
       <div className={`lp-split2-result${done > STEPS.length ? ' is-in' : ''}`} aria-hidden={done > STEPS.length ? undefined : true}>
         <span className="lp-stage-label">{notice.label}</span>
-        <Image src={media('activity-today.png')} alt={notice.alt} width={720} height={665} sizes="(max-width: 760px) 90vw, 420px" />
+        <ol className="lp-split2-rows">
+          {notice.rows.map(([emoji, tint, name, meta, amount], i) => <li key={name + meta} className={i === 0 ? 'is-new' : undefined}>
+            <div><span style={{ background: tint }} aria-hidden="true">{emoji}</span><b>{name}</b><small>{meta}</small><strong>{amount}</strong></div>
+          </li>)}
+        </ol>
       </div>
       {!reduced && <button type="button" className="lp-replay" onClick={() => { setStep(0); setTake((t) => t + 1) }}><RotateCcw size={15} aria-hidden="true" />Replay</button>}
     </div>

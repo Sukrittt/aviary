@@ -5,6 +5,7 @@ import { useCurrency } from '@/src/context/CurrencyContext'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Calendar, MessageSquareText, PencilLine, Plus, Tag, TriangleAlert, WalletMinimal } from 'lucide-react'
 import { useOptionalMoneyBrain } from '@/components/moneyBrainContext'
+import { useHiddenFeatures } from '../hooks/useUser'
 import { Scrim, Sheet } from './MotionSheet'
 import { DatePicker, formatShort } from './DatePicker'
 import { getCategoryMap } from '../api/categoryMap'
@@ -31,6 +32,7 @@ import { Toast } from './Toast'
 import { ExpenseAdded, PreloadExpenseAddedTick, type AddedExpense } from '../features/log-expense/ExpenseAdded'
 import { useNudge, useShake } from './landing/mobile/kit'
 import { ExpensePhotoMore } from './ExpensePhotoMore'
+import { AssignMoneyScreen, MoveMoneyScreen } from './MoneyScreens'
 import { base64Of, dataUrlFromFile, PHOTO_ENCODING } from '../features/scan-bill/image'
 
 interface Props {
@@ -60,6 +62,7 @@ function offsetDateValue(daysAgo: number): string {
 export function LogExpenseModal({ onClose, onSaved }: Props) {
   const { currencySymbol, formatMoney } = useCurrency()
   const brain = useOptionalMoneyBrain()
+  const askHidden = useHiddenFeatures().includes('askAviary')
 
   const categoriesQ = useCategories()
   const addExpenseM = useAddExpense()
@@ -90,6 +93,8 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
   const [added, setAdded] = useState<AddedExpense | null>(null)
   const deleteExpenseM = useDeleteExpense()
   const [undoError, setUndoError] = useState('')
+  // The receipt's "Set a budget" / "Cover it": the dialog hands over to that screen.
+  const [followUp, setFollowUp] = useState<'assign' | 'cover' | null>(null)
   // Optional photo: a downscaled JPEG data URL, uploaded once the expense exists.
   const [photo, setPhoto] = useState<string | null>(null)
   const [photoError, setPhotoError] = useState('')
@@ -354,7 +359,8 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
       setPhotoNotice('')
       if (pickedPhoto) void uploadPhoto(result.id, pickedPhoto)
     } catch {
-      setError('Could not save — try again.')
+      // The form keeps every field, so nothing the user typed is lost.
+      setError("Couldn't save. Your entry's safe. Fix anything and try again.")
       fail()
     }
   }
@@ -381,6 +387,9 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
   const today = offsetDateValue(0)
   const yesterday = offsetDateValue(1)
 
+  if (added && followUp === 'assign') return <AssignMoneyScreen category={added.category} onClose={closeAndReset} />
+  if (added && followUp === 'cover') return <MoveMoneyScreen targetCategory={added.category} onClose={closeAndReset} />
+
   return (
     <>
     <Scrim className="erd-modal-overlay" onClick={success || showAddCategory || showAddAccount ? undefined : onClose}>
@@ -393,6 +402,8 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
             notice={photoNotice}
             onUndo={() => void handleUndo()}
             onDone={closeAndReset}
+            onSetBudget={() => setFollowUp('assign')}
+            onCover={() => setFollowUp('cover')}
           />
         ) : (
           <>
@@ -570,7 +581,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
               >
                 {warning ? `Save ${formatMoney(parsedAmount)} anyway` : 'Save expense'}
               </SuccessButton>
-              {brain && !saving && !success && (
+              {brain && !askHidden && !saving && !success && (
                 <button
                   type="button"
                   className="erd-log-several"

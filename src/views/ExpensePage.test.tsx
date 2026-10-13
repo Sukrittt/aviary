@@ -9,7 +9,7 @@ import { getBudgets, addBudget, updateBudget, transferBudget } from '@/src/api/b
 import { getUser } from '@/src/api/account'
 import { currentMonthKey, prevMonthKey, monthLabel } from '@/src/lib/envelope'
 
-const { push, openLog } = vi.hoisted(() => ({ push: vi.fn(), openLog: vi.fn() }))
+const { push, openLog, track } = vi.hoisted(() => ({ push: vi.fn(), openLog: vi.fn(), track: vi.fn() }))
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push }), usePathname: () => '/expense' }))
 vi.mock('../../components/AppearanceProvider', () => ({ useAppearance: () => ({ theme: 'dark', setTheme: vi.fn() }) }))
 vi.mock('@/src/api/budgets', () => ({ getBudgets: vi.fn(), addBudget: vi.fn(), updateBudget: vi.fn(), transferBudget: vi.fn() }))
@@ -22,6 +22,7 @@ vi.mock('../components/ExpenseSidebar', () => ({ ExpenseSidebar: ({ onBulkReturn
 vi.mock('../components/EnvelopeGrid', () => ({ EnvelopeGrid: () => <div>Envelope content</div> }))
 vi.mock('../components/RecentActivity', () => ({ RecentActivity: () => null }))
 vi.mock('../components/FluidDemo', () => ({ FluidDemo: () => null }))
+vi.mock('@/src/lib/analytics', () => ({ track }))
 vi.mock('../components/LogExpenseModal', () => ({ LogExpenseModal: () => { openLog(); return <div>Manual expense form</div> } }))
 
 const month = currentMonthKey()
@@ -45,12 +46,13 @@ beforeEach(() => {
 
 it('starts a new month automatically and shows only a dismissible leftover notice', async () => {
   const client = renderPage()
-  expect(await screen.findByText(/left over from last month/)).toBeInTheDocument()
+  // Last month kept ₹20,000 of income with nothing spent: framed as a win.
+  expect(await screen.findByText('🌱 ₹20,000 went to savings last month.')).toBeInTheDocument()
   expect(screen.queryByText(`Start ${monthLabel(month)}`)).not.toBeInTheDocument()
   expect(screen.queryByText(/Copy last month/)).not.toBeInTheDocument()
   expect(screen.getByLabelText('₹15,000')).toBeInTheDocument()
-  fireEvent.click(screen.getByRole('button', { name: 'Okay' }))
-  expect(screen.queryByText(/left over from last month/)).not.toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Nice' }))
+  await waitFor(() => expect(screen.queryByText(/went to savings last month/)).not.toBeInTheDocument())
   expect(addBudget).not.toHaveBeenCalled()
   expect(updateBudget).not.toHaveBeenCalled()
   fireEvent.click(screen.getByRole('button', { name: 'Income options' }))
@@ -109,14 +111,15 @@ it('preserves the cards below when getting started arrives after the dashboard a
   vi.mocked(getUser).mockReturnValueOnce(new Promise((resolve) => { resolveUser = resolve }))
   const client = renderPage()
   const envelopes = await screen.findByText('Envelope content')
-  const trends = screen.getByRole('link', { name: 'Trends and daily spend' })
   expect(screen.queryByRole('heading', { name: 'Get started' })).not.toBeInTheDocument()
+  // Insights is an opt-in extra, so it waits for the profile instead of flashing in.
+  expect(screen.queryByRole('link', { name: 'Trends and daily spend' })).not.toBeInTheDocument()
 
   await act(async () => resolveUser({ ...baseUser, getStartedAt: '2026-09-01', manualTransactionCompletedAt: '2026-09-02' }))
   expect(await screen.findByRole('heading', { name: 'Get started' })).toBeInTheDocument()
   expect(screen.getByRole('progressbar', { name: 'Getting started' })).toHaveAttribute('aria-valuenow', '2')
   expect(screen.getByText('Envelope content')).toBe(envelopes)
-  expect(screen.getByRole('link', { name: 'Trends and daily spend' })).toBe(trends)
+  const trends = screen.getByRole('link', { name: 'Trends and daily spend' })
 
   fireEvent.click(screen.getByRole('button', { name: 'Skip getting started' }))
   await waitFor(() => expect(screen.queryByRole('heading', { name: 'Get started' })).not.toBeInTheDocument())
@@ -129,7 +132,7 @@ it('shows no leftover notice for a first budget with no history', async () => {
   vi.mocked(getBudgets).mockResolvedValue([])
   const client = renderPage()
   await screen.findByRole('button', { name: 'Income options' })
-  expect(screen.queryByText(/left over from last month/)).not.toBeInTheDocument()
+  expect(screen.queryByText(/went to savings last month/)).not.toBeInTheDocument()
   expect(screen.queryByText(/Start October/)).not.toBeInTheDocument()
   client.clear()
 })
@@ -203,4 +206,67 @@ it('asks to set income from the hero pill when there is none', async () => {
   expect(await screen.findByDisplayValue('Monthly income')).toBeInTheDocument()
   client.clear()
   vi.unstubAllGlobals()
+})
+
+it('drops Ready to Assign to one row once everything is assigned, like Mobile', async () => {
+  vi.mocked(getBudgets).mockResolvedValue([
+    { month, category: '__income__', assigned: '20000', rolled_over: '0', version: 1 },
+    { month, category: 'Food', assigned: '20000', rolled_over: '0', version: 1 },
+  ])
+  const client = renderPage()
+  const row = await screen.findByRole('button', { name: 'Ready to Assign options' })
+  expect(screen.queryByText('READY TO ASSIGN')).not.toBeInTheDocument()
+  expect(screen.getByText(monthLabel(month))).toBeInTheDocument()
+  fireEvent.click(row)
+  expect(row).toHaveAttribute('aria-expanded', 'true')
+  expect(screen.getByRole('menuitem', { name: 'Change income' })).toBeInTheDocument()
+  // Already at zero on arrival: nothing happened while you watched, so no celebration.
+  expect(screen.queryByText('Every rupee has a job.')).not.toBeInTheDocument()
+  expect(track).not.toHaveBeenCalledWith('rta_zero_celebrated')
+  client.clear()
+})
+
+it('celebrates Ready to Assign reaching zero while you watch, then settles back', async () => {
+  vi.mocked(getBudgets).mockResolvedValue([
+    { month, category: '__income__', assigned: '20000', rolled_over: '0', version: 1 },
+    { month, category: 'Food', assigned: '5000', rolled_over: '0', version: 1 },
+  ])
+  const client = renderPage()
+  expect(await screen.findByLabelText('₹15,000')).toBeInTheDocument()
+  vi.mocked(getBudgets).mockResolvedValue([
+    { month, category: '__income__', assigned: '20000', rolled_over: '0', version: 1 },
+    { month, category: 'Food', assigned: '20000', rolled_over: '0', version: 2 },
+  ])
+  await act(() => client.invalidateQueries({ queryKey: ['budgets'] }))
+  expect(await screen.findByText('Every rupee has a job.')).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Ready to Assign options' })).toHaveClass('is-celebrating')
+  expect(track).toHaveBeenCalledWith('rta_zero_celebrated')
+  // ~2.5s on the real clock: the beat's whole length.
+  await waitFor(() => expect(screen.queryByText('Every rupee has a job.')).not.toBeInTheDocument(), { timeout: 4000 })
+  expect(screen.getByText('Ready to Assign', { exact: false })).toBeInTheDocument()
+  client.clear()
+})
+
+it('holds the Ready to Assign celebration until the dialog that caused it closes', async () => {
+  vi.mocked(getBudgets).mockResolvedValue([
+    { month, category: '__income__', assigned: '20000', rolled_over: '0', version: 1 },
+    { month, category: 'Food', assigned: '5000', rolled_over: '0', version: 1 },
+  ])
+  const client = renderPage()
+  expect(await screen.findByLabelText('₹15,000')).toBeInTheDocument()
+  // Stands in for the assign sheet that's still open when the save lands.
+  const dialog = document.createElement('div')
+  dialog.setAttribute('aria-modal', 'true')
+  document.body.appendChild(dialog)
+  vi.mocked(getBudgets).mockResolvedValue([
+    { month, category: '__income__', assigned: '20000', rolled_over: '0', version: 1 },
+    { month, category: 'Food', assigned: '20000', rolled_over: '0', version: 2 },
+  ])
+  await act(() => client.invalidateQueries({ queryKey: ['budgets'] }))
+  expect(await screen.findByRole('button', { name: 'Ready to Assign options' })).not.toHaveClass('is-celebrating')
+  expect(screen.queryByText('Every rupee has a job.')).not.toBeInTheDocument()
+  dialog.remove()
+  expect(await screen.findByText('Every rupee has a job.')).toBeInTheDocument()
+  expect(track).toHaveBeenCalledWith('rta_zero_celebrated')
+  client.clear()
 })

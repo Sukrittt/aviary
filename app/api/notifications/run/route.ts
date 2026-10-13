@@ -9,6 +9,7 @@ import { buildNotifications, prefsFor, weekRecapNotification, weekRecapTeaserNot
 import { claim, claimAndSend, unclaim } from '@/lib/notifications/deliver'
 import { currentEdition, editionStatus } from '@/lib/wrapped'
 import type { UserDoc } from '@/lib/users'
+import { hiddenFeatures } from '@/src/lib/features'
 import { computeWeekRecap, learningDay, onboardedDate, recapDue, type RecapRow } from '@/lib/weekRecap'
 import { EXPENSE_HEADERS, toRow } from '@/lib/models'
 import { applyHoldingAction } from '@/lib/holdings'
@@ -70,6 +71,8 @@ async function runForUser(db: Db, user: UserDoc): Promise<number> {
  * `expenses` if the user base grows large enough for N queries to matter.
  */
 async function runWrappedForUser(db: Db, user: UserDoc): Promise<number> {
+  // A hidden Wrapped also hides its notification switch in the app, so the push has to stop with it.
+  if (hiddenFeatures(user).includes('wrapped')) return 0
   const prefs = prefsFor(user)
   const month = currentEdition(nowIn(user.timezone).date)
   const notification = wrappedNotification(month, prefs)
