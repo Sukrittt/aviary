@@ -57,6 +57,9 @@ export interface ThemeTokens {
   pillLowBg: string
   pillOver: string
   pillOverBg: string
+  /** Success-tick CTA flood. Light uses a soft pillGood-style chip pair. */
+  successBg: string
+  onSuccess: string
 }
 
 export const darkTokens: ThemeTokens = {
@@ -101,6 +104,8 @@ export const darkTokens: ThemeTokens = {
   pillLowBg: 'rgba(250, 204, 21, 0.16)',
   pillOver: '#ff646f',
   pillOverBg: 'rgba(255, 100, 111, 0.16)',
+  successBg: '#26e085',
+  onSuccess: '#1a0500',
 }
 
 export const lightTokens: ThemeTokens = {
@@ -145,4 +150,6 @@ export const lightTokens: ThemeTokens = {
   pillLowBg: '#fef3c7',
   pillOver: '#b91c1c',
   pillOverBg: '#fee2e2',
+  successBg: '#bbf7d0',
+  onSuccess: '#166534',
 }

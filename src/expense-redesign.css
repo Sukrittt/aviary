@@ -887,6 +887,13 @@
   padding: 2px 8px;
   border-radius: 6px;
 }
+/* Nunito's line box keeps descender room digits never use, so the amount sat high. Trim to cap height and pad evenly. */
+@supports (text-box: trim-both cap alphabetic) {
+  .env2-pill {
+    text-box: trim-both cap alphabetic;
+    padding: 6px 8px;
+  }
+}
 .env2-pill.is-good { color: var(--tk-pill-good); background: var(--tk-pill-good-bg); }
 .env2-pill.is-low { color: var(--tk-pill-low); background: var(--tk-pill-low-bg); }
 .env2-pill.is-over { color: var(--tk-pill-over); background: var(--tk-pill-over-bg); }
@@ -3010,6 +3017,8 @@
 .erd-sub-card .erd-sub-body {
   overflow-y: auto;
   min-height: 0;
+  /* Room so the scroll box doesn't clip the last row of chips; the footer gives it back. */
+  padding-bottom: 4px;
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -3055,6 +3064,26 @@
 .erd-sub-picks .erd-chip:hover {
   border-color: var(--gold);
   color: var(--gold-hover);
+}
+
+.erd-sub-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 0;
+  text-align: center;
+}
+.erd-sub-empty strong {
+  font: 600 18px/1.3 var(--font-fredoka);
+  color: var(--erd-text);
+}
+.erd-sub-empty p {
+  margin: 0;
+  max-width: 320px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--erd-text2);
 }
 
 /* Inline helper text — small, dim, sits 8px BELOW its chips so the section
@@ -3123,7 +3152,7 @@
 /* Save — pinned to the sheet bottom. */
 .expense-redesign .erd-sub-card .erd-sub-footer {
   flex: 0 0 auto;
-  padding-top: 24px;
+  padding-top: 20px;
   display: flex;
   flex-direction: column;
 }
@@ -3282,9 +3311,9 @@
 .expense-redesign .action-button.is-success,
 .erd-log-submit.is-success,
 .expense-redesign .txn-review-primary.is-success {
-  background: var(--mint);
-  border-color: var(--mint);
-  color: var(--erd-on-accent);
+  background: var(--tk-success-bg);
+  border-color: var(--tk-success-bg);
+  color: var(--tk-on-success);
   transform: none;
 }
 .expense-redesign .action-button.is-success:hover,
@@ -4001,7 +4030,7 @@
     padding: 24px 0 calc(24px + env(safe-area-inset-bottom));
   }
   .expense-redesign .erd-sub-card .erd-sub-footer {
-    padding: 24px 0 calc(24px + env(safe-area-inset-bottom));
+    padding: 20px 0 calc(24px + env(safe-area-inset-bottom));
   }
   .expense-redesign .erd-recurring-footer {
     padding: 24px 0 calc(24px + env(safe-area-inset-bottom));
@@ -11650,8 +11679,10 @@ button.account-feature-card {
 .erd-added-nudge {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   gap: 6px;
+  text-align: center;
+  background: none;
 }
 .erd-added-nudge strong {
   font: 600 18px/1.3 var(--font-fredoka);
@@ -12435,9 +12466,9 @@ button.account-feature-card {
   font-size: 13px;
 }
 .expense-redesign .balance-option.is-success {
-  border-color: var(--mint);
-  background: var(--mint);
-  color: var(--erd-on-accent);
+  border-color: var(--tk-success-bg);
+  background: var(--tk-success-bg);
+  color: var(--tk-on-success);
   cursor: default;
 }
 .expense-redesign .balance-option.is-success .sb-label {

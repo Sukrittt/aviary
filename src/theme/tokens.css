@@ -50,6 +50,8 @@
   --tk-pill-low-bg: #fef3c7;
   --tk-pill-over: #b91c1c;
   --tk-pill-over-bg: #fee2e2;
+  --tk-success-bg: #bbf7d0;
+  --tk-on-success: #166534;
 }
 
 .theme-light {
@@ -94,6 +96,8 @@
   --tk-pill-low-bg: #fef3c7;
   --tk-pill-over: #b91c1c;
   --tk-pill-over-bg: #fee2e2;
+  --tk-success-bg: #bbf7d0;
+  --tk-on-success: #166534;
 }
 
 .theme-dark {
@@ -138,4 +142,6 @@
   --tk-pill-low-bg: rgba(250, 204, 21, 0.16);
   --tk-pill-over: #ff646f;
   --tk-pill-over-bg: rgba(255, 100, 111, 0.16);
+  --tk-success-bg: #26e085;
+  --tk-on-success: #1a0500;
 }

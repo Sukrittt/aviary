@@ -198,8 +198,8 @@
   color: var(--tk-on-accent);
 }
 .money-cta.is-success {
-  background: var(--tk-mint);
-  color: var(--tk-on-accent);
+  background: var(--tk-success-bg);
+  color: var(--tk-on-success);
 }
 .money-cta.is-saving {
   opacity: 0.5;
