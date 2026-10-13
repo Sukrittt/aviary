@@ -3,7 +3,7 @@
 import { useCurrency } from '@/src/context/CurrencyContext'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { CalendarBlankIcon, ChatTextIcon, PencilLineIcon, PlusIcon, TagIcon, WarningIcon, WalletIcon } from '@/src/components/icons'
+import { CalendarBlankIcon, ChatTextIcon, PlusIcon, TagIcon, WarningIcon, WalletIcon } from '@/src/components/icons'
 import { useOptionalMoneyBrain } from '@/components/moneyBrainContext'
 import { useHiddenFeatures } from '../hooks/useUser'
 import { Scrim, Sheet } from './MotionSheet'
@@ -144,11 +144,10 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
 
   // Bumped on each blocked save; 0 means nothing is highlighted yet.
   const [nudge, setNudge] = useState(0)
-  const missing = missingFields({ amount, item, category: effectiveCategory })
+  const missing = missingFields({ amount, category: effectiveCategory })
   const flag = (f: (typeof missing)[number]) => nudge > 0 && missing.includes(f)
   const amountNudgeRef = useNudge<HTMLDivElement>(nudge, missing.includes('amount'))
-  const itemNudgeRef = useNudge<HTMLInputElement>(nudge, missing.includes('item'))
-  const categoryNudgeRef = useNudge<HTMLDivElement>(nudge, missing.includes('category'))
+    const categoryNudgeRef = useNudge<HTMLDivElement>(nudge, missing.includes('category'))
   const [amountShakeRef, shakeAmount] = useShake<HTMLInputElement>()
 
   useEffect(() => {
@@ -327,11 +326,13 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
     }
     start()
     setError('')
+    // A blank item saves under the category's name, like Mobile.
+    const savedItem = item.trim() || splitEmoji(effectiveCategory).text
     // The photo controls are locked while saving, so this is what the user sees.
     const pickedPhoto = photo
     try {
       const result = await addExpenseM.mutateAsync({
-        item: item.trim(),
+        item: savedItem,
         amount_inr: String(Math.round(parsed)),
         category: effectiveCategory,
         date: date || undefined,
@@ -349,7 +350,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
         id: result.id,
         version: result.version,
         timestamp: result.timestamp ?? '',
-        item: item.trim(),
+        item: savedItem,
         category: effectiveCategory,
         date,
         amount: Math.round(parsed),
@@ -411,7 +412,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
             <Toast
               trigger={nudge}
               message={missingFieldsMessage(missing)}
-              icon={missing[0] === 'amount' ? WalletIcon : missing[0] === 'item' ? PencilLineIcon : TagIcon}
+              icon={missing[0] === 'amount' ? WalletIcon : TagIcon}
             />
             <Toast
               trigger={unusualNudge}
@@ -471,9 +472,8 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
                 </label>
                 <div className="erd-log-item-field">
                   <input
-                    ref={itemNudgeRef}
                     id="erd-log-item"
-                    className={`erd-log-input${flag('item') ? ' is-missing' : ''}`}
+                    className="erd-log-input"
                     placeholder="e.g. Bike repair"
                     value={item}
                     onChange={(e) => handleItemChange(e.target.value)}

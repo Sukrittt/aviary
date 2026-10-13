@@ -167,6 +167,17 @@ it('saves through the expense mutation so Activity is invalidated immediately', 
   expect(onSaved).toHaveBeenCalledOnce()
 })
 
+it('saves a blank item under the category name, like Mobile', async () => {
+  addExpenseMutation.mockResolvedValue({ id: 'expense-1', pending: false })
+  render(<LogExpenseModal onClose={vi.fn()} onSaved={vi.fn()} />)
+  fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '450' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Choose Groceries' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Save expense' }))
+
+  await waitFor(() => expect(addExpenseMutation).toHaveBeenCalledWith(expect.objectContaining({ item: 'Groceries', category: 'Groceries' })))
+  expect(await screen.findByText('Added ₹450 · Groceries')).toBeInTheDocument()
+})
+
 describe('LogExpenseModal category suggestion', () => {
   it('predicts again after editing a name with a manually selected category', async () => {
     const reply = deferred<string>()
