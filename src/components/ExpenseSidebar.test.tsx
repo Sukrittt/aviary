@@ -55,6 +55,11 @@ describe('ExpenseSidebar', () => {
     }
   })
 
+  it('exposes the primary navigation landmark', () => {
+    render(<ExpenseSidebar />)
+    expect(screen.getByRole('navigation', { name: 'Primary' })).toBeTruthy()
+  })
+
   it('remembers the collapsed rail between visits', () => {
     render(<ExpenseSidebar />)
     fireEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }))

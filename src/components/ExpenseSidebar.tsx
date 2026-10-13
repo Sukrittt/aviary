@@ -132,11 +132,13 @@ function ExpenseSidebarNav({ onBulkReturn }: Props) {
 
       <Sidebar
         collapsible="icon"
-        aria-label="Primary"
         // The mobile sheet portals into the page so it keeps the theme tokens,
         // the same way DatePicker's popover does.
         container={typeof document === "undefined" ? undefined : (document.querySelector<HTMLElement>(".expense-redesign") ?? undefined)}
       >
+        {/* Sidebar renders a plain div (or a dialog on mobile); this keeps the
+            primary navigation landmark the old <nav> provided. */}
+        <nav aria-label="Primary" className="flex min-h-0 flex-1 flex-col">
         <SidebarHeader className="gap-[22px] px-3.5 pt-[22px] pb-0">
           <div className="erd-brand group-data-[collapsible=icon]:flex-col! group-data-[collapsible=icon]:gap-2.5! group-data-[collapsible=icon]:pl-0!">
             <Link href="/expense" className="erd-brand-link" aria-label="Aviary home" onClick={closeMobile}>
@@ -207,6 +209,7 @@ function ExpenseSidebarNav({ onBulkReturn }: Props) {
             <NavItem label="Log out" icon={SignOutIcon} onClick={() => { closeMobile(); setConfirmSignOut(true); }} />
           </SidebarMenu>
         </SidebarFooter>
+        </nav>
       </Sidebar>
 
       {/* Outside the sidebar: its fixed, transformed container would trap
