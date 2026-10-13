@@ -34,17 +34,25 @@ export function IdeasBoardPage() {
     mutationFn: ({ id, value }: { id: string; value: VoteValue }) => voteIdea(id, value),
     // One at a time, in tap order: parallel requests could land out of order
     // and save an earlier tap over the last one.
+    mutationKey: ['idea-vote'],
     scope: { id: 'idea-vote' },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['ideas'] }),
+    onSuccess: (_result, { value }) => track('idea_voted', { value }),
+    // Refetch once the last queued vote lands. Sooner would overwrite the
+    // optimistic state of taps still waiting their turn. (The settling vote
+    // still counts here.)
+    onSettled: () => {
+      if (queryClient.isMutating({ mutationKey: ['idea-vote'] }) <= 1) queryClient.invalidateQueries({ queryKey: ['ideas'] })
+    },
   })
 
   function tap(idea: Idea, arrow: 1 | -1) {
     const next = toggleVote(idea.myVote, arrow)
+    // A refetch already in flight would land on top of this tap.
+    queryClient.cancelQueries({ queryKey: ['ideas'] })
     queryClient.setQueryData<Idea[]>(key, (rows) =>
       rows?.map((r) => (r.id === idea.id ? { ...r, ...applyVote(r, r.myVote, next), myVote: next } : r)),
     )
     vote.mutate({ id: idea.id, value: next })
-    track('idea_voted', { value: next })
   }
 
   return (

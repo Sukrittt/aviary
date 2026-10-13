@@ -1,6 +1,6 @@
 import { it, expect, vi, beforeEach } from 'vitest'
 import type { Mock } from 'vitest'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
@@ -87,6 +87,23 @@ it('saves the last of several quick taps', async () => {
   await user.click(screen.getByRole('button', { name: 'Downvote' }))
   await waitFor(() => expect(server[0]).toMatchObject({ myVote: -1, up: 3, down: 2, score: 1 }))
   await waitFor(() => expect(screen.getByRole('group', { name: 'Votes, score 1' })).toBeInTheDocument())
+})
+
+it("doesn't refetch over taps still queued behind a vote", async () => {
+  const pending: (() => void)[] = []
+  ;(voteIdea as Mock).mockImplementation(() => new Promise<void>((resolve) => pending.push(resolve)))
+  const user = userEvent.setup()
+  renderPage()
+  await screen.findByText('Split bills')
+  await user.click(screen.getByRole('button', { name: 'Upvote' }))
+  await user.click(screen.getByRole('button', { name: 'Downvote' }))
+  await waitFor(() => expect(pending).toHaveLength(1))
+  await act(async () => pending[0]())
+  await waitFor(() => expect(pending).toHaveLength(2))
+  expect(listIdeas).toHaveBeenCalledTimes(1)
+  expect(screen.getByRole('group', { name: 'Votes, score 1' })).toBeInTheDocument()
+  await act(async () => pending[1]())
+  await waitFor(() => expect(listIdeas).toHaveBeenCalledTimes(2))
 })
 
 it('posts an idea and shows written copy when rate limited', async () => {
