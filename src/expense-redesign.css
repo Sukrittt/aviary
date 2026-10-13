@@ -3282,9 +3282,9 @@
 .expense-redesign .action-button.is-success,
 .erd-log-submit.is-success,
 .expense-redesign .txn-review-primary.is-success {
-  background: var(--mint);
-  border-color: var(--mint);
-  color: var(--erd-on-accent);
+  background: var(--tk-success-bg);
+  border-color: var(--tk-success-bg);
+  color: var(--tk-on-success);
   transform: none;
 }
 .expense-redesign .action-button.is-success:hover,
@@ -11650,8 +11650,10 @@ button.account-feature-card {
 .erd-added-nudge {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   gap: 6px;
+  text-align: center;
+  background: none;
 }
 .erd-added-nudge strong {
   font: 600 18px/1.3 var(--font-fredoka);
@@ -12435,9 +12437,9 @@ button.account-feature-card {
   font-size: 13px;
 }
 .expense-redesign .balance-option.is-success {
-  border-color: var(--mint);
-  background: var(--mint);
-  color: var(--erd-on-accent);
+  border-color: var(--tk-success-bg);
+  background: var(--tk-success-bg);
+  color: var(--tk-on-success);
   cursor: default;
 }
 .expense-redesign .balance-option.is-success .sb-label {
