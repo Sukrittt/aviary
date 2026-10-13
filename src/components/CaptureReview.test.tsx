@@ -14,7 +14,7 @@ vi.mock('@/src/hooks/useCategories', () => ({
   useCategories: () => ({ data: [{ name: '🍜 Eating out', group: 'Food' }, { name: 'Travel', group: 'Everyday' }, { name: 'Food', group: 'Everyday' }, { name: 'Sports', group: 'Fun' }] }),
 }))
 vi.mock('@/src/lib/analytics', () => ({ track: mocks.track }))
-vi.mock('@/src/lib/date', () => ({ todayIST: () => '2026-10-07' }))
+vi.mock('@/src/lib/date', () => ({ todayLocal: () => '2026-10-07' }))
 
 const proposal: CaptureProposal = {
   id: 'p1',

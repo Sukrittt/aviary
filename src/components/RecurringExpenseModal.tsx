@@ -19,7 +19,7 @@ import {
 } from '../hooks/useRecurringExpenses'
 import { suggestCategoryLLM } from '../lib/autoCategory'
 import { EMPTY } from '../lib/constants'
-import { todayIST } from '../lib/date'
+import { todayLocal } from '../lib/date'
 import { splitEmoji } from '../lib/emoji'
 
 const FREQUENCIES = ['daily', 'weekly', 'monthly', 'yearly']
@@ -66,7 +66,7 @@ export function RecurringExpenseModal({ id, initialValues, suggestionId, onAdded
   const [item, setItem] = useState(initial?.item ?? '')
   const [amount, setAmount] = useState(initial?.amount_inr ?? '')
   const [frequency, setFrequency] = useState(initial?.frequency || 'monthly')
-  const [startDate, setStartDate] = useState(initial?.start_date || todayIST())
+  const [startDate, setStartDate] = useState(initial?.start_date || todayLocal())
   const [endDate, setEndDate] = useState(initial?.end_date ?? '')
   const [notes, setNotes] = useState(initial?.notes ?? '')
   const [category, setCategory] = useState(initial?.category ?? '')

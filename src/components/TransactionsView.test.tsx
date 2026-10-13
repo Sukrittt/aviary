@@ -2,7 +2,8 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest'
 import { TransactionsView } from './TransactionsView'
 import { ExpenseWriteError } from '../lib/expenseConflict'
-const { remove, dismiss, duplicates, page } = vi.hoisted(() => ({
+const { remove, dismiss, duplicates, page, pageArgs } = vi.hoisted(() => ({
+  pageArgs: [] as Record<string, unknown>[],
   remove: vi.fn(),
   dismiss: vi.fn(),
   duplicates: { data: [] as unknown[] },
@@ -16,7 +17,7 @@ vi.mock('../hooks/useBudgets', () => ({ useBudgets: () => ({ data: [{ category: 
 vi.mock('../hooks/useCategories', () => ({ useCategories: () => ({ data: [{ name: 'Groceries' }, { name: 'Subscription' }] }) }))
 vi.mock('../hooks/useRecentCategories', () => ({ useRecentCategories: () => ({ recents: [] }) }))
 vi.mock('../hooks/useExpenses', () => ({
-  useExpensesPage: () => ({ data: { rows: [{ id: 'one', version: 0, timestamp: '2026-09-18T10:00:00', date: '2026-09-18', item: 'Lunch', amount_inr: '100', category: 'Food' }, ...page.extra], total: 1 + page.extra.length, pageCount: 1, totalAmount: 100 } }),
+  useExpensesPage: (args: Record<string, unknown>) => (pageArgs.push(args), { data: { rows: [{ id: 'one', version: 0, timestamp: '2026-09-18T10:00:00', date: '2026-09-18', item: 'Lunch', amount_inr: '100', category: 'Food' }, ...page.extra], total: 1 + page.extra.length, pageCount: 1, totalAmount: 100 } }),
   useDeleteExpense: () => ({ mutateAsync: remove }),
   useDuplicates: () => duplicates,
   useDismissDuplicate: () => ({ mutateAsync: dismiss }),
@@ -216,4 +217,11 @@ describe('income in Activity', () => {
     // The row animates out, so it leaves the DOM a beat later.
     await waitFor(() => expect(screen.queryByText('Gift')).not.toBeInTheDocument())
   })
+})
+
+it('queries the calendar days it shows, not the day before, east of UTC', () => {
+  // TZ is Asia/Kolkata (vitest.config.ts): local midnight is the previous day in UTC.
+  render(<TransactionsView />)
+  fireEvent.click(screen.getByRole('tab', { name: 'This month' }))
+  expect(pageArgs.at(-1)).toMatchObject({ from: '2026-09-01', to: '2026-09-18' })
 })

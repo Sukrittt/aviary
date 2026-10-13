@@ -1,5 +1,6 @@
 import { useMemo, useState, useRef, useEffect } from "react";
 import { animate } from "motion";
+import { parseLocalDate } from "../lib/date";
 
 interface SparkBarDatum {
   date: string;
@@ -199,8 +200,8 @@ export function SparkBars({
     if (!current) return "";
     const next = data[index + 1];
     if (next) {
-      const start = new Date(current.date);
-      const end = new Date(next.date);
+      const start = parseLocalDate(current.date);
+      const end = parseLocalDate(next.date);
       end.setDate(end.getDate() - 1);
       const fmt = (d: Date) =>
         d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });

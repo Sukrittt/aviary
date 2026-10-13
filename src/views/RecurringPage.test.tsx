@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import { RecurringPage, dueLabel, monthlyEquivalent } from './RecurringPage'
 import { getRecurringExpenses } from '@/src/api/recurringExpenses'
-import { toISTDateString } from '@/src/lib/date'
+import { toLocalDateString } from '@/src/lib/date'
 import type { RecurringExpenseRow } from '@/src/types'
 
 vi.mock('@/src/api/recurringExpenses', () => ({
@@ -53,8 +53,8 @@ describe('dueLabel', () => {
     const today = new Date()
     const tomorrow = new Date(today)
     tomorrow.setDate(tomorrow.getDate() + 1)
-    expect(dueLabel(toISTDateString(today))).toBe('Due today')
-    expect(dueLabel(toISTDateString(tomorrow))).toBe('Due tomorrow')
+    expect(dueLabel(toLocalDateString(today))).toBe('Due today')
+    expect(dueLabel(toLocalDateString(tomorrow))).toBe('Due tomorrow')
     expect(dueLabel('2099-03-14')).toBe('Next on 14 Mar')
     expect(dueLabel('')).toBe('Not scheduled')
   })
