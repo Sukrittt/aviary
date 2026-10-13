@@ -22,7 +22,7 @@ import {
 import { useCategories } from '@/src/hooks/useCategories'
 import { useAddExpense, useRecentExpenses } from '@/src/hooks/useExpenses'
 import { track } from '@/src/lib/analytics'
-import { todayIST } from '@/src/lib/date'
+import { todayLocal } from '@/src/lib/date'
 import { categoryEmoji, splitEmoji } from '@/src/lib/emoji'
 import { formatDateShort } from '@/src/lib/format'
 import { unusualAmount } from '@/src/lib/unusualAmount'
@@ -92,7 +92,7 @@ export function CaptureReview({ proposal, onSettled, origin = CAPTURE_ORIGIN, lo
   })
   const expenseIds = useRef<string[]>([])
   const shownAt = useRef(0)
-  const today = todayIST()
+  const today = todayLocal()
 
   // Once the envelope list loads, a row whose envelope is gone (deleted since it was read) has none:
   // logging it would file the spend under a name that no longer exists.

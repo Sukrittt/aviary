@@ -35,7 +35,7 @@ import {
   categoryEmoji,
   splitEmoji,
 } from "@/src/lib/emoji";
-import { todayIST } from "@/src/lib/date";
+import { todayLocal } from "@/src/lib/date";
 import { formatDateShort, formatShortDate } from "@/src/lib/format";
 import {
   categoryBreakdown,
@@ -89,7 +89,7 @@ export function InsightsPage() {
   const categories = categoriesQuery.data ?? EMPTY;
   const groups = groupsQuery.data ?? EMPTY;
   const currentMonth = currentMonthKey();
-  const today = todayIST();
+  const today = todayLocal();
 
   const [insightMonth, setInsightMonth] = useState(currentMonth);
   const [breakdownMode, setBreakdownMode] = useState<"category" | "group">(

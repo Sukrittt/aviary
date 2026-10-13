@@ -13,7 +13,7 @@ import {
   useRecurringIncomes,
   useUpdateRecurringIncome,
 } from '../hooks/useIncomes'
-import { todayIST } from '../lib/date'
+import { todayLocal } from '../lib/date'
 
 const FREQUENCIES = ['weekly', 'monthly', 'yearly', 'daily']
 const RETRY = 'Check your connection and try again.'
@@ -41,7 +41,7 @@ export function RecurringIncomeModal({ id, initial, onClose }: Props) {
   const [label, setLabel] = useState(existing?.label ?? initial?.label ?? '')
   const [amount, setAmount] = useState(existing?.amount ?? initial?.amount ?? '')
   const [frequency, setFrequency] = useState(existing?.frequency || initial?.frequency || 'monthly')
-  const [payday, setPayday] = useState(existing?.start_date || todayIST())
+  const [payday, setPayday] = useState(existing?.start_date || todayLocal())
   const [endDate, setEndDate] = useState(existing?.end_date ?? '')
   const [accountId, setAccountId] = useState(existing?.account_id ?? '')
   const [confirmingDelete, setConfirmingDelete] = useState(false)

@@ -1,4 +1,5 @@
 import { formatMoney } from '@/src/lib/currencies'
+import { parseLocalDate, toLocalDateString } from '@/src/lib/date'
 export interface ExpenseRowDetail {
   timestamp: string
   date: string
@@ -102,7 +103,7 @@ function toWeeklyAnomalies(rows: Array<{ date: string; amountInr: number }>) {
   const weeklyTotals = new Map<string, { label: string; totalInr: number; key: string }>()
 
   rows.forEach((row) => {
-    const date = new Date(row.date)
+    const date = parseLocalDate(row.date)
     if (Number.isNaN(date.getTime())) return
 
     const start = new Date(date)
@@ -111,7 +112,7 @@ function toWeeklyAnomalies(rows: Array<{ date: string; amountInr: number }>) {
     start.setDate(start.getDate() - diffToMonday)
     start.setHours(0, 0, 0, 0)
 
-    const key = start.toISOString().slice(0, 10)
+    const key = toLocalDateString(start)
     const existing = weeklyTotals.get(key)
 
     if (existing) {

@@ -24,6 +24,7 @@ import { DatePicker } from "./DatePicker";
 import { Select } from "./Select";
 import { avatarColorFor, categoryEmoji, splitEmoji } from "../lib/emoji";
 import { formatShortDate } from "../lib/format";
+import { parseLocalDate } from "../lib/date";
 import { BirdEmptyState } from "./BirdEmptyState";
 import { useIncomes } from "../hooks/useIncomes";
 import { liveAccounts, useAccounts } from "../hooks/useAccounts";
@@ -99,7 +100,7 @@ export function TransactionsView({
   const anchorDate = useMemo(() => {
     const iso = anchorQuery.data?.rows[0]?.date;
     if (!iso) return null;
-    const d = new Date(iso);
+    const d = parseLocalDate(iso);
     return Number.isNaN(d.getTime()) ? null : d;
   }, [anchorQuery.data]);
 
@@ -219,8 +220,8 @@ export function TransactionsView({
     } else if (period === "month") {
       start = new Date(end.getFullYear(), end.getMonth(), 1);
     } else if (period === "custom" && customStart && customEnd) {
-      start = new Date(customStart);
-      end.setTime(new Date(customEnd).getTime());
+      start = parseLocalDate(customStart);
+      end.setTime(parseLocalDate(customEnd).getTime());
     }
     return { from: toDateInput(start), to: toDateInput(end) };
   }, [period, customStart, customEnd, latestDate]);

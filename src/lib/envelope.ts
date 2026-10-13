@@ -2,7 +2,7 @@
 // adapted to Mobile's row types (BudgetRow/ExpenseRow have string number fields).
 // Do not change the formulas without checking the web version stays in sync.
 import type { BudgetRow, CategoryRow, ExpenseRow } from '@/src/types'
-import { toISTDateString } from './date'
+import { toLocalDateString } from './date'
 
 export interface Envelope {
   category: string
@@ -51,7 +51,7 @@ export const CREDIT_CARD_CATEGORY = '__credit_card__'
 export const INCOME_CATEGORY = '__income__'
 
 export function currentMonthKey(date: Date = new Date()): string {
-  return toISTDateString(date).slice(0, 7)
+  return toLocalDateString(date).slice(0, 7)
 }
 
 export function prevMonthKey(key: string): string {
@@ -83,7 +83,7 @@ export function monthAbbrev(key: string): string {
 }
 
 export function daysLeftInMonth(): number {
-  const [y, m, d] = toISTDateString().split('-').map(Number)
+  const [y, m, d] = toLocalDateString().split('-').map(Number)
   const daysInMonth = new Date(y, m, 0).getDate()
   return daysInMonth - d
 }

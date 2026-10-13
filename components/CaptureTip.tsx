@@ -11,7 +11,7 @@ import { interrupted, subscribeInterruptions } from './ChangelogAnnouncement'
 import { useRecentExpenses } from '@/src/hooks/useExpenses'
 import { usePersistentState } from '@/src/hooks/usePersistentState'
 import { captureTipReason, MANUAL_LOG_EVENT, NO_TIP_STATE, parseTipState, type CaptureTipReason } from '@/src/lib/captureTip'
-import { todayIST } from '@/src/lib/date'
+import { todayLocal } from '@/src/lib/date'
 import { track } from '@/src/lib/analytics'
 import '@/src/components/Changelog.css'
 
@@ -59,7 +59,7 @@ export function CaptureTip() {
   const ready = Boolean(user && !askHidden && onApp && rows && !blocked && !brain.isMoneyBrainOpen)
   if (ready && shown === null) {
     // eslint-disable-next-line react-hooks/purity -- read once, when deciding whether to latch
-    const reason = captureTipReason({ rows: rows!, today: todayIST(), now: Date.now(), manualLogs, state: { ...state, done: tried } })
+    const reason = captureTipReason({ rows: rows!, today: todayLocal(), now: Date.now(), manualLogs, state: { ...state, done: tried } })
     if (reason) setShown(reason)
   }
 
