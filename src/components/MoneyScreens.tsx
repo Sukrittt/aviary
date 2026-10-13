@@ -5,7 +5,7 @@ import './MoneyScreens.css'
 import { useCurrency } from '@/src/context/CurrencyContext'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { AnimatePresence, LayoutGroup, MotionConfig, motion, useReducedMotion } from 'motion/react'
-import { ArrowLeft, ArrowRight, RotateCw, Search, Trash2, X } from 'lucide-react'
+import { ArrowLeftIcon, ArrowRightIcon, ArrowClockwiseIcon, MagnifyingGlassIcon, TrashIcon, XIcon } from '@/src/components/icons'
 import { Scrim, Sheet } from './MotionSheet'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
 import { LoadingCaption } from './LoadingCaption'
@@ -155,7 +155,7 @@ function Screen({
             onClick={onBack ?? onClose}
             disabled={busy}
           >
-            {onBack ? <ArrowLeft size={16} /> : <X size={16} />}
+            {onBack ? <ArrowLeftIcon size={16} /> : <XIcon size={16} />}
           </button>
           <div className="money-dots">{dots}</div>
           <h2 className="money-title">{title}</h2>
@@ -203,7 +203,7 @@ function ConflictReview({
 }) {
   return (
     <div className="money-conflict">
-      <div className="money-conflict-icon"><RotateCw size={20} /></div>
+      <div className="money-conflict-icon"><ArrowClockwiseIcon size={20} /></div>
       <h3 className="money-conflict-heading">{heading}</h3>
       <p className="money-conflict-desc">{description}</p>
       <div className="money-conflict-card">
@@ -222,7 +222,7 @@ function ConflictReview({
       <p className="money-conflict-desc">{guidance}</p>
       <div className="money-conflict-actions">
         <button type="button" className="money-cta is-ready has-icon" onClick={onContinue}>
-          Continue with my changes <ArrowRight size={16} />
+          Continue with my changes <ArrowRightIcon size={16} />
         </button>
         <button type="button" className="money-cta is-plain" onClick={onUseLatest}>
           Use latest instead
@@ -559,7 +559,7 @@ function MoveMoneyBody({
                 : `${formatCurrency(remaining, hideAmounts)} more to allocate`}
           </SuccessButton>
           <button type="button" className="money-back" onClick={() => setStep('amount')} disabled={busy}>
-            <ArrowLeft size={14} /> Back to amount
+            <ArrowLeftIcon size={14} /> Back to amount
           </button>
         </>
       }
@@ -584,7 +584,7 @@ function MoveMoneyBody({
       {!covered && <section className="erd-sub-section">
         <div className="money-search-row">
           <label className="money-search">
-            <Search size={14} />
+            <MagnifyingGlassIcon size={14} />
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Find an envelope" />
           </label>
           <button type="button" className="money-autofill" onClick={autoFillNow} disabled={busy}>
@@ -621,7 +621,7 @@ function MoveMoneyBody({
                             </span>
                           </div>
                           <button type="button" className="money-remove" aria-label="Remove" onClick={() => removeAlloc(item.key)} disabled={busy}>
-                            <Trash2 size={14} />
+                            <TrashIcon size={14} />
                           </button>
                         </div>
                         <label className="money-alloc">
@@ -899,7 +899,7 @@ export function EditMonthIncomeScreen({ month, onClose, initial }: { month: stri
         <div className="money-month-row">
           <span className="money-label">{monthLabel(month).toUpperCase()}</span>
           <button type="button" className="money-head-btn" aria-label="Close" onClick={onClose} disabled={busy}>
-            <X size={16} />
+            <XIcon size={16} />
           </button>
         </div>
         {isCurrent ? (

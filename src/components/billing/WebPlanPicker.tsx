@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Check } from 'lucide-react'
+import { CheckIcon } from '@/src/components/icons'
 import type { PlanPeriod } from '@/src/api/billing'
 import { useWebCheckout, useWebPlans } from '@/src/hooks/useBillingStatus'
 import { useUser } from '@/src/hooks/useUser'
@@ -141,7 +141,7 @@ export function WebPlanPicker({ trialEndsAt = null, trigger = 'plan_screen' }: {
         {BENEFITS.map((b) => (
           <li key={b} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 13, lineHeight: '19px', fontWeight: 600, color: 'var(--tk-text)' }}>
             <span aria-hidden style={{ width: 20, height: 20, flexShrink: 0, borderRadius: 10, display: 'grid', placeItems: 'center', background: 'var(--tk-mint-soft)', color: 'var(--tk-mint)' }}>
-              <Check size={12} strokeWidth={3} />
+              <CheckIcon size={12} weight="bold" />
             </span>
             {b}
           </li>

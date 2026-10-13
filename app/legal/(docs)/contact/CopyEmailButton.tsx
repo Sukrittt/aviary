@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Check, Copy } from 'lucide-react'
+import { CheckIcon, CopyIcon } from '@/src/components/icons'
 
 export function CopyEmailButton({ email }: { email: string }) {
   const [copied, setCopied] = useState(false)
@@ -18,7 +18,7 @@ export function CopyEmailButton({ email }: { email: string }) {
 
   return (
     <button type="button" className="lp-contact-copy" onClick={copy} aria-label={copied ? 'Email copied' : 'Copy email'}>
-      {copied ? <Check size={18} strokeWidth={2.4} /> : <Copy size={18} strokeWidth={2.2} />}
+      {copied ? <CheckIcon size={18} weight="bold" /> : <CopyIcon size={18} />}
       <span aria-live="polite">{copied ? 'Copied' : 'Copy'}</span>
     </button>
   )

@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
-import { X } from 'lucide-react'
+import { XIcon } from '@/src/components/icons'
 import type { CaptureProposal } from '@/src/api/ai'
 import type { BalanceResult, BalanceStatus, MoneyInReason, ResolveAnswer } from '@/src/api/balanceChecks'
 import { CaptureReview } from '@/src/components/CaptureReview'
@@ -96,7 +96,7 @@ export function BalanceCheckModal({ onClose: close }: { onClose: () => void }) {
         <div className="erd-modal-head">
           <h3>Balance check</h3>
           <button type="button" className="erd-modal-close" onClick={onClose} aria-label="Close" disabled={reviewing}>
-            <X size={18} />
+            <XIcon size={18} />
           </button>
         </div>
         {body}
@@ -223,7 +223,7 @@ function EnterBalance({ status: fetched, onDone, onMeasured }: {
                 aria-label={`Remove ${names[i]}`}
                 disabled={busy}
               >
-                <X size={14} />
+                <XIcon size={14} />
               </button>
             )}
           </div>

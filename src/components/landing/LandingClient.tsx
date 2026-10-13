@@ -2,7 +2,7 @@
 
 import { useRef, useState, type ReactNode } from 'react'
 import { AnimatePresence, MotionConfig, motion, useReducedMotion } from 'motion/react'
-import { Volume2 } from 'lucide-react'
+import { SpeakerHighIcon } from '@/src/components/icons'
 import { useSample } from './sample'
 
 
@@ -46,6 +46,6 @@ export function AddedClip() {
   }
   return <div className="lp-win-added">
     <video ref={ref} className="lp-win-shot" src={media('clip-added.mp4')} poster={media('poster-added.jpg')} autoPlay muted loop playsInline preload="metadata" aria-label={added} />
-    <button type="button" className="lp-hear" onClick={replay}><Volume2 size={16} aria-hidden="true" />Hear the chime</button>
+    <button type="button" className="lp-hear" onClick={replay}><SpeakerHighIcon size={16} aria-hidden="true" />Hear the chime</button>
   </div>
 }

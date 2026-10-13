@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { KeyboardEvent } from 'react'
 import { createPortal } from 'react-dom'
-import { Check, ChevronDown, Search } from 'lucide-react'
+import { CheckIcon, CaretDownIcon, MagnifyingGlassIcon } from '@/src/components/icons'
 import './Select.css'
 
 export interface SelectOption {
@@ -222,7 +222,7 @@ export function Select({
           {selected?.icon && <span className="ui-select-icon" aria-hidden="true">{selected.icon}</span>}
           {selected ? selected.label : placeholder}
         </span>
-        <ChevronDown className="ui-select-chevron" size={16} aria-hidden="true" />
+        <CaretDownIcon className="ui-select-chevron" size={16} aria-hidden="true" />
       </button>
       {open && place && createPortal(
         <div
@@ -237,7 +237,7 @@ export function Select({
         >
           {searchable && (
             <div className="ui-select-search">
-              <Search size={14} aria-hidden="true" />
+              <MagnifyingGlassIcon size={14} aria-hidden="true" />
               <input
                 ref={searchRef}
                 type="search"
@@ -273,7 +273,7 @@ export function Select({
                     {o.hint && <small>{o.hint}</small>}
                   </span>
                 </span>
-                {o.value === value && <Check size={15} aria-hidden="true" />}
+                {o.value === value && <CheckIcon size={15} aria-hidden="true" />}
               </div>
             ))}
           </div>

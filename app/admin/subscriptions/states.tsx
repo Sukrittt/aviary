@@ -1,4 +1,4 @@
-import { BadgeCheck, CircleSlash2, Gift, Hourglass, type LucideIcon } from 'lucide-react'
+import { SealCheckIcon, ProhibitIcon, GiftIcon, HourglassIcon, type PhosphorIcon } from '@/src/components/icons'
 import type { Access } from '@/lib/billing/access'
 
 /** The four things an account can be, in the order they appear everywhere on this page. */
@@ -11,11 +11,11 @@ export const STATE_ORDER: State[] = ['trial', 'paid', 'gift', 'expired']
  * table badge and the dialog then all read the same variable, so a state can
  * never be blue in one place and orange in another.
  */
-export const STATES: Record<State, { label: string; icon: LucideIcon; note: string }> = {
-  trial: { label: 'Trial', icon: Hourglass, note: 'Inside the free 45 days' },
-  paid: { label: 'Paid', icon: BadgeCheck, note: 'Verified store purchase' },
-  gift: { label: 'Gifted', icon: Gift, note: 'Granted here, nothing paid' },
-  expired: { label: 'Expired', icon: CircleSlash2, note: 'Locked out once enforced' },
+export const STATES: Record<State, { label: string; icon: PhosphorIcon; note: string }> = {
+  trial: { label: 'Trial', icon: HourglassIcon, note: 'Inside the free 45 days' },
+  paid: { label: 'Paid', icon: SealCheckIcon, note: 'Verified store purchase' },
+  gift: { label: 'Gifted', icon: GiftIcon, note: 'Granted here, nothing paid' },
+  expired: { label: 'Expired', icon: ProhibitIcon, note: 'Locked out once enforced' },
 }
 
 /** The resolved mode with gifts split out of `paid` — a gift is access, not revenue. */

@@ -15,7 +15,7 @@ import {
 } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'motion/react'
-import { ChevronLeft, type LucideIcon } from 'lucide-react'
+import { CaretLeftIcon, type PhosphorIcon } from '@/src/components/icons'
 import { darkTokens, lightTokens } from '@/src/theme/tokens'
 import { OPERATORS, pushAmountKey } from '@/src/lib/calcAmount'
 
@@ -353,7 +353,7 @@ export function IconButton({
   background = T.cardSolid,
   label,
 }: {
-  icon: LucideIcon
+  icon: PhosphorIcon
   onPress: () => void
   size?: number
   color?: string
@@ -378,7 +378,7 @@ export function IconButton({
         flexShrink: 0,
       }}
     >
-      <Icon size={Math.round(size * 0.45)} color={color} strokeWidth={2} />
+      <Icon size={Math.round(size * 0.45)} color={color} />
     </motion.button>
   )
 }
@@ -504,7 +504,7 @@ export function Numpad({
             }}
           >
             {isToggle && calcOpen && <span style={{ position: 'absolute', width: 56, height: 56, borderRadius: 28, background: CALC_FILL }} />}
-            {isDel ? <ChevronLeft size={22} color={keyColor} /> : <span style={{ position: 'relative' }}>{label(k)}</span>}
+            {isDel ? <CaretLeftIcon size={22} color={keyColor} /> : <span style={{ position: 'relative' }}>{label(k)}</span>}
           </button>
         )
       })}</div>)}

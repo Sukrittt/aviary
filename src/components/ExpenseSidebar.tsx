@@ -2,25 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence } from "motion/react";
-import {
-  House,
-  LineChart,
-  LogOut,
-  Mail,
-  Menu,
-  Moon,
-  PanelLeftClose,
-  PanelLeftOpen,
-  Plus,
-  ReceiptText,
-  ScanLine,
-  Settings,
-  Sparkles,
-  Sun,
-  Undo2,
-  X,
-  type LucideIcon,
-} from "lucide-react";
+import { HouseIcon, ChartLineIcon, SignOutIcon, EnvelopeSimpleIcon, ListIcon, MoonIcon, SidebarSimpleIcon, PlusIcon, InvoiceIcon, ScanIcon, GearIcon, SparkleIcon, SunIcon, ArrowUUpLeftIcon, XIcon, type PhosphorIcon } from "@/src/components/icons";
 import { SignOutDialog } from "./ConfirmDialog";
 import { useMoneyBrain } from "@/components/MoneyBrainProvider";
 import { useAppearance } from "@/components/AppearanceProvider";
@@ -35,11 +17,11 @@ interface Props {
   onBulkReturn?: () => void;
 }
 
-const NAV: Array<{ href: string; label: string; icon: LucideIcon }> = [
-  { href: "/expense", label: "Home", icon: House },
-  { href: "/expense/transactions", label: "Activity", icon: ReceiptText },
-  { href: "/expense/envelopes", label: "Envelopes", icon: Mail },
-  { href: "/insights", label: "Insights", icon: LineChart },
+const NAV: Array<{ href: string; label: string; icon: PhosphorIcon }> = [
+  { href: "/expense", label: "Home", icon: HouseIcon },
+  { href: "/expense/transactions", label: "Activity", icon: InvoiceIcon },
+  { href: "/expense/envelopes", label: "Envelopes", icon: EnvelopeSimpleIcon },
+  { href: "/insights", label: "Insights", icon: ChartLineIcon },
 ];
 
 const parseBool = (raw: string) => raw === "1";
@@ -102,7 +84,7 @@ export function ExpenseSidebar({ onBulkReturn }: Props) {
           aria-expanded={mobileOpen}
           onClick={() => setMobileOpen(true)}
         >
-          <Menu size={21} />
+          <ListIcon size={21} />
         </button>
         <Link href="/expense" className="erd-mobile-brand" aria-label="Aviary home">
           <BirdMark size={29} />
@@ -136,7 +118,7 @@ export function ExpenseSidebar({ onBulkReturn }: Props) {
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
-            {collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+            {collapsed ? <SidebarSimpleIcon size={18} /> : <SidebarSimpleIcon size={18} />}
           </button>
           <button
             ref={mobileCloseButton}
@@ -145,18 +127,18 @@ export function ExpenseSidebar({ onBulkReturn }: Props) {
             onClick={() => closeMobileMenu(true)}
             aria-label="Close navigation"
           >
-            <X size={19} />
+            <XIcon size={19} />
           </button>
         </div>
 
         <div className="erd-side-actions">
           <button type="button" className="erd-side-cta" onClick={() => { closeMobileMenu(); runGated(() => setShowLog(true)); }} title={tip("Log expense")}>
-            <Plus size={18} strokeWidth={2.5} />
+            <PlusIcon size={18} weight="bold" />
             <span className="erd-side-label">Log expense</span>
           </button>
           {!hidden.includes("billScan") && (
             <button type="button" className="erd-side-cta is-secondary" onClick={() => { closeMobileMenu(); runGated(() => setShowScan(true)); }} title={tip("Scan a bill")}>
-              <ScanLine size={18} />
+              <ScanIcon size={18} />
               <span className="erd-side-label">Scan a bill</span>
             </button>
           )}
@@ -178,7 +160,7 @@ export function ExpenseSidebar({ onBulkReturn }: Props) {
           ))}
           {!hidden.includes("askAviary") && (
             <button type="button" className="erd-nav-item" onClick={() => { closeMobileMenu(); runGated(() => openMoneyBrain()); }} title={tip("Ask Aviary")}>
-              <Sparkles size={18} />
+              <SparkleIcon size={18} />
               <span className="erd-side-label">Ask Aviary</span>
             </button>
           )}
@@ -189,7 +171,7 @@ export function ExpenseSidebar({ onBulkReturn }: Props) {
             <div className="erd-nav-label erd-side-label">Budget</div>
             {onBulkReturn && (
               <button type="button" className="erd-nav-item" onClick={() => { closeMobileMenu(); onBulkReturn(); }} title={tip("Return all to RTA")}>
-                <Undo2 size={18} />
+                <ArrowUUpLeftIcon size={18} />
                 <span className="erd-side-label">Return all to RTA</span>
               </button>
             )}
@@ -203,7 +185,7 @@ export function ExpenseSidebar({ onBulkReturn }: Props) {
             title={tip("Account")}
             onClick={() => closeMobileMenu()}
           >
-            <Settings size={18} />
+            <GearIcon size={18} />
             <span className="erd-side-label">Account</span>
           </Link>
           <button
@@ -212,11 +194,11 @@ export function ExpenseSidebar({ onBulkReturn }: Props) {
             onClick={() => setTheme(theme === "light" ? "dark" : "light")}
             title={tip(theme === "light" ? "Dark mode" : "Light mode")}
           >
-            {theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
+            {theme === "light" ? <MoonIcon size={18} /> : <SunIcon size={18} />}
             <span className="erd-side-label">{theme === "light" ? "Dark mode" : "Light mode"}</span>
           </button>
           <button type="button" className="erd-nav-item" onClick={() => { closeMobileMenu(); setConfirmSignOut(true); }} title={tip("Log out")}>
-            <LogOut size={18} />
+            <SignOutIcon size={18} />
             <span className="erd-side-label">Log out</span>
           </button>
         </div>

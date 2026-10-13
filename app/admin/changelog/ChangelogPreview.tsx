@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, useCallback, useContext, useState, type ReactNode } from 'react'
-import { RotateCcw } from 'lucide-react'
+import { ArrowCounterClockwiseIcon } from '@/src/components/icons'
 import { ChangelogPopup } from '@/src/components/ChangelogPopup'
 import type { ChangelogRelease } from '@/src/lib/changelog'
 
@@ -24,5 +24,5 @@ export function ChangelogPreviewProvider({ children }: { children: ReactNode }) 
 export function ReplayChangelogPreview({ release }: { release: ChangelogRelease }) {
   const replay = useContext(PreviewContext)
   if (!replay) throw new Error('ReplayChangelogPreview requires ChangelogPreviewProvider')
-  return <button type="button" className="adm-btn" aria-label={`Replay preview: ${release.title}`} onClick={() => replay(release)}><RotateCcw size={14} aria-hidden="true" /> Replay preview</button>
+  return <button type="button" className="adm-btn" aria-label={`Replay preview: ${release.title}`} onClick={() => replay(release)}><ArrowCounterClockwiseIcon size={14} aria-hidden="true" /> Replay preview</button>
 }

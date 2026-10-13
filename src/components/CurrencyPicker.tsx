@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { ChevronRight } from 'lucide-react'
+import { CaretRightIcon } from '@/src/components/icons'
 import { AnimatePresence } from 'motion/react'
 import { currencyInfo, searchCurrencies } from '@/src/lib/currencies'
 import { useCurrency } from '@/src/context/CurrencyContext'
@@ -40,7 +40,7 @@ export function CurrencySetting() {
       <span className="account-row-label">Currency</span>
       <span className="account-chip">
         {current.code}{current.symbol !== current.code ? ` · ${current.symbol}` : ''}
-        <ChevronRight size={14} aria-hidden="true" />
+        <CaretRightIcon size={14} aria-hidden="true" />
       </span>
     </button>
     <AnimatePresence>

@@ -5,7 +5,7 @@ import { CurrencyScope, useCurrency } from '@/src/context/CurrencyContext'
 
 import { useEffect, useId, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
-import { ArrowLeft, Check, CopyX, FolderOpen, Plus, Tags, WalletCards } from 'lucide-react'
+import { ArrowLeftIcon, CheckIcon, CopyIcon, FolderOpenIcon, PlusIcon, TagIcon, CardholderIcon } from '@/src/components/icons'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import '../../src/expense-redesign.css'
@@ -634,7 +634,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
     <div className="expense-redesign setup-page">
       <div className="setup-top">
         <button type="button" className="setup-back" onClick={back} disabled={step === 0} aria-label="Back">
-          <ArrowLeft size={16} aria-hidden="true" />
+          <ArrowLeftIcon size={16} aria-hidden="true" />
         </button>
         <div className="setup-dots" role="img" aria-label={`Step ${step + 1} of ${dots.length}`}>
           {dots.map((n) => (
@@ -711,7 +711,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
               />
             ))}
             <button type="button" className="setup-add-row" onClick={addGroupRow}>
-              <Plus size={16} aria-hidden="true" /> Add your own group
+              <PlusIcon size={16} aria-hidden="true" /> Add your own group
             </button>
             <p className="setup-micro-hint">click a name to rename · click the emoji to pick another</p>
           </div>
@@ -766,7 +766,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
                     ))}
                   </div>
                   <button type="button" className="setup-add-pill" onClick={() => addCatRow(g.id)}>
-                    <Plus size={14} aria-hidden="true" /> Add category
+                    <PlusIcon size={14} aria-hidden="true" /> Add category
                   </button>
                 </div>
               )
@@ -859,7 +859,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
         </div>
       )}
 
-      <Toast trigger={rowToast.n} message={rowToast.message} icon={CopyX} />
+      <Toast trigger={rowToast.n} message={rowToast.message} icon={CopyIcon} />
 
       {error !== '' && <p className="setup-error">{error}</p>}
 
@@ -1033,7 +1033,7 @@ function PickRow({
       />
       {incompleteHint && <span id={nameHintId} className="setup-pick-name-hint">{incompleteHint}</span>}
       <button type="button" className={`setup-pick-check ${on ? 'is-on' : ''}`} onClick={onToggle} role="checkbox" aria-checked={on} aria-describedby={incompleteHint ? nameHintId : undefined} aria-label={`${on ? 'Deselect' : 'Select'} ${name || placeholder}`}>
-        <Check size={16} strokeWidth={3} aria-hidden="true" className="setup-pick-check-icon" />
+        <CheckIcon size={16} weight="bold" aria-hidden="true" className="setup-pick-check-icon" />
       </button>
     </div>
   )
@@ -1049,15 +1049,15 @@ function SetupDone({
   const { formatMoney } = useCurrency()
 
   const summary = [
-    { icon: WalletCards, label: 'Monthly income', value: result.income > 0 ? formatMoney(result.income) : 'Add it later' },
-    { icon: FolderOpen, label: 'Groups', value: String(result.groupCount) },
-    { icon: Tags, label: 'Categories', value: String(result.categoryCount) },
+    { icon: CardholderIcon, label: 'Monthly income', value: result.income > 0 ? formatMoney(result.income) : 'Add it later' },
+    { icon: FolderOpenIcon, label: 'Groups', value: String(result.groupCount) },
+    { icon: TagIcon, label: 'Categories', value: String(result.categoryCount) },
   ]
 
   return (
     <div className="setup-done">
       <Confetti />
-      <div className="setup-done-badge"><Check size={30} strokeWidth={2.4} aria-hidden="true" /></div>
+      <div className="setup-done-badge"><CheckIcon size={30} weight="bold" aria-hidden="true" /></div>
       <h1 className="setup-done-title">Your budget is ready to go.</h1>
       <p className="setup-done-blurb">Everything below can be changed later from Envelopes.</p>
       <p className="setup-done-promise">Your first-week recap lands in 7 days</p>

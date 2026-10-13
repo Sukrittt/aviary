@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react'
-import { Pause, Play, X } from 'lucide-react'
+import { PauseIcon, PlayIcon, XIcon } from '@/src/components/icons'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCurrency } from '@/src/context/CurrencyContext'
 import { useHideAmounts } from '@/src/hooks/useHideAmounts'
@@ -63,8 +63,8 @@ function RecapStory({ recap, onClose }: { recap: WeekRecap; onClose: () => void 
         <RecapBlobs key={index} kind={slide.kind} />
         <div className="wrapped-progress" aria-label={`Story ${index + 1} of ${slides.length}`}>{slides.map((_, i) => <i key={i}><b className={i < index ? 'is-done' : i === index ? 'is-current' : ''} style={i === index && !reduceMotion ? { animationDuration: `${STORY_MS}ms`, animationPlayState: paused ? 'paused' : 'running' } : undefined} onAnimationEnd={i === index ? advance : undefined} /></i>)}</div>
         <div className="wrapped-controls">
-          <button type="button" onClick={onClose} aria-label="Close recap"><X /></button>
-          <button type="button" onClick={() => setPaused((value) => !value)} aria-label={paused ? 'Resume stories' : 'Pause stories'}>{paused ? <Play /> : <Pause />}</button>
+          <button type="button" onClick={onClose} aria-label="Close recap"><XIcon size={24} /></button>
+          <button type="button" onClick={() => setPaused((value) => !value)} aria-label={paused ? 'Resume stories' : 'Pause stories'}>{paused ? <PlayIcon size={24} /> : <PauseIcon size={24} />}</button>
         </div>
         <button className="wrapped-tap wrapped-tap--left" type="button" onClick={() => setIndex((i) => Math.max(0, i - 1))} aria-label="Previous story" disabled={index === 0} />
         <button className="wrapped-tap wrapped-tap--right" type="button" onClick={() => setIndex((i) => Math.min(slides.length - 1, i + 1))} aria-label="Next story" disabled={last} />

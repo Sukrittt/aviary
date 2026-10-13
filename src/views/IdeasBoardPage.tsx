@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ChevronDown, ChevronUp } from 'lucide-react'
+import { CaretDownIcon, CaretUpIcon } from '@/src/components/icons'
 import { SuccessButton, useButtonPhase } from '../components/SuccessButton'
 import { listIdeas, postIdea, voteIdea, type Idea, type IdeaSort, type IdeaStatus } from '../api/ideas'
 import { applyVote, toggleVote, type VoteValue } from '../lib/ideaVotes'
@@ -87,11 +87,11 @@ export function IdeasBoardPage() {
             <li key={idea.id} className="account-card ideas-row">
               <div className="ideas-vote" role="group" aria-label={`Votes, score ${idea.score}`}>
                 <button type="button" className={idea.myVote === 1 ? 'is-on' : ''} aria-pressed={idea.myVote === 1} aria-label="Upvote" onClick={() => tap(idea, 1)}>
-                  <ChevronUp size={18} aria-hidden="true" />
+                  <CaretUpIcon size={18} aria-hidden="true" />
                 </button>
                 <span className="ideas-score">{idea.score}</span>
                 <button type="button" className={idea.myVote === -1 ? 'is-on is-down' : ''} aria-pressed={idea.myVote === -1} aria-label="Downvote" onClick={() => tap(idea, -1)}>
-                  <ChevronDown size={18} aria-hidden="true" />
+                  <CaretDownIcon size={18} aria-hidden="true" />
                 </button>
               </div>
               <div className="ideas-body">

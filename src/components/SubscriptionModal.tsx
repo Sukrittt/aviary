@@ -2,7 +2,7 @@
 
 import { useCurrency } from '@/src/context/CurrencyContext'
 import { useRef, useState } from 'react'
-import { Calendar } from 'lucide-react'
+import { CalendarBlankIcon } from '@/src/components/icons'
 import { Scrim, Sheet } from './MotionSheet'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
 import { DatePicker } from './DatePicker'
@@ -315,7 +315,7 @@ export function SubscriptionModal({ onClose, onSaved, editData, initialValues, s
                 className={`erd-date-chip${showCalendar || customDate ? ' is-active' : ''}`}
                 onClick={() => setShowCalendar((v) => !v)}
               >
-                <Calendar size={15} aria-hidden="true" />
+                <CalendarBlankIcon size={15} aria-hidden="true" />
                 {showCalendar ? 'Close' : customDate ? formatDueDate(dueDate) : 'Pick date'}
               </button>
             </div>

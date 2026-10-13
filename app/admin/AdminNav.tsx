@@ -2,21 +2,21 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Activity, ArrowLeft, CreditCard, Cpu, IndianRupee, LayoutDashboard, Lightbulb, MessageSquare, ScrollText, Settings2, Users, type LucideIcon } from 'lucide-react'
+import { PulseIcon, ArrowLeftIcon, CreditCardIcon, CpuIcon, CurrencyInrIcon, SquaresFourIcon, LightbulbIcon, ChatCenteredTextIcon, ScrollIcon, SlidersIcon, UsersIcon, type PhosphorIcon } from '@/src/components/icons'
 import { BirdMark } from '@/src/components/BirdMark'
 
-const NAV: Array<{ href: string; label: string; icon: LucideIcon }> = [
-  { href: '/admin', label: 'Overview', icon: LayoutDashboard },
-  { href: '/admin/users', label: 'Users', icon: Users },
-  { href: '/admin/revenue', label: 'Revenue', icon: IndianRupee },
-  { href: '/admin/subscriptions', label: 'Subscriptions', icon: CreditCard },
-  { href: '/admin/jobs', label: 'Jobs', icon: Activity },
-  { href: '/admin/feedback', label: 'Bug reports', icon: MessageSquare },
-  { href: '/admin/ideas', label: 'Ideas', icon: Lightbulb },
-  { href: '/admin/ai', label: 'AI usage', icon: Cpu },
-  { href: '/admin/system', label: 'System', icon: Settings2 },
-  { href: '/admin/changelog', label: 'Changelog', icon: ScrollText },
-  { href: '/admin/audit', label: 'Audit log', icon: ScrollText },
+const NAV: Array<{ href: string; label: string; icon: PhosphorIcon }> = [
+  { href: '/admin', label: 'Overview', icon: SquaresFourIcon },
+  { href: '/admin/users', label: 'Users', icon: UsersIcon },
+  { href: '/admin/revenue', label: 'Revenue', icon: CurrencyInrIcon },
+  { href: '/admin/subscriptions', label: 'Subscriptions', icon: CreditCardIcon },
+  { href: '/admin/jobs', label: 'Jobs', icon: PulseIcon },
+  { href: '/admin/feedback', label: 'Bug reports', icon: ChatCenteredTextIcon },
+  { href: '/admin/ideas', label: 'Ideas', icon: LightbulbIcon },
+  { href: '/admin/ai', label: 'AI usage', icon: CpuIcon },
+  { href: '/admin/system', label: 'System', icon: SlidersIcon },
+  { href: '/admin/changelog', label: 'Changelog', icon: ScrollIcon },
+  { href: '/admin/audit', label: 'Audit log', icon: ScrollIcon },
 ]
 
 export function AdminNav() {
@@ -48,7 +48,7 @@ export function AdminNav() {
 
       <div className="erd-nav-group erd-sidebar-foot">
         <Link href="/expense" className="erd-nav-item">
-          <ArrowLeft size={18} />
+          <ArrowLeftIcon size={18} />
           <span className="erd-side-label">Back to app</span>
         </Link>
       </div>

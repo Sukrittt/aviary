@@ -5,29 +5,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { AnimatePresence } from 'motion/react'
-import {
-  Wallet,
-  Landmark,
-  Archive,
-  Brain,
-  ChevronRight,
-  Compass,
-  CreditCard,
-  Database,
-  FileText,
-  Gift,
-  History,
-  LineChart,
-  Lock,
-  MessageCircle,
-  Receipt,
-  Repeat,
-  ScanLine,
-  ScrollText,
-  SlidersHorizontal,
-  TrendingUp,
-  type LucideIcon,
-} from 'lucide-react'
+import { WalletIcon, BankIcon, ArchiveIcon, BrainIcon, CaretRightIcon, CompassIcon, CreditCardIcon, DatabaseIcon, FileTextIcon, GiftIcon, ClockCounterClockwiseIcon, ChartLineIcon, LockIcon, ChatCircleIcon, ReceiptIcon, RepeatIcon, ScanIcon, ScrollIcon, SlidersHorizontalIcon, TrendUpIcon, type PhosphorIcon } from '@/src/components/icons'
 import { useAuth } from '@workos-inc/authkit-nextjs/components'
 import { useAppearance } from '../../components/AppearanceProvider'
 import { useHideAmounts } from '../../src/hooks/useHideAmounts'
@@ -127,7 +105,7 @@ export default function AccountPage() {
           <div className="account-profile-name">{name}</div>
           {email && <div className="account-profile-email">{email}</div>}
         </div>
-        <ChevronRight size={16} className="account-row-arrow" aria-hidden="true" />
+        <CaretRightIcon size={16} className="account-row-arrow" aria-hidden="true" />
       </Link>
 
       <Link href={FEEDBACK_BOARD_PATH} className="account-early-card">
@@ -136,7 +114,7 @@ export default function AccountPage() {
           <div className="account-early-title">Aviary&rsquo;s still early. Help shape it.</div>
           <div className="account-row-hint">Post ideas and vote on what we build next. We read every one.</div>
         </div>
-        <MessageCircle size={18} aria-hidden="true" />
+        <ChatCircleIcon size={18} aria-hidden="true" />
       </Link>
 
       <SubscriptionSection />
@@ -148,7 +126,7 @@ export default function AccountPage() {
         <div className="account-feature-grid">
           {shown('wrapped') && (
             <FeatureCard
-              icon={Gift}
+              icon={GiftIcon}
               tone="coral"
               label="Expense Wrapped"
               blurb={<span className="account-feature-copy">Download the mobile app to view this.</span>}
@@ -157,15 +135,15 @@ export default function AccountPage() {
               locked
             />
           )}
-          {shown('askAviary') && <FeatureCard icon={Brain} tone="gold" label="Ask Aviary" blurb="Ask about your spending" onClick={() => openMoneyBrain()} />}
-          {shown('investments') && <FeatureCard icon={TrendingUp} tone="mint" label="Investments" blurb="Portfolio at a glance" href="/investments" />}
-          {shown('billScan') && <FeatureCard icon={ScanLine} tone="mint" label="Scan a bill" blurb="Split a cart or receipt" onClick={() => setShowScan(true)} />}
-          {shown('income') && <FeatureCard icon={Wallet} tone="mint" label="Income" blurb="What comes in and when" href="/account/income" />}
-          {shown('accounts') && <FeatureCard icon={Landmark} tone="gold" label="Accounts" blurb="Bank, card and cash" href="/account/accounts" />}
-          {shown('recurring') && <FeatureCard icon={Repeat} tone="violet" label="Recurring expenses" blurb="Plan upcoming payments" href="/account/recurring" />}
-          <FeatureCard icon={Archive} tone="blue" label="Archive" blurb="Restore deleted items" href="/account/archive" />
-          {shown('subscriptions') && <FeatureCard icon={Receipt} tone="violet" label="Subscriptions" blurb="What renews and when" href="/account/subscriptions" />}
-          {shown('insights') && <FeatureCard icon={LineChart} tone="blue" label="Insights" blurb="Trends and breakdowns" href="/insights" />}
+          {shown('askAviary') && <FeatureCard icon={BrainIcon} tone="gold" label="Ask Aviary" blurb="Ask about your spending" onClick={() => openMoneyBrain()} />}
+          {shown('investments') && <FeatureCard icon={TrendUpIcon} tone="mint" label="Investments" blurb="Portfolio at a glance" href="/investments" />}
+          {shown('billScan') && <FeatureCard icon={ScanIcon} tone="mint" label="Scan a bill" blurb="Split a cart or receipt" onClick={() => setShowScan(true)} />}
+          {shown('income') && <FeatureCard icon={WalletIcon} tone="mint" label="Income" blurb="What comes in and when" href="/account/income" />}
+          {shown('accounts') && <FeatureCard icon={BankIcon} tone="gold" label="Accounts" blurb="Bank, card and cash" href="/account/accounts" />}
+          {shown('recurring') && <FeatureCard icon={RepeatIcon} tone="violet" label="Recurring expenses" blurb="Plan upcoming payments" href="/account/recurring" />}
+          <FeatureCard icon={ArchiveIcon} tone="blue" label="Archive" blurb="Restore deleted items" href="/account/archive" />
+          {shown('subscriptions') && <FeatureCard icon={ReceiptIcon} tone="violet" label="Subscriptions" blurb="What renews and when" href="/account/subscriptions" />}
+          {shown('insights') && <FeatureCard icon={ChartLineIcon} tone="blue" label="Insights" blurb="Trends and breakdowns" href="/insights" />}
         </div>
       </div>
 
@@ -176,7 +154,7 @@ export default function AccountPage() {
         <div className="account-card">
           <CurrencySetting />
           <AccountRow
-            icon={SlidersHorizontal}
+            icon={SlidersHorizontalIcon}
             label="Features"
             hint={hidden.length ? `${hidden.length} hidden` : 'Everything on'}
             href="/account/features"
@@ -240,9 +218,9 @@ export default function AccountPage() {
           Account
         </div>
         <div className="account-card">
-          <AccountRow icon={Lock} label="Account & security" href="/account/security" />
-          <AccountRow icon={Database} label="Your data" href="/account/data" />
-          {shown('billScan') && <AccountRow icon={History} label="Bills Scanned" href="/account/bill-scans" />}
+          <AccountRow icon={LockIcon} label="Account & security" href="/account/security" />
+          <AccountRow icon={DatabaseIcon} label="Your data" href="/account/data" />
+          {shown('billScan') && <AccountRow icon={ClockCounterClockwiseIcon} label="Bills Scanned" href="/account/bill-scans" />}
           {/* Twin of Mobile's Plan & billing row: tapping it shows the plan once
               billing is live, or the trial notice before then. The badge is a
               sibling of the link, since an anchor can't nest inside one. */}
@@ -252,7 +230,7 @@ export default function AccountPage() {
               className="account-row"
               style={{ flex: 1, minWidth: 0 }}
             >
-              <CreditCard size={16} aria-hidden="true" />
+              <CreditCardIcon size={16} aria-hidden="true" />
               <span className="account-row-label">
                 Plan &amp; billing
                 <span className="account-row-hint">
@@ -269,10 +247,10 @@ export default function AccountPage() {
               Open source
             </a>
           </div>
-          <AccountRow icon={Compass} label="How this works" href="/account/guided-tour" />
-          <AccountRow icon={ScrollText} label="Changelog" href="/account/changelog" />
-          <AccountRow icon={MessageCircle} label="Help & feedback" hint="We read every one" href="/account/help" />
-          <AccountRow icon={FileText} label="Terms & privacy" href="/legal/privacy" />
+          <AccountRow icon={CompassIcon} label="How this works" href="/account/guided-tour" />
+          <AccountRow icon={ScrollIcon} label="Changelog" href="/account/changelog" />
+          <AccountRow icon={ChatCircleIcon} label="Help & feedback" hint="We read every one" href="/account/help" />
+          <AccountRow icon={FileTextIcon} label="Terms & privacy" href="/legal/privacy" />
         </div>
       </div>
 
@@ -314,7 +292,7 @@ function FeatureCard({
   locked,
   onClick,
 }: {
-  icon: LucideIcon
+  icon: PhosphorIcon
   tone: Tone
   label: string
   blurb: ReactNode
@@ -328,7 +306,7 @@ function FeatureCard({
     <>
       {locked && (
         <span className="account-feature-lock-badge" aria-hidden="true">
-          <Lock size={12} />
+          <LockIcon size={12} />
         </span>
       )}
       <span className="account-feature-icon" style={{ background: `var(--${tone}-soft)`, color: `var(--${tone})` }} aria-hidden="true">
@@ -359,7 +337,7 @@ function FeatureCard({
   )
 }
 
-function AccountRow({ icon: Icon, label, hint, href }: { icon: LucideIcon; label: string; hint?: string; href: string }) {
+function AccountRow({ icon: Icon, label, hint, href }: { icon: PhosphorIcon; label: string; hint?: string; href: string }) {
   return (
     <Link href={href} className="account-row">
       <Icon size={16} aria-hidden="true" />
@@ -367,7 +345,7 @@ function AccountRow({ icon: Icon, label, hint, href }: { icon: LucideIcon; label
         {label}
         {hint && <span className="account-row-hint">{hint}</span>}
       </span>
-      <ChevronRight size={16} className="account-row-arrow" aria-hidden="true" />
+      <CaretRightIcon size={16} className="account-row-arrow" aria-hidden="true" />
     </Link>
   )
 }

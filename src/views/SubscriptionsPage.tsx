@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { AnimatePresence } from 'motion/react'
-import { Plus } from 'lucide-react'
+import { PlusIcon } from '@/src/components/icons'
 import { RecurringSuggestions } from '../components/RecurringSuggestions'
 import { SubscriptionModal } from '../components/SubscriptionModal'
 import { SubscriptionsPanel, type SubscriptionPanelItem } from '../components/SubscriptionsPanel'
@@ -93,7 +93,7 @@ export function SubscriptionsPage() {
         </div>
         <div className="txn-page-actions">
           <button type="button" className="erd-log-btn txn-page-log-btn" onClick={() => setEditing(null)} disabled={subscriptionsQ.isLoading}>
-            <Plus size={14} aria-hidden="true" />
+            <PlusIcon size={14} aria-hidden="true" />
             Add subscription
           </button>
         </div>

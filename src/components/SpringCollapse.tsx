@@ -1,7 +1,7 @@
 'use client'
 
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { ChevronRight } from 'lucide-react'
+import { CaretRightIcon } from '@/src/components/icons'
 import type { ReactNode } from 'react'
 
 // Same spring as Mobile's EnvelopeGroup / envelopes.tsx (Reanimated withSpring and
@@ -47,7 +47,7 @@ export function SpringChevron({ open, size, className }: { open: boolean; size: 
       transition={reduce ? { duration: 0 } : ENVELOPE_SPRING}
       aria-hidden="true"
     >
-      <ChevronRight size={size} />
+      <CaretRightIcon size={size} />
     </motion.span>
   )
 }

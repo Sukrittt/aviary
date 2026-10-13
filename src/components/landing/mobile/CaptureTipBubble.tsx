@@ -1,7 +1,7 @@
 'use client'
 
 import { motion, useReducedMotion } from 'motion/react'
-import { X } from 'lucide-react'
+import { XIcon } from '@/src/components/icons'
 import { T, font, pressable, radius, space, type } from './kit'
 
 // Lets the screen settle before the bubble pops.
@@ -49,7 +49,7 @@ export function CaptureTipBubble({ anchor, title, body, onTry, onDismiss }: {
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: space.sm }}>
           <span style={{ flex: 1, color: T.accent, ...font.displaySemiBold, fontSize: type.body }}>{title}</span>
           <button type="button" onClick={onDismiss} aria-label="Dismiss tip" style={{ ...pressable, display: 'grid', placeItems: 'center' }}>
-            <X size={16} color={T.accent} />
+            <XIcon size={16} color={T.accent} />
           </button>
         </div>
         <p style={{ margin: '2px 0 0', color: T.accent, opacity: 0.8, ...font.bodyMedium, fontSize: type.caption }}>{body}</p>

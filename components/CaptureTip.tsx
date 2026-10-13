@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { usePathname } from 'next/navigation'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useAuth } from '@workos-inc/authkit-nextjs/components'
-import { MessageSquareText, X } from 'lucide-react'
+import { ChatTextIcon, XIcon } from '@/src/components/icons'
 import { useMoneyBrain } from './MoneyBrainProvider'
 import { useHiddenFeatures } from '@/src/hooks/useUser'
 import { interrupted, subscribeInterruptions } from './ChangelogAnnouncement'
@@ -85,7 +85,7 @@ export function CaptureTip() {
           exit={{ opacity: 0, transition: { duration: 0.16, ease: 'easeOut' } }}
         >
           <aside className="changelog-card" aria-label={COPY[reason].title}>
-            <div className="changelog-eyebrow"><MessageSquareText size={14} aria-hidden="true" /> Tip</div>
+            <div className="changelog-eyebrow"><ChatTextIcon size={14} aria-hidden="true" /> Tip</div>
             <button
               type="button"
               className="changelog-close"
@@ -95,7 +95,7 @@ export function CaptureTip() {
                 setShown('closed')
               }}
             >
-              <X size={18} aria-hidden="true" />
+              <XIcon size={18} aria-hidden="true" />
             </button>
             <h2>{COPY[reason].title}</h2>
             <p className="changelog-body">{COPY[reason].body}</p>

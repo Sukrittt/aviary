@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Bell, X } from 'lucide-react'
+import { BellIcon, XIcon } from '@/src/components/icons'
 import { Scrim, Sheet } from './MotionSheet'
 import { ALERT_PRESET_PCTS, MAX_ALERT_PCTS } from '../lib/alerts'
 
@@ -51,14 +51,14 @@ export function AlertThresholdPicker({ categoryName, value, onChange, onClose, o
       >
         <div className="env-sheet-rename-head">
           <div className="env-sheet-rename-icon" aria-hidden="true">
-            <Bell size={24} />
+            <BellIcon size={24} />
           </div>
           <div className="env-sheet-rename-heading">
             <span className="env-sheet-eyebrow">ALERTS</span>
             <h2 className="env-sheet-title">{categoryName}</h2>
           </div>
           <button type="button" className="env-sheet-close" onClick={onClose} aria-label="Close dialog">
-            <X size={18} aria-hidden="true" />
+            <XIcon size={18} aria-hidden="true" />
           </button>
         </div>
         <p className="env-sheet-copy">
@@ -125,7 +125,7 @@ export function AlertThresholdPicker({ categoryName, value, onChange, onClose, o
         {value.length === 0 && !atLimit && <p className="env-sheet-hint">No alerts. This envelope stays quiet.</p>}
 
         <p className="env-sheet-note">
-          <Bell size={12} aria-hidden="true" /> Notifications are sent as push alerts on the Aviary mobile app only.
+          <BellIcon size={12} aria-hidden="true" /> Notifications are sent as push alerts on the Aviary mobile app only.
         </p>
 
         <div className="env-sheet-actions">

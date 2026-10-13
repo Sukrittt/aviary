@@ -2,7 +2,7 @@
 
 import { useCurrency } from '@/src/context/CurrencyContext'
 import { useState } from 'react'
-import { Pencil, Plus, Trash2 } from 'lucide-react'
+import { PencilSimpleIcon, PlusIcon, TrashIcon } from '@/src/components/icons'
 import { AnimatePresence, motion } from 'motion/react'
 import { AmountText, popIn, STAGGER, staggerDelay } from '../components/landing/mobile/kit'
 import { LoadingCaption } from '../components/LoadingCaption'
@@ -139,11 +139,11 @@ export function IncomePage() {
         </div>
         <div className="txn-page-actions">
           <button type="button" className="action-button txn-page-duplicates-btn" onClick={() => setAddingOneOff(true)}>
-            <Plus size={14} aria-hidden="true" />
+            <PlusIcon size={14} aria-hidden="true" />
             One-off
           </button>
           <button type="button" className="erd-log-btn txn-page-log-btn" onClick={() => setEditing('')}>
-            <Plus size={14} aria-hidden="true" />
+            <PlusIcon size={14} aria-hidden="true" />
             Recurring
           </button>
         </div>
@@ -241,10 +241,10 @@ export function IncomePage() {
                       <strong style={{ color: 'var(--mint)' }}>+{formatCurrency(Number(row.amount) || 0, hideAmounts)}</strong>
                       <span className="income-row-actions">
                         <button type="button" className="env2-icon-btn" aria-label={`Edit ${row.label}`} onClick={() => setEditingIncome(row)}>
-                          <Pencil size={15} aria-hidden="true" />
+                          <PencilSimpleIcon size={15} aria-hidden="true" />
                         </button>
                         <button type="button" className="env2-icon-btn" aria-label={`Delete ${row.label}`} onClick={() => setConfirmDelete(row)}>
-                          <Trash2 size={15} aria-hidden="true" />
+                          <TrashIcon size={15} aria-hidden="true" />
                         </button>
                       </span>
                     </motion.li>

@@ -5,7 +5,7 @@ import { useCurrency } from '@/src/context/CurrencyContext'
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { AnimatePresence, motion } from 'motion/react'
-import { Check, ListFilter, TrendingDown, TrendingUp, X } from 'lucide-react'
+import { CheckIcon, FunnelSimpleIcon, TrendDownIcon, TrendUpIcon, XIcon } from '@/src/components/icons'
 import type { BreakdownRow, MonthComparison } from '@/src/lib/monthly'
 import { CHART_COLORS } from '@/src/theme/chartColors'
 import { DonutChart, type DonutSegment } from './DonutChart'
@@ -235,7 +235,7 @@ export function CategoryBreakdown({ rows, categoryRows, groupRows, categoryGroup
         </div>
         {baseRows.length > 1 && (
           <button type="button" className={filtered ? 'ins-icon-btn is-active' : 'ins-icon-btn'} onClick={openFilter} aria-label={filtered ? `Filter chart, ${displayRows.length} active` : 'Filter chart'}>
-            <ListFilter size={17} />
+            <FunnelSimpleIcon size={17} />
             {filtered && <span>{displayRows.length}</span>}
           </button>
         )}
@@ -291,7 +291,7 @@ export function CategoryBreakdown({ rows, categoryRows, groupRows, categoryGroup
                     ) : comparison?.baseline != null && comparison.deltaPct != null && Math.round(comparison.deltaPct) !== 0 ? (
                       <>
                         <span className={comparison.deltaPct > 0 ? 'is-up' : 'is-down'}>
-                          {comparison.deltaPct > 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                          {comparison.deltaPct > 0 ? <TrendUpIcon size={14} /> : <TrendDownIcon size={14} />}
                           {Math.abs(comparison.deltaPct).toFixed(0)}%
                         </span>
                         <small>
@@ -328,7 +328,7 @@ export function CategoryBreakdown({ rows, categoryRows, groupRows, categoryGroup
                             <strong>{formatCurrency(row.spent, hideAmounts)}</strong>
                             {row.deltaPct != null && Math.round(row.deltaPct) !== 0 && (
                               <span className={row.deltaPct > 0 ? 'ins-delta is-up' : 'ins-delta is-down'}>
-                                {row.deltaPct > 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                                {row.deltaPct > 0 ? <TrendUpIcon size={12} /> : <TrendDownIcon size={12} />}
                                 {Math.abs(row.deltaPct).toFixed(0)}%
                               </span>
                             )}
@@ -390,7 +390,7 @@ export function CategoryBreakdown({ rows, categoryRows, groupRows, categoryGroup
                 <p>Choose what appears in this chart</p>
               </div>
               <button type="button" className="ins-icon-btn" onClick={() => setFilterOpen(false)} aria-label="Close filter">
-                <X size={18} />
+                <XIcon size={18} />
               </button>
             </div>
             <div className="ins-filter-tabs">
@@ -409,7 +409,7 @@ export function CategoryBreakdown({ rows, categoryRows, groupRows, categoryGroup
             </div>
             <label className="ins-filter-all">
               <input type="checkbox" checked={allDraftSelected} onChange={() => setDraftKeys(allDraftSelected ? new Set() : new Set(filterRows.map((row) => row.key)))} aria-label={`Select all ${filterTab === 'category' ? 'categories' : 'groups'}`} />
-              <span className={allDraftSelected ? 'ins-check is-checked' : 'ins-check'}>{allDraftSelected && <Check size={14} strokeWidth={3} />}</span>
+              <span className={allDraftSelected ? 'ins-check is-checked' : 'ins-check'}>{allDraftSelected && <CheckIcon size={14} weight="bold" />}</span>
             </label>
             <div className="ins-filter-list">
               <AnimatePresence initial={false} mode="popLayout">
@@ -421,7 +421,7 @@ export function CategoryBreakdown({ rows, categoryRows, groupRows, categoryGroup
                     <i style={{ background: colors.get(row.key) ?? 'var(--erd-text3)' }} />
                     {row.emoji ? <span aria-hidden="true">{row.emoji}</span> : <span />}
                     <span className="ins-filter-label">{row.label}</span>
-                    <span className={checked ? 'ins-check is-checked' : 'ins-check'}>{checked && <Check size={14} strokeWidth={3} />}</span>
+                    <span className={checked ? 'ins-check is-checked' : 'ins-check'}>{checked && <CheckIcon size={14} weight="bold" />}</span>
                   </motion.label>
                 )
               })}

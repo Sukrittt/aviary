@@ -8,7 +8,7 @@ import {
   popIn,
   staggerDelay,
 } from "../components/landing/mobile/kit";
-import { ArrowRight, ChevronRight, Plus } from "lucide-react";
+import { ArrowRightIcon, CaretRightIcon, PlusIcon } from "@/src/components/icons";
 import {
   useAddHolding,
   useDeleteHolding,
@@ -198,7 +198,7 @@ export function InvestmentsPage() {
                 className="erd-log-btn"
                 onClick={() => setEditing("")}
               >
-                <Plus size={14} aria-hidden="true" />
+                <PlusIcon size={14} aria-hidden="true" />
                 Add holding
               </button>
             </div>
@@ -308,7 +308,7 @@ export function InvestmentsPage() {
                                 hideAmounts,
                               )}
                             </strong>
-                            <ChevronRight
+                            <CaretRightIcon
                               size={16}
                               className="account-row-arrow"
                               aria-hidden="true"
@@ -360,7 +360,7 @@ export function InvestmentsPage() {
                                 Number(e.previous_value) || 0,
                                 hideAmounts,
                               )}
-                              <ArrowRight size={12} aria-hidden="true" />
+                              <ArrowRightIcon size={12} aria-hidden="true" />
                               {formatCurrency(
                                 Number(e.new_value) || 0,
                                 hideAmounts,

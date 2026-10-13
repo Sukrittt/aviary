@@ -7,7 +7,7 @@ import { track } from '@/src/lib/analytics'
 import { useTourProgress } from '../../../src/hooks/useTourProgress'
 import { useMoneyBrain } from '../../../components/MoneyBrainProvider'
 import { useTourContent } from '@/src/components/tour/useTourContent'
-import { ArrowLeft, X } from 'lucide-react'
+import { ArrowLeftIcon, XIcon } from '@/src/components/icons'
 import { FadeIn, PopIn } from '@/src/components/tour/parts'
 import { BirdMark } from '@/src/components/BirdMark'
 
@@ -80,7 +80,7 @@ export default function GuidedTourPage() {
     <>
       <header className="tour-header">
         <button type="button" className="tour-back" aria-label={view === 'chapter' ? 'Back to chapters' : 'Close'} onClick={() => view === 'chapter' ? setView('hub') : exitTour()}>
-          {view === 'chapter' ? <ArrowLeft size={18} aria-hidden="true" /> : <X size={18} aria-hidden="true" />}
+          {view === 'chapter' ? <ArrowLeftIcon size={18} aria-hidden="true" /> : <XIcon size={18} aria-hidden="true" />}
         </button>
         <div className="tour-header-copy">
           <h1>How this works</h1>

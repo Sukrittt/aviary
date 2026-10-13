@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import { Copy } from 'lucide-react'
+import { CopyIcon } from '@/src/components/icons'
 import { Scrim, Sheet } from './MotionSheet'
 import { useCurrency } from '@/src/context/CurrencyContext'
 import { useDeleteExpense, useDismissDuplicate } from '../hooks/useExpenses'
@@ -98,7 +98,7 @@ export function DuplicateReviewDialog({ pairs, onClose }: { pairs: DuplicatePair
       <Sheet className="category-manager subscription-modal" role="dialog" aria-modal="true" aria-labelledby={`${id}-title`}
         onKeyDown={(event) => { if (event.key === 'Escape') { event.stopPropagation(); onClose() } }}>
         <div className="txn-review">
-          <span className="txn-review-icon" aria-hidden="true"><Copy size={22} /></span>
+          <span className="txn-review-icon" aria-hidden="true"><CopyIcon size={22} /></span>
           <h4 id={`${id}-title`}>Logged twice?</h4>
           <p className="txn-review-intro">
             These look like the same purchase.{pairs.length > 1 ? ` ${pairs.length} to review.` : ''}

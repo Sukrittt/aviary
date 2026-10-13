@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { TriangleAlert, X } from 'lucide-react'
+import { WarningIcon, XIcon } from '@/src/components/icons'
 import type { CaptureProposal, ProposalStatus } from '@/src/api/ai'
 import { Select } from '@/src/components/Select'
 import { SuccessButton, useButtonPhase } from '@/src/components/SuccessButton'
@@ -227,7 +227,7 @@ export function CaptureReview({ proposal, onSettled, origin = CAPTURE_ORIGIN, lo
               </div>
               {unusual && (
                 <p className="capture-unusual">
-                  <TriangleAlert size={12} aria-hidden="true" />
+                  <WarningIcon size={12} aria-hidden="true" />
                   {`Way above your usual ${formatMoney(Math.round(unusual.typical))}. Double-check it.`}
                 </p>
               )}
@@ -261,7 +261,7 @@ export function CaptureReview({ proposal, onSettled, origin = CAPTURE_ORIGIN, lo
               disabled={busy || locked}
               aria-label={`Remove ${row.item || 'this spend'}`}
             >
-              <X size={14} />
+              <XIcon size={14} />
             </button>
           </div>
         )

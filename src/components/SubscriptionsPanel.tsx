@@ -2,7 +2,7 @@
 
 import { useCurrency } from "@/src/context/CurrencyContext";
 import { useState } from "react";
-import { ChevronRight, Plus } from "lucide-react";
+import { CaretRightIcon, PlusIcon } from "@/src/components/icons";
 import { AnimatePresence, motion } from "motion/react";
 import { getEffectiveDueDate } from "@/lib/subscriptions";
 import { AllocationBar, type AllocationSegment } from "./charts/AllocationBar";
@@ -242,7 +242,7 @@ export function SubscriptionsPanel({
         <div className="erd-panel-head">
           <h3>Subscriptions</h3>
           <button type="button" className="action-button is-active erd-accent-action subp-add-button" onClick={onAdd} disabled={loading}>
-            <Plus size={14} aria-hidden="true" /> Add
+            <PlusIcon size={14} aria-hidden="true" /> Add
           </button>
         </div>
       )}
@@ -297,7 +297,7 @@ export function SubscriptionsPanel({
                     animate={{ rotate: showCancelled ? 90 : 0 }}
                     transition={{ type: "spring", damping: 64, stiffness: 600 }}
                   >
-                    <ChevronRight size={14} />
+                    <CaretRightIcon size={14} />
                   </motion.span>
                   CANCELLED ({cancelled.length})
                 </button>

@@ -1,19 +1,19 @@
 'use client'
 
 import { useState } from 'react'
-import { Brain, Gift, LineChart, Receipt, ScanLine, TrendingUp, type LucideIcon } from 'lucide-react'
+import { BrainIcon, GiftIcon, ChartLineIcon, ReceiptIcon, ScanIcon, TrendUpIcon, type PhosphorIcon } from '@/src/components/icons'
 import { useUpdateUser, useUser } from '@/src/hooks/useUser'
 import { FEATURE_LABELS, OPT_IN_FEATURES, hiddenFeatures, type HideableFeature } from '@/src/lib/features'
 import { track } from '@/src/lib/analytics'
 
 /** One line each for OPT_IN_FEATURES, in the order they're offered. Twin of Mobile's PickExtras.tsx. */
-export const EXTRAS: { key: HideableFeature; icon: LucideIcon; pitch: string }[] = [
-  { key: 'askAviary', icon: Brain, pitch: 'Ask anything about your spending, in plain words' },
-  { key: 'billScan', icon: ScanLine, pitch: "Snap a receipt and it's logged for you" },
-  { key: 'wrapped', icon: Gift, pitch: 'A monthly story of your spending, with music' },
-  { key: 'insights', icon: LineChart, pitch: 'Trends, a daily heatmap and where it all went' },
-  { key: 'subscriptions', icon: Receipt, pitch: 'Every renewal in one place, with a heads-up first' },
-  { key: 'investments', icon: TrendingUp, pitch: 'Your portfolio total at a glance' },
+export const EXTRAS: { key: HideableFeature; icon: PhosphorIcon; pitch: string }[] = [
+  { key: 'askAviary', icon: BrainIcon, pitch: 'Ask anything about your spending, in plain words' },
+  { key: 'billScan', icon: ScanIcon, pitch: "Snap a receipt and it's logged for you" },
+  { key: 'wrapped', icon: GiftIcon, pitch: 'A monthly story of your spending, with music' },
+  { key: 'insights', icon: ChartLineIcon, pitch: 'Trends, a daily heatmap and where it all went' },
+  { key: 'subscriptions', icon: ReceiptIcon, pitch: 'Every renewal in one place, with a heads-up first' },
+  { key: 'investments', icon: TrendUpIcon, pitch: 'Your portfolio total at a glance' },
 ]
 
 /**
@@ -63,7 +63,7 @@ export function PickExtras({ onDone }: { onDone: () => void }) {
       <div className="setup-done-list">
         {EXTRAS.map(({ key, icon: Icon, pitch }) => (
           <label key={key} className="setup-done-row setup-extra-row">
-            <span className="setup-done-icon"><Icon size={16} strokeWidth={2.2} aria-hidden="true" /></span>
+            <span className="setup-done-icon"><Icon size={16} aria-hidden="true" /></span>
             <span className="setup-extra-text">
               <span className="setup-extra-label">{FEATURE_LABELS[key].label}</span>
               <span className="setup-done-label">{pitch}</span>
