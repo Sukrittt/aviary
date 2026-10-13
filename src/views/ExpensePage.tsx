@@ -535,7 +535,7 @@ export function ExpensePage() {
                               Every {currencyUnit(currencyCode)} has a job.
                             </>
                           ) : (
-                            <><MoneyWavyIcon size={18} aria-hidden="true" style={{ verticalAlign: "-3px", marginRight: 8 }} />Ready to Assign</>
+                            <><span className="erd-rta-icon" aria-hidden="true"><MoneyWavyIcon size={18} /></span>Ready to Assign</>
                           )}
                         </motion.span>
                       </AnimatePresence>
