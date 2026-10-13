@@ -175,8 +175,11 @@ describe('EnvelopesPage', () => {
     await user.click(await screen.findByLabelText('Rename Rent'))
     const dialog = screen.getByRole('dialog', { name: 'Rename category' })
     await user.click(within(dialog).getByRole('button', { name: 'Icon: House. Change icon' }))
-    await user.type(within(dialog).getByPlaceholderText('Search icons'), 'pizza')
-    await user.click(within(dialog).getByRole('button', { name: 'Pizza' }))
+    // A popover portalled to the body, outside the sheet.
+    const picker = screen.getByRole('dialog', { name: 'Choose an icon' })
+    await user.type(within(picker).getByPlaceholderText('Search icons'), 'pizza')
+    await user.click(within(picker).getByRole('button', { name: 'Pizza' }))
+    expect(screen.queryByRole('dialog', { name: 'Choose an icon' })).not.toBeInTheDocument()
     expect(within(dialog).getByRole('button', { name: 'Icon: Pizza. Change icon' })).toBeInTheDocument()
     await user.click(within(dialog).getByRole('button', { name: 'Rename' }))
     await waitFor(() => expect(updateCategory).toHaveBeenCalledWith('🏠 Rent', { icon: 'Pizza' }))

@@ -1,9 +1,16 @@
 'use client'
 
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { CATEGORY_ICON_COMPONENTS } from './CategoryIcon'
 import { CaretDownIcon, MagnifyingGlassIcon } from './icons'
 import { searchCategoryIcons, type CategoryIconKey } from '@/src/lib/categoryIcons'
+
+const POPOVER_WIDTH = 320
+// Search row plus four rows of icons, for deciding whether it fits below.
+const POPOVER_HEIGHT = 280
+const GAP = 8
+const EDGE = 12
 
 /** "ForkKnife" → "Fork knife", for labels and tooltips. */
 export function iconLabel(key: string): string {
@@ -13,8 +20,9 @@ export function iconLabel(key: string): string {
 
 /**
  * The tile beside a category's name: shows its icon on its tint, and opens a
- * searchable grid of every catalog icon below the name row. In flow rather
- * than floating, since the sheets it lives in scroll and would clip it.
+ * popover with a searchable grid of every catalog icon. The popover is
+ * portalled and fixed, like Select's menu, since the sheets it opens from
+ * scroll and would clip it.
  */
 export function CategoryIconPicker({ value, onChange, tint, disabled, children }: {
   value: CategoryIconKey
@@ -27,40 +35,71 @@ export function CategoryIconPicker({ value, onChange, tint, disabled, children }
 }) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
-  const root = useRef<HTMLDivElement>(null)
+  const [place, setPlace] = useState<{ top: number; left: number; above: boolean } | null>(null)
+  const trigger = useRef<HTMLButtonElement>(null)
+  const panel = useRef<HTMLDivElement>(null)
   const panelId = useId()
   const Current = CATEGORY_ICON_COMPONENTS[value]
   const matches = searchCategoryIcons(query)
 
+  // Below the tile, or above it when there isn't room; kept inside the viewport.
+  const measure = useCallback(() => {
+    const r = trigger.current?.getBoundingClientRect()
+    if (!r) return
+    const width = Math.min(POPOVER_WIDTH, window.innerWidth - EDGE * 2)
+    const above = window.innerHeight - r.bottom < POPOVER_HEIGHT + GAP + EDGE && r.top > window.innerHeight - r.bottom
+    setPlace({
+      top: above ? r.top - GAP : r.bottom + GAP,
+      left: Math.max(EDGE, Math.min(r.left, window.innerWidth - width - EDGE)),
+      above,
+    })
+  }, [])
+
+  // Dismiss on an outside press or an outer scroll (a fixed popover would
+  // otherwise float away from its tile); follow the tile on resize.
   useEffect(() => {
     if (!open) return
-    function onPointerDown(e: PointerEvent) {
-      if (!root.current?.contains(e.target as Node)) setOpen(false)
+    const inside = (t: EventTarget | null) =>
+      panel.current?.contains(t as Node) || trigger.current?.contains(t as Node)
+    const onDown = (e: PointerEvent) => {
+      if (!inside(e.target)) setOpen(false)
     }
-    document.addEventListener('pointerdown', onPointerDown)
-    return () => document.removeEventListener('pointerdown', onPointerDown)
-  }, [open])
+    const onScroll = (e: Event) => {
+      if (!panel.current?.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('pointerdown', onDown)
+    window.addEventListener('resize', measure)
+    window.addEventListener('scroll', onScroll, true)
+    return () => {
+      document.removeEventListener('pointerdown', onDown)
+      window.removeEventListener('resize', measure)
+      window.removeEventListener('scroll', onScroll, true)
+    }
+  }, [open, measure])
 
   function pick(key: CategoryIconKey) {
     onChange(key)
     setOpen(false)
     setQuery('')
+    trigger.current?.focus()
   }
 
   return (
     <div
       className="cat-icon-picker"
-      ref={root}
       onKeyDown={(e) => {
-        // The sheet closes on Escape too; only the panel should close here.
+        // The sheet closes on Escape too; only the popover should close here.
+        // (React events bubble out of the portal to here.)
         if (e.key === 'Escape' && open) {
           e.stopPropagation()
           setOpen(false)
+          trigger.current?.focus()
         }
       }}
     >
       <div className="env-sheet-name-row">
         <button
+          ref={trigger}
           type="button"
           className="cat-icon-picker-trigger"
           style={tint}
@@ -68,15 +107,28 @@ export function CategoryIconPicker({ value, onChange, tint, disabled, children }
           aria-label={`Icon: ${iconLabel(value)}. Change icon`}
           aria-expanded={open}
           aria-controls={panelId}
-          onClick={() => setOpen((o) => !o)}
+          onClick={() => {
+            if (!open) measure()
+            setOpen(!open)
+          }}
         >
           <Current size={20} aria-hidden />
           <CaretDownIcon size={10} weight="bold" className="cat-icon-picker-caret" aria-hidden />
         </button>
         {children}
       </div>
-      {open && (
-        <div className="cat-icon-picker-panel" id={panelId} role="dialog" aria-label="Choose an icon">
+      {open && place && createPortal(
+        <div
+          ref={panel}
+          className={`cat-icon-picker-panel${place.above ? ' is-above' : ''}`}
+          id={panelId}
+          role="dialog"
+          aria-label="Choose an icon"
+          style={{
+            left: place.left,
+            ...(place.above ? { bottom: window.innerHeight - place.top } : { top: place.top }),
+          }}
+        >
           <label className="cat-icon-picker-search">
             <MagnifyingGlassIcon size={16} aria-hidden />
             <input
@@ -116,7 +168,8 @@ export function CategoryIconPicker({ value, onChange, tint, disabled, children }
           ) : (
             <p className="cat-icon-picker-empty">No icons match that. Try another word.</p>
           )}
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   )
