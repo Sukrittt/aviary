@@ -957,7 +957,7 @@ function PickRow({
   return (
     <div className={`setup-pick-row ${on ? 'is-on' : ''} ${incompleteHint ? 'is-incomplete' : ''}`}>
       {icon && onPickIcon ? (
-        // The picker's grid opens in flow below the name, inside the row.
+        // The picker lays its tile out beside the name fields.
         <div style={{ flex: 1, minWidth: 0 }}>
           <CategoryIconPicker value={icon} onChange={onPickIcon} tint={tint}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 11, flex: 1, minWidth: 0 }}>{fields}</div>

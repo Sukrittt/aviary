@@ -12759,13 +12759,30 @@ button.account-feature-card {
   opacity: 0.7;
 }
 .cat-icon-picker-panel {
+  position: fixed;
+  z-index: 1200;
+  width: min(320px, calc(100vw - 24px));
   display: flex;
   flex-direction: column;
   gap: 10px;
   padding: 12px;
-  border-radius: 14px;
-  background: var(--erd-input-bg);
-  border: 1px solid var(--erd-border-strong);
+  border-radius: 16px;
+  background: var(--tk-modal-strong);
+  border: 1px solid var(--tk-border-strong);
+  box-shadow: 0 18px 48px -12px oklch(0% 0 0 / 0.55);
+  backdrop-filter: blur(20px);
+  color: var(--tk-text);
+  transform-origin: top left;
+  animation: cat-icon-picker-in 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.cat-icon-picker-panel.is-above {
+  transform-origin: bottom left;
+}
+@keyframes cat-icon-picker-in {
+  from { opacity: 0; transform: scale(0.96); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cat-icon-picker-panel { animation: none; }
 }
 .cat-icon-picker-search {
   display: flex;
@@ -12774,9 +12791,12 @@ button.account-feature-card {
   padding: 0 10px;
   min-height: 36px;
   border-radius: 10px;
-  background: var(--erd-modal-bg);
-  border: 1px solid var(--erd-border);
-  color: var(--erd-text);
+  background: var(--tk-input-bg);
+  border: 1px solid var(--tk-border);
+  color: inherit;
+}
+.cat-icon-picker-search:focus-within {
+  border-color: var(--tk-border-strong);
 }
 .cat-icon-picker-search input {
   flex: 1;
@@ -12791,7 +12811,7 @@ button.account-feature-card {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
   gap: 4px;
-  max-height: 200px;
+  max-height: 216px;
   overflow-y: auto;
 }
 .cat-icon-picker-option {
@@ -12801,11 +12821,11 @@ button.account-feature-card {
   border-radius: 10px;
   border: 1px solid transparent;
   background: transparent;
-  color: var(--erd-text);
+  color: inherit;
   cursor: pointer;
 }
 .cat-icon-picker-option:hover {
-  background: var(--erd-pill-bg);
+  background: var(--tk-input-bg);
 }
 .cat-icon-picker-option.is-on {
   background: var(--gold-soft);
