@@ -265,6 +265,23 @@
 
 /* ── Sidebar ────────────────────────────────────────────────── */
 
+/* ExpenseSidebar is shadcn's <Sidebar>; its colours come from these. The
+   .erd-sidebar rules below are AdminNav's. */
+.expense-redesign [data-slot="sidebar"] {
+  --sidebar: var(--erd-bg);
+  --sidebar-foreground: var(--erd-text2);
+  --sidebar-accent: var(--erd-border);
+  --sidebar-accent-foreground: var(--erd-text);
+  --sidebar-border: var(--erd-border);
+  --ui-border: var(--erd-border);
+  --sidebar-ring: var(--gold);
+}
+/* Mobile sheet and its backdrop sit above the fixed mobile topbar (z 120). */
+.expense-redesign [data-slot="sheet-overlay"],
+.expense-redesign [data-slot="sidebar"][data-mobile="true"] {
+  z-index: 130;
+}
+
 .erd-sidebar {
   width: 248px;
   flex-shrink: 0;
@@ -435,7 +452,6 @@
 }
 
 .erd-mobile-topbar,
-.erd-mobile-scrim,
 .erd-mobile-close-btn {
   display: none;
 }
@@ -2227,29 +2243,6 @@
     white-space: nowrap;
   }
 
-  .erd-mobile-scrim {
-    position: fixed;
-    inset: 0;
-    z-index: 128;
-    display: block;
-    visibility: hidden;
-    border: 0;
-    padding: 0;
-    background: oklch(0% 0 0 / 0.46);
-    opacity: 0;
-    cursor: default;
-    transition:
-      opacity 180ms ease,
-      visibility 180ms step-end;
-  }
-  .erd-mobile-scrim.is-open {
-    visibility: visible;
-    opacity: 1;
-    transition:
-      opacity 180ms ease,
-      visibility 0s;
-  }
-
   .erd-sidebar {
     position: fixed;
     inset: max(10px, env(safe-area-inset-top)) auto max(10px, env(safe-area-inset-bottom)) 10px;
@@ -2269,15 +2262,6 @@
       transform 240ms cubic-bezier(0.16, 1, 0.3, 1),
       opacity 180ms ease,
       visibility 240ms step-end;
-  }
-  .erd-sidebar.is-mobile-open {
-    visibility: visible;
-    opacity: 1;
-    transform: translateX(0);
-    transition:
-      transform 240ms cubic-bezier(0.16, 1, 0.3, 1),
-      opacity 180ms ease,
-      visibility 0s;
   }
   .erd-sidebar.is-collapsed {
     width: min(330px, calc(100vw - 20px));

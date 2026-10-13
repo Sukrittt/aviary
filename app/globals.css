@@ -9,6 +9,11 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* md matches the app's own mobile breakpoint, @media (max-width: 900px). */
+@theme {
+  --breakpoint-md: 901px;
+}
+
 @theme inline {
     --font-heading: var(--font-fredoka), sans-serif;
     --font-sans: var(--font-nunito), sans-serif;
@@ -130,11 +135,24 @@
     border: 0 solid var(--ui-border);
     outline-color: color-mix(in oklab, var(--ring) 50%, transparent);
   }
+  /* Portaled parts (tooltips, sheets) land outside the app's font-family. */
+  [data-slot] {
+    font-family: var(--font-sans);
+  }
   :is(button, input, select, textarea)[data-slot] {
     font: inherit;
     color: inherit;
     background-color: transparent;
     margin: 0;
     padding: 0;
+  }
+  :is(ul, ol)[data-slot] {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  a[data-slot] {
+    color: inherit;
+    text-decoration: inherit;
   }
 }

@@ -9,7 +9,7 @@ import { ChangelogPopup } from '@/src/components/ChangelogPopup'
 import type { ChangelogRelease } from '@/src/lib/changelog'
 
 export function interrupted() {
-  return document.visibilityState !== 'visible' || Array.from(document.querySelectorAll('[aria-modal="true"], dialog[open], .erd-mobile-scrim.is-open')).some((element) => {
+  return document.visibilityState !== 'visible' || Array.from(document.querySelectorAll('[aria-modal="true"], dialog[open], [data-slot="sidebar"][data-mobile="true"]')).some((element) => {
     const style = getComputedStyle(element)
     return !element.closest('[hidden], [aria-hidden="true"]') && style.display !== 'none' && style.visibility !== 'hidden'
   })
