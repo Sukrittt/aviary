@@ -23,7 +23,8 @@ describe('hiddenFeatures on the client', () => {
     expect(hiddenFeatures({ createdAt: '2026-10-11T23:59:59.000Z' })).toEqual([])
   })
 
-  it('shows everything until the profile loads', () => {
-    expect(hiddenFeatures(undefined)).toEqual([])
+  it('keeps the opt-in extras hidden until the profile loads, so a hidden one never flashes in', () => {
+    expect(hiddenFeatures(undefined)).toEqual(OPT_IN_FEATURES)
+    expect(hiddenFeatures(null)).toEqual(OPT_IN_FEATURES)
   })
 })

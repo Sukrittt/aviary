@@ -29,9 +29,12 @@ export const OPT_IN_SINCE = new Date('2026-10-12T00:00:00.000Z')
 
 type FeatureUser = { hiddenFeatures?: HideableFeature[]; createdAt?: string | Date | null }
 
-/** What's hidden for this user: their saved choice, else the default for their account's age. Same rule as Mobile. */
+/**
+ * What's hidden for this user: their saved choice, else the default for their account's age. Same rule as Mobile.
+ * Until the profile loads, the extras stay hidden: one popping in beats one you turned off flashing and vanishing.
+ */
 export function hiddenFeatures(user: FeatureUser | null | undefined): HideableFeature[] {
-  if (!user) return []
+  if (!user) return OPT_IN_FEATURES
   if (user.hiddenFeatures) return user.hiddenFeatures
   return user.createdAt && new Date(user.createdAt) >= OPT_IN_SINCE ? OPT_IN_FEATURES : []
 }
