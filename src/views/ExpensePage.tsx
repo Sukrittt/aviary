@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "motion/react";
 import { AmountText, CheckIcon } from "../components/landing/mobile/kit";
 import { track } from "../lib/analytics";
+import { currencyUnit } from "../lib/currencies";
 import { ChevronRight, Pencil } from "lucide-react";
 import { useAppearance } from "../../components/AppearanceProvider";
 
@@ -517,14 +518,26 @@ export function ExpensePage() {
                       aria-expanded={incomeMenuAt === "pill"}
                       onClick={() => setIncomeMenuAt((at) => (at === "pill" ? null : "pill"))}
                     >
-                      {rtaCelebrating ? (
-                        <span className="erd-home-rta-celebrate" role="status">
-                          <CheckIcon color="var(--mint)" size={18} />
-                          Every rupee has a job.
-                        </span>
-                      ) : (
-                        <span>💸&nbsp;&nbsp;Ready to Assign</span>
-                      )}
+                      <AnimatePresence mode="wait" initial={false}>
+                        <motion.span
+                          key={rtaCelebrating ? "celebrate" : "label"}
+                          className={rtaCelebrating ? "erd-home-rta-celebrate" : undefined}
+                          role={rtaCelebrating ? "status" : undefined}
+                          initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
+                          transition={{ duration: 0.22, ease: "easeOut" }}
+                        >
+                          {rtaCelebrating ? (
+                            <>
+                              <CheckIcon color="var(--mint)" size={18} />
+                              Every {currencyUnit(currencyCode)} has a job.
+                            </>
+                          ) : (
+                            <>💸&nbsp;&nbsp;Ready to Assign</>
+                          )}
+                        </motion.span>
+                      </AnimatePresence>
                       <span className="erd-home-rta-slim-amount">
                         {hideAmounts ? "---" : <AmountText value={envelopeState.readyToAssign} animate id="ready-to-assign" />}
                         <ChevronRight size={16} aria-hidden="true" />
@@ -534,14 +547,37 @@ export function ExpensePage() {
                   </div>
                 </>
               )}
-              {!leftoverDismissed && previousLeftover > 0 && (
-                <article className="erd-card home-leftover-notice">
-                  <p>🌱 {formatCurrency(previousLeftover, hideAmounts)} went to savings last month.</p>
-                  <button type="button" onClick={() => setLeftoverDismissed(true)}>Nice</button>
-                </article>
-              )}
-              {/* One banner at a time, same as Mobile: the leftover notice goes first. */}
-              {(leftoverDismissed || previousLeftover <= 0) && <FeatureNudge />}
+              {/* One banner at a time, same as Mobile: the leftover notice goes first,
+                  and the next one waits for it to fade out. */}
+              <AnimatePresence mode="wait">
+                {!leftoverDismissed && previousLeftover > 0 ? (
+                  <motion.div
+                    key="leftover"
+                    className="home-leftover-slot"
+                    initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.22, ease: "easeOut" }}
+                    // "Nice" slides it off to the right, then its height (and the
+                    // column's 20px gap) closes so the cards below glide up.
+                    exit={reduceMotion ? { opacity: 0 } : {
+                      x: "100%", opacity: 0, height: 0, marginBottom: -20,
+                      transition: {
+                        x: { duration: 0.3, ease: [0.4, 0, 1, 1] },
+                        opacity: { duration: 0.3 },
+                        height: { delay: 0.22, duration: 0.32, ease: [0.22, 1, 0.36, 1] },
+                        marginBottom: { delay: 0.22, duration: 0.32, ease: [0.22, 1, 0.36, 1] },
+                      },
+                    }}
+                  >
+                    <article className="erd-card home-leftover-notice">
+                      <p>🌱 {formatCurrency(previousLeftover, hideAmounts)} went to savings last month.</p>
+                      <button type="button" onClick={() => setLeftoverDismissed(true)}>Nice</button>
+                    </article>
+                  </motion.div>
+                ) : (
+                  <FeatureNudge key="nudge" />
+                )}
+              </AnimatePresence>
 
               <AnimatePresence mode="popLayout">
                 {showGetStarted && user && (
