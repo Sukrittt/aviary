@@ -11,7 +11,7 @@ import { IosWaitlist } from '../components/landing/IosWaitlist'
 // import { MoneyLesson } from '../components/landing/MoneyLesson'
 import { BirdLanding, BirdMark } from '../components/BirdMark'
 import { HeroStage, LearnDiagram, MoreInside, NoticeSplit, RotatingHabit } from '../components/landing/Nudges'
-import { FEEDBACK_BOARD_URL } from '@/lib/links'
+import { FEEDBACK_BOARD_PATH } from '@/lib/links'
 import { GITHUB, LandingFooter, LandingHeader } from '../components/landing/Chrome'
 import { SampleScope } from '../components/landing/sample'
 import '../landing.css'
@@ -82,7 +82,7 @@ export function LandingPage({ monthlyPrice, ios = false, android = false, intl =
     <LandingHeader ios={ios} />
 
     <section className="lp-hero" aria-labelledby="landing-title">
-      <a className="lp-early" href={FEEDBACK_BOARD_URL} target="_blank" rel="noreferrer"><b>Early access</b><span className="lp-early-desktop">Your feedback shapes what we build next</span><span className="lp-early-mobile">Help shape Aviary</span><ArrowRight size={14} aria-hidden="true" /></a>
+      <Link className="lp-early" href={FEEDBACK_BOARD_PATH}><b>Early access</b><span className="lp-early-desktop">Your feedback shapes what we build next</span><span className="lp-early-mobile">Help shape Aviary</span><ArrowRight size={14} aria-hidden="true" /></Link>
       <h1 id="landing-title">Budgeting apps die on <span className="lp-learns">day 3<svg viewBox="0 0 200 14" preserveAspectRatio="none" aria-hidden="true"><path d="M3 10 C 40 3, 70 3, 100 8 S 160 13, 197 5" /></svg></span>.<br />This one’s built for day 4.</h1>
       <p>It notices your <RotatingHabit /> and nudges you while it’s still fresh.<br className="lp-desktop-break" /> Miss a day? Type what you remember and you’re caught up.<br className="lp-desktop-break" /> No bank link, no loans, no offers.</p>
       {ios

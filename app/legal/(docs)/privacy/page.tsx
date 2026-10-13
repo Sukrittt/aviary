@@ -6,7 +6,7 @@ export default function PrivacyPage() {
   return (
     <article className="legal-doc">
       <h1>Privacy Policy</h1>
-      <p className="legal-updated">Last updated 5 October 2026</p>
+      <p className="legal-updated">Last updated 14 October 2026</p>
 
       <p>
         Aviary (&ldquo;we&rdquo;, &ldquo;us&rdquo;) is an independently developed, personal budgeting app.
@@ -61,6 +61,13 @@ export default function PrivacyPage() {
           &ldquo;You&apos;ve overspent &#8377;500 in Food&rdquo;), delivered through Google&apos;s and
           Apple&apos;s push services.
         </li>
+        <li>
+          <strong>Bug reports and ideas.</strong> If you report a bug, we store what you write with your app
+          version, device model and the screen you were on, and AI sorts it by area and severity. Only our
+          team sees bug reports. Ideas you post on the feedback board and your votes are stored with your
+          account. Other signed-in users see your idea with your first name, but never who voted. Deleting
+          your account removes both.
+        </li>
         {/* Promise below: once the iPhone launch email has gone out, delete every
             `waitlist` document with platform 'ios'. Keeping them breaks this policy.
             Procedure: docs/waitlist.md. */}
@@ -83,7 +90,6 @@ export default function PrivacyPage() {
       <ul>
         <li><strong>WorkOS</strong> — sign-in and account identity.</li>
         <li><strong>MongoDB Atlas</strong> — where your data is stored, with the encryption described above.</li>
-        <li><strong>UserJot</strong> — the external feedback board, when you choose to open it and submit feedback.</li>
         <li>
           <strong>Google Gemini</strong> — receives transaction and budget context for Ask Aviary and AI
           briefs, and receipt photos for bill scanning. Google does not use this data to train its models under
@@ -92,6 +98,10 @@ export default function PrivacyPage() {
         <li><strong>PostHog</strong> — product analytics, U.S.-hosted, toggleable off as described above.</li>
         <li><strong>Expo / Google Firebase</strong> — delivers push notifications.</li>
         <li><strong>Vercel</strong> — hosts the app and its API, and stores data exports you request.</li>
+        <li>
+          <strong>TypeSafe AI</strong>, through Vercel&apos;s AI Gateway: receives the title and details of a bug
+          report to sort it by area and severity. Nothing else about you or your account is sent.
+        </li>
         <li>
           <strong>Razorpay</strong> — takes payment when you subscribe on the website. Your card or UPI details go
           to Razorpay, not to us. We keep your subscription&apos;s id, plan and renewal dates.

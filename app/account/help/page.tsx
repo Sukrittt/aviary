@@ -1,6 +1,6 @@
 import { pageMetadata } from '@/lib/seo'
 import Link from 'next/link'
-import { FEEDBACK_BOARD_URL } from '@/lib/links'
+import { FEEDBACK_BOARD_PATH } from '@/lib/links'
 
 const REPO_URL = 'https://github.com/Sukrittt/aviary-mobile'
 
@@ -31,7 +31,7 @@ export default function HelpPage() {
             →
           </span>
         </Link>
-        <a href={FEEDBACK_BOARD_URL} target="_blank" rel="noreferrer" className="account-row">
+        <Link href={FEEDBACK_BOARD_PATH} className="account-row">
           <span className="account-row-icon" aria-hidden="true">
             💬
           </span>
@@ -39,7 +39,16 @@ export default function HelpPage() {
           <span className="account-row-arrow" aria-hidden="true">
             →
           </span>
-        </a>
+        </Link>
+        <Link href="/account/feedback" className="account-row">
+          <span className="account-row-icon" aria-hidden="true">
+            🐛
+          </span>
+          <span className="account-row-label">Report a bug</span>
+          <span className="account-row-arrow" aria-hidden="true">
+            →
+          </span>
+        </Link>
         <a href={REPO_URL} target="_blank" rel="noreferrer" className="account-row">
           <span className="account-row-icon" aria-hidden="true">
             ⭐

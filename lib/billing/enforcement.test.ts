@@ -59,7 +59,10 @@ const OPEN: Record<string, string> = {
   'data/exports': 'exit route (pricing.md)',
   'data/exports/[id]/download': 'exit route (pricing.md)',
 
-  // The two reads an expired user is still entitled to.
+  // Support, and the two reads an expired user is still entitled to.
+  feedback: 'support channel',
+  ideas: 'feedback board; no budgeting content',
+  'ideas/[id]/vote': 'feedback board; no budgeting content',
   'privacy/proof': 'shows how their data is stored; no budgeting content',
   'system/status': 'public; maintenance banner and update prompt',
   'changelog': 'signed-in release list; no budgeting content',

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Activity, ArrowLeft, CreditCard, Cpu, IndianRupee, LayoutDashboard, ScrollText, Settings2, Users, type LucideIcon } from 'lucide-react'
+import { Activity, ArrowLeft, CreditCard, Cpu, IndianRupee, LayoutDashboard, Lightbulb, MessageSquare, ScrollText, Settings2, Users, type LucideIcon } from 'lucide-react'
 import { BirdMark } from '@/src/components/BirdMark'
 
 const NAV: Array<{ href: string; label: string; icon: LucideIcon }> = [
@@ -11,6 +11,8 @@ const NAV: Array<{ href: string; label: string; icon: LucideIcon }> = [
   { href: '/admin/revenue', label: 'Revenue', icon: IndianRupee },
   { href: '/admin/subscriptions', label: 'Subscriptions', icon: CreditCard },
   { href: '/admin/jobs', label: 'Jobs', icon: Activity },
+  { href: '/admin/feedback', label: 'Bug reports', icon: MessageSquare },
+  { href: '/admin/ideas', label: 'Ideas', icon: Lightbulb },
   { href: '/admin/ai', label: 'AI usage', icon: Cpu },
   { href: '/admin/system', label: 'System', icon: Settings2 },
   { href: '/admin/changelog', label: 'Changelog', icon: ScrollText },

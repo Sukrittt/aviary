@@ -41,7 +41,7 @@ import { billingVisible, planSummary } from '../../src/components/billing/copy'
 import { useBillingStatus } from '../../src/hooks/useBillingStatus'
 import { useHiddenFeatures } from '../../src/hooks/useUser'
 import type { HideableFeature } from '../../src/lib/features'
-import { FEEDBACK_BOARD_URL } from '../../lib/links'
+import { FEEDBACK_BOARD_PATH } from '../../lib/links'
 
 const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.sukrit04.envelope'
 
@@ -130,14 +130,14 @@ export default function AccountPage() {
         <ChevronRight size={16} className="account-row-arrow" aria-hidden="true" />
       </Link>
 
-      <a href={FEEDBACK_BOARD_URL} target="_blank" rel="noreferrer" className="account-early-card">
+      <Link href={FEEDBACK_BOARD_PATH} className="account-early-card">
         <div style={{ flex: 1, minWidth: 0 }}>
           <span className="account-badge account-early-badge">Early access</span>
           <div className="account-early-title">Aviary&rsquo;s still early. Help shape it.</div>
-          <div className="account-row-hint">Tell us what to fix or build next. We read every one.</div>
+          <div className="account-row-hint">Post ideas and vote on what we build next. We read every one.</div>
         </div>
         <MessageCircle size={18} aria-hidden="true" />
-      </a>
+      </Link>
 
       <SubscriptionSection />
 

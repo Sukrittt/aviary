@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { Github, Mail, MessageSquareHeart } from 'lucide-react'
 import { pageMetadata } from '@/lib/seo'
-import { FEEDBACK_BOARD_URL } from '@/lib/links'
+import { FEEDBACK_BOARD_PATH } from '@/lib/links'
 import { GITHUB } from '@/src/components/landing/Chrome'
 import { CopyEmailButton } from './CopyEmailButton'
 
@@ -30,11 +30,11 @@ export default function ContactPage() {
       </div>
 
       <div className="lp-contact-ways">
-        <a className="lp-card lp-pay-card" href={FEEDBACK_BOARD_URL} target="_blank" rel="noreferrer">
+        <Link className="lp-card lp-pay-card" href={FEEDBACK_BOARD_PATH}>
           <span className="lp-include-icon lp-tone-savings" aria-hidden="true"><MessageSquareHeart size={22} strokeWidth={2.2} /></span>
           <strong>Feedback board</strong>
           <span>Suggest a feature or vote on what gets built next.</span>
-        </a>
+        </Link>
         <a className="lp-card lp-pay-card" href={GITHUB} target="_blank" rel="noreferrer">
           <span className="lp-include-icon lp-tone-rent" aria-hidden="true"><Github size={22} strokeWidth={2.2} /></span>
           <strong>GitHub</strong>
