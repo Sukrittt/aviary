@@ -137,7 +137,8 @@
   }
   /* Portaled parts (tooltips, sheets) land outside the app's font-family. */
   [data-slot] {
-    font-family: var(--font-sans);
+    /* Not var(--font-sans): @theme inline doesn't emit it as a real variable. */
+    font-family: var(--font-nunito), sans-serif;
   }
   :is(button, input, select, textarea)[data-slot] {
     font: inherit;

@@ -11,7 +11,7 @@ const openMoneyBrain = vi.fn()
 vi.mock('@/components/MoneyBrainProvider', () => ({ useMoneyBrain: () => ({ openMoneyBrain }) }))
 vi.mock('@/components/AppearanceProvider', () => ({ useAppearance: () => ({ theme: 'dark', setTheme: vi.fn() }) }))
 const setCollapsed = vi.fn()
-vi.mock('../hooks/usePersistentState', () => ({ usePersistentState: (_k: string, v: unknown) => [v, setCollapsed] }))
+vi.mock('../hooks/usePersistentState', () => ({ usePersistentState: (k: string, v: unknown) => [v, (next: unknown) => setCollapsed(k, next)] }))
 let hidden: string[] = []
 vi.mock('../hooks/useUser', () => ({ useHiddenFeatures: () => hidden }))
 vi.mock('./LogExpenseModal', () => ({ LogExpenseModal: () => <div>log-expense-dialog</div> }))
@@ -63,7 +63,7 @@ describe('ExpenseSidebar', () => {
   it('remembers the collapsed rail between visits', () => {
     render(<ExpenseSidebar />)
     fireEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }))
-    expect(setCollapsed).toHaveBeenCalledWith(true)
+    expect(setCollapsed).toHaveBeenCalledWith('erd-sidebar-collapsed', true)
   })
 
   it('opens the log dialog when the account has access', () => {

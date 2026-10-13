@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence } from "motion/react";
@@ -101,6 +101,12 @@ function ExpenseSidebarNav({ onBulkReturn }: Props) {
   // instead of a dialog whose save or question would only come back 402.
   const runGated = (action: () => void) => (allowed ? action() : router.push("/expense"));
   const closeMobile = () => setOpenMobile(false);
+
+  // Widening past the breakpoint swaps the sheet for the rail; don't let it
+  // reappear already open on the way back down.
+  useEffect(() => {
+    if (!isMobile) setOpenMobile(false);
+  }, [isMobile, setOpenMobile]);
 
   const currentPage =
     NAV.find(({ href }) => pathname === href)?.label ??
