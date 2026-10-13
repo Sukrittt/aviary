@@ -242,14 +242,30 @@ export function ExpensePage() {
   // in at zero doesn't count: there was no "before" to celebrate.
   const readyToAssignNow = envelopeState?.readyToAssign;
   const prevReadyRef = useRef<number | undefined>(undefined);
+  const [rtaCelebrationPending, setRtaCelebrationPending] = useState(false);
   const [rtaCelebrating, setRtaCelebrating] = useState(false);
   useEffect(() => {
     const prev = prevReadyRef.current;
     prevReadyRef.current = readyToAssignNow;
     if (prev === undefined || Math.abs(prev) < 0.005 || !rtaSettled || document.visibilityState !== "visible") return;
-    setRtaCelebrating(true);
-    track("rta_zero_celebrated");
+    setRtaCelebrationPending(true);
   }, [readyToAssignNow, rtaSettled]);
+  // The save that zeroes it usually lands while its sheet is still open, so the
+  // beat waits for every modal to leave the page, same as Mobile waiting for focus.
+  useEffect(() => {
+    if (!rtaCelebrationPending) return;
+    const start = () => {
+      if (document.querySelector('[aria-modal="true"]')) return false;
+      setRtaCelebrationPending(false);
+      setRtaCelebrating(true);
+      track("rta_zero_celebrated");
+      return true;
+    };
+    if (start()) return;
+    const observer = new MutationObserver(() => { if (start()) observer.disconnect(); });
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["aria-modal"] });
+    return () => observer.disconnect();
+  }, [rtaCelebrationPending]);
   useEffect(() => {
     if (!rtaCelebrating) return;
     const t = setTimeout(() => setRtaCelebrating(false), 2500);
@@ -738,6 +754,9 @@ export function ExpensePage() {
                 >
                   <Sheet
                     className="move-money-modal bulk-return-modal"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Return all to Ready to Assign"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <div className="move-money-header">
