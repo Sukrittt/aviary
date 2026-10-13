@@ -32,6 +32,9 @@ export function IdeasBoardPage() {
 
   const vote = useMutation({
     mutationFn: ({ id, value }: { id: string; value: VoteValue }) => voteIdea(id, value),
+    // One at a time, in tap order: parallel requests could land out of order
+    // and save an earlier tap over the last one.
+    scope: { id: 'idea-vote' },
     onSettled: () => queryClient.invalidateQueries({ queryKey: ['ideas'] }),
   })
 
@@ -134,7 +137,7 @@ function IdeaForm({ onPosted }: { onPosted: () => void }) {
       <label className="erd-log-label" htmlFor="idea-title">Your idea</label>
       <input id="idea-title" className="erd-log-input" placeholder="What would make Aviary better?" maxLength={150} value={title} onChange={(e) => setTitle(e.target.value)} />
       <label className="erd-log-label" htmlFor="idea-description">Details (optional)</label>
-      <textarea id="idea-description" className="erd-log-input feedback-textarea" placeholder="Why would it help you?" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
+      <textarea id="idea-description" className="erd-log-input feedback-textarea" placeholder="Why would it help you?" maxLength={4000} value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
       <p className="recurring-hint">Everyone on the board sees your idea and your first name.</p>
       {error && <p className="erd-log-error">{error}</p>}
       <SuccessButton type="submit" baseClass="erd-log-submit" saving={saving} success={success} savingLabel="Posting…" successLabel="Posted" disabled={!canSubmit || saving || success}>

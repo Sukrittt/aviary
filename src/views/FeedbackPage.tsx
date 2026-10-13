@@ -47,6 +47,7 @@ export function FeedbackPage() {
         id="feedback-title"
         className="erd-log-input"
         placeholder="What's broken?"
+        maxLength={150}
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         autoFocus
@@ -59,6 +60,7 @@ export function FeedbackPage() {
         id="feedback-description"
         className="erd-log-input feedback-textarea"
         placeholder="What happened, and what did you expect instead?"
+        maxLength={4000}
         value={description}
         onChange={(e) => setDescription(e.target.value)}
         rows={6}

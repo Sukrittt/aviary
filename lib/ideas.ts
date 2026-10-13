@@ -109,14 +109,33 @@ export async function createIdea(userId: string, title: string, description: str
  * idea's counters by exactly the difference from their previous vote. Both
  * writes share a transaction, so concurrent taps serialize on the vote row
  * (write conflicts retry) and the counters always equal a recount of the
- * vote rows. Null when the idea is missing or hidden.
+ * vote rows. Null when the idea is missing or hidden (`includeHidden` is
+ * for the account purge, which must clear votes on hidden ideas too).
  */
-export async function castVote(ideaId: string, userId: string, value: VoteValue): Promise<(VoteCounts & { myVote: VoteValue }) | null> {
+export async function castVote(
+  ideaId: string,
+  userId: string,
+  value: VoteValue,
+  { includeHidden = false } = {},
+): Promise<(VoteCounts & { myVote: VoteValue }) | null> {
   const _id = toObjectId(ideaId)
   if (!_id) return null
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await writeVote(_id, userId, value, includeHidden)
+    } catch (err) {
+      // Two first votes from one user racing (two devices) can both try to
+      // insert the row; the loser gets E11000 rather than a retried write
+      // conflict. Once more sees the winner's row and moves on from it.
+      if ((err as { code?: number }).code !== 11000 || attempt > 0) throw err
+    }
+  }
+}
+
+async function writeVote(_id: ObjectId, userId: string, value: VoteValue, includeHidden: boolean) {
   const { ideas, votes } = await collections()
   return withTx(async (session) => {
-    const idea = await ideas.findOne({ _id, hidden: false }, { session })
+    const idea = await ideas.findOne(includeHidden ? { _id } : { _id, hidden: false }, { session })
     if (!idea) return null
     const key = { ideaId: _id, user_id: userId }
     const prev =
@@ -166,10 +185,8 @@ export async function purgeUserIdeas(db: Db, userId: string): Promise<number> {
   let rows = (await votes.deleteMany({ ideaId: { $in: ownIds } })).deletedCount
   rows += (await ideas.deleteMany({ _id: { $in: ownIds } })).deletedCount
   for (const v of await votes.find({ user_id: userId }).toArray()) {
-    await castVote(String(v.ideaId), userId, 0)
+    await castVote(String(v.ideaId), userId, 0, { includeHidden: true })
     rows++
   }
-  // Votes on ideas that are hidden: castVote skips those, so clear them directly.
-  rows += (await votes.deleteMany({ user_id: userId })).deletedCount
   return rows
 }
