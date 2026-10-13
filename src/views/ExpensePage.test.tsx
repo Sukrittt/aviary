@@ -245,3 +245,27 @@ it('celebrates Ready to Assign reaching zero while you watch, then settles back'
   expect(screen.getByText('Ready to Assign', { exact: false })).toBeInTheDocument()
   client.clear()
 })
+
+it('holds the Ready to Assign celebration until the dialog that caused it closes', async () => {
+  vi.mocked(getBudgets).mockResolvedValue([
+    { month, category: '__income__', assigned: '20000', rolled_over: '0', version: 1 },
+    { month, category: 'Food', assigned: '5000', rolled_over: '0', version: 1 },
+  ])
+  const client = renderPage()
+  expect(await screen.findByLabelText('₹15,000')).toBeInTheDocument()
+  // Stands in for the assign sheet that's still open when the save lands.
+  const dialog = document.createElement('div')
+  dialog.setAttribute('aria-modal', 'true')
+  document.body.appendChild(dialog)
+  vi.mocked(getBudgets).mockResolvedValue([
+    { month, category: '__income__', assigned: '20000', rolled_over: '0', version: 1 },
+    { month, category: 'Food', assigned: '20000', rolled_over: '0', version: 2 },
+  ])
+  await act(() => client.invalidateQueries({ queryKey: ['budgets'] }))
+  expect(await screen.findByRole('button', { name: 'Ready to Assign options' })).not.toHaveClass('is-celebrating')
+  expect(screen.queryByText('Every rupee has a job.')).not.toBeInTheDocument()
+  dialog.remove()
+  expect(await screen.findByText('Every rupee has a job.')).toBeInTheDocument()
+  expect(track).toHaveBeenCalledWith('rta_zero_celebrated')
+  client.clear()
+})
