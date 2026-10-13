@@ -3,15 +3,22 @@
 import type { ReactNode } from 'react'
 import type { AccountRow } from '../types'
 import { splitEmoji } from '../lib/emoji'
+import { categoryIconKey, type CategoryIconKey } from '../lib/categoryIcons'
+import { CATEGORY_ICON_COMPONENTS } from './CategoryIcon'
 
-export const ACCOUNT_TYPE_EMOJI: Record<string, string> = { bank: '🏦', cash: '💵', credit_card: '💳' }
+export const ACCOUNT_TYPE_ICON: Record<string, CategoryIconKey> = { bank: 'Bank', cash: 'Money', credit_card: 'CreditCard' }
 
-/** A leading emoji in the name is the account's icon, like envelopes; else its type's. */
-export function accountEmoji(a: { name: string; type: string }): string {
-  return splitEmoji(a.name).icon || ACCOUNT_TYPE_EMOJI[a.type] || '🏦'
+/** A legacy leading emoji in the name picks the account's icon, like categories; else its type's. */
+export function accountIconKey(a: { name: string; type: string }): CategoryIconKey {
+  return splitEmoji(a.name).icon ? categoryIconKey(a.name) : ACCOUNT_TYPE_ICON[a.type] ?? 'Bank'
 }
 
-/** The name without its leading emoji, for next to `accountEmoji`. */
+export function AccountIcon({ account, size = '1em' }: { account: { name: string; type: string }; size?: number | string }) {
+  const Icon = CATEGORY_ICON_COMPONENTS[accountIconKey(account)]
+  return <Icon size={size} aria-hidden />
+}
+
+/** The name without its leading emoji, for next to `AccountIcon`. */
 export function accountLabel(a: { name: string }): string {
   return splitEmoji(a.name).text
 }
@@ -56,7 +63,7 @@ export function AccountChips({
             className={`erd-chip ${value === a.id ? 'is-selected' : ''}`}
             onClick={() => onChange(a.id)}
           >
-            <span aria-hidden="true">{accountEmoji(a)}</span> {accountLabel(a)}
+            <AccountIcon account={a} /> {accountLabel(a)}
           </button>
         ))}
         {trailing}

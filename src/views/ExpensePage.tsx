@@ -8,7 +8,7 @@ import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "motion/r
 import { AmountText, CheckIcon } from "../components/landing/mobile/kit";
 import { track } from "../lib/analytics";
 import { currencyUnit } from "../lib/currencies";
-import { CaretRightIcon, PencilSimpleIcon } from "@/src/components/icons";
+import { CaretRightIcon, GearIcon, HouseIcon, InvoiceIcon, MoneyWavyIcon, MoonIcon, PencilSimpleIcon, PlantIcon, SunIcon } from "@/src/components/icons";
 import { useAppearance } from "../../components/AppearanceProvider";
 
 import { FluidDemo } from "../components/FluidDemo";
@@ -35,7 +35,7 @@ import { buildExpensePanel } from "../lib/expensePanel";
 import { EMPTY } from "../lib/constants";
 import { useBudgets, useTransferBudget, useUpdateBudget } from "../hooks/useBudgets";
 import { useRecentExpenses, useLastSpent, useAddExpense } from "../hooks/useExpenses";
-import { useCategories } from "../hooks/useCategories";
+import { useCategories, useCategoryIcons } from "../hooks/useCategories";
 import { useGroups } from "../hooks/useGroups";
 import { useSubscriptions, useCancelSubscription, useReactivateSubscription } from "../hooks/useSubscriptions";
 import { useHideAmounts } from "../hooks/useHideAmounts";
@@ -75,6 +75,7 @@ export function ExpensePage() {
   const expensesQuery = useRecentExpenses();
   const lastSpent = useLastSpent().data;
   const categoriesQuery = useCategories();
+  const categoryIcons = useCategoryIcons();
   const groupsQuery = useGroups();
   const subscriptionsQuery = useSubscriptions();
   const user = useUser().data;
@@ -422,7 +423,7 @@ export function ExpensePage() {
         onClick={() => setTheme(theme === "light" ? "dark" : "light")}
         aria-label="Toggle theme"
       >
-        {theme === "dark" ? "☀️" : "🌙"}
+        {theme === "dark" ? <SunIcon aria-hidden /> : <MoonIcon aria-hidden />}
       </button>
 
       <header className="erd-mobile-header">
@@ -534,7 +535,7 @@ export function ExpensePage() {
                               Every {currencyUnit(currencyCode)} has a job.
                             </>
                           ) : (
-                            <>💸&nbsp;&nbsp;Ready to Assign</>
+                            <><MoneyWavyIcon size={18} aria-hidden="true" style={{ verticalAlign: "-3px", marginRight: 8 }} />Ready to Assign</>
                           )}
                         </motion.span>
                       </AnimatePresence>
@@ -570,7 +571,7 @@ export function ExpensePage() {
                     }}
                   >
                     <article className="erd-card home-leftover-notice">
-                      <p>🌱 {formatCurrency(previousLeftover, hideAmounts)} went to savings last month.</p>
+                      <p><PlantIcon size={18} aria-hidden="true" style={{ verticalAlign: "-3px", marginRight: 6 }} />{formatCurrency(previousLeftover, hideAmounts)} went to savings last month.</p>
                       <button type="button" onClick={() => setLeftoverDismissed(true)}>Nice</button>
                     </article>
                   </motion.div>
@@ -617,6 +618,7 @@ export function ExpensePage() {
                   transition={homeTransition}
                 >
                   <EnvelopeGrid
+                    categoryIcons={categoryIcons}
                     envelopes={envelopeState.envelopes}
                     groups={envelopeState.groups}
                     hideAmounts={hideAmounts}
@@ -656,7 +658,7 @@ export function ExpensePage() {
                   homeRail
                 />
               )}
-              <RecentActivity expenses={expenseRows} hideAmounts={hideAmounts} />
+              <RecentActivity expenses={expenseRows} hideAmounts={hideAmounts} categoryIcons={categoryIcons} />
             </aside>
           </div>
           </LayoutGroup>
@@ -880,11 +882,11 @@ export function ExpensePage() {
       </div>
       <nav className="erd-tabbar" aria-label="Primary">
         <Link href="/expense" className="erd-tab">
-          <span aria-hidden="true">🏠</span>
+          <HouseIcon size={22} aria-hidden />
           <span>Home</span>
         </Link>
         <Link href="/expense/transactions" className="erd-tab">
-          <span aria-hidden="true">🧾</span>
+          <InvoiceIcon size={22} aria-hidden />
           <span>Activity</span>
         </Link>
         <button
@@ -897,7 +899,7 @@ export function ExpensePage() {
         </button>
         <InsightsTab />
         <Link href="/account" className="erd-tab">
-          <span aria-hidden="true">⚙️</span>
+          <GearIcon size={22} aria-hidden />
           <span>More</span>
         </Link>
       </nav>

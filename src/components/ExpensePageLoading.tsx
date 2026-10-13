@@ -3,6 +3,7 @@ import { BirdMark } from './BirdMark'
 import { ExpenseSidebar } from './ExpenseSidebar'
 import { LoadingCaption } from './LoadingCaption'
 import { InsightsTab } from '@/src/components/InsightsTab'
+import { GearIcon, HouseIcon, InvoiceIcon } from '@/src/components/icons'
 
 /** Real navigation shell shown while `/expense`'s core queries are in flight. */
 export function ExpensePageLoading() {
@@ -22,11 +23,11 @@ export function ExpensePageLoading() {
       </div>
 
       <nav className="erd-tabbar" aria-label="Primary">
-        <Link href="/expense" className="erd-tab"><span aria-hidden="true">🏠</span><span>Home</span></Link>
-        <Link href="/expense/transactions" className="erd-tab"><span aria-hidden="true">🧾</span><span>Activity</span></Link>
+        <Link href="/expense" className="erd-tab"><HouseIcon size={22} aria-hidden /><span>Home</span></Link>
+        <Link href="/expense/transactions" className="erd-tab"><InvoiceIcon size={22} aria-hidden /><span>Activity</span></Link>
         <button type="button" className="erd-tab-fab" disabled aria-label="Log expense">+</button>
         <InsightsTab />
-        <Link href="/account" className="erd-tab"><span aria-hidden="true">⚙️</span><span>More</span></Link>
+        <Link href="/account" className="erd-tab"><GearIcon size={22} aria-hidden /><span>More</span></Link>
       </nav>
     </section>
   )

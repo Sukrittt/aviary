@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { WarningIcon, XIcon } from '@/src/components/icons'
+import { QuestionIcon, WarningIcon, XIcon } from '@/src/components/icons'
+import { CategoryIcon } from '@/src/components/CategoryIcon'
 import type { CaptureProposal, ProposalStatus } from '@/src/api/ai'
 import { Select } from '@/src/components/Select'
 import { SuccessButton, useButtonPhase } from '@/src/components/SuccessButton'
@@ -23,7 +24,7 @@ import { useCategories } from '@/src/hooks/useCategories'
 import { useAddExpense, useRecentExpenses } from '@/src/hooks/useExpenses'
 import { track } from '@/src/lib/analytics'
 import { todayLocal } from '@/src/lib/date'
-import { categoryEmoji, splitEmoji } from '@/src/lib/emoji'
+import { splitEmoji } from '@/src/lib/emoji'
 import { formatDateShort } from '@/src/lib/format'
 import { unusualAmount } from '@/src/lib/unusualAmount'
 
@@ -96,21 +97,19 @@ export function CaptureReview({ proposal, onSettled, origin = CAPTURE_ORIGIN, lo
 
   // Once the envelope list loads, a row whose envelope is gone (deleted since it was read) has none:
   // logging it would file the spend under a name that no longer exists.
-  const known = categoriesQ.data ? new Set(categoriesQ.data.map((c) => c.name)) : null
+  const byName = categoriesQ.data ? new Map(categoriesQ.data.map((c) => [c.name, c])) : null
   const open = rows
     .filter((r) => !loggedRows.has(r.id))
-    .map((r) => (known && r.category && !known.has(r.category) ? { ...r, category: '' } : r))
+    .map((r) => (byName && r.category && !byName.has(r.category) ? { ...r, category: '' } : r))
   const kept = keptRows(open)
   const busy = button.saving || button.success
   const ready = canLog(open)
-  // Names usually carry their emoji already ("🍜 Eating out"): show it once, as the icon.
-  const toOption = (name: string, group?: string) => {
-    const { icon, text } = splitEmoji(name)
-    return { value: name, label: text, icon: icon || categoryEmoji(name, group) }
-  }
-  const categoryOptions = (categoriesQ.data ?? []).map((c) => toOption(c.name, c.group))
+  // Legacy names lead with an emoji: the label drops it, and the icon stands in for it.
+  const toOption = (name: string, group?: string, icon?: string) =>
+    ({ value: name, label: splitEmoji(name).text, icon: <CategoryIcon name={name} icon={icon} group={group} /> })
+  const categoryOptions = (categoriesQ.data ?? []).map((c) => toOption(c.name, c.group, c.icon))
   // A row's envelope shows while the list is still loading.
-  if (!known) for (const name of new Set(rows.map((r) => r.category))) if (name) categoryOptions.push(toOption(name))
+  if (!byName) for (const name of new Set(rows.map((r) => r.category))) if (name) categoryOptions.push(toOption(name))
   const hint = blockerHint(kept)
 
   useEffect(() => {
@@ -198,10 +197,12 @@ export function CaptureReview({ proposal, onSettled, origin = CAPTURE_ORIGIN, lo
         const share = rowShare(row)
         const locked = failedRows.has(row.id)
         const unusual = !Number.isNaN(share) && row.category ? unusualAmount(share, row.category, expensesQ.data ?? [], today) : null
-        const icon = row.category ? splitEmoji(row.category).icon || categoryEmoji(row.category) : '❔'
+        const envelope = row.category ? byName?.get(row.category) : undefined
         return (
           <div key={row.id} className={`capture-row${rowIncomplete(row) ? ' is-incomplete' : ''}`} data-testid={`capture-row-${row.id}`}>
-            <span className="capture-icon" aria-hidden="true">{icon}</span>
+            <span className="capture-icon" aria-hidden="true">
+              {row.category ? <CategoryIcon name={row.category} icon={envelope?.icon} group={envelope?.group} /> : <QuestionIcon />}
+            </span>
             <div className="capture-main">
               <input
                 className="capture-item"
@@ -218,7 +219,7 @@ export function CaptureReview({ proposal, onSettled, origin = CAPTURE_ORIGIN, lo
                   onChange={(category) => update(row.id, { category })}
                   options={categoryOptions}
                   placeholder="Pick a category"
-                  aria-label={row.category ? `Category: ${row.category}. Change it` : 'Pick a category'}
+                  aria-label={row.category ? `Category: ${splitEmoji(row.category).text}. Change it` : 'Pick a category'}
                   disabled={busy || locked}
                   searchable
                 />

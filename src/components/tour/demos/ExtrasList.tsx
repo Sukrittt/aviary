@@ -31,7 +31,7 @@ export function ExtrasList({ onComplete }: { onComplete: () => void }) {
             className={`tour-extra-row ${isOpen ? 'is-open' : ''}`}
           >
             <button type="button" className="tour-extra-head" aria-expanded={isOpen} onClick={() => toggle(index)}>
-              <div className="tour-row-tile">{extra.emoji}</div>
+              <div className="tour-row-tile"><extra.icon size={18} aria-hidden /></div>
               <span className="tour-extra-name">{extra.name}</span>
               <motion.span
                 className={`tour-extra-plus ${isOpen ? 'is-open' : ''}`}

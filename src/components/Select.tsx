@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import type { KeyboardEvent } from 'react'
+import type { KeyboardEvent, ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { CheckIcon, CaretDownIcon, MagnifyingGlassIcon } from '@/src/components/icons'
 import './Select.css'
@@ -11,8 +11,8 @@ export interface SelectOption {
   label: string
   /** Muted second line, e.g. a balance or a code. */
   hint?: string
-  /** Leading glyph, e.g. a category emoji — shown in both the trigger and the row. */
-  icon?: string
+  /** Leading glyph, e.g. a category icon, shown in both the trigger and the row. */
+  icon?: ReactNode
   disabled?: boolean
 }
 

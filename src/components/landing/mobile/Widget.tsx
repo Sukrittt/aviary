@@ -5,6 +5,7 @@ import { DAYS_LEFT } from './demo'
 import { useSample } from '../sample'
 import { useCurrency } from '@/src/context/CurrencyContext'
 import { lightTokens as T } from '@/src/theme/tokens'
+import { BasketIcon, MopedIcon, ShoppingBagIcon } from '@/src/components/icons'
 
 /**
  * Web twins of Mobile's home-screen widgets (src/widgets/EnvelopeMiniWidget.tsx
@@ -13,6 +14,9 @@ import { lightTokens as T } from '@/src/theme/tokens'
  * src/widgets/bird.ts and doodles.ts; sizes are Mobile's dp scaled to the
  * 214px card the phone frame leaves.
  */
+
+/** The action pills are a centring grid; flex keeps the icon beside its label. */
+const ACTION = { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 } as const
 
 const EYE = { cx: 306, cy: 216, r: 19 }
 
@@ -30,9 +34,9 @@ function useWidgetData() {
   const assigned = spendable.reduce((s, c) => s + c.assigned, 0)
   const left = spendable.reduce((s, c) => s + Math.max(0, c.assigned - c.spent), 0)
   const perDay = fmt(left / DAYS_LEFT)
-  const rows = ['🍅 Groceries', '🛍️ Shopping', '🛵 Travel'].map((name) => {
-    const c = categories.find((x) => x.name === name)!
-    return { icon: name.split(' ')[0], name: name.slice(name.indexOf(' ') + 1), left: fmt(c.assigned - c.spent), pct: (c.spent / c.assigned) * 100 }
+  const rows = ([['Groceries', BasketIcon], ['Shopping', ShoppingBagIcon], ['Travel', MopedIcon]] as const).map(([key, icon]) => {
+    const c = categories.find((x) => x.name === key)!
+    return { icon, name: key, left: fmt(c.assigned - c.spent), pct: (c.spent / c.assigned) * 100 }
   })
   const pills = [
     { label: 'per day', value: perDay, tint: T.text },
@@ -135,12 +139,12 @@ export function EnvelopeWidget() {
     </div>
     <div className="m-widget-rows">
       {rows.map((r) => <div key={r.name}>
-        <div className="m-widget-row"><span>{r.icon}</span><b>{r.name}</b><em>{r.left}</em></div>
+        <div className="m-widget-row"><span><r.icon aria-hidden /></span><b>{r.name}</b><em>{r.left}</em></div>
         <div className="m-widget-bar"><i style={{ width: `${Math.max(2, Math.min(92, Math.round(r.pct)))}%` }} /></div>
       </div>)}
     </div>
     <span className="m-widget-today">TODAY</span>
     {today.map((t) => <div key={t.item} className="m-widget-log"><span>{t.item}</span><b>{fmt(t.amount)}</b></div>)}
-    <div className="m-widget-actions"><span>🍅 Groceries</span><span>🛵 Travel</span><span className="m-widget-plus"><Plus size={16} /></span></div>
+    <div className="m-widget-actions"><span style={ACTION}><BasketIcon aria-hidden />Groceries</span><span style={ACTION}><MopedIcon aria-hidden />Travel</span><span className="m-widget-plus"><Plus size={16} /></span></div>
   </div>
 }

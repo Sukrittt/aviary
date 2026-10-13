@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
-import { XIcon } from '@/src/components/icons'
+import { BankIcon, XIcon } from '@/src/components/icons'
 import type { CaptureProposal } from '@/src/api/ai'
 import type { BalanceResult, BalanceStatus, MoneyInReason, ResolveAnswer } from '@/src/api/balanceChecks'
 import { CaptureReview } from '@/src/components/CaptureReview'
@@ -178,7 +178,7 @@ function EnterBalance({ status: fetched, onDone, onMeasured }: {
   return (
     <form className="balance-step" onSubmit={(e) => { e.preventDefault(); void onSubmit() }}>
       <div className="balance-intro">
-        <span className="balance-intro-icon" aria-hidden="true">🏦</span>
+        <span className="balance-intro-icon" aria-hidden="true"><BankIcon size={22} /></span>
         <div>
           <strong>{first ? 'Your starting balance' : status?.open ? "Let's finish your last check" : "What's your balance now?"}</strong>
           <p>

@@ -7,7 +7,7 @@ import { useAppearance } from '@/components/AppearanceProvider'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
 import { STAGGER, popIn, staggerDelay } from './landing/mobile/kit'
-import { ArrowLeftIcon, ArrowRightIcon, ArrowUpIcon, CheckIcon, ClockIcon, PlusIcon, MagnifyingGlassIcon, XIcon } from '@/src/components/icons'
+import { ArrowLeftIcon, ArrowRightIcon, ArrowUpIcon, BatteryLowIcon, CheckIcon, ClockIcon, DiamondIcon, FireIcon, HourglassIcon, PlusIcon, MagnifyingGlassIcon, ReceiptIcon, RepeatIcon, SirenIcon, SparkleIcon, TrendUpIcon, XIcon, type PhosphorIcon } from '@/src/components/icons'
 import { useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
 import { useBudgets } from '@/src/hooks/useBudgets'
@@ -26,6 +26,18 @@ import { BirdMark, BirdThinking } from './BirdMark'
 import { ChatMarkdown } from './ChatMarkdown'
 import { BirdEmptyState } from './BirdEmptyState'
 import { CaptureReview } from './CaptureReview'
+
+/** Brief cards carry an emoji `icon` (lib/ai/briefCards.ts, shared with Mobile); Web draws the Phosphor match. */
+const BRIEF_ICONS: Record<string, PhosphorIcon> = {
+  '🚨': SirenIcon,
+  '🔥': FireIcon,
+  '⏳': HourglassIcon,
+  '🧾': ReceiptIcon,
+  '📈': TrendUpIcon,
+  '🔁': RepeatIcon,
+  '🪫': BatteryLowIcon,
+  '💎': DiamondIcon,
+}
 
 export interface OpenChat {
   sessionId: string | null
@@ -395,17 +407,18 @@ export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onL
               </motion.section>
               {brief.data?.cards.length ? (
                 <section className="brain-insight-grid">
-                  {brief.data.cards.map((card, i) => (
-                    <motion.article
+                  {brief.data.cards.map((card, i) => {
+                    const Icon = BRIEF_ICONS[card.icon] ?? SparkleIcon
+                    return <motion.article
                       key={`${card.title}-${card.valueLabel}`}
                       className={`brain-insight brain-insight--${card.tone}`}
                       {...popIn(staggerDelay(i, STAGGER.mount + STAGGER.block))}
                     >
-                      <span className="brain-insight-icon" aria-hidden="true">{card.icon}</span>
+                      <span className="brain-insight-icon" aria-hidden="true"><Icon size={20} /></span>
                       <div><strong>{card.title}</strong><small>{card.subtitle}</small></div>
                       <div className="brain-insight-value"><b>{formatCurrency(card.amount, hideAmounts)}</b><small>{card.valueLabel}</small></div>
                     </motion.article>
-                  ))}
+                  })}
                 </section>
               ) : null}
               {brief.data?.questions.length ? (

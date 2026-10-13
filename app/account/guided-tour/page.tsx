@@ -7,7 +7,7 @@ import { track } from '@/src/lib/analytics'
 import { useTourProgress } from '../../../src/hooks/useTourProgress'
 import { useMoneyBrain } from '../../../components/MoneyBrainProvider'
 import { useTourContent } from '@/src/components/tour/useTourContent'
-import { ArrowLeftIcon, XIcon } from '@/src/components/icons'
+import { ArrowLeftIcon, MedalIcon, XIcon } from '@/src/components/icons'
 import { FadeIn, PopIn } from '@/src/components/tour/parts'
 import { BirdMark } from '@/src/components/BirdMark'
 
@@ -275,7 +275,7 @@ function Done({
   return (
     <div className="tour-done">
       <PopIn>
-        <div className="tour-done-medal">🏅</div>
+        <div className="tour-done-medal"><MedalIcon size={40} color="var(--gold-ink)" aria-hidden /></div>
       </PopIn>
       <PopIn delay={80} className="tour-done-copy">
         <h2 className="tour-done-title">{doneCount === CHAPTERS.length ? 'You know the whole app.' : `Tour done · ${doneCount} of ${CHAPTERS.length} poked.`}</h2>

@@ -3,12 +3,12 @@ import { ExpenseWriteError } from '../lib/expenseConflict';
 import { useCurrency } from "@/src/context/CurrencyContext";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { CopyIcon, PlusIcon, MagnifyingGlassIcon, XIcon } from "@/src/components/icons";
+import { CopyIcon, PlusIcon, MagnifyingGlassIcon, MoneyWavyIcon, XIcon } from "@/src/components/icons";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { toTransactions, type Transaction } from "../lib/expenseTransactions";
 import { useBudgets } from "../hooks/useBudgets";
-import { useCategories } from "../hooks/useCategories";
+import { useCategories, useCategoryIcons } from "../hooks/useCategories";
 import { useExpensesPage, useDeleteExpense, useDuplicates } from "../hooks/useExpenses";
 import { DuplicateReviewDialog } from "./DuplicateReviewDialog";
 import { ConfirmDialog } from "./ConfirmDialog";
@@ -22,14 +22,15 @@ import { TransactionEditModal } from "./TransactionEditModal";
 import { LogExpenseModal } from "./LogExpenseModal";
 import { DatePicker } from "./DatePicker";
 import { Select } from "./Select";
-import { avatarColorFor, categoryEmoji, splitEmoji } from "../lib/emoji";
+import { avatarStyleFor, splitEmoji } from "../lib/emoji";
+import { CategoryIcon } from "./CategoryIcon";
 import { formatShortDate } from "../lib/format";
 import { parseLocalDate, toLocalDateString } from "../lib/date";
 import { BirdEmptyState } from "./BirdEmptyState";
 import { useIncomes } from "../hooks/useIncomes";
 import { liveAccounts, useAccounts } from "../hooks/useAccounts";
 import { incomesForPage, periodEnd } from "../lib/incomeActivity";
-import { accountEmoji, accountLabel, accountName } from "./AccountChips";
+import { AccountIcon, accountLabel, accountName } from "./AccountChips";
 import type { IncomeRow } from "../types";
 
 type PeriodKey = "week" | "month" | "custom";
@@ -69,6 +70,7 @@ export function TransactionsView({
 
   const budgetsQuery = useBudgets();
   const categoriesQuery = useCategories();
+  const categoryIcons = useCategoryIcons();
   const deleteExpenseM = useDeleteExpense();
   const duplicates = useDuplicates().data ?? [];
   const [reviewingDuplicates, setReviewingDuplicates] = useState(false);
@@ -544,7 +546,11 @@ export function TransactionsView({
               searchable={orderedCategories.length >= 12}
               options={[
                 { value: "", label: "All categories" },
-                ...orderedCategories.map((c) => ({ value: c, label: splitEmoji(c).text, icon: categoryEmoji(c) })),
+                ...orderedCategories.map((c) => ({
+                  value: c,
+                  label: splitEmoji(c).text,
+                  icon: <CategoryIcon name={c} icon={categoryIcons.get(c)} />,
+                })),
               ]}
             />
           </div>
@@ -558,7 +564,7 @@ export function TransactionsView({
                 placeholder="All accounts"
                 options={[
                   { value: "", label: "All accounts" },
-                  ...accountOptions.map((a) => ({ value: a.id, label: accountLabel(a), icon: accountEmoji(a) })),
+                  ...accountOptions.map((a) => ({ value: a.id, label: accountLabel(a), icon: <AccountIcon account={a} /> })),
                 ]}
               />
             </div>
@@ -654,7 +660,7 @@ export function TransactionsView({
                       <Link href="/account/income" className="txn-row-trigger" aria-label={`${income.label}, income. Open Income`} />
                       <span className="txn-check-slot" aria-hidden="true" />
                       <span className="txn-timeline-icon" aria-hidden="true" style={{ background: "var(--mint-soft)" }}>
-                        💰
+                        <MoneyWavyIcon />
                       </span>
                       <span className="txn-timeline-body">
                         <span className="txn-timeline-item">{income.label}</span>
@@ -717,9 +723,9 @@ export function TransactionsView({
                       <span
                         className="txn-timeline-icon"
                         title={categoryName}
-                        style={{ background: avatarColorFor(categoryName) }}
+                        style={avatarStyleFor(categoryName)}
                       >
-                        {categoryEmoji(t.category)}
+                        <CategoryIcon name={t.category} icon={categoryIcons.get(t.category)} />
                       </span>
                       <span className="txn-timeline-body">
                         <span className="txn-timeline-item">{t.item}</span>

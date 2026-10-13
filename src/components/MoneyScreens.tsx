@@ -5,7 +5,8 @@ import './MoneyScreens.css'
 import { useCurrency } from '@/src/context/CurrencyContext'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { AnimatePresence, LayoutGroup, MotionConfig, motion, useReducedMotion } from 'motion/react'
-import { ArrowLeftIcon, ArrowRightIcon, ArrowClockwiseIcon, MagnifyingGlassIcon, TrashIcon, XIcon } from '@/src/components/icons'
+import { ArrowLeftIcon, ArrowRightIcon, ArrowClockwiseIcon, MagnifyingGlassIcon, MoneyWavyIcon, TrashIcon, XIcon } from '@/src/components/icons'
+import { CategoryIcon } from './CategoryIcon'
 import { Scrim, Sheet } from './MotionSheet'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
 import { LoadingCaption } from './LoadingCaption'
@@ -19,7 +20,7 @@ import { useAddIncome, useUpdateIncome } from '../hooks/useIncomes'
 import { liveAccounts, useAccounts } from '../hooks/useAccounts'
 import { AccountChips } from './AccountChips'
 import { EMPTY } from '../lib/constants'
-import { categoryEmoji, splitEmoji } from '../lib/emoji'
+import { splitEmoji } from '../lib/emoji'
 import { BudgetWriteError } from '../lib/budgetConflict'
 import type { BudgetRow, IncomeRow } from '../types'
 import {
@@ -167,10 +168,10 @@ function Screen({
   )
 }
 
-function SubjectCard({ emoji, label, name, detail }: { emoji: string; label: string; name: string; detail: string }) {
+function SubjectCard({ icon, label, name, detail }: { icon: ReactNode; label: string; name: string; detail: string }) {
   return (
     <div className="money-card">
-      <span className="money-card-icon">{emoji}</span>
+      <span className="money-card-icon" aria-hidden="true">{icon}</span>
       <div className="money-card-text">
         <span className="money-label">{label}</span>
         <span className="money-card-name">{name}</span>
@@ -329,7 +330,7 @@ function Cta({
 interface SourceItem {
   key: string
   name: string
-  emoji: string
+  icon: ReactNode
   available: number
   /** Higher = safer to borrow from. Ready to Assign always ranks first. */
   score: number
@@ -388,13 +389,13 @@ function MoveMoneyBody({
   const sources: SourceItem[] = (() => {
     const items: SourceItem[] = []
     if (readyToAssign > 0) {
-      items.push({ key: RTA_SENTINEL, name: 'Ready to Assign', emoji: '💰', available: readyToAssign, score: Infinity })
+      items.push({ key: RTA_SENTINEL, name: 'Ready to Assign', icon: <MoneyWavyIcon />, available: readyToAssign, score: Infinity })
     }
     for (const e of envelopeSources) {
       items.push({
         key: e.category,
         name: splitEmoji(e.category).text,
-        emoji: categoryEmoji(e.category, e.group),
+        icon: <CategoryIcon name={e.category} icon={data.categories.find((c) => c.name === e.category)?.icon} group={e.group} />,
         available: e.available,
         score: e.assigned > 0 ? e.available / e.assigned : 1,
       })
@@ -613,7 +614,7 @@ function MoveMoneyBody({
                         exit={FADE_OUT}
                       >
                         <div className="money-source-top">
-                          <span className="money-source-icon">{item.emoji}</span>
+                          <span className="money-source-icon" aria-hidden="true">{item.icon}</span>
                           <div className="money-source-text">
                             <span className="money-source-name">{item.name}</span>
                             <span className="money-source-sub">
@@ -657,7 +658,7 @@ function MoveMoneyBody({
                     disabled={busy || remaining === 0}
                     onClick={() => pick(item)}
                   >
-                    <span className="money-source-icon">{item.emoji}</span>
+                    <span className="money-source-icon" aria-hidden="true">{item.icon}</span>
                     <span className="money-source-name">{item.name}</span>
                     <span className="money-source-avail">
                       <span>{formatCurrency(item.available, hideAmounts)}</span>
@@ -903,9 +904,9 @@ export function EditMonthIncomeScreen({ month, onClose, initial }: { month: stri
           </button>
         </div>
         {isCurrent ? (
-          <SubjectCard emoji="💰" label="EDITING" name="Monthly income" detail="What comes in every month, like your salary" />
+          <SubjectCard icon={<MoneyWavyIcon />} label="EDITING" name="Monthly income" detail="What comes in every month, like your salary" />
         ) : (
-          <SubjectCard emoji="💰" label="ADDING" name="Income" detail={`What came in during ${monthLabel(month)}`} />
+          <SubjectCard icon={<MoneyWavyIcon />} label="ADDING" name="Income" detail={`What came in during ${monthLabel(month)}`} />
         )}
         <HeroAmount amountText={amountText} onChange={setAmountText}>
           <p className="money-hint">{isCurrent ? 'Carries into next month until you change it' : 'Counts toward what you saved that month'}</p>
@@ -945,7 +946,7 @@ function FormSheet({ title, onClose, onBack, busy, footer, className = '', child
         <div className="erd-modal-head">
           <h3>{title}</h3>
           <button type="button" className="erd-modal-close" onClick={onClose} aria-label="Close" disabled={busy}>
-            ✕
+            <XIcon size={18} />
           </button>
         </div>
         <div className="erd-sub-body">{children}</div>

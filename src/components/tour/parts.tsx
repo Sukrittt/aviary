@@ -2,6 +2,7 @@
 
 import type { CSSProperties, ReactNode } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
+import type { PhosphorIcon } from '@/src/components/icons'
 
 // Twin of Mobile's src/components/tour/parts.tsx. Reanimated's springs and
 // bounces become motion springs / keyframes with the same numbers; the
@@ -86,19 +87,19 @@ export function SectionLabel({ children }: { children: string }) {
 }
 
 /**
- * One demo row: emoji tile, name, a note under it, and whatever the chapter
+ * One demo row: icon tile, name, a note under it, and whatever the chapter
  * wants on the right. Shared by the assign, move and rollover demos, which are
  * the same row with a different right-hand side.
  */
 export function TourRow({
-  emoji,
+  icon: Icon,
   name,
   note,
   noteClass,
   right,
   highlight,
 }: {
-  emoji: string
+  icon: PhosphorIcon
   name: string
   note: string
   noteClass?: string
@@ -107,7 +108,7 @@ export function TourRow({
 }) {
   return (
     <div className={`tour-row ${highlight ? 'is-highlight' : ''}`}>
-      <div className="tour-row-tile">{emoji}</div>
+      <div className="tour-row-tile"><Icon size={18} aria-hidden /></div>
       <div className="tour-row-body">
         <span className="tour-row-name">{name}</span>
         <span className={`tour-row-note ${noteClass ?? ''}`}>{note}</span>

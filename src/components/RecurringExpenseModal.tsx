@@ -1,5 +1,6 @@
 'use client'
 
+import { XIcon } from '@/src/components/icons'
 import { useCurrency } from '@/src/context/CurrencyContext'
 
 import type { RecurringExpenseInput } from '../api/recurringExpenses'
@@ -166,7 +167,7 @@ export function RecurringExpenseModal({ id, initialValues, suggestionId, onAdded
         <div className="erd-modal-head">
           <h3>{isEdit ? 'Edit recurring' : 'New recurring'}</h3>
           <button type="button" className="erd-modal-close" onClick={onClose} aria-label="Close" disabled={success}>
-            ✕
+            <XIcon size={18} aria-hidden="true" />
           </button>
         </div>
 

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { motion } from 'motion/react'
 import { LIST_SPRING } from '@/src/components/landing/mobile/kit'
 import { LoadingCaption } from '@/src/components/LoadingCaption'
+import { BroomIcon } from '@/src/components/icons'
 import { analyticsReady, isAnalyticsEnabled, setAnalyticsEnabled, track } from '@/src/lib/analytics'
 
 interface Summary {
@@ -219,7 +220,7 @@ export default function DataPage() {
 
       <button type="button" className="account-clear-btn" onClick={() => setConfirmingClear(true)}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span aria-hidden="true">🧹</span>
+          <BroomIcon size={20} aria-hidden />
           <span>
             <span style={{ display: 'block', fontSize: 14, fontWeight: 700 }}>Clear all transactions</span>
             <span style={{ display: 'block', fontSize: 11, color: 'var(--erd-text2)', marginTop: 2 }}>

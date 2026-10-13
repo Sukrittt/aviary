@@ -8,7 +8,8 @@ import { CheckIcon, MagnifyingGlassIcon, TrashIcon } from '@/src/components/icon
 
 import { CategoryPicker } from '@/src/components/CategoryPicker'
 import { DatePicker } from '@/src/components/DatePicker'
-import { categoryEmoji, splitEmoji } from '@/src/lib/emoji'
+import { splitEmoji } from '@/src/lib/emoji'
+import { CategoryIcon } from '@/src/components/CategoryIcon'
 
 import { round2 } from '@/src/lib/split'
 import { DIVISORS, PEOPLE_COUNTS, splitLabel } from './presentation'
@@ -255,9 +256,12 @@ export function ScanReview(s: ScanBillState) {
           aria-expanded={pickingCategory}
           onClick={() => setPickingCategory((v) => !v)}
         >
-          {selectedCategory
-            ? `${categoryEmoji(selectedCategory.name, selectedCategory.group)} ${splitEmoji(selectedCategory.name).text}`
-            : 'Pick a category'}
+          {selectedCategory ? (
+            <>
+              <CategoryIcon name={selectedCategory.name} icon={selectedCategory.icon} group={selectedCategory.group} />{' '}
+              {splitEmoji(selectedCategory.name).text}
+            </>
+          ) : 'Pick a category'}
         </button>
         {pickingCategory && (
           <CategoryPicker

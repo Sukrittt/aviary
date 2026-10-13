@@ -10,6 +10,8 @@ import { LoadingCaption } from '../components/LoadingCaption'
 import { Scrim, Sheet } from '../components/MotionSheet'
 import { useBillScan, useBillScans } from '../hooks/useBillScans'
 import { useHideAmounts } from '../hooks/useHideAmounts'
+import { useCategoryIcons } from '../hooks/useCategories'
+import { CategoryIcon } from '../components/CategoryIcon'
 import { splitEmoji } from '../lib/emoji'
 import { formatDate, formatDateShort } from '../lib/format'
 import { feeDiff, groupByDivisor, isFeeLine, round2 } from '../lib/split'
@@ -105,6 +107,7 @@ function BillScanDetail({ id, onClose }: { id: string; onClose: () => void }) {
   const [hideAmounts] = useHideAmounts()
   const scanQ = useBillScan(id)
   const scan = scanQ.data
+  const categoryIcons = useCategoryIcons()
   const [showPhoto, setShowPhoto] = useState(false)
 
   const category = splitEmoji(scan?.category ?? '')
@@ -165,7 +168,7 @@ function BillScanDetail({ id, onClose }: { id: string; onClose: () => void }) {
             <motion.div className="account-card bill-scan-hero" {...popIn(STAGGER.mount + STAGGER.item)}>
               <div className="bill-scan-heading">
                 <span className="bill-scan-icon" aria-hidden="true">
-                  {category.icon || '🧾'}
+                  <CategoryIcon name={scan.category} icon={scan.category ? categoryIcons.get(scan.category) : 'Receipt'} />
                 </span>
                 <div style={{ minWidth: 0 }}>
                   <div className="account-row-label">{scan.merchant}</div>

@@ -14,7 +14,7 @@ vi.mock('../hooks/useIncomes', () => ({ useIncomes: () => ({ data: incomeMocks.r
 const incomeMocks = vi.hoisted(() => ({ rows: [] as Record<string, unknown>[] }))
 vi.mock('next/navigation', () => ({ useSearchParams: () => new URLSearchParams(), useRouter: () => ({ replace: vi.fn() }) }))
 vi.mock('../hooks/useBudgets', () => ({ useBudgets: () => ({ data: [{ category: 'Groceries' }] }) }))
-vi.mock('../hooks/useCategories', () => ({ useCategories: () => ({ data: [{ name: 'Groceries' }, { name: 'Subscription' }] }) }))
+vi.mock('../hooks/useCategories', () => ({ useCategories: () => ({ data: [{ name: 'Groceries' }, { name: 'Subscription' }] }), useCategoryIcons: () => new Map() }))
 vi.mock('../hooks/useRecentCategories', () => ({ useRecentCategories: () => ({ recents: [] }) }))
 vi.mock('../hooks/useExpenses', () => ({
   useExpensesPage: (args: Record<string, unknown>) => (pageArgs.push(args), { data: { rows: [{ id: 'one', version: 0, timestamp: '2026-09-18T10:00:00', date: '2026-09-18', item: 'Lunch', amount_inr: '100', category: 'Food' }, ...page.extra], total: 1 + page.extra.length, pageCount: 1, totalAmount: 100 } }),

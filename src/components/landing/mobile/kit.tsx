@@ -389,7 +389,7 @@ export function Chip({
   selected,
   onPress,
 }: {
-  icon?: string
+  icon?: ReactNode
   label: string
   selected?: boolean
   onPress: () => void
