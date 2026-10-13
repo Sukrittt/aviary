@@ -14,7 +14,7 @@ import { CATEGORIES, CATEGORIES_INTL } from './mobile/demo'
 
 const INTL_MEDIA = new Set([
   'clip-log.mp4', 'poster-log.jpg', 'clip-added.mp4', 'poster-added.jpg', 'clip-scan.mp4', 'poster-scan.jpg',
-  'clip-insights.mp4', 'poster-insights.jpg', 'clip-invest.mp4', 'poster-invest.jpg', 'activity-today.png', 'subscriptions.png',
+  'clip-insights.mp4', 'poster-insights.jpg', 'clip-invest.mp4', 'poster-invest.jpg', 'subscriptions.png',
   'clip-ask.mp4', 'poster-ask.jpg',
 ])
 
@@ -62,7 +62,8 @@ const IN = {
     quote: '“Bike to office? Log it while it’s fresh.”',
     steps: ['Noticed it’s Friday, 9:15am, like the last three', 'Filled in Bike to office · Metro · ₹150 · UPI', 'Logged with one tap on the notification', 'Metro has ₹960 left this month'],
     label: 'Today in Aviary',
-    alt: 'Today’s logs in the app: Bike to office ₹150, Shopping ₹1,500, Trip with friends ₹1,500, Electricity ₹6,000, Groceries ₹5,000, Gym membership ₹1,500.',
+    // First row is the one the nudge just logged; it slides in once the steps finish.
+    rows: [['🚃', '#f6ecd2', 'Bike to office', '2 Oct ’26 · Metro', '₹150'], ['🛍️', '#ead2f2', 'Shopping', '2 Oct ’26 · Shopping', '₹1,500'], ['✈️', '#f8d9cf', 'Trip with friends', '2 Oct ’26 · Travel', '₹1,500'], ['💡', '#d4e5ea', 'Electricity', '2 Oct ’26 · Utilities', '₹6,000'], ['🛒', '#f6ecd2', 'Groceries', '2 Oct ’26 · Groceries', '₹5,000'], ['🏋️', '#d4e5ea', 'Gym membership', '2 Oct ’26 · Fitness', '₹1,500']] as [string, string, string, string, string][],
   },
   headsUp: '₹199 due in 3 days (Oct 28).',
   ask: {
@@ -116,7 +117,7 @@ const INTL: Sample = {
     quote: '“Coffee with Sam? Log it while it’s fresh.”',
     steps: ['Noticed it’s Friday, 4:15pm, like the last three', 'Filled in Coffee with Sam · Eating out · $6 · Card', 'Logged with one tap on the notification', 'Eating out has $240 left this month'],
     label: 'This week in Aviary',
-    alt: 'This week’s logs in the app: Coffee with Sam $6, Bus Fare $3, Movie tickets $50, Commute $20, Coffee $4, Rent $1,500.',
+    rows: [['🍜', '#d6e7d8', 'Coffee with Sam', '9 Oct ’26 · Eating out', '$6'], ['🚌', '#ead2f2', 'Bus Fare', '9 Oct ’26 · Commute', '$3'], ['🎮', '#d6e7d8', 'Movie tickets', '9 Oct ’26 · Entertainment', '$50'], ['🚌', '#ead2f2', 'Commute', '9 Oct ’26 · Commute', '$20'], ['🍜', '#d6e7d8', 'Coffee', '7 Oct ’26 · Eating out', '$4'], ['🏠', '#f8d9cf', 'Rent', '5 Oct ’26 · Rent', '$1,500']] as [string, string, string, string, string][],
   },
   headsUp: '$15.49 due in 3 days (Oct 28).',
   ask: {

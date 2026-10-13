@@ -1,6 +1,5 @@
 'use client'
 
-import Image from 'next/image'
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
 import { useReducedMotion } from 'motion/react'
 import { Check, ChevronDown, ChevronUp, Pause, Play, RotateCcw } from 'lucide-react'
@@ -297,8 +296,8 @@ export function LearnDiagram() {
 const STEP_MS = 750
 
 export function NoticeSplit() {
-  // The steps match the top row of activity-today.png and its envelope.
-  const { statement: STATEMENT, notice, media } = useSample()
+  // The steps match the first row of notice.rows and its envelope.
+  const { statement: STATEMENT, notice } = useSample()
   const STEPS = notice.steps
   const reduced = useReducedMotion()
   const { ref, visible } = useOnScreen<HTMLDivElement>(0.4)
@@ -330,11 +329,15 @@ export function NoticeSplit() {
           <span className="lp-split2-icon">{done > i + 1 ? <Check size={13} strokeWidth={3.2} /> : null}</span>{s}
         </li>)}
       </ol>
-      {/* Hidden from assistive tech until it lands: before that it's a faded
-          placeholder for a result that hasn't happened yet. */}
+      {/* The logged row is absent until the steps finish, then it grows in and
+          pushes the rest down. Hidden from assistive tech until it lands. */}
       <div className={`lp-split2-result${done > STEPS.length ? ' is-in' : ''}`} aria-hidden={done > STEPS.length ? undefined : true}>
         <span className="lp-stage-label">{notice.label}</span>
-        <Image src={media('activity-today.png')} alt={notice.alt} width={720} height={665} sizes="(max-width: 760px) 90vw, 420px" />
+        <ol className="lp-split2-rows">
+          {notice.rows.map(([emoji, tint, name, meta, amount], i) => <li key={name + meta} className={i === 0 ? 'is-new' : undefined}>
+            <div><span style={{ background: tint }} aria-hidden="true">{emoji}</span><b>{name}</b><small>{meta}</small><strong>{amount}</strong></div>
+          </li>)}
+        </ol>
       </div>
       {!reduced && <button type="button" className="lp-replay" onClick={() => { setStep(0); setTake((t) => t + 1) }}><RotateCcw size={15} aria-hidden="true" />Replay</button>}
     </div>
