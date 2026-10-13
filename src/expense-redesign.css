@@ -898,6 +898,18 @@
 .env2-pill.is-low { color: var(--tk-pill-low); background: var(--tk-pill-low-bg); }
 .env2-pill.is-over { color: var(--tk-pill-over); background: var(--tk-pill-over-bg); }
 .env2-pill.is-empty { color: var(--erd-text3); }
+/* Same green as a healthy "Left" pill: unassigned money is good money. */
+.erd-rta-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  margin-right: 10px;
+  vertical-align: middle;
+  border-radius: 9px;
+  color: var(--tk-pill-good);
+  background: var(--tk-pill-good-bg);
+}
 .env2-category-icon {
   display: grid;
   place-items: center;
