@@ -8,6 +8,7 @@ import { FadeIn, SectionLabel, ResultCard } from '@/src/components/tour/parts'
 import { useTourContent } from '@/src/components/tour/useTourContent'
 import { PLAY_STORE_URL } from '@/src/components/billing/copy'
 import { NOTIFY_ENVELOPE, NOTIFY_PCTS, type NotifyCadence } from '@/src/components/tour/content'
+import { SirenIcon, TrafficSignalIcon, type PhosphorIcon } from '@/src/components/icons'
 
 const CADENCES: { value: NotifyCadence; label: string }[] = [
   { value: 'off', label: 'Off' },
@@ -20,7 +21,7 @@ const OVER = 101
 
 interface Banner {
   id: number
-  emoji: string
+  icon: PhosphorIcon
   title: string
   body: string
 }
@@ -45,7 +46,7 @@ export function NotifyDemo({ onComplete }: { onComplete: () => void }) {
   const seen = useRef(new Set<string>())
   const nextId = useRef(0)
 
-  const { name, emoji, plan, step } = NOTIFY_ENVELOPE
+  const { name, icon: EnvelopeIcon, plan, step } = NOTIFY_ENVELOPE
   const pct = Math.round((spent / plan) * 100)
   const over = spent > plan
   const pickedKind = NOTIFY_KINDS.find((k) => k.id === picked)
@@ -68,13 +69,13 @@ export function NotifyDemo({ onComplete }: { onComplete: () => void }) {
     if (level <= levelFor(spent)) return
     if (level === OVER) {
       ping('overspent', {
-        emoji: '🚨',
+        icon: SirenIcon,
         title: `${name} is over budget`,
         body: `You've overspent ${formatCurrency(next - plan)} in ${name} this month.`,
       })
     } else {
       ping('threshold', {
-        emoji: '🚦',
+        icon: TrafficSignalIcon,
         title: `${name} is at ${Math.round((next / plan) * 100)}%`,
         body: `${formatCurrency(next)} of ${formatCurrency(plan)} spent in ${name}.`,
       })
@@ -120,7 +121,7 @@ export function NotifyDemo({ onComplete }: { onComplete: () => void }) {
                 transition={{ type: 'spring', damping: 18, stiffness: 100, layout: { type: 'spring', damping: 64, stiffness: 700 } }}
                 className="tour-notify-banner"
               >
-                <div className="tour-row-tile">{b.emoji}</div>
+                <div className="tour-row-tile"><b.icon size={18} aria-hidden /></div>
                 <div className="tour-row-body">
                   <span className="tour-notify-banner-title">{b.title}</span>
                   <span className="tour-notify-banner-body">{b.body}</span>
@@ -135,7 +136,7 @@ export function NotifyDemo({ onComplete }: { onComplete: () => void }) {
       <SectionLabel>CATEGORY ALERTS</SectionLabel>
       <div className={`tour-card ${over ? 'is-over' : ''}`}>
         <div className="tour-log-head">
-          <div className="tour-row-tile">{emoji}</div>
+          <div className="tour-row-tile"><EnvelopeIcon size={18} aria-hidden /></div>
           <div className="tour-row-body">
             <span className="tour-row-name">{name}</span>
             <span className={`tour-row-note ${over ? 'is-coral' : ''}`}>
@@ -193,7 +194,7 @@ export function NotifyDemo({ onComplete }: { onComplete: () => void }) {
               className={`tour-chip ${picked === k.id ? 'is-active' : ''} ${silenced ? 'is-silenced' : ''}`}
               onClick={() => pick(k.id)}
             >
-              {k.emoji}&nbsp; {k.label}
+              <k.icon size={14} aria-hidden style={{ verticalAlign: '-2px', marginRight: 6 }} />{k.label}
             </button>
           )
         })}

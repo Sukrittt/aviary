@@ -4,7 +4,10 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { Scrim, Sheet } from './MotionSheet'
 import { useAddCategory } from '../hooks/useCategories'
 import { useGroups } from '../hooks/useGroups'
-import { categoryEmoji, groupEmoji, splitEmoji } from '../lib/emoji'
+import { avatarStyleFor, splitEmoji } from '../lib/emoji'
+import { categoryIconKey, type CategoryIconKey } from '../lib/categoryIcons'
+import { CategoryIcon } from './CategoryIcon'
+import { CategoryIconPicker } from './CategoryIconPicker'
 import type { CategoryRow } from '../types'
 
 export function AddCategoryModal({ onClose, onCreated, initialGroup = '' }: {
@@ -16,6 +19,9 @@ export function AddCategoryModal({ onClose, onCreated, initialGroup = '' }: {
   const addCategory = useAddCategory()
   const [name, setName] = useState('')
   const [group, setGroup] = useState(initialGroup)
+  // Follows the name until the user picks one ("Fuel" gets the pump).
+  const [pickedIcon, setPickedIcon] = useState<CategoryIconKey | null>(null)
+  const icon = pickedIcon ?? categoryIconKey(name, undefined, group)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
   const pending = useRef(false)
@@ -33,7 +39,7 @@ export function AddCategoryModal({ onClose, onCreated, initialGroup = '' }: {
 
   async function save() {
     if (!name.trim() || pending.current) return
-    const created = { name: name.trim(), group }
+    const created = { name: name.trim(), group, icon }
     pending.current = true
     setSaving(true)
     setError('')
@@ -58,21 +64,17 @@ export function AddCategoryModal({ onClose, onCreated, initialGroup = '' }: {
           <div className="env-sheet-title">Add category</div>
           <p className="env-sheet-copy">Categories live inside a group. Pick where this one belongs.</p>
           <label className="env-sheet-section-label" htmlFor={inputId}>Name</label>
-          <div className="env-sheet-name-row">
-            <div className="env-sheet-icon-swatch" aria-hidden="true">{categoryEmoji(name, group)}</div>
+          <CategoryIconPicker value={icon} onChange={setPickedIcon} tint={avatarStyleFor(splitEmoji(name).text)} disabled={saving}>
             <input id={inputId} className="env-input" autoFocus placeholder="Groceries, fuel, gym…" value={name}
               disabled={saving} onChange={(e) => setName(e.target.value)} />
-          </div>
-          {name.trim() && !splitEmoji(name).icon && (
-            <p className="env-sheet-hint">💡 Tip: start the name with an emoji, like 🛒 Groceries, to give it its own icon.</p>
-          )}
+          </CategoryIconPicker>
           <p className="env-sheet-section-label">GROUP</p>
           <div className="env-pct-row">
             <button type="button" className={`env-pct${group === '' ? ' is-on' : ''}`} aria-pressed={group === ''}
               disabled={saving} onClick={() => setGroup('')}>Other</button>
             {groups.map((g) => (
               <button type="button" key={g} className={`env-pct${group === g ? ' is-on' : ''}`} aria-pressed={group === g}
-                disabled={saving} onClick={() => setGroup(g)}>{groupEmoji(g)} {splitEmoji(g).text}</button>
+                disabled={saving} onClick={() => setGroup(g)}><CategoryIcon kind="group" name={g} /> {splitEmoji(g).text}</button>
             ))}
           </div>
           {error && <p className="env-sheet-hint" role="alert">{error}</p>}

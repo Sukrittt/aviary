@@ -52,7 +52,7 @@ export function AssignDemo({ onComplete }: { onComplete: () => void }) {
         return (
           <TourRow
             key={row.id}
-            emoji={row.emoji}
+            icon={row.icon}
             name={row.name}
             note={on ? `${formatCurrency(row.plan)} funded` : `needs ${formatCurrency(row.plan)}`}
             noteClass={on ? 'is-mint' : ''}

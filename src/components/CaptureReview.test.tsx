@@ -151,10 +151,11 @@ it('keeps the spends that did log when the rest is put off', async () => {
   expect(onSettled).toHaveBeenCalledWith('submitted', ['e1'])
 })
 
-it('shows a category emoji once, not twice, when the name already carries it', async () => {
+it('shows a legacy emoji-named category as an icon and plain text', async () => {
   show({ proposal: { ...proposal, items: [{ ...proposal.items[0], category: '🍜 Eating out' }] } })
-  const trigger = screen.getByRole('combobox', { name: 'Category: 🍜 Eating out. Change it' })
-  expect(trigger.textContent?.match(/🍜/g)).toHaveLength(1)
+  const trigger = screen.getByRole('combobox', { name: 'Category: Eating out. Change it' })
+  expect(trigger.textContent).not.toContain('🍜')
+  expect(trigger.querySelector('svg')).not.toBeNull()
 })
 
 it('needs a current envelope for a row whose envelope was deleted since it was read', () => {

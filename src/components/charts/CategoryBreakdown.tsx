@@ -11,6 +11,7 @@ import { CHART_COLORS } from '@/src/theme/chartColors'
 import { DonutChart, type DonutSegment } from './DonutChart'
 import { AutoHeight, PopIn, ease } from '@/src/components/landing/mobile/kit'
 import { BirdEmptyState } from '../BirdEmptyState'
+import { CategoryIcon } from '../CategoryIcon'
 
 interface Props {
   rows: BreakdownRow[]
@@ -85,7 +86,7 @@ function buildSegments(rows: BreakdownRow[], colors: Map<string, string>): Donut
   const segments = big.map((row) => ({
     key: row.key,
     label: row.label,
-    emoji: row.emoji,
+    emoji: '',
     value: row.spent,
     color: colors.get(row.key) ?? 'var(--erd-text3)',
   }))
@@ -279,7 +280,7 @@ export function CategoryBreakdown({ rows, categoryRows, groupRows, categoryGroup
                   <PopIn key={`${revealKey}:${selectedKey ?? '__none__'}`} play delay={0} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
                     {selectedRow ? (
                       <>
-                        {selectedRow.emoji && <span className="ins-center-emoji">{selectedRow.emoji}</span>}
+                        {selectedRow.icon && <span className="ins-center-emoji" aria-hidden="true"><CategoryIcon name="" icon={selectedRow.icon} /></span>}
                         <strong>{formatCurrency(selectedRow.spent, hideAmounts)}</strong>
                         <span>{selectedRow.pct.toFixed(0)}%</span>
                       </>
@@ -323,7 +324,7 @@ export function CategoryBreakdown({ rows, categoryRows, groupRows, categoryGroup
                         <button type="button" key={row.key} className={selected ? 'ins-breakdown-row is-selected' : 'ins-breakdown-row'} onClick={() => onSelectKey(selected ? null : row.key)} aria-pressed={selected}>
                           <span className="ins-row-top">
                             <i style={{ background: colors.get(row.key) }} />
-                            {row.emoji && <span aria-hidden="true">{row.emoji}</span>}
+                            {row.icon && <span aria-hidden="true"><CategoryIcon name="" icon={row.icon} /></span>}
                             <span className="ins-row-name">{row.label}</span>
                             <strong>{formatCurrency(row.spent, hideAmounts)}</strong>
                             {row.deltaPct != null && Math.round(row.deltaPct) !== 0 && (
@@ -419,7 +420,7 @@ export function CategoryBreakdown({ rows, categoryRows, groupRows, categoryGroup
                   <motion.label key={`${filterTab}:${row.key}`} layout="position" transition={LIST_SPRING} initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { duration: 0.15 } }} exit={{ opacity: 0, transition: { duration: 0.12 } }}>
                     <input type="checkbox" checked={checked} onChange={() => toggleDraftKey(row.key)} />
                     <i style={{ background: colors.get(row.key) ?? 'var(--erd-text3)' }} />
-                    {row.emoji ? <span aria-hidden="true">{row.emoji}</span> : <span />}
+                    {row.icon ? <span aria-hidden="true"><CategoryIcon name="" icon={row.icon} /></span> : <span />}
                     <span className="ins-filter-label">{row.label}</span>
                     <span className={checked ? 'ins-check is-checked' : 'ins-check'}>{checked && <CheckIcon size={14} weight="bold" />}</span>
                   </motion.label>

@@ -8,7 +8,8 @@ import {
   CREDIT_CARD_CATEGORY,
   INCOME_CATEGORY,
 } from './envelope'
-import { categoryEmoji, splitEmoji } from './emoji'
+import { splitEmoji } from './emoji'
+import { categoryIconKey, groupIconKey, DEFAULT_GROUP_ICON, type CategoryIconKey } from './categoryIcons'
 import type { BudgetRow, CategoryRow, ExpenseRow } from '@/src/types'
 
 /** "2026-09" -> { start: "2026-09-01", end: "2026-09-30" }. String-built, no
@@ -22,7 +23,8 @@ export function monthRange(key: string): { start: string; end: string } {
 export interface BreakdownRow {
   key: string
   label: string
-  emoji: string
+  /** Render with `CATEGORY_ICON_COMPONENTS[icon]`; null for a group with no icon of its own. */
+  icon: CategoryIconKey | null
   spent: number
   assigned: number
   /** True when `assigned` was carried forward from a prior month's budget row
@@ -99,7 +101,11 @@ export function categoryBreakdown(
   const isCarried = (category: string) => isPast && !hasOwnBudgetRow.has(category)
 
   const groupByCategory = new Map<string, string>()
-  for (const c of categoryRows) groupByCategory.set(c.name, c.group ?? '')
+  const iconByCategory = new Map<string, string | undefined>()
+  for (const c of categoryRows) {
+    groupByCategory.set(c.name, c.group ?? '')
+    iconByCategory.set(c.name, c.icon)
+  }
 
   const total = [...spentByCategory.values()].reduce((s, v) => s + v, 0) || 1
 
@@ -110,9 +116,7 @@ export function categoryBreakdown(
       return {
         key: category,
         label: text,
-        // Same fallback table the rest of the app renders categories with
-        // (EnvelopeRow, Activity), so a plain "Cook" isn't iconless here alone.
-        emoji: categoryEmoji(category, groupByCategory.get(category)),
+        icon: categoryIconKey(category, iconByCategory.get(category), groupByCategory.get(category)),
         spent,
         assigned: assignedByCategory.get(category) ?? 0,
         assignedIsCarried: isCarried(category),
@@ -133,14 +137,14 @@ export function categoryBreakdown(
   }
   const rows: BreakdownRow[] = [...spentByGroup.keys()].map((group) => {
     const spent = spentByGroup.get(group) ?? 0
-    // No groupEmoji() fallback: an unknown group would get the same generic
-    // folder glyph as every other one, which reads as noise next to the
-    // colour dot it replaces.
-    const { icon, text } = splitEmoji(group)
+    // No default-folder fallback: an unknown group would get the same generic
+    // glyph as every other one, which reads as noise next to the colour dot
+    // it replaces.
+    const icon = groupIconKey(group)
     return {
       key: group,
-      label: text,
-      emoji: icon,
+      label: splitEmoji(group).text,
+      icon: icon === DEFAULT_GROUP_ICON ? null : icon,
       spent,
       assigned: assignedByGroup.get(group) ?? 0,
       assignedIsCarried: carriedByGroup.get(group) ?? true,
@@ -241,7 +245,7 @@ export interface MonthComparison {
   /** The category responsible for most of the move away from baseline, only
    *  when it accounts for at least 40% of the total delta — otherwise the
    *  move is spread across categories and naming one would be misleading. */
-  driver: { category: string; emoji: string; delta: number } | null
+  driver: { category: string; delta: number } | null
   /** Days elapsed if `inProgress`, else the month's full day count — for a
    *  daily-pace line when there's no baseline yet to compare against. */
   days: number
@@ -297,8 +301,7 @@ export function monthComparison(expenseRows: ExpenseRow[], month: string, today:
       if (!best || Math.abs(delta) > Math.abs(best.delta)) best = { category, delta }
     }
     if (best && Math.abs(best.delta) / Math.abs(totalDelta) >= DRIVER_SHARE_THRESHOLD) {
-      const { text } = splitEmoji(best.category)
-      driver = { category: text, emoji: categoryEmoji(best.category), delta: best.delta }
+      driver = { category: splitEmoji(best.category).text, delta: best.delta }
     }
   }
 

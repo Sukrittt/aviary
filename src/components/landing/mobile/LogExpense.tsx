@@ -6,7 +6,8 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, typ
 import { animate, motion, useMotionValue, useTransform, type MotionValue } from 'motion/react'
 import { CaretDownIcon, ChatTextIcon } from '@/src/components/icons'
 import { DotLottieReact } from '@lottiefiles/dotlottie-react'
-import { categoryEmoji, groupEmoji, splitEmoji } from '@/src/lib/emoji'
+import { CATEGORY_ICON_COMPONENTS } from '@/src/components/CategoryIcon'
+import type { CategoryIconKey } from '@/src/lib/categoryIcons'
 import { formatDateTimeLong } from '@/src/lib/format'
 import type { ThemeTokens } from '@/src/theme/tokens'
 import {
@@ -28,7 +29,7 @@ import {
   type,
   useAmountEntry,
 } from './kit'
-import { DAYS_LEFT, WORDS, toEnvelope, type DemoCategory } from './demo'
+import { DAYS_LEFT, GROUP_ICONS, WORDS, toEnvelope, type DemoCategory } from './demo'
 import { AutoCategoryPill } from './AutoCategoryPill'
 import { chime } from '../LandingClient'
 import { CaptureTipBubble } from './CaptureTipBubble'
@@ -142,7 +143,7 @@ export function LogExpenseScreen({
   }, [item, categories, categoryTouched])
 
   const selectedCategory = categories.find((c) => c.name === category)
-  const rollEmojis = useMemo(() => categories.map((c) => categoryEmoji(c.name, c.group)), [categories])
+  const rollIcons = useMemo(() => categories.map((c) => c.icon), [categories])
   const parsedAmount = Number(amount)
   // "What was it for?" is optional: left blank, the row is named after its category.
   const canSubmit = category !== '' && !Number.isNaN(parsedAmount) && parsedAmount > 0
@@ -166,7 +167,7 @@ export function LogExpenseScreen({
 
   const handleSubmit = useCallback(() => {
     if (!canSubmit) return
-    pending.current = { item: item.trim() || splitEmoji(category).text, amount: parsedAmount, category, loggedAt: new Date().toISOString() }
+    pending.current = { item: item.trim() || category, amount: parsedAmount, category, loggedAt: new Date().toISOString() }
     setSaving(true)
   }, [canSubmit, item, parsedAmount, category])
 
@@ -233,9 +234,9 @@ export function LogExpenseScreen({
           />
           <div style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)' }}>
             <AutoCategoryPill
-              selected={selectedCategory ? { emoji: categoryEmoji(selectedCategory.name, selectedCategory.group), name: splitEmoji(selectedCategory.name).text } : null}
+              selected={selectedCategory ? { icon: selectedCategory.icon, name: selectedCategory.name } : null}
               thinking={thinking}
-              rollEmojis={rollEmojis}
+              rollIcons={rollIcons}
               onPress={() => setPickerOpen(true)}
             />
           </div>
@@ -418,8 +419,8 @@ function CategoryPickerSheet({
                 <Chip
                   key={c.name}
                   selected={value === c.name}
-                  icon={categoryEmoji(c.name, c.group)}
-                  label={splitEmoji(c.name).text}
+                  icon={<Glyph icon={c.icon} />}
+                  label={c.name}
                   onPress={() => pick(c.name)}
                 />
               ))}
@@ -429,7 +430,7 @@ function CategoryPickerSheet({
         {filtered.map((group) => (
           <div key={group.name}>
             <div style={groupLabel}>
-              {groupEmoji(group.name)} {splitEmoji(group.name).text}
+              {GROUP_ICONS[group.name] && <Glyph icon={GROUP_ICONS[group.name]} />} {group.name}
             </div>
             <div style={{ borderLeft: `0.5px solid ${T.border}`, marginLeft: 8, paddingLeft: 4 }}>
               {group.items.map((c, i) => (
@@ -440,7 +441,7 @@ function CategoryPickerSheet({
                   onClick={() => pick(c.name)}
                 >
                   <span style={{ color: T.text, ...font.bodyMedium, fontSize: 14 }}>
-                    {categoryEmoji(c.name, group.name)} {splitEmoji(c.name).text}
+                    <Glyph icon={c.icon} /> {c.name}
                   </span>
                 </button>
               ))}
@@ -692,7 +693,7 @@ export function ExpenseAddedScreen({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const categoryName = splitEmoji(category).text
+  const categoryName = category
   const subtitle = item || categoryName
 
   return (
@@ -762,4 +763,10 @@ export function ExpenseAddedScreen({
       </FadeInDown>
     </div>
   )
+}
+
+/** A demo category's icon at the surrounding text size. */
+function Glyph({ icon }: { icon: CategoryIconKey }) {
+  const Icon = CATEGORY_ICON_COMPONENTS[icon]
+  return <Icon size="1em" style={{ verticalAlign: '-0.125em' }} aria-hidden />
 }

@@ -47,8 +47,10 @@ describe('flexible setup', () => {
     fireEvent.click(button('Finish setup'))
     await waitFor(() => expect(completed()).toHaveLength(1), { timeout: 3000 })
 
-    expect(vi.mocked(addGroup).mock.calls.map(([name]) => name)).toEqual(['🏠 Essentials', '🎬 Lifestyle'])
+    expect(vi.mocked(addGroup).mock.calls.map(([name]) => name)).toEqual(['Essentials', 'Lifestyle'])
     expect(addCategory).toHaveBeenCalledTimes(5)
+    // Names save plain; the icon rides along.
+    expect(addCategory).toHaveBeenCalledWith('Rent', 'Essentials', 'House')
     // Defaults are known categories, so there's nothing to ask Jev.
     expect(getSplitBuckets).not.toHaveBeenCalled()
     const rows = assigned()
@@ -98,7 +100,7 @@ describe('flexible setup', () => {
     expect(screen.getByText(/left\. It'll wait in Ready to Assign$/)).toBeTruthy()
     fireEvent.click(button('Finish setup'))
     await waitFor(() => expect(completed()).toHaveLength(1), { timeout: 3000 })
-    expect(assigned()['🏠 Rent']).toBe(1)
+    expect(assigned()['Rent']).toBe(1)
     client.clear()
   })
 

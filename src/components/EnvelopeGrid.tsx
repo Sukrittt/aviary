@@ -4,7 +4,8 @@ import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { ArrowsInLineVerticalIcon } from '@/src/components/icons'
 import { SpringChevron, SpringCollapse } from './SpringCollapse'
-import { avatarColorFor, categoryEmoji, groupEmoji, splitEmoji } from '../lib/emoji'
+import { avatarStyleFor, splitEmoji } from '../lib/emoji'
+import { CategoryIcon } from './CategoryIcon'
 import type { Envelope } from '../types/expense'
 import { BirdEmptyState } from './BirdEmptyState'
 import { todayIST } from '../lib/date'
@@ -20,6 +21,8 @@ interface Props {
   onAssignFromRTA: (category: string) => void
   onSetAssigned: (category: string) => void
   onPayCreditCard?: () => void
+  /** Stored icons by category name, from `useCategoryIcons()`. */
+  categoryIcons?: Map<string, string>
 }
 
 const UNGROUPED_LABEL = 'Other'
@@ -56,7 +59,7 @@ function lastSpentLabel(iso: string | undefined): string {
   return new Date(spent).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'UTC' })
 }
 
-export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveMoney, onAssignFromRTA, onSetAssigned, onPayCreditCard }: Props) {
+export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveMoney, onAssignFromRTA, onSetAssigned, onPayCreditCard, categoryIcons }: Props) {
   const { formatCurrency } = useCurrency()
   const money = (n: number) => (hideAmounts ? '---' : formatCurrency(n))
 
@@ -161,7 +164,9 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
           aria-expanded={isMenuOpen}
         >
           <span className="env2-row-top">
-            <span className="env2-emoji env2-category-icon" style={{ background: avatarColorFor(name) }} aria-hidden="true">{isCC ? '💳' : categoryEmoji(e.category, group)}</span>
+            <span className="env2-emoji env2-category-icon" style={avatarStyleFor(name)} aria-hidden="true">
+              <CategoryIcon name={e.category} icon={isCC ? 'CreditCard' : categoryIcons?.get(e.category)} group={group} />
+            </span>
             <span className="env2-name">{name}</span>
             <span className="env2-spent-of">
               <span className="env2-spent-label">Spent</span> {money(e.spent)}
@@ -255,7 +260,7 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
                 <button type="button" className="env2-group-head" onClick={() => toggleGroup(label)} aria-expanded={expanded}>
                   <span className="env2-group-name">
                     <SpringChevron open={expanded} size={16} className="env2-chevron" />
-                    <span className="env2-emoji">{groupEmoji(label)}</span>
+                    <span className="env2-emoji" aria-hidden="true"><CategoryIcon kind="group" name={label} /></span>
                     <span>{splitEmoji(label).text}</span>
                   </span>
                   {/* A summary, so neutral: color is the rows' pills' job. Red only when the group as a whole is over. */}

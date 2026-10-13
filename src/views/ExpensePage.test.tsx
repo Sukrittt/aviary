@@ -47,7 +47,7 @@ beforeEach(() => {
 it('starts a new month automatically and shows only a dismissible leftover notice', async () => {
   const client = renderPage()
   // Last month kept ₹20,000 of income with nothing spent: framed as a win.
-  expect(await screen.findByText('🌱 ₹20,000 went to savings last month.')).toBeInTheDocument()
+  expect(await screen.findByText('₹20,000 went to savings last month.')).toBeInTheDocument()
   expect(screen.queryByText(`Start ${monthLabel(month)}`)).not.toBeInTheDocument()
   expect(screen.queryByText(/Copy last month/)).not.toBeInTheDocument()
   expect(screen.getByLabelText('₹15,000')).toBeInTheDocument()

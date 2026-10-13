@@ -12729,3 +12729,95 @@ button.account-feature-card {
   font-weight: 800;
   font-size: 14px;
 }
+
+/* Category icon picker: the tinted tile beside a category's name, and the
+   searchable grid it opens below the row. */
+.cat-icon-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.cat-icon-picker-trigger {
+  position: relative;
+  width: 44px;
+  min-height: 40px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  border: 1px solid color-mix(in oklab, currentColor 25%, transparent);
+  cursor: pointer;
+  transition: transform 120ms ease;
+}
+.cat-icon-picker-trigger:hover:not(:disabled) {
+  transform: scale(1.04);
+}
+.cat-icon-picker-trigger:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+.cat-icon-picker-caret {
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  opacity: 0.7;
+}
+.cat-icon-picker-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  background: var(--erd-input-bg);
+  border: 1px solid var(--erd-border-strong);
+}
+.cat-icon-picker-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  min-height: 36px;
+  border-radius: 10px;
+  background: var(--erd-modal-bg);
+  border: 1px solid var(--erd-border);
+  color: var(--erd-text);
+}
+.cat-icon-picker-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  outline: none;
+}
+.cat-icon-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+  gap: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+.cat-icon-picker-option {
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--erd-text);
+  cursor: pointer;
+}
+.cat-icon-picker-option:hover {
+  background: var(--erd-pill-bg);
+}
+.cat-icon-picker-option.is-on {
+  background: var(--gold-soft);
+  border-color: color-mix(in oklab, var(--gold) 35%, transparent);
+  color: var(--gold-ink);
+}
+.cat-icon-picker-empty {
+  margin: 0;
+  font-size: 0.85rem;
+  opacity: 0.7;
+}

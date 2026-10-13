@@ -20,6 +20,7 @@ interface Doc {
   group?: string
   order?: number
   alertPcts?: number[]
+  icon?: string
 }
 
 let docs: Doc[]
@@ -116,5 +117,31 @@ describe('PUT /api/categories — alertPcts', () => {
   it('rejects a non-integer value', async () => {
     const res = await putBody({ name: 'Food', alertPcts: [50.5] })
     expect(res.status).toBe(400)
+  })
+})
+
+describe('/api/categories — icon', () => {
+  it('returns a known icon and drops an unknown one', async () => {
+    docs = [
+      { name: 'Rent', icon: 'House' },
+      { name: 'Food', icon: 'NotAnIcon' },
+    ]
+    const res = await GET(new Request('https://example.com/api/categories'))
+    expect(await res.json()).toEqual([
+      { name: 'Rent', group: '', icon: 'House' },
+      { name: 'Food', group: '' },
+    ])
+  })
+
+  it('stores a picked icon', async () => {
+    const res = await putBody({ name: 'Food', icon: 'ForkKnife' })
+    expect(res.status).toBe(200)
+    expect(docs[0].icon).toBe('ForkKnife')
+  })
+
+  it('rejects an icon outside the catalog', async () => {
+    const res = await putBody({ name: 'Food', icon: '<script>' })
+    expect(res.status).toBe(400)
+    expect(docs[0].icon).toBeUndefined()
   })
 })

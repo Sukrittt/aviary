@@ -3,6 +3,7 @@ import { useState } from 'react'
 
 import { SectionLabel, ResultCard } from '@/src/components/tour/parts'
 import { LOG_CHIPS, SPEND_ROWS } from '@/src/components/tour/content'
+import { CreditCardIcon, ReceiptIcon, type PhosphorIcon } from '@/src/components/icons'
 
 interface Logged {
   id: string
@@ -10,7 +11,7 @@ interface Logged {
   amount: number
   method: string
   what: string
-  emoji: string
+  icon: PhosphorIcon
 }
 
 /** Chapter 2: log a quick expense and watch exactly one bar move. */
@@ -33,7 +34,7 @@ export function LogDemo({ onComplete }: { onComplete: () => void }) {
         return (
           <div key={row.id} className={`tour-log-card ${hot ? 'is-hot' : ''}`}>
             <div className="tour-log-head">
-              <div className="tour-row-tile">{row.emoji}</div>
+              <div className="tour-row-tile"><row.icon size={18} aria-hidden /></div>
               <div className="tour-row-body">
                 <span className="tour-row-name">{row.name}</span>
                 <span className="tour-row-note">
@@ -55,7 +56,7 @@ export function LogDemo({ onComplete }: { onComplete: () => void }) {
       {cardTotal > 0 && (
         <ResultCard tone="mint">
           <div className="tour-log-head">
-            <span style={{ fontSize: 16 }}>💳</span>
+            <CreditCardIcon size={16} aria-hidden />
             <div className="tour-row-body">
               <span className="tour-row-name">Credit Card Payment</span>
               <span className="tour-row-note">auto filled by card spends</span>
@@ -80,7 +81,7 @@ export function LogDemo({ onComplete }: { onComplete: () => void }) {
                 onComplete()
               }}
             >
-              {chip.emoji} <span className="tour-chip-amount">{formatCurrency(chip.amount)}</span> · {chip.what}
+              <chip.icon size={14} aria-hidden style={{ verticalAlign: '-2px', marginRight: 4 }} /><span className="tour-chip-amount">{formatCurrency(chip.amount)}</span> · {chip.what}
             </button>
           )
         })}
@@ -91,7 +92,7 @@ export function LogDemo({ onComplete }: { onComplete: () => void }) {
           <p className="tour-kicker">JUST LOGGED</p>
           {logged.map((entry) => (
             <div key={entry.id} className="tour-log-entry">
-              <span style={{ fontSize: 14 }}>{entry.emoji}</span>
+              <entry.icon size={14} aria-hidden />
               <span className="tour-log-entry-text">
                 {formatCurrency(entry.amount)} · {entry.what}
               </span>
@@ -107,7 +108,7 @@ export function LogDemo({ onComplete }: { onComplete: () => void }) {
       )}
 
       <div className="tour-tip">
-        <span style={{ fontSize: 17 }}>🧾</span>
+        <ReceiptIcon size={17} aria-hidden style={{ flexShrink: 0 }} />
         <p>
           Long receipt? Scan a bill reads it into line items you can edit, split by however many people ate, and file into
           categories before logging.

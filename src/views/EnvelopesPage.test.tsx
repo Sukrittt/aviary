@@ -111,7 +111,8 @@ describe('EnvelopesPage', () => {
     expect(within(dialog).getByRole('button', { name: /Home/ })).toHaveAttribute('aria-pressed', 'true')
     await user.type(screen.getByPlaceholderText('Groceries, fuel, gym…'), 'Gas')
     await user.keyboard('{Enter}')
-    await waitFor(() => expect(addCategory).toHaveBeenCalledWith('Gas', 'Home'))
+    // The icon follows the name until one is picked.
+    await waitFor(() => expect(addCategory).toHaveBeenCalledWith('Gas', 'Home', 'Fire'))
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Add category' })).not.toBeInTheDocument())
   })
 
@@ -160,10 +161,25 @@ describe('EnvelopesPage', () => {
     await user.click(await screen.findByLabelText('Rename Rent'))
     const dialog = screen.getByRole('dialog', { name: 'Rename category' })
     const input = within(dialog).getByRole('textbox')
+    expect(input).toHaveValue('Rent')
     await user.clear(input)
-    await user.type(input, '🏠 Mortgage')
+    await user.type(input, 'Mortgage')
     await user.click(within(dialog).getByRole('button', { name: 'Rename' }))
+    // The legacy emoji stays on the stored name; Mobile still reads it.
     await waitFor(() => expect(updateCategory).toHaveBeenCalledWith('🏠 Rent', { newName: '🏠 Mortgage' }))
+  })
+
+  it('picks a new icon from the searchable grid', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await user.click(await screen.findByLabelText('Rename Rent'))
+    const dialog = screen.getByRole('dialog', { name: 'Rename category' })
+    await user.click(within(dialog).getByRole('button', { name: 'Icon: House. Change icon' }))
+    await user.type(within(dialog).getByPlaceholderText('Search icons'), 'pizza')
+    await user.click(within(dialog).getByRole('button', { name: 'Pizza' }))
+    expect(within(dialog).getByRole('button', { name: 'Icon: Pizza. Change icon' })).toBeInTheDocument()
+    await user.click(within(dialog).getByRole('button', { name: 'Rename' }))
+    await waitFor(() => expect(updateCategory).toHaveBeenCalledWith('🏠 Rent', { icon: 'Pizza' }))
   })
 
   it('renames a group through the edit dialog', async () => {

@@ -41,7 +41,7 @@ describe('onboarding pick rows', () => {
     expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled()
     expect(screen.getByText('Select at least one category to continue')).toBeTruthy()
     expect(screen.getByDisplayValue('Rent')).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Change emoji for Rent' })).toHaveTextContent('🏠')
+    expect(screen.getByRole('button', { name: 'Icon: House. Change icon' })).toBeTruthy()
     fireEvent.click(toolbar.getByRole('button', { name: 'Undo category selection' }))
     expect(toolbar.getByText('5 categories selected')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled()
@@ -112,7 +112,6 @@ describe('onboarding pick rows', () => {
     expect(screen.getByText('Select at least one group to continue')).toBeTruthy()
     expect(screen.getByRole('status')).toHaveTextContent('All groups deselected.')
     expect(screen.getByDisplayValue('Custom 50')).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Change emoji for Custom 50' })).toHaveTextContent('🎁')
 
     fireEvent.click(screen.getByRole('button', { name: 'Undo group selection' }))
     expect(toolbar.getByText('52 groups selected')).toBeTruthy()
@@ -214,17 +213,23 @@ describe('onboarding pick rows', () => {
     expect(screen.getByRole('alert').textContent).toContain('already got a category called rent')
   })
 
-  it('opens a grid from the emoji, applies the pick, and closes on Escape', () => {
-    toGroupsStep()
-    fireEvent.click(screen.getByRole('button', { name: 'Change emoji for Essentials' }))
-    fireEvent.click(screen.getByRole('button', { name: '🐶' }))
-    expect(screen.queryByRole('group', { name: 'Pick an emoji' })).toBeNull()
-    expect(screen.getByRole('button', { name: 'Change emoji for Essentials' }).textContent).toBe('🐶')
+  it('opens the icon grid from a category, applies the pick, and closes on Escape', () => {
+    toCategoriesStep()
+    fireEvent.click(screen.getByRole('button', { name: 'Icon: House. Change icon' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Dog' }))
+    expect(screen.queryByRole('dialog', { name: 'Choose an icon' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Icon: Dog. Change icon' })).toBeTruthy()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Change emoji for Essentials' }))
-    expect(screen.getByRole('group', { name: 'Pick an emoji' })).toBeTruthy()
-    fireEvent.keyDown(document, { key: 'Escape' })
-    expect(screen.queryByRole('group', { name: 'Pick an emoji' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Icon: Dog. Change icon' }))
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'Search icons' }), { key: 'Escape' })
+    expect(screen.queryByRole('dialog', { name: 'Choose an icon' })).toBeNull()
+  })
+
+  it('gives a new category row the icon its name suggests', () => {
+    toCategoriesStep()
+    fireEvent.click(screen.getAllByRole('button', { name: /Add category/ })[0])
+    fireEvent.change(screen.getByDisplayValue(''), { target: { value: 'Fuel' } })
+    expect(screen.getByRole('button', { name: 'Icon: Gas pump. Change icon' })).toBeTruthy()
   })
 })
 
@@ -255,14 +260,5 @@ describe('assign step rename', () => {
     fireEvent.change(home, { target: { value: 'Nope' } })
     fireEvent.keyDown(home, { key: 'Escape' })
     expect(home).toHaveValue('Home rent')
-  })
-
-  it('picks a new emoji for a category from the same grid', () => {
-    toCategoriesStep()
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Change emoji for Rent' }))
-    fireEvent.click(screen.getByRole('button', { name: '🐶' }))
-    expect(screen.queryByRole('group', { name: 'Pick an emoji' })).toBeNull()
-    expect(screen.getByRole('button', { name: 'Change emoji for Rent' })).toHaveTextContent('🐶')
   })
 })

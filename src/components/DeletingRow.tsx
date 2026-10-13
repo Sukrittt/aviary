@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, type ReactNode, type Ref } from 'react'
 import { motion } from 'motion/react'
+import { TrashIcon } from '@/src/components/icons'
 
 const SWEEP_MS = 180
 
@@ -82,7 +83,7 @@ export function DeletingRow({
             pointerEvents: 'none',
           }}
         >
-          🗑️
+          <TrashIcon size={20} color="var(--erd-on-accent)" />
         </motion.span>
       )}
     </Row>

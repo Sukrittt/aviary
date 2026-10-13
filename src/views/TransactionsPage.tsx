@@ -5,6 +5,7 @@ import { TransactionsView } from '../components/TransactionsView'
 import { ExpenseSidebar } from '../components/ExpenseSidebar'
 import { LoadingCaption } from '../components/LoadingCaption'
 import { InsightsTab } from '@/src/components/InsightsTab'
+import { GearIcon, HouseIcon, InvoiceIcon, MoonIcon, SunIcon } from '@/src/components/icons'
 
 export function TransactionsPage() {
   const { theme, setTheme } = useAppearance()
@@ -17,12 +18,12 @@ export function TransactionsPage() {
         onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
         aria-label="Toggle theme"
       >
-        {theme === 'dark' ? '☀️' : '🌙'}
+        {theme === 'dark' ? <SunIcon aria-hidden /> : <MoonIcon aria-hidden />}
       </button>
 
       <header className="erd-mobile-header">
         <div className="erd-mobile-greet">
-          Activity <span>🧾</span>
+          Activity <InvoiceIcon aria-hidden />
         </div>
         <div className="erd-mobile-sub">
           <span>Every transaction you have logged</span>
@@ -40,16 +41,16 @@ export function TransactionsPage() {
 
       <nav className="erd-tabbar" aria-label="Primary">
         <Link href="/expense" className="erd-tab">
-          <span aria-hidden="true">🏠</span>
+          <HouseIcon size={22} aria-hidden />
           <span>Home</span>
         </Link>
         <Link href="/expense/transactions" className="erd-tab is-active">
-          <span aria-hidden="true">🧾</span>
+          <InvoiceIcon size={22} weight="fill" aria-hidden />
           <span>Activity</span>
         </Link>
         <InsightsTab />
         <Link href="/account" className="erd-tab">
-          <span aria-hidden="true">⚙️</span>
+          <GearIcon size={22} aria-hidden />
           <span>More</span>
         </Link>
       </nav>

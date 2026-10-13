@@ -3,7 +3,7 @@
 import { useCurrency } from '@/src/context/CurrencyContext'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { CalendarBlankIcon, ChatTextIcon, PlusIcon, TagIcon, WarningIcon, WalletIcon } from '@/src/components/icons'
+import { CalendarBlankIcon, ChatTextIcon, PlusIcon, TagIcon, WarningIcon, WalletIcon, XIcon } from '@/src/components/icons'
 import { useOptionalMoneyBrain } from '@/components/moneyBrainContext'
 import { useHiddenFeatures } from '../hooks/useUser'
 import { Scrim, Sheet } from './MotionSheet'
@@ -23,7 +23,8 @@ import { defaultAccountFor } from '../lib/defaultAccount'
 import { useCategories } from '../hooks/useCategories'
 import { useAddExpense, useDeleteExpense, useRecentExpenses, useUploadExpensePhoto } from '../hooks/useExpenses'
 import { unusualAmount } from '../lib/unusualAmount'
-import { categoryEmoji, splitEmoji } from '../lib/emoji'
+import { splitEmoji } from '../lib/emoji'
+import { categoryIconKey } from '../lib/categoryIcons'
 import { createThinkingGate, type ThinkingGate } from '../lib/thinkingGate'
 import { AutoPickStatus } from '../features/log-expense/AutoPickStatus'
 import { EMPTY } from '../lib/constants'
@@ -132,14 +133,14 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
   const warning = unusual && unusualWarnedFor === warnKey ? unusual : null
   const [unusualNudge, setUnusualNudge] = useState(0)
 
-  const rollEmojis = useMemo(
-    () => [...new Set((categoriesQ.data ?? EMPTY).map((c) => categoryEmoji(c.name, c.group)).filter(Boolean))],
+  const rollIcons = useMemo(
+    () => [...new Set((categoriesQ.data ?? EMPTY).map((c) => categoryIconKey(c.name, c.icon, c.group)))],
     [categoriesQ.data],
   )
   const selectedRow = (categoriesQ.data ?? EMPTY).find((c) => c.name === category)
     ?? (createdCategory?.name === category ? createdCategory : undefined)
   const selectedCategory = selectedRow
-    ? { emoji: categoryEmoji(selectedRow.name, selectedRow.group), name: splitEmoji(selectedRow.name).text }
+    ? { icon: categoryIconKey(selectedRow.name, selectedRow.icon, selectedRow.group), name: splitEmoji(selectedRow.name).text }
     : null
 
   // Bumped on each blocked save; 0 means nothing is highlighted yet.
@@ -432,7 +433,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
                 aria-label="Close"
                 disabled={success}
               >
-                ✕
+                <XIcon size={18} aria-hidden="true" />
               </button>
             </div>
 
@@ -478,7 +479,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
                     value={item}
                     onChange={(e) => handleItemChange(e.target.value)}
                   />
-                  <AutoPickStatus thinking={suggesting} picked={autoPicked ? selectedCategory : null} selected={selectedCategory} pickTick={categoryPickTick} rollEmojis={rollEmojis} />
+                  <AutoPickStatus thinking={suggesting} picked={autoPicked ? selectedCategory : null} selected={selectedCategory} pickTick={categoryPickTick} rollIcons={rollIcons} />
                 </div>
               </section>
 

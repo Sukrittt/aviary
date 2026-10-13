@@ -2,7 +2,7 @@
 
 import { useCurrency } from '@/src/context/CurrencyContext'
 import { useRef, useState } from 'react'
-import { CalendarBlankIcon } from '@/src/components/icons'
+import { CalendarBlankIcon, XIcon } from '@/src/components/icons'
 import { Scrim, Sheet } from './MotionSheet'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
 import { DatePicker } from './DatePicker'
@@ -208,7 +208,7 @@ export function SubscriptionModal({ onClose, onSaved, editData, initialValues, s
             aria-label="Close"
             disabled={success}
           >
-            ✕
+            <XIcon size={18} aria-hidden="true" />
           </button>
         </div>
 

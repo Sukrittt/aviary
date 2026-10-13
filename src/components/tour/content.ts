@@ -8,6 +8,7 @@
 // `linkNote` spells out how to reach them from the page they link to instead.
 
 import type { HideableFeature } from '@/src/lib/features'
+import { ArchiveIcon, BowlFoodIcon, BrainIcon, CameraIcon, ChartBarIcon, CreditCardIcon, HeadphonesIcon, HouseIcon, LockIcon, ReceiptIcon, RepeatIcon, ShoppingBagIcon, ShoppingCartIcon, TelevisionIcon, TicketIcon, TrendUpIcon } from '@/src/components/icons'
 
 export interface Chapter {
   /** Row title on the hub, and the header subtitle while the chapter is open. */
@@ -103,22 +104,22 @@ export const CHAPTERS: Chapter[] = [
 export const TOUR_INCOME = 42000
 
 export const ASSIGN_ROWS = [
-  { id: 'rent', name: 'Rent', emoji: '🏠', plan: 22000 },
-  { id: 'groceries', name: 'Groceries', emoji: '🛒', plan: 9000 },
-  { id: 'bills', name: 'Bills', emoji: '🧾', plan: 6000 },
-  { id: 'fun', name: 'Fun', emoji: '🎟️', plan: 5000 },
+  { id: 'rent', name: 'Rent', icon: HouseIcon, plan: 22000 },
+  { id: 'groceries', name: 'Groceries', icon: ShoppingCartIcon, plan: 9000 },
+  { id: 'bills', name: 'Bills', icon: ReceiptIcon, plan: 6000 },
+  { id: 'fun', name: 'Fun', icon: TicketIcon, plan: 5000 },
 ] as const
 
 export const SPEND_ROWS = [
-  { id: 'groceries', name: 'Groceries', emoji: '🛒', plan: 9000, spent: 3000 },
-  { id: 'eatout', name: 'Eating Out', emoji: '🍲', plan: 4000, spent: 2200 },
-  { id: 'shopping', name: 'Shopping', emoji: '🛍️', plan: 6000, spent: 1500 },
+  { id: 'groceries', name: 'Groceries', icon: ShoppingCartIcon, plan: 9000, spent: 3000 },
+  { id: 'eatout', name: 'Eating Out', icon: BowlFoodIcon, plan: 4000, spent: 2200 },
+  { id: 'shopping', name: 'Shopping', icon: ShoppingBagIcon, plan: 6000, spent: 1500 },
 ] as const
 
 export const LOG_CHIPS = [
-  { id: 'g', category: 'groceries', amount: 450, what: 'Grocery run', method: 'Bank', emoji: '🛒' },
-  { id: 'e', category: 'eatout', amount: 700, what: 'Pizza night', method: 'Card', emoji: '🍲' },
-  { id: 's', category: 'shopping', amount: 1900, what: 'Running shoes', method: 'Card', emoji: '🛍️' },
+  { id: 'g', category: 'groceries', amount: 450, what: 'Grocery run', method: 'Bank', icon: ShoppingCartIcon },
+  { id: 'e', category: 'eatout', amount: 700, what: 'Pizza night', method: 'Card', icon: BowlFoodIcon },
+  { id: 's', category: 'shopping', amount: 1900, what: 'Running shoes', method: 'Card', icon: ShoppingBagIcon },
 ] as const
 
 /** The bill chapter 3 is short on, and how much is already in its envelope. */
@@ -127,16 +128,16 @@ export const MOVE_IN_ENVELOPE = 600
 export const MOVE_AMOUNT = 1400
 
 export const MOVE_SOURCES = [
-  { id: 'fun', name: 'Fun', emoji: '🎟️', available: 4000, note: 'Mostly unspent · safe to borrow' },
-  { id: 'shopping', name: 'Shopping', emoji: '🛍️', available: 2000, note: '45% of budget left' },
-  { id: 'rent', name: 'Rent', emoji: '🏠', available: 9000, note: 'Set aside · bill due 5th', protected: true },
+  { id: 'fun', name: 'Fun', icon: TicketIcon, available: 4000, note: 'Mostly unspent · safe to borrow' },
+  { id: 'shopping', name: 'Shopping', icon: ShoppingBagIcon, available: 2000, note: '45% of budget left' },
+  { id: 'rent', name: 'Rent', icon: HouseIcon, available: 9000, note: 'Set aside · bill due 5th', protected: true },
 ] as const
 
 export const ROLLOVER_ROWS = [
-  { name: 'Groceries', emoji: '🛒', plan: 9000, left: 1200, creditCard: false },
-  { name: 'Fun', emoji: '🎟️', plan: 5000, left: 2600, creditCard: false },
-  { name: 'Rent', emoji: '🏠', plan: 22000, left: 0, creditCard: false },
-  { name: 'Credit Card Payment', emoji: '💳', plan: 2600, left: 2600, creditCard: true },
+  { name: 'Groceries', icon: ShoppingCartIcon, plan: 9000, left: 1200, creditCard: false },
+  { name: 'Fun', icon: TicketIcon, plan: 5000, left: 2600, creditCard: false },
+  { name: 'Rent', icon: HouseIcon, plan: 22000, left: 0, creditCard: false },
+  { name: 'Credit Card Payment', icon: CreditCardIcon, plan: 2600, left: 2600, creditCard: true },
 ] as const
 
 export const QUIZ_QUESTION = 'You end September with ₹2,600 still sitting in Fun. On the 1st, what happens to it?'
@@ -189,38 +190,38 @@ export const BRAIN_ASKS = [
 export const EXTRAS = [
   {
     name: 'Expense Wrapped',
-    emoji: '🎧',
+    icon: HeadphonesIcon,
     desc: 'A monthly story of your spending: total, top category, biggest buy, streaks, badges and a spending archetype, with music and a card worth sharing. It unlocks on the 1st once you\'ve logged enough.',
   },
   {
     name: 'Subscriptions',
-    emoji: '📺',
+    icon: TelevisionIcon,
     desc: 'Every recurring service with its cycle and next due date, an allocation bar in Insights with brand colors, and a nudge before it renews.',
   },
   {
     name: 'Activity & Archive',
-    emoji: '🗄️',
+    icon: ArchiveIcon,
     desc: 'Every transaction in one searchable, filterable list with a running total. Delete something and it waits in the Archive on a countdown. Restore one thing, or all of it.',
   },
   {
     name: 'Investments',
-    emoji: '📈',
+    icon: TrendUpIcon,
     desc: 'Log holdings by type, from equity and FDs to mutual funds, gold, crypto and bonds, then see the portfolio total plus allocation at a glance.',
   },
   {
     name: 'Scan a bill',
-    emoji: '📷',
+    icon: CameraIcon,
     desc: 'Photograph or drag in a receipt and it reads the line items, splits them by however many people ate, and files each into a category before logging.',
   },
   {
     name: 'Your data & privacy',
-    emoji: '🔒',
+    icon: LockIcon,
     desc: 'Export everything to a file or wipe your transactions. Yours, always. Light, dark or system theme, and a switch that blurs every amount the moment the page opens.',
   },
 ] as const
 
 /** Chapter 6's envelope: tap to spend and watch the alert thresholds fire. */
-export const NOTIFY_ENVELOPE = { name: 'Groceries', emoji: '🛒', plan: 9000, spent: 3000, step: 1700 } as const
+export const NOTIFY_ENVELOPE = { name: 'Groceries', icon: ShoppingCartIcon, plan: 9000, spent: 3000, step: 1700 } as const
 export const NOTIFY_PCTS = [50, 90, 100] as const
 
 export type NotifyCadence = 'off' | 'weekly' | 'daily'
@@ -234,7 +235,7 @@ export const NOTIFY_KINDS = [
   {
     id: 'bill',
     label: 'Bill reminder',
-    emoji: '🧾',
+    icon: ReceiptIcon,
     title: 'Netflix renews soon',
     body: '₹649 due in 3 days (Oct 3).',
     when: 'Before a subscription renews: 1, 3 or 7 days ahead, you pick.',
@@ -244,7 +245,7 @@ export const NOTIFY_KINDS = [
   {
     id: 'digest',
     label: 'Digest',
-    emoji: '📊',
+    icon: ChartBarIcon,
     title: 'Your spending update',
     body: '₹18,400 spent this month · ₹23,600 left · 8 days to go.',
     when: 'Daily: one line every day, so the month never sneaks up on you. Weekly: the same line once a week, if daily feels chatty.',
@@ -254,7 +255,7 @@ export const NOTIFY_KINDS = [
   {
     id: 'coach',
     label: 'AI coach',
-    emoji: '🧠',
+    icon: BrainIcon,
     title: 'Heads up on this month',
     body: 'Shopping is running hot. Fun has ₹4,000 of slack that could cover it guilt-free.',
     when: "At most once a week, and only when you're on pace to overspend or a category already has. AI reads your real categories and writes one concrete fix. It never invents a number, and if AI is down you get the plain math instead.",
@@ -264,7 +265,7 @@ export const NOTIFY_KINDS = [
   {
     id: 'auto',
     label: 'Auto-added',
-    emoji: '🔁',
+    icon: RepeatIcon,
     title: 'Spotify charged',
     body: '₹119 auto-added for Spotify.',
     when: 'The day a subscription, recurring expense or SIP comes due, it logs itself and tells you. Think receipt, not nudge.',
@@ -274,7 +275,7 @@ export const NOTIFY_KINDS = [
   {
     id: 'wrapped',
     label: 'Wrapped',
-    emoji: '🎧',
+    icon: HeadphonesIcon,
     title: 'Your Wrapped is ready',
     body: 'Your September Expense Wrapped just unlocked.',
     when: "Once a month, on the 1st, when last month's story is ready.",

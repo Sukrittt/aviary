@@ -1,11 +1,13 @@
 'use client'
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { CATEGORY_ICON_COMPONENTS } from '@/src/components/CategoryIcon'
+import type { CategoryIconKey } from '@/src/lib/categoryIcons'
 import { AnimatePresence, animate as animateValue, motion, useAnimate, useMotionValue, useReducedMotion, type Transition } from 'motion/react'
 
 // Sits inside the description input in the log-expense modal. While the AI
 // fallback looks for a category, a small pill rolls through the user's own
-// category emojis next to "Picking…", then slows down and springs onto the
+// category icons next to "Picking…", then slows down and springs onto the
 // pick and reads "Picked for you". Hand picks show the selected category
 // with the same landing burst. Dictionary hits skip the roll.
 
@@ -13,8 +15,8 @@ export const PICKING_LABEL = 'Picking…'
 export const PICKED_LABEL = 'Picked for you'
 const ROLL_STEP_MS = 150
 const SETTLE_STEPS_MS = [190, 250, 330] as const
-const FALLBACK_EMOJIS = ['🍔', '🚕', '🛒', '🎬', '🏠', '💊']
-// Underdamped so the final emoji overshoots a touch and clunks into place.
+const FALLBACK_ICONS: CategoryIconKey[] = ['Hamburger', 'Taxi', 'ShoppingCart', 'FilmSlate', 'House', 'Pill']
+// Underdamped so the final icon overshoots a touch and clunks into place.
 const LAND: Transition = { type: 'spring', stiffness: 380, damping: 14, mass: 0.6 }
 const WIDTH: Transition = { type: 'spring', stiffness: 110, damping: 20, mass: 1 }
 const PILL_MAX_WIDTH = 140
@@ -26,17 +28,17 @@ interface Props {
   /** The AI lookup is in flight (already gated by thinkingGate's timing). */
   thinking: boolean
   /** The auto-picked category, or null when there's none or the user chose it. */
-  picked: { emoji: string; name: string } | null
+  picked: { icon: CategoryIconKey; name: string } | null
   /** Current selection, including hand picks and the Miscellaneous fallback. */
-  selected?: { emoji: string; name: string } | null
+  selected?: { icon: CategoryIconKey; name: string } | null
   /** Bumped on each category chip tap, including taps on the current selection. */
   pickTick?: number
-  rollEmojis: string[]
+  rollIcons: CategoryIconKey[]
 }
 
-export function AutoPickStatus({ thinking, picked, selected = picked, pickTick = 0, rollEmojis }: Props) {
+export function AutoPickStatus({ thinking, picked, selected = picked, pickTick = 0, rollIcons }: Props) {
   const reduceMotion = useReducedMotion() ?? false
-  const pickedKey = selected ? `${selected.emoji}|${selected.name}` : ''
+  const pickedKey = selected ? `${selected.icon}|${selected.name}` : ''
   const [phase, setPhase] = useState<Phase>(thinking ? 'rolling' : 'idle')
   const [prevThinking, setPrevThinking] = useState(thinking)
   const [prevPickedKey, setPrevPickedKey] = useState(pickedKey)
@@ -76,7 +78,7 @@ export function AutoPickStatus({ thinking, picked, selected = picked, pickTick =
     return () => clearInterval(id)
   }, [phase, reduceMotion])
 
-  // Decelerate through a few more emojis, then land on the answer.
+  // Decelerate through a few more icons, then land on the answer.
   useEffect(() => {
     if (phase !== 'settling') return
     const timers: ReturnType<typeof setTimeout>[] = []
@@ -96,10 +98,11 @@ export function AutoPickStatus({ thinking, picked, selected = picked, pickTick =
   }, [popTick, reduceMotion, animate, scope])
 
   const busy = phase !== 'idle'
-  const pool = rollEmojis.length > 0 ? rollEmojis : FALLBACK_EMOJIS
-  const emoji = busy ? (reduceMotion ? '✨' : pool[rollIndex % pool.length]) : selected?.emoji ?? ''
-  // Every roll step is a fresh span, even when the pool repeats an emoji.
-  const emojiKey = busy ? `roll-${rollIndex}` : `pick-${pickedKey}`
+  const pool = rollIcons.length > 0 ? rollIcons : FALLBACK_ICONS
+  const icon: CategoryIconKey | undefined = busy ? (reduceMotion ? 'Sparkle' : pool[rollIndex % pool.length]) : selected?.icon
+  const Icon = icon && CATEGORY_ICON_COMPONENTS[icon]
+  // Every roll step is a fresh span, even when the pool repeats an icon.
+  const iconKey = busy ? `roll-${rollIndex}` : `pick-${pickedKey}`
   const label = busy ? PICKING_LABEL : picked ? PICKED_LABEL : selected?.name ?? ''
   const visible = busy || !!selected
   const labelRef = useRef<HTMLSpanElement>(null)
@@ -143,13 +146,14 @@ export function AutoPickStatus({ thinking, picked, selected = picked, pickTick =
               <span className="auto-pick-slot" aria-hidden="true">
                 <AnimatePresence initial={!reduceMotion}>
                   <motion.span
-                    key={emojiKey}
+                    key={iconKey}
+                    data-icon={icon}
                     initial={{ y: '100%', opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     exit={{ y: '-100%', opacity: 0, transition: { duration: reduceMotion ? 0 : Math.min(stepMs, 220) / 1000 } }}
                     transition={step}
                   >
-                    {emoji}
+                    {Icon && <Icon size="1em" />}
                   </motion.span>
                 </AnimatePresence>
               </span>

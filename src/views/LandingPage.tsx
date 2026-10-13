@@ -2,7 +2,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { preload } from 'react-dom'
 import { MiniWidget, EnvelopeWidget } from '../components/landing/mobile/Widget'
-import { ArrowRightIcon, CaretUpIcon, GithubLogoIcon, ChatTextIcon, MonitorIcon, RepeatIcon, ScanIcon, DeviceMobileIcon, WifiSlashIcon } from '@/src/components/icons'
+import { ArrowRightIcon, CaretUpIcon, GithubLogoIcon, ChatTextIcon, MonitorIcon, RepeatIcon, ScanIcon, DeviceMobileIcon, HandWavingIcon, WifiSlashIcon } from '@/src/components/icons'
 import { Playground } from '../components/landing/Playground'
 import { AddedClip, Faq, LandingMotion } from '../components/landing/LandingClient'
 import { TrackedLink } from '../components/TrackedLink'
@@ -198,7 +198,7 @@ export function LandingPage({ monthlyPrice, ios = false, android = false, intl =
     <section className="lp-section" aria-labelledby="founder-title">
       <div className="lp-founder">
         <div className="lp-founder-copy">
-          <h2 id="founder-title" className="lp-h2">Hi, I’m Sukrit <span aria-hidden="true">👋</span></h2>
+          <h2 id="founder-title" className="lp-h2">Hi, I’m Sukrit <HandWavingIcon aria-hidden="true" style={{ verticalAlign: '-0.1em' }} /></h2>
           <p>I’ve quit every budgeting app I ever tried, usually by week two. I built a few myself, fell back on spreadsheets, and tried bank sync. Sync didn’t change a thing. My spending got filed away and I still had no idea where my money went.</p>
           <p>YNAB finally clicked. Giving every {intl ? 'dollar' : 'rupee'} a job made me actually notice my spending. Then its pricing humbled me.</p>
           <p>So I built Aviary. You still log every expense yourself, because that’s the part that makes you notice. Aviary just learns when you usually spend and nudges you while it’s fresh, so logging takes one tap. It’s the app I wanted for years. I hope it clicks for you too.</p>

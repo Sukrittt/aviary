@@ -5,7 +5,7 @@ import { useCurrency } from '@/src/context/CurrencyContext'
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react'
-import { ArrowLeftIcon, ArrowRightIcon, PauseIcon, PlayIcon, ShareNetworkIcon, XIcon } from '@/src/components/icons'
+import { ArrowLeftIcon, ArrowRightIcon, BirdIcon, CakeIcon, CalendarDotsIcon, FireIcon, FireSimpleIcon, LightningIcon, PauseIcon, PlantIcon, PlayIcon, ScalesIcon, ShareNetworkIcon, ShoppingBagIcon, SparkleIcon, SunIcon, TargetIcon, TrophyIcon, WindIcon, XIcon, type PhosphorIcon } from '@/src/components/icons'
 import { useWrapped, useWrappedJudgement } from '@/src/hooks/useWrapped'
 import { useBudgets } from '@/src/hooks/useBudgets'
 import { useHideAmounts } from '@/src/hooks/useHideAmounts'
@@ -18,13 +18,13 @@ export const STORY_MS = 5000
 const PALETTE = ['#f2b84b', '#ee785d', '#4f9b82', '#6f67b1', '#df8c59']
 
 /** Jev's persona keys, with the copy the card shows for each. */
-const JEV_PERSONAS: Record<string, (data: WrappedData) => { emoji: string; name: string; copy: string }> = {
-  daily_tracker: () => ({ emoji: '🔥', name: 'The Daily Tracker', copy: 'You kept the habit alive, one honest entry at a time.' }),
-  loyalist: (data) => ({ emoji: '🎯', name: 'The Loyalist', copy: `You knew what mattered. ${data.topCategories[0]?.category ?? 'One category'} led the way.` }),
-  steady_hand: () => ({ emoji: '⚖️', name: 'The Steady Hand', copy: 'Your spending kept a calm, remarkably even rhythm.' }),
-  free_spirit: () => ({ emoji: '🪁', name: 'The Free Spirit', copy: 'No two weeks looked the same, and your story stayed interesting.' }),
-  big_swing: (data) => ({ emoji: '🎢', name: 'The Big Swing', copy: data.biggestPurchase ? `One call — ${data.biggestPurchase.item} — shaped the whole month.` : 'One big call shaped the whole month.' }),
-  slow_burn: (data) => ({ emoji: '🕯️', name: 'The Slow Burn', copy: `${data.totalTransactions} small decisions, adding up quietly.` }),
+const JEV_PERSONAS: Record<string, (data: WrappedData) => { icon: PhosphorIcon; name: string; copy: string }> = {
+  daily_tracker: () => ({ icon: FireIcon, name: 'The Daily Tracker', copy: 'You kept the habit alive, one honest entry at a time.' }),
+  loyalist: (data) => ({ icon: TargetIcon, name: 'The Loyalist', copy: `You knew what mattered. ${data.topCategories[0]?.category ?? 'One category'} led the way.` }),
+  steady_hand: () => ({ icon: ScalesIcon, name: 'The Steady Hand', copy: 'Your spending kept a calm, remarkably even rhythm.' }),
+  free_spirit: () => ({ icon: WindIcon, name: 'The Free Spirit', copy: 'No two weeks looked the same, and your story stayed interesting.' }),
+  big_swing: (data) => ({ icon: LightningIcon, name: 'The Big Swing', copy: data.biggestPurchase ? `One call — ${data.biggestPurchase.item} — shaped the whole month.` : 'One big call shaped the whole month.' }),
+  slow_burn: (data) => ({ icon: FireSimpleIcon, name: 'The Slow Burn', copy: `${data.totalTransactions} small decisions, adding up quietly.` }),
 }
 
 export function wrappedArchetype(data: WrappedData, judgement: WrappedJudgement = {}) {
@@ -35,10 +35,10 @@ export function wrappedArchetype(data: WrappedData, judgement: WrappedJudgement 
   const weeklyAverage = data.weeklyTotals.length
     ? data.weeklyTotals.reduce((sum, week) => sum + week.total, 0) / data.weeklyTotals.length
     : 0
-  if (data.longestStreak && data.longestStreak.days >= 7) return { emoji: '🔥', name: 'The Daily Tracker', copy: 'You kept the habit alive, one honest entry at a time.' }
-  if (topShare >= 45) return { emoji: '🎯', name: 'The Loyalist', copy: `You knew what mattered. ${data.topCategories[0]?.category} led the way.` }
-  if (weeklyAverage > 0 && busiestWeek < weeklyAverage * 1.2) return { emoji: '⚖️', name: 'The Steady Hand', copy: 'Your spending kept a calm, remarkably even rhythm.' }
-  return { emoji: '🪁', name: 'The Free Spirit', copy: 'No two weeks looked the same, and your story stayed interesting.' }
+  if (data.longestStreak && data.longestStreak.days >= 7) return { icon: FireIcon, name: 'The Daily Tracker', copy: 'You kept the habit alive, one honest entry at a time.' }
+  if (topShare >= 45) return { icon: TargetIcon, name: 'The Loyalist', copy: `You knew what mattered. ${data.topCategories[0]?.category} led the way.` }
+  if (weeklyAverage > 0 && busiestWeek < weeklyAverage * 1.2) return { icon: ScalesIcon, name: 'The Steady Hand', copy: 'Your spending kept a calm, remarkably even rhythm.' }
+  return { icon: WindIcon, name: 'The Free Spirit', copy: 'No two weeks looked the same, and your story stayed interesting.' }
 }
 
 function monthName(month: string) {
@@ -46,11 +46,11 @@ function monthName(month: string) {
   return Number.isNaN(date.getTime()) ? month : date.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
 }
 
-function Story({ eyebrow, title, children, emoji }: { eyebrow: string; title: string; children?: ReactNode; emoji?: string }) {
+function Story({ eyebrow, title, children, icon: Icon }: { eyebrow: string; title: string; children?: ReactNode; icon?: PhosphorIcon }) {
   return (
     <div className="wrapped-story-copy">
       <span className="wrapped-eyebrow">{eyebrow}</span>
-      {emoji && <span className="wrapped-hero-emoji" aria-hidden="true">{emoji}</span>}
+      {Icon && <span className="wrapped-hero-emoji" aria-hidden="true"><Icon /></span>}
       <h1>{title}</h1>
       {children}
     </div>
@@ -74,19 +74,19 @@ function WrappedStory({ data, judgement, moneySaved, hideAmounts }: { data: Wrap
 
   const slides = useMemo(() => [
     {
-      color: '#4f477b', ink: '#fffaf0', node: <Story eyebrow="Your month, in money" title={`${monthName(data.month)} Wrapped`} emoji="✦"><p>{data.totalTransactions} choices. One very personal story.</p></Story>,
+      color: '#4f477b', ink: '#fffaf0', node: <Story eyebrow="Your month, in money" title={`${monthName(data.month)} Wrapped`} icon={SparkleIcon}><p>{data.totalTransactions} choices. One very personal story.</p></Story>,
     },
     {
-      color: '#eecb72', ink: '#332815', node: <Story eyebrow="The big number" title={formatCurrency(data.totalSpent, hideAmounts)} emoji="☀️"><p>spent across {data.range.daysTracked} active days</p></Story>,
+      color: '#eecb72', ink: '#332815', node: <Story eyebrow="The big number" title={formatCurrency(data.totalSpent, hideAmounts)} icon={SunIcon}><p>spent across {data.range.daysTracked} active days</p></Story>,
     },
     {
-      color: '#e98368', ink: '#381b16', node: <Story eyebrow="Your main character" title={topCategory?.category ?? 'Everyday life'} emoji="🏆"><p>{topCategory ? `${Math.round(topCategory.pct)}% of all spending, ${formatCurrency(topCategory.total, hideAmounts)} in total.` : 'A month of small, varied choices.'}</p></Story>,
+      color: '#e98368', ink: '#381b16', node: <Story eyebrow="Your main character" title={topCategory?.category ?? 'Everyday life'} icon={TrophyIcon}><p>{topCategory ? `${Math.round(topCategory.pct)}% of all spending, ${formatCurrency(topCategory.total, hideAmounts)} in total.` : 'A month of small, varied choices.'}</p></Story>,
     },
     {
-      color: '#6db09a', ink: '#102d25', node: <Story eyebrow="The big one" title={data.biggestPurchase?.item ?? 'No single splurge'} emoji="🛍️"><p>{data.biggestPurchase ? `${formatCurrency(data.biggestPurchase.amountInr, hideAmounts)} on ${formatDateShort(data.biggestPurchase.date)} · ${data.biggestPurchase.category}` : 'You kept every purchase light.'}</p></Story>,
+      color: '#6db09a', ink: '#102d25', node: <Story eyebrow="The big one" title={data.biggestPurchase?.item ?? 'No single splurge'} icon={ShoppingBagIcon}><p>{data.biggestPurchase ? `${formatCurrency(data.biggestPurchase.amountInr, hideAmounts)} on ${formatDateShort(data.biggestPurchase.date)} · ${data.biggestPurchase.category}` : 'You kept every purchase light.'}</p></Story>,
     },
     {
-      color: '#c9b3df', ink: '#281c35', node: <Story eyebrow="Your spendiest day" title={data.topWeekday?.day ?? 'No favourite yet'} emoji="📅"><p>{data.topWeekday ? `${data.topWeekday.count} transactions added up to ${formatCurrency(data.topWeekday.total, hideAmounts)}.` : 'Your calendar stayed quiet.'}</p></Story>,
+      color: '#c9b3df', ink: '#281c35', node: <Story eyebrow="Your spendiest day" title={data.topWeekday?.day ?? 'No favourite yet'} icon={CalendarDotsIcon}><p>{data.topWeekday ? `${data.topWeekday.count} transactions added up to ${formatCurrency(data.topWeekday.total, hideAmounts)}.` : 'Your calendar stayed quiet.'}</p></Story>,
     },
     {
       color: '#efd89a', ink: '#302817', node: <Story eyebrow="Four weeks, head to head" title="The week race"><div className="wrapped-week-bars">{data.weeklyTotals.map((week) => <div key={week.label}><i style={{ height: `${Math.max(8, (week.total / maxWeek) * 100)}%` }} /><strong>{week.label}</strong><small>{formatCurrency(week.total, hideAmounts)}</small></div>)}</div></Story>,
@@ -95,19 +95,19 @@ function WrappedStory({ data, judgement, moneySaved, hideAmounts }: { data: Wrap
       color: '#568d86', ink: '#f8fff9', node: <Story eyebrow="Where it all went" title="Your category mix"><div className="wrapped-category-list">{data.topCategories.map((category, itemIndex) => <div key={category.category}><span><i style={{ background: PALETTE[itemIndex] }} />{category.category}</span><strong>{Math.round(category.pct)}%</strong><small style={{ width: `${category.pct}%`, background: PALETTE[itemIndex] }} /></div>)}</div></Story>,
     },
     ...(frozen.treatCategory ? [{
-      color: '#d98ca6', ink: '#33161f', node: <Story eyebrow="Your little treat" title={frozen.treatCategory} emoji="🍰"><p>The category that looked least like a bill and most like a reward.</p></Story>,
+      color: '#d98ca6', ink: '#33161f', node: <Story eyebrow="Your little treat" title={frozen.treatCategory} icon={CakeIcon}><p>The category that looked least like a bill and most like a reward.</p></Story>,
     }] : []),
     {
-      color: '#e89161', ink: '#341b10', node: <Story eyebrow="Consistency check" title={`${data.longestStreak?.days ?? 0} day streak`} emoji="🔥"><p>{data.longestStreak ? `${formatDateShort(data.longestStreak.startDate)} to ${formatDateShort(data.longestStreak.endDate)}. Your longest run of logged spending.` : 'Every habit starts with day one.'}</p></Story>,
+      color: '#e89161', ink: '#341b10', node: <Story eyebrow="Consistency check" title={`${data.longestStreak?.days ?? 0} day streak`} icon={FireIcon}><p>{data.longestStreak ? `${formatDateShort(data.longestStreak.startDate)} to ${formatDateShort(data.longestStreak.endDate)}. Your longest run of logged spending.` : 'Every habit starts with day one.'}</p></Story>,
     },
     {
-      color: '#b8d4ab', ink: '#1d3019', node: <Story eyebrow="Money still yours" title={formatCurrency(moneySaved, hideAmounts)} emoji="🌱"><p>left across this month&apos;s categories. Quiet progress counts.</p></Story>,
+      color: '#b8d4ab', ink: '#1d3019', node: <Story eyebrow="Money still yours" title={formatCurrency(moneySaved, hideAmounts)} icon={PlantIcon}><p>left across this month&apos;s categories. Quiet progress counts.</p></Story>,
     },
     {
-      color: '#7268a8', ink: '#fffaf5', node: <Story eyebrow="Your money personality" title={archetype.name} emoji={archetype.emoji}><p>{archetype.copy}</p></Story>,
+      color: '#7268a8', ink: '#fffaf5', node: <Story eyebrow="Your money personality" title={archetype.name} icon={archetype.icon}><p>{archetype.copy}</p></Story>,
     },
     {
-      color: '#40395f', ink: '#fffaf0', node: <Story eyebrow={`${monthName(data.month)} · complete`} title="That was your month." emoji="🕊️"><p>{formatCurrency(data.totalSpent, hideAmounts)} spent. {formatCurrency(moneySaved, hideAmounts)} left. A clearer picture for what comes next.</p></Story>,
+      color: '#40395f', ink: '#fffaf0', node: <Story eyebrow={`${monthName(data.month)} · complete`} title="That was your month." icon={BirdIcon}><p>{formatCurrency(data.totalSpent, hideAmounts)} spent. {formatCurrency(moneySaved, hideAmounts)} left. A clearer picture for what comes next.</p></Story>,
     },
   ], [archetype, data, frozen, hideAmounts, maxWeek, moneySaved, topCategory, formatCurrency])
 

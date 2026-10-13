@@ -50,6 +50,12 @@ it('keeps insight amounts private when amounts are hidden', () => {
   show()
   expect(screen.queryByText('₹12,000')).not.toBeInTheDocument()
 })
+it('draws brief card icons as vectors, falling back for an emoji it has no match for', () => {
+  const { container } = show()
+  const tile = container.querySelector('.brain-insight-icon')!
+  expect(tile.querySelector('svg')).not.toBeNull()
+  expect(tile.textContent).toBe('')
+})
 it('uses a centered vector icon instead of a font glyph in the header', () => {
   const { container } = show()
   expect(container.querySelector('.brain-orbit svg')).not.toBeNull()
