@@ -10502,6 +10502,38 @@ button.account-feature-card {
   color: var(--erd-text3);
 }
 
+/* Bug report and feedback board */
+.feedback-form {
+  display: flex;
+  flex-direction: column;
+  padding: 18px 20px 20px;
+}
+.feedback-textarea {
+  min-height: 90px;
+  line-height: 1.5;
+  resize: vertical;
+}
+.ideas-board { display: flex; flex-direction: column; gap: 14px; }
+.ideas-board .account-help-copy a { color: var(--accent-ink, inherit); font-weight: 700; }
+.ideas-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.ideas-empty { padding: 20px; }
+.ideas-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.ideas-row { display: flex; gap: 14px; padding: 14px 16px; align-items: flex-start; }
+.ideas-vote { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 36px; }
+.ideas-vote button { display: grid; place-items: center; width: 32px; height: 28px; border: none; border-radius: 10px; background: var(--erd-input-bg); color: var(--erd-text2); cursor: pointer; }
+.ideas-vote button.is-on { background: var(--gold); color: var(--erd-on-accent); }
+.ideas-vote button.is-on.is-down { background: var(--erd-text2); }
+.ideas-score { font-weight: 800; font-size: 15px; font-variant-numeric: tabular-nums; }
+.ideas-body { flex: 1; min-width: 0; }
+.ideas-title { font-weight: 800; font-size: 15px; color: var(--erd-text); overflow-wrap: anywhere; }
+.ideas-description { margin: 4px 0 0; color: var(--erd-text2); font-size: 13px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+.ideas-meta { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 12px; color: var(--erd-text2); }
+.ideas-status { padding: 2px 9px; border-radius: 100px; font-weight: 800; background: var(--erd-input-bg); color: var(--erd-text2); }
+.ideas-status.is-planned { background: rgba(80, 140, 255, 0.16); color: #3a6fd8; }
+.ideas-status.is-in_progress { background: rgba(240, 170, 40, 0.18); color: #b97a00; }
+.ideas-status.is-shipped { background: rgba(60, 180, 120, 0.18); color: #23935c; }
+.ideas-status.is-declined { background: rgba(220, 80, 80, 0.14); color: #c24646; }
+
 /* Scan a bill */
 .expense-redesign .erd-modal-card.scan-modal {
   width: 560px;
