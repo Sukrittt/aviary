@@ -20,7 +20,7 @@ const perUnit = (amount: number, parts: number, currency: string) => {
 }
 
 const INCLUDED = [
-  { icon: WalletIcon, tone: 'rent', title: 'Envelopes', body: 'Set money aside by purpose. See what’s left before you spend.' },
+  { icon: WalletIcon, tone: 'rent', title: 'Categories', body: 'Set money aside by purpose. See what’s left before you spend.' },
   { icon: BellIcon, tone: 'fun', title: 'Habit nudges', body: 'Aviary learns your routine and nudges you while it’s fresh.' },
   { icon: ScanIcon, tone: 'food', title: 'Receipt scanning', body: 'Snap the bill. Every line read, split if you shared.' },
   { icon: RepeatIcon, tone: 'savings', title: 'Bills and subscriptions', body: 'Renewals with due dates, and a heads-up before they charge.' },
@@ -33,7 +33,7 @@ const INCLUDED = [
 ]
 
 const FAQS = [
-  { q: 'What happens when my trial ends?', a: 'Nothing is charged. When you open the app, you’ll see the two plans and pick one to carry on. Your envelopes and history stay exactly where you left them, and you can export your data whether or not you subscribe.' },
+  { q: 'What happens when my trial ends?', a: 'Nothing is charged. When you open the app, you’ll see the two plans and pick one to carry on. Your categories and history stay exactly where you left them, and you can export your data whether or not you subscribe.' },
   { q: 'Do I need a card to start?', a: 'No. There’s no card, no UPI mandate and nothing to cancel during the 45 days. You only set up a payment method if you decide to keep going.' },
   { q: 'Can I cancel?', a: 'Any time, with no fee and no notice period. You keep full access until the end of the period you’ve already paid for.' },
   { q: 'Do you offer refunds?', a: <>Payments cover the period you’ve started, so we don’t refund part of a month or year after you cancel. Some cases do get a full refund, and the <Link href="/legal/refunds">refund and cancellation policy</Link> lists them.</> },

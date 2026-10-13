@@ -189,7 +189,7 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
             style={{ position: 'fixed', top: menuAnchor.top, right: menuAnchor.right }}
           >
             <button type="button" className="env-menu-item" onClick={() => { onMoveMoney(e.category); closeMenu() }}>
-              Pull money from envelopes
+              Pull money from categories
             </button>
             <button type="button" className="env-menu-item" onClick={() => { onAssignFromRTA(e.category); closeMenu() }}>
               Assign from Ready to Assign
@@ -222,7 +222,7 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
     <>
       <div className="env2-head">
         <div className="env2-head-title">
-          <h3>Envelopes</h3>
+          <h3>Categories</h3>
           <button
             type="button"
             className="env2-icon-btn"
@@ -241,9 +241,9 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
       {!envelopes.length ? (
         <BirdEmptyState
           subject="envelopes"
-          title="Your envelopes are waiting"
+          title="Your categories are waiting"
           description="Give every kind of spending a place to land."
-          action={{ label: 'Add your first envelope', onClick: onManage }}
+          action={{ label: 'Add your first category', onClick: onManage }}
         />
       ) : (
         <div className="env2-list">

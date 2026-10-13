@@ -28,7 +28,7 @@ export default function PrivacyPage() {
           or an emailed one-time code. Authentication is handled by our identity provider, WorkOS.
         </li>
         <li>
-          <strong>The financial data you enter.</strong> Envelopes, budgets, transactions, item names, notes,
+          <strong>The financial data you enter.</strong> Categories, budgets, transactions, item names, notes,
           subscriptions, and investment holdings you add. Amounts, item names, notes, and AI chat text are
           encrypted at rest with AES-256-GCM before they reach our database. Dates, category names, payment
           methods, subscription and holding names are stored as plain text so search and filtering work; we
@@ -41,7 +41,7 @@ export default function PrivacyPage() {
         </li>
         <li>
           <strong>Ask Aviary / AI chat.</strong> If you ask our AI assistant a question, we send it your recent
-          transactions, envelope balances, and subscription and investment summaries so it can answer
+          transactions, category balances, and subscription and investment summaries so it can answer
           accurately, along with the text you type. Conversations are stored in our database so you can revisit
           them, and you can delete them at any time.
         </li>
@@ -49,7 +49,7 @@ export default function PrivacyPage() {
           <strong>Product analytics.</strong> The mobile app and the web app send your email and name, the
           screens and pages you open, and product events (e.g. signing in, each step of setup, logging an
           expense, moving money, scanning a bill, viewing plans) to PostHog, an analytics provider based in the
-          United States. No amounts, item text or envelope names are included in these events, and we don&apos;t
+          United States. No amounts, item text or category names are included in these events, and we don&apos;t
           record your screen. On the website, visitors who aren&apos;t signed in are counted anonymously.
           Analytics is on by default. You can turn it off at any time in Settings &rarr; Your data &rarr;
           Share usage analytics, on either app; turning it off stops new data from being sent from that device
@@ -122,7 +122,7 @@ export default function PrivacyPage() {
 
       <h2>How long we keep it</h2>
       <p>
-        Deleting an envelope, transaction, or your whole account moves it into a recoverable, inaccessible state
+        Deleting a category, transaction, or your whole account moves it into a recoverable, inaccessible state
         for 7 days &mdash; enough time to undo an accidental deletion by signing back in &mdash; after which it
         is permanently deleted from our active systems, including your account with our identity provider.
       </p>

@@ -13,7 +13,7 @@ import { defersFirstCharge, formatDate, formatPrice, yearlySavingsPercent } from
  * no free tier, so this is the whole app. Nothing here promises unlimited AI.
  */
 export const BENEFITS = [
-  'As many envelopes and expenses as you like',
+  'As many categories and expenses as you like',
   'Snap a bill instead of typing it in',
   'Ask Aviary where your money went',
   'Monthly Wrapped and spending insights',

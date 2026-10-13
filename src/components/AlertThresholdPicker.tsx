@@ -122,7 +122,7 @@ export function AlertThresholdPicker({ categoryName, value, onChange, onClose, o
         </form>
 
         {atLimit && <p className="env-sheet-hint">That&apos;s the most you can pick. Turn one off to add another.</p>}
-        {value.length === 0 && !atLimit && <p className="env-sheet-hint">No alerts. This envelope stays quiet.</p>}
+        {value.length === 0 && !atLimit && <p className="env-sheet-hint">No alerts. This category stays quiet.</p>}
 
         <p className="env-sheet-note">
           <BellIcon size={12} aria-hidden="true" /> Notifications are sent as push alerts on the Aviary mobile app only.

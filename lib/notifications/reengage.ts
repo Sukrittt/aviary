@@ -15,7 +15,7 @@ const COPY: Record<ReengageStep, Array<{ title: string; body: string }>> = {
     { title: 'Lowkey miss you', body: 'Three days, zero spends. Catch up in a minute.' },
   ],
   7: [
-    { title: 'It\'s been a week', body: 'Your envelopes are giving abandoned. Pop back in?' },
+    { title: 'It\'s been a week', body: 'Your categories are giving abandoned. Pop back in?' },
     { title: 'Not us checking on you', body: 'A week off the books. Let\'s get you caught up.' },
   ],
   14: [

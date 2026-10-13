@@ -79,8 +79,8 @@ it('logs only what is left after an edit and a removal', async () => {
 it('waits for an envelope on a row the money brain was unsure of', () => {
   show({ proposal: { ...proposal, items: [{ ...proposal.items[0], category: '' }] } })
   expect(screen.getByRole('button', { name: 'Log 1 spend' })).toBeDisabled()
-  expect(screen.getByRole('combobox', { name: 'Pick an envelope' })).toBeInTheDocument()
-  expect(screen.getByText('Pick an envelope for Auto to log these.')).toBeInTheDocument()
+  expect(screen.getByRole('combobox', { name: 'Pick a category' })).toBeInTheDocument()
+  expect(screen.getByText('Pick a category for Auto to log these.')).toBeInTheDocument()
 })
 
 it('keeps rows that failed editable, with a written message, and a retry skips the ones that made it', async () => {
@@ -153,14 +153,14 @@ it('keeps the spends that did log when the rest is put off', async () => {
 
 it('shows a category emoji once, not twice, when the name already carries it', async () => {
   show({ proposal: { ...proposal, items: [{ ...proposal.items[0], category: '🍜 Eating out' }] } })
-  const trigger = screen.getByRole('combobox', { name: 'Envelope: 🍜 Eating out. Change it' })
+  const trigger = screen.getByRole('combobox', { name: 'Category: 🍜 Eating out. Change it' })
   expect(trigger.textContent?.match(/🍜/g)).toHaveLength(1)
 })
 
 it('needs a current envelope for a row whose envelope was deleted since it was read', () => {
   show({ proposal: { ...proposal, items: [{ ...proposal.items[0], category: 'Old envelope' }] } })
   expect(screen.getByRole('button', { name: 'Log 1 spend' })).toBeDisabled()
-  expect(screen.getByText('Pick an envelope for Auto to log these.')).toBeInTheDocument()
+  expect(screen.getByText('Pick a category for Auto to log these.')).toBeInTheDocument()
 })
 
 it('names whatever else blocks logging', () => {

@@ -353,7 +353,7 @@ export function ExpensePage() {
       bulkReturnPhase.succeed(() => setShowBulkReturnConfirm(false));
     } catch {
       bulkReturnPhase.fail();
-      setActionError("Couldn't return the money — your envelopes were not changed.");
+      setActionError("Couldn't return the money. Your categories weren't changed.");
     }
   }
 

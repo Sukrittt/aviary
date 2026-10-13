@@ -15,7 +15,7 @@ export default function TermsPage() {
 
       <h2>The service</h2>
       <p>
-        Aviary helps you track envelopes, expenses, subscriptions, and investments for personal, non-commercial
+        Aviary helps you track categories, expenses, subscriptions, and investments for personal, non-commercial
         use. It&apos;s developed and operated by an individual, not a company, and offered as-is.
       </p>
 

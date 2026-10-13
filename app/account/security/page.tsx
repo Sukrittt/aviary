@@ -436,7 +436,7 @@ function SecurityContent() {
       <div className="account-danger-card">
         <div className="account-danger-title">Delete account</div>
         <div className="account-danger-copy">
-          Removes envelopes, transactions and recaps. You have 7 days to sign back in and restore before it&apos;s
+          Removes categories, transactions and recaps. You have 7 days to sign back in and restore before it&apos;s
           gone for good.
         </div>
         {confirmingDelete ? (

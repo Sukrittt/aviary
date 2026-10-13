@@ -101,7 +101,7 @@ export function LogDemo({ onComplete }: { onComplete: () => void }) {
           <p className="tour-result-note">
             {cardTotal > 0
               ? 'Paid by card? The same amount lands in Credit Card Payment automatically, so the money to clear the bill is already set aside, not spent twice.'
-              : 'Only that one envelope moved. Every other bar is exactly where you left it.'}
+              : 'Only that one category moved. Every other bar is exactly where you left it.'}
           </p>
         </ResultCard>
       )}
@@ -110,7 +110,7 @@ export function LogDemo({ onComplete }: { onComplete: () => void }) {
         <span style={{ fontSize: 17 }}>🧾</span>
         <p>
           Long receipt? Scan a bill reads it into line items you can edit, split by however many people ate, and file into
-          envelopes before logging.
+          categories before logging.
         </p>
       </div>
     </div>

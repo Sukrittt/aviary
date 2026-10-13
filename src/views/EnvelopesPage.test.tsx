@@ -46,7 +46,7 @@ function renderPage() {
  */
 async function groupList() {
   await screen.findByText('Rent')
-  return within(screen.getByRole('list', { name: 'Envelope groups' }))
+  return within(screen.getByRole('list', { name: 'Category groups' }))
 }
 
 beforeEach(() => {
@@ -219,7 +219,7 @@ describe('EnvelopesPage', () => {
 
     renderPage()
     // Wait on the group's own toggle: the collapsed state loads after mount.
-    const list = within(await screen.findByRole('list', { name: 'Envelope groups' }))
+    const list = within(await screen.findByRole('list', { name: 'Category groups' }))
     await waitFor(() => expect(list.getByRole('button', { name: /^Home/ })).toHaveAttribute('aria-expanded', 'false'))
   })
 

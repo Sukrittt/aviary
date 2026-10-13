@@ -23,7 +23,7 @@ export default function DeleteAccountPage() {
 
       <h2>What happens</h2>
       <p>
-        Deleting removes your envelopes, transactions, budgets, subscriptions, investments, and chat history.
+        Deleting removes your categories, transactions, budgets, subscriptions, investments, and chat history.
         It&apos;s recoverable for 7 days &mdash; sign back in during that window and you&apos;ll see a Restore
         option &mdash; after which it&apos;s permanently deleted, including your account with our identity
         provider.

@@ -1,11 +1,11 @@
 export const LOADING_PHRASES = {
   general: [
-    'Balancing the envelopes…',
+    'Balancing the categories…',
     'Giving your money a job…',
     "Counting what's Ready to Assign…",
     "Chasing down last month's leftovers…",
     'Reconciling the chaos…',
-    'Squeezing blood from the Bills envelope…',
+    'Squeezing blood from Bills…',
     'Asking Rent to behave…',
     'Tallying the damage…',
     'Waking up the ledger…',
@@ -103,7 +103,7 @@ export const LOADING_PHRASES = {
   chatThinking: [
     'Thinking it through…',
     'Reading your recent transactions…',
-    'Checking your envelopes…',
+    'Checking your categories…',
     'Doing the math…',
     'Putting your answer together…',
     'Looking at your spending…',

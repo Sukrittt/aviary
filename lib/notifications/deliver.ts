@@ -51,7 +51,7 @@ async function enrichCoachNotification(userId: string, notification: Notificatio
     const prompt = [
       'You are writing a single push-notification nudge for a personal expense tracker, grounded strictly in the FACTS below.',
       'The user is at risk of overspending this month. Write one concrete, specific suggestion — e.g. moving slack from an',
-      'under-spent envelope to cover the shortfall guilt-free, or naming the category to cut back on.',
+      'under-spent category to cover the shortfall guilt-free, or naming the one to cut back on.',
       'Keep the body to one sentence, at most 140 characters. Never invent a number not present in FACTS.',
       '',
       'FACTS:',

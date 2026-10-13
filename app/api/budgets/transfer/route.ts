@@ -54,7 +54,7 @@ export async function POST(req: Request) {
     if (typeof category !== 'string' || typeof amount !== 'number' || !(amount > 0)) {
       return error('each source needs a category and a positive amount')
     }
-    if (category === to) return error('cannot transfer an envelope to itself')
+    if (category === to) return error('cannot transfer a category to itself')
     sources.push({ category, amount })
   }
 

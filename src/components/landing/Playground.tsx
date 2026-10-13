@@ -164,7 +164,7 @@ export function Playground() {
     <section id="play" className="lp-section lp-play" aria-labelledby="play-title" ref={sectionRef}>
       <div className="lp-play-copy">
         <h2 id="play-title" className="lp-h2">Go on, log one.</h2>
-        <p className="lp-lede">That’s the app’s real log screen, not a recording. Say what it was, watch the envelope pick itself, then tap the amount and hit +.</p>
+        <p className="lp-lede">That’s the app’s real log screen, not a recording. Say what it was, watch the category pick itself, then tap the amount and hit +.</p>
         <div className="lp-starters">
           <span id="play-starters">Stuck? Start with one of these.</span>
           <div role="group" aria-labelledby="play-starters">
@@ -205,7 +205,7 @@ export function Playground() {
                   <div style={{ pointerEvents: 'auto' }}>
                     <FloatingNav active={null} addActive addSaving={submit.saving} addSuccess={submit.success}
                       addHint={logs === 0 && submit.canSubmit && !submit.saving && !submit.success}
-                      addInvalid={!submit.canSubmit} addDisabled={submit.saving || submit.success} onSelect={() => { say('This demo only logs. Home, envelopes and the rest are in the app.'); return false }} onAdd={() => submit.submit()} />
+                      addInvalid={!submit.canSubmit} addDisabled={submit.saving || submit.success} onSelect={() => { say('This demo only logs. Home, categories and the rest are in the app.'); return false }} onAdd={() => submit.submit()} />
                   </div>
                 </div>}
               </div>

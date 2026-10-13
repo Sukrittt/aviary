@@ -216,7 +216,7 @@ function AskScene({ playing }: { playing: boolean }) {
     <Card label="It reads your budget" className="lp-reveal lp-reveal-late">
       <div className="lp-envelope-line"><span>Left to spend</span><strong>{ask.left}<small> this month</small></strong></div>
       <div className="lp-envelope-bar"><i style={{ transform: `scaleX(${ask.bar})` }} /></div>
-      <p className="lp-stage-note">Answers come from your own envelopes and spending.</p>
+      <p className="lp-stage-note">Answers come from your own categories and spending.</p>
     </Card>
   </>
 }

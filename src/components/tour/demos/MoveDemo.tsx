@@ -19,7 +19,7 @@ export function MoveDemo({ onComplete }: { onComplete: () => void }) {
         <div className="tour-move-tile">💡</div>
         <div className="tour-row-body">
           <p className="tour-kicker">ELECTRICITY · {formatCurrency(MOVE_NEED)} DUE THE 5TH</p>
-          <span className="tour-move-amount">{formatCurrency(inEnvelope)} in the envelope</span>
+          <span className="tour-move-amount">{formatCurrency(inEnvelope)} set aside</span>
           <span className={`tour-move-status ${short > 0 ? 'is-coral' : 'is-mint'}`}>
             {short > 0 ? `${formatCurrency(short)} short` : 'fully funded ✓'}
           </span>

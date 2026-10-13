@@ -183,8 +183,8 @@ function coachNotification(
   if (!projectedOverspend && !overspentEnvelope) return null
 
   const body = projectedOverspend
-    ? `Projected to spend ${money(projected)} this month vs ${money(meta.totalAssigned)} budgeted — consider trimming a category.`
-    : `${overspentEnvelope!.category} is over budget; move some slack from an under-spent envelope to cover it guilt-free.`
+    ? `Projected to spend ${money(projected)} this month vs ${money(meta.totalAssigned)} budgeted. Consider trimming a category.`
+    : `${overspentEnvelope!.category} is over budget; move some slack from an under-spent category to cover it guilt-free.`
 
   return {
     key: `coach:${isoWeekKey(today)}`,

@@ -91,7 +91,7 @@ export function MoneyLesson() {
   const stage = waiting > 0 ? 0 : state.spent === 0 ? 1 : state.transferred ? 3 : 2
   const titles = ['Your money is ready. Give it a job.', 'All assigned. All still yours.', 'A little more for food?', 'New plan. Same money.']
   const explanations = [
-    'Tap each envelope to send some money to work. These are sample amounts, not a suggested budget.',
+    'Tap each category to send some money to work. These are sample amounts, not a suggested budget.',
     currencyText('₹0 unassigned means all your money has a purpose. You still have ₹1,000. Now try buying lunch.'),
     currencyText('Lunch came from Food. Rent and Savings stayed untouched. Move ₹50 from Fun to Food to adjust your plan.'),
     currencyText('Food has ₹250 available. Fun has ₹50. Your ₹200 in Savings is still doing its job: being there for later.'),

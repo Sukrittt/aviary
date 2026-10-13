@@ -69,7 +69,7 @@ const IN = {
   ask: {
     chips: ['What can I cut back on?', 'How does this month compare?', 'Can I afford 90k iPhone?'],
     left: '₹36,802', bar: 0.53,
-    sr: 'You ask “Can I afford 90k iPhone?” and Aviary answers from your budget: not yet. You have ₹36,802 left to spend this month, so it suggests a gadget envelope you add to each month.',
+    sr: 'You ask “Can I afford 90k iPhone?” and Aviary answers from your budget: not yet. You have ₹36,802 left to spend this month, so it suggests a gadget category you add to each month.',
   },
 }
 
@@ -123,7 +123,7 @@ const INTL: Sample = {
   ask: {
     chips: ['What can I cut back on?', 'How does this month compare?', 'Can I afford a $900 iPhone?'],
     left: '$2,568', bar: 0.57,
-    sr: 'You ask “Can I afford a $900 iPhone?” and Aviary answers from your budget: yes, if it comes out of Savings. Your Savings envelope has $1,160 this month, so it suggests moving $900 from there.',
+    sr: 'You ask “Can I afford a $900 iPhone?” and Aviary answers from your budget: yes, if it comes out of Savings. Your Savings category has $1,160 this month, so it suggests moving $900 from there.',
   },
 }
 
