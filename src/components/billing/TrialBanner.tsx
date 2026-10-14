@@ -43,7 +43,7 @@ export function TrialBanner() {
         <strong>Free trial: {trialRemainingLabel(days)}.</strong>{' '}
         <span style={{ color: 'var(--tk-text2)' }}>Pick a plan to keep budgeting.</span>
       </span>
-      <Link href="/account" style={{ color: 'var(--tk-accent)', fontWeight: 600, textDecoration: 'none', flexShrink: 0 }}>
+      <Link href="/account" style={{ color: 'var(--tk-accent-ink)', fontWeight: 600, textDecoration: 'none', flexShrink: 0 }}>
         Details
       </Link>
       <button
