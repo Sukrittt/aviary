@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { CATEGORY_ICON_COMPONENTS } from './CategoryIcon'
-import { CaretDownIcon, MagnifyingGlassIcon } from './icons'
+import { MagnifyingGlassIcon } from './icons'
 import { searchCategoryIcons, type CategoryIconKey } from '@/src/lib/categoryIcons'
 
 const POPOVER_WIDTH = 320
@@ -113,7 +113,6 @@ export function CategoryIconPicker({ value, onChange, tint, disabled, children }
           }}
         >
           <Current size={20} aria-hidden />
-          <CaretDownIcon size={10} weight="bold" className="cat-icon-picker-caret" aria-hidden />
         </button>
         {children}
       </div>

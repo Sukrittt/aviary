@@ -299,8 +299,9 @@ function textOf(name: string): string {
   return name.trim().replace(LEADING_EMOJI_RE, '')
 }
 
-/** A group's icon: its emoji's match, then its name's, then the folder. */
-export function groupIconKey(name: string): CategoryIconKey {
+/** A group's icon: the one the user picked, then its emoji's match, then its name's, then the folder. */
+export function groupIconKey(name: string, icon?: string): CategoryIconKey {
+  if (isCategoryIconKey(icon)) return icon
   return emojiIcon(name) ?? nameIcon(textOf(name)) ?? DEFAULT_GROUP_ICON
 }
 

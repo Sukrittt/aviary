@@ -368,7 +368,7 @@ interface Props {
 
 /** A category's icon, resolved from its picked icon, emoji or name. */
 export function CategoryIcon({ name, icon, group, kind = 'category', size = '1em', weight = 'regular', className }: Props) {
-  const key = kind === 'group' ? groupIconKey(name) : categoryIconKey(name, icon, group)
+  const key = kind === 'group' ? groupIconKey(name, icon) : categoryIconKey(name, icon, group)
   const Icon = CATEGORY_ICON_COMPONENTS[key]
   return <Icon size={size} weight={weight} className={className} aria-hidden />
 }

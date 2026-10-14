@@ -3,7 +3,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { Scrim, Sheet } from './MotionSheet'
 import { useAddCategory } from '../hooks/useCategories'
-import { useGroups } from '../hooks/useGroups'
+import { useGroupIcons, useGroups } from '../hooks/useGroups'
 import { avatarStyleFor, splitEmoji } from '../lib/emoji'
 import { categoryIconKey, type CategoryIconKey } from '../lib/categoryIcons'
 import { CategoryIcon } from './CategoryIcon'
@@ -16,6 +16,7 @@ export function AddCategoryModal({ onClose, onCreated, initialGroup = '' }: {
   initialGroup?: string
 }) {
   const groups = useGroups().data ?? []
+  const groupIcons = useGroupIcons()
   const addCategory = useAddCategory()
   const [name, setName] = useState('')
   const [group, setGroup] = useState(initialGroup)
@@ -74,7 +75,7 @@ export function AddCategoryModal({ onClose, onCreated, initialGroup = '' }: {
               disabled={saving} onClick={() => setGroup('')}>Other</button>
             {groups.map((g) => (
               <button type="button" key={g} className={`env-pct${group === g ? ' is-on' : ''}`} aria-pressed={group === g}
-                disabled={saving} onClick={() => setGroup(g)}><CategoryIcon kind="group" name={g} /> {splitEmoji(g).text}</button>
+                disabled={saving} onClick={() => setGroup(g)}><CategoryIcon kind="group" name={g} icon={groupIcons.get(g)} /> {splitEmoji(g).text}</button>
             ))}
           </div>
           {error && <p className="env-sheet-hint" role="alert">{error}</p>}

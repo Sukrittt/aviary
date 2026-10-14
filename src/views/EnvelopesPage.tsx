@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { InvoiceIcon, BellIcon, ArrowsInLineVerticalIcon, EnvelopeSimpleIcon, MoonIcon, PencilSimpleIcon, PlusIcon, SunIcon, TrashIcon, XIcon } from "@/src/components/icons";
 import { CategoryIcon } from "../components/CategoryIcon";
 import { CategoryIconPicker } from "../components/CategoryIconPicker";
-import { categoryIconKey, type CategoryIconKey } from "../lib/categoryIcons";
+import { categoryIconKey, groupIconKey, type CategoryIconKey } from "../lib/categoryIcons";
 import { useAppearance } from "../../components/AppearanceProvider";
 import { ExpenseSidebar } from "../components/ExpenseSidebar";
 import { LoadingCaption } from "../components/LoadingCaption";
@@ -26,6 +26,7 @@ import {
   useGroups,
   useAddGroup,
   useUpdateGroup,
+  useGroupIcons,
   useDeleteGroup,
   useMoveGroup,
 } from "../hooks/useGroups";
@@ -47,7 +48,7 @@ import { DragItem, DragList, useDragOrder } from "../components/DragReorder";
 type Draft =
   | { kind: "new-group" }
   | { kind: "rename-category"; name: string; group: string; icon?: string }
-  | { kind: "rename-group"; name: string };
+  | { kind: "rename-group"; name: string; icon?: string };
 
 type DeleteTarget =
   { kind: "category"; name: string } | { kind: "group"; name: string };
@@ -106,6 +107,7 @@ export function EnvelopesPage() {
   const deleteCategory = useDeleteCategory();
   const addGroup = useAddGroup();
   const updateGroup = useUpdateGroup();
+  const groupIcons = useGroupIcons();
   const deleteGroup = useDeleteGroup();
   const moveCategory = useMoveCategory();
   const moveGroup = useMoveGroup();
@@ -174,6 +176,8 @@ export function EnvelopesPage() {
     setDraftText(next.kind === "new-group" ? initial : splitEmoji(initial).text);
     if (next.kind === "rename-category")
       setDraftIcon(categoryIconKey(next.name, next.icon, next.group));
+    if (next.kind === "rename-group")
+      setDraftIcon(groupIconKey(next.name, next.icon));
   }
 
   /** The stored name for draft text: the old name's emoji, if any, then the words. */
@@ -207,15 +211,21 @@ export function EnvelopesPage() {
     let ok = false;
     if (draft.kind === "new-group")
       ok = await run(() => addGroup.mutateAsync(name), "group");
-    else if (draft.kind === "rename-group")
-      ok = await run(
-        () =>
-          updateGroup.mutateAsync({
-            name: draft.name,
-            newName: withOldEmoji(draft.name, name),
-          }),
-        "group",
-      );
+    else if (draft.kind === "rename-group") {
+      const newName = withOldEmoji(draft.name, name);
+      const iconChanged = draftIcon !== groupIconKey(draft.name, draft.icon);
+      ok =
+        (newName === draft.name && !iconChanged) ||
+        (await run(
+          () =>
+            updateGroup.mutateAsync({
+              name: draft.name,
+              ...(newName !== draft.name ? { newName } : {}),
+              ...(iconChanged ? { icon: draftIcon } : {}),
+            }),
+          "group",
+        ));
+    }
     else {
       const newName = withOldEmoji(draft.name, name);
       const iconChanged =
@@ -279,6 +289,7 @@ export function EnvelopesPage() {
     <input
       id="env-sheet-name"
       className="env-input"
+      aria-label={draft?.kind === "new-group" ? undefined : "Name"}
       autoFocus
       placeholder={
         draft?.kind === "rename-category"
@@ -410,7 +421,7 @@ export function EnvelopesPage() {
                         className="env-group-chevron"
                       />
                       <span className="env-group-icon" aria-hidden="true">
-                        <CategoryIcon kind="group" name={group.name} />
+                        <CategoryIcon kind="group" name={group.name} icon={groupIcons.get(group.name)} />
                       </span>
                       <span className="env-group-name">{text}</span>
                       <span className="env-group-count">
@@ -438,7 +449,7 @@ export function EnvelopesPage() {
                           className="env-icon-btn"
                           onClick={() =>
                             beginDraft(
-                              { kind: "rename-group", name: group.name },
+                              { kind: "rename-group", name: group.name, icon: groupIcons.get(group.name) },
                               group.name,
                             )
                           }
@@ -623,23 +634,10 @@ export function EnvelopesPage() {
                 <div className="env-sheet-rename-head">
                   <div
                     className="env-sheet-rename-icon"
-                    style={
-                      draft.kind === "rename-category"
-                        ? avatarStyleFor(draftText.trim())
-                        : undefined
-                    }
+                    style={avatarStyleFor(draftText.trim())}
                     aria-hidden="true"
                   >
-                    {draft.kind === "rename-category" ? (
-                      <CategoryIcon name="" icon={draftIcon} />
-                    ) : (
-                      draft.kind === "rename-group" && (
-                        <CategoryIcon
-                          kind="group"
-                          name={withOldEmoji(draft.name, draftText)}
-                        />
-                      )
-                    )}
+                    <CategoryIcon name="" icon={draftIcon} />
                   </div>
                   <div className="env-sheet-rename-heading">
                     <span className="env-sheet-eyebrow">
@@ -669,13 +667,15 @@ export function EnvelopesPage() {
                 </>
               )}
 
-              <label
-                className="env-sheet-section-label"
-                htmlFor="env-sheet-name"
-              >
-                {draft.kind.startsWith("rename-") ? "New name" : "Name"}
-              </label>
-              {draft.kind === "rename-category" ? (
+              {draft.kind === "new-group" && (
+                <label
+                  className="env-sheet-section-label"
+                  htmlFor="env-sheet-name"
+                >
+                  Name
+                </label>
+              )}
+              {draft.kind !== "new-group" ? (
                 <CategoryIconPicker
                   value={draftIcon}
                   onChange={setDraftIcon}
@@ -686,11 +686,9 @@ export function EnvelopesPage() {
                 </CategoryIconPicker>
               ) : (
                 <div className="env-sheet-name-row">
-                  {draft.kind === "new-group" && (
-                    <div className="env-sheet-icon-swatch" aria-hidden="true">
-                      <CategoryIcon kind="group" name={draftText} />
-                    </div>
-                  )}
+                  <div className="env-sheet-icon-swatch" aria-hidden="true">
+                    <CategoryIcon kind="group" name={draftText} />
+                  </div>
                   {nameInput}
                 </div>
               )}
