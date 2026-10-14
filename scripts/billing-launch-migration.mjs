@@ -1,8 +1,8 @@
-// Grants every existing onboarded user one fresh 45-day trial at the public
+// Grants every existing onboarded user one fresh 30-day trial at the public
 // subscriptions launch instant.
 //
 // Not counted from account creation, from the deploy, or from an old
-// `onboardedAt` — pricing.md promises existing users a *fresh* 45 days, and
+// `onboardedAt` — pricing.md promises existing users a *fresh* 30 days, and
 // anchoring to any historical date would hand some of them an already-dead
 // trial on day one.
 //
@@ -34,7 +34,7 @@ import { loadEnv, args } from './lib/env.mjs'
 loadEnv()
 const argv = args()
 const DRY = Boolean(argv['dry-run'])
-const TRIAL_DAYS = 45
+const TRIAL_DAYS = 30
 const COHORT = 'legacy-launch-v1'
 
 if (!process.env.MONGODB_URI) throw new Error('MONGODB_URI not set')
