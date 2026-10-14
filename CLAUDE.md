@@ -16,9 +16,10 @@ App uses one shared success-tech animation (`src/components/shared/CheckIcon.tsx
 
 # voice and copy
 
-The app is playful (Fredoka display font, Nunito body, `LoadingCaption.tsx`'s rotating
-captions, Wrapped's persona cards), not corporate. Match that register in every string
-a user reads: second person, sentence case, short.
+The copy is playful (`LoadingCaption.tsx`'s rotating captions, Wrapped's persona cards),
+not corporate. Match that register in every string a user reads: second person, sentence
+case, short. The type is the calm half: Geist for display and body, so the words carry the
+personality and the font stays out of the way.
 
 - No em dashes in user-facing copy. They're the single most recognizable AI-generated
   tell, and a reader notices before they read a word. Split the sentence instead: two
