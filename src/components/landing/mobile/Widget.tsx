@@ -23,7 +23,7 @@ const EYE = { cx: 306, cy: 216, r: 19 }
 /** Card widths inside the phone frame: 2 of 4 columns for the mini, all 4 for the large. */
 export const MINI = 104
 const CARD = 214
-const BAND = 88
+const BAND = 100
 
 /** The widgets' numbers, from this visitor's sample month and currency. */
 function useWidgetData() {
