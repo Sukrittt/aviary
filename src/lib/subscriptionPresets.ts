@@ -114,16 +114,22 @@ export function presetsFor(currencyCode: string): Preset[] {
   return SUBSCRIPTION_PRESETS.filter((p) => !p.regions || p.regions.includes(currencyCode))
 }
 
-/** Up to `limit` suggestions for the typed text, prefix matches first. */
+/** Up to `limit` suggestions for the typed text: exact match, then prefix, then substring. */
 export function suggestPresets(currencyCode: string, query: string, limit = 12): string[] {
-  const q = query.trim().toLowerCase()
+  const typed = query.trim()
+  const q = typed.toLowerCase()
   const presets = presetsFor(currencyCode)
-  const names = presets.map((p) => p.name)
   if (!q) return [...presets.filter((p) => p.popular), ...presets.filter((p) => !p.popular)].map((p) => p.name).slice(0, limit)
-  if (names.some((n) => n.toLowerCase() === q)) return []
-  const starts = names.filter((n) => n.toLowerCase().startsWith(q))
-  const contains = names.filter((n) => !n.toLowerCase().startsWith(q) && n.toLowerCase().includes(q))
-  return [...starts, ...contains].slice(0, limit)
+  const rank = (n: string) => {
+    const l = n.toLowerCase()
+    return l === q ? 0 : l.startsWith(q) ? 1 : l.includes(q) ? 2 : 3
+  }
+  // Only the chip the field already spells out exactly goes away, so "Jio" still offers JioHotstar.
+  return presets
+    .map((p) => p.name)
+    .filter((n) => n !== typed && rank(n) < 3)
+    .sort((a, b) => rank(a) - rank(b))
+    .slice(0, limit)
 }
 
 // Every lowercase key that maps to a colour, longest first so "apple music" beats "apple".

@@ -27,8 +27,13 @@ describe('suggestPresets', () => {
     expect(suggestPresets('INR', 'you')).toEqual(['YouTube Premium', 'YouTube Music'])
   })
 
-  it('hides suggestions once the name matches a preset exactly', () => {
-    expect(suggestPresets('INR', 'netflix')).toEqual([])
+  it('drops only the preset the name already matches exactly', () => {
+    expect(suggestPresets('INR', 'Netflix')).toEqual([])
+    expect(suggestPresets('INR', 'Jio')).toEqual(['JioHotstar', 'JioSaavn'])
+  })
+
+  it('keeps longer names when the typed text is itself a preset', () => {
+    expect(suggestPresets('INR', 'jio')).toEqual(['Jio', 'JioHotstar', 'JioSaavn'])
   })
 
   it('leads with popular services when nothing is typed', () => {
