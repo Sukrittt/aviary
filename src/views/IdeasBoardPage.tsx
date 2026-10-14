@@ -1,10 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { AnimatePresence } from 'motion/react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { CaretDownIcon, CaretUpIcon } from '@/src/components/icons'
+import { CalendarDotsIcon, CaretDownIcon, CaretUpIcon, HourglassIcon, LightbulbIcon, SealCheckIcon, SquaresFourIcon, XCircleIcon } from '@/src/components/icons'
 import { Select } from '../components/Select'
 import { BirdEmptyState } from '../components/BirdEmptyState'
 import { LoadingCaption } from '../components/LoadingCaption'
@@ -20,6 +20,15 @@ const STATUS_LABEL: Record<IdeaStatus, string> = {
   shipped: 'Shipped',
   declined: 'Declined',
 }
+
+const STATUS_ICON: Record<IdeaStatus, ReactNode> = {
+  open: <LightbulbIcon size={16} />,
+  planned: <CalendarDotsIcon size={16} />,
+  in_progress: <HourglassIcon size={16} />,
+  shipped: <SealCheckIcon size={16} />,
+  declined: <XCircleIcon size={16} />,
+}
+
 const STATUSES = Object.keys(STATUS_LABEL) as IdeaStatus[]
 
 /**
@@ -77,7 +86,7 @@ export function IdeasBoardPage() {
           aria-label="Status"
           value={status ?? 'all'}
           onChange={(v) => setStatus(v === 'all' ? null : (v as IdeaStatus))}
-          options={[{ value: 'all', label: 'All statuses' }, ...STATUSES.map((s) => ({ value: s, label: STATUS_LABEL[s] }))]}
+          options={[{ value: 'all', label: 'All statuses', icon: <SquaresFourIcon size={16} /> }, ...STATUSES.map((s) => ({ value: s, label: STATUS_LABEL[s], icon: STATUS_ICON[s] }))]}
         />
         <button type="button" className="action-button is-active erd-accent-action ideas-pitch" onClick={() => setPitching(true)}>Pitch an idea</button>
       </div>
