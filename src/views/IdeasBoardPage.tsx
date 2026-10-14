@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, type ReactNode } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import { AnimatePresence } from 'motion/react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { CalendarDotsIcon, CaretDownIcon, CaretUpIcon, HourglassIcon, LightbulbIcon, SealCheckIcon, SquaresFourIcon, XCircleIcon } from '@/src/components/icons'
+import { ArrowFatDownIcon, ArrowFatUpIcon, CalendarDotsIcon, HourglassIcon, LightbulbIcon, SealCheckIcon, SquaresFourIcon, XCircleIcon, type PhosphorIcon } from '@/src/components/icons'
 import { Select } from '../components/Select'
 import { BirdEmptyState } from '../components/BirdEmptyState'
 import { LoadingCaption } from '../components/LoadingCaption'
@@ -12,6 +12,7 @@ import { FeedbackDialog } from '../components/FeedbackDialog'
 import { listIdeas, voteIdea, type Idea, type IdeaSort, type IdeaStatus } from '../api/ideas'
 import { applyVote, toggleVote, type VoteValue } from '../lib/ideaVotes'
 import { track } from '../lib/analytics'
+import { formatRelativeTime } from '../lib/format'
 
 const STATUS_LABEL: Record<IdeaStatus, string> = {
   open: 'Open',
@@ -21,15 +22,22 @@ const STATUS_LABEL: Record<IdeaStatus, string> = {
   declined: 'Declined',
 }
 
-const STATUS_ICON: Record<IdeaStatus, ReactNode> = {
-  open: <LightbulbIcon size={16} />,
-  planned: <CalendarDotsIcon size={16} />,
-  in_progress: <HourglassIcon size={16} />,
-  shipped: <SealCheckIcon size={16} />,
-  declined: <XCircleIcon size={16} />,
+const STATUS_ICON: Record<IdeaStatus, PhosphorIcon> = {
+  open: LightbulbIcon,
+  planned: CalendarDotsIcon,
+  in_progress: HourglassIcon,
+  shipped: SealCheckIcon,
+  declined: XCircleIcon,
 }
 
 const STATUSES = Object.keys(STATUS_LABEL) as IdeaStatus[]
+
+const author = (idea: Idea) => (idea.mine ? 'You' : idea.authorFirstName ?? 'Someone')
+
+function StatusIcon({ status, size }: { status: IdeaStatus; size: number }) {
+  const Icon = STATUS_ICON[status]
+  return <Icon size={size} weight="bold" aria-hidden="true" />
+}
 
 /**
  * `/account/ideas`. Twin of Mobile's account/ideas.tsx: the public feedback
@@ -86,7 +94,7 @@ export function IdeasBoardPage() {
           aria-label="Status"
           value={status ?? 'all'}
           onChange={(v) => setStatus(v === 'all' ? null : (v as IdeaStatus))}
-          options={[{ value: 'all', label: 'All statuses', icon: <SquaresFourIcon size={16} /> }, ...STATUSES.map((s) => ({ value: s, label: STATUS_LABEL[s], icon: STATUS_ICON[s] }))]}
+          options={[{ value: 'all', label: 'All statuses', icon: <SquaresFourIcon size={16} /> }, ...STATUSES.map((s) => ({ value: s, label: STATUS_LABEL[s], icon: <StatusIcon status={s} size={16} /> }))]}
         />
         <button type="button" className="action-button is-active erd-accent-action ideas-pitch" onClick={() => setPitching(true)}>Pitch an idea</button>
       </div>
@@ -109,22 +117,34 @@ export function IdeasBoardPage() {
         <ul className="ideas-list">
           {ideas.data.map((idea) => (
             <li key={idea.id} className="account-card ideas-row">
-              <div className="ideas-vote" role="group" aria-label={`Votes, score ${idea.score}`}>
-                <button type="button" className={idea.myVote === 1 ? 'is-on' : ''} aria-pressed={idea.myVote === 1} aria-label="Upvote" onClick={() => tap(idea, 1)}>
-                  <CaretUpIcon size={18} aria-hidden="true" />
-                </button>
-                <span className="ideas-score">{idea.score}</span>
-                <button type="button" className={idea.myVote === -1 ? 'is-on is-down' : ''} aria-pressed={idea.myVote === -1} aria-label="Downvote" onClick={() => tap(idea, -1)}>
-                  <CaretDownIcon size={18} aria-hidden="true" />
-                </button>
-              </div>
               <div className="ideas-body">
+                <div className="ideas-meta">
+                  <span className={`ideas-status is-${idea.status}`}>
+                    <StatusIcon status={idea.status} size={12} />
+                    {STATUS_LABEL[idea.status]}
+                  </span>
+                  <span className="ideas-author">
+                    <span className="ideas-avatar" aria-hidden="true">{author(idea).charAt(0)}</span>
+                    {author(idea)}
+                  </span>
+                  <span aria-hidden="true">·</span>
+                  <time dateTime={idea.createdAt}>{formatRelativeTime(Date.parse(idea.createdAt))}</time>
+                </div>
                 <div className="ideas-title">{idea.title}</div>
                 {idea.description && <p className="ideas-description">{idea.description}</p>}
-                <div className="ideas-meta">
-                  <span className={`ideas-status is-${idea.status}`}>{STATUS_LABEL[idea.status]}</span>
-                  <span>{idea.mine ? 'You' : idea.authorFirstName ?? 'Someone'}</span>
-                </div>
+              </div>
+              <div
+                className={`ideas-vote${idea.myVote === 1 ? ' is-up' : idea.myVote === -1 ? ' is-down' : ''}`}
+                role="group"
+                aria-label={`Votes, score ${idea.score}`}
+              >
+                <button type="button" aria-pressed={idea.myVote === 1} aria-label="Upvote" onClick={() => tap(idea, 1)}>
+                  <ArrowFatUpIcon size={16} weight={idea.myVote === 1 ? 'fill' : 'bold'} aria-hidden="true" />
+                </button>
+                <span className="ideas-score">{idea.score}</span>
+                <button type="button" aria-pressed={idea.myVote === -1} aria-label="Downvote" onClick={() => tap(idea, -1)}>
+                  <ArrowFatDownIcon size={16} weight={idea.myVote === -1 ? 'fill' : 'bold'} aria-hidden="true" />
+                </button>
               </div>
             </li>
           ))}
