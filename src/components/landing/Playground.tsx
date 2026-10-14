@@ -36,7 +36,7 @@ async function typeInto(input: HTMLInputElement, text: string, alive: () => bool
 
 export function Playground() {
   // Starters are each in demo.ts's WORDS, so the pill always has an envelope to land on.
-  const { categories: sampleCategories, playItem, playAmount, starters, batchExample } = useSample()
+  const { categories: sampleCategories, playItem, playAmount, starters } = useSample()
   const reduced = useReducedMotion()
   const [paused, setPaused] = useState(false)
   const [tookOver, setTookOver] = useState(false)
@@ -57,9 +57,8 @@ export function Playground() {
   const mine = tookOver || !!reduced
   const playing = visible && !paused && !mine
 
-  // The visitor's own logs, for the + hint (first log) and the capture tip (after two by hand, like Mobile's `batch`).
+  // The visitor's own logs, for the + hint on their first.
   const [logs, setLogs] = useState(0)
-  const [tipDone, setTipDone] = useState(false)
   const onAdded = useCallback((expense: LoggedExpense) => {
     if (mine) setLogs((n) => n + 1)
     setAdded({ expense, before: categories.find((c) => c.name === expense.category) })
@@ -142,7 +141,7 @@ export function Playground() {
     setStarter((prev) => ({ text, n: (prev?.n ?? 0) + 1 }))
   }
 
-  // The nav's other tabs and the chat icon lead to screens this demo doesn't have; say so instead of doing nothing.
+  // The nav's other tabs lead to screens this demo doesn't have; say so instead of doing nothing.
   const [elsewhere, setElsewhere] = useState<{ text: string; n: number } | null>(null)
   useEffect(() => {
     if (!elsewhere) return
@@ -150,7 +149,6 @@ export function Playground() {
     return () => clearTimeout(id)
   }, [elsewhere])
   const say = (text: string) => setElsewhere((prev) => ({ text, n: (prev?.n ?? 0) + 1 }))
-  const toAskAviary = () => say('Logging a few at once happens in Ask Aviary, in the app.')
 
   const hint = !mine
     ? 'It’s playing itself. Tap the phone to take over.'
@@ -184,13 +182,7 @@ export function Playground() {
                   <motion.div key={screen === 'log' ? `log:${run}` : 'added'} style={{ position: 'absolute', inset: 0 }}
                     initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { duration: 0.25 } }} exit={{ opacity: 0, transition: { duration: 0.25 } }}>
                     {screen === 'log'
-                      ? <LogExpenseScreen categories={categories} groups={GROUPS} prefill={prefill} publish={setSubmit} onAdded={onAdded}
-                          onSeveral={() => { setTipDone(true); toAskAviary() }}
-                          tip={mine && logs >= 2 && !tipDone ? {
-                            body: `Type them all at once in Ask Aviary, like “${batchExample}”.`,
-                            onTry: () => { setTipDone(true); toAskAviary() },
-                            onDismiss: () => setTipDone(true),
-                          } : null} />
+                      ? <LogExpenseScreen categories={categories} groups={GROUPS} prefill={prefill} publish={setSubmit} onAdded={onAdded} />
                       : added && <ExpenseAddedScreen expense={added.expense} before={added.before} muted={!mine}
                           onDone={() => fresh(true)}
                           onUndo={() => {
@@ -205,7 +197,7 @@ export function Playground() {
                   <div style={{ pointerEvents: 'auto' }}>
                     <FloatingNav active={null} addActive addSaving={submit.saving} addSuccess={submit.success}
                       addHint={logs === 0 && submit.canSubmit && !submit.saving && !submit.success}
-                      addInvalid={!submit.canSubmit} addDisabled={submit.saving || submit.success} onSelect={() => { say('This demo only logs. Home, categories and the rest are in the app.'); return false }} onAdd={() => submit.submit()} />
+                      addInvalid={!submit.hasAmount} addDisabled={submit.saving || submit.success} onSelect={() => { say('This demo only logs. Home, categories and the rest are in the app.'); return false }} onAdd={() => submit.submit()} />
                   </div>
                 </div>}
               </div>
