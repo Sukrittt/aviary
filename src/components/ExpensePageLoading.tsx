@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { BirdMark } from './BirdMark'
 import { ExpenseSidebar } from './ExpenseSidebar'
-import { LoadingCaption } from './LoadingCaption'
+import { HomeSkeleton } from './TabSkeleton'
 import { InsightsTab } from '@/src/components/InsightsTab'
 import { GearIcon, HouseIcon, InvoiceIcon } from '@/src/components/icons'
 
@@ -16,9 +16,7 @@ export function ExpensePageLoading() {
       <div className="erd-main">
         <ExpenseSidebar />
         <div className="erd-content">
-          <div className="erd-home-loading">
-            <LoadingCaption placement="page" />
-          </div>
+          <HomeSkeleton />
         </div>
       </div>
 

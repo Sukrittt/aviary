@@ -12923,3 +12923,98 @@ button.account-feature-card {
   font-size: 0.85rem;
   opacity: 0.7;
 }
+
+/* ── Tab skeletons (src/components/TabSkeleton.tsx) ─────────── */
+
+.sk-pulse {
+  animation: sk-pulse 0.75s ease-in-out infinite alternate;
+}
+@keyframes sk-pulse {
+  to { opacity: 0.45; }
+}
+.sk-bone {
+  display: block;
+  flex-shrink: 0;
+  background: var(--erd-input-bg);
+}
+.sk-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 20px;
+  border: 1px solid var(--erd-border);
+  box-shadow: none;
+}
+.sk-card.sk-rta {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+}
+.erd-home-month:has(.sk-bone) {
+  gap: 6px;
+}
+.sk-head,
+.sk-inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sk-head {
+  justify-content: space-between;
+}
+.sk-group {
+  margin-top: 6px;
+}
+.sk-group > .sk-head {
+  padding: 4px 8px 4px 4px;
+}
+.sk-row,
+.sk-cat-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+}
+.sk-cat-row {
+  gap: 16px;
+  margin-left: -14px;
+  padding-left: 22px;
+  border-top: 1px solid var(--erd-border);
+}
+.sk-cat-row:first-child {
+  border-top: none;
+}
+.sk-row-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sk-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+  padding: 4px 0 28px;
+}
+.sk-day-head {
+  padding: 0 6px 10px;
+  border-bottom: 1px solid var(--erd-border-strong);
+}
+.sk-timeline .sk-row {
+  min-height: 72px;
+  padding: 13px 6px;
+  border-bottom: 1px solid var(--erd-border);
+}
+.sk-timeline .sk-row:last-child {
+  border-bottom: 0;
+}
+.sk-env-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sk-pulse { animation: none; }
+}

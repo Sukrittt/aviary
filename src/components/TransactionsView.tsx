@@ -17,7 +17,7 @@ import { EMPTY } from "../lib/constants";
 import { orderWithRecents } from "../lib/recentCategories";
 import { useRecentCategories } from "../hooks/useRecentCategories";
 
-import { LoadingCaption } from "./LoadingCaption";
+import { ActivitySkeleton } from "./TabSkeleton";
 import { TransactionEditModal } from "./TransactionEditModal";
 import { LogExpenseModal } from "./LogExpenseModal";
 import { DatePicker } from "./DatePicker";
@@ -584,9 +584,7 @@ export function TransactionsView({
       {deleteNotice && <ExpenseNoticeDialog status={deleteNotice.status} action="delete" onBack={() => setDeleteNotice(null)} />}
 
       {loading ? (
-        <div className="txn-timeline-loading">
-          <LoadingCaption placement="page" />
-        </div>
+        <ActivitySkeleton />
       ) : error ? (
         <div className="txn-timeline-empty">
           Couldn&apos;t load transactions. {error}

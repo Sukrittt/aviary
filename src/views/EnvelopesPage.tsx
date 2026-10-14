@@ -10,7 +10,7 @@ import { CategoryIconPicker } from "../components/CategoryIconPicker";
 import { categoryIconKey, groupIconKey, type CategoryIconKey } from "../lib/categoryIcons";
 import { useAppearance } from "../../components/AppearanceProvider";
 import { ExpenseSidebar } from "../components/ExpenseSidebar";
-import { LoadingCaption } from "../components/LoadingCaption";
+import { EnvelopesSkeleton } from "../components/TabSkeleton";
 import { EnvelopeTabbar } from "../components/EnvelopeTabbar";
 import { SpringChevron, SpringCollapse } from "../components/SpringCollapse";
 import { AlertThresholdPicker } from "../components/AlertThresholdPicker";
@@ -377,7 +377,7 @@ export function EnvelopesPage() {
             </div>
           )}
 
-          {loading && <LoadingCaption placement="page" />}
+          {loading && <EnvelopesSkeleton />}
 
           {!loading && grouped.length === 0 && (
             <BirdEmptyState
