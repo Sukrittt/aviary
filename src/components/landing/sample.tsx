@@ -25,7 +25,7 @@ const INTL_MEDIA = new Set([
 const IN = {
   media: (file: string) => `/landing/${file}`,
   categories: CATEGORIES,
-  habits: ['4pm chai', 'Friday cab home', 'Sunday groceries', 'morning metro'],
+  habits: ['4pm chai', 'Friday cab home', 'Sunday groceries', 'office lunch', 'Swiggy Saturdays', 'phone bill'],
   learns: {
     item: 'Chai', amount: 20, envelope: <><CookieIcon aria-hidden style={{ verticalAlign: '-0.125em' }} /> Snacks</>, of: 600, pay: 'UPI',
     ask: 'Afternoon chai?', body: 'Time for your Tuesday chai fix? Tap Log and it’s in.', done: 'Chai is in. Nice one.',
@@ -35,7 +35,6 @@ const IN = {
   investments: 'Equity, FDs, gold and crypto',
   playItem: 'Coffee with Sam', playAmount: ['1', '8', '0'],
   // Mobile's capture tip example (log-expense.tsx CAPTURE_TIP_COPY).
-  batchExample: 'auto 240, lunch 150',
   starters: ['Chai', 'Uber home', 'Groceries', 'Netflix'],
   widgetToday: [{ item: 'Coffee with Sam', amount: 180 }, { item: 'Metro card', amount: 100 }],
   statement: [
@@ -82,7 +81,7 @@ export type Sample = typeof IN
 const INTL: Sample = {
   media: (file) => `/landing/${INTL_MEDIA.has(file) ? 'intl/' : ''}${file}`,
   categories: CATEGORIES_INTL,
-  habits: ['4pm coffee', 'Friday ride home', 'Sunday groceries', 'morning bus'],
+  habits: ['4pm coffee', 'Friday ride home', 'Sunday groceries', 'office lunch', 'takeout Saturdays', 'phone bill'],
   learns: {
     item: 'Coffee', amount: 4, envelope: <><CookieIcon aria-hidden style={{ verticalAlign: '-0.125em' }} /> Snacks</>, of: 60, pay: 'Card',
     ask: 'Afternoon coffee?', body: 'Time for your Tuesday coffee fix? Tap Log and it’s in.', done: 'Coffee is in. Nice one.',
@@ -91,7 +90,6 @@ const INTL: Sample = {
   cabHome: 18,
   investments: 'Stocks, savings, gold and crypto',
   playItem: 'Coffee with Sam', playAmount: ['6'],
-  batchExample: 'bus 3, lunch 15',
   starters: ['Coffee', 'Uber home', 'Groceries', 'Netflix'],
   widgetToday: [{ item: 'Coffee with Sam', amount: 6 }, { item: 'Bus fare', amount: 2.75 }],
   statement: [
