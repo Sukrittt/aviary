@@ -313,7 +313,7 @@ export function RecurringExpenseModal({ id, initialValues, suggestionId, onAdded
                     <button type="button" className="account-confirm-cancel" disabled={mutatingAction} onClick={() => setConfirmingDelete(false)}>
                       Back
                     </button>
-                    <button type="button" className="account-danger-btn" style={{ marginTop: 0 }} disabled={mutatingAction} onClick={() => runAction('delete')}>
+                    <button type="button" className="account-danger-btn" disabled={mutatingAction} onClick={() => runAction('delete')}>
                       {deleteRecurring.isPending ? 'Working…' : 'Delete'}
                     </button>
                   </div>

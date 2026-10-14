@@ -6216,8 +6216,11 @@ button.account-feature-card {
   line-height: 1.5;
 }
 
-.account-danger-btn {
+.account-danger-card > .account-danger-btn {
   margin-top: 12px;
+}
+
+.account-danger-btn {
   padding: 11px 18px;
   border-radius: 100px;
   border: none;

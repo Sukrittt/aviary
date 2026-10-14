@@ -842,7 +842,7 @@ export function TransactionsView({
             <button
               type="button"
               className="account-danger-btn"
-              style={{ marginTop: 0 }}
+             
               onClick={() => {
                 queuedDelete.current = deleteTxn;
                 setDeleteTxn(null);
@@ -862,7 +862,7 @@ export function TransactionsView({
             <button
               type="button"
               className="account-danger-btn"
-              style={{ marginTop: 0 }}
+             
               onClick={() => void handleBulkDelete(selectedTxns)}
             >
               Remove

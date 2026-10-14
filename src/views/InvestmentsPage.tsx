@@ -471,7 +471,7 @@ export function InvestmentsPage() {
             <button
               type="button"
               className="account-danger-btn"
-              style={{ marginTop: 0 }}
+             
               onClick={() => {
                 queuedDelete.current = deleteTarget;
                 setDeleteTarget(null);

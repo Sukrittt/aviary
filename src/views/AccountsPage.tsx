@@ -146,7 +146,7 @@ export function AccountsPage() {
             onCancel={() => setDeleting(null)}
             busy={update.isPending}
           >
-            <button type="button" className="account-danger-btn" style={{ marginTop: 0 }} onClick={() => remove(deleting)} disabled={update.isPending}>
+            <button type="button" className="account-danger-btn" onClick={() => remove(deleting)} disabled={update.isPending}>
               {update.isPending ? 'Deleting…' : 'Delete'}
             </button>
           </ConfirmDialog>
@@ -309,7 +309,7 @@ export function AccountModal({ id, onClose }: { id?: string; onClose: () => void
                   </div>
                   <div className="account-confirm-actions">
                     <button type="button" className="account-confirm-cancel" disabled={busy} onClick={() => setConfirmArchive(false)}>Back</button>
-                    <button type="button" className="account-danger-btn" style={{ marginTop: 0 }} disabled={busy} onClick={archive}>
+                    <button type="button" className="account-danger-btn" disabled={busy} onClick={archive}>
                       {update.isPending ? 'Working…' : 'Archive'}
                     </button>
                   </div>
