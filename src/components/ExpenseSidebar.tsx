@@ -40,16 +40,19 @@ const NAV: Array<{ href: string; label: string; icon: PhosphorIcon }> = [
 const parseBool = (raw: string) => raw === "1";
 const serializeBool = (v: boolean) => (v ? "1" : "0");
 
-// Labels drop out in the collapsed (icon) rail; the tooltip carries them there.
-const LABEL = "erd-side-label group-data-[collapsible=icon]:hidden";
+// Labels shrink away in step with the rail's width animation instead of
+// vanishing at once; the tooltip carries them in the collapsed rail.
+const LABEL =
+  "erd-side-label overflow-hidden whitespace-nowrap max-w-40 transition-[max-width,opacity] duration-200 ease-linear " +
+  "group-data-[collapsible=icon]:max-w-0 group-data-[collapsible=icon]:opacity-0";
 // The app's nav-row look on top of shadcn's menu button. `!` where the
 // unlayered app CSS or shadcn's own `!` sizing would otherwise win.
 const ITEM =
-  "h-10 gap-3 rounded-xl px-3 text-sm font-semibold text-(--erd-text2) [&_svg]:size-[18px]! " +
+  "h-10 gap-3 rounded-xl px-[13px] text-sm font-semibold text-(--erd-text2) [&_svg]:size-[18px]! " +
   "hover:bg-(--erd-border) hover:text-(--erd-text) [&:not([data-active]):not(:hover)_svg]:text-(--erd-text3) " +
   "data-active:bg-(--gold-soft) data-active:font-bold data-active:text-(--gold-ink) " +
-  "group-data-[collapsible=icon]:h-10! group-data-[collapsible=icon]:w-full! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0!";
-const CTA = "erd-side-cta group-data-[collapsible=icon]:px-0!";
+  "group-data-[collapsible=icon]:h-10! group-data-[collapsible=icon]:w-full! group-data-[collapsible=icon]:px-[13px]!";
+const CTA = "erd-side-cta group-data-[collapsible=icon]:gap-0! group-data-[collapsible=icon]:px-0!";
 
 export function ExpenseSidebar(props: Props) {
   const [collapsed, setCollapsed] = usePersistentState("erd-sidebar-collapsed", false, parseBool, serializeBool);
@@ -146,8 +149,8 @@ function ExpenseSidebarNav({ onBulkReturn }: Props) {
             primary navigation landmark the old <nav> provided. */}
         <nav aria-label="Primary" className="flex min-h-0 flex-1 flex-col">
         <SidebarHeader className="gap-[22px] px-3.5 pt-[22px] pb-0">
-          <div className="erd-brand group-data-[collapsible=icon]:flex-col! group-data-[collapsible=icon]:gap-2.5! group-data-[collapsible=icon]:pl-0!">
-            <Link href="/expense" className="erd-brand-link" aria-label="Aviary home" onClick={closeMobile}>
+          <div className="erd-brand">
+            <Link href="/expense" className="erd-brand-link group-data-[collapsible=icon]:gap-0!" aria-label="Aviary home" onClick={closeMobile}>
               <BirdMark size={34} />
               <span className={LABEL}>Aviary</span>
             </Link>
@@ -208,16 +211,15 @@ function ExpenseSidebarNav({ onBulkReturn }: Props) {
         </nav>
       </Sidebar>
 
-      {/* Sits just outside the rail, top left of the page, and follows its
-          width (the Sidebar root is the `peer`). Hidden on mobile by CSS. */}
+      {/* Straddles the rail's edge so it never lands on page content. */}
       <button
         type="button"
-        className="erd-collapse-btn absolute top-[18px] z-10 left-[calc(var(--sidebar-width)+12px)] transition-[left] duration-200 ease-linear peer-data-[state=collapsed]:left-[calc(var(--sidebar-width-icon)+12px)]"
+        className="erd-rail-toggle"
         onClick={toggleSidebar}
         aria-label={open ? "Collapse sidebar" : "Expand sidebar"}
         title={open ? "Collapse sidebar" : "Expand sidebar"}
       >
-        <SidebarSimpleIcon size={18} />
+        <SidebarSimpleIcon size={15} />
       </button>
 
       {/* Outside the sidebar: its fixed, transformed container would trap
