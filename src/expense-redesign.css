@@ -7769,6 +7769,53 @@ button.account-feature-card {
   cursor: pointer;
 }
 
+/* Brief skeleton: same boxes as the real card, so nothing jumps when it lands. */
+.brain-skel {
+  display: block;
+  height: 12px;
+  border-radius: 6px;
+  background: var(--erd-border);
+  animation: brain-skel-pulse 1.4s ease-in-out infinite;
+}
+@keyframes brain-skel-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+.brain-skel-lines {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+.brain-skel-lines .brain-skel:last-child {
+  width: 60%;
+}
+.brain-insight .brain-skel {
+  width: 70%;
+}
+.brain-insight .brain-skel--short {
+  width: 45%;
+  height: 10px;
+  margin-top: 8px;
+}
+.brain-insight .brain-insight-icon.brain-skel {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+}
+.brain-insight .brain-skel--value {
+  width: 56px;
+}
+.brain-skel--chip {
+  height: 44px;
+  border-radius: 12px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .brain-skel {
+    animation: none;
+  }
+}
+
 .brain-insight-grid {
   display: grid;
   margin: 16px 0 24px;
