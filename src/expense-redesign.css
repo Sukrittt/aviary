@@ -12810,10 +12810,12 @@ button.account-feature-card {
 .cat-icon-picker-option:hover {
   background: var(--tk-input-bg);
 }
+/* The panel is portalled outside .expense-redesign, so --gold* isn't set
+   here; use the global tokens they alias. */
 .cat-icon-picker-option.is-on {
-  background: var(--gold-soft);
-  border-color: color-mix(in oklab, var(--gold) 35%, transparent);
-  color: var(--gold-ink);
+  background: var(--tk-accent-soft);
+  border-color: color-mix(in oklab, var(--tk-accent) 35%, transparent);
+  color: var(--tk-accent-ink);
 }
 .cat-icon-picker-empty {
   margin: 0;
