@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactElement, type ReactNode } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
-import { InvoiceIcon, BellIcon, ArrowsInLineVerticalIcon, EnvelopeSimpleIcon, MoonIcon, PencilSimpleIcon, PlusIcon, SunIcon, TrashIcon, XIcon } from "@/src/components/icons";
+import { ReceiptIcon, BellIcon, ArrowsInLineVerticalIcon, EnvelopeSimpleIcon, MoonIcon, PencilSimpleIcon, PlusIcon, SunIcon, TrashIcon, XIcon } from "@/src/components/icons";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { CategoryIcon } from "../components/CategoryIcon";
 import { CategoryIconPicker } from "../components/CategoryIconPicker";
 import { categoryIconKey, groupIconKey, type CategoryIconKey } from "../lib/categoryIcons";
@@ -429,51 +430,54 @@ export function EnvelopesPage() {
                       </span>
                     </button>
                     <div className="env-group-actions">
-                      <button
-                        type="button"
-                        className="env-icon-btn"
-                        onClick={() =>
-                          beginDraft({
-                            kind: "new-category",
-                            group: group.name,
-                          })
-                        }
-                        aria-label={`Add a category to ${text}`}
-                        title="Add category"
-                      >
-                        <PlusIcon size={14} aria-hidden="true" />
-                      </button>
-                      {group.name && (
+                      <IconTip label="Add category">
                         <button
                           type="button"
                           className="env-icon-btn"
                           onClick={() =>
-                            beginDraft(
-                              { kind: "rename-group", name: group.name, icon: groupIcons.get(group.name) },
-                              group.name,
-                            )
-                          }
-                          aria-label={`Rename ${text}`}
-                          title="Rename group"
-                        >
-                          <PencilSimpleIcon size={14} aria-hidden="true" />
-                        </button>
-                      )}
-                      {group.name && (
-                        <button
-                          type="button"
-                          className="env-icon-btn env-icon-btn--danger"
-                          onClick={() =>
-                            setDeleteTarget({
-                              kind: "group",
-                              name: group.name,
+                            beginDraft({
+                              kind: "new-category",
+                              group: group.name,
                             })
                           }
-                          aria-label={`Delete ${text}`}
-                          title="Delete group"
+                          aria-label={`Add a category to ${text}`}
                         >
-                          <TrashIcon size={14} aria-hidden="true" />
+                          <PlusIcon size={14} aria-hidden="true" />
                         </button>
+                      </IconTip>
+                      {group.name && (
+                        <IconTip label="Rename group">
+                          <button
+                            type="button"
+                            className="env-icon-btn"
+                            onClick={() =>
+                              beginDraft(
+                                { kind: "rename-group", name: group.name, icon: groupIcons.get(group.name) },
+                                group.name,
+                              )
+                            }
+                            aria-label={`Rename ${text}`}
+                          >
+                            <PencilSimpleIcon size={14} aria-hidden="true" />
+                          </button>
+                        </IconTip>
+                      )}
+                      {group.name && (
+                        <IconTip label="Delete group">
+                          <button
+                            type="button"
+                            className="env-icon-btn env-icon-btn--danger"
+                            onClick={() =>
+                              setDeleteTarget({
+                                kind: "group",
+                                name: group.name,
+                              })
+                            }
+                            aria-label={`Delete ${text}`}
+                          >
+                            <TrashIcon size={14} aria-hidden="true" />
+                          </button>
+                        </IconTip>
                       )}
                     </div>
                   </div>
@@ -524,47 +528,50 @@ export function EnvelopesPage() {
                                 </span>
                               </button>
                               <div className="env-cat-actions">
-                                <Link
-                                  className="env-icon-btn"
-                                  href={`/expense/transactions?category=${encodeURIComponent(category.name)}`}
-                                  aria-label={`View transactions for ${parts.text}`}
-                                  title="View transactions"
-                                >
-                                  <InvoiceIcon size={14} aria-hidden="true" />
-                                </Link>
-                                <button
-                                  type="button"
-                                  className="env-icon-btn"
-                                  onClick={() =>
-                                    beginDraft(
-                                      {
-                                        kind: "rename-category",
+                                <IconTip label="View transactions">
+                                  <Link
+                                    className="env-icon-btn"
+                                    href={`/expense/transactions?category=${encodeURIComponent(category.name)}`}
+                                    aria-label={`View transactions for ${parts.text}`}
+                                  >
+                                    <ReceiptIcon size={14} aria-hidden="true" />
+                                  </Link>
+                                </IconTip>
+                                <IconTip label="Rename category">
+                                  <button
+                                    type="button"
+                                    className="env-icon-btn"
+                                    onClick={() =>
+                                      beginDraft(
+                                        {
+                                          kind: "rename-category",
+                                          name: category.name,
+                                          group: group.name,
+                                          icon: category.icon,
+                                        },
+                                        category.name,
+                                      )
+                                    }
+                                    aria-label={`Rename ${parts.text}`}
+                                  >
+                                    <PencilSimpleIcon size={14} aria-hidden="true" />
+                                  </button>
+                                </IconTip>
+                                <IconTip label="Delete category">
+                                  <button
+                                    type="button"
+                                    className="env-icon-btn env-icon-btn--danger"
+                                    onClick={() =>
+                                      setDeleteTarget({
+                                        kind: "category",
                                         name: category.name,
-                                        group: group.name,
-                                        icon: category.icon,
-                                      },
-                                      category.name,
-                                    )
-                                  }
-                                  aria-label={`Rename ${parts.text}`}
-                                  title="Rename category"
-                                >
-                                  <PencilSimpleIcon size={14} aria-hidden="true" />
-                                </button>
-                                <button
-                                  type="button"
-                                  className="env-icon-btn env-icon-btn--danger"
-                                  onClick={() =>
-                                    setDeleteTarget({
-                                      kind: "category",
-                                      name: category.name,
-                                    })
-                                  }
-                                  aria-label={`Delete ${parts.text}`}
-                                  title="Delete category"
-                                >
-                                  <TrashIcon size={14} aria-hidden="true" />
-                                </button>
+                                      })
+                                    }
+                                    aria-label={`Delete ${parts.text}`}
+                                  >
+                                    <TrashIcon size={14} aria-hidden="true" />
+                                  </button>
+                                </IconTip>
                               </div>
                             </>
                           );
@@ -775,5 +782,14 @@ export function EnvelopesPage() {
 
       <EnvelopeTabbar />
     </section>
+  );
+}
+
+function IconTip({ label, children }: { label: string; children: ReactElement }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger render={children} />
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
   );
 }
