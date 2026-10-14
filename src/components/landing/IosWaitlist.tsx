@@ -47,7 +47,7 @@ export function IosWaitlist({ placement = 'footer_cta', className = '', buttonCl
   const joined = status === 'joined'
   return (
     <form className={`lp-waitlist ${className}`.trim()} onSubmit={submit}>
-      <p className="lp-waitlist-title">On iPhone? The app’s on its way.</p>
+      <p className="lp-waitlist-title">Not on iPhone yet. We’ll tell you the day it lands.</p>
       <div className="lp-waitlist-row">
         {!knownEmail && <input
           type="email"

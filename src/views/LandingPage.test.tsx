@@ -36,4 +36,13 @@ describe('LandingPage', () => {
     render(<LandingPage {...props} />)
     expect(screen.getByRole('link', { name: 'Use it on the web today' })).toHaveAttribute('href', '/expense')
   })
+  it('points desktop visitors to the iPhone waitlist from the hero', () => {
+    render(<LandingPage />)
+    expect(screen.getByRole('link', { name: 'Join the waitlist' })).toHaveAttribute('href', '#get')
+  })
+
+  it.each([{ ios: true }, { android: true }])('leaves the hero waitlist link off for %o', (props) => {
+    render(<LandingPage {...props} />)
+    expect(screen.queryByRole('link', { name: 'Join the waitlist' })).not.toBeInTheDocument()
+  })
 })

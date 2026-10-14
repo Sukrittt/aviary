@@ -91,6 +91,8 @@ export function LandingPage({ monthlyPrice, ios = false, android = false, intl =
         <Link href="/expense" className="lp-button lp-button--ghost"><MonitorIcon size={18} aria-hidden="true" />Use it on the web today</Link>
       </div>
       <span className="lp-hero-note">Free for 30 days{afterTrial} · No card needed</span>
+      {/* Desktop only: plenty of iPhone owners browse on a Mac and would miss the waitlist at the bottom. */}
+      {!ios && !android && <span className="lp-hero-note lp-hero-note--tight">Not on iPhone yet. <a href="#get">Join the waitlist</a></span>}
     </section>
     <div className="lp-stage-wrap"><HeroStage /></div>
 
