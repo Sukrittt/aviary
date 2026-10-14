@@ -8,6 +8,7 @@ vi.mock('@google/genai', () => ({
   GoogleGenAI: class {
     models = { generateContentStream }
   },
+  ThinkingLevel: { MINIMAL: 'MINIMAL', LOW: 'LOW' },
 }))
 
 process.env.GEMINI_API_KEY = 'test'
@@ -56,6 +57,18 @@ describe('streamText retries', () => {
     expect(generateContentStream).toHaveBeenCalledTimes(2)
     // One call, one usage row: the retry is part of the same request.
     expect(logMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('retries on the other model, since a demand spike hits one model at a time', async () => {
+    generateContentStream.mockRejectedValueOnce(new Error('503 UNAVAILABLE'))
+    generateContentStream.mockResolvedValueOnce(chunks())
+    for await (const _ of await streamText('sys', [], caller)) void _
+
+    const [first, second] = generateContentStream.mock.calls.map(([req]) => req.model)
+    expect(first).toBe('gemini-3.5-flash-lite')
+    expect(second).toBe('gemini-3.5-flash')
+    // The usage row is priced at the model that actually answered.
+    expect(logMock).toHaveBeenCalledWith(caller, 'gemini-3.5-flash', expect.any(Number), expect.anything(), null)
   })
 
   it('retries a 429 too', async () => {

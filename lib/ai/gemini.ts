@@ -13,24 +13,25 @@ import { AI_DISABLED_MESSAGE, getSystemSettings } from '../systemSettings'
 // ~0.8s. Costs more per token ($0.30/$2.50 vs $0.25/$1.50 per 1M) but the
 // Ask Aviary's replies are tens of tokens, so the latency wins outright.
 const MODEL = 'gemini-3.5-flash-lite'
-// Gemini answers 503 UNAVAILABLE ("experiencing high demand") in bursts. One
-// retry clears most of them, and nothing has been streamed to the client yet
-// at the point we retry, so replaying the call is safe.
+// Gemini answers 503 UNAVAILABLE ("experiencing high demand") in bursts, and a
+// burst hits one model at a time (2026-10-13: 3.5-flash-lite 503'd for hours),
+// so the one retry goes to the other model rather than back into the spike.
+// Nothing has been streamed to the client yet at that point, so replaying is safe.
 const RETRY_STATUSES = [429, 503]
-const RETRY_DELAY_MS = 700
 
 function isRetryable(err: unknown): boolean {
   const text = String((err as Error)?.message ?? err)
   return RETRY_STATUSES.some((status) => text.includes(String(status)))
 }
 
-async function once<T>(call: () => Promise<T>): Promise<T> {
+/** Runs `call` on `model`, retrying a 429/503 once on the other model. Returns which model answered. */
+async function once<T>(call: (model: string) => Promise<T>, model: string): Promise<{ value: T; model: string }> {
   try {
-    return await call()
+    return { value: await call(model), model }
   } catch (err) {
     if (!isRetryable(err)) throw err
-    await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS))
-    return call()
+    const other = model === HEDGE_MODEL ? MODEL : HEDGE_MODEL
+    return { value: await call(other), model: other }
   }
 }
 
@@ -52,15 +53,15 @@ async function assertAiEnabled() {
 /** Runs one non-streaming call and logs its tokens, cost and outcome to `ai_usage`. */
 async function tracked(
   caller: AiCaller,
-  call: () => Promise<GenerateContentResponse>,
+  call: (model: string) => Promise<GenerateContentResponse>,
   model: string = MODEL,
 ): Promise<GenerateContentResponse> {
   await assertAiEnabled()
   const startedAt = Date.now()
   try {
-    const response = await once(call)
+    const { value: response, model: answered } = await once(call, model)
     const endedAt = Date.now()
-    logLater(() => logAiUsage(caller, model, startedAt, response.usageMetadata, null, endedAt))
+    logLater(() => logAiUsage(caller, answered, startedAt, response.usageMetadata, null, endedAt))
     return response
   } catch (err) {
     const endedAt = Date.now()
@@ -141,8 +142,8 @@ export async function generateJSON<T>(
   { hedgeAfterMs }: { hedgeAfterMs?: number } = {},
 ): Promise<T> {
   const ai = getGeminiClient()
-  const call = (model: string) => (abortSignal?: AbortSignal) =>
-    tracked(caller, () =>
+  const call = (first: string) => (abortSignal?: AbortSignal) =>
+    tracked(caller, (model) =>
       ai.models.generateContent({
         model,
         contents: prompt,
@@ -153,7 +154,7 @@ export async function generateJSON<T>(
           ...(model === HEDGE_MODEL ? { thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL } } : {}),
         },
       }),
-    model)
+    first)
   const response = hedgeAfterMs === undefined
     ? await call(MODEL)()
     : await hedged(call(MODEL), call(HEDGE_MODEL), hedgeAfterMs)
@@ -174,9 +175,9 @@ export async function generateJSONFromImage<T>(
   caller: AiCaller,
 ): Promise<T> {
   const ai = getGeminiClient()
-  const response = await tracked(caller, () =>
+  const response = await tracked(caller, (model) =>
     ai.models.generateContent({
-      model: MODEL,
+      model,
       contents: [{ text: prompt }, { inlineData: { data: image.data, mimeType: image.mimeType } }],
       config: {
         responseMimeType: 'application/json',
@@ -203,28 +204,31 @@ export async function streamText(
   await assertAiEnabled()
   const ai = getGeminiClient()
   const startedAt = Date.now()
-  let stream
+  let opened
   try {
-    stream = await once(() => ai.models.generateContentStream({
-      model: MODEL,
+    opened = await once((model) => ai.models.generateContentStream({
+      model,
       contents,
       config: {
         systemInstruction,
         temperature: 0.4,
         // Thinking tokens count against maxOutputTokens: at 700 a reasoning
         // reply got cut off mid-sentence, so the budget grows with it.
-        ...(reason ? { maxOutputTokens: 4000, thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } } : { maxOutputTokens: 700 }),
+        ...(reason
+          ? { maxOutputTokens: 4000, thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } }
+          // The backup thinks by default, which would eat this budget too.
+          : { maxOutputTokens: 700, ...(model === HEDGE_MODEL ? { thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL } } : {}) }),
       },
-    }))
+    }), MODEL)
   } catch (err) {
     await logAiUsage(caller, MODEL, startedAt, undefined, err)
     throw err
   }
-  return trackStream(stream, caller, startedAt)
+  return trackStream(opened.value, caller, opened.model, startedAt)
 }
 
 /** Passes chunks through, logging usage (reported on the final chunk) once the stream ends, fails or is abandoned. */
-async function* trackStream(stream: AsyncGenerator<GenerateContentResponse>, caller: AiCaller, startedAt: number) {
+async function* trackStream(stream: AsyncGenerator<GenerateContentResponse>, caller: AiCaller, model: string, startedAt: number) {
   let last: GenerateContentResponse | undefined
   let error: unknown = null
   try {
@@ -236,6 +240,6 @@ async function* trackStream(stream: AsyncGenerator<GenerateContentResponse>, cal
     error = err
     throw err
   } finally {
-    await logAiUsage(caller, MODEL, startedAt, last?.usageMetadata, error)
+    await logAiUsage(caller, model, startedAt, last?.usageMetadata, error)
   }
 }
