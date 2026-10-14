@@ -64,7 +64,7 @@ export function BugReportForm({ onDone, dialog = false }: { onDone: () => void; 
       </label>
       <CountedTextarea
         id="feedback-description"
-        className="erd-log-input feedback-textarea"
+        className="erd-log-input"
         placeholder="What happened, and what did you expect instead?"
         maxLength={2000}
         value={description}

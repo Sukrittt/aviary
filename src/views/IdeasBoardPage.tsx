@@ -148,7 +148,7 @@ export function IdeaForm({ onPosted, onDone, dialog = false }: { onPosted: () =>
       <label className="erd-log-label" htmlFor="idea-title">Your idea</label>
       <input id="idea-title" className="erd-log-input" placeholder="What would make Aviary better?" maxLength={150} value={title} onChange={(e) => setTitle(e.target.value)} autoFocus={dialog} />
       <label className="erd-log-label" htmlFor="idea-description">Details (optional)</label>
-      <CountedTextarea id="idea-description" className="erd-log-input feedback-textarea" placeholder="Why would it help you?" maxLength={1000} value={description} onChange={(e) => setDescription(e.target.value)} rows={5} />
+      <CountedTextarea id="idea-description" className="erd-log-input" placeholder="Why would it help you?" maxLength={1000} value={description} onChange={(e) => setDescription(e.target.value)} rows={5} />
       <p className="recurring-hint">Everyone on the board sees your idea and your first name.</p>
       {error && <p className="erd-log-error">{error}</p>}
       <SuccessButton type="submit" baseClass="erd-log-submit" saving={saving} success={success} savingLabel="Posting…" successLabel="Posted" disabled={!canSubmit || saving || success}>

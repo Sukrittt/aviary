@@ -10472,17 +10472,26 @@ button.account-feature-card {
   flex-direction: column;
   padding: 18px 20px 20px;
 }
-.feedback-textarea {
+.counted-textarea {
+  position: relative;
+  padding-bottom: 30px;
+}
+.counted-textarea:focus-within { border-color: var(--gold); }
+.counted-textarea-input {
   display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
   line-height: 1.5;
   resize: none;
 }
-.counted-textarea { position: relative; }
-/* Room for the count so the last line never runs under it */
-.counted-textarea .feedback-textarea { padding-bottom: 28px; }
 .counted-textarea-count {
   position: absolute;
-  right: 14px;
+  right: 16px;
   bottom: 8px;
   font-size: 12px;
   font-variant-numeric: tabular-nums;
