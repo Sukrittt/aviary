@@ -222,8 +222,8 @@ export default function DataPage() {
         <span style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <BroomIcon size={20} aria-hidden />
           <span>
-            <span style={{ display: 'block', fontSize: 14, fontWeight: 700 }}>Clear all transactions</span>
-            <span style={{ display: 'block', fontSize: 11, color: 'var(--erd-text2)', marginTop: 2 }}>
+            <span style={{ display: 'block', fontSize: 14, fontWeight: 600 }}>Clear all transactions</span>
+            <span style={{ display: 'block', fontSize: 12, color: 'var(--erd-text2)', marginTop: 2 }}>
               Keeps categories, wipes history
             </span>
           </span>

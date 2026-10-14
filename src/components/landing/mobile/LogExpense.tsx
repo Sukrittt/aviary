@@ -361,7 +361,7 @@ function CategoryPickerSheet({
   const groupLabel: CSSProperties = {
     color: T.text3,
     ...font.bodyBold,
-    fontSize: 11,
+    fontSize: 12,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginTop: 12,

@@ -30,7 +30,7 @@
   background: var(--tk-card-solid);
   color: var(--tk-text);
   box-shadow: 0 10px 38px -16px rgba(0, 0, 0, 0.28);
-  font-family: var(--font-nunito), sans-serif;
+  font-family: var(--font-body), sans-serif;
   /* Grows out of the button. allow-discrete keeps it visible while it animates out. */
   transform-origin: bottom right;
   opacity: 0;
@@ -60,7 +60,7 @@
   border-radius: 10px;
   color: inherit;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
 }
 .feedback-fab-menu button svg { font-size: 20px; color: var(--tk-accent-ink); }
 .feedback-fab-menu button:focus-visible { outline: 2px solid var(--tk-accent); outline-offset: -2px; }
@@ -75,5 +75,5 @@
 @media (min-width: 901px) {
   .expense-redesign .erd-modal-card.feedback-dialog { width: 460px; }
 }
-.feedback-dialog .account-row-meta a { color: var(--gold-ink); font-weight: 700; }
+.feedback-dialog .account-row-meta a { color: var(--gold-ink); font-weight: 600; }
 .feedback-form.is-dialog { padding: 12px 0 0; }

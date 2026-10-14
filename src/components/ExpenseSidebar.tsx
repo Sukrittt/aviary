@@ -48,9 +48,9 @@ const LABEL =
 // The app's nav-row look on top of shadcn's menu button. `!` where the
 // unlayered app CSS or shadcn's own `!` sizing would otherwise win.
 const ITEM =
-  "h-10 gap-3 rounded-xl px-[13px] text-sm font-semibold text-(--erd-text2) [&_svg]:size-[18px]! " +
+  "h-10 gap-3 rounded-xl px-[13px] text-sm font-medium text-(--erd-text2) [&_svg]:size-[18px]! " +
   "hover:bg-(--erd-border) hover:text-(--erd-text) [&:not([data-active]):not(:hover)_svg]:text-(--erd-text3) " +
-  "data-active:bg-(--gold-soft) data-active:font-bold data-active:text-(--gold-ink) " +
+  "data-active:bg-(--gold-soft) data-active:font-semibold data-active:text-(--gold-ink) " +
   "group-data-[collapsible=icon]:h-10! group-data-[collapsible=icon]:w-full! group-data-[collapsible=icon]:px-[13px]!";
 const CTA = "erd-side-cta group-data-[collapsible=icon]:gap-0! group-data-[collapsible=icon]:px-0!";
 

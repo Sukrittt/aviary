@@ -22,7 +22,7 @@
   background: var(--tk-bg);
   color: var(--tk-text);
   font:
-    600 15px var(--font-nunito),
+    500 15px var(--font-body),
     sans-serif;
   box-shadow: 0 24px 80px #0004;
 }
@@ -79,7 +79,7 @@
   flex: 1;
   text-align: right;
   font:
-    600 15px var(--font-fredoka),
+    600 15px var(--font-display),
     sans-serif;
 }
 .money-dots {
@@ -110,8 +110,8 @@
 .money-label {
   display: block;
   color: var(--tk-text3);
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   letter-spacing: 0.6px;
 }
 .money-card {
@@ -141,7 +141,7 @@
 }
 .money-card-name {
   font:
-    600 15px var(--font-fredoka),
+    600 15px var(--font-display),
     sans-serif;
   overflow-wrap: anywhere;
 }
@@ -190,7 +190,7 @@
   border-radius: 999px;
   background: var(--tk-card);
   color: var(--tk-text3);
-  font-weight: 800 !important;
+  font-weight: 700 !important;
   transition: background-color 200ms;
 }
 .money-cta.is-ready {
@@ -302,7 +302,7 @@
 .money-source-name {
   display: block;
   font:
-    600 15px var(--font-fredoka),
+    600 15px var(--font-display),
     sans-serif;
   overflow-wrap: anywhere;
 }
@@ -318,7 +318,7 @@
   font-size: 13px;
 }
 .money-source-avail small {
-  font-size: 9px;
+  font-size: 12px;
   color: var(--tk-text3);
 }
 .money-remove {
@@ -404,7 +404,7 @@
   padding: 8px 16px;
   opacity: 0;
   font:
-    700 40px var(--font-fredoka),
+    700 40px var(--font-display),
     sans-serif;
 }
 .money-screen .money-amount-editor input {
@@ -464,7 +464,7 @@
 }
 .money-conflict-heading {
   font:
-    600 18px var(--font-fredoka),
+    600 18px var(--font-display),
     sans-serif;
   color: var(--tk-text);
   margin: 0 0 4px;
@@ -491,8 +491,8 @@
 }
 .money-conflict-col-label {
   color: var(--tk-text3);
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
 }
 .money-conflict-row {
   margin-top: 10px;
@@ -500,18 +500,18 @@
 .money-conflict-row-label {
   display: block;
   color: var(--tk-text3);
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   margin-bottom: 6px;
 }
 .money-conflict-val {
   color: var(--tk-text);
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
 }
 .money-conflict-val.is-changed {
   color: var(--tk-accent-ink);
-  font-weight: 700;
+  font-weight: 600;
 }
 .money-conflict-actions {
   display: flex;
@@ -524,7 +524,7 @@
 }
 .money-conflict-footnote {
   color: var(--tk-text3);
-  font-size: 11px;
+  font-size: 12px;
   text-align: center;
   margin: 20px 0 0;
   padding-top: 5px;

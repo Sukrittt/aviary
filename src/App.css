@@ -1,13 +1,9 @@
 :root {
   /* ── Typography ───────────────────────────────────────────── */
-  /* Fredoka/Nunito are loaded app-wide on <body> (app/layout.tsx) — same
-     fonts Mobile uses everywhere. The SF Pro chain is the fallback for the
-     brief pre-hydration frame only, not a deliberate second font system. */
-  --font-display: var(--font-fredoka, -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif);
-  --font-body: var(--font-nunito, -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif);
+  /* --font-display / --font-body (Geist) come from next/font on <html>
+     (app/fonts.ts), with size-matched fallback faces. */
   --font-stack: var(--font-body);
 
-  --fs-11: 0.6875rem;
   --fs-12: 0.75rem;
   --fs-13: 0.8125rem;
   --fs-14: 0.875rem;
@@ -214,7 +210,7 @@ h4 {
 .sidebar-brand span,
 .sidebar-group-label {
   color: var(--muted-2);
-  font-size: var(--fs-11);
+  font-size: var(--fs-12);
   text-transform: uppercase;
   letter-spacing: 0.1em;
 }
@@ -642,7 +638,7 @@ h4 {
   color: var(--muted-2);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  font-size: var(--fs-11);
+  font-size: var(--fs-12);
 }
 
 .mc-kpi-card strong {
@@ -834,7 +830,7 @@ h4 {
   border-radius: var(--r-pill);
   border: 1px solid var(--border);
   padding: 0 8px;
-  font-size: var(--fs-11);
+  font-size: var(--fs-12);
   font-weight: var(--fw-semibold);
   white-space: nowrap;
   transition:
@@ -860,7 +856,7 @@ h4 {
   font-family:
     ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
     "Courier New", monospace;
-  font-size: var(--fs-11);
+  font-size: var(--fs-12);
 }
 
 .mc-chip--green {
@@ -959,7 +955,7 @@ h4 {
   display: grid;
   gap: var(--sp-1);
   color: var(--muted-2);
-  font-size: var(--fs-11);
+  font-size: var(--fs-12);
   min-width: 152px;
 }
 
@@ -992,7 +988,7 @@ h4 {
 
 .toolbar-label {
   color: var(--muted-2);
-  font-size: var(--fs-11);
+  font-size: var(--fs-12);
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
@@ -1011,7 +1007,7 @@ h4 {
 .custom-dates label {
   display: grid;
   gap: var(--sp-1);
-  font-size: var(--fs-11);
+  font-size: var(--fs-12);
   color: var(--muted-2);
 }
 
@@ -1133,7 +1129,7 @@ h4 {
   color: var(--muted, #a7b0bf);
   border-color: var(--border, rgba(255, 255, 255, 0.1));
   background: transparent;
-  font-size: var(--fs-11);
+  font-size: var(--fs-12);
 }
 
 .category-menu--portal .category-menu-actions .action-button:hover {
@@ -1200,7 +1196,7 @@ h4 {
   width: min(320px, calc(100vw - 32px));
   gap: var(--sp-4);
   padding: 18px;
-  font-family: var(--font-nunito, var(--font-stack));
+  font-family: var(--font-body);
   opacity: 0;
   transform: translateY(-6px) scale(0.97);
   transform-origin: top left;
@@ -1235,7 +1231,7 @@ h4 {
   border: none;
   padding: 4px 2px;
   color: var(--muted, #a7b0bf);
-  font-family: var(--font-fredoka, var(--font-display));
+  font-family: var(--font-display);
   font-size: var(--fs-12);
   cursor: pointer;
 }
@@ -1248,7 +1244,7 @@ h4 {
   border: none;
   border-radius: var(--r-pill);
   padding: 7px 16px;
-  font-family: var(--font-fredoka, var(--font-display));
+  font-family: var(--font-display);
   font-size: var(--fs-12);
   font-weight: var(--fw-semibold);
   cursor: pointer;
@@ -1286,7 +1282,7 @@ h4 {
 }
 
 .tiny-copy {
-  font-size: var(--fs-11);
+  font-size: var(--fs-12);
 }
 
 select,
@@ -1543,7 +1539,7 @@ input[type="date"]:hover {
 
 .spark-bar-wrap span {
   color: var(--muted-2);
-  font-size: var(--fs-11);
+  font-size: var(--fs-12);
   min-height: 14px;
 }
 
@@ -1555,7 +1551,7 @@ input[type="date"]:hover {
 
 .spark-cap-marker,
 .spark-floor-marker {
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1;
   color: var(--muted-2);
   min-height: 0;
@@ -1645,7 +1641,7 @@ input[type="date"]:hover {
   color: var(--muted-2);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  font-size: var(--fs-11);
+  font-size: var(--fs-12);
 }
 
 .mc-compact-table th.num,
@@ -1668,7 +1664,7 @@ input[type="date"]:hover {
 }
 
 .mc-insight-block h4 {
-  font-size: var(--fs-11);
+  font-size: var(--fs-12);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--muted-2);
@@ -1730,7 +1726,7 @@ input[type="date"]:hover {
 
 .micro-signal {
   margin-top: var(--sp-1);
-  font-size: var(--fs-11);
+  font-size: var(--fs-12);
   color: var(--muted-2);
 }
 
@@ -1825,7 +1821,7 @@ input[type="date"]:hover {
 }
 
 .ess-month {
-  font-size: 0.6rem;
+  font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--expense-muted);
@@ -1845,12 +1841,12 @@ input[type="date"]:hover {
 
 .ess-value {
   color: var(--expense-text);
-  font-weight: 600;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
 
 .expense-sidebar-group-label {
-  font-size: 0.6rem;
+  font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--expense-muted);
@@ -2071,7 +2067,7 @@ input[type="date"]:hover {
   background: none;
   border: none;
   color: var(--muted);
-  font-size: var(--fs-11);
+  font-size: var(--fs-12);
   cursor: pointer;
   padding: 2px 8px;
   border-radius: var(--r-sm);
@@ -2138,7 +2134,7 @@ input[type="date"]:hover {
 }
 
 .si-month-label {
-  font-size: var(--fs-11);
+  font-size: var(--fs-12);
   color: var(--muted);
   min-width: 74px;
   text-align: center;
@@ -2165,8 +2161,8 @@ input[type="date"]:hover {
 }
 
 .si-review-label {
-  font-size: var(--fs-11);
-  font-weight: 600;
+  font-size: var(--fs-12);
+  font-weight: 500;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--muted);
@@ -2476,7 +2472,7 @@ input[type="date"]:hover {
 
 .daily-detail-header h4 {
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 500;
   margin: 0;
 }
 
@@ -2518,7 +2514,7 @@ input[type="date"]:hover {
 }
 
 .daily-detail-table th {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -2550,7 +2546,7 @@ input[type="date"]:hover {
 
 .daily-detail-category {
   display: inline-block;
-  font-size: 11px;
+  font-size: 12px;
   background: var(--hover);
   color: var(--muted);
   padding: 2px 8px;
@@ -2565,7 +2561,7 @@ input[type="date"]:hover {
   padding: 14px 8px 0;
   margin-top: 4px;
   border-top: 1px solid var(--divider);
-  font-weight: 600;
+  font-weight: 500;
   font-size: 14px;
 }
 
@@ -2706,7 +2702,7 @@ input[type="date"]:hover {
 
 .rta-item-value {
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--expense-text, var(--text));
 }
 
@@ -2718,7 +2714,7 @@ input[type="date"]:hover {
   background: none;
   border: none;
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--expense-text, var(--text));
   cursor: pointer;
   padding: 0;
@@ -2732,7 +2728,7 @@ input[type="date"]:hover {
 }
 
 .rta-edit-icon {
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   opacity: 0.5;
   transition:
     transform var(--dur-med) var(--ease-standard),
@@ -2747,7 +2743,7 @@ input[type="date"]:hover {
   width: 100px;
   padding: 2px 6px;
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 500;
   background: var(--expense-bg, #090a0d);
   border: 1px solid var(--expense-border, var(--border));
   color: var(--expense-text, var(--text));
@@ -2764,7 +2760,7 @@ input[type="date"]:hover {
 }
 
 .env-table-header th {
-  font-size: 0.6rem;
+  font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--expense-muted);
@@ -2885,7 +2881,7 @@ input[type="date"]:hover {
 
 .env-cell-avail {
   color: var(--expense-text);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .env-cell-muted {
@@ -2998,7 +2994,7 @@ input[type="date"]:hover {
 }
 
 .env-row-cc .env-cell-cat {
-  font-weight: 500;
+  font-weight: 400;
 }
 
 .env-row-cc .env-cell-assigned,
@@ -3025,7 +3021,7 @@ input[type="date"]:hover {
 
 .env-cc-badge {
   font-size: var(--fs-10);
-  font-weight: 500;
+  font-weight: 400;
   color: var(--muted-2);
   background: var(--panel-soft, rgba(0, 0, 0, 0.04));
   padding: 0 4px;
@@ -3038,7 +3034,7 @@ input[type="date"]:hover {
 
 .env-cell-cc {
   color: var(--accent-strong);
-  font-weight: 500;
+  font-weight: 400;
 }
 
 
@@ -3051,7 +3047,7 @@ input[type="date"]:hover {
   user-select: none;
   text-transform: none;
   letter-spacing: 0;
-  font-size: 0.6rem;
+  font-size: 0.75rem;
   color: var(--expense-muted);
   padding: 2px 6px;
   border-radius: 3px;
@@ -3106,7 +3102,7 @@ input[type="date"]:hover {
 .env-group-toggle {
   display: inline-block;
   width: 14px;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   color: var(--expense-muted);
   flex-shrink: 0;
   transition:
@@ -3116,14 +3112,14 @@ input[type="date"]:hover {
 
 .env-group-name {
   font-size: var(--fs-12);
-  font-weight: 600;
+  font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--expense-text);
 }
 
 .env-group-count {
-  font-size: var(--fs-11);
+  font-size: var(--fs-12);
   color: var(--expense-muted);
   margin-left: 8px;
 }
@@ -3196,7 +3192,7 @@ input[type="date"]:hover {
 
 .move-money-header h4 {
   font-size: 1rem;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--expense-text, var(--text));
   margin: 0;
 }
@@ -3345,14 +3341,14 @@ input[type="date"]:hover {
 }
 
 .spark-line-target-label {
-  font-size: 9px;
+  font-size: 12px;
   fill: var(--ok-fg);
-  font-weight: 600;
+  font-weight: 500;
   opacity: 0.7;
 }
 
 .spark-line-axis-label {
-  font-size: 10px;
+  font-size: 12px;
   fill: var(--muted-2);
   font-family: inherit;
 }
@@ -3388,7 +3384,7 @@ input[type="date"]:hover {
 
 .spark-line-tooltip strong {
   color: var(--text);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .spark-line-tooltip span {
@@ -3397,12 +3393,12 @@ input[type="date"]:hover {
 
 .spark-line-delta-down {
   color: var(--ok-fg) !important;
-  font-weight: 500;
+  font-weight: 400;
 }
 
 .spark-line-delta-up {
   color: var(--warn-fg) !important;
-  font-weight: 500;
+  font-weight: 400;
 }
 
 .category-card-stack {
@@ -3437,7 +3433,7 @@ input[type="date"]:hover {
 }
 
 .category-card .risk-meta {
-  font-size: var(--fs-11);
+  font-size: var(--fs-12);
   margin-bottom: 0;
 }
 
@@ -3515,7 +3511,7 @@ input[type="date"]:hover {
 }
 
 .review-points h4 {
-  font-size: 0.625rem;
+  font-size: 0.75rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--expense-muted);
@@ -3577,7 +3573,7 @@ input[type="date"]:hover {
 }
 
 .donut-center span {
-  font-size: var(--fs-11);
+  font-size: var(--fs-12);
   color: var(--expense-muted);
 }
 
@@ -3956,7 +3952,7 @@ input[type="date"]:hover {
   grid-area: 1 / 1;
   font-size: var(--fs-12);
   color: var(--muted-2);
-  font-weight: 500;
+  font-weight: 400;
   line-height: 1.45;
   overflow-wrap: anywhere;
   will-change: transform, opacity;
@@ -4294,7 +4290,7 @@ summary:focus-visible,
     flex-direction: column;
     align-items: flex-start;
     gap: 6px;
-    font-size: var(--fs-11);
+    font-size: var(--fs-12);
   }
 
   .expense-scopebar .custom-dates {
@@ -4360,7 +4356,7 @@ summary:focus-visible,
   }
 
   .env-card-values {
-    font-size: var(--fs-11);
+    font-size: var(--fs-12);
     gap: 4px;
   }
 
@@ -4382,7 +4378,7 @@ summary:focus-visible,
   }
 
   .si-review-text {
-    font-size: var(--fs-11);
+    font-size: var(--fs-12);
   }
 
   .si-heatmap-grid {
@@ -4486,7 +4482,7 @@ summary:focus-visible,
   .rta-label,
   .rta-warning,
   .rta-ok {
-    font-size: var(--fs-11);
+    font-size: var(--fs-12);
   }
 
   /* Reduce heading sizes */
@@ -4517,7 +4513,7 @@ summary:focus-visible,
   }
 
   .sub-metric-label {
-    font-size: var(--fs-11);
+    font-size: var(--fs-12);
   }
 
   /* Daily detail modal */
@@ -4718,8 +4714,8 @@ summary:focus-visible,
 }
 
 .txn-timeline-col-label {
-  font-size: var(--fs-11);
-  font-weight: 500;
+  font-size: var(--fs-12);
+  font-weight: 400;
   color: var(--muted-3);
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -4745,7 +4741,7 @@ summary:focus-visible,
 
 .txn-timeline-header-label {
   font-size: var(--fs-13);
-  font-weight: 600;
+  font-weight: 500;
   color: var(--text-primary);
 }
 
@@ -4783,7 +4779,7 @@ summary:focus-visible,
 }
 
 .txn-timeline-time {
-  font-size: var(--fs-11);
+  font-size: var(--fs-12);
   color: var(--muted-3);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.02em;
@@ -4807,7 +4803,7 @@ summary:focus-visible,
   align-items: center;
   gap: 4px;
   max-width: 100%;
-  font-size: var(--fs-11);
+  font-size: var(--fs-12);
   color: color-mix(in oklab, var(--accent-strong) 78%, var(--muted-3));
   white-space: nowrap;
   overflow: hidden;
@@ -4831,7 +4827,7 @@ summary:focus-visible,
 }
 
 .cat-chevron {
-  font-size: 8px;
+  font-size: 12px;
   line-height: 1;
   opacity: 0.4;
   transition: opacity 0.15s;
@@ -4856,7 +4852,7 @@ summary:focus-visible,
 }
 
 .txn-cat-select {
-  font-size: var(--fs-11);
+  font-size: var(--fs-12);
   padding: 1px 4px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--accent);
@@ -4867,13 +4863,13 @@ summary:focus-visible,
 }
 
 .txn-cat-saving {
-  font-size: var(--fs-11);
+  font-size: var(--fs-12);
   color: var(--muted);
 }
 
 .txn-timeline-amount {
   font-size: var(--fs-13);
-  font-weight: 500;
+  font-weight: 400;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
   text-align: right;
@@ -4942,7 +4938,7 @@ summary:focus-visible,
 }
 
 .txn-actions-confirm .txn-action-btn {
-  font-size: var(--fs-11);
+  font-size: var(--fs-12);
   padding: 2px 7px;
 }
 
@@ -5057,7 +5053,7 @@ summary:focus-visible,
 
 .txn-entry-paymethod-opt {
   padding: 4px 10px;
-  font-size: var(--fs-11);
+  font-size: var(--fs-12);
   cursor: pointer;
   color: var(--muted-2);
   transition:
@@ -5335,7 +5331,7 @@ summary:focus-visible,
   gap: var(--sp-2);
   padding: var(--sp-2) 0;
   color: var(--muted-2);
-  font-size: var(--fs-11);
+  font-size: var(--fs-12);
 }
 
 .cm-create-connector::before,
@@ -5374,15 +5370,15 @@ summary:focus-visible,
 }
 
 .cm-group-name {
-  font-size: var(--fs-11);
-  font-weight: 700;
+  font-size: var(--fs-12);
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.07em;
   color: var(--text-secondary);
 }
 
 .cm-group-count {
-  font-size: var(--fs-11);
+  font-size: var(--fs-12);
   color: var(--muted);
 }
 
@@ -5492,7 +5488,7 @@ summary:focus-visible,
 
 .cm-group-option.is-selected {
   color: var(--accent-strong);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .cm-icon-btn:disabled {
@@ -5653,7 +5649,7 @@ summary:focus-visible,
 }
 
 .projection-stats .mc-kpi-card p {
-  font-size: var(--fs-11);
+  font-size: var(--fs-12);
 }
 
 .projection-stats .mc-kpi-card strong {
@@ -5701,7 +5697,7 @@ summary:focus-visible,
 .projection-bar-labels {
   display: flex;
   justify-content: space-between;
-  font-size: var(--fs-11);
+  font-size: var(--fs-12);
   color: var(--text-secondary);
   margin-top: var(--sp-1);
 }
@@ -5749,7 +5745,7 @@ summary:focus-visible,
 
 .pattern-hint {
   margin-top: var(--sp-2);
-  font-size: var(--fs-11);
+  font-size: var(--fs-12);
   font-style: italic;
 }
 
@@ -5774,7 +5770,7 @@ summary:focus-visible,
 .split-bar-labels {
   display: flex;
   justify-content: space-between;
-  font-size: var(--fs-11);
+  font-size: var(--fs-12);
   color: var(--text-secondary);
   margin-top: var(--sp-1);
 }
@@ -5950,7 +5946,7 @@ summary:focus-visible,
 }
 
 .sub-burn-item .mc-chip {
-  font-size: var(--fs-11);
+  font-size: var(--fs-12);
 }
 
 @media (max-width: 700px) {
@@ -6021,7 +6017,7 @@ summary:focus-visible,
   display: grid;
   gap: var(--sp-4);
   box-shadow: var(--shadow-2);
-  font-family: var(--font-nunito, var(--font-stack));
+  font-family: var(--font-body);
 }
 
 .auth-heading {
@@ -6042,7 +6038,7 @@ summary:focus-visible,
 }
 
 .auth-title {
-  font-family: var(--font-fredoka, var(--font-display));
+  font-family: var(--font-display);
   font-size: var(--fs-22);
   font-weight: var(--fw-semibold);
   letter-spacing: -0.012em;
@@ -6076,7 +6072,7 @@ summary:focus-visible,
   padding: 0 var(--sp-3);
   padding-right: 36px;
   font-size: var(--fs-14);
-  font-family: var(--font-nunito, var(--font-stack));
+  font-family: var(--font-body);
 }
 
 .auth-password::placeholder {

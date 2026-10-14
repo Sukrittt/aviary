@@ -10,6 +10,10 @@ body,
    pressed state, and keyboard focus keeps its :focus-visible ring. */
 html { -webkit-tap-highlight-color: transparent; }
 
+/* Geist's default digits are proportional, so amounts jitter as they change.
+   Tabular figures everywhere: this is a money app, digits are mostly amounts. */
+html { font-variant-numeric: tabular-nums; }
+
 /* Every resting Aviary mark idly nods and blinks; motion-sensitive users get the settled pose. */
 .bird-idle-head {
   transform-origin: 250px 340px;

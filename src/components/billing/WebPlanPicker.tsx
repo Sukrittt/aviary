@@ -66,8 +66,8 @@ export function WebPlanPicker({ trialEndsAt = null, trigger = 'plan_screen' }: {
   return (
     <div style={{ display: 'grid', gap: 18 }}>
       <div style={{ display: 'grid', gap: 4 }}>
-        <span style={{ fontSize: 11, letterSpacing: 1.2, fontWeight: 800, color: 'var(--tk-accent-ink)' }}>AVIARY PRO</span>
-        <h3 style={{ margin: 0, fontFamily: 'var(--font-fredoka)', fontWeight: 600, fontSize: 22, color: 'var(--tk-text)' }}>
+        <span style={{ fontSize: 12, letterSpacing: 1.2, fontWeight: 700, color: 'var(--tk-accent-ink)' }}>AVIARY PRO</span>
+        <h3 style={{ margin: 0, fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 22, color: 'var(--tk-text)' }}>
           Keep your budget going
         </h3>
         <p style={{ ...note, fontWeight: 500 }}>One plan. Everything&apos;s included, here and in the Android app.</p>
@@ -118,9 +118,9 @@ export function WebPlanPicker({ trialEndsAt = null, trigger = 'plan_screen' }: {
               </span>
               <span style={{ flex: 1, display: 'grid', gap: 2 }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <strong style={{ fontSize: 15, fontWeight: 800 }}>{y ? 'Yearly' : 'Monthly'}</strong>
+                  <strong style={{ fontSize: 15, fontWeight: 700 }}>{y ? 'Yearly' : 'Monthly'}</strong>
                   {y && saving ? (
-                    <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: 0.3, padding: '2px 8px', borderRadius: 999, background: 'var(--tk-mint-soft)', color: 'var(--tk-mint)' }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: 0.3, padding: '2px 8px', borderRadius: 999, background: 'var(--tk-mint-soft)', color: 'var(--tk-mint)' }}>
                       Save {saving}%
                     </span>
                   ) : null}
@@ -129,7 +129,7 @@ export function WebPlanPicker({ trialEndsAt = null, trigger = 'plan_screen' }: {
                   {y ? `${formatPrice(Math.round(plan.amount / 12), plan.currency)}/month, billed yearly` : 'Billed monthly'}
                 </span>
               </span>
-              <strong style={{ fontSize: 15, fontWeight: 800 }}>
+              <strong style={{ fontSize: 15, fontWeight: 700 }}>
                 {formatPrice(plan.amount, plan.currency)}/{y ? 'year' : 'month'}
               </strong>
             </button>
@@ -139,7 +139,7 @@ export function WebPlanPicker({ trialEndsAt = null, trigger = 'plan_screen' }: {
 
       <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 10 }}>
         {BENEFITS.map((b) => (
-          <li key={b} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 13, lineHeight: '19px', fontWeight: 600, color: 'var(--tk-text)' }}>
+          <li key={b} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 13, lineHeight: '19px', fontWeight: 500, color: 'var(--tk-text)' }}>
             <span aria-hidden style={{ width: 20, height: 20, flexShrink: 0, borderRadius: 10, display: 'grid', placeItems: 'center', background: 'var(--tk-mint-soft)', color: 'var(--tk-mint)' }}>
               <CheckIcon size={12} weight="bold" />
             </span>
@@ -160,7 +160,7 @@ export function WebPlanPicker({ trialEndsAt = null, trigger = 'plan_screen' }: {
             border: 'none',
             background: 'var(--tk-accent)',
             color: 'var(--tk-on-accent)',
-            fontWeight: 800,
+            fontWeight: 700,
             fontSize: 15,
             opacity: busy || !selected ? 0.55 : 1,
             cursor: busy || !selected ? 'not-allowed' : 'pointer',
@@ -175,7 +175,7 @@ export function WebPlanPicker({ trialEndsAt = null, trigger = 'plan_screen' }: {
               ? `Subscribe ${isYearly ? 'yearly' : 'monthly'} · ${formatPrice(selected.amount, selected.currency)}`
               : 'Subscribe'}
         </button>
-        <p style={{ ...note, fontSize: 11, lineHeight: '16px', textAlign: 'center', color: 'var(--tk-text3)' }}>
+        <p style={{ ...note, fontSize: 12, lineHeight: '16px', textAlign: 'center', color: 'var(--tk-text3)' }}>
           {trialEndsAt && defersFirstCharge(trialEndsAt) ? `Nothing's charged until your trial ends on ${formatDate(trialEndsAt)}${provider === 'paypal' ? '' : ', except a refundable ₹5 to set up autopay'}. ` : ''}
           Renews every {isYearly ? 'year' : 'month'} until you cancel. {provider === 'paypal' ? 'Pay with PayPal or a card.' : 'Pay with UPI or card.'} Cancel anytime from your account page.
         </p>
