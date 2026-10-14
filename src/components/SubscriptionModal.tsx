@@ -2,6 +2,7 @@
 
 import { useCurrency } from '@/src/context/CurrencyContext'
 import { useRef, useState } from 'react'
+import { motion, useReducedMotion } from 'motion/react'
 import { CalendarBlankIcon, XIcon } from '@/src/components/icons'
 import { Scrim, Sheet } from './MotionSheet'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
@@ -96,6 +97,7 @@ export function SubscriptionModal({ onClose, onSaved, editData, initialValues, s
     initial?.next_due_date ? toDateInput(initial.next_due_date) : '',
   )
   const [showAllPresets, setShowAllPresets] = useState(false)
+  const reduceMotion = useReducedMotion()
   const [showNote, setShowNote] = useState(() => !!initial?.notes?.trim())
   const [notes, setNotes] = useState(initial?.notes ?? '')
   const [category, setCategory] = useState(initial?.category ?? '')
@@ -197,13 +199,22 @@ export function SubscriptionModal({ onClose, onSaved, editData, initialValues, s
             />
             {isEdit || suggestionId ? null : (
               <div className="erd-sub-picks">
-                {(showAllPresets ? presets : presets.slice(0, PRESETS_COLLAPSED)).map((name) => (
-                  <button key={name} type="button" className="erd-chip" onClick={() => setService(name)}>
+                {(showAllPresets ? presets : presets.slice(0, PRESETS_COLLAPSED)).map((name, i) => (
+                  <motion.button
+                    key={name}
+                    type="button"
+                    className="erd-chip"
+                    onClick={() => setService(name)}
+                    // Chips past the first five pop in with a short stagger when "Show more" opens them.
+                    initial={i < PRESETS_COLLAPSED || reduceMotion ? false : { opacity: 0, scale: 0.9, y: 4 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    transition={{ duration: 0.18, ease: 'easeOut', delay: Math.max(0, i - PRESETS_COLLAPSED) * 0.015 }}
+                  >
                     {name}
-                  </button>
+                  </motion.button>
                 ))}
                 {presets.length > PRESETS_COLLAPSED && (
-                  <button type="button" className="erd-sub-note-toggle" onClick={() => setShowAllPresets((v) => !v)}>
+                  <button type="button" className="erd-chip is-selected" onClick={() => setShowAllPresets((v) => !v)}>
                     {showAllPresets ? 'Show less' : 'Show more'}
                   </button>
                 )}
