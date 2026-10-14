@@ -110,7 +110,8 @@ export function IdeasBoardPage() {
   )
 }
 
-function IdeaForm({ onPosted }: { onPosted: () => void }) {
+/** The post-an-idea form, shared with the feedback button's dialog. `dialog` drops the card chrome. */
+export function IdeaForm({ onPosted, onDone, dialog = false }: { onPosted: () => void; onDone?: () => void; dialog?: boolean }) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [error, setError] = useState('')
@@ -129,6 +130,7 @@ function IdeaForm({ onPosted }: { onPosted: () => void }) {
       succeed(() => {
         setTitle('')
         setDescription('')
+        onDone?.()
       })
     } catch (err) {
       fail()
@@ -141,9 +143,9 @@ function IdeaForm({ onPosted }: { onPosted: () => void }) {
   }
 
   return (
-    <form className="account-card feedback-form" onSubmit={handleSubmit}>
+    <form className={dialog ? 'feedback-form is-dialog' : 'account-card feedback-form'} onSubmit={handleSubmit}>
       <label className="erd-log-label" htmlFor="idea-title">Your idea</label>
-      <input id="idea-title" className="erd-log-input" placeholder="What would make Aviary better?" maxLength={150} value={title} onChange={(e) => setTitle(e.target.value)} />
+      <input id="idea-title" className="erd-log-input" placeholder="What would make Aviary better?" maxLength={150} value={title} onChange={(e) => setTitle(e.target.value)} autoFocus={dialog} />
       <label className="erd-log-label" htmlFor="idea-description">Details (optional)</label>
       <textarea id="idea-description" className="erd-log-input feedback-textarea" placeholder="Why would it help you?" maxLength={4000} value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
       <p className="recurring-hint">Everyone on the board sees your idea and your first name.</p>

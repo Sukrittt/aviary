@@ -31,8 +31,27 @@
   color: var(--tk-text);
   box-shadow: 0 10px 38px -16px rgba(0, 0, 0, 0.28);
   font-family: var(--font-nunito), sans-serif;
+  /* Grows out of the button. allow-discrete keeps it visible while it animates out. */
+  transform-origin: bottom right;
+  opacity: 0;
+  scale: 0.9;
+  translate: 0 8px;
+  transition: opacity 160ms ease-out, scale 220ms cubic-bezier(0.2, 0.9, 0.3, 1), translate 220ms cubic-bezier(0.2, 0.9, 0.3, 1),
+    display 220ms allow-discrete, overlay 220ms allow-discrete;
 }
-.feedback-fab-menu a {
+.feedback-fab-menu:popover-open { opacity: 1; scale: 1; translate: 0 0; }
+@starting-style {
+  .feedback-fab-menu:popover-open { opacity: 0; scale: 0.9; translate: 0 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .feedback-fab-menu, .feedback-fab-menu:popover-open { scale: 1; translate: 0 0; }
+}
+.feedback-fab-menu button {
+  width: 100%;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -42,14 +61,19 @@
   color: inherit;
   font-size: 14px;
   font-weight: 700;
-  text-decoration: none;
 }
-.feedback-fab-menu a svg { font-size: 20px; color: var(--tk-accent-ink); }
-.feedback-fab-menu a:focus-visible { outline: 2px solid var(--tk-accent); outline-offset: -2px; }
+.feedback-fab-menu button svg { font-size: 20px; color: var(--tk-accent-ink); }
+.feedback-fab-menu button:focus-visible { outline: 2px solid var(--tk-accent); outline-offset: -2px; }
 @media (hover: hover) and (pointer: fine) {
-  .feedback-fab-menu a:hover { background: var(--tk-input-bg); }
+  .feedback-fab-menu button:hover { background: var(--tk-input-bg); }
 }
 @media (max-width: 900px) {
   .feedback-fab { right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); width: 48px; height: 48px; font-size: 24px; }
   .feedback-fab-menu { inset: auto 16px calc(76px + env(safe-area-inset-bottom, 0px)) auto; }
 }
+/* Desktop only: below 900px the modal card goes full width as a bottom sheet. */
+@media (min-width: 901px) {
+  .expense-redesign .erd-modal-card.feedback-dialog { width: 460px; }
+}
+.feedback-dialog .account-row-meta a { color: var(--gold-ink); font-weight: 700; }
+.feedback-form.is-dialog { padding: 12px 0 0; }
