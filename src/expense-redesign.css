@@ -10503,6 +10503,8 @@ button.account-feature-card {
 .ideas-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .ideas-empty { padding: 20px; }
 .ui-select.ideas-status-select { width: 180px; margin-left: auto; }
+/* Same height as the status select beside it */
+.ideas-toolbar .ideas-pitch { align-self: stretch; }
 .ideas-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .ideas-row { display: flex; gap: 14px; padding: 14px 16px; align-items: flex-start; }
 .ideas-vote { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 36px; }
