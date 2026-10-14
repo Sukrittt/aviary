@@ -892,7 +892,7 @@
   padding: 2px 8px;
   border-radius: 6px;
 }
-/* Nunito's line box keeps descender room digits never use, so the amount sat high. Trim to cap height and pad evenly. */
+/* The line box keeps descender room digits never use, so the amount sat high. Trim to cap height and pad evenly. */
 @supports (text-box: trim-both cap alphabetic) {
   .env2-pill {
     text-box: trim-both cap alphabetic;
@@ -12742,7 +12742,7 @@ button.account-feature-card {
   position: fixed;
   z-index: 1200;
   /* Portalled to <body>, outside .expense-redesign's font. */
-  font-family: var(--font-nunito);
+  font-family: var(--font-body);
   font-size: 14px;
   width: min(320px, calc(100vw - 24px));
   display: flex;
