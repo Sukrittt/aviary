@@ -96,4 +96,16 @@ describe('PUT /api/groups (rename)', () => {
     expect(res.status).toBe(200)
     expect(stores.categories.filter((c) => c.group === 'House').map((c) => c.name)).toEqual(['Rent', 'Water', 'Gas'])
   })
+
+  it('saves a picked icon on the renamed group', async () => {
+    const res = await PUT(req('PUT', { name: 'Home', newName: 'House', icon: 'House' }))
+    expect(res.status).toBe(200)
+    expect(stores.groups.find((g) => g.name === 'House')?.icon).toBe('House')
+  })
+
+  it('rejects an icon outside the catalog', async () => {
+    const res = await PUT(req('PUT', { name: 'Home', icon: 'NotAnIcon' }))
+    expect(res.status).toBe(400)
+    expect(stores.groups.find((g) => g.name === 'Home')?.icon).toBeUndefined()
+  })
 })

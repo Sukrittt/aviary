@@ -38,7 +38,7 @@ import { EMPTY } from "../lib/constants";
 import { useBudgets, useTransferBudget, useUpdateBudget } from "../hooks/useBudgets";
 import { useRecentExpenses, useLastSpent, useAddExpense } from "../hooks/useExpenses";
 import { useCategories, useCategoryIcons } from "../hooks/useCategories";
-import { useGroups } from "../hooks/useGroups";
+import { useGroupIcons, useGroups } from "../hooks/useGroups";
 import { useSubscriptions, useCancelSubscription, useReactivateSubscription } from "../hooks/useSubscriptions";
 import { useHideAmounts } from "../hooks/useHideAmounts";
 import { GetStartedCard } from "../components/home/GetStartedCard";
@@ -78,6 +78,7 @@ export function ExpensePage() {
   const lastSpent = useLastSpent().data;
   const categoriesQuery = useCategories();
   const categoryIcons = useCategoryIcons();
+  const groupIcons = useGroupIcons();
   const groupsQuery = useGroups();
   const subscriptionsQuery = useSubscriptions();
   const user = useUser().data;
@@ -585,6 +586,7 @@ export function ExpensePage() {
                 >
                   <EnvelopeGrid
                     categoryIcons={categoryIcons}
+                    groupIcons={groupIcons}
                     envelopes={envelopeState.envelopes}
                     groups={envelopeState.groups}
                     hideAmounts={hideAmounts}

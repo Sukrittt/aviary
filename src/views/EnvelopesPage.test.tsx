@@ -17,6 +17,7 @@ vi.mock('@/src/api/categories', () => ({
 }))
 vi.mock('@/src/api/groups', () => ({
   getGroups: vi.fn(),
+  getGroupIcons: vi.fn(async () => new Map()),
   addGroup: vi.fn(),
   updateGroup: vi.fn(),
   deleteGroup: vi.fn(),
@@ -194,7 +195,20 @@ describe('EnvelopesPage', () => {
     await user.clear(input)
     await user.type(input, 'Housing')
     await user.click(within(dialog).getByRole('button', { name: 'Rename' }))
-    await waitFor(() => expect(updateGroup).toHaveBeenCalledWith('Home', 'Housing'))
+    await waitFor(() => expect(updateGroup).toHaveBeenCalledWith('Home', { newName: 'Housing' }))
+  })
+
+  it('picks a group icon without renaming it', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await user.click(await screen.findByLabelText('Rename Home'))
+    const dialog = screen.getByRole('dialog', { name: 'Rename group' })
+    await user.click(within(dialog).getByRole('button', { name: /Change icon/ }))
+    const picker = screen.getByRole('dialog', { name: 'Choose an icon' })
+    await user.type(within(picker).getByLabelText('Search icons'), 'tree')
+    await user.click(within(picker).getByRole('button', { name: 'Tree' }))
+    await user.click(within(dialog).getByRole('button', { name: 'Rename' }))
+    await waitFor(() => expect(updateGroup).toHaveBeenCalledWith('Home', { icon: 'Tree' }))
   })
 
   it('writes null for the default thresholds rather than pinning a copy', async () => {

@@ -27,7 +27,7 @@ vi.mock('@/src/hooks/useExpenses', () => ({
   useRecentExpenses: () => ({ data: [{ timestamp: 'old', date: `${month}-01`, item: 'Eggs', amount_inr: '200', category: 'Groceries' }] }),
 }))
 vi.mock('@/src/hooks/useCategories', () => ({ useCategories: () => ({ data: [{ name: 'Groceries', group: 'Needs' }] }) }))
-vi.mock('@/src/hooks/useGroups', () => ({ useGroups: () => ({ data: ['Needs'] }) }))
+vi.mock('@/src/hooks/useGroups', () => ({ useGroups: () => ({ data: ['Needs'] }), useGroupIcons: () => new Map() }))
 
 function expense(overrides: Partial<AddedExpense> = {}): AddedExpense {
   return {

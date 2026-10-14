@@ -17,7 +17,7 @@ vi.mock('@/src/api/budgets', () => ({ getBudgets: vi.fn(), addBudget: vi.fn(), u
 vi.mock('@/src/api/account', () => ({ getUser: vi.fn() }))
 vi.mock('@/src/api/expenses', () => ({ getRecentExpenses: vi.fn(async () => ({ rows: [], lastSpent: {} })), mintExpensePayload: vi.fn(), postExpensePayload: vi.fn() }))
 vi.mock('@/src/api/categories', () => ({ getCategories: vi.fn(async () => [{ name: 'Food', group: 'Essentials' }]) }))
-vi.mock('@/src/api/groups', () => ({ getGroups: vi.fn(async () => ['Essentials']) }))
+vi.mock('@/src/api/groups', () => ({ getGroups: vi.fn(async () => ['Essentials']), getGroupIcons: vi.fn(async () => new Map()) }))
 vi.mock('@/src/api/subscriptions', () => ({ getSubscriptions: vi.fn(async () => []), cancelSubscription: vi.fn(), reactivateSubscription: vi.fn() }))
 vi.mock('../components/ExpenseSidebar', () => ({ ExpenseSidebar: ({ onBulkReturn }: { onBulkReturn?: () => void }) => <button onClick={onBulkReturn}>Return all to RTA</button> }))
 vi.mock('../components/EnvelopeGrid', () => ({ EnvelopeGrid: () => <div>Envelope content</div> }))

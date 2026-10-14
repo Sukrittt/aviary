@@ -8,7 +8,7 @@ vi.mock('@/components/AppearanceProvider', () => ({ useAppearance: () => ({ them
 vi.mock('../hooks/useBudgets', () => ({ useBudgets: () => ({ data: [] }) }))
 vi.mock('../hooks/useExpenses', () => ({ useRecentExpenses: () => ({ data: [] }), useAddExpense: () => ({ mutateAsync: vi.fn() }) }))
 vi.mock('../hooks/useCategories', () => ({ useCategories: () => ({ data: [] }) }))
-vi.mock('../hooks/useGroups', () => ({ useGroups: () => ({ data: [] }) }))
+vi.mock('../hooks/useGroups', () => ({ useGroups: () => ({ data: [] }), useGroupIcons: () => new Map() }))
 vi.mock('../hooks/useHideAmounts', () => ({ useHideAmounts: () => [state.hidden] }))
 vi.mock('../hooks/useChatSessions', () => ({ useChatSessions: () => ({}), useChatSessionsCount: () => ({ data: 5 }) }))
 vi.mock('../hooks/useMoneyBrief', () => ({ useMoneyBrief: () => ({ data: {
