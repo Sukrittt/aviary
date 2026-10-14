@@ -9,4 +9,4 @@
 export const MENU_POPUP =
   "w-auto min-w-[220px] rounded-[14px] p-1.5 ring-(--tk-border-strong) shadow-[0_18px_48px_-12px_oklch(0%_0_0/0.55)] backdrop-blur-xl"
 export const MENU_ITEM =
-  "gap-2 rounded-[8px] px-2.5 py-2 text-sm font-medium focus:bg-(--tk-chip-active-bg) data-highlighted:bg-(--tk-chip-active-bg)"
+  "gap-2 rounded-[8px] px-2.5 py-2 text-sm font-medium cursor-pointer transition-colors duration-150 focus:bg-(--tk-chip-active-bg) data-highlighted:bg-(--tk-chip-active-bg)"
