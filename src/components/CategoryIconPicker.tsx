@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { CATEGORY_ICON_COMPONENTS } from './CategoryIcon'
-import { MagnifyingGlassIcon } from './icons'
+import { MagnifyingGlassIcon, PencilSimpleIcon } from './icons'
 import { searchCategoryIcons, type CategoryIconKey } from '@/src/lib/categoryIcons'
 
 const POPOVER_WIDTH = 320
@@ -103,6 +103,12 @@ export function CategoryIconPicker({ value, onChange, tint, disabled, className,
       }}
     >
       <Current size="1em" aria-hidden />
+      {/* A standalone tile has no input beside it to say it's editable. */}
+      {!children && (
+        <span className="cat-icon-picker-badge" aria-hidden="true">
+          <PencilSimpleIcon size={11} weight="bold" />
+        </span>
+      )}
     </button>
   )
 
