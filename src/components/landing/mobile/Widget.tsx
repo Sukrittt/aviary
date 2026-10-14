@@ -124,14 +124,15 @@ export function MiniWidget() {
 
 /** The large widget: bird band with the total, stat pills across the full width, three envelopes, today's logs, quick-log chips. */
 export function EnvelopeWidget() {
-  const { fmt, leftPct, perDay, rows, pills, today, symbol, digits } = useWidgetData()
+  const { fmt, leftPct, rows, pills, today, symbol, digits } = useWidgetData()
   return <div className="m-widget">
     <div className="m-widget-band">
       <Doodles width={CARD} height={BAND} />
       <Bird size={72} />
       <div className="m-widget-hero">
         <b><small>{symbol}</small>{digits}</b>
-        <span><Ring size={11} pct={leftPct} />{DAYS_LEFT} days left · {perDay}/day</span>
+        {/* No "· ₹697/day" here: at 12px it doesn't fit, and the per-day pill below already says it. */}
+        <span><Ring size={11} pct={leftPct} />{DAYS_LEFT} days left</span>
       </div>
       <div className="m-widget-pills">
         {pills.map((p) => <div key={p.label}><b style={{ color: p.tint }}>{p.value}</b><span>{p.label}</span></div>)}
