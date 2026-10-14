@@ -3,7 +3,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MoneyBrainDrawer } from './MoneyBrainDrawer'
 
-const state = vi.hoisted(() => ({ hidden: false, theme: 'light' as 'light' | 'dark' | null }))
+const state = vi.hoisted(() => ({ hidden: false, theme: 'light' as 'light' | 'dark' | null, briefLoading: false }))
 vi.mock('@/components/AppearanceProvider', () => ({ useAppearance: () => ({ theme: state.theme }) }))
 vi.mock('../hooks/useBudgets', () => ({ useBudgets: () => ({ data: [] }) }))
 vi.mock('../hooks/useExpenses', () => ({ useRecentExpenses: () => ({ data: [] }), useAddExpense: () => ({ mutateAsync: vi.fn() }) }))
@@ -11,7 +11,7 @@ vi.mock('../hooks/useCategories', () => ({ useCategories: () => ({ data: [] }) }
 vi.mock('../hooks/useGroups', () => ({ useGroups: () => ({ data: [] }), useGroupIcons: () => new Map() }))
 vi.mock('../hooks/useHideAmounts', () => ({ useHideAmounts: () => [state.hidden] }))
 vi.mock('../hooks/useChatSessions', () => ({ useChatSessions: () => ({}), useChatSessionsCount: () => ({ data: 5 }) }))
-vi.mock('../hooks/useMoneyBrief', () => ({ useMoneyBrief: () => ({ data: {
+vi.mock('../hooks/useMoneyBrief', () => ({ useMoneyBrief: () => state.briefLoading ? { isLoading: true } : ({ data: {
   narrative: 'Your monthly brief.', meta: { txnCountThisMonth: 58 }, questions: [],
   cards: [{ title: 'Monthly Rent', subtitle: 'Largest single spend', icon: '🏠', amount: 12000, valueLabel: 'INR', tone: 'violet' }],
 } }) }))
@@ -21,7 +21,7 @@ vi.mock('@/src/api/ai', () => ({
   updateProposalStatus: vi.fn(async () => {}),
   CAPTURE_FAILED_MESSAGE: "I couldn't read that one. Try again, or add it with the + button.",
 }))
-beforeEach(() => { state.hidden = false; state.theme = 'light'; Element.prototype.scrollTo = vi.fn() })
+beforeEach(() => { state.hidden = false; state.theme = 'light'; state.briefLoading = false; Element.prototype.scrollTo = vi.fn() })
 function show() {
   return render(<QueryClientProvider client={new QueryClient()}><MoneyBrainDrawer onClose={vi.fn()} /></QueryClientProvider>)
 }
@@ -55,6 +55,14 @@ it('draws brief card icons as vectors, falling back for an emoji it has no match
   const tile = container.querySelector('.brain-insight-icon')!
   expect(tile.querySelector('svg')).not.toBeNull()
   expect(tile.textContent).toBe('')
+})
+it('holds the brief\'s shape with skeletons while it loads, not a rotating caption', () => {
+  state.briefLoading = true
+  const { container } = show()
+  expect(screen.getByRole('status', { name: 'Loading your money brief' })).toBeInTheDocument()
+  expect(container.querySelector('.loading-caption')).toBeNull()
+  expect(container.querySelectorAll('.brain-insight-grid .brain-skel').length).toBeGreaterThan(0)
+  expect(container.querySelectorAll('.brain-chips .brain-skel').length).toBeGreaterThan(0)
 })
 it('uses a centered vector icon instead of a font glyph in the header', () => {
   const { container } = show()

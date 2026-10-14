@@ -401,10 +401,30 @@ export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onL
                 <div className="brain-progress" aria-label={`${Math.round(spentPct)}% of assigned money spent`}>
                   <i style={{ transform: `scaleX(${spentPct / 100})` }} />
                 </div>
-                {brief.isLoading ? <LoadingCaption /> : brief.isError ? (
+                {brief.isLoading ? (
+                  <div className="brain-skel-lines" role="status" aria-label="Loading your money brief">
+                    <i className="brain-skel" /><i className="brain-skel" /><i className="brain-skel" />
+                  </div>
+                ) : brief.isError ? (
                   <button className="brain-retry" type="button" onClick={() => void brief.refetch()}>Couldn’t load your money brief. Retry</button>
                 ) : <p>{brief.data?.narrative}</p>}
               </motion.section>
+              {brief.isLoading && (
+                <div aria-hidden="true">
+                  <section className="brain-insight-grid">
+                    {[0, 1, 2].map((i) => (
+                      <div key={i} className="brain-insight">
+                        <i className="brain-insight-icon brain-skel" />
+                        <div><i className="brain-skel" /><i className="brain-skel brain-skel--short" /></div>
+                        <i className="brain-skel brain-skel--value" />
+                      </div>
+                    ))}
+                  </section>
+                  <div className="brain-chips">
+                    {[0, 1, 2].map((i) => <i key={i} className="brain-skel brain-skel--chip" />)}
+                  </div>
+                </div>
+              )}
               {brief.data?.cards.length ? (
                 <section className="brain-insight-grid">
                   {brief.data.cards.map((card, i) => {
