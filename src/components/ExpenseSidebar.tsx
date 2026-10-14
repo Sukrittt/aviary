@@ -59,7 +59,7 @@ export function ExpenseSidebar(props: Props) {
       open={!collapsed}
       onOpenChange={(open) => setCollapsed(!open)}
       // Sits inside each page's .erd-main row, so it only takes the rail's width.
-      className="min-h-0 w-auto flex-none"
+      className="relative min-h-0 w-auto flex-none"
       style={{ "--sidebar-width": "248px", "--sidebar-width-icon": "72px" } as CSSProperties}
     >
       <ExpenseSidebarNav {...props} />
@@ -151,19 +151,9 @@ function ExpenseSidebarNav({ onBulkReturn }: Props) {
               <BirdMark size={34} />
               <span className={LABEL}>Aviary</span>
             </Link>
-            {isMobile ? (
+            {isMobile && (
               <button type="button" className="erd-mobile-close-btn grid!" onClick={closeMobile} aria-label="Close navigation">
                 <XIcon size={19} />
-              </button>
-            ) : (
-              <button
-                type="button"
-                className="erd-collapse-btn"
-                onClick={toggleSidebar}
-                aria-label={open ? "Collapse sidebar" : "Expand sidebar"}
-                title={open ? "Collapse sidebar" : "Expand sidebar"}
-              >
-                <SidebarSimpleIcon size={18} />
               </button>
             )}
           </div>
@@ -217,6 +207,18 @@ function ExpenseSidebarNav({ onBulkReturn }: Props) {
         </SidebarFooter>
         </nav>
       </Sidebar>
+
+      {/* Sits just outside the rail, top left of the page, and follows its
+          width (the Sidebar root is the `peer`). Hidden on mobile by CSS. */}
+      <button
+        type="button"
+        className="erd-collapse-btn absolute top-[18px] z-10 left-[calc(var(--sidebar-width)+12px)] transition-[left] duration-200 ease-linear peer-data-[state=collapsed]:left-[calc(var(--sidebar-width-icon)+12px)]"
+        onClick={toggleSidebar}
+        aria-label={open ? "Collapse sidebar" : "Expand sidebar"}
+        title={open ? "Collapse sidebar" : "Expand sidebar"}
+      >
+        <SidebarSimpleIcon size={18} />
+      </button>
 
       {/* Outside the sidebar: its fixed, transformed container would trap
           these position:fixed overlays inside it. */}
