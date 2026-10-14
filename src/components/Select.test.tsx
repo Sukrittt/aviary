@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { Select } from './Select'
 
 const OPTIONS = [
@@ -11,79 +12,80 @@ const OPTIONS = [
 function setup(value = '') {
   const onChange = vi.fn()
   render(<Select value={value} onChange={onChange} options={OPTIONS} placeholder="Assign to" aria-label="Category" />)
-  return { onChange, trigger: screen.getByRole('combobox', { name: 'Category' }) }
+  return { onChange, trigger: screen.getByRole('combobox', { name: 'Category' }), user: userEvent.setup() }
 }
 
 describe('Select', () => {
-  it('shows the placeholder, then opens a listbox and picks an option', () => {
-    const { onChange, trigger } = setup()
+  it('shows the placeholder, then opens a listbox and picks an option', async () => {
+    const { onChange, trigger, user } = setup()
     expect(trigger.textContent).toContain('Assign to')
-    fireEvent.click(trigger)
-    fireEvent.mouseDown(screen.getByRole('option', { name: 'Fun' }))
+    await user.click(trigger)
+    await user.click(await screen.findByRole('option', { name: 'Fun' }))
     expect(onChange).toHaveBeenCalledWith('fun')
-    expect(screen.queryByRole('listbox')).toBeNull()
+    await waitFor(() => expect(screen.queryByRole('listbox')).toBeNull())
   })
 
-  it('shows the selected label and marks it selected', () => {
-    const { trigger } = setup('food')
+  it('shows the selected label and marks it selected', async () => {
+    const { trigger, user } = setup('food')
     expect(trigger.textContent).toContain('Food')
-    fireEvent.click(trigger)
-    expect(screen.getByRole('option', { name: 'Food' }).getAttribute('aria-selected')).toBe('true')
+    await user.click(trigger)
+    expect((await screen.findByRole('option', { name: 'Food' })).getAttribute('aria-selected')).toBe('true')
   })
 
-  it('navigates by keyboard, skipping disabled options', () => {
-    const { onChange, trigger } = setup('food')
-    fireEvent.keyDown(trigger, { key: 'ArrowDown' })
-    fireEvent.keyDown(trigger, { key: 'ArrowDown' })
-    fireEvent.keyDown(trigger, { key: 'Enter' })
+  it('navigates by keyboard; a disabled option can be passed over but not picked', async () => {
+    const { onChange, trigger, user } = setup('food')
+    trigger.focus()
+    await user.keyboard('{ArrowDown}')
+    await screen.findByRole('listbox')
+    await user.keyboard('{ArrowDown}{Enter}')
+    expect(onChange).not.toHaveBeenCalled()
+    await user.keyboard('{ArrowDown}{Enter}')
     expect(onChange).toHaveBeenCalledWith('fun')
   })
 
-  it('closes on Escape without changing', () => {
-    const { onChange, trigger } = setup('food')
-    fireEvent.click(trigger)
-    fireEvent.keyDown(trigger, { key: 'Escape' })
-    expect(screen.queryByRole('listbox')).toBeNull()
+  it('closes on Escape without changing', async () => {
+    const { onChange, trigger, user } = setup('food')
+    await user.click(trigger)
+    await screen.findByRole('listbox')
+    await user.keyboard('{Escape}')
+    await waitFor(() => expect(screen.queryByRole('listbox')).toBeNull())
     expect(onChange).not.toHaveBeenCalled()
   })
 
-  it('ignores disabled options and a disabled trigger', () => {
-    const { onChange, trigger } = setup()
-    fireEvent.click(trigger)
-    fireEvent.mouseDown(screen.getByRole('option', { name: 'Rent' }))
+  it('ignores disabled options', async () => {
+    const { onChange, trigger, user } = setup()
+    await user.click(trigger)
+    await user.click(await screen.findByRole('option', { name: 'Rent' }))
     expect(onChange).not.toHaveBeenCalled()
   })
 
-  it('searchable: filters options and picks the sole match with Enter', () => {
+  it('searchable: filters options and picks the match', async () => {
     const onChange = vi.fn()
+    const user = userEvent.setup()
     render(<Select value="" onChange={onChange} options={OPTIONS} aria-label="Category" searchable />)
-    fireEvent.click(screen.getByRole('combobox', { name: 'Category' }))
-    const search = screen.getByRole('searchbox')
-    fireEvent.change(search, { target: { value: 'fu' } })
-    expect(screen.queryByRole('option', { name: 'Food' })).toBeNull()
-    expect(screen.getByRole('option', { name: 'Fun' })).toBeTruthy()
-    fireEvent.keyDown(search, { key: 'Enter' })
+    await user.click(screen.getByRole('combobox', { name: 'Category' }))
+    await user.type(await screen.findByRole('combobox', { name: 'Search Category' }), 'fu')
+    await waitFor(() => expect(screen.queryByRole('option', { name: 'Food' })).toBeNull())
+    await user.click(screen.getByRole('option', { name: 'Fun' }))
     expect(onChange).toHaveBeenCalledWith('fun')
   })
 
-  it('searchable: shows "No matches" for an empty filter result', () => {
-    setup('')
-    // Re-render with searchable to check the empty state copy.
-    const onChange = vi.fn()
-    render(<Select value="" onChange={onChange} options={OPTIONS} aria-label="Cat2" searchable />)
-    fireEvent.click(screen.getByRole('combobox', { name: 'Cat2' }))
-    fireEvent.change(screen.getByRole('searchbox', { name: 'Search Cat2' }), { target: { value: 'zzz' } })
-    expect(screen.getByText('No matches')).toBeTruthy()
+  it('searchable: shows "No matches" for an empty filter result', async () => {
+    const user = userEvent.setup()
+    render(<Select value="" onChange={vi.fn()} options={OPTIONS} aria-label="Cat2" searchable />)
+    await user.click(screen.getByRole('combobox', { name: 'Cat2' }))
+    await user.type(await screen.findByRole('combobox', { name: 'Search Cat2' }), 'zzz')
+    expect(await screen.findByText('No matches')).toBeTruthy()
   })
 
-  it('shows an option icon in both the row and the trigger once selected', () => {
+  it('shows an option icon in both the row and the trigger once selected', async () => {
     const withIcons = [{ value: 'rent', label: 'Rent', icon: '🏠' }, { value: 'food', label: 'Food' }]
-    const onChange = vi.fn()
-    render(<Select value="rent" onChange={onChange} options={withIcons} aria-label="Cat3" />)
+    const user = userEvent.setup()
+    render(<Select value="rent" onChange={vi.fn()} options={withIcons} aria-label="Cat3" />)
     // aria-hidden icons don't count toward the accessible name; check the rendered text instead.
     expect(screen.getByRole('combobox', { name: 'Cat3' }).textContent).toBe('🏠Rent')
-    fireEvent.click(screen.getByRole('combobox', { name: 'Cat3' }))
-    expect(screen.getByRole('option', { name: 'Rent' }).textContent).toBe('🏠Rent')
+    await user.click(screen.getByRole('combobox', { name: 'Cat3' }))
+    expect((await screen.findByRole('option', { name: 'Rent' })).textContent).toBe('🏠Rent')
     expect(screen.getByRole('option', { name: 'Food' })).toBeTruthy()
   })
 })

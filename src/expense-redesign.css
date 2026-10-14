@@ -122,16 +122,6 @@
     transform: translateX(320%);
   }
 }
-@keyframes erd-menuPop {
-  from {
-    opacity: 0;
-    transform: translateY(-6px) scale(0.96);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
 @keyframes erd-drift1 {
   0% {
     transform: translate(0, 0) rotate(0deg);
@@ -674,11 +664,7 @@
 .erd-home-rta-slim-amount svg {
   color: var(--erd-text2);
 }
-.expense-redesign .erd-home-rta-slim-wrap .env-menu {
-  top: calc(100% + 6px);
-  right: 0;
-  left: auto;
-}
+
 .erd-home-hero-caption {
   font-size: 13px;
   font-weight: 500;
@@ -709,13 +695,6 @@
 }
 .erd-home-income-pill.is-empty svg {
   color: inherit;
-}
-/* `translate`, not `transform`, so it doesn't fight erd-menuPop. */
-.expense-redesign .erd-home-pill-wrap .env-menu {
-  top: calc(100% + 6px);
-  left: 50%;
-  right: auto;
-  translate: -50% 0;
 }
 .erd-home-income-pill:active {
   transform: scale(0.96);
@@ -1750,39 +1729,10 @@
   background: var(--erd-border);
   color: var(--erd-text);
 }
-.expense-redesign .env-menu {
-  position: absolute;
-  top: 32px;
-  right: 0;
-  z-index: 50;
-  min-width: 210px;
-  background: var(--erd-modal-bg);
-  border: 1px solid var(--erd-border-strong);
-  border-radius: 18px;
-  box-shadow: 0 16px 40px -12px oklch(0% 0 0 / 0.6);
-  padding: 6px;
-  animation: erd-menuPop 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
-  text-align: left;
-}
-.expense-redesign .env-menu-item {
-  display: block;
-  width: 100%;
-  text-align: left;
-  padding: 9px 12px;
-  border-radius: 14px;
-  border: none;
-  background: none;
-  color: var(--erd-text);
-  font-size: 13px;
-  cursor: pointer;
-  font-family: var(--font-nunito);
-}
-.expense-redesign .env-menu-item:hover {
-  background: var(--erd-border);
-}
-.expense-redesign .env-menu-item-danger {
-  color: var(--coral);
-}
+
+
+
+
 .expense-redesign .env-menu-assign {
   display: flex;
   align-items: center;
@@ -3913,9 +3863,7 @@
   width: 0;
   height: 0;
 }
-.expense-redesign .txn-actions .env-menu {
-  top: 10px;
-}
+
 .expense-redesign .txn-timeline-footer {
   display: flex;
   align-items: center;
@@ -12223,7 +12171,7 @@ button.account-feature-card {
   color: var(--erd-text2);
   font-size: 12.5px;
 }
-.expense-redesign .capture-envelope.ui-select .ui-select-chevron {
+.expense-redesign .capture-envelope.ui-select > :last-child {
   width: 13px;
   height: 13px;
 }

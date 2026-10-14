@@ -2944,38 +2944,11 @@ input[type="date"]:hover {
   border-color: color-mix(in oklab, var(--accent-strong) 28%, transparent);
 }
 
-.env-menu {
-  position: absolute;
-  right: 0;
-  top: 100%;
-  z-index: 100;
-  min-width: 220px;
-  background: var(--panel, #1e2233);
-  border: 1px solid var(--border, rgba(16, 24, 40, 0.15));
-  border-radius: var(--radius-control);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
-  padding: 4px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
 
-.env-menu-item {
-  background: none;
-  border: none;
-  color: var(--text, #e1e4e8);
-  font-size: 0.78rem;
-  padding: 6px 10px;
-  border-radius: var(--r-sm, 4px);
-  cursor: pointer;
-  text-align: left;
-  white-space: nowrap;
-  transition: background 0.1s;
-}
 
-.env-menu-item:hover {
-  background: var(--hover, rgba(255, 255, 255, 0.06));
-}
+
+
+
 
 .env-menu-assign {
   display: flex;
@@ -3068,9 +3041,7 @@ input[type="date"]:hover {
   font-weight: 500;
 }
 
-.env-menu-item-danger {
-  color: var(--risk-fg, #e74c3c) !important;
-}
+
 
 .env-th-toggle-all {
   display: inline-flex;

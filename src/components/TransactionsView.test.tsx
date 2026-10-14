@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest'
 import { TransactionsView } from './TransactionsView'
 import { ExpenseWriteError } from '../lib/expenseConflict'
@@ -212,8 +213,9 @@ describe('income in Activity', () => {
   it('hides income under a category filter', async () => {
     incomeMocks.rows = [{ id: 'i1', version: 0, date: '2026-09-17', amount: '5', label: 'Gift', notes: '', account_id: '', recurring_id: '', source: 'manual', counted: 'extra', created_at: '' }]
     render(<TransactionsView />)
-    fireEvent.click(screen.getByRole('combobox', { name: 'Filter by category' }))
-    fireEvent.mouseDown(screen.getByRole('option', { name: /Groceries/ }))
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('combobox', { name: 'Filter by category' }))
+    await user.click(await screen.findByRole('option', { name: /Groceries/ }))
     // The row animates out, so it leaves the DOM a beat later.
     await waitFor(() => expect(screen.queryByText('Gift')).not.toBeInTheDocument())
   })

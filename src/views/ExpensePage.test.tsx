@@ -1,5 +1,6 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { renderToString } from 'react-dom/server'
 import { hydrateRoot } from 'react-dom/client'
@@ -191,8 +192,8 @@ it('renders the finished home screen from a filled cache on the first render, an
 it('names income in a pill under the hero that opens the income menu', async () => {
   const client = renderPage()
   const pill = await screen.findByRole('button', { name: 'Income · ₹20,000' })
-  fireEvent.click(pill)
-  expect(pill.parentElement).toContainElement(screen.getByRole('menuitem', { name: 'Change income' }))
+  await userEvent.setup().click(pill)
+  expect(await screen.findByRole('menuitem', { name: 'Change income' })).toBeInTheDocument()
   expect(pill).toHaveAttribute('aria-expanded', 'true')
   client.clear()
 })

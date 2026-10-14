@@ -22,6 +22,8 @@ import { TransactionEditModal } from "./TransactionEditModal";
 import { LogExpenseModal } from "./LogExpenseModal";
 import { DatePicker } from "./DatePicker";
 import { Select } from "./Select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { MENU_ITEM, MENU_POPUP } from "./menuStyles";
 import { avatarStyleFor, splitEmoji } from "../lib/emoji";
 import { CategoryIcon } from "./CategoryIcon";
 import { formatShortDate } from "../lib/format";
@@ -134,22 +136,6 @@ export function TransactionsView({
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [showLogModal, setShowLogModal] = useState(false);
   const [actionsKey, setActionsKey] = useState<string | null>(null);
-  const actionsMenuRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (!actionsKey) return;
-    function handleClick(e: MouseEvent) {
-      if ((e.target as Element).closest(".txn-row-trigger")) return;
-      if (
-        actionsMenuRef.current &&
-        !actionsMenuRef.current.contains(e.target as Node)
-      ) {
-        setActionsKey(null);
-      }
-    }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, [actionsKey]);
 
   /**
    * The custom range's default: the day named in ?date=, else the month
@@ -357,10 +343,6 @@ export function TransactionsView({
   // The mutation hooks invalidate the expense and budget queries themselves,
   // so there is nothing left for callers to refresh by hand.
   function refreshTransactions() {}
-
-  function toggleActions(rowKey: string) {
-    setActionsKey((key) => key === rowKey ? null : rowKey);
-  }
 
   async function handleDelete(t: Transaction) {
     const key = txnKey(t);
@@ -695,14 +677,22 @@ export function TransactionsView({
                           onClick={() => toggleSelected(t)}
                         />
                       ) : (
-                        <button
-                          type="button"
-                          className="txn-row-trigger"
-                          aria-label={`Open actions for ${t.item}`}
-                          aria-haspopup="menu"
-                          aria-expanded={actionsKey === rowKey}
-                          onClick={() => toggleActions(rowKey)}
-                        />
+                        <DropdownMenu
+                          open={actionsKey === rowKey}
+                          onOpenChange={(open) => setActionsKey(open ? rowKey : null)}
+                        >
+                          <DropdownMenuTrigger
+                            render={<button type="button" className="txn-row-trigger" aria-label={`Open actions for ${t.item}`} />}
+                          />
+                          <DropdownMenuContent align="end" className={MENU_POPUP}>
+                            <DropdownMenuItem className={MENU_ITEM} onClick={() => setEditingTxn(t)}>
+                              Edit transaction
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className={MENU_ITEM} variant="destructive" onClick={() => setDeleteTxn(t)}>
+                              Delete transaction
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       )}
                       <span className="txn-check-slot" aria-hidden="true">
                         <span className={`txn-check${isSelected ? " is-on" : ""}`}>
@@ -740,38 +730,7 @@ export function TransactionsView({
                           ? "---"
                           : formatCurrency(t.amountInr)}
                       </span>
-                      <span
-                        className="txn-actions"
-                        onClick={(event) => event.stopPropagation()}
-                        onKeyDown={(event) => event.stopPropagation()}
-                      >
-                        <div className="env-action-wrap">
-                          {actionsKey === rowKey && (
-                            <div className="env-menu" ref={actionsMenuRef} role="menu">
-                              <button
-                                type="button"
-                                className="env-menu-item"
-                                onClick={() => {
-                                  setEditingTxn(t);
-                                  setActionsKey(null);
-                                }}
-                              >
-                                Edit transaction
-                              </button>
-                              <button
-                                type="button"
-                                className="env-menu-item env-menu-item-danger"
-                                onClick={() => {
-                                  setDeleteTxn(t);
-                                  setActionsKey(null);
-                                }}
-                              >
-                                Delete transaction
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </span>
+                      <span className="txn-actions" />
                     </DeletingRow>
                   );
                 })}

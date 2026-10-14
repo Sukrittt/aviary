@@ -1,5 +1,6 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { RecurringSuggestions } from './RecurringSuggestions'
 import type { RecurringScan } from '../types/recurringSuggestions'
@@ -47,8 +48,9 @@ it('selects shorter periods without calling Jev and submits the chosen period', 
   mount()
   const selector = screen.getByRole('combobox', { name: 'Scan period' })
   await waitFor(() => expect(mocks.load).toHaveBeenCalledWith(6))
-  fireEvent.click(selector)
-  fireEvent.mouseDown(screen.getByRole('option', { name: 'Last month' }))
+  const user = userEvent.setup()
+  await user.click(selector)
+  await user.click(await screen.findByRole('option', { name: 'Last month' }))
   expect(selector).toHaveTextContent('Last month')
   await waitFor(() => expect(mocks.load).toHaveBeenCalledWith(1))
   expect(mocks.scan).not.toHaveBeenCalled()
