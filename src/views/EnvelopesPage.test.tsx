@@ -87,6 +87,13 @@ describe('EnvelopesPage', () => {
     }
   })
 
+  it('names each icon action in a tooltip on hover', async () => {
+    renderPage()
+    const list = await groupList()
+    await userEvent.hover(list.getByRole('link', { name: 'View transactions for Rent' }))
+    expect(await screen.findByText('View transactions')).toBeInTheDocument()
+  })
+
   it('does not advertise drag reordering while DnD is unavailable', async () => {
     renderPage()
     const list = await groupList()
