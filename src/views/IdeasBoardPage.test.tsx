@@ -8,6 +8,7 @@ import { IdeasBoardPage } from './IdeasBoardPage'
 import { listIdeas, postIdea, voteIdea, type Idea } from '@/src/api/ideas'
 import { applyVote, type VoteValue } from '@/src/lib/ideaVotes'
 
+vi.mock('next/navigation', () => ({ usePathname: () => '/account/ideas', useRouter: () => ({ push: vi.fn() }) }))
 vi.mock('@/src/api/ideas', () => ({ listIdeas: vi.fn(), postIdea: vi.fn(), voteIdea: vi.fn() }))
 
 const idea = {
@@ -110,19 +111,21 @@ it('posts an idea and shows written copy when rate limited', async () => {
   ;(postIdea as Mock).mockRejectedValueOnce(new Error('rate_limited'))
   const user = userEvent.setup()
   renderPage()
-  await user.type(screen.getByLabelText('Your idea'), 'Dark charts')
+  await user.click(screen.getByRole('button', { name: 'Pitch an idea' }))
+  await user.type(within(screen.getByRole('dialog', { name: 'Share an idea' })).getByLabelText('Your idea'), 'Dark charts')
   await user.click(screen.getByRole('button', { name: 'Post idea' }))
   await waitFor(() => expect(screen.getByText("You've posted a few already. Try again later.")).toBeInTheDocument())
   expect(postIdea).toHaveBeenCalledWith('Dark charts', '')
 })
 
-it('greets an empty board with the bird, whose button jumps to the idea field', async () => {
+it('greets an empty board with the bird, whose button opens the idea dialog', async () => {
   serve([])
   const user = userEvent.setup()
   renderPage()
-  expect(await screen.findByRole('heading', { name: "The board's quiet" })).toBeInTheDocument()
-  await user.click(screen.getByRole('button', { name: 'Pitch an idea' }))
-  expect(screen.getByLabelText('Your idea')).toHaveFocus()
+  const empty = (await screen.findByRole('heading', { name: "The board's quiet" })).closest('.ideas-empty') as HTMLElement
+  await user.click(within(empty).getByRole('button', { name: 'Pitch an idea' }))
+  expect(within(screen.getByRole('dialog', { name: 'Share an idea' })).getByLabelText('Your idea')).toHaveFocus()
+  expect(screen.queryByRole('link', { name: 'Peek at the board' })).toBeNull()
 })
 
 it('filters by status from the dropdown, with an empty state for that status', async () => {

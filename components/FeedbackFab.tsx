@@ -1,15 +1,11 @@
 'use client'
 
-import Link from 'next/link'
 import { useState, type MouseEvent } from 'react'
 import { usePathname } from 'next/navigation'
 import { AnimatePresence } from 'motion/react'
-import { useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@workos-inc/authkit-nextjs/components'
 import { BugIcon, ChatCircleTextIcon, LightbulbIcon } from '@/src/components/icons'
-import { Scrim, Sheet } from '@/src/components/MotionSheet'
-import { BugReportForm } from '@/src/views/FeedbackPage'
-import { IdeaForm } from '@/src/views/IdeasBoardPage'
+import { FeedbackDialog, type FeedbackKind } from '@/src/components/FeedbackDialog'
 import { FEEDBACK_BOARD_PATH } from '@/lib/links'
 import './FeedbackFab.css'
 
@@ -18,8 +14,6 @@ const HIDDEN_ON = [FEEDBACK_BOARD_PATH, '/account/feedback']
 
 const onApp = (path: string) =>
   APP_PREFIXES.some((p) => path === p || path.startsWith(`${p}/`)) && !HIDDEN_ON.includes(path)
-
-type Kind = 'idea' | 'bug'
 
 /**
  * A bottom-right circle on the signed-in app that opens a two-item menu.
@@ -30,10 +24,10 @@ export function FeedbackFab() {
   const { user } = useAuth()
   const pathname = usePathname() ?? ''
   // Tied to the page it opened on, so leaving the page drops it instead of reopening it on return.
-  const [open, setOpen] = useState<{ kind: Kind; path: string } | null>(null)
+  const [open, setOpen] = useState<{ kind: FeedbackKind; path: string } | null>(null)
   if (!user || !onApp(pathname)) return null
 
-  const pick = (kind: Kind) => (e: MouseEvent<HTMLElement>) => {
+  const pick = (kind: FeedbackKind) => (e: MouseEvent<HTMLElement>) => {
     e.currentTarget.closest<HTMLElement>('[popover]')?.hidePopover?.()
     setOpen({ kind, path: pathname })
   }
@@ -55,26 +49,5 @@ export function FeedbackFab() {
       </div>
       <AnimatePresence>{open?.path === pathname && <FeedbackDialog kind={open.kind} onClose={() => setOpen(null)} />}</AnimatePresence>
     </>
-  )
-}
-
-function FeedbackDialog({ kind, onClose }: { kind: Kind; onClose: () => void }) {
-  const queryClient = useQueryClient()
-  const title = kind === 'idea' ? 'Share an idea' : 'Report a bug'
-  return (
-    <Scrim className="erd-modal-overlay" onClick={onClose}>
-      <Sheet className="erd-modal-card feedback-dialog" role="dialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()}
-        onKeyDown={(e) => { if (e.key === 'Escape') onClose() }}>
-        <h3 className="archive-confirm-title">{title}</h3>
-        {kind === 'idea' ? (
-          <>
-            <p className="account-row-meta">Post it here and the flock votes on what we build next. <Link href={FEEDBACK_BOARD_PATH} onClick={onClose}>Peek at the board</Link></p>
-            <IdeaForm dialog onPosted={() => queryClient.invalidateQueries({ queryKey: ['ideas'] })} onDone={onClose} />
-          </>
-        ) : (
-          <BugReportForm dialog onDone={onClose} />
-        )}
-      </Sheet>
-    </Scrim>
   )
 }
