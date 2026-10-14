@@ -48,6 +48,7 @@ describe('TrackedLink', () => {
     fireEvent.click(link)
     expect(link).toHaveAttribute('aria-disabled', 'true')
     expect(link).toHaveAttribute('aria-busy', 'true')
+    expect(link).toHaveTextContent('Continue with Google')
     expect(fireEvent.click(link)).toBe(false)
     expect(track).toHaveBeenCalledTimes(1)
   })
@@ -61,10 +62,12 @@ describe('TrackedLink', () => {
 
   it('reenables sign-in when returning through browser history', () => {
     vi.mocked(isAnalyticsLoading).mockReturnValue(false)
-    render(<TrackedLink href="/api/auth/google" event="sign_in_started" disableOnClick>Continue with Google</TrackedLink>)
+    render(<TrackedLink href="/api/auth/google" event="sign_in_started" disableOnClick pendingChildren="Just a moment…">Continue with Google</TrackedLink>)
     const link = screen.getByRole('link', { name: 'Continue with Google' })
     fireEvent.click(link)
+    expect(link).toHaveTextContent('Just a moment…')
     fireEvent(window, new Event('pageshow'))
     expect(link).not.toHaveAttribute('aria-disabled')
+    expect(link).toHaveTextContent('Continue with Google')
   })
 })

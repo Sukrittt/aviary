@@ -23,6 +23,7 @@ export function TrackedLink({
   className,
   children,
   disableOnClick = false,
+  pendingChildren,
 }: {
   href: string
   event: AppEvent
@@ -30,6 +31,8 @@ export function TrackedLink({
   className?: string
   children: ReactNode
   disableOnClick?: boolean
+  /** Shown in place of `children` while a `disableOnClick` click is navigating. */
+  pendingChildren?: ReactNode
 }) {
   const [pending, setPending] = useState(false)
   const pendingRef = useRef(false)
@@ -62,7 +65,7 @@ export function TrackedLink({
 
   return (
     <a className={className} href={href} onClick={onClick} aria-disabled={pending || undefined} aria-busy={pending || undefined}>
-      {children}
+      {pending && pendingChildren ? pendingChildren : children}
     </a>
   )
 }
