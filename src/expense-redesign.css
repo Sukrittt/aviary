@@ -3006,11 +3006,17 @@
 /* Service quick picks */
 .erd-sub-picks {
   display: flex;
-  flex-wrap: wrap;
   gap: 8px;
   margin-top: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.erd-sub-picks::-webkit-scrollbar {
+  display: none;
 }
 .erd-sub-picks .erd-chip {
+  flex-shrink: 0;
+  white-space: nowrap;
   height: 36px;
   padding: 0 14px;
   display: inline-flex;

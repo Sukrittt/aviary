@@ -8,10 +8,7 @@ import { SuccessButton, useButtonPhase } from './SuccessButton'
 import { DatePicker } from './DatePicker'
 import { CategoryPicker } from './CategoryPicker'
 import { useAddSubscription, useUpdateSubscription } from '../hooks/useSubscriptions'
-import { useCategories } from '../hooks/useCategories'
-import { splitEmoji } from '../lib/emoji'
-import { EMPTY } from '../lib/constants'
-import type { CategoryRow } from '../types'
+import { suggestPresets } from '../lib/subscriptionPresets'
 
 interface SubscriptionEdit {
   service: string
@@ -53,22 +50,6 @@ const CYCLE_NOUN: Record<BillingCycle, string> = {
 
 const SHORT_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
-interface ServiceSuggestion {
-  name: string
-  amount: string
-  cycle: BillingCycle
-  /** Suggested category — only applied when the user actually has one like it. */
-  category?: string
-}
-
-/** Common Indian prices — filled only as a suggestion, plans change. */
-const SERVICE_SUGGESTIONS: ServiceSuggestion[] = [
-  { name: 'Netflix', amount: '199', cycle: 'monthly', category: 'Entertainment' },
-  { name: 'Spotify', amount: '99', cycle: 'monthly', category: 'Entertainment' },
-  { name: 'YouTube', amount: '149', cycle: 'monthly', category: 'Entertainment' },
-  { name: 'Amazon Prime', amount: '1499', cycle: 'yearly', category: 'Subscriptions' },
-]
-
 function toDateInput(iso: string): string {
   if (!iso) return ''
   const d = new Date(iso)
@@ -97,17 +78,8 @@ function formatDueDate(iso: string): string {
   return `${d} ${SHORT_MONTHS[m - 1]} ${y}`
 }
 
-/** The closest real category in the user's set to a suggested name, if any. */
-function findCategory(categories: CategoryRow[], target: string): string {
-  const key = target.trim().toLowerCase()
-  const row = categories.find((c) => splitEmoji(c.name).text.trim().toLowerCase() === key)
-  return row ? row.name : ''
-}
-
 export function SubscriptionModal({ onClose, onSaved, editData, initialValues, suggestionId }: Props) {
-  const { currencySymbol } = useCurrency()
-  const categoriesQ = useCategories()
-  const categories = categoriesQ.data ?? EMPTY
+  const { currencySymbol, currencyCode } = useCurrency()
 
   const isEdit = !!editData
   const initial = editData ?? initialValues
@@ -148,15 +120,6 @@ export function SubscriptionModal({ onClose, onSaved, editData, initialValues, s
   function handleAmountChange(value: string) {
     if (/[^0-9.]/.test(value)) return
     setAmount(value)
-  }
-
-  function pickSuggestion(s: ServiceSuggestion) {
-    setService(s.name)
-    setAmount(s.amount)
-    setBillingCycle(s.cycle)
-    if (!category && s.category) {
-      setCategory(findCategory(categories, s.category))
-    }
   }
 
   function handleDatePick(value: string) {
@@ -227,19 +190,15 @@ export function SubscriptionModal({ onClose, onSaved, editData, initialValues, s
               onChange={(e) => setService(e.target.value)}
               autoFocus
             />
-            <div className="erd-sub-picks">
-              {SERVICE_SUGGESTIONS.map((s) => (
-                <button
-                  key={s.name}
-                  type="button"
-                  className="erd-chip"
-                  onClick={() => pickSuggestion(s)}
-                >
-                  {s.name}
-                </button>
-              ))}
-            </div>
-            <p className="erd-sub-hint">Tap to autofill name and amount</p>
+            {isEdit || suggestionId ? null : (
+              <div className="erd-sub-picks">
+                {suggestPresets(currencyCode, service).map((name) => (
+                  <button key={name} type="button" className="erd-chip" onClick={() => setService(name)}>
+                    {name}
+                  </button>
+                ))}
+              </div>
+            )}
           </section>
 
           <section className="erd-sub-section">
