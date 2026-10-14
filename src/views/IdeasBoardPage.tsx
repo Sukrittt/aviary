@@ -7,6 +7,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CaretDownIcon, CaretUpIcon } from '@/src/components/icons'
 import { Select } from '../components/Select'
 import { BirdEmptyState } from '../components/BirdEmptyState'
+import { LoadingCaption } from '../components/LoadingCaption'
 import { FeedbackDialog } from '../components/FeedbackDialog'
 import { listIdeas, voteIdea, type Idea, type IdeaSort, type IdeaStatus } from '../api/ideas'
 import { applyVote, toggleVote, type VoteValue } from '../lib/ideaVotes'
@@ -85,7 +86,7 @@ export function IdeasBoardPage() {
       {ideas.isError ? (
         <div className="account-card ideas-empty"><p className="account-help-copy">Couldn&apos;t load the board. Check your connection and try again.</p></div>
       ) : ideas.isPending ? (
-        <div className="account-card ideas-empty"><p className="account-help-copy">Loading ideas…</p></div>
+        <div className="account-card ideas-empty"><LoadingCaption feature="ideas" /></div>
       ) : ideas.data.length === 0 ? (
         <div className="account-card ideas-empty">
           {status ? (
