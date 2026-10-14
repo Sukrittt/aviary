@@ -48,6 +48,9 @@ const CYCLE_NOUN: Record<BillingCycle, string> = {
   'one-time': '',
 }
 
+/** Service chips shown before "Show more". */
+const PRESETS_COLLAPSED = 5
+
 const SHORT_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 function toDateInput(iso: string): string {
@@ -92,6 +95,7 @@ export function SubscriptionModal({ onClose, onSaved, editData, initialValues, s
   const [dueDate, setDueDate] = useState(() =>
     initial?.next_due_date ? toDateInput(initial.next_due_date) : '',
   )
+  const [showAllPresets, setShowAllPresets] = useState(false)
   const [showNote, setShowNote] = useState(() => !!initial?.notes?.trim())
   const [notes, setNotes] = useState(initial?.notes ?? '')
   const [category, setCategory] = useState(initial?.category ?? '')
@@ -111,6 +115,7 @@ export function SubscriptionModal({ onClose, onSaved, editData, initialValues, s
   if (!amountOk) missing.push('an amount')
   if (!dueDate) missing.push('a due date')
 
+  const presets = suggestPresets(currencyCode, service, Infinity)
   const unitNoun = CYCLE_NOUN[billingCycle]
   const in7 = futureDate(7)
   const in30 = futureDate(30)
@@ -192,11 +197,16 @@ export function SubscriptionModal({ onClose, onSaved, editData, initialValues, s
             />
             {isEdit || suggestionId ? null : (
               <div className="erd-sub-picks">
-                {suggestPresets(currencyCode, service).map((name) => (
+                {(showAllPresets ? presets : presets.slice(0, PRESETS_COLLAPSED)).map((name) => (
                   <button key={name} type="button" className="erd-chip" onClick={() => setService(name)}>
                     {name}
                   </button>
                 ))}
+                {presets.length > PRESETS_COLLAPSED && (
+                  <button type="button" className="erd-sub-note-toggle" onClick={() => setShowAllPresets((v) => !v)}>
+                    {showAllPresets ? 'Show less' : 'Show more'}
+                  </button>
+                )}
               </div>
             )}
           </section>
