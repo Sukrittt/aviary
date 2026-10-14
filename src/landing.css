@@ -661,7 +661,7 @@ html:has(.lp) { scroll-behavior: smooth; }
 @keyframes m-blink-eye { 0% { opacity: 1; } 95.2%, 100% { opacity: 0; } }
 @keyframes m-blink-lid { 0% { opacity: 0; } 95.2%, 100% { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .m-bird-eye, .m-bird-lid { animation: none; } }
-.m-widget-band { position: relative; height: 88px; padding: 10px 11px 0 66px; display: flex; }
+.m-widget-band { position: relative; height: 100px; padding: 10px 11px 0 66px; display: flex; }
 .m-widget-hero { position: relative; display: flex; flex-direction: column; flex: 1; min-width: 0; }
 .m-widget-hero b { font-family: var(--font-display), sans-serif; font-weight: 700; font-size: 22px; line-height: 1.05; }
 .m-widget--mini .m-widget-hero { flex: 0 0 auto; }
