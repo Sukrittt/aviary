@@ -50,7 +50,24 @@ function CategoryRow() {
   )
 }
 
-/** Mirrors Home with everything assigned: month, slim Ready to Assign row, one category group, and the rail. */
+function CategoryGroup({ count }: { count: number }) {
+  return (
+    <div className="env2-group sk-group">
+      <div className="sk-head">
+        <span className="sk-inline">
+          <Bone w={16} h={16} r={4} />
+          <Bone w={100} h={14} />
+        </span>
+        <Bone w={90} h={13} />
+      </div>
+      <div className="env2-group-rows">
+        {Array.from({ length: count }, (_, i) => <CategoryRow key={i} />)}
+      </div>
+    </div>
+  )
+}
+
+/** Mirrors Home with everything assigned: month, slim Ready to Assign row, three category groups, and the rail. */
 export function HomeSkeleton() {
   return (
     <Pulse className="erd-home">
@@ -71,20 +88,7 @@ export function HomeSkeleton() {
             <Bone w={120} h={20} />
             <Bone w={84} h={30} r={999} />
           </div>
-          <div className="env2-group sk-group">
-            <div className="sk-head">
-              <span className="sk-inline">
-                <Bone w={16} h={16} r={4} />
-                <Bone w={100} h={14} />
-              </span>
-              <Bone w={90} h={13} />
-            </div>
-            <div className="env2-group-rows">
-              <CategoryRow />
-              <CategoryRow />
-              <CategoryRow />
-            </div>
-          </div>
+          {[3, 2, 2].map((count, i) => <CategoryGroup key={i} count={count} />)}
         </div>
       </div>
       <div className="erd-home-rail">
