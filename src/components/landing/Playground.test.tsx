@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Playground } from './Playground'
+import { fitAmountSize } from './mobile/LogExpense'
 
 vi.mock('@lottiefiles/dotlottie-react', () => ({ DotLottieReact: () => null }))
 
@@ -85,17 +86,17 @@ describe('log playground', () => {
     expect(field()).toHaveValue('')
   })
 
-  it('matches the app’s log screen: calculator, optional name, + hint, and the capture tip after two logs', async () => {
+  it('matches the app’s log screen: calculator with grouped numbers, optional name, + hint', async () => {
     vi.useFakeTimers()
     const { container } = render(<Playground />)
     fireEvent.click(screen.getByRole('button', { name: 'Try it yourself' }))
     await run(600)
     const key = (k: string) => fireEvent.click([...container.querySelectorAll(`button.m-key[aria-label="${k}"]`)].at(-1)!)
 
-    // Calculator: the amount is the sum, the line under it the sum written out.
+    // Calculator: the amount is the sum, the line under it the sum written out with commas.
     fireEvent.click(screen.getAllByRole('button', { name: 'Calculator' }).at(-1)!)
-    for (const k of ['1', '2', '+', '8']) key(k)
-    expect(screen.getByText('12 + 8')).toBeInTheDocument()
+    for (const k of ['1', '2', '0', '0', '0', '+', '8']) key(k)
+    expect(screen.getByText('12,000 + 8')).toBeInTheDocument()
     expect(screen.queryByTestId('nav-add-hint')).not.toBeInTheDocument()
 
     // No name needed: a category is enough, and + says it saves.
@@ -106,21 +107,51 @@ describe('log playground', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Log expense' }))
     await run(2500)
     expect(screen.getByText('Added')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Done' }))
-    await run(600)
+  })
 
-    // Second log by hand: the hint is gone, and then the capture tip pops off the chat icon.
-    fireEvent.click(screen.getByRole('button', { name: 'Netflix' }))
-    await run(3000)
-    for (const k of ['9', '9']) key(k)
-    expect(screen.queryByText('Tap + to save')).not.toBeInTheDocument()
+  it('opens the category picker when + is hit without one, and logs once it’s picked', async () => {
+    vi.useFakeTimers()
+    const { container } = render(<Playground />)
+    fireEvent.click(screen.getByRole('button', { name: 'Try it yourself' }))
+    await run(600)
+    for (const k of ['5', '0']) fireEvent.click([...container.querySelectorAll(`button.m-key[aria-label="${k}"]`)].at(-1)!)
+
     fireEvent.click(screen.getByRole('tab', { name: 'Log expense' }))
+    await run(400)
+    expect(screen.getByText('Choose a category')).toBeInTheDocument()
+    expect(screen.queryByText('Added')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getAllByRole('button', { name: /Outings/ }).at(-1)!)
     await run(2500)
-    fireEvent.click(screen.getByRole('button', { name: 'Done' }))
-    await run(1500)
-    expect(screen.getByText('Logging a few?')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Try logging several at once' }))
-    expect(screen.getByText(/happens in Ask Aviary/)).toBeInTheDocument()
-    expect(screen.queryByText('Logging a few?')).not.toBeInTheDocument()
+    expect(screen.getByText('Added')).toBeInTheDocument()
+  })
+
+  it('still logs when the pick matches the category auto-suggest landed while the picker was open', async () => {
+    vi.useFakeTimers()
+    const { container } = render(<Playground />)
+    fireEvent.click(screen.getByRole('button', { name: 'Try it yourself' }))
+    await run(600)
+    fireEvent.click(screen.getByRole('button', { name: 'Netflix' }))
+    await run(700) // typed, but the suggestion hasn't landed yet
+    expect(screen.getAllByRole('button', { name: 'Category' }).at(-1)).toHaveTextContent('Pick a category')
+    for (const k of ['5', '0']) fireEvent.click([...container.querySelectorAll(`button.m-key[aria-label="${k}"]`)].at(-1)!)
+    fireEvent.click(screen.getByRole('tab', { name: 'Log expense' }))
+    await run(3000) // the suggestion lands under the open picker
+    fireEvent.click(screen.getAllByRole('button', { name: /Subscriptions/ }).at(-1)!)
+    await run(2500)
+    expect(screen.getByText('Added')).toBeInTheDocument()
+  })
+
+  it('has no chat icon in the header', async () => {
+    render(<Playground />)
+    expect(screen.queryByRole('button', { name: 'Log several spends at once' })).not.toBeInTheDocument()
+  })
+})
+
+describe('fitAmountSize', () => {
+  it('keeps a short amount at full size and shrinks a long one to fit the phone', () => {
+    expect(fitAmountSize('₹1,200')).toBeCloseTo(56 * 1.3)
+    // 328px of room: every glyph at ~0.62em has to fit.
+    expect(fitAmountSize('₹99,99,99,999') * 0.62 * 13).toBeLessThanOrEqual(328)
   })
 })

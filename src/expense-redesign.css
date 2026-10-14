@@ -4239,6 +4239,27 @@
   scale: 1;
 }
 
+/* The Google hop takes a few seconds: a spinner takes the logo's place meanwhile. */
+.auth-btn[aria-busy="true"] > svg {
+  display: none;
+}
+
+.auth-btn[aria-busy="true"]::before {
+  content: "";
+  width: 18px;
+  height: 18px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: auth-spin 0.7s linear infinite;
+}
+
+@keyframes auth-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .auth-btn--outline {
   background: var(--erd-card);
   border: 1px solid var(--erd-border-strong);
