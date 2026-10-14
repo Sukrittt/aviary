@@ -13,15 +13,16 @@ export const BILLING_ACCOUNTS = 'billing_accounts'
 export const BILLING_SUBSCRIPTIONS = 'billing_subscriptions'
 export const BILLING_EVENTS = 'billing_events'
 
-/** Trial length. 45 × 24h of real time, not 45 calendar days. */
-export const TRIAL_DAYS = 45
+/** Trial length. 30 × 24h of real time, not 30 calendar days. */
+export const TRIAL_DAYS = 30
 
 /**
  * Which trial-granting rule created an account's dates. Recorded so a
  * migration rerun (or a policy change later) can tell cohorts apart and
- * never restarts a clock that already ran.
+ * never restarts a clock that already ran. onboarding-v1 got 45 days,
+ * onboarding-v2 (from Oct 2026) gets 30.
  */
-export type TrialCohort = 'onboarding-v1' | 'legacy-launch-v1'
+export type TrialCohort = 'onboarding-v1' | 'onboarding-v2' | 'legacy-launch-v1'
 
 /**
  * A gifted plan: access an admin granted by hand, with no purchase behind it.

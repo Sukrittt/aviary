@@ -35,7 +35,7 @@ import { cancelPayPalSubscription, fetchPayPalSubscription, paypalConfig, PayPal
 import { projectPayPalSubscription } from './paypalProjection'
 
 /**
- * Start the 45-day clock, once, for good.
+ * Start the 30-day clock, once, for good.
  *
  * `$setOnInsert` under the unique `_id` is the whole concurrency story: two
  * simultaneous onboarding completions, a reinstall, a logout/login, or a
@@ -128,7 +128,7 @@ export async function completeOnboarding(
     console.warn('[billing] completing onboarding for', userId, 'without a verified initial setup')
   }
 
-  const account = await startTrial(db, userId, 'onboarding-v1', now)
+  const account = await startTrial(db, userId, 'onboarding-v2', now)
 
   // Only stamped once: re-running completion must not move a date the app
   // already showed the user, or reorder them in the admin list.

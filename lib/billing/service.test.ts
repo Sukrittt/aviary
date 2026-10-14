@@ -80,7 +80,7 @@ describe('hasCompletedSetup', () => {
 })
 
 describe('startTrial', () => {
-  it('grants exactly 45 × 24h from the server instant', async () => {
+  it('grants exactly 30 × 24h from the server instant', async () => {
     const { db } = fakeDb()
     const account = await startTrial(db, 'user_a', 'onboarding-v1', NOW)
     expect(account.trialStartedAt).toEqual(NOW)

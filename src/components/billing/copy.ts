@@ -79,7 +79,7 @@ export function lockedReason(status: BillingStatus | undefined): string {
       return 'Your payment is still being confirmed. This can take a little while with some payment methods — no need to pay again.'
     default:
       return status?.mode === 'expired' && status.trialEndsAt && !status.productId
-        ? 'Your 45-day free trial has ended. Subscribe to carry on budgeting.'
+        ? 'Your 30-day free trial has ended. Subscribe to carry on budgeting.'
         : 'Your subscription has ended. Subscribe to carry on budgeting.'
   }
 }

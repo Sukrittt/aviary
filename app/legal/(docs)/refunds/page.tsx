@@ -10,7 +10,7 @@ export default function RefundsPage() {
       <p className="legal-updated">Last updated 27 September 2026</p>
 
       <p>
-        Aviary is a subscription with a 45-day free trial, so you can try everything before you pay anything.
+        Aviary is a subscription with a 30-day free trial, so you can try everything before you pay anything.
         This page covers what happens when you cancel, and when you can get money back.
       </p>
 
