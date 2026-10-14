@@ -3,7 +3,7 @@
 import { useMemo, useState, type ReactElement, type ReactNode } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
-import { ReceiptIcon, BellIcon, ArrowsInLineVerticalIcon, EnvelopeSimpleIcon, MoonIcon, PencilSimpleIcon, PlusIcon, SunIcon, TrashIcon, XIcon } from "@/src/components/icons";
+import { ReceiptIcon, BellIcon, ArrowsInLineVerticalIcon, SquaresFourIcon, MoonIcon, PencilSimpleIcon, PlusIcon, SunIcon, TrashIcon, XIcon } from "@/src/components/icons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { CategoryIcon } from "../components/CategoryIcon";
 import { CategoryIconPicker } from "../components/CategoryIconPicker";
@@ -319,7 +319,7 @@ export function EnvelopesPage() {
 
       <header className="erd-mobile-header">
         <div className="erd-mobile-greet">
-          Categories <EnvelopeSimpleIcon aria-hidden />
+          Categories <SquaresFourIcon aria-hidden />
         </div>
         <div className="erd-mobile-sub">
           <span>Every category, and the group it lives in</span>

@@ -2,7 +2,7 @@ import { useEffect, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence } from "motion/react";
-import { HouseIcon, ChartLineIcon, SignOutIcon, EnvelopeSimpleIcon, ListIcon, MoonIcon, SidebarSimpleIcon, PlusIcon, InvoiceIcon, ScanIcon, GearIcon, SparkleIcon, SunIcon, ArrowUUpLeftIcon, XIcon, type PhosphorIcon } from "@/src/components/icons";
+import { HouseIcon, ChartLineIcon, SignOutIcon, SquaresFourIcon, ListIcon, MoonIcon, SidebarSimpleIcon, PlusIcon, InvoiceIcon, ScanIcon, GearIcon, SparkleIcon, SunIcon, ArrowUUpLeftIcon, XIcon, type PhosphorIcon } from "@/src/components/icons";
 import { SignOutDialog } from "./ConfirmDialog";
 import { useMoneyBrain } from "@/components/MoneyBrainProvider";
 import { useAppearance } from "@/components/AppearanceProvider";
@@ -33,7 +33,7 @@ interface Props {
 const NAV: Array<{ href: string; label: string; icon: PhosphorIcon }> = [
   { href: "/expense", label: "Home", icon: HouseIcon },
   { href: "/expense/transactions", label: "Activity", icon: InvoiceIcon },
-  { href: "/expense/envelopes", label: "Categories", icon: EnvelopeSimpleIcon },
+  { href: "/expense/envelopes", label: "Categories", icon: SquaresFourIcon },
   { href: "/insights", label: "Insights", icon: ChartLineIcon },
 ];
 

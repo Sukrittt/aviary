@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { InsightsTab } from './InsightsTab'
-import { ChartLineIcon, EnvelopeSimpleIcon, GearIcon, HouseIcon, InvoiceIcon, type PhosphorIcon } from '@/src/components/icons'
+import { ChartLineIcon, GearIcon, HouseIcon, InvoiceIcon, SquaresFourIcon, type PhosphorIcon } from '@/src/components/icons'
 
 /**
  * The narrow-viewport tab bar. Desktop navigates from the sidebar; this only
@@ -11,7 +11,7 @@ import { ChartLineIcon, EnvelopeSimpleIcon, GearIcon, HouseIcon, InvoiceIcon, ty
  */
 const TABS: Array<{ href: string; icon: PhosphorIcon; label: string }> = [
   { href: '/expense', icon: HouseIcon, label: 'Home' },
-  { href: '/expense/envelopes', icon: EnvelopeSimpleIcon, label: 'Categories' },
+  { href: '/expense/envelopes', icon: SquaresFourIcon, label: 'Categories' },
   { href: '/expense/transactions', icon: InvoiceIcon, label: 'Activity' },
   { href: '/insights', icon: ChartLineIcon, label: 'Insights' },
   { href: '/account', icon: GearIcon, label: 'More' },
