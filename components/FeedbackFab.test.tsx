@@ -27,7 +27,7 @@ it('opens the idea form in a dialog', async () => {
   await userEvent.click(screen.getByText('Share an idea'))
   const dialog = screen.getByRole('dialog', { name: 'Share an idea' })
   expect(dialog).toContainElement(screen.getByLabelText('Your idea'))
-  expect(screen.getByRole('link', { name: 'See the board' })).toHaveAttribute('href', '/account/ideas')
+  expect(screen.getByRole('link', { name: 'Peek at the board' })).toHaveAttribute('href', '/account/ideas')
 })
 
 it('sends a bug report from the dialog and closes it', async () => {

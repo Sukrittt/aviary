@@ -68,7 +68,7 @@ function FeedbackDialog({ kind, onClose }: { kind: Kind; onClose: () => void }) 
         <h3 className="archive-confirm-title">{title}</h3>
         {kind === 'idea' ? (
           <>
-            <p className="account-row-meta">Others can vote on it. <Link href={FEEDBACK_BOARD_PATH} onClick={onClose}>See the board</Link></p>
+            <p className="account-row-meta">Post it here and the flock votes on what we build next. <Link href={FEEDBACK_BOARD_PATH} onClick={onClose}>Peek at the board</Link></p>
             <IdeaForm dialog onPosted={() => queryClient.invalidateQueries({ queryKey: ['ideas'] })} onDone={onClose} />
           </>
         ) : (
