@@ -462,7 +462,7 @@ export function ArchivePage() {
             cancelLabel="Keep"
             onCancel={() => setPurgeTarget(null)}
           >
-            <button type="button" className="account-danger-btn" style={{ marginTop: 0 }} onClick={() => handlePurge(purgeTarget)}>
+            <button type="button" className="account-danger-btn" onClick={() => handlePurge(purgeTarget)}>
               Delete forever
             </button>
           </ConfirmDialog>

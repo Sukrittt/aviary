@@ -762,7 +762,7 @@ export function EnvelopesPage() {
             <button
               type="button"
               className="account-danger-btn"
-              style={{ marginTop: 0 }}
+             
               onClick={() => void confirmDelete()}
             >
               Delete

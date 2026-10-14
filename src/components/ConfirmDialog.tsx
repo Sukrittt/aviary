@@ -48,7 +48,7 @@ export function SignOutDialog({ onCancel }: { onCancel: () => void }) {
   }
   return (
     <ConfirmDialog title="Sign out of Aviary?" body="You'll need to sign in again to see your budget." cancelLabel="Cancel" onCancel={onCancel} busy={signingOut}>
-      <button type="button" className="account-danger-btn" style={{ marginTop: 0 }} onClick={signOut} disabled={signingOut} aria-busy={signingOut || undefined}>
+      <button type="button" className="account-danger-btn" onClick={signOut} disabled={signingOut} aria-busy={signingOut || undefined}>
         {signingOut ? <span role="status">Signing out…</span> : 'Sign out'}
       </button>
     </ConfirmDialog>

@@ -272,7 +272,7 @@ export function IncomePage() {
             onCancel={() => setConfirmDelete(null)}
             busy={removeIncome.isPending}
           >
-            <button type="button" className="account-danger-btn" style={{ marginTop: 0 }} onClick={() => remove(confirmDelete)} disabled={removeIncome.isPending}>
+            <button type="button" className="account-danger-btn" onClick={() => remove(confirmDelete)} disabled={removeIncome.isPending}>
               {removeIncome.isPending ? 'Deleting…' : 'Delete'}
             </button>
           </ConfirmDialog>
