@@ -13,6 +13,11 @@ import { track } from '../lib/analytics'
  */
 export function FeedbackPage() {
   const router = useRouter()
+  return <BugReportForm onDone={() => router.push('/account/help')} />
+}
+
+/** The bug form itself, shared with the feedback button's dialog. `dialog` drops the card chrome. */
+export function BugReportForm({ onDone, dialog = false }: { onDone: () => void; dialog?: boolean }) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [error, setError] = useState('')
@@ -27,7 +32,7 @@ export function FeedbackPage() {
     try {
       await submitFeedback('bug', title, description)
       track('feedback_sent', { type: 'bug' })
-      succeed(() => router.push('/account/help'))
+      succeed(onDone)
     } catch (err) {
       fail()
       setError(
@@ -39,7 +44,7 @@ export function FeedbackPage() {
   }
 
   return (
-    <form className="account-card feedback-form" onSubmit={handleSubmit}>
+    <form className={dialog ? 'feedback-form is-dialog' : 'account-card feedback-form'} onSubmit={handleSubmit}>
       <label className="erd-log-label" htmlFor="feedback-title">
         Title
       </label>

@@ -1,9 +1,15 @@
 import { beforeEach, expect, it, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import type { ReactNode } from 'react'
+import { submitFeedback } from '@/src/api/feedback'
 
 const state = vi.hoisted(() => ({ user: { id: 'u1' } as { id: string } | null, path: '/expense' }))
 vi.mock('@workos-inc/authkit-nextjs/components', () => ({ useAuth: () => ({ user: state.user }) }))
-vi.mock('next/navigation', () => ({ usePathname: () => state.path }))
+vi.mock('next/navigation', () => ({ usePathname: () => state.path, useRouter: () => ({ push: vi.fn() }) }))
+vi.mock('@/src/api/feedback', () => ({ submitFeedback: vi.fn().mockResolvedValue(undefined) }))
+vi.mock('@/src/api/ideas', () => ({ postIdea: vi.fn() }))
 
 const { FeedbackFab } = await import('./FeedbackFab')
 
@@ -12,11 +18,26 @@ beforeEach(() => {
   state.path = '/expense'
 })
 
-it('offers the ideas board and the bug form from the app', () => {
-  render(<FeedbackFab />)
-  expect(screen.getByRole('button', { name: 'Send feedback' })).toBeInTheDocument()
-  expect(screen.getByText('Share an idea').closest('a')).toHaveAttribute('href', '/account/ideas')
-  expect(screen.getByText('Report a bug').closest('a')).toHaveAttribute('href', '/account/feedback')
+const wrapper = ({ children }: { children: ReactNode }) => (
+  <QueryClientProvider client={new QueryClient()}>{children}</QueryClientProvider>
+)
+
+it('opens the idea form in a dialog', async () => {
+  render(<FeedbackFab />, { wrapper })
+  await userEvent.click(screen.getByText('Share an idea'))
+  const dialog = screen.getByRole('dialog', { name: 'Share an idea' })
+  expect(dialog).toContainElement(screen.getByLabelText('Your idea'))
+  expect(screen.getByRole('link', { name: 'See the board' })).toHaveAttribute('href', '/account/ideas')
+})
+
+it('sends a bug report from the dialog and closes it', async () => {
+  render(<FeedbackFab />, { wrapper })
+  await userEvent.click(screen.getByText('Report a bug'))
+  await userEvent.type(screen.getByLabelText('Title'), 'Chart is blank')
+  await userEvent.type(screen.getByLabelText('Details'), 'On insights')
+  await userEvent.click(screen.getByRole('button', { name: 'Send report' }))
+  expect(submitFeedback).toHaveBeenCalledWith('bug', 'Chart is blank', 'On insights')
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull(), { timeout: 3000 })
 })
 
 it.each([
@@ -28,6 +49,6 @@ it.each([
 ])('stays hidden %s', (_, user, path) => {
   state.user = user
   state.path = path
-  render(<FeedbackFab />)
+  render(<FeedbackFab />, { wrapper })
   expect(screen.queryByRole('button', { name: 'Send feedback' })).toBeNull()
 })
