@@ -639,13 +639,13 @@ export function EnvelopesPage() {
             >
               {draft.kind.startsWith("rename-") ? (
                 <div className="env-sheet-rename-head">
-                  <div
+                  <CategoryIconPicker
                     className="env-sheet-rename-icon"
-                    style={avatarStyleFor(draftText.trim())}
-                    aria-hidden="true"
-                  >
-                    <CategoryIcon name="" icon={draftIcon} />
-                  </div>
+                    value={draftIcon}
+                    onChange={setDraftIcon}
+                    tint={avatarStyleFor(draftText.trim())}
+                    disabled={submitting}
+                  />
                   <div className="env-sheet-rename-heading">
                     <span className="env-sheet-eyebrow">
                       {draft.kind === "rename-category" ? "CATEGORY" : "GROUP"}
@@ -682,23 +682,14 @@ export function EnvelopesPage() {
                   Name
                 </label>
               )}
-              {draft.kind !== "new-group" ? (
-                <CategoryIconPicker
-                  value={draftIcon}
-                  onChange={setDraftIcon}
-                  tint={avatarStyleFor(draftText.trim())}
-                  disabled={submitting}
-                >
-                  {nameInput}
-                </CategoryIconPicker>
-              ) : (
-                <div className="env-sheet-name-row">
+              <div className="env-sheet-name-row">
+                {draft.kind === "new-group" && (
                   <div className="env-sheet-icon-swatch" aria-hidden="true">
                     <CategoryIcon kind="group" name={draftText} />
                   </div>
-                  {nameInput}
-                </div>
-              )}
+                )}
+                {nameInput}
+              </div>
 
               {error && (
                 <p className="env-sheet-hint" role="alert">

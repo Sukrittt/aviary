@@ -319,24 +319,32 @@
   gap: 10px;
 }
 
-.erd-collapse-btn {
+
+/* Collapse toggle on the rail's right edge. Follows the rail's 200ms width
+   animation; the shadcn Sidebar root before it carries data-state. */
+.erd-rail-toggle {
+  position: absolute;
+  top: 25px;
+  left: calc(var(--sidebar-width) - 14px);
+  z-index: 20;
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
-  flex-shrink: 0;
-  border-radius: 10px;
-  border: none;
-  background: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid var(--erd-border-strong);
+  background: var(--erd-bg);
   color: var(--erd-text3);
   cursor: pointer;
   transition:
-    background 0.15s ease,
+    left 0.2s linear,
     color 0.15s ease;
 }
-.erd-collapse-btn:hover {
-  background: var(--erd-border);
+.erd-rail-toggle:hover {
   color: var(--erd-text);
+}
+[data-state="collapsed"] ~ .erd-rail-toggle {
+  left: calc(var(--sidebar-width-icon) - 14px);
 }
 
 .erd-side-actions {
@@ -363,7 +371,9 @@
   transition:
     transform 0.15s ease,
     background 0.15s ease,
-    scale var(--dur-press) var(--ease-press);
+    scale var(--dur-press) var(--ease-press),
+    gap 0.2s linear,
+    padding 0.2s linear;
 }
 .erd-side-cta.is-secondary {
   background: var(--erd-sidebar-box);
@@ -2243,7 +2253,7 @@
     justify-content: flex-start;
     padding: 0 12px;
   }
-  .erd-collapse-btn {
+  .erd-rail-toggle {
     display: none;
   }
   .erd-mobile-close-btn {
@@ -12696,8 +12706,16 @@ button.account-feature-card {
   place-items: center;
   border-radius: 12px;
   border: 1px solid color-mix(in oklab, currentColor 25%, transparent);
+  font-size: 20px;
   cursor: pointer;
   transition: transform 120ms ease;
+}
+/* The rename sheets' header tile doubles as the picker. */
+.cat-icon-picker-trigger.env-sheet-rename-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  font-size: 1.6rem;
 }
 .cat-icon-picker-trigger:hover:not(:disabled) {
   transform: scale(1.04);

@@ -24,14 +24,16 @@ export function iconLabel(key: string): string {
  * portalled and fixed, like Select's menu, since the sheets it opens from
  * scroll and would clip it.
  */
-export function CategoryIconPicker({ value, onChange, tint, disabled, children }: {
+export function CategoryIconPicker({ value, onChange, tint, disabled, className, children }: {
   value: CategoryIconKey
   onChange: (key: CategoryIconKey) => void
   /** The tile's background and icon colour, from avatarStyleFor(). */
   tint: { background: string; color: string }
   disabled?: boolean
-  /** The name input, laid out beside the tile. */
-  children: ReactNode
+  /** Extra class for the tile, to size it where it sits. */
+  className?: string
+  /** The name input, laid out beside the tile. Without it, just the tile. */
+  children?: ReactNode
 }) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -84,6 +86,26 @@ export function CategoryIconPicker({ value, onChange, tint, disabled, children }
     trigger.current?.focus()
   }
 
+  const triggerButton = (
+    <button
+      ref={trigger}
+      type="button"
+      className={`cat-icon-picker-trigger${className ? ` ${className}` : ''}`}
+      style={tint}
+      disabled={disabled}
+      aria-label={`Icon: ${iconLabel(value)}. Change icon`}
+      aria-expanded={open}
+      aria-controls={panelId}
+      title="Change icon"
+      onClick={() => {
+        if (!open) measure()
+        setOpen(!open)
+      }}
+    >
+      <Current size="1em" aria-hidden />
+    </button>
+  )
+
   return (
     <div
       className="cat-icon-picker"
@@ -97,25 +119,14 @@ export function CategoryIconPicker({ value, onChange, tint, disabled, children }
         }
       }}
     >
-      <div className="env-sheet-name-row">
-        <button
-          ref={trigger}
-          type="button"
-          className="cat-icon-picker-trigger"
-          style={tint}
-          disabled={disabled}
-          aria-label={`Icon: ${iconLabel(value)}. Change icon`}
-          aria-expanded={open}
-          aria-controls={panelId}
-          onClick={() => {
-            if (!open) measure()
-            setOpen(!open)
-          }}
-        >
-          <Current size={20} aria-hidden />
-        </button>
-        {children}
-      </div>
+      {children ? (
+        <div className="env-sheet-name-row">
+          {triggerButton}
+          {children}
+        </div>
+      ) : (
+        triggerButton
+      )}
       {open && place && createPortal(
         <div
           ref={panel}
