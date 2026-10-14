@@ -29,12 +29,13 @@ type Kind = 'idea' | 'bug'
 export function FeedbackFab() {
   const { user } = useAuth()
   const pathname = usePathname() ?? ''
-  const [open, setOpen] = useState<Kind | null>(null)
+  // Tied to the page it opened on, so leaving the page drops it instead of reopening it on return.
+  const [open, setOpen] = useState<{ kind: Kind; path: string } | null>(null)
   if (!user || !onApp(pathname)) return null
 
   const pick = (kind: Kind) => (e: MouseEvent<HTMLElement>) => {
     e.currentTarget.closest<HTMLElement>('[popover]')?.hidePopover?.()
-    setOpen(kind)
+    setOpen({ kind, path: pathname })
   }
 
   return (
@@ -52,7 +53,7 @@ export function FeedbackFab() {
           Report a bug
         </button>
       </div>
-      <AnimatePresence>{open && <FeedbackDialog kind={open} onClose={() => setOpen(null)} />}</AnimatePresence>
+      <AnimatePresence>{open?.path === pathname && <FeedbackDialog kind={open.kind} onClose={() => setOpen(null)} />}</AnimatePresence>
     </>
   )
 }

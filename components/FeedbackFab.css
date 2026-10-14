@@ -71,6 +71,9 @@
   .feedback-fab { right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); width: 48px; height: 48px; font-size: 24px; }
   .feedback-fab-menu { inset: auto 16px calc(76px + env(safe-area-inset-bottom, 0px)) auto; }
 }
-.expense-redesign .erd-modal-card.feedback-dialog { width: 460px; }
+/* Desktop only: below 900px the modal card goes full width as a bottom sheet. */
+@media (min-width: 901px) {
+  .expense-redesign .erd-modal-card.feedback-dialog { width: 460px; }
+}
 .feedback-dialog .account-row-meta a { color: var(--gold-ink); font-weight: 700; }
 .feedback-form.is-dialog { padding: 12px 0 0; }
