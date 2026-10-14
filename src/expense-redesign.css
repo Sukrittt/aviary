@@ -10478,9 +10478,21 @@ button.account-feature-card {
   padding: 18px 20px 20px;
 }
 .feedback-textarea {
-  min-height: 90px;
+  display: block;
   line-height: 1.5;
-  resize: vertical;
+  resize: none;
+}
+.counted-textarea { position: relative; }
+/* Room for the count so the last line never runs under it */
+.counted-textarea .feedback-textarea { padding-bottom: 28px; }
+.counted-textarea-count {
+  position: absolute;
+  right: 14px;
+  bottom: 8px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--erd-text3);
+  pointer-events: none;
 }
 .ideas-board { display: flex; flex-direction: column; gap: 14px; }
 .ideas-board .account-help-copy a { color: var(--accent-ink, inherit); font-weight: 600; }

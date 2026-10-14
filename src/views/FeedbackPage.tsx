@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { SuccessButton, useButtonPhase } from '../components/SuccessButton'
+import { CountedTextarea } from '../components/CountedTextarea'
 import { submitFeedback } from '../api/feedback'
 import { track } from '../lib/analytics'
 
@@ -61,14 +62,14 @@ export function BugReportForm({ onDone, dialog = false }: { onDone: () => void; 
       <label className="erd-log-label" htmlFor="feedback-description">
         Details
       </label>
-      <textarea
+      <CountedTextarea
         id="feedback-description"
         className="erd-log-input feedback-textarea"
         placeholder="What happened, and what did you expect instead?"
-        maxLength={4000}
+        maxLength={2000}
         value={description}
         onChange={(e) => setDescription(e.target.value)}
-        rows={6}
+        rows={7}
       />
       <p className="recurring-hint">Only our team sees this. Leave out passwords or personal details.</p>
 
