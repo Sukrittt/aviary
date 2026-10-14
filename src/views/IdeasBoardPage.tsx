@@ -6,6 +6,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CaretDownIcon, CaretUpIcon } from '@/src/components/icons'
 import { SuccessButton, useButtonPhase } from '../components/SuccessButton'
 import { CountedTextarea } from '../components/CountedTextarea'
+import { Select } from '../components/Select'
+import { BirdEmptyState } from '../components/BirdEmptyState'
 import { listIdeas, postIdea, voteIdea, type Idea, type IdeaSort, type IdeaStatus } from '../api/ideas'
 import { applyVote, toggleVote, type VoteValue } from '../lib/ideaVotes'
 import { track } from '../lib/analytics'
@@ -70,10 +72,13 @@ export function IdeasBoardPage() {
           <button type="button" className={sort === 'top' ? 'is-active' : ''} onClick={() => setSort('top')}>Top</button>
           <button type="button" className={sort === 'new' ? 'is-active' : ''} onClick={() => setSort('new')}>New</button>
         </div>
-        <select className="account-select" value={status ?? ''} onChange={(e) => setStatus((e.target.value || null) as IdeaStatus | null)} aria-label="Status">
-          <option value="">All statuses</option>
-          {STATUSES.map((s) => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
-        </select>
+        <Select
+          className="ideas-status-select"
+          aria-label="Status"
+          value={status ?? 'all'}
+          onChange={(v) => setStatus(v === 'all' ? null : (v as IdeaStatus))}
+          options={[{ value: 'all', label: 'All statuses' }, ...STATUSES.map((s) => ({ value: s, label: STATUS_LABEL[s] }))]}
+        />
       </div>
 
       {ideas.isError ? (
@@ -81,7 +86,14 @@ export function IdeasBoardPage() {
       ) : ideas.isPending ? (
         <div className="account-card ideas-empty"><p className="account-help-copy">Loading ideas…</p></div>
       ) : ideas.data.length === 0 ? (
-        <div className="account-card ideas-empty"><p className="account-help-copy">{status ? 'No ideas with this status yet.' : 'No ideas yet. Be the first.'}</p></div>
+        <div className="account-card ideas-empty">
+          {status ? (
+            <BirdEmptyState compact subject="chat" mood="searching" title="Nothing here yet" description={`No ideas are ${STATUS_LABEL[status].toLowerCase()} right now. Try another status.`} />
+          ) : (
+            <BirdEmptyState compact subject="chat" title="The board's quiet" description="Nobody's pitched an idea yet. Yours could be the first one the flock votes on."
+              action={{ label: 'Pitch an idea', onClick: () => document.getElementById('idea-title')?.focus() }} />
+          )}
+        </div>
       ) : (
         <ul className="ideas-list">
           {ideas.data.map((idea) => (

@@ -115,3 +115,22 @@ it('posts an idea and shows written copy when rate limited', async () => {
   await waitFor(() => expect(screen.getByText("You've posted a few already. Try again later.")).toBeInTheDocument())
   expect(postIdea).toHaveBeenCalledWith('Dark charts', '')
 })
+
+it('greets an empty board with the bird, whose button jumps to the idea field', async () => {
+  serve([])
+  const user = userEvent.setup()
+  renderPage()
+  expect(await screen.findByRole('heading', { name: "The board's quiet" })).toBeInTheDocument()
+  await user.click(screen.getByRole('button', { name: 'Pitch an idea' }))
+  expect(screen.getByLabelText('Your idea')).toHaveFocus()
+})
+
+it('filters by status from the dropdown, with an empty state for that status', async () => {
+  serve([])
+  const user = userEvent.setup()
+  renderPage()
+  await user.click(screen.getByRole('combobox', { name: 'Status' }))
+  await user.click(await screen.findByRole('option', { name: 'Shipped' }))
+  expect(listIdeas).toHaveBeenLastCalledWith('top', 'shipped')
+  expect(await screen.findByText('No ideas are shipped right now. Try another status.')).toBeInTheDocument()
+})
