@@ -15,9 +15,12 @@ describe('expense screen visual regressions', () => {
     expect(insightsCss).toMatch(/\.expense-redesign \.home-recent a\s*\{[^}]*text-decoration:\s*none/)
   })
 
-  it('keeps the subscription add button and selected activity filter on the solid accent', () => {
+  it('keeps the subscription add button on the solid accent and the selected period on the soft tint', () => {
     expect(subscriptions).toContain('erd-log-btn txn-page-log-btn')
-    expect(transactions).toContain('period === key ? "is-active erd-accent-action" : ""')
+    expect(transactions).toContain('period === key ? "is-active" : ""')
+    expect(expenseCss).toMatch(
+      /\.expense-redesign \.mc-filter-chips \.action-button\.is-active\s*{[^}]*background:\s*var\(--gold-soft\)/,
+    )
     expect(expenseCss).toMatch(
       /\.expense-redesign \.action-button\.is-active\.erd-accent-action\s*{[\s\S]*?background:\s*var\(--gold\)/,
     )

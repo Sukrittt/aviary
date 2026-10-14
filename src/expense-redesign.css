@@ -3420,6 +3420,12 @@
   gap: 6px;
   flex: 0 0 auto;
 }
+/* Selected period uses the soft date-chip tint, not the solid CTA fill. */
+.expense-redesign .mc-filter-chips .action-button.is-active {
+  border-color: var(--gold);
+  background: var(--gold-soft);
+  color: var(--gold-hover);
+}
 .expense-redesign .txn-timeline-dates {
   width: min(100%, 290px);
   flex: 0 1 290px;

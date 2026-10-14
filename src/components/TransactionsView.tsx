@@ -492,7 +492,7 @@ export function TransactionsView({
                 type="button"
                 role="tab"
                 aria-selected={period === key}
-                className={`action-button ${period === key ? "is-active erd-accent-action" : ""}`}
+                className={`action-button ${period === key ? "is-active" : ""}`}
                 onClick={() => setPeriod(key)}
               >
                 {key === "week"
