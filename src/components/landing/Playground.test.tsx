@@ -126,6 +126,22 @@ describe('log playground', () => {
     expect(screen.getByText('Added')).toBeInTheDocument()
   })
 
+  it('still logs when the pick matches the category auto-suggest landed while the picker was open', async () => {
+    vi.useFakeTimers()
+    const { container } = render(<Playground />)
+    fireEvent.click(screen.getByRole('button', { name: 'Try it yourself' }))
+    await run(600)
+    fireEvent.click(screen.getByRole('button', { name: 'Netflix' }))
+    await run(700) // typed, but the suggestion hasn't landed yet
+    expect(screen.getAllByRole('button', { name: 'Category' }).at(-1)).toHaveTextContent('Pick a category')
+    for (const k of ['5', '0']) fireEvent.click([...container.querySelectorAll(`button.m-key[aria-label="${k}"]`)].at(-1)!)
+    fireEvent.click(screen.getByRole('tab', { name: 'Log expense' }))
+    await run(3000) // the suggestion lands under the open picker
+    fireEvent.click(screen.getAllByRole('button', { name: /Subscriptions/ }).at(-1)!)
+    await run(2500)
+    expect(screen.getByText('Added')).toBeInTheDocument()
+  })
+
   it('has no chat icon in the header', async () => {
     render(<Playground />)
     expect(screen.queryByRole('button', { name: 'Log several spends at once' })).not.toBeInTheDocument()

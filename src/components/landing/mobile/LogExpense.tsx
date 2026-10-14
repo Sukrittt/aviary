@@ -153,6 +153,8 @@ export function LogExpenseScreen({
   // + with an amount but no category opens the picker, and picking one finishes the log.
   const logOnPick = useRef(false)
   const submitAfterPick = useRef(false)
+  // Bumped on every pick, so re-picking the category auto-suggest already set still logs.
+  const [picks, setPicks] = useState(0)
 
   // Let the nav circle's ripple -> tick (~950ms) finish before the success screen replaces this one.
   useEffect(() => {
@@ -187,7 +189,7 @@ export function LogExpenseScreen({
     if (!submitAfterPick.current || category === '') return
     submitAfterPick.current = false
     handleSubmit()
-  }, [category, handleSubmit])
+  }, [picks, category, handleSubmit])
 
   useEffect(() => {
     publish({ canSubmit, hasAmount, saving, success: logSuccess, submit: handleSubmit })
@@ -271,6 +273,7 @@ export function LogExpenseScreen({
           if (logOnPick.current && c !== '') submitAfterPick.current = true
           setCategory(c)
           setCategoryTouched(true)
+          setPicks((n) => n + 1)
         }}
         title="Choose a category"
         noneLabel="No category"
