@@ -12171,7 +12171,7 @@ button.account-feature-card {
   color: var(--erd-text2);
   font-size: 12.5px;
 }
-.expense-redesign .capture-envelope.ui-select > svg:last-child {
+.expense-redesign .capture-envelope.ui-select > :last-child {
   width: 13px;
   height: 13px;
 }

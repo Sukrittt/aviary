@@ -49,11 +49,12 @@
   flex: none;
   line-height: 1;
 }
-.ui-select > svg:last-child {
+/* The caret: Select wraps it in a span, Combobox renders the svg directly. */
+.ui-select > :last-child {
   flex: none;
   color: var(--tk-text2);
   transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.ui-select[data-popup-open] > svg:last-child {
+.ui-select[data-popup-open] > :last-child {
   transform: rotate(180deg);
 }

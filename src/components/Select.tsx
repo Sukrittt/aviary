@@ -109,7 +109,7 @@ export function Select({
             <ComboboxValue>{() => <TriggerLabel selected={selected} placeholder={placeholder} />}</ComboboxValue>
           </span>
         </ComboboxTrigger>
-        <ComboboxContent className={MENU_POPUP}>
+        <ComboboxContent className={cn(MENU_POPUP, 'w-(--anchor-width)')}>
           <ComboboxInput showTrigger={false} placeholder="Search…" aria-label={ariaLabel ? `Search ${ariaLabel}` : 'Search'} />
           <ComboboxEmpty>No matches</ComboboxEmpty>
           <ComboboxList>
@@ -135,7 +135,7 @@ export function Select({
           {() => <TriggerLabel selected={selected} placeholder={placeholder} />}
         </SelectValue>
       </SelectTrigger>
-      <SelectContent className={cn(MENU_POPUP, 'max-h-[min(280px,var(--available-height))]')} alignItemWithTrigger={false} align="start">
+      <SelectContent className={cn(MENU_POPUP, 'w-(--anchor-width) max-h-[min(280px,var(--available-height))]')} alignItemWithTrigger={false} align="start">
         {options.length === 0 && <div className="py-2 text-center text-sm text-muted-foreground">No options</div>}
         {options.map((o) => (
           <SelectItem key={o.value} value={o.value} disabled={o.disabled} className={ITEM}>
