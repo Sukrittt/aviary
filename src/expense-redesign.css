@@ -12741,6 +12741,9 @@ button.account-feature-card {
 .cat-icon-picker-panel {
   position: fixed;
   z-index: 1200;
+  /* Portalled to <body>, outside .expense-redesign's font. */
+  font-family: var(--font-nunito);
+  font-size: 14px;
   width: min(320px, calc(100vw - 24px));
   display: flex;
   flex-direction: column;
