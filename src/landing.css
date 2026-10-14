@@ -56,7 +56,8 @@ html:has(.lp) { scroll-behavior: smooth; }
 .lp-learns svg { position: absolute; left: -2%; right: -2%; bottom: -.08em; width: 104%; height: .2em; overflow: visible; }
 .lp-learns path { fill: none; stroke: var(--accent); stroke-width: 5; stroke-linecap: round; stroke-dasharray: 260; stroke-dashoffset: 260; animation: lp-draw 900ms cubic-bezier(.65, 0, .35, 1) 350ms forwards; vector-effect: non-scaling-stroke; }
 @keyframes lp-draw { to { stroke-dashoffset: 0; } }
-.lp-hero > p { max-width: 640px; margin-top: 22px; font-size: 20px; line-height: 1.55; color: var(--muted); text-wrap: pretty; }
+/* 680px: the first line holds the longest rotating habit (takeout Saturdays, 654px) without wrapping mid-rotation. */
+.lp-hero > p { max-width: 680px; margin-top: 22px; font-size: 20px; line-height: 1.55; color: var(--muted); text-wrap: pretty; }
 .lp-rotor { display: inline-block; }
 .lp-rotor-word { display: inline-block; color: var(--ink); font-weight: 700; background: var(--tint); border-radius: 8px; padding: 0 5px; animation: lp-rotor-in 520ms cubic-bezier(.22, 1, .36, 1) both; }
 @keyframes lp-rotor-in { from { opacity: 0; filter: blur(4px); transform: translateY(.35em); } }
