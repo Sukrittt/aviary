@@ -17,7 +17,7 @@
 //
 // Both are idempotent, and neither can restart a clock that legitimately ran:
 // case 1 uses `$setOnInsert`, and case 2 is selected by `trialCohort:
-// 'onboarding-v1'` plus a start date before launch, then stamped
+// 'onboarding-v1' or 'onboarding-v2'` plus a start date before launch, then stamped
 // 'legacy-launch-v1' — so a rerun matches nothing. A trial granted after the
 // launch instant is never touched.
 //
@@ -62,7 +62,8 @@ try {
   const toGrant = cohort.filter((u) => !existing.has(u._id))
 
   // Trials that started before subscriptions were a product. See the header.
-  const prelaunchFilter = { trialCohort: 'onboarding-v1', trialStartedAt: { $lt: startedAt } }
+  // Both onboarding cohorts: a v2 (30-day) trial started before launch needs the same reset.
+  const prelaunchFilter = { trialCohort: { $in: ['onboarding-v1', 'onboarding-v2'] }, trialStartedAt: { $lt: startedAt } }
   const toReset = await db.collection('billing_accounts').countDocuments(prelaunchFilter)
 
   console.log(`cohort: ${cohort.length} onboarded live user(s); ${existing.size} already have a billing account`)

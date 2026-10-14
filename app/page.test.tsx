@@ -21,19 +21,19 @@ describe('landing hero note', () => {
       { period: 'monthly', amount: 19900, currency: 'INR' },
       { period: 'yearly', amount: 199900, currency: 'INR' },
     ])
-    expect((await html()).match(/Free for 45 days · Then ₹199\/month/g)).toHaveLength(2)
+    expect((await html()).match(/Free for 30 days · Then ₹199\/month/g)).toHaveLength(2)
   })
 
   it('shows the USD price to visitors outside India', async () => {
     country = 'GB'
-    expect((await html()).match(/Free for 45 days · Then \$4\.90\/month/g)).toHaveLength(2)
+    expect((await html()).match(/Free for 30 days · Then \$4\.90\/month/g)).toHaveLength(2)
   })
 
   it('leaves the price out when Razorpay is unreachable', async () => {
     vi.mocked(getPlanPrices).mockRejectedValue(new Error('down'))
     const out = await html()
     expect(out).not.toContain('/month')
-    expect(out.match(/Free for 45 days · No card needed/g)).toHaveLength(2)
+    expect(out.match(/Free for 30 days · No card needed/g)).toHaveLength(2)
   })
 })
 

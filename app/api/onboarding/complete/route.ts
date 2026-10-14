@@ -7,7 +7,7 @@ import { serializeUser, type UserDoc } from '@/lib/users'
 export const dynamic = 'force-dynamic'
 
 /**
- * Finish onboarding and start the 45-day trial.
+ * Finish onboarding and start the 30-day trial.
  *
  * Takes no body. The completion instant and the trial dates are the
  * server's, and the action refuses unless the initial budget setup is

@@ -320,7 +320,7 @@ Entrances and state changes use `cubic-bezier(.22, 1, .36, 1)` (a soft ease-out)
 - **Do** label demo numbers as sample data, in a caption or a corner note.
 - **Do** give the Aviary side of a comparison the white card and Ambient shadow, and keep the alternative flat.
 - **Do** pause looping demos off screen, offer a pause control, and hold the finished state under reduced motion.
-- **Do** use `·` as the separator in meta lines ("Free for 45 days · No card needed").
+- **Do** use `·` as the separator in meta lines ("Free for 30 days · No card needed").
 
 ### Don't:
 - **Don't** fill a CTA, section background or headline in Aviary Orange.

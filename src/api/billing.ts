@@ -52,7 +52,7 @@ export async function syncBilling(): Promise<BillingStatus> {
 }
 
 /**
- * Finish onboarding server-side. This is what starts the 45-day trial, so
+ * Finish onboarding server-side. This is what starts the 30-day trial, so
  * the date is the server's, not the browser's — call it after the initial
  * budget writes have landed, or it refuses.
  */

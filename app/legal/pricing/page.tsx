@@ -34,7 +34,7 @@ const INCLUDED = [
 
 const FAQS = [
   { q: 'What happens when my trial ends?', a: 'Nothing is charged. When you open the app, you’ll see the two plans and pick one to carry on. Your categories and history stay exactly where you left them, and you can export your data whether or not you subscribe.' },
-  { q: 'Do I need a card to start?', a: 'No. There’s no card, no UPI mandate and nothing to cancel during the 45 days. You only set up a payment method if you decide to keep going.' },
+  { q: 'Do I need a card to start?', a: 'No. There’s no card, no UPI mandate and nothing to cancel during the 30 days. You only set up a payment method if you decide to keep going.' },
   { q: 'Can I cancel?', a: 'Any time, with no fee and no notice period. You keep full access until the end of the period you’ve already paid for.' },
   { q: 'Do you offer refunds?', a: <>Payments cover the period you’ve started, so we don’t refund part of a month or year after you cancel. Some cases do get a full refund, and the <Link href="/legal/refunds">refund and cancellation policy</Link> lists them.</> },
   { q: 'Are taxes included?', a: 'Yes. The price you see here is the price you pay on the website. Google Play sets its own local prices, so the Android app may show a slightly different number.' },
@@ -51,8 +51,8 @@ export default async function PricingPage() {
     <LandingHeader base="/" faq="#faq" />
 
     <section className="lp-hero" aria-labelledby="pricing-title">
-      <p className="lp-early lp-early--still"><b>45 days free</b><span className="lp-early-desktop">No card. No mandate. Nothing to cancel.</span><span className="lp-early-mobile">No card. Nothing to cancel.</span></p>
-      <h1 id="pricing-title">Try it for 45 days.<br />Then one simple plan.</h1>
+      <p className="lp-early lp-early--still"><b>30 days free</b><span className="lp-early-desktop">No card. No mandate. Nothing to cancel.</span><span className="lp-early-mobile">No card. Nothing to cancel.</span></p>
+      <h1 id="pricing-title">Try it for 30 days.<br />Then one simple plan.</h1>
       <p>Every account starts with a free trial of the whole app. When it ends, pick monthly or yearly. Cancel any time.</p>
       <div className="lp-hero-actions">
         <TrackedLink className="lp-button lp-button--dark" href={PLAY_STORE_URL} event="store_cta_clicked" properties={{ placement: 'pricing_hero' }}><DeviceMobileIcon size={18} aria-hidden="true" />Start your free trial</TrackedLink>
@@ -120,7 +120,7 @@ export default async function PricingPage() {
 
     <section className="lp-section lp-close" aria-labelledby="get-title">
       <span className="lp-close-bird"><BirdLanding size={120} alive /></span>
-      <h2 id="get-title" className="lp-h2">Start with the free 45 days.</h2>
+      <h2 id="get-title" className="lp-h2">Start with the free 30 days.</h2>
       <div className="lp-hero-actions">
         <TrackedLink className="lp-button lp-button--dark" href={PLAY_STORE_URL} event="store_cta_clicked" properties={{ placement: 'pricing_footer' }}><DeviceMobileIcon size={18} aria-hidden="true" />Get it on Google Play</TrackedLink>
         <Link href="/expense" className="lp-button lp-button--ghost"><MonitorIcon size={18} aria-hidden="true" />Open web app</Link>

@@ -10,7 +10,7 @@ import { formatDate } from '@/src/components/billing/copy'
 /**
  * Shown once, right after budget setup finishes onboarding, and again from the account page's Plan & billing row. Twin of
  * Mobile's app/account/trial-notice.tsx: sets expectations about the trial
- * instead of leaving the new user to find out on day 45.
+ * instead of leaving the new user to find out on day 30.
  */
 export default function TrialNoticePage() {
   const router = useRouter()
@@ -26,7 +26,7 @@ export default function TrialNoticePage() {
       <motion.p className="trial-notice-body" {...popIn(80)}>
         {dated
           ? `Everything's free until ${formatDate(data.trialEndsAt)}. No card needed, nothing to cancel.`
-          : "Everything's free for 45 days. No card needed, nothing to cancel."}
+          : "Everything's free for 30 days. No card needed, nothing to cancel."}
       </motion.p>
       <motion.div className="trial-notice-card" {...popIn(160)}>
         <strong>What happens when it ends</strong>

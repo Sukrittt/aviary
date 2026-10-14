@@ -3,7 +3,7 @@
  * authentication says *who* you are, this says *what you may do*.
  *
  * Pure on purpose — no DB, no provider calls, no `Date.now()`. Callers pass
- * the records and the instant. That makes every boundary (the 45-day edge,
+ * the records and the instant. That makes every boundary (the 30-day edge,
  * grace, hold, a pending purchase) testable without a database, and stops
  * anyone reaching for the payment provider on a budgeting request.
  */
@@ -11,7 +11,7 @@ import { TRIAL_DAYS, type BillingAccountDoc, type BillingStore, type BillingSubs
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
-/** The immutable trial window for a trial started at `startedAt`. Exactly 45 × 24h of real time. */
+/** The immutable trial window for a trial started at `startedAt`. Exactly 30 × 24h of real time. */
 export function trialWindow(startedAt: Date): { trialStartedAt: Date; trialEndsAt: Date } {
   return { trialStartedAt: startedAt, trialEndsAt: new Date(startedAt.getTime() + TRIAL_DAYS * DAY_MS) }
 }
