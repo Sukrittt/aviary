@@ -41,7 +41,7 @@ export function RestrictedNotice() {
         >
           <LockIcon size={20} color="var(--tk-warn)" />
         </div>
-        <h1 style={{ margin: 0, fontFamily: 'var(--font-fredoka), system-ui', fontSize: 26, color: 'var(--tk-text)' }}>
+        <h1 style={{ margin: 0, fontFamily: 'var(--font-display), system-ui', fontSize: 26, color: 'var(--tk-text)' }}>
           Subscription needed
         </h1>
         <p style={{ margin: 0, color: 'var(--tk-text2)', lineHeight: 1.55 }}>{lockedReason(status)}</p>
@@ -81,8 +81,8 @@ export function RestrictedNotice() {
               borderRadius: 999,
               // Secondary once web checkout is on the page, so there's one obvious way to pay.
               ...(status?.purchaseEnabled
-                ? { border: '1px solid var(--tk-border-strong)', background: 'transparent', color: 'var(--tk-text)', fontWeight: 600 }
-                : { background: 'var(--tk-accent)', color: 'var(--tk-on-accent)', fontWeight: 700 }),
+                ? { border: '1px solid var(--tk-border-strong)', background: 'transparent', color: 'var(--tk-text)', fontWeight: 500 }
+                : { background: 'var(--tk-accent)', color: 'var(--tk-on-accent)', fontWeight: 600 }),
               textDecoration: 'none',
             }}
           >
@@ -103,7 +103,7 @@ export function RestrictedNotice() {
               border: '1px solid var(--tk-border-strong)',
               background: 'transparent',
               color: 'var(--tk-text)',
-              fontWeight: 600,
+              fontWeight: 500,
               cursor: sync.isPending ? 'progress' : 'pointer',
             }}
           >

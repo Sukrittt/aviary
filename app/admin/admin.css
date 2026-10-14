@@ -2,7 +2,7 @@
 
 .adm-form.adm-changelog-form { display: flex; flex-direction: column; align-items: stretch; gap: 16px; }
 .adm-changelog-form .adm-input { width: 100%; }
-.adm-changelog-form label { display: flex; flex-direction: column; gap: 7px; font-size: 13px; font-weight: 700; }
+.adm-changelog-form label { display: flex; flex-direction: column; gap: 7px; font-size: 13px; font-weight: 600; }
 .adm-changelog-form textarea.adm-input { height: auto; padding: 10px 12px; resize: vertical; line-height: 1.5; }
 .adm-changelog-preview { display: grid; gap: 14px; }
 .adm-changelog-preview h2, .adm-changelog-entry h3 { margin: 0; }
@@ -28,13 +28,13 @@
 }
 
 .adm h1 {
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   font-size: 28px;
   font-weight: 700;
   margin: 0;
 }
 .adm h2 {
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   font-size: 17px;
   font-weight: 600;
   margin: 0 0 14px;
@@ -48,7 +48,7 @@
 }
 .adm h2.adm-section {
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--erd-text3);
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -85,7 +85,7 @@
   color: var(--erd-text3);
 }
 .adm-kpi-value {
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   font-size: 26px;
   font-weight: 700;
   margin-top: 4px;
@@ -107,8 +107,8 @@
 }
 .adm-table th {
   text-align: left;
-  font-weight: 600;
-  font-size: 11px;
+  font-weight: 500;
+  font-size: 12px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--erd-text3);
@@ -143,8 +143,8 @@
   display: inline-block;
   padding: 2px 8px;
   border-radius: 999px;
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   background: var(--erd-pill-bg);
   color: var(--erd-text2);
   white-space: nowrap;
@@ -178,7 +178,7 @@
   padding: 6px 10px;
   border-radius: 100px;
   font-size: 12px;
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   color: var(--erd-text3);
   text-decoration: none;
   white-space: nowrap;
@@ -197,7 +197,7 @@
 }
 .adm-stats b {
   display: block;
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   font-size: 20px;
   font-variant-numeric: tabular-nums;
 }
@@ -217,7 +217,7 @@
   align-items: flex-end;
   height: 140px;
   margin: -6px 0;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--erd-text3);
   font-variant-numeric: tabular-nums;
 }
@@ -254,7 +254,7 @@
 .adm-bars-axis {
   display: flex;
   justify-content: space-between;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--erd-text3);
   margin-top: 6px;
   grid-column: 2;
@@ -325,7 +325,7 @@
   color: var(--erd-text);
   font: inherit;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -457,7 +457,7 @@
   gap: 4px 8px;
 }
 .adm-change-label {
-  font-weight: 700;
+  font-weight: 600;
   min-width: 190px;
 }
 .adm-changes del,
@@ -544,7 +544,7 @@
   background: var(--erd-card-solid);
   color: var(--erd-text2);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   white-space: nowrap;
 }
 .adm-chip.adm-tone {
@@ -607,7 +607,7 @@
 }
 .adm-stat-share {
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: var(--erd-text2);
 }
@@ -617,7 +617,7 @@
 }
 .adm-stat .adm-kpi-label {
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--erd-text);
   margin-top: 4px;
 }
@@ -720,7 +720,7 @@
 }
 .adm-funnel-value {
   text-align: right;
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   font-size: 17px;
   font-variant-numeric: tabular-nums;
 }
@@ -728,8 +728,8 @@
   display: block;
   font-family: inherit;
   font-style: normal;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 500;
   color: var(--erd-text3);
 }
 
@@ -739,7 +739,7 @@
   align-items: center;
   gap: 8px;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: var(--erd-text2);
   white-space: nowrap;
@@ -825,7 +825,7 @@
   padding: 12px 10px;
 }
 .adm-user {
-  font-weight: 700;
+  font-weight: 600;
 }
 .adm-user:hover {
   text-decoration: underline;
@@ -932,7 +932,7 @@
 }
 .adm-runway-head span {
   color: var(--erd-text2);
-  font-weight: 700;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
@@ -958,9 +958,9 @@
   align-items: center;
   gap: 7px;
   margin: 0;
-  font-family: var(--font-nunito), sans-serif;
-  font-size: 11px;
-  font-weight: 700;
+  font-family: var(--font-body), sans-serif;
+  font-size: 12px;
+  font-weight: 600;
   letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--erd-text3);
@@ -1002,7 +1002,7 @@
      sheet that is thumb-reachable on a phone. */
   min-height: 44px;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--erd-text2);
 }
 .adm-dialog-foot:hover {
@@ -1062,7 +1062,7 @@
   padding: 2px 8px;
   border-radius: 999px;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: var(--erd-text2);
   background: var(--erd-pill-bg);
@@ -1087,7 +1087,7 @@
   align-items: flex-end;
   height: 220px;
   margin: -7px 0;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--erd-text3);
   font-variant-numeric: tabular-nums;
 }
@@ -1154,7 +1154,7 @@
   transform: translateX(calc(-100% - 20px));
 }
 .adm-trend-tip b {
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   font-size: 16px;
   color: var(--erd-text);
   font-variant-numeric: tabular-nums;
@@ -1173,7 +1173,7 @@
   align-items: flex-end;
   height: 200px;
   margin: -6px 0;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--erd-text3);
   font-variant-numeric: tabular-nums;
 }
@@ -1227,7 +1227,7 @@
   left: 0;
   right: 0;
   text-align: center;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--erd-text3);
 }
 
@@ -1238,7 +1238,7 @@
 .adm-details summary {
   cursor: pointer;
   color: var(--erd-text2);
-  font-weight: 600;
+  font-weight: 500;
   margin-bottom: 8px;
 }
 
@@ -1248,7 +1248,7 @@
 }
 .adm-mix h3 {
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--erd-text3);
   margin: 0 0 8px;
 }
@@ -1286,7 +1286,7 @@
     grid-template-columns: repeat(2, 1fr);
   }
   .adm-move-label {
-    font-size: 9px;
+    font-size: 12px;
   }
   .adm-move-up,
   .adm-move-down {

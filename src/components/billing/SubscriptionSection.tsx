@@ -45,14 +45,14 @@ export function SubscriptionSection() {
         <div className="account-row" style={{ cursor: 'default' }}>
           <span className="account-row-label">
             {data.mode === 'paid' ? (
-              <span style={{ fontWeight: 800, color: 'var(--tk-accent-ink)' }}>Aviary Pro</span>
+              <span style={{ fontWeight: 700, color: 'var(--tk-accent-ink)' }}>Aviary Pro</span>
             ) : (
               'Plan'
             )}
             <span className="account-row-hint">{describePlan(data)}</span>
           </span>
           {data.mode === 'paid' ? (
-            <span style={{ fontSize: 12, fontWeight: 800, padding: '4px 10px', borderRadius: 999, whiteSpace: 'nowrap', ...CHIP_TONE[chipTone(data)] }}>{statusChip(data)}</span>
+            <span style={{ fontSize: 12, fontWeight: 700, padding: '4px 10px', borderRadius: 999, whiteSpace: 'nowrap', ...CHIP_TONE[chipTone(data)] }}>{statusChip(data)}</span>
           ) : (
             <span style={{ color: 'var(--tk-text2)', fontSize: 14 }}>{statusChip(data)}</span>
           )}

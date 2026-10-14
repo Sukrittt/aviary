@@ -16,8 +16,8 @@
 }
 
 @theme inline {
-    --font-heading: var(--font-fredoka), sans-serif;
-    --font-sans: var(--font-nunito), sans-serif;
+    --font-heading: var(--font-display), sans-serif;
+    --font-sans: var(--font-body), sans-serif;
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -131,7 +131,7 @@
   /* Portaled parts (tooltips, sheets) land outside the app's font-family. */
   [data-slot] {
     /* Not var(--font-sans): @theme inline doesn't emit it as a real variable. */
-    font-family: var(--font-nunito), sans-serif;
+    font-family: var(--font-body), sans-serif;
   }
   :is(button, input, select, textarea)[data-slot] {
     font: inherit;

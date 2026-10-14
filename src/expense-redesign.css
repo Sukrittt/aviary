@@ -3,16 +3,16 @@
    Scoped under .expense-redesign; the shared App.css palette (used by
    /investments) now draws on the same generated tokens.
 
-   Fonts (Fredoka + Nunito) are injected by next/font variables
-   --font-fredoka / --font-nunito on the route wrapper.
+   Fonts (Geist) are injected by next/font variables
+   --font-display / --font-body on <html>.
    ───────────────────────────────────────────────────────────── */
 
 /* ── Tokens ─────────────────────────────────────────────────── */
 
 .expense-redesign {
-  /* No --font-fredoka / --font-nunito here: they come from next/font on
-     <body> (app/layout.tsx), along with size-matched fallback faces. Redefining
-     them as "Fredoka", system-ui dropped those fallbacks, so text first drew in
+  /* No --font-display / --font-body here: they come from next/font on
+     <html> (app/fonts.ts), along with size-matched fallback faces. Redefining
+     them as a bare family name, system-ui dropped those fallbacks, so text first drew in
      system-ui and reflowed when the web font arrived (CLS up to 0.65 on /expense). */
 
   /* Every colour below comes from src/theme/tokens.css, generated from
@@ -179,7 +179,7 @@
   height: 100vh;
   background: var(--erd-bg);
   color: var(--erd-text);
-  font-family: var(--font-nunito);
+  font-family: var(--font-body);
   font-size: 14px;
   line-height: 1.45;
   isolation: isolate;
@@ -190,7 +190,7 @@
 .expense-redesign h2,
 .expense-redesign h3,
 .expense-redesign .erd-fredoka {
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   font-weight: 600;
   letter-spacing: -0.01em;
 }
@@ -244,7 +244,7 @@
   backdrop-filter: blur(16px);
   color: var(--coral);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   text-align: center;
   box-shadow: 0 8px 24px -8px oklch(0% 0 0 / 0.6);
 }
@@ -305,7 +305,7 @@
   gap: 8px;
   color: var(--erd-text);
   text-decoration: none;
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   font-weight: 700;
   font-size: 22px;
   letter-spacing: -0.02em;
@@ -363,7 +363,7 @@
   border: none;
   background: var(--gold);
   color: var(--erd-on-accent);
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: 14px;
   white-space: nowrap;
@@ -396,8 +396,8 @@
   gap: 2px;
 }
 .erd-nav-label {
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 500;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--erd-text3);
@@ -416,8 +416,8 @@
   text-align: left;
   font-size: 14px;
   cursor: pointer;
-  font-family: var(--font-nunito);
-  font-weight: 600;
+  font-family: var(--font-body);
+  font-weight: 500;
   color: var(--erd-text2);
   width: 100%;
   white-space: nowrap;
@@ -439,7 +439,7 @@
 .erd-nav-item.is-active {
   background: var(--gold-soft);
   color: var(--gold-ink);
-  font-weight: 700;
+  font-weight: 600;
 }
 .erd-sidebar.is-collapsed .erd-nav-item {
   justify-content: center;
@@ -596,13 +596,13 @@
   color: var(--erd-text);
 }
 .erd-home-hero-label {
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 500;
   letter-spacing: 0.08em;
   color: var(--erd-text2);
 }
 .erd-home-hero-amount {
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   font-weight: 700;
   font-size: clamp(44px, 5vw, 64px);
   line-height: 1.05;
@@ -621,7 +621,7 @@
   gap: 2px;
 }
 .erd-home-month strong {
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   font-size: 20px;
   font-weight: 600;
   color: var(--erd-text);
@@ -645,7 +645,7 @@
   color: var(--erd-text);
   font: inherit;
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 500;
   text-align: left;
   cursor: pointer;
   transition: background-color 0.4s ease, border-color 0.4s ease;
@@ -660,13 +660,13 @@
   align-items: center;
   gap: 8px;
   color: var(--mint);
-  font-weight: 700;
+  font-weight: 600;
 }
 .erd-home-rta-slim-amount {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   font-weight: 700;
   color: var(--mint);
   font-variant-numeric: tabular-nums;
@@ -692,7 +692,7 @@
   color: var(--erd-text);
   font: inherit;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
   transition: transform 0.15s ease;
 }
@@ -722,7 +722,7 @@
   box-shadow: none;
   color: var(--erd-text);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   text-decoration: none;
 }
 
@@ -773,7 +773,7 @@
   background: none;
   color: var(--erd-text);
   cursor: pointer;
-  font-family: var(--font-nunito);
+  font-family: var(--font-body);
 }
 .env2-group-head:hover {
   background: var(--erd-border);
@@ -783,7 +783,7 @@
   align-items: center;
   gap: 8px;
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 700;
 }
 .env2-chevron {
   color: var(--erd-text2);
@@ -792,7 +792,7 @@
   flex-shrink: 0;
   text-align: right;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--erd-text2);
   font-variant-numeric: tabular-nums;
 }
@@ -839,7 +839,7 @@
   color: inherit;
   text-align: left;
   cursor: pointer;
-  font-family: var(--font-nunito);
+  font-family: var(--font-body);
 }
 .env2-row-top {
   display: flex;
@@ -853,7 +853,7 @@
 }
 .env2-name {
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--erd-text);
   white-space: nowrap;
   overflow: hidden;
@@ -874,7 +874,7 @@
   max-width: none;
 }
 .env2-meta {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--erd-text2);
 }
@@ -883,7 +883,7 @@
   flex: 0 0 104px;
   text-align: right;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
 /* Mobile's "left" pills (availablePill in EnvelopeRow.tsx). */
@@ -892,7 +892,7 @@
   padding: 2px 8px;
   border-radius: 6px;
 }
-/* Nunito's line box keeps descender room digits never use, so the amount sat high. Trim to cap height and pad evenly. */
+/* The line box keeps descender room digits never use, so the amount sat high. Trim to cap height and pad evenly. */
 @supports (text-box: trim-both cap alphabetic) {
   .env2-pill {
     text-box: trim-both cap alphabetic;
@@ -923,13 +923,13 @@
   border-radius: 10px;
 }
 .env2-spent-label {
-  font-size: 11px;
+  font-size: 12px;
 }
 .env2-balance-label {
   display: block;
   margin-bottom: 3px;
   color: var(--erd-text2);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 500;
 }
 .env2-row-main:focus-visible {
@@ -942,13 +942,13 @@
   .env2-spent-of {
     flex-basis: 100%;
     margin-left: 0;
-    font-size: 11px;
+    font-size: 12px;
   }
   .env2-available { flex-basis: 84px; font-size: 13px; }
 }
 .env2-menu-title {
   padding: 8px 12px 4px;
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: 14px;
   color: var(--erd-text);
@@ -959,8 +959,8 @@
   border-top: 1px solid var(--erd-border);
 }
 .env2-cc-badge {
-  font-size: 9px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   letter-spacing: 0.06em;
   color: var(--gold-ink);
 }
@@ -1109,7 +1109,7 @@
 .erd-rta-amount {
   font-size: 52px;
   font-weight: 600;
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   letter-spacing: -0.01em;
   margin-top: 10px;
   color: var(--mint);
@@ -1162,7 +1162,7 @@
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   background: transparent;
   color: var(--erd-text3);
   transition: all 0.2s ease;
@@ -1173,7 +1173,7 @@
 .erd-pill.is-active {
   background: var(--erd-chip-active-bg);
   color: var(--erd-text);
-  font-weight: 700;
+  font-weight: 600;
 }
 .erd-scope-spacer {
   margin-left: auto;
@@ -1196,7 +1196,7 @@
   color: var(--erd-text2);
   font-size: 12px;
   cursor: pointer;
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
 }
 .erd-log-btn {
   display: flex;
@@ -1208,10 +1208,10 @@
   border: none;
   background: var(--gold);
   color: var(--erd-on-accent);
-  font-weight: 650;
+  font-weight: 600;
   font-size: 13px;
   cursor: pointer;
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   transition:
     transform 0.15s ease,
     scale var(--dur-press) var(--ease-press);
@@ -1236,7 +1236,7 @@
   border: 1px solid var(--erd-border-strong);
   color: var(--erd-text);
   font-size: 12px;
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   outline: none;
 }
 
@@ -1265,7 +1265,7 @@
   margin-top: 2px;
 }
 .erd-live-badge {
-  font-size: 11px;
+  font-size: 12px;
   padding: 4px 10px;
   border-radius: 100px;
   background: var(--gold-soft);
@@ -1299,7 +1299,7 @@
   background: none;
   color: var(--erd-text3);
   transition: all 0.2s ease;
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
 }
 .erd-chart-toggle button.is-active {
   background: var(--gold);
@@ -1356,7 +1356,7 @@
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   transition: all 0.2s ease;
   white-space: nowrap;
 }
@@ -1366,7 +1366,7 @@
 .erd-view-toggle button.is-active {
   background: var(--erd-chip-active-bg);
   color: var(--erd-text);
-  font-weight: 700;
+  font-weight: 600;
 }
 .erd-fluid-btn {
   padding: 8px 14px;
@@ -1376,7 +1376,7 @@
   color: var(--erd-text2);
   font-size: 12px;
   cursor: pointer;
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   transition: all 0.2s ease;
 }
 .erd-fluid-btn:hover {
@@ -1440,7 +1440,7 @@
 .spark-bars-labels {
   display: flex;
   padding: 6px 10px 12px;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--erd-text3);
 }
 .spark-bars-labels span {
@@ -1525,7 +1525,7 @@
   color: var(--gold-ink);
   font-size: 13px;
   cursor: pointer;
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
 }
 .erd-search-input {
   margin-top: 14px;
@@ -1537,7 +1537,7 @@
   color: var(--erd-text);
   font-size: 13px;
   outline: none;
-  font-family: var(--font-nunito);
+  font-family: var(--font-body);
 }
 .erd-search-input:focus {
   border-color: var(--gold);
@@ -1554,7 +1554,7 @@
 }
 .expense-redesign .env-table-header th {
   padding: 16px 6px 8px;
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: 0.05em;
   color: var(--erd-text3);
   text-align: left;
@@ -1578,14 +1578,14 @@
   display: flex;
   align-items: center;
   gap: 9px;
-  font-weight: 650;
+  font-weight: 600;
   font-size: 14px;
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
 }
 .expense-redesign .env-group-toggle {
   display: inline-block;
   transition: transform 0.2s ease;
-  font-size: 10px;
+  font-size: 12px;
   color: var(--erd-text3);
 }
 .env-group-cell-num {
@@ -1648,14 +1648,14 @@
   cursor: pointer;
   text-align: left;
   padding: 0;
-  font-family: var(--font-nunito);
+  font-family: var(--font-body);
   min-width: 0;
 }
 .expense-redesign .env-cat-link:hover {
   color: var(--gold-hover);
 }
 .expense-redesign .env-cc-badge {
-  font-size: 10px;
+  font-size: 12px;
   padding: 2px 8px;
   border-radius: 100px;
   background: var(--mint-soft);
@@ -1761,7 +1761,7 @@
   border: 1px solid var(--erd-border-strong);
   color: var(--erd-text);
   font-size: 13px;
-  font-family: var(--font-nunito);
+  font-family: var(--font-body);
   outline: none;
 }
 .env-menu-assign-input:focus {
@@ -1817,7 +1817,7 @@
 }
 .expense-redesign .si-month-label {
   font-size: 13px;
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   color: var(--erd-text2);
   min-width: 92px;
   text-align: center;
@@ -1832,9 +1832,9 @@
   border-top: 1px solid var(--erd-border);
 }
 .expense-redesign .si-review-label {
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: 0.05em;
-  font-weight: 600;
+  font-weight: 500;
 }
 .si-review-label.wrong {
   color: var(--coral);
@@ -1863,7 +1863,7 @@
   gap: 6px;
 }
 .expense-redesign .si-heatmap-dow {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--erd-text3);
   text-align: center;
   padding-bottom: 4px;
@@ -1874,7 +1874,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: 12px;
   cursor: pointer;
   color: var(--erd-text2);
   border: 1px solid transparent;
@@ -1901,7 +1901,7 @@
   gap: 6px;
   justify-content: flex-end;
   margin-top: 10px;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--erd-text3);
 }
 .expense-redesign .si-heatmap-legend-swatch {
@@ -1960,12 +1960,12 @@
   color: var(--gold-ink);
 }
 .subp-eyebrow {
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: 0.06em;
   color: var(--erd-text3);
 }
 .subp-total {
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   font-size: 28px;
   font-weight: 600;
   margin-top: 2px;
@@ -2013,7 +2013,7 @@
   display: grid;
   place-items: center;
   border-radius: 10px;
-  font-weight: 700;
+  font-weight: 600;
   font-size: 14px;
 }
 .subp-info {
@@ -2031,10 +2031,10 @@
 }
 .subp-info strong {
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
 }
 .subp-info span {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--erd-text3);
 }
 .subp-info span.is-soon {
@@ -2049,10 +2049,10 @@
 }
 .subp-amount strong {
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
 }
 .subp-amount span {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--erd-text3);
 }
 .subp-row.is-cancelled .subp-info strong,
@@ -2072,7 +2072,7 @@
   border: 1px solid var(--erd-border-strong);
   border-radius: 999px;
   color: var(--erd-text2);
-  font-size: 11px;
+  font-size: 12px;
   padding: 4px 10px;
   cursor: pointer;
   opacity: 0;
@@ -2117,7 +2117,7 @@
   border-color: var(--coral);
 }
 .subp-busy {
-  font-size: 11px;
+  font-size: 12px;
   font-style: italic;
   color: var(--erd-text3);
 }
@@ -2136,7 +2136,7 @@
   background: none;
   border: none;
   padding: 4px 0;
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: 0.06em;
   color: var(--erd-text3);
   cursor: pointer;
@@ -2195,7 +2195,7 @@
     gap: 8px;
     width: max-content;
     color: var(--erd-text);
-    font: 700 18px/1 var(--font-fredoka);
+    font: 700 18px/1 var(--font-display);
     letter-spacing: -0.02em;
     text-decoration: none;
   }
@@ -2207,8 +2207,8 @@
     border-radius: 999px;
     color: var(--erd-text2);
     background: var(--erd-pill-bg);
-    font-size: 11px;
-    font-weight: 800;
+    font-size: 12px;
+    font-weight: 700;
     letter-spacing: 0.05em;
     text-overflow: ellipsis;
     text-transform: uppercase;
@@ -2272,7 +2272,7 @@
   .erd-mobile-greet {
     font-size: 20px;
     font-weight: 600;
-    font-family: var(--font-fredoka);
+    font-family: var(--font-display);
     display: flex;
     align-items: center;
     gap: 6px;
@@ -2287,7 +2287,7 @@
   }
   .erd-mobile-rta {
     color: var(--mint);
-    font-weight: 600;
+    font-weight: 500;
   }
 
   .erd-mobile-stats {
@@ -2305,14 +2305,14 @@
     border-radius: 20px;
   }
   .erd-mstat span {
-    font-size: 10px;
+    font-size: 12px;
     letter-spacing: 0.06em;
     color: var(--erd-text2);
   }
   .erd-mstat strong {
     font-size: 24px;
     font-weight: 600;
-    font-family: var(--font-fredoka);
+    font-family: var(--font-display);
     margin-top: 4px;
     display: block;
     color: var(--erd-text);
@@ -2378,13 +2378,13 @@
     background: none;
     border: none;
     font-size: 20px;
-    font-family: var(--font-fredoka);
+    font-family: var(--font-display);
     color: var(--erd-text2);
     cursor: pointer;
     text-decoration: none;
   }
   .erd-tab span {
-    font-size: 10px;
+    font-size: 12px;
   }
   .erd-tab:not(.is-active) svg {
     color: var(--erd-text3);
@@ -2466,7 +2466,7 @@
 .expense-redesign .category-manager-header h3,
 .expense-redesign .move-money-header h4,
 .expense-redesign .erd-modal-head h3 {
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   font-size: 19px;
   font-weight: 600;
 }
@@ -2494,7 +2494,7 @@
   color: var(--erd-text);
   font-size: 14px;
   outline: none;
-  font-family: var(--font-nunito);
+  font-family: var(--font-body);
 }
 .erd-log-input:focus {
   border-color: var(--gold);
@@ -2519,7 +2519,7 @@
   border: 1px solid var(--erd-border-strong);
   background: var(--erd-input-bg);
   color: var(--erd-text);
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   transition: all 0.15s ease;
 }
 .erd-chip.is-selected {
@@ -2549,7 +2549,7 @@
   overflow-y: visible;
 }
 .category-picker-group-label {
-  font-size: 11px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--erd-text3);
@@ -2624,7 +2624,7 @@
 }
 .split-viz-legend-label {
   color: var(--erd-text);
-  font-weight: 600;
+  font-weight: 500;
   flex: 1;
 }
 .split-viz-legend-value {
@@ -2680,7 +2680,7 @@
 .split-expense-summary {
   font-size: 13px;
   color: var(--coral);
-  font-weight: 600;
+  font-weight: 500;
 }
 .split-expense-summary.is-balanced {
   color: var(--mint);
@@ -2691,10 +2691,10 @@
   padding: 14px;
   border-radius: 28px;
   border: none;
-  font-weight: 650;
+  font-weight: 600;
   font-size: 14px;
   cursor: pointer;
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   background: var(--gold);
   color: var(--erd-on-accent);
 }
@@ -2811,7 +2811,7 @@
   background: var(--tk-card-solid);
   color: var(--tk-text);
   box-shadow: 0 8px 22px rgba(0, 0, 0, 0.15);
-  font: 700 15px/1.3 var(--font-nunito);
+  font: 600 15px/1.3 var(--font-body);
 }
 .erd-toast-pill.has-icon {
   padding-left: 6px;
@@ -2840,7 +2840,7 @@
   border-bottom-color: var(--gold);
 }
 .erd-amount-symbol {
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   font-size: 30px;
   font-weight: 600;
   color: var(--erd-text);
@@ -2852,7 +2852,7 @@
   outline: none;
   background: none;
   color: var(--erd-text);
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   font-size: 34px;
   font-weight: 600;
   line-height: 1.15;
@@ -2881,13 +2881,13 @@
   padding: 0 14px;
   border-radius: 100px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
   border: 1px solid var(--erd-border-strong);
   background: var(--erd-input-bg);
   color: var(--erd-text);
-  font-family: var(--font-nunito);
+  font-family: var(--font-body);
   transition: all 0.15s ease;
 }
 .erd-date-chip.is-active {
@@ -2997,9 +2997,9 @@
   min-width: 0;
 }
 .erd-sub-unit {
-  font-family: var(--font-nunito);
+  font-family: var(--font-body);
   font-size: 15px;
-  font-weight: 500;
+  font-weight: 400;
   color: var(--erd-text2);
 }
 
@@ -3037,7 +3037,7 @@
   text-align: center;
 }
 .erd-sub-empty strong {
-  font: 600 18px/1.3 var(--font-fredoka);
+  font: 600 18px/1.3 var(--font-display);
   color: var(--erd-text);
 }
 .erd-sub-empty p {
@@ -3077,13 +3077,13 @@
   padding: 0 14px;
   border-radius: 100px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
   border: 1px solid var(--erd-border-strong);
   background: var(--erd-input-bg);
   color: var(--erd-text);
-  font-family: var(--font-nunito);
+  font-family: var(--font-body);
   transition: all 0.15s ease;
 }
 .erd-seg-btn:hover {
@@ -3102,7 +3102,7 @@
   border: none;
   padding: 4px 2px;
   color: var(--erd-text3);
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   font-size: 13px;
   cursor: pointer;
   transition: color 0.15s ease;
@@ -3209,7 +3209,7 @@
   color: var(--erd-text);
   font-size: 13px;
   outline: none;
-  font-family: var(--font-nunito);
+  font-family: var(--font-body);
 }
 .expense-redesign .action-button.is-ghost {
   background: none;
@@ -3219,7 +3219,7 @@
   font-size: 13px;
   padding: 6px 12px;
   border-radius: 12px;
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
 }
 .expense-redesign .action-button.is-ghost:hover {
   background: var(--erd-border);
@@ -3236,7 +3236,7 @@
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   transition:
     all 0.2s ease,
     scale var(--dur-press) var(--ease-press);
@@ -3367,8 +3367,8 @@
   display: block;
   margin-bottom: 4px;
   color: var(--gold-ink);
-  font-family: var(--font-fredoka);
-  font-size: 11px;
+  font-family: var(--font-display);
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -3376,9 +3376,9 @@
 .expense-redesign .txn-page-heading h1 {
   margin: 0;
   color: var(--erd-text);
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   font-size: clamp(26px, 2.2vw, 34px);
-  font-weight: 650;
+  font-weight: 600;
   letter-spacing: -0.02em;
   line-height: 1.1;
 }
@@ -3425,8 +3425,8 @@
   width: 60px;
   flex: 0 0 60px;
   color: var(--erd-text3);
-  font-family: var(--font-fredoka);
-  font-size: 11px;
+  font-family: var(--font-display);
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -3465,7 +3465,7 @@
   border: 1px solid var(--erd-border-strong);
   color: var(--erd-text);
   font-size: 13px;
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   outline: none;
   cursor: pointer;
 }
@@ -3499,7 +3499,7 @@
   color: var(--erd-text);
   font-size: 13px;
   outline: none;
-  font-family: var(--font-nunito);
+  font-family: var(--font-body);
 }
 .expense-redesign .txn-timeline-search::placeholder {
   color: var(--erd-text3);
@@ -3532,7 +3532,7 @@
   color: var(--erd-text);
   font-size: 13px;
   outline: none;
-  font-family: var(--font-nunito);
+  font-family: var(--font-body);
 }
 .expense-redesign .txn-entry-input:focus {
   border-color: var(--gold);
@@ -3568,7 +3568,7 @@
   color: var(--erd-text2);
   font-size: 12px;
   cursor: pointer;
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
 }
 .expense-redesign .txn-entry-paymethod-opt.is-active {
   background: var(--gold);
@@ -3630,22 +3630,22 @@
 .expense-redesign .txn-timeline-header-label {
   margin: 0;
   color: var(--erd-text);
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   font-size: 14px;
-  font-weight: 650;
+  font-weight: 600;
   line-height: 1.25;
 }
 .expense-redesign .txn-timeline-header-count {
   display: block;
   margin-top: 3px;
   color: var(--erd-text3);
-  font-size: 11px;
+  font-size: 12px;
 }
 .expense-redesign .txn-timeline-header-total {
   color: var(--erd-text2);
-  font-family: var(--font-nunito);
+  font-family: var(--font-body);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -3792,7 +3792,7 @@
 .expense-redesign .txn-select-count {
   display: inline-block;
   margin-right: 6px;
-  font: 700 14px/1.3 var(--font-nunito);
+  font: 600 14px/1.3 var(--font-body);
   color: var(--erd-text);
   white-space: nowrap;
 }
@@ -3802,7 +3802,7 @@
   border-radius: 100px;
   background: var(--coral);
   color: var(--erd-on-accent);
-  font: 600 13px var(--font-fredoka);
+  font: 600 13px var(--font-display);
   cursor: pointer;
   transition: opacity 140ms, scale var(--dur-press) var(--ease-press);
 }
@@ -3847,12 +3847,12 @@
 }
 .expense-redesign .txn-timeline-item {
   font-size: 15px;
-  font-weight: 650;
+  font-weight: 550;
   color: var(--erd-text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-family: var(--font-nunito);
+  font-family: var(--font-body);
   position: relative;
   z-index: 2;
   pointer-events: none;
@@ -3867,11 +3867,11 @@
 .expense-redesign .txn-timeline-amount {
   text-align: right;
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: var(--erd-text);
   white-space: nowrap;
-  font-family: var(--font-nunito);
+  font-family: var(--font-body);
 }
 .expense-redesign .txn-timeline-amount.is-income {
   color: var(--mint);
@@ -4056,7 +4056,7 @@
   justify-content: center;
   padding: 32px 20px;
   overflow: hidden;
-  font-family: var(--font-nunito);
+  font-family: var(--font-body);
   color: var(--erd-text);
 }
 
@@ -4178,7 +4178,7 @@
 }
 
 .auth-headline {
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   font-size: 32px;
   font-weight: 600;
   line-height: 1.12;
@@ -4215,7 +4215,7 @@
   padding: 14px;
   border-radius: 26px;
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -4254,7 +4254,7 @@
 .auth-btn--primary {
   background: var(--gold);
   color: var(--erd-on-accent);
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
 }
 
 .auth-btn--primary:hover {
@@ -4262,7 +4262,7 @@
 }
 
 .auth-legal {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--erd-text3);
   text-align: center;
   line-height: 1.6;
@@ -4318,7 +4318,7 @@
     align-items: center;
     gap: 10px;
     width: fit-content;
-    font-family: var(--font-fredoka);
+    font-family: var(--font-display);
     font-size: 24px;
     font-weight: 600;
     color: inherit;
@@ -4332,9 +4332,9 @@
   }
 
   .auth-brand-headline {
-    font-family: var(--font-fredoka);
+    font-family: var(--font-display);
     font-size: clamp(46px, 5vw, 72px);
-    font-weight: 500;
+    font-weight: 600;
     line-height: 1.05;
     letter-spacing: -0.035em;
     margin: 0 0 24px;
@@ -4411,7 +4411,7 @@
   border: 1px solid var(--erd-border-strong);
   color: var(--erd-text);
   font-size: 16px;
-  font-family: var(--font-nunito);
+  font-family: var(--font-body);
   outline: none;
   box-sizing: border-box;
 }
@@ -4464,7 +4464,7 @@
   border: 1.5px solid var(--erd-border);
   background: var(--erd-input-bg);
   color: var(--erd-text);
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   font-size: 24px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
@@ -4502,7 +4502,7 @@
   gap: 8px;
   color: var(--mint);
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 700;
   animation: auth-success-rise 0.3s ease-out both;
 }
 
@@ -4622,7 +4622,7 @@
   border: none;
   color: var(--gold-ink);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
   padding: 4px 0;
   text-align: left;
@@ -4655,7 +4655,7 @@
   width: 100%;
   padding: 48px clamp(24px, 6vw, 120px) calc(28px + env(safe-area-inset-bottom));
   color: var(--erd-text);
-  font-family: var(--font-nunito);
+  font-family: var(--font-body);
 }
 
 .setup-top {
@@ -4704,12 +4704,12 @@
 }
 
 .setup-step-counter {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--erd-text3);
 }
 
 .setup-title {
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   font-size: 27px;
   font-weight: 600;
   line-height: 1.15;
@@ -4751,7 +4751,7 @@
 
 .setup-income-body .amt-ticker {
   font-size: clamp(64px, 10vw, 128px);
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: -1px;
 }
 
@@ -4804,7 +4804,7 @@
 
 .setup-amount-hint {
   text-align: center;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--erd-text3);
   margin: -4px 0 0;
 }
@@ -4813,7 +4813,7 @@
   position: relative;
   display: inline-flex;
   padding-bottom: 6px;
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   font-size: 64px;
   letter-spacing: -0.5px;
   color: var(--erd-text);
@@ -4926,7 +4926,7 @@
   justify-content: center;
   gap: 3px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
   pointer-events: none;
   animation: amt-delta 980ms ease both;
 }
@@ -4972,7 +4972,7 @@
   background: var(--erd-input-bg);
   color: var(--erd-text2);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
 }
 
@@ -5018,7 +5018,7 @@
   margin: 0;
   color: var(--erd-text2);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .setup-selection-actions {
@@ -5036,7 +5036,7 @@
   color: var(--erd-text2);
   font: inherit;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
 }
 
@@ -5103,7 +5103,7 @@
 
 .setup-pick-name-hint {
   color: var(--erd-text3);
-  font-size: 10px;
+  font-size: 12px;
   white-space: nowrap;
 }
 
@@ -5173,7 +5173,7 @@
   background: none;
   color: var(--erd-text);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
   padding: 6px 2px;
 }
 
@@ -5215,7 +5215,7 @@
   background: none;
   color: var(--erd-text2);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
   text-align: left;
 }
@@ -5228,12 +5228,12 @@
   background: none;
   color: var(--erd-text2);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
 }
 
 .setup-micro-hint {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--erd-text3);
   padding: 2px 4px 0;
   margin: 0;
@@ -5279,7 +5279,7 @@
 }
 
 .setup-section-title {
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: 0.08em;
   color: var(--erd-text3);
   flex: 1;
@@ -5287,14 +5287,14 @@
 
 .setup-section-count,
 .setup-section-subtotal {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--erd-text3);
 }
 
 .setup-section-subtotal {
   font-size: 13px;
   color: var(--erd-text2);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .setup-rem-chip {
@@ -5329,11 +5329,11 @@
 
 .setup-rem-label {
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .setup-rem-value {
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   font-size: 20px;
 }
 
@@ -5349,7 +5349,7 @@
   gap: 4px 12px;
   margin: 10px 2px 0;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--erd-text2);
 }
 
@@ -5394,8 +5394,8 @@
 
 .setup-assign-bucket {
   flex-shrink: 0;
-  font-size: 10px;
-  font-weight: 800;
+  font-size: 12px;
+  font-weight: 700;
   letter-spacing: 0.02em;
   border-radius: 100px;
   padding: 2px 8px;
@@ -5409,7 +5409,7 @@
   background: var(--erd-input-bg);
   color: var(--erd-text2);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
 }
 
@@ -5447,7 +5447,7 @@
   min-width: 0;
   font: inherit;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--erd-text);
   background: none;
   border: none;
@@ -5477,7 +5477,7 @@
   padding: 8px 12px;
   border: 1.5px solid var(--erd-border-strong);
   border-radius: 12px;
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   font-size: 15px;
   text-align: right;
   appearance: textfield;
@@ -5512,8 +5512,8 @@
   color: var(--gold-ink);
   border-radius: 100px;
   padding: 6px 10px;
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
 }
 
@@ -5534,7 +5534,7 @@
   border: none;
   background: var(--gold);
   color: var(--erd-on-accent);
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   font-size: 15px;
   cursor: pointer;
 }
@@ -5573,7 +5573,7 @@
 }
 
 .setup-cta-hint {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--erd-text3);
   text-align: center;
   margin: 8px 0 0;
@@ -5597,7 +5597,7 @@
   color: var(--gold-ink);
   font: inherit;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
 }
 
@@ -5699,7 +5699,7 @@
 }
 
 .setup-done-title {
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   font-size: 32px;
   font-weight: 600;
   line-height: 1.15;
@@ -5722,7 +5722,7 @@
   border-radius: 999px;
   background: color-mix(in srgb, var(--gold) 16%, transparent);
   color: var(--erd-text);
-  font: 800 14px/1.4 var(--font-nunito);
+  font: 700 14px/1.4 var(--font-body);
   animation: setup-fade-in 0.4s 170ms both;
 }
 
@@ -5765,7 +5765,7 @@
 }
 
 .setup-done-value {
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   font-size: 15px;
 }
 
@@ -5813,7 +5813,7 @@
 }
 
 .trial-notice-title {
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   font-size: 27px;
   font-weight: 600;
   margin: 0;
@@ -5861,7 +5861,7 @@
 }
 
 .account-section-label {
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--erd-text3);
@@ -5911,13 +5911,13 @@ button.account-row:hover {
 
 .account-row-label {
   flex: 1;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .account-row-hint {
   display: block;
   margin-top: 2px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 400;
   color: var(--erd-text2);
 }
@@ -5979,7 +5979,7 @@ button.account-row:hover {
   background: var(--erd-input-bg);
   color: var(--erd-text);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .account-chip svg {
@@ -5988,8 +5988,8 @@ button.account-row:hover {
 
 .account-badge {
   text-decoration: none;
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   padding: 5px 10px;
   border-radius: 100px;
   background: var(--mint-soft);
@@ -6023,7 +6023,7 @@ button.account-row:hover {
 .account-early-title {
   margin: 8px 0 2px;
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--erd-text);
 }
 
@@ -6046,7 +6046,7 @@ button.account-row:hover {
   background: var(--gold-soft);
   border: 1px solid var(--gold);
   color: var(--gold-ink);
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   font-size: 20px;
   display: flex;
   align-items: center;
@@ -6055,7 +6055,7 @@ button.account-row:hover {
 }
 
 .account-profile-name {
-  font-weight: 800;
+  font-weight: 700;
   font-size: 16px;
 }
 
@@ -6072,7 +6072,7 @@ button.account-row:hover {
   align-items: center;
   gap: 5px;
   margin-top: 6px;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--mint);
 }
 
@@ -6154,12 +6154,12 @@ button.account-feature-card {
 }
 
 .account-feature-title {
-  font-weight: 800;
+  font-weight: 700;
   font-size: 14px;
 }
 
 .account-feature-copy {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--erd-text2);
   line-height: 1.4;
 }
@@ -6184,7 +6184,7 @@ button.account-feature-card {
   background: none;
   color: var(--erd-text2);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
 }
 
@@ -6200,7 +6200,7 @@ button.account-feature-card {
   background: var(--erd-input-bg);
   color: var(--erd-text);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .account-danger-card {
@@ -6211,7 +6211,7 @@ button.account-feature-card {
 
 .account-danger-title {
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--coral);
 }
 
@@ -6233,7 +6233,7 @@ button.account-feature-card {
   background: var(--coral);
   color: var(--erd-on-accent);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
 }
 
@@ -6303,7 +6303,7 @@ button.account-feature-card {
   min-height: 40px;
   border-radius: 100px;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
 }
 
@@ -6322,7 +6322,7 @@ button.account-feature-card {
   background: none;
   color: var(--coral);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
 }
 
@@ -6354,7 +6354,7 @@ button.account-feature-card {
   background: var(--erd-input-bg);
   color: var(--erd-text);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
 }
 
@@ -6379,7 +6379,7 @@ button.account-feature-card {
 
 .account-warn-title {
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--gold-ink);
 }
 
@@ -6401,7 +6401,7 @@ button.account-feature-card {
   background: none;
   color: var(--gold-ink);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
   padding: 0;
 }
@@ -6415,7 +6415,7 @@ button.account-feature-card {
 
 .account-export-title {
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .account-export-meta {
@@ -6439,7 +6439,7 @@ button.account-feature-card {
   background: var(--erd-input-bg);
   color: var(--erd-text);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
 }
 
@@ -6534,7 +6534,7 @@ button.account-feature-card {
 
 .date-picker-field-wrap {
   position: relative;
-  font-family: var(--font-nunito);
+  font-family: var(--font-body);
 }
 
 .date-picker-field,
@@ -6573,7 +6573,7 @@ button.account-feature-card {
 
 .date-picker-field-text {
   flex: 1;
-  font-weight: 600;
+  font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -6596,19 +6596,19 @@ button.account-feature-card {
   min-width: 0;
 }
 .date-picker-trigger-caption {
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 0.06em;
   color: var(--erd-text3);
 }
 .date-picker-trigger-label {
   font-weight: 700;
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .date-picker-trigger-span {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--erd-text3);
   flex: 0 0 auto;
 }
@@ -6654,7 +6654,7 @@ button.account-feature-card {
   padding: 8px 13px;
   border-radius: 100px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
   font-family: inherit;
@@ -6687,7 +6687,7 @@ button.account-feature-card {
   cursor: pointer;
 }
 .date-picker-month-label {
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   font-size: 13.5px;
   font-weight: 600;
   color: var(--erd-text);
@@ -6700,7 +6700,7 @@ button.account-feature-card {
 }
 .date-picker-weekday {
   text-align: center;
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 0.05em;
   color: var(--erd-text3);
 }
@@ -6744,9 +6744,9 @@ button.account-feature-card {
   border: 1px solid transparent;
   background: none;
   color: var(--erd-text);
-  font-family: var(--font-nunito);
+  font-family: var(--font-body);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
   transition:
     background 0.18s ease,
@@ -6758,7 +6758,7 @@ button.account-feature-card {
 .date-picker-cell.is-selected {
   background: var(--gold);
   color: var(--erd-on-accent);
-  font-weight: 700;
+  font-weight: 600;
 }
 .date-picker-cell.is-future {
   color: var(--erd-text3);
@@ -6785,7 +6785,7 @@ button.account-feature-card {
   gap: 2px;
 }
 .date-picker-summary-label {
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 0.06em;
   color: var(--erd-text3);
 }
@@ -6829,13 +6829,13 @@ button.account-feature-card {
   justify-content: space-between;
 }
 .date-picker-sheet-title {
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   font-size: 17px;
   font-weight: 600;
   color: var(--erd-text);
 }
 .date-picker-sheet-sub {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--erd-text3);
 }
 .date-picker-sheet-close {
@@ -6860,7 +6860,7 @@ button.account-feature-card {
   background: none;
   color: var(--erd-text);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
   font-family: inherit;
 }
@@ -6872,7 +6872,7 @@ button.account-feature-card {
   background: var(--gold);
   color: var(--erd-on-accent);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
   font-family: inherit;
   transition: opacity 0.2s ease;
@@ -6898,13 +6898,13 @@ button.account-feature-card {
   }
 }
 .expense-redesign .env-page-title {
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   font-size: 1.6rem;
-  font-weight: 650;
+  font-weight: 600;
 }
 .expense-redesign .env-collapse-btn {
   color: var(--gold-ink);
-  font-weight: 650;
+  font-weight: 550;
 }
 
 .env-group-list {
@@ -6942,7 +6942,7 @@ button.account-feature-card {
   padding: 0;
   color: var(--erd-text);
   font: inherit;
-  font-family: var(--font-nunito);
+  font-family: var(--font-body);
   cursor: pointer;
   text-align: left;
 }
@@ -6952,7 +6952,7 @@ button.account-feature-card {
 }
 
 .expense-redesign .env-group-name {
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   font-size: 1.05rem;
   letter-spacing: 0;
   text-transform: none;
@@ -6962,7 +6962,7 @@ button.account-feature-card {
 }
 
 .expense-redesign .env-group-count {
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   color: var(--erd-text3);
   background: var(--erd-pill-bg);
   border: 1px solid var(--erd-border);
@@ -7058,7 +7058,7 @@ button.account-feature-card {
 }
 
 .env-cat-name {
-  font-weight: 650;
+  font-weight: 550;
   flex: 1;
   min-width: 0;
   white-space: nowrap;
@@ -7078,7 +7078,7 @@ button.account-feature-card {
   flex-shrink: 0;
   gap: 9px;
   white-space: nowrap;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-variant-numeric: tabular-nums;
   color: var(--erd-text2);
   background: none;
@@ -7127,7 +7127,7 @@ button.account-feature-card {
 }
 .env-page-summary strong {
   color: var(--erd-text);
-  font-weight: 700;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 .env-page-summary > span {
@@ -7149,13 +7149,13 @@ button.account-feature-card {
   gap: 2px;
 }
 .env-alert-label {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--erd-text2);
 }
 .env-alert-values {
   color: var(--erd-text);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
 }
 .env-cat:hover {
   background: color-mix(in oklab, var(--erd-text) 2%, transparent);
@@ -7227,7 +7227,7 @@ button.account-feature-card {
     display: none;
   }
   .env-alert-values {
-    font-size: 11px;
+    font-size: 12px;
     color: var(--erd-text2);
   }
   .env-cat-actions {
@@ -7253,7 +7253,7 @@ button.account-feature-card {
   border-radius: 8px;
   color: var(--erd-text);
   font: inherit;
-  font-family: var(--font-nunito);
+  font-family: var(--font-body);
   padding: 4px 8px;
 }
 
@@ -7270,7 +7270,7 @@ button.account-feature-card {
 }
 
 .env-sheet-title {
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   font-size: 1.05rem;
 }
 
@@ -7289,13 +7289,13 @@ button.account-feature-card {
   margin: 0;
   padding-top: 8px;
   border-top: 1px solid var(--erd-border);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   color: var(--erd-text3);
 }
 
 .env-sheet-section-label {
   margin: 0;
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--erd-text3);
@@ -7397,15 +7397,15 @@ button.account-feature-card {
   display: block;
   margin-bottom: 3px;
   color: var(--gold-ink);
-  font-size: 0.65rem;
-  font-weight: 800;
+  font-size: 0.75rem;
+  font-weight: 700;
   letter-spacing: 0.12em;
 }
 
 .env-sheet--rename .env-sheet-title {
   margin: 0;
   font-size: 1.25rem;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.15;
 }
 
@@ -7439,7 +7439,7 @@ button.account-feature-card {
   margin-bottom: 8px;
   color: var(--erd-text2);
   font-size: 0.75rem;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0;
   text-transform: none;
 }
@@ -7474,7 +7474,7 @@ button.account-feature-card {
   border-radius: 999px;
   font: inherit;
   font-size: 0.85rem;
-  font-weight: 800;
+  font-weight: 700;
   cursor: pointer;
 }
 
@@ -7530,7 +7530,7 @@ button.account-feature-card {
 .env-sheet--alerts .env-pct {
   height: 40px;
   padding: 0;
-  font-weight: 700;
+  font-weight: 600;
   transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
 
@@ -7572,7 +7572,7 @@ button.account-feature-card {
   color: var(--erd-on-accent);
   font: inherit;
   font-size: 0.8rem;
-  font-weight: 800;
+  font-weight: 700;
   cursor: pointer;
 }
 
@@ -7630,7 +7630,7 @@ button.account-feature-card {
   background: var(--erd-bg);
   border-left: 1px solid var(--erd-border-strong);
   box-shadow: -24px 0 70px rgba(20, 16, 12, 0.22);
-  font-family: var(--font-nunito), sans-serif;
+  font-family: var(--font-body), sans-serif;
 }
 
 .brain-head {
@@ -7666,13 +7666,13 @@ button.account-feature-card {
 .brain-heading h2 {
   margin: 0;
   font:
-    600 1.18rem/1.15 var(--font-fredoka),
+    600 1.18rem/1.15 var(--font-display),
     sans-serif;
 }
 .brain-heading p {
   margin: 4px 0 0;
   color: var(--erd-text2);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -7696,7 +7696,7 @@ button.account-feature-card {
   background: var(--erd-card);
   cursor: pointer;
   font:
-    800 0.72rem var(--font-nunito),
+    700 0.75rem var(--font-body),
     sans-serif;
 }
 .brain-icon-btn {
@@ -7736,12 +7736,12 @@ button.account-feature-card {
   margin-bottom: 10px;
   color: var(--erd-text2);
   font-size: 0.75rem;
-  font-weight: 700;
+  font-weight: 600;
 }
 .brain-summary-card > strong {
   display: block;
   font:
-    500 1.2rem/1.4 var(--font-fredoka),
+    600 1.2rem/1.4 var(--font-display),
     sans-serif;
 }
 .brain-summary-card p {
@@ -7771,7 +7771,7 @@ button.account-feature-card {
   border: 0;
   color: var(--coral);
   background: none;
-  font: 800 0.78rem var(--font-nunito);
+  font: 700 0.78rem var(--font-body);
   cursor: pointer;
 }
 
@@ -7813,7 +7813,7 @@ button.account-feature-card {
 }
 .brain-insight strong {
   font-size: 0.875rem;
-  font-weight: 700;
+  font-weight: 600;
 }
 .brain-insight small {
   margin-top: 3px;
@@ -7856,7 +7856,7 @@ button.account-feature-card {
   border-radius: 12px;
   color: var(--erd-text2);
   background: var(--erd-card);
-  font: 600 0.8125rem/1.5 var(--font-nunito);
+  font: 500 0.8125rem/1.5 var(--font-body);
   cursor: pointer;
   text-align: left;
 }
@@ -7889,7 +7889,7 @@ button.account-feature-card {
   align-self: flex-end;
   color: var(--erd-text);
   background: var(--gold-soft);
-  font-weight: 500;
+  font-weight: 400;
 }
 .brain-bubble--model {
   align-self: flex-start;
@@ -7917,7 +7917,7 @@ button.account-feature-card {
   color: var(--erd-text2);
 }
 .brain-md strong {
-  font-weight: 800;
+  font-weight: 700;
 }
 
 /* Thinking mark: the perched bird pecks twice, rests, repeats. Pivot sits at its feet (viewBox units). */
@@ -7963,7 +7963,7 @@ button.account-feature-card {
   padding: 8px 0 5px;
   color: var(--erd-text);
   background: transparent;
-  font: 0.86rem/1.4 var(--font-nunito);
+  font: 0.86rem/1.4 var(--font-body);
 }
 .brain-composer button {
   width: 38px;
@@ -8002,7 +8002,7 @@ button.account-feature-card {
   outline: 0;
   color: var(--erd-text);
   background: transparent;
-  font: 0.82rem var(--font-nunito);
+  font: 0.82rem var(--font-body);
 }
 .brain-history-list {
   display: flex;
@@ -8038,7 +8038,7 @@ button.account-feature-card {
 }
 .brain-history-list small {
   color: var(--erd-text3);
-  font-size: 0.65rem;
+  font-size: 0.75rem;
 }
 .brain-empty,
 .brain-error {
@@ -8059,13 +8059,13 @@ button.account-feature-card {
   align-items: center;
   margin-top: 14px;
   color: var(--erd-text3);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
 }
 .brain-pager button {
   border: 0;
   color: var(--gold-ink);
   background: none;
-  font: 800 0.72rem var(--font-nunito);
+  font: 700 0.75rem var(--font-body);
   cursor: pointer;
 }
 .brain-pager button:disabled {
@@ -8084,7 +8084,7 @@ button.account-feature-card {
   border-radius: 999px;
   color: var(--gold-ink);
   background: var(--gold-soft);
-  font: 800 0.75rem var(--font-nunito);
+  font: 700 0.75rem var(--font-body);
   cursor: pointer;
 }
 .account-primary-btn {
@@ -8153,7 +8153,7 @@ button.account-feature-card {
 }
 .week-recap-dot-col small {
   font-size: 0.8rem;
-  font-weight: 800;
+  font-weight: 700;
   opacity: 0.8;
 }
 .week-recap-dot {
@@ -8163,7 +8163,7 @@ button.account-feature-card {
   place-items: center;
   border-radius: 50%;
   border: 2px solid color-mix(in srgb, var(--wrapped-ink) 35%, transparent);
-  font-weight: 900;
+  font-weight: 700;
   font-size: 1.1rem;
 }
 .week-recap-dot.is-on {
@@ -8185,7 +8185,7 @@ button.account-feature-card {
   border: 2px solid var(--wrapped-ink);
   border-radius: 999px;
   background: color-mix(in srgb, var(--wrapped-ink) 13%, transparent);
-  font: 600 1.35rem var(--font-fredoka), sans-serif;
+  font: 600 1.35rem var(--font-display), sans-serif;
 }
 .week-recap-chip b {
   min-width: 40px;
@@ -8193,7 +8193,7 @@ button.account-feature-card {
   border-radius: 999px;
   background: var(--wrapped-ink);
   color: var(--recap-bg);
-  font: 900 1rem var(--font-nunito), sans-serif;
+  font: 700 1rem var(--font-body), sans-serif;
   text-align: center;
 }
 .week-recap-chip.is-first {
@@ -8227,7 +8227,7 @@ button.account-feature-card {
   justify-content: space-between;
   margin-top: 8px;
   font-size: 0.78rem;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.04em;
   opacity: 0.75;
 }
@@ -8266,10 +8266,10 @@ button.account-feature-card {
 }
 .week-recap-legend-row span {
   flex: 1;
-  font-weight: 700;
+  font-weight: 600;
 }
 .week-recap-legend-row strong {
-  font-weight: 900;
+  font-weight: 700;
 }
 .week-recap-receipt {
   width: min(400px, 100%);
@@ -8287,7 +8287,7 @@ button.account-feature-card {
   margin-bottom: 4px;
   color: var(--recap-accent);
   font-size: 0.75rem;
-  font-weight: 900;
+  font-weight: 700;
   letter-spacing: 0.16em;
 }
 .week-recap-receipt-row {
@@ -8298,11 +8298,11 @@ button.account-feature-card {
 }
 .week-recap-receipt-row span {
   color: rgba(42, 36, 32, 0.6);
-  font-weight: 700;
+  font-weight: 600;
 }
 .week-recap-receipt-row strong {
   overflow: hidden;
-  font-weight: 800;
+  font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -8314,11 +8314,11 @@ button.account-feature-card {
 }
 .week-recap-receipt-row.is-total span {
   color: #2a2420;
-  font-weight: 900;
+  font-weight: 700;
 }
 .week-recap-receipt-row.is-total strong {
   color: var(--recap-accent);
-  font: 600 1.6rem var(--font-fredoka), sans-serif;
+  font: 600 1.6rem var(--font-display), sans-serif;
 }
 .week-recap-confetti {
   position: fixed;
@@ -8337,7 +8337,7 @@ button.account-feature-card {
 .wrapped-shell {
   min-height: 100dvh;
   background: #40395f;
-  font-family: var(--font-nunito), sans-serif;
+  font-family: var(--font-body), sans-serif;
 }
 .wrapped-cover,
 .wrapped-player,
@@ -8419,14 +8419,14 @@ button.account-feature-card {
 .wrapped-cover > span {
   color: #eecb72;
   font-size: 0.76rem;
-  font-weight: 900;
+  font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
 }
 .wrapped-cover h1 {
   margin: 12px 0 16px;
   font:
-    600 clamp(3.3rem, 10vw, 7.4rem)/0.88 var(--font-fredoka),
+    600 clamp(3.3rem, 10vw, 7.4rem)/0.88 var(--font-display),
     sans-serif;
   letter-spacing: -0.055em;
 }
@@ -8447,7 +8447,7 @@ button.account-feature-card {
   border-radius: 999px;
   color: #332815;
   background: #eecb72;
-  font: 900 0.86rem var(--font-nunito);
+  font: 700 0.86rem var(--font-body);
   cursor: pointer;
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
 }
@@ -8561,8 +8561,8 @@ button.account-feature-card {
   position: absolute;
   top: 45px;
   left: 32px;
-  font-size: 0.7rem;
-  font-weight: 900;
+  font-size: 0.75rem;
+  font-weight: 700;
   letter-spacing: 0.13em;
   opacity: 0.6;
 }
@@ -8574,7 +8574,7 @@ button.account-feature-card {
 .wrapped-eyebrow {
   margin-bottom: 18px;
   font-size: 0.78rem;
-  font-weight: 900;
+  font-weight: 700;
   letter-spacing: 0.15em;
   text-transform: uppercase;
   opacity: 0.72;
@@ -8589,7 +8589,7 @@ button.account-feature-card {
   max-width: 720px;
   margin: 0;
   font:
-    600 clamp(3rem, 9vw, 6.7rem)/0.94 var(--font-fredoka),
+    600 clamp(3rem, 9vw, 6.7rem)/0.94 var(--font-display),
     sans-serif;
   letter-spacing: -0.052em;
   text-wrap: balance;
@@ -8626,10 +8626,10 @@ button.account-feature-card {
   opacity: 0.72;
 }
 .wrapped-week-bars strong {
-  font-size: 0.73rem;
+  font-size: 0.75rem;
 }
 .wrapped-week-bars small {
-  font-size: 0.66rem;
+  font-size: 0.75rem;
   opacity: 0.65;
 }
 .wrapped-category-list {
@@ -8649,7 +8649,7 @@ button.account-feature-card {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-weight: 900;
+  font-weight: 700;
 }
 .wrapped-category-list span i {
   width: 11px;
@@ -8657,7 +8657,7 @@ button.account-feature-card {
   border-radius: 50%;
 }
 .wrapped-category-list strong {
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
 }
 .wrapped-category-list small {
   position: absolute;
@@ -8680,7 +8680,7 @@ button.account-feature-card {
   border-radius: 999px;
   color: var(--wrapped-ink);
   background: color-mix(in srgb, var(--wrapped-ink) 13%, transparent);
-  font: 900 0.8rem var(--font-nunito);
+  font: 700 0.8rem var(--font-body);
   cursor: pointer;
   pointer-events: auto;
 }
@@ -8697,8 +8697,8 @@ button.account-feature-card {
   align-items: center;
   gap: 5px;
   transform: translateX(-50%);
-  font-size: 0.66rem;
-  font-weight: 800;
+  font-size: 0.75rem;
+  font-weight: 700;
   opacity: 0.55;
   white-space: nowrap;
 }
@@ -8721,7 +8721,7 @@ button.account-feature-card {
 }
 .wrapped-state h1 {
   margin: 0;
-  font: 600 clamp(2rem, 6vw, 4.5rem)/1 var(--font-fredoka);
+  font: 600 clamp(2rem, 6vw, 4.5rem)/1 var(--font-display);
 }
 .wrapped-state p,
 .wrapped-state span {
@@ -8734,7 +8734,7 @@ button.account-feature-card {
   border-radius: 999px;
   color: #fffaf0;
   background: transparent;
-  font: 800 0.8rem var(--font-nunito);
+  font: 700 0.8rem var(--font-body);
   text-decoration: none;
   cursor: pointer;
 }
@@ -8818,8 +8818,8 @@ button.account-feature-card {
   background: var(--erd-bg);
 }
 .tour-header-copy { flex: 1; min-width: 0; }
-.tour-header-copy h1 { margin: 0; font-family: var(--font-fredoka); font-size: 17px; font-weight: 600; }
-.tour-header-copy p { margin: 2px 0 0; color: var(--erd-text3); font-size: 11px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tour-header-copy h1 { margin: 0; font-family: var(--font-display); font-size: 17px; font-weight: 600; }
+.tour-header-copy p { margin: 2px 0 0; color: var(--erd-text3); font-size: 12px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tour-header .tour-back { display: grid; place-items: center; flex-shrink: 0; background: var(--erd-card); }
 .tour-header .tour-skip { min-width: 44px; min-height: 44px; }
 
@@ -8849,7 +8849,7 @@ button.account-feature-card {
 }
 
 .tour-hub-title {
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   font-size: 22px;
   font-weight: 600;
   margin: 0;
@@ -8882,7 +8882,7 @@ button.account-feature-card {
 }
 
 .tour-hub-row-blurb {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--erd-text3);
 }
 
@@ -8896,7 +8896,7 @@ button.account-feature-card {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   font-size: 14px;
   flex-shrink: 0;
 }
@@ -8950,12 +8950,12 @@ button.account-feature-card {
   border: none;
   color: var(--erd-text2);
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 700;
   padding: 0;
 }
 
 .tour-chapter-title {
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   font-size: 20px;
   font-weight: 600;
   margin: 2px 0 0;
@@ -8970,7 +8970,7 @@ button.account-feature-card {
 
 .tour-chapter-nudge {
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--gold-ink);
   margin: 0;
 }
@@ -8986,8 +8986,8 @@ button.account-feature-card {
 }
 
 .tour-kicker {
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   letter-spacing: 0.08em;
   color: var(--erd-text3);
   margin: 0;
@@ -9002,8 +9002,8 @@ button.account-feature-card {
 }
 
 .tour-section-label {
-  font-size: 10px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   letter-spacing: 0.08em;
   color: var(--erd-text3);
   padding: 4px 4px 0;
@@ -9047,7 +9047,7 @@ button.account-feature-card {
 
 .tour-row-name {
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--erd-text);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -9055,7 +9055,7 @@ button.account-feature-card {
 }
 
 .tour-row-note {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--erd-text3);
 }
 
@@ -9079,7 +9079,7 @@ button.account-feature-card {
   background: var(--erd-pill-bg);
   color: var(--erd-text);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
   flex-shrink: 0;
 }
@@ -9096,7 +9096,7 @@ button.account-feature-card {
   border: none;
   color: var(--erd-text3);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
   padding: 4px;
 }
@@ -9114,8 +9114,8 @@ button.account-feature-card {
 }
 
 .tour-hero-label {
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   letter-spacing: 0.08em;
   color: var(--erd-text2);
 }
@@ -9178,7 +9178,7 @@ button.account-feature-card {
   background: var(--erd-pill-bg);
   color: var(--erd-text);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
 }
 
@@ -9219,7 +9219,7 @@ button.account-feature-card {
 }
 
 .tour-result-note {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--erd-text2);
   line-height: 1.5;
   margin: 0;
@@ -9234,12 +9234,12 @@ button.account-feature-card {
 .tour-log-entry-text {
   flex: 1;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--erd-text);
 }
 
 .tour-log-entry-method {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--erd-text2);
 }
 
@@ -9253,7 +9253,7 @@ button.account-feature-card {
 
 .tour-tip p {
   margin: 0;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--erd-text2);
   line-height: 1.5;
 }
@@ -9281,14 +9281,14 @@ button.account-feature-card {
 }
 
 .tour-move-amount {
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   font-size: 17px;
   color: var(--erd-text);
 }
 
 .tour-move-status {
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .tour-move-status.is-coral {
@@ -9336,7 +9336,7 @@ button.account-feature-card {
 }
 
 .tour-move-result-title {
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   font-size: 17px;
   color: var(--mint);
 }
@@ -9347,7 +9347,7 @@ button.account-feature-card {
   border: none;
   color: var(--erd-text2);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
   padding: 0;
 }
@@ -9363,7 +9363,7 @@ button.account-feature-card {
 }
 
 .tour-quiz-question {
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   font-size: 16px;
   line-height: 1.4;
   margin: 0;
@@ -9401,7 +9401,7 @@ button.account-feature-card {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: 12px;
   flex-shrink: 0;
 }
 
@@ -9413,7 +9413,7 @@ button.account-feature-card {
 
 .tour-quiz-feedback {
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.5;
   margin: 0;
   color: var(--mint);
@@ -9440,7 +9440,7 @@ button.account-feature-card {
   background: transparent;
   color: var(--erd-text2);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
 }
 
@@ -9520,7 +9520,7 @@ button.account-feature-card {
 
 .tour-extra-name {
   flex: 1;
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   font-size: 15px;
   color: var(--erd-text);
 }
@@ -9608,7 +9608,7 @@ button.account-feature-card {
   border: none;
   color: var(--erd-text2);
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 700;
   cursor: pointer;
   padding: 4px;
 }
@@ -9635,7 +9635,7 @@ button.account-feature-card {
 }
 
 .tour-done-title {
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   font-size: 22px;
   font-weight: 600;
   margin: 8px 0 0;
@@ -9665,7 +9665,7 @@ button.account-feature-card {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: 12px;
   flex-shrink: 0;
 }
 
@@ -9729,7 +9729,7 @@ button.account-feature-card {
   border: none;
   background: var(--gold);
   color: var(--erd-on-accent);
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .tour-card.is-over {
@@ -9748,7 +9748,7 @@ button.account-feature-card {
 }
 
 .tour-notify-clock {
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   font-size: 22px;
   font-weight: 600;
   text-align: center;
@@ -9757,8 +9757,8 @@ button.account-feature-card {
 .tour-notify-quiet {
   margin: 0;
   padding-top: 4px;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 500;
   color: var(--erd-text3);
   text-align: center;
 }
@@ -9775,7 +9775,7 @@ button.account-feature-card {
 
 .tour-notify-banner-title {
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--erd-text);
   white-space: nowrap;
   overflow: hidden;
@@ -9783,15 +9783,15 @@ button.account-feature-card {
 }
 
 .tour-notify-banner-body {
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 500;
   line-height: 1.55;
   color: var(--erd-text2);
 }
 
 .tour-notify-now {
-  font-size: 10px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--erd-text3);
   align-self: flex-start;
 }
@@ -9854,8 +9854,8 @@ button.account-feature-card {
   border-radius: 100px;
   background: transparent;
   color: var(--erd-text2);
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
 }
 
@@ -9866,7 +9866,7 @@ button.account-feature-card {
 
 .tour-notify-cadence-note {
   padding: 0 4px;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--erd-text3);
 }
 
@@ -9878,7 +9878,7 @@ button.account-feature-card {
   background: var(--gold);
   color: var(--erd-on-accent);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 700;
   display: inline-flex;
   align-items: center;
   text-decoration: none;
@@ -9891,21 +9891,21 @@ button.account-feature-card {
 .tour-notify-silenced {
   margin: 0;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--gold-ink);
 }
 
 .tour-notify-detail {
   margin: 0;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.55;
   color: var(--erd-text);
 }
 
 .tour-notify-detail b,
 .tour-result-note b {
-  font-weight: 800;
+  font-weight: 700;
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -9926,12 +9926,12 @@ button.account-feature-card {
   font-size: 30px;
 }
 .account-empty-title {
-  font: 600 18px var(--font-fredoka);
+  font: 600 18px var(--font-display);
 }
 .account-empty .account-row-hint {
   display: block;
   margin-top: 2px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 400;
   color: var(--erd-text2);
 }
@@ -9993,7 +9993,7 @@ button.account-feature-card {
 }
 .recurring-hero-amount {
   margin-bottom: 6px;
-  font: 600 34px/1.1 var(--font-fredoka);
+  font: 600 34px/1.1 var(--font-display);
   font-variant-numeric: tabular-nums;
 }
 .recurring-list,
@@ -10015,7 +10015,7 @@ button.account-feature-card {
 .recurring-list .account-row-hint {
   display: block;
   margin-top: 2px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 400;
   color: var(--erd-text2);
 }
@@ -10079,7 +10079,7 @@ button.account-feature-card {
 }
 .recurring-list .recurring-due {
   color: var(--gold-ink);
-  font-weight: 700;
+  font-weight: 600;
 }
 .recurring-hint {
   margin: 6px 0 0;
@@ -10126,7 +10126,7 @@ button.account-feature-card {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font: 600 20px var(--font-fredoka);
+  font: 600 20px var(--font-display);
 }
 .archive-clock {
   min-width: 74px;
@@ -10139,11 +10139,11 @@ button.account-feature-card {
   border-radius: 16px;
 }
 .archive-clock strong {
-  font: 600 22px var(--font-fredoka);
+  font: 600 22px var(--font-display);
 }
 .archive-clock span {
-  font-size: 9px;
-  font-weight: 800;
+  font-size: 12px;
+  font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -10164,7 +10164,7 @@ button.account-feature-card {
 }
 .archive-chip-count {
   margin-left: 4px;
-  font-size: 11px;
+  font-size: 12px;
   opacity: 0.6;
 }
 .archive-list {
@@ -10183,7 +10183,7 @@ button.account-feature-card {
 .archive-band {
   padding: 20px 6px 10px;
   border-bottom: 1px solid var(--erd-border-strong);
-  font: 650 14px/1.25 var(--font-fredoka);
+  font: 600 14px/1.25 var(--font-display);
   color: var(--erd-text);
 }
 .archive-list > li:first-child .archive-band {
@@ -10323,7 +10323,7 @@ button.account-feature-card {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font: 650 15px var(--font-nunito);
+  font: 550 15px var(--font-body);
   color: var(--erd-text);
 }
 .archive-row-meta {
@@ -10335,7 +10335,7 @@ button.account-feature-card {
   padding: 5px 10px;
   border-radius: 999px;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
   position: relative;
@@ -10387,7 +10387,7 @@ button.account-feature-card {
 }
 .archive-confirm-title {
   margin: 0 0 6px;
-  font: 600 18px/1.3 var(--font-fredoka);
+  font: 600 18px/1.3 var(--font-display);
 }
 .archive-confirm-actions {
   display: flex;
@@ -10411,7 +10411,7 @@ button.account-feature-card {
   background: none;
   color: var(--gold-ink);
   font: inherit;
-  font-weight: 700;
+  font-weight: 600;
   text-decoration: underline;
   cursor: pointer;
 }
@@ -10435,7 +10435,7 @@ button.account-feature-card {
 }
 .get-app-waitlist .lp-waitlist-title {
   margin: 0;
-  font: 600 15px/1.3 var(--font-fredoka);
+  font: 600 15px/1.3 var(--font-display);
 }
 .get-app-waitlist .lp-waitlist-row {
   display: flex;
@@ -10483,7 +10483,7 @@ button.account-feature-card {
   resize: vertical;
 }
 .ideas-board { display: flex; flex-direction: column; gap: 14px; }
-.ideas-board .account-help-copy a { color: var(--accent-ink, inherit); font-weight: 700; }
+.ideas-board .account-help-copy a { color: var(--accent-ink, inherit); font-weight: 600; }
 .ideas-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .ideas-empty { padding: 20px; }
 .ideas-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
@@ -10492,12 +10492,12 @@ button.account-feature-card {
 .ideas-vote button { display: grid; place-items: center; width: 32px; height: 28px; border: none; border-radius: 10px; background: var(--erd-input-bg); color: var(--erd-text2); cursor: pointer; }
 .ideas-vote button.is-on { background: var(--gold); color: var(--erd-on-accent); }
 .ideas-vote button.is-on.is-down { background: var(--erd-text2); }
-.ideas-score { font-weight: 800; font-size: 15px; font-variant-numeric: tabular-nums; }
+.ideas-score { font-weight: 700; font-size: 15px; font-variant-numeric: tabular-nums; }
 .ideas-body { flex: 1; min-width: 0; }
-.ideas-title { font-weight: 800; font-size: 15px; color: var(--erd-text); overflow-wrap: anywhere; }
+.ideas-title { font-weight: 700; font-size: 15px; color: var(--erd-text); overflow-wrap: anywhere; }
 .ideas-description { margin: 4px 0 0; color: var(--erd-text2); font-size: 13px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
 .ideas-meta { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 12px; color: var(--erd-text2); }
-.ideas-status { padding: 2px 9px; border-radius: 100px; font-weight: 800; background: var(--erd-input-bg); color: var(--erd-text2); }
+.ideas-status { padding: 2px 9px; border-radius: 100px; font-weight: 700; background: var(--erd-input-bg); color: var(--erd-text2); }
 .ideas-status.is-planned { background: rgba(80, 140, 255, 0.16); color: #3a6fd8; }
 .ideas-status.is-in_progress { background: rgba(240, 170, 40, 0.18); color: #b97a00; }
 .ideas-status.is-shipped { background: rgba(60, 180, 120, 0.18); color: #23935c; }
@@ -10565,8 +10565,8 @@ button.account-feature-card {
   background: var(--gold-soft);
 }
 .currency-selected-eyebrow {
-  font-size: 10px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--gold-ink);
@@ -10574,20 +10574,20 @@ button.account-feature-card {
 .currency-selected-name {
   margin-top: 3px;
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--erd-text);
 }
 .currency-selected-code {
   /* Plain text, not a pill: a bordered chip here read as a tappable button. */
   flex-shrink: 0;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--gold-ink);
 }
 .scan-subtitle {
   margin: 2px 0 0;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--erd-text2);
 }
 .scan-drop {
@@ -10615,7 +10615,7 @@ button.account-feature-card {
 }
 .scan-drop-title {
   margin: 0;
-  font: 600 18px var(--font-fredoka);
+  font: 600 18px var(--font-display);
 }
 .scan-drop-copy {
   max-width: 320px;
@@ -10787,7 +10787,7 @@ button.account-feature-card {
   outline: none;
   background: transparent;
   color: var(--erd-text);
-  font: 600 14px var(--font-nunito);
+  font: 500 14px var(--font-body);
 }
 .scan-search::placeholder {
   color: var(--erd-text3);
@@ -10801,7 +10801,7 @@ button.account-feature-card {
   border-radius: 16px;
   background: var(--erd-card);
   color: var(--erd-text);
-  font: 700 13px var(--font-nunito);
+  font: 600 13px var(--font-body);
 }
 .scan-selection-heading {
   display: flex;
@@ -10829,7 +10829,7 @@ button.account-feature-card {
   border: none;
   background: none;
   color: var(--erd-text2);
-  font: 800 12px var(--font-nunito);
+  font: 700 12px var(--font-body);
   cursor: pointer;
 }
 .scan-link-btn:hover:not(:disabled) {
@@ -10896,12 +10896,12 @@ button.account-feature-card {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font: 700 14px var(--font-nunito);
+  font: 600 14px var(--font-body);
 }
 .scan-select-price {
   flex-shrink: 0;
   color: var(--erd-text2);
-  font: 600 14px var(--font-nunito);
+  font: 500 14px var(--font-body);
   font-variant-numeric: tabular-nums;
 }
 .scan-item:focus-within {
@@ -10921,7 +10921,7 @@ button.account-feature-card {
   border-radius: 10px;
   background: transparent;
   color: var(--erd-text);
-  font: 800 14px var(--font-nunito);
+  font: 700 14px var(--font-body);
   outline: none;
 }
 .scan-item-name {
@@ -10939,7 +10939,7 @@ button.account-feature-card {
   min-height: 30px;
   padding: 0;
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 600;
 }
 .scan-item-name:hover,
 .scan-item-share:hover {
@@ -10953,7 +10953,7 @@ button.account-feature-card {
 .scan-fee-row .scan-item-name,
 .scan-fee-row .scan-item-share {
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--erd-text2);
 }
 .scan-item-bottom {
@@ -10976,7 +10976,7 @@ button.account-feature-card {
   border-radius: 100px;
   background: transparent;
   color: var(--erd-text2);
-  font: 600 13px var(--font-nunito);
+  font: 500 13px var(--font-body);
   cursor: pointer;
 }
 .scan-split-chip.is-selected {
@@ -11027,12 +11027,12 @@ button.account-feature-card {
 
 .scan-meta {
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--erd-text3);
 }
 .scan-meta.is-strong,
 .scan-meta .is-strong {
-  font-weight: 800;
+  font-weight: 700;
   color: var(--erd-text2);
 }
 .scan-ink,
@@ -11040,8 +11040,8 @@ button.account-feature-card {
   color: var(--gold-ink);
 }
 .scan-micro {
-  font-size: 11px;
-  font-weight: 800;
+  font-size: 12px;
+  font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--erd-text3);
@@ -11056,7 +11056,7 @@ button.account-feature-card {
   background: var(--erd-card);
 }
 .scan-card-title {
-  font: 600 14px var(--font-fredoka);
+  font: 600 14px var(--font-display);
 }
 .scan-spread {
   display: flex;
@@ -11071,7 +11071,7 @@ button.account-feature-card {
 }
 .scan-hero-amount {
   color: var(--gold-ink);
-  font: 600 34px/1.1 var(--font-fredoka);
+  font: 600 34px/1.1 var(--font-display);
   font-variant-numeric: tabular-nums;
 }
 .scan-hero-amount.is-large {
@@ -11141,7 +11141,7 @@ button.account-feature-card {
 }
 .scan-photo-preview-head h3 {
   margin: 0;
-  font: 600 16px var(--font-fredoka);
+  font: 600 16px var(--font-display);
 }
 .scan-photo-preview-head .erd-modal-close {
   display: grid;
@@ -11163,7 +11163,7 @@ button.account-feature-card {
   border-radius: 16px;
   background: var(--erd-input-bg);
   color: var(--erd-text);
-  font: 700 14px var(--font-nunito);
+  font: 600 14px var(--font-body);
   text-align: left;
   cursor: pointer;
 }
@@ -11218,7 +11218,7 @@ button.account-feature-card {
   border-radius: 10px;
   background: var(--erd-input-bg);
   color: var(--erd-text2);
-  font: 800 13px var(--font-nunito);
+  font: 700 13px var(--font-body);
 }
 .scan-badge.is-accent {
   background: var(--gold-soft);
@@ -11306,7 +11306,7 @@ button.account-feature-card {
 }
 .bill-scan-head h3 {
   margin: 0;
-  font: 600 20px/1.3 var(--font-fredoka);
+  font: 600 20px/1.3 var(--font-display);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -11321,7 +11321,7 @@ button.account-feature-card {
   border-radius: 999px;
   background: var(--gold-soft);
   color: var(--gold-ink);
-  font: 700 13px var(--font-nunito);
+  font: 600 13px var(--font-body);
   cursor: pointer;
 }
 .bill-scan-preview-chip:disabled {
@@ -11356,7 +11356,7 @@ button.account-feature-card {
 }
 .bill-scan-share {
   margin: 2px 0 12px;
-  font: 700 38px/1.1 var(--font-fredoka);
+  font: 700 38px/1.1 var(--font-display);
   color: var(--gold-ink);
   font-variant-numeric: tabular-nums;
 }
@@ -11377,7 +11377,7 @@ button.account-feature-card {
 }
 .bill-scan-breakdown dd {
   margin: 0;
-  font-weight: 700;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 .bill-scan-tag {
@@ -11385,8 +11385,8 @@ button.account-feature-card {
   margin-top: 6px;
   padding: 2px 8px;
   border-radius: 7px;
-  font-size: 10px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
 }
 .bill-scan-tag.is-mine {
   color: var(--mint);
@@ -11415,7 +11415,7 @@ button.account-feature-card {
 .inv-trend {
   margin-top: -2px;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 .inv-trend.is-up { color: var(--mint); }
@@ -11443,7 +11443,7 @@ button.account-feature-card {
   border-top: 1px solid var(--erd-border);
   background: none;
   color: var(--erd-text);
-  font: 700 15px var(--font-nunito);
+  font: 600 15px var(--font-body);
   cursor: pointer;
 }
 .inv-menu .inv-menu-title + button {
@@ -11531,7 +11531,7 @@ button.account-feature-card {
 }
 .expense-redesign .txn-review-changed {
   color: var(--gold-ink);
-  font-weight: 700;
+  font-weight: 600;
 }
 .expense-redesign .txn-review-actions {
   display: grid;
@@ -11544,7 +11544,7 @@ button.account-feature-card {
   border-radius: 24px;
   font: inherit;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
   white-space: normal;
 }
@@ -11617,12 +11617,12 @@ button.account-feature-card {
   justify-content: center;
   gap: 8px;
   margin-top: -26px;
-  font: 700 40px/1.2 var(--font-fredoka);
+  font: 700 40px/1.2 var(--font-display);
   color: var(--erd-text);
 }
 .erd-added-subtitle {
   margin-top: 8px;
-  font: 800 17px/1.3 var(--font-nunito);
+  font: 700 17px/1.3 var(--font-body);
   color: var(--erd-text2);
   text-align: center;
 }
@@ -11632,7 +11632,7 @@ button.account-feature-card {
   border-radius: 999px;
   background: var(--mint-soft);
   color: var(--erd-text);
-  font: 700 14px/1.3 var(--font-nunito);
+  font: 600 14px/1.3 var(--font-body);
   text-align: center;
 }
 .erd-added-card {
@@ -11647,11 +11647,11 @@ button.account-feature-card {
   align-items: baseline;
   gap: 4px;
   margin-top: 12px;
-  font: 700 32px/1.2 var(--font-fredoka);
+  font: 700 32px/1.2 var(--font-display);
   color: var(--erd-text);
 }
 .erd-added-left > span:last-child {
-  font: 700 13px/1.3 var(--font-nunito);
+  font: 600 13px/1.3 var(--font-body);
   color: var(--erd-text2);
 }
 .erd-added-bar {
@@ -11665,11 +11665,11 @@ button.account-feature-card {
   margin-top: 32px;
   padding-top: 12px;
   border-top: 1px solid var(--erd-border);
-  font: 800 13px/1.3 var(--font-nunito);
+  font: 700 13px/1.3 var(--font-body);
   color: var(--erd-text3);
 }
 .erd-added-pace strong {
-  font-weight: 800;
+  font-weight: 700;
   color: var(--erd-text);
 }
 .erd-added-left.is-over {
@@ -11686,12 +11686,12 @@ button.account-feature-card {
   background: none;
 }
 .erd-added-nudge strong {
-  font: 600 18px/1.3 var(--font-fredoka);
+  font: 600 18px/1.3 var(--font-display);
   color: var(--erd-text);
 }
 .erd-added-nudge p {
   margin: 0 0 6px;
-  font: 700 13px/1.3 var(--font-nunito);
+  font: 600 13px/1.3 var(--font-body);
   color: var(--erd-text2);
 }
 .erd-added-footer {
@@ -11715,7 +11715,7 @@ button.account-feature-card {
 }
 .erd-added-stamp {
   text-align: center;
-  font: 800 13px/1.3 var(--font-nunito);
+  font: 700 13px/1.3 var(--font-body);
   color: var(--erd-text3);
 }
 
@@ -11752,8 +11752,8 @@ button.account-feature-card {
   border-radius: 999px;
   background: var(--gold-soft);
   color: var(--gold-ink);
-  font-size: 11px;
-  font-weight: 800;
+  font-size: 12px;
+  font-weight: 700;
   white-space: nowrap;
 }
 .auto-pick-content {
@@ -11815,7 +11815,7 @@ button.account-feature-card {
   border-color: transparent;
   background: var(--tk-pill-good-bg);
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 500;
 }
 .expense-redesign .home-leftover-notice p { flex: 1; margin: 0; color: var(--erd-text); }
 .expense-redesign .home-leftover-notice button {
@@ -11823,7 +11823,7 @@ button.account-feature-card {
   background: transparent;
   color: var(--mint);
   font: inherit;
-  font-weight: 800;
+  font-weight: 700;
   cursor: pointer;
   /* A 44px tap target that doesn't make the strip taller than the row above. */
   margin: -12px -8px;
@@ -11862,12 +11862,12 @@ button.account-feature-card {
 }
 .home-learning h2 {
   margin: 0;
-  font: 600 1.15rem var(--font-fredoka), sans-serif;
+  font: 600 1.15rem var(--font-display), sans-serif;
   color: var(--erd-text);
 }
 .home-learning p {
   margin: 2px 0 0;
-  font: 700 0.9rem var(--font-nunito);
+  font: 600 0.9rem var(--font-body);
   color: var(--erd-text2);
 }
 .home-learning-days {
@@ -11891,7 +11891,7 @@ button.account-feature-card {
   place-items: center;
   border: 2px solid var(--erd-border-strong);
   border-radius: 50%;
-  font-weight: 900;
+  font-weight: 700;
   color: var(--gold-ink);
 }
 .home-learning-days li.is-on span {
@@ -11955,13 +11955,13 @@ button.account-feature-card {
   }
 }
 .home-learning-days small {
-  font: 800 0.72rem var(--font-nunito);
+  font: 700 0.75rem var(--font-body);
   color: var(--erd-text2);
 }
 .expense-redesign .get-started-heading { display: flex; align-items: flex-start; gap: 12px; }
 .expense-redesign .get-started-heading > div { flex: 1; min-width: 0; }
-.expense-redesign .get-started-heading h2 { margin: 0; font-family: var(--font-fredoka); font-size: 17px; font-weight: 600; }
-.expense-redesign .get-started-heading p { margin: 2px 0 0; color: var(--erd-text3); font-size: 11px; font-weight: 600; line-height: 1.5; }
+.expense-redesign .get-started-heading h2 { margin: 0; font-family: var(--font-display); font-size: 17px; font-weight: 600; }
+.expense-redesign .get-started-heading p { margin: 2px 0 0; color: var(--erd-text3); font-size: 12px; font-weight: 500; line-height: 1.5; }
 .expense-redesign .get-started-skip {
   position: relative;
   display: inline-flex;
@@ -11975,15 +11975,15 @@ button.account-feature-card {
   padding: 6px 12px;
   min-height: 28px;
   font: inherit;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 16px;
-  font-weight: 800;
+  font-weight: 700;
   cursor: pointer;
 }
 /* Mobile uses hitSlop: keep the pill compact with a 44px-tall tap area. */
 .expense-redesign .get-started-skip::after { content: ""; position: absolute; inset: -8px -6px; }
 .expense-redesign .get-started-skip:active { opacity: 0.6; }
-.expense-redesign .get-started-progress { display: flex; align-items: center; gap: 10px; font-size: 11px; font-weight: 800; color: var(--erd-text2); }
+.expense-redesign .get-started-progress { display: flex; align-items: center; gap: 10px; font-size: 12px; font-weight: 700; color: var(--erd-text2); }
 .expense-redesign .get-started-segments { display: flex; flex: 1; gap: 6px; }
 .expense-redesign .get-started-segment { flex: 1; height: 6px; background: var(--erd-input-bg); border-radius: 99px; overflow: hidden; }
 .expense-redesign .get-started-segment > span { display: block; height: 100%; background: var(--gold); border-radius: inherit; }
@@ -12009,9 +12009,9 @@ button.account-feature-card {
 .expense-redesign .is-next .get-started-icon { background: var(--gold-ink); color: var(--erd-on-accent); }
 .expense-redesign .is-done .get-started-icon { background: var(--mint-soft); color: var(--mint); }
 .expense-redesign .get-started-step-copy { display: grid; gap: 1px; flex: 1; min-width: 0; }
-.expense-redesign .get-started-step-copy strong { font-size: 13px; font-weight: 800; }
-.expense-redesign .get-started-step.is-done strong { font-weight: 600; }
-.expense-redesign .get-started-step-copy > span { color: var(--erd-text3); font-size: 11px; font-weight: 600; }
+.expense-redesign .get-started-step-copy strong { font-size: 13px; font-weight: 700; }
+.expense-redesign .get-started-step.is-done strong { font-weight: 500; }
+.expense-redesign .get-started-step-copy > span { color: var(--erd-text3); font-size: 12px; font-weight: 500; }
 .expense-redesign .get-started-step > svg { color: var(--erd-text3); }
 .expense-redesign .get-started-step.is-next > svg { color: var(--gold-ink); }
 .expense-redesign .get-started-step:focus-visible,
@@ -12054,7 +12054,7 @@ button.account-feature-card {
   background: var(--mint-soft);
   color: var(--mint);
   font-size: 12.5px;
-  font-weight: 800;
+  font-weight: 700;
 }
 .brain-ack-link {
   display: inline-flex;
@@ -12063,7 +12063,7 @@ button.account-feature-card {
   margin-top: 8px;
   color: var(--gold-ink);
   font-size: 13.5px;
-  font-weight: 800;
+  font-weight: 700;
   text-decoration: none;
 }
 .brain-ack-link:hover {
@@ -12077,7 +12077,7 @@ button.account-feature-card {
   background: none;
   color: var(--gold-ink);
   font: inherit;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
 }
 .expense-redesign .capture-review {
@@ -12132,7 +12132,7 @@ button.account-feature-card {
   border-radius: 6px;
   background: none;
   color: var(--erd-text);
-  font: 700 15px var(--font-nunito);
+  font: 600 15px var(--font-body);
   outline: none;
 }
 .expense-redesign .capture-item:focus-visible {
@@ -12150,7 +12150,7 @@ button.account-feature-card {
   align-items: center;
   gap: 1px;
   color: var(--erd-text2);
-  font: 700 15px var(--font-nunito);
+  font: 600 15px var(--font-body);
 }
 .expense-redesign .capture-amount input {
   min-width: 2ch;
@@ -12205,7 +12205,7 @@ button.account-feature-card {
 }
 .expense-redesign .capture-envelope.ui-select.is-empty .ui-select-value {
   color: var(--warn-ink);
-  font-weight: 700;
+  font-weight: 600;
 }
 .expense-redesign .capture-hint {
   margin: 10px 0 0;
@@ -12242,7 +12242,7 @@ button.account-feature-card {
   border-radius: 100px;
   background: var(--erd-input-bg);
   color: var(--erd-text3);
-  font: 600 13px var(--font-nunito);
+  font: 500 13px var(--font-body);
 }
 .expense-redesign .capture-summary.is-logged {
   background: var(--mint-soft);
@@ -12259,7 +12259,7 @@ button.account-feature-card {
   border: none;
   background: none;
   color: var(--erd-text2);
-  font: 600 13px var(--font-nunito);
+  font: 500 13px var(--font-body);
   cursor: pointer;
 }
 .erd-log-several:hover {
@@ -12274,7 +12274,7 @@ button.account-feature-card {
 }
 .expense-redesign .balance-prompt h2 {
   margin: 0;
-  font: 600 18px var(--font-fredoka);
+  font: 600 18px var(--font-display);
 }
 .expense-redesign .balance-prompt p {
   margin: 0;
@@ -12295,7 +12295,7 @@ button.account-feature-card {
   border: none;
   background: none;
   color: var(--erd-text2);
-  font: 600 13px var(--font-nunito);
+  font: 500 13px var(--font-body);
   text-align: left;
   cursor: pointer;
 }
@@ -12369,7 +12369,7 @@ button.account-feature-card {
   border: none;
   background: none;
   color: var(--erd-text);
-  font: 600 14px var(--font-nunito);
+  font: 500 14px var(--font-body);
   outline: none;
 }
 .expense-redesign .balance-account .balance-amount {
@@ -12385,9 +12385,9 @@ button.account-feature-card {
   border: none;
   background: none;
   color: var(--erd-text);
-  font-family: var(--font-nunito);
+  font-family: var(--font-body);
   font-size: inherit;
-  font-weight: 700;
+  font-weight: 600;
   outline: none;
 }
 .expense-redesign .balance-account-name + .balance-amount input {
@@ -12397,7 +12397,7 @@ button.account-feature-card {
 .expense-redesign .balance-total {
   margin: 0;
   text-align: right;
-  font-weight: 700;
+  font-weight: 600;
 }
 .expense-redesign .balance-add {
   justify-self: center;
@@ -12405,12 +12405,12 @@ button.account-feature-card {
   border: none;
   background: none;
   color: var(--gold-ink);
-  font: 700 13px var(--font-nunito);
+  font: 600 13px var(--font-body);
   cursor: pointer;
 }
 .expense-redesign .balance-title {
   margin: 0;
-  font: 600 20px var(--font-fredoka);
+  font: 600 20px var(--font-display);
 }
 .expense-redesign .balance-hint {
   margin: 0;
@@ -12424,7 +12424,7 @@ button.account-feature-card {
   display: grid;
   gap: 6px;
   color: var(--erd-text3);
-  font: 600 12px var(--font-nunito);
+  font: 500 12px var(--font-body);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -12509,7 +12509,7 @@ button.account-feature-card {
   border: none;
   background: none;
   color: var(--erd-text2);
-  font: 600 13px var(--font-nunito);
+  font: 500 13px var(--font-body);
   cursor: pointer;
 }
 .erd-more-toggle:hover {
@@ -12609,12 +12609,12 @@ button.account-feature-card {
   align-items: baseline;
   gap: 8px;
   color: var(--mint);
-  font: 600 40px/1.1 var(--font-fredoka);
+  font: 600 40px/1.1 var(--font-display);
   font-variant-numeric: tabular-nums;
 }
 .income-hero-per {
   color: var(--erd-text2);
-  font: 700 15px var(--font-nunito);
+  font: 600 15px var(--font-body);
 }
 .income-cadence-grid {
   display: grid;
@@ -12635,15 +12635,15 @@ button.account-feature-card {
 .income-cadence-name {
   color: var(--tone);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 700;
 }
 .income-cadence-tile strong {
-  font: 600 20px/1.2 var(--font-fredoka);
+  font: 600 20px/1.2 var(--font-display);
   font-variant-numeric: tabular-nums;
 }
 .income-cadence-count {
   color: var(--erd-text2);
-  font-size: 11px;
+  font-size: 12px;
 }
 .income-progress {
   height: 8px;
@@ -12680,8 +12680,8 @@ button.account-feature-card {
   border-radius: 999px;
   background: var(--tone-soft);
   color: var(--tone);
-  font-size: 11px;
-  font-weight: 800;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 /* Setup's extras step (PickExtras.tsx): setup-done rows with a label, a pitch and a switch. */
@@ -12695,7 +12695,7 @@ button.account-feature-card {
   gap: 2px;
 }
 .setup-extra-label {
-  font-weight: 800;
+  font-weight: 700;
   font-size: 14px;
 }
 
@@ -12751,7 +12751,7 @@ button.account-feature-card {
   position: fixed;
   z-index: 1200;
   /* Portalled to <body>, outside .expense-redesign's font. */
-  font-family: var(--font-nunito);
+  font-family: var(--font-body);
   font-size: 14px;
   width: min(320px, calc(100vw - 24px));
   display: flex;

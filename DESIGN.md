@@ -27,51 +27,51 @@ colors:
   focus: "#2563eb"
 typography:
   display:
-    fontFamily: "Fredoka, sans-serif"
+    fontFamily: "Geist, sans-serif"
     fontSize: "clamp(46px, 6.4vw, 80px)"
-    fontWeight: 500
+    fontWeight: 600
     lineHeight: 1
     letterSpacing: "-.035em"
   headline:
-    fontFamily: "Fredoka, sans-serif"
+    fontFamily: "Geist, sans-serif"
     fontSize: "clamp(36px, 4.6vw, 60px)"
-    fontWeight: 500
+    fontWeight: 600
     lineHeight: 1.05
     letterSpacing: "-.03em"
   title:
-    fontFamily: "Fredoka, sans-serif"
+    fontFamily: "Geist, sans-serif"
     fontSize: "26px"
-    fontWeight: 500
+    fontWeight: 600
     letterSpacing: "-.015em"
   statement:
-    fontFamily: "Fredoka, sans-serif"
+    fontFamily: "Geist, sans-serif"
     fontSize: "clamp(22px, 2.4vw, 28px)"
     fontWeight: 400
     lineHeight: 1.35
     letterSpacing: "-.01em"
   amount:
-    fontFamily: "Fredoka, sans-serif"
+    fontFamily: "Geist, sans-serif"
     fontSize: "18px"
-    fontWeight: 500
+    fontWeight: 600
     fontFeature: "tnum"
   lede:
-    fontFamily: "Nunito, sans-serif"
+    fontFamily: "Geist, sans-serif"
     fontSize: "19px"
     fontWeight: 400
     lineHeight: 1.6
   body:
-    fontFamily: "Nunito, sans-serif"
+    fontFamily: "Geist, sans-serif"
     fontSize: "15px"
     fontWeight: 400
     lineHeight: 1.6
   label:
-    fontFamily: "Nunito, sans-serif"
+    fontFamily: "Geist, sans-serif"
     fontSize: "14px"
-    fontWeight: 800
+    fontWeight: 700
   button:
-    fontFamily: "Nunito, sans-serif"
+    fontFamily: "Geist, sans-serif"
     fontSize: "16px"
-    fontWeight: 800
+    fontWeight: 700
     lineHeight: 1.2
 rounded:
   field: "12px"
@@ -158,7 +158,7 @@ components:
 
 Scope: only the public `/` page inside `.lp` (`src/views/LandingPage.tsx`, `src/landing.css`, `src/components/landing/Nudges.tsx`, `Playground.tsx`, `LandingClient.tsx`). It does not govern the signed-in dashboard, the mobile app, or the legal pages. The money lesson (`MoneyLesson.tsx` and its `.money-*` CSS) is parked: commented out of the page, its styles still in the stylesheet, and none of its rules are part of this system.
 
-The page is warm near-white paper with ink pill buttons and soft, rounded type. It reads like a calm product page that keeps showing you the app doing one thing: noticing a habit, sending a nudge, and logging it in one tap. Every section is a centered statement over one framed demo, and almost everything in those demos is neutral (white cards, warm grey surfaces, hairline borders) so that the single orange moment, the thing Aviary learned or did, stands out. The pastel envelope tones carry over from the app and appear only where the page talks about ways to log.
+The page is warm near-white paper with ink pill buttons and calm, clear type. It reads like a calm product page that keeps showing you the app doing one thing: noticing a habit, sending a nudge, and logging it in one tap. Every section is a centered statement over one framed demo, and almost everything in those demos is neutral (white cards, warm grey surfaces, hairline borders) so that the single orange moment, the thing Aviary learned or did, stands out. The pastel envelope tones carry over from the app and appear only where the page talks about ways to log.
 
 Density is low and the rhythm is generous: 150px between sections, one idea per section, nothing competing with the headline. Motion is purposeful and small. A looping hero stage, a drawn-on underline, a rotating habit word, and a success tick you can press. It always pauses off screen and holds its finished state under reduced motion.
 
@@ -166,7 +166,7 @@ Density is low and the rhythm is generous: 150px between sections, one idea per 
 - Warm paper page, white cards, hairline warm-grey borders.
 - Ink pills for every install or navigation action. Orange is never a CTA fill.
 - Orange marks the learned or answered moment, and nothing else.
-- Fredoka for headlines and every number. Nunito for words, at weight 800 when they need weight.
+- Geist for everything: 600 for headlines and every number, 400 for words, 700 when they need weight.
 - Centered statement, then one framed demo, repeated.
 - Every demo amount is labeled sample data.
 
@@ -205,26 +205,26 @@ A warm neutral page with one hot accent and four borrowed pastels, each with a f
 
 ## Typography
 
-**Display Font:** Fredoka (`--font-fredoka`, sans-serif fallback)
-**Body Font:** Nunito (`--font-nunito`, sans-serif fallback)
+**Display Font:** Geist (`--font-display`, size-matched fallback from next/font)
+**Body Font:** Geist (`--font-body`, same files; the split is kept so the roles can diverge later)
 **Data Font:** ui-monospace, only for raw bank strings (`UPI/DR/…`, `POS`, `NACH`) to make them feel cold next to Aviary's logs.
 
-**Character:** Fredoka's rounded, tightly tracked headlines are friendly without being childish. Nunito keeps body copy soft, and its heavy 800 weight does the work small caps or bold sans would elsewhere.
+**Character:** Calm, clear and serious: readability beats personality. Geist has the ₹ glyph, tabular figures and weights 100 to 900. Headlines stay tightly tracked; the copy keeps the playful voice, the type doesn't have to. Nothing is set under 12px, and small labels never drop below 500.
 
 ### Hierarchy
 - **Display** (`display`): the hero `h1` only. Drops to `clamp(42px, 12vw, 56px)` under 640px. The words "day 3" sit in Burnt Orange Ink with a hand-drawn Aviary Orange underline that draws on once.
 - **Headline** (`headline`): every section `h2`, centered, `text-wrap: balance`. 38px under 640px. The closing headline goes up to `clamp(40px, 5.4vw, 72px)`; the playground headline steps down to `clamp(32px, 3.8vw, 48px)` because it sits beside its tabs.
 - **Title** (`title`): card headings in the "little win" cards. The playground's copy column uses a 28px, weight 600 variant.
-- **Statement** (`statement`): one Fredoka sentence that closes an argument ("Aviary keeps the one second where you notice a spend…").
+- **Statement** (`statement`): one display sentence that closes an argument ("Aviary keeps the one second where you notice a spend…").
 - **Amount** (`amount`): every rupee figure, time and count in a demo. Scales up to 22 to 24px in envelope lines and 64px for the streak number.
 - **Lede** (`lede`): the paragraph under each headline, Muted, max 620px, `text-wrap: pretty`. 17px under 640px. Founder paragraphs use 18px at 1.65.
 - **Body** (`body`): card copy, rule definitions, FAQ answers (16px at 1.75).
-- **Label** (`label`): demo card labels, feed headings, row titles. Nunito 800; meta lines under it use 13px at 700 in Muted.
+- **Label** (`label`): demo card labels, feed headings, row titles. Geist 700; meta lines under it use 13px at 600 in Muted.
 
 ### Named Rules
-**The Fredoka Numbers Rule.** Amounts, times and counts are Fredoka 500 (tabular where they change), the words around them are Nunito. A Nunito ₹ figure looks like a typo here.
+**The Tabular Numbers Rule.** Amounts, times and counts are Geist 600 in the display role. Tabular figures are on app-wide (`src/index.css`), so digits never shift as a number changes.
 
-**The Weight-Not-Case Rule.** Emphasis is Nunito 800, never uppercase or letter-spaced labels.
+**The Weight-Not-Case Rule.** Emphasis is Geist 700, never uppercase or letter-spaced labels.
 
 ## Layout
 
@@ -282,22 +282,22 @@ The Added recording sits in the "See what's left" card at 330px tall so its smal
 - **Inset sample panel:** Warm Surface inside a card, 20px corners, 18px padding.
 
 ### Chips
-- **Style:** `chip`, Warm Surface pill, Nunito 800 13px. Used for the prefilled fields in a nudge (item, envelope, amount, payment method).
+- **Style:** `chip`, Warm Surface pill, Geist 700 13px. Used for the prefilled fields in a nudge (item, envelope, amount, payment method).
 
 ### Notification card
-The nudge, drawn to match Mobile's real habit notification: app line ("Aviary · now") with a 20px orange icon tile, an 800-weight title, a body line, and a hairline-topped action row whose "Log ₹X" action is Burnt Orange Ink. 22px corners. On the lock screen it's 92% white with its own shadow; the flat variant is Card White with a hairline and Ambient shadow.
+The nudge, drawn to match Mobile's real habit notification: app line ("Aviary · now") with a 20px orange icon tile, a 700-weight title, a body line, and a hairline-topped action row whose "Log ₹X" action is Burnt Orange Ink. 22px corners. On the lock screen it's 92% white with its own shadow; the flat variant is Card White with a hairline and Ambient shadow.
 
 ### Way-to-log tile
-`way-icon`: a 76px pastel tile (64px on mobile) with a 26px Lucide icon in dark ink, a faint inset bottom edge and a soft drop. Title in Nunito 800 16px, one-line description in Muted 14px.
+`way-icon`: a 76px pastel tile (64px on mobile) with a 26px Lucide icon in dark ink, a faint inset bottom edge and a soft drop. Title in Geist 700 16px, one-line description in Muted 14px.
 
 ### Envelope line
-A label with the envelope's emoji and name, a Fredoka amount with a small Muted "left of ₹600", and a 10px Envelope Bar that animates its fill with `scaleX` over 900ms.
+A label with the envelope's emoji and name, a display amount with a small Muted "left of ₹600", and a 10px Envelope Bar that animates its fill with `scaleX` over 900ms.
 
 ### Navigation
-Header: sticky, frosted Paper, Fredoka 600 26px wordmark with an orange bird and an orange dot. Nav links are Nunito 800 15px in Muted, Ink on hover, hidden under 900px. Footer: hairline top, smaller wordmark, one Muted tagline and a wrapping row of 44px-tall Muted links.
+Header: sticky, frosted Paper, Geist 600 26px wordmark with an orange bird and an orange dot. Nav links are Geist 600 15px in Muted, Ink on hover, hidden under 900px. Footer: hairline top, smaller wordmark, one Muted tagline and a wrapping row of 44px-tall Muted links.
 
 ### FAQ
-One item open at a time. Questions are Nunito 800 18px on hairline-divided rows; the Burnt Orange Ink plus rotates 135° to a cross; the answer springs open (height spring, no bounce, 350ms) in Muted 16px at 1.75.
+One item open at a time. Questions are Geist 700 18px on hairline-divided rows; the Burnt Orange Ink plus rotates 135° to a cross; the answer springs open (height spring, no bounce, 350ms) in Muted 16px at 1.75.
 
 ### Hero stage (signature)
 A chaptered film under the headline: Learns your habits, Scan a bill, Ask Aviary. Three chapters, about 39s a loop, all about logging; the rest of the app (Insights, Bills & subscriptions, Investments) lives in its own "More in the nest" section after the playground, in the same phone frames as "Log from anywhere". Each chapter is a side card, a phone and a side card on the framed demo; app chapters render the real 360×740 layout scaled into the phone on the app's black. Pill tabs under the stage show which chapter is playing with a 2px orange progress line, and jump on click. A single rAF clock drives chapters and the Learns beats (0 / 1300 / 3900 / 4600ms), only while 25% visible; pausing freezes CSS animations too. Reduced motion holds each scene's finished state. Each scene only shows what the feature really does (bill scan reads lines and splits your share into one envelope; Ask Aviary answers from envelopes).
@@ -316,7 +316,7 @@ Entrances and state changes use `cubic-bezier(.22, 1, .36, 1)` (a soft ease-out)
 ### Do:
 - **Do** keep every way off the page an ink or ghost pill (The Ink CTA Rule).
 - **Do** spend orange only on the learned or logged moment (The One Orange Moment Rule), and use Burnt Orange Ink whenever orange is text.
-- **Do** set every amount, time and count in Fredoka, with `₹` and en-IN grouping.
+- **Do** set every amount, time and count in the display role, with `₹` and en-IN grouping.
 - **Do** label demo numbers as sample data, in a caption or a corner note.
 - **Do** give the Aviary side of a comparison the white card and Ambient shadow, and keep the alternative flat.
 - **Do** pause looping demos off screen, offer a pause control, and hold the finished state under reduced motion.

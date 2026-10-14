@@ -266,8 +266,8 @@ function SecurityContent() {
           <div className="account-section-label">Email</div>
           <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
             <div>
-              <div style={{ fontSize: 14, fontWeight: 700 }}>{doc?.email}</div>
-              <div style={{ marginTop: 6, fontSize: 11, color: doc?.emailVerified ? 'var(--mint)' : 'var(--gold)' }}>
+              <div style={{ fontSize: 14, fontWeight: 600 }}>{doc?.email}</div>
+              <div style={{ marginTop: 6, fontSize: 12, color: doc?.emailVerified ? 'var(--mint)' : 'var(--gold)' }}>
                 {doc?.emailVerified ? '✓ Verified' : 'Unverified'}
               </div>
             </div>
@@ -333,7 +333,7 @@ function SecurityContent() {
           {(sessions ?? []).map((s) => (
             <div className="account-row" key={s.id} style={{ cursor: 'default' }}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="account-row-label" style={{ fontWeight: 700 }}>
+                <div className="account-row-label" style={{ fontWeight: 600 }}>
                   {sessionLabel(s)}
                 </div>
                 <div className="account-row-meta">{new Date(s.createdAt).toLocaleDateString()}</div>

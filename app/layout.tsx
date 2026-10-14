@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-import { Fredoka, Nunito } from 'next/font/google'
 // globals.css (Tailwind + shadcn) first: its rules sit in cascade layers, so the
 // unlayered app sheets below always win.
 import './globals.css'
@@ -10,15 +9,7 @@ import '../src/index.css'
 import '../src/App.css'
 import { ClientProviders } from '../components/ClientProviders'
 import { pageMetadata, SITE_URL } from '@/lib/seo'
-
-// Loaded once, app-wide, on <body> — every route reads --font-fredoka /
-// --font-nunito, including ones that used to load neither (/investments,
-// /expense/transactions) and silently fell back to the OS system font.
-// No `weight` restriction: both are variable fonts, so this covers every
-// weight any route used piecemeal (some previously loaded Fredoka at 600
-// only and quietly faux-bolded any other weight they set in CSS).
-const fredoka = Fredoka({ subsets: ['latin'], variable: '--font-fredoka', display: 'swap' })
-const nunito = Nunito({ subsets: ['latin'], variable: '--font-nunito', display: 'swap' })
+import { fontVariables } from './fonts'
 
 export const metadata: Metadata = {
   ...pageMetadata('/'),
@@ -42,8 +33,9 @@ export const viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body className={`${fredoka.variable} ${nunito.variable}`}>
+    // Font variables on <html> so :root-level custom properties can read them.
+    <html lang="en" className={fontVariables}>
+      <body>
         <ClientProviders>{children}</ClientProviders>
       </body>
     </html>

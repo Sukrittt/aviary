@@ -58,19 +58,19 @@ export const elevation = {
   floating: '0 8px 22px rgba(0,0,0,0.15)',
 }
 
-const display = 'var(--font-fredoka), sans-serif'
-const body = 'var(--font-nunito), sans-serif'
+const display = 'var(--font-display), sans-serif'
+const body = 'var(--font-body), sans-serif'
 
 // Mobile/src/theme/fonts.ts
 export const font = {
-  displayMedium: { fontFamily: display, fontWeight: 500 },
+  displayMedium: { fontFamily: display, fontWeight: 600 },
   displaySemiBold: { fontFamily: display, fontWeight: 600 },
   displayBold: { fontFamily: display, fontWeight: 700 },
-  bodyMedium: { fontFamily: body, fontWeight: 500 },
-  bodySemiBold: { fontFamily: body, fontWeight: 600 },
-  bodyBold: { fontFamily: body, fontWeight: 700 },
-  bodyExtraBold: { fontFamily: body, fontWeight: 800 },
-  bodyBlack: { fontFamily: body, fontWeight: 900 },
+  bodyMedium: { fontFamily: body, fontWeight: 400 },
+  bodySemiBold: { fontFamily: body, fontWeight: 500 },
+  bodyBold: { fontFamily: body, fontWeight: 600 },
+  bodyExtraBold: { fontFamily: body, fontWeight: 700 },
+  bodyBlack: { fontFamily: body, fontWeight: 700 },
 } satisfies Record<string, CSSProperties>
 
 /** The simulated device. `top`/`bottom` stand in for safe-area insets. */

@@ -73,7 +73,7 @@ export function LandingPage({ monthlyPrice, ios = false, android = false, intl =
   preload('/landing/doodles-stage.svg', { as: 'image', fetchPriority: 'high' })
   return <LandingMotion><SampleScope intl={intl}><div className="lp" id="top">
     {/* THESIS: Budgeting apps die on day 3 because logging costs more than it gives back. Aviary makes logging cheap (nudges, one-line catch-up, recurring) and never touches your bank. Refuses the bank-sync pitch of "we'll do it for you".
-        OWN-WORLD: Warm near-white page, ink pill buttons, Fredoka display, Nunito body, Aviary orange for the learned moment, pastel envelope tones for the ways to log.
+        OWN-WORLD: Warm near-white page, ink pill buttons, Geist display and body, Aviary orange for the learned moment, pastel envelope tones for the ways to log.
         STORY: Name the day-3 arc everyone knows, then the three fixes (a habit learned and a nudge answered; a missed day typed back in one line; every other way to log), understand why noticing beats syncing, try the app, meet the maker, get it.
         FIRST VIEWPORT: Centered headline and rotating habit over a wide stage: noticed logs, a phone taking the nudge, the envelope updating. Android CTA in the header and under the headline.
         FORM: User-pinned moonjar.ai structure: centered statements, one framed demo per section, founder card, quiet close.
