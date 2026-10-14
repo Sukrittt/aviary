@@ -10505,8 +10505,8 @@ button.account-feature-card {
 /* Same height as the status select beside it */
 .ideas-toolbar .ideas-pitch { align-self: stretch; }
 .ideas-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
-.ideas-row { display: flex; gap: 16px; padding: 16px 18px; align-items: center; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
-.ideas-row:hover { border-color: var(--erd-border-strong); box-shadow: 0 6px 20px -12px rgba(0, 0, 0, 0.25); }
+.ideas-row { display: flex; gap: 16px; padding: 16px 18px; align-items: center; transition: border-color 0.15s ease; }
+.ideas-row:hover { border-color: var(--erd-border-strong); }
 .ideas-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
 .ideas-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 12px; color: var(--erd-text3); }
 .ideas-status { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 100px; font-weight: 700; background: var(--erd-input-bg); color: var(--erd-text2); }
