@@ -12,7 +12,7 @@ export const STATE_ORDER: State[] = ['trial', 'paid', 'gift', 'expired']
  * never be blue in one place and orange in another.
  */
 export const STATES: Record<State, { label: string; icon: PhosphorIcon; note: string }> = {
-  trial: { label: 'Trial', icon: HourglassIcon, note: 'Inside the free 30 days' },
+  trial: { label: 'Trial', icon: HourglassIcon, note: 'Inside the free trial' },
   paid: { label: 'Paid', icon: SealCheckIcon, note: 'Verified store purchase' },
   gift: { label: 'Gifted', icon: GiftIcon, note: 'Granted here, nothing paid' },
   expired: { label: 'Expired', icon: ProhibitIcon, note: 'Locked out once enforced' },

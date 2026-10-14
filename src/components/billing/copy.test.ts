@@ -59,7 +59,7 @@ describe('lockedReason', () => {
   })
 
   it('calls an ended trial a trial, not a subscription', () => {
-    expect(lockedReason({ ...base, mode: 'expired', renewalState: null })).toContain('30-day free trial')
+    expect(lockedReason({ ...base, mode: 'expired', renewalState: null })).toContain('Your free trial has ended')
   })
 
   it('calls an ended subscription a subscription', () => {
