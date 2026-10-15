@@ -24,9 +24,9 @@ describe('content pages', () => {
       '@context': 'https://schema.org',
       '@type': 'BreadcrumbList',
       itemListElement: [
-        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://useaviary.com/' },
-        { '@type': 'ListItem', position: 2, name: 'Compare', item: 'https://useaviary.com/compare' },
-        { '@type': 'ListItem', position: 3, name: 'YNAB alternative in India', item: 'https://useaviary.com/compare/ynab-alternative-india' },
+        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.useaviary.com/' },
+        { '@type': 'ListItem', position: 2, name: 'Compare', item: 'https://www.useaviary.com/compare' },
+        { '@type': 'ListItem', position: 3, name: 'YNAB alternative in India', item: 'https://www.useaviary.com/compare/ynab-alternative-india' },
       ],
     })
   })

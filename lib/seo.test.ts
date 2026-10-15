@@ -45,7 +45,7 @@ describe('site metadata', () => {
       titles.add(title)
       expect(metadata.description).toBeTruthy()
       const canonical = new URL(metadata.alternates!.canonical as string)
-      expect(canonical.origin).toBe('https://useaviary.com')
+      expect(canonical.origin).toBe('https://www.useaviary.com')
       expect(canonical.search).toBe('')
       expect(canonical.href).not.toContain('[id]')
       expect(metadata.openGraph).toMatchObject({ title, description: metadata.description, url: canonical.href })
@@ -66,20 +66,20 @@ describe('site metadata', () => {
       .toEqual([...publicPaths, ...postPaths].map((path) => new URL(path, SITE_URL).href).sort())
     expect(robots()).toMatchObject({
       rules: { userAgent: '*', allow: '/' },
-      sitemap: 'https://useaviary.com/sitemap.xml',
+      sitemap: 'https://www.useaviary.com/sitemap.xml',
     })
   })
 
   it('links / (India) and /intl as hreflang alternates, in metadata and the sitemap', async () => {
     const languages = { 'en-IN': '/', en: '/intl', 'x-default': '/' }
-    expect(pageMetadata('/').alternates).toEqual({ canonical: 'https://useaviary.com/', languages })
-    expect(pageMetadata('/intl').alternates).toEqual({ canonical: 'https://useaviary.com/intl', languages })
-    expect(pageMetadata('/help').alternates).toEqual({ canonical: 'https://useaviary.com/help' })
-    const absolute = { 'en-IN': 'https://useaviary.com/', en: 'https://useaviary.com/intl', 'x-default': 'https://useaviary.com/' }
-    for (const url of ['https://useaviary.com/', 'https://useaviary.com/intl']) {
+    expect(pageMetadata('/').alternates).toEqual({ canonical: 'https://www.useaviary.com/', languages })
+    expect(pageMetadata('/intl').alternates).toEqual({ canonical: 'https://www.useaviary.com/intl', languages })
+    expect(pageMetadata('/help').alternates).toEqual({ canonical: 'https://www.useaviary.com/help' })
+    const absolute = { 'en-IN': 'https://www.useaviary.com/', en: 'https://www.useaviary.com/intl', 'x-default': 'https://www.useaviary.com/' }
+    for (const url of ['https://www.useaviary.com/', 'https://www.useaviary.com/intl']) {
       expect((await sitemap()).find((entry) => entry.url === url)?.alternates).toEqual({ languages: absolute })
     }
-    expect((await sitemap()).find((entry) => entry.url === 'https://useaviary.com/help')).not.toHaveProperty('alternates')
+    expect((await sitemap()).find((entry) => entry.url === 'https://www.useaviary.com/help')).not.toHaveProperty('alternates')
   })
 
   it('gives public pages keyword titles, search-length descriptions and a large share card', () => {

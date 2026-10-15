@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 
-export const SITE_URL = new URL('https://useaviary.com')
+export const SITE_URL = new URL('https://www.useaviary.com')
 
 // Only public content belongs in search results. Auth, personal finance and
 // admin pages still get descriptive browser titles without exposing user data.
