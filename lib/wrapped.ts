@@ -4,6 +4,7 @@ import type { Auth } from '@/lib/access'
 import { cachedRead } from '@/lib/cache'
 import { computeWrapped, type WrappedData } from '@/src/services/wrappedAdapter'
 import { pickStories, type BudgetLine, type Story } from '@/src/services/wrappedStories'
+import { CREDIT_CARD_CATEGORY, INCOME_CATEGORY } from '@/src/lib/envelope'
 
 /** Minimum logged expenses in a month before its Wrapped edition unlocks. */
 export const WRAPPED_MIN_TRANSACTIONS = 10
@@ -90,8 +91,8 @@ export async function readWrapped(auth: Auth, month: string): Promise<WrappedRes
   ])
   const linesFor = (m: string): BudgetLine[] =>
     budgetDocs
-      // `__credit_card__` and `__income__` rows aren't envelopes.
-      .filter((b) => b.month === m && !String(b.category).startsWith('__'))
+      // The credit card and income rows aren't envelopes.
+      .filter((b) => b.month === m && b.category !== CREDIT_CARD_CATEGORY && b.category !== INCOME_CATEGORY)
       .map((b) => ({ category: String(b.category), amount: (Number(b.assigned) || 0) + (Number(b.rolled_over) || 0) }))
       .filter((b) => b.amount > 0)
 

@@ -66,6 +66,11 @@ const NOVELTY_FACTOR = 0.6
 /** Below this, one entry makes every share 100% ("Thursday was your spendiest day"), so money and things stories sit out. */
 const MIN_ENTRIES_FOR_SHAPE = 5
 
+/** A category's total, 0 when absent. Own keys only: a category named "constructor" mustn't hit Object.prototype. */
+function spentIn(totals: Record<string, number>, category: string): number {
+  return Object.hasOwn(totals, category) ? totals[category] : 0
+}
+
 /** Eligible at `threshold` (0.3), full marks at `strong` (1). */
 function scale(value: number, threshold: number, strong: number): number {
   return Math.min(1, Math.max(0.3, 0.3 + (0.7 * (value - threshold)) / (strong - threshold)))
@@ -226,7 +231,7 @@ const rules: { [T in StoryType]: Rule<T> }[StoryType][] = [
     judge: ({ cur, budgets }) => {
       let worst: StoryFacts['burst_envelope'] | null = null
       for (const b of budgets) {
-        const spent = cur.facts.categoryTotals[b.category] ?? 0
+        const spent = spentIn(cur.facts.categoryTotals, b.category)
         if (b.amount > 0 && spent / b.amount >= 1.2 && (!worst || spent / b.amount > worst.spent / worst.budget)) {
           worst = { category: b.category, spent, budget: b.amount }
         }
@@ -252,7 +257,7 @@ const rules: { [T in StoryType]: Rule<T> }[StoryType][] = [
       if (!prev) return null
       let best: StoryFacts['category_mover'] | null = null
       for (const [category, current] of Object.entries(cur.facts.categoryTotals)) {
-        const previous = prev.facts.categoryTotals[category] ?? 0
+        const previous = spentIn(prev.facts.categoryTotals, category)
         const delta = Math.abs(current - previous)
         // Both months had it (new ones are `new_category`), it moved by half, and the move matters to the month.
         if (previous > 0 && delta / previous >= 0.5 && delta >= 0.1 * cur.totalSpent && (!best || delta > Math.abs(best.current - best.previous))) {
@@ -268,7 +273,7 @@ const rules: { [T in StoryType]: Rule<T> }[StoryType][] = [
     judge: ({ cur, prev }) => {
       if (!prev || prev.totalTransactions === 0 || cur.totalSpent <= 0) return null
       const fresh = Object.entries(cur.facts.categoryTotals)
-        .filter(([c]) => !(c in prev.facts.categoryTotals))
+        .filter(([c]) => !Object.hasOwn(prev.facts.categoryTotals, c))
         .sort((a, b) => b[1] - a[1])[0]
       if (!fresh) return null
       const share = fresh[1] / cur.totalSpent

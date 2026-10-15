@@ -150,6 +150,11 @@ describe('vs last month', () => {
     expect(find(rows, 'new_category', { prev })?.facts).toEqual({ category: 'Pets', total: 200 })
   })
 
+  it('a category named like an Object.prototype key is still new', () => {
+    const rows = [e('2026-09-01', 800), e('2026-09-02', 200, { category: 'constructor' })]
+    expect(find(rows, 'new_category', { prev })?.facts).toEqual({ category: 'constructor', total: 200 })
+  })
+
   it('category mover needs a 50% move that matters to the month', () => {
     expect(find([e('2026-09-01', 1600)], 'category_mover', { prev })?.facts).toEqual({ category: 'Food', previous: 1000, current: 1600 })
     expect(has([e('2026-09-01', 1400)], 'category_mover', { prev })).toBe(false)

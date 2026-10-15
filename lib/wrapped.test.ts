@@ -100,10 +100,11 @@ describe('readWrapped', () => {
       { month: '2026-09', category: 'Food', assigned: '600', rolled_over: '400' },
       { month: '2026-09', category: '__credit_card__', assigned: '5000', rolled_over: '0' },
       { month: '2026-09', category: '__income__', assigned: '9000', rolled_over: '0' },
+      { month: '2026-09', category: '__Travel', assigned: '500', rolled_over: '0' },
       { month: '2026-08', category: 'Food', assigned: '99999', rolled_over: '0' },
     ]
     const stayed = (await readWrapped(auth, '2026-09')).stories.find((s) => s.type === 'stayed_put')
-    expect(stayed?.facts).toEqual({ left: 600, assigned: 1000 })
+    expect(stayed?.facts).toEqual({ left: 1100, assigned: 1500 })
   })
 
   it('has no previous month when last month was empty', async () => {
