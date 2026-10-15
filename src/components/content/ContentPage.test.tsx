@@ -6,7 +6,7 @@ import { CONTENT_SECTIONS } from '@/lib/content'
 import { LandingFooter } from '@/src/components/landing/Chrome'
 import YnabPage from '@/app/(site)/compare/ynab-alternative-india/page'
 import Budget25kPage from '@/app/(site)/tools/budget-for-25000-salary/page'
-import { Calculator503020, RentCalculator } from './Calculators'
+import { Calculator503020, RentCalculator, SalaryPlanner } from './Calculators'
 
 vi.mock('@/src/lib/analytics', () => ({ track: vi.fn() }))
 
@@ -68,5 +68,17 @@ describe('calculators', () => {
     render(<RentCalculator />)
     await userEvent.type(screen.getByLabelText('EMIs you already pay a month'), '12000')
     expect(screen.getAllByText('₹12,000')).toHaveLength(2)
+  })
+
+  it('treats a rent of 0 as no rent, not as "use 30%"', async () => {
+    render(<SalaryPlanner initial={40000} />)
+    const rent = screen.getByLabelText('Your rent (leave empty to use 30%)')
+    expect(screen.getByRole('row', { name: /Rent/ })).toHaveTextContent('₹12,000')
+    await userEvent.type(rent, '0')
+    expect(rent).toHaveValue('0')
+    expect(screen.getByRole('row', { name: /Rent/ })).toHaveTextContent('₹0')
+    expect(screen.getByRole('row', { name: /Emergency fund/ })).toHaveTextContent('₹10,000')
+    await userEvent.clear(rent)
+    expect(screen.getByRole('row', { name: /Rent/ })).toHaveTextContent('₹12,000')
   })
 })

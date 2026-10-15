@@ -5,11 +5,12 @@ import { emergencyFund, lakhs, rentAffordability, salaryPlan, split503020 } from
 import { formatINR } from '@/src/lib/format'
 
 /** A rupee amount field. Keeps digits only and shows the amount the Indian way under it. */
-function MoneyField({ label, value, onChange, hint }: { label: string; value: number; onChange: (n: number) => void; hint?: string }) {
+/** `onChange` gets null when the field is emptied, so callers can tell "0" from "not entered". */
+function MoneyField({ label, value, onChange, hint }: { label: string; value: number | null; onChange: (n: number | null) => void; hint?: string }) {
   const id = useId()
   return <div className="lp-calc-item">
     <label htmlFor={id}>{label}</label>
-    <span className="lp-calc-field"><span aria-hidden="true">₹</span><input id={id} inputMode="numeric" autoComplete="off" aria-describedby={`${id}-hint`} value={value ? value.toLocaleString('en-IN') : ''} placeholder="0" onChange={(e) => onChange(Number(e.target.value.replace(/\D/g, '').slice(0, 10)) || 0)} /></span>
+    <span className="lp-calc-field"><span aria-hidden="true">₹</span><input id={id} inputMode="numeric" autoComplete="off" aria-describedby={`${id}-hint`} value={value === null ? '' : value.toLocaleString('en-IN')} placeholder="0" onChange={(e) => { const digits = e.target.value.replace(/\D/g, '').slice(0, 10); onChange(digits ? Number(digits) : null) }} /></span>
     <span className="lp-calc-hint" id={`${id}-hint`}>{hint ?? (value ? lakhs(value) : '\u00a0')}</span>
   </div>
 }
@@ -19,8 +20,8 @@ function Results({ items }: { items: [string, number, string?][] }) {
 }
 
 export function Calculator503020({ initial = 50000 }: { initial?: number }) {
-  const [income, setIncome] = useState(initial)
-  const s = split503020(income)
+  const [income, setIncome] = useState<number | null>(initial)
+  const s = split503020(income ?? 0)
   return <div className="lp-calc">
     <MoneyField label="Monthly take-home pay" value={income} onChange={setIncome} />
     <Results items={[['Needs (50%)', s.needs, 'Rent, groceries, bills, EMIs'], ['Wants (30%)', s.wants, 'Eating out, shopping, trips'], ['Savings (20%)', s.savings, 'Emergency fund, SIPs']]} />
@@ -28,12 +29,12 @@ export function Calculator503020({ initial = 50000 }: { initial?: number }) {
 }
 
 export function SalaryPlanner({ initial = 40000 }: { initial?: number }) {
-  const [salary, setSalary] = useState(initial)
-  const [rent, setRent] = useState(0)
-  const plan = salaryPlan(salary, rent ? { rent } : {})
+  const [salary, setSalary] = useState<number | null>(initial)
+  const [rent, setRent] = useState<number | null>(null)
+  const plan = salaryPlan(salary ?? 0, rent === null ? {} : { rent })
   return <div className="lp-calc">
     <MoneyField label="Monthly take-home salary" value={salary} onChange={setSalary} />
-    <MoneyField label="Your rent (leave empty to use 30%)" value={rent} onChange={setRent} hint={rent ? lakhs(rent) : 'Living with family? Put 0 and it all goes to the rest.'} />
+    <MoneyField label="Your rent (leave empty to use 30%)" value={rent} onChange={setRent} hint={rent ? lakhs(rent) : 'Living with family? Put 0 and the rent goes to savings.'} />
     <div className="table-scroll"><table>
       <thead><tr><th scope="col">Category</th><th scope="col">Per month</th><th scope="col">Share</th></tr></thead>
       <tbody>{plan.map((c) => <tr key={c.name}><th scope="row">{c.name}</th><td>{formatINR(c.amount)}</td><td>{salary ? `${Math.round((c.amount / salary) * 100)}%` : '0%'}</td></tr>)}</tbody>
@@ -42,11 +43,11 @@ export function SalaryPlanner({ initial = 40000 }: { initial?: number }) {
 }
 
 export function EmergencyFundCalculator() {
-  const [essentials, setEssentials] = useState(30000)
+  const [essentials, setEssentials] = useState<number | null>(30000)
   const [months, setMonths] = useState(6)
-  const [saved, setSaved] = useState(0)
-  const [perMonth, setPerMonth] = useState(5000)
-  const r = emergencyFund({ monthlyEssentials: essentials, months, saved, monthlySaving: perMonth })
+  const [saved, setSaved] = useState<number | null>(null)
+  const [perMonth, setPerMonth] = useState<number | null>(5000)
+  const r = emergencyFund({ monthlyEssentials: essentials ?? 0, months, saved: saved ?? 0, monthlySaving: perMonth ?? 0 })
   const id = useId()
   return <div className="lp-calc">
     <MoneyField label="Essential spending a month" value={essentials} onChange={setEssentials} hint="Rent, groceries, bills, EMIs, insurance. Not eating out." />
@@ -60,18 +61,18 @@ export function EmergencyFundCalculator() {
     <MoneyField label="Already saved for it" value={saved} onChange={setSaved} />
     <MoneyField label="You can put aside a month" value={perMonth} onChange={setPerMonth} />
     <Results items={[['Your target', r.target, lakhs(r.target)], ['Still to save', r.gap]]} />
-    <p className="lp-calc-note" aria-live="polite">{r.monthsToGoal === 0 ? 'You’re covered. Anything more can go to your goals.' : r.monthsToGoal === null ? 'Add a monthly amount to see when you’ll get there.' : `At ${formatINR(perMonth)} a month, you’ll get there in ${r.monthsToGoal} ${r.monthsToGoal === 1 ? 'month' : 'months'}.`}</p>
+    <p className="lp-calc-note" aria-live="polite">{r.monthsToGoal === 0 ? 'You’re covered. Anything more can go to your goals.' : r.monthsToGoal === null ? 'Add a monthly amount to see when you’ll get there.' : `At ${formatINR(perMonth ?? 0)} a month, you’ll get there in ${r.monthsToGoal} ${r.monthsToGoal === 1 ? 'month' : 'months'}.`}</p>
   </div>
 }
 
 export function RentCalculator() {
-  const [salary, setSalary] = useState(60000)
-  const [emis, setEmis] = useState(0)
-  const r = rentAffordability({ salary, emis })
+  const [salary, setSalary] = useState<number | null>(60000)
+  const [emis, setEmis] = useState<number | null>(null)
+  const r = rentAffordability({ salary: salary ?? 0, emis: emis ?? 0 })
   return <div className="lp-calc">
     <MoneyField label="Monthly take-home salary" value={salary} onChange={setSalary} />
     <MoneyField label="EMIs you already pay a month" value={emis} onChange={setEmis} hint="Car, phone, personal loan, credit card EMIs." />
     <Results items={[['Comfortable rent', r.comfortable, '25% of take-home'], ['Stretch rent', r.stretch, '30% of take-home']]} />
-    {emis > 0 && r.stretch < Math.floor(salary * 0.3 / 500) * 500 && <p className="lp-calc-note">Your EMIs lower this. Rent plus EMIs is kept within 40% of what you take home.</p>}
+    {!!emis && r.stretch < rentAffordability({ salary: salary ?? 0 }).stretch && <p className="lp-calc-note">Your EMIs lower this. Rent plus EMIs is kept within 40% of what you take home.</p>}
   </div>
 }

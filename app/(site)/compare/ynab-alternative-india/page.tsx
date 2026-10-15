@@ -46,7 +46,7 @@ export default function YnabAlternativePage() {
     </ul>
 
     <h2>Is the method the same?</h2>
-    <p>Close enough that you won’t have to relearn anything. YNAB asks “What’s it for?” each time money comes in. Aviary calls the same step assigning money to categories, and keeps what’s unassigned in Ready to Assign. Leftover money in a category rolls into next month, like it does in YNAB. If you’re new to it, start with our <Link href="/tools/salary-budget-planner">salary budget planner</Link> to see a month split into categories.</p>
+    <p>Close enough that you won’t have to relearn anything. YNAB asks “What’s it for?” each time money comes in. Aviary calls the same step assigning money to categories, and keeps what’s unassigned in Ready to Assign. Each new month keeps the amounts you assigned last month, so you don’t start from scratch. If you’re new to it, start with our <Link href="/tools/salary-budget-planner">salary budget planner</Link> to see a month split into categories.</p>
 
     <Sources checked={COMPARE_CHECKED} links={[
       ['https://www.ynab.com/pricing', 'YNAB pricing and FAQ (price, trial, direct import countries, currency)'],
