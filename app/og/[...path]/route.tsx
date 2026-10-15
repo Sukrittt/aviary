@@ -3,6 +3,7 @@ import { allPosts } from '@/lib/blog'
 import { ogCard } from '@/src/components/OgCard'
 
 // One card per public page, rendered at build: /og/compare/axio is the card for /compare/axio.
+export const dynamic = 'force-static'
 export const dynamicParams = false
 
 export async function generateStaticParams() {
