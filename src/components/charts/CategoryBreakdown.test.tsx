@@ -2,6 +2,7 @@ import { expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { CategoryBreakdown } from './CategoryBreakdown'
 import type { BreakdownRow } from '@/src/lib/monthly'
+import { avatarInkFor } from '@/src/lib/emoji'
 
 vi.mock('./DonutChart', () => ({ DonutChart: ({ segments }: { segments: { key: string; color: string }[] }) => <output data-testid="donut-colors">{JSON.stringify(segments)}</output> }))
 const props = {
@@ -18,11 +19,11 @@ it('shows the snoozing empty state only after queries finish', () => {
   expect(screen.getByText("Log an expense and it'll land here.")).toBeInTheDocument()
 })
 
-it('uses the mobile chart cycle for slices and removes the mascot when spending arrives', () => {
+it("colours slices with each category's tile ink, not its rank, and removes the mascot when spending arrives", () => {
   const { rerender } = render(<CategoryBreakdown {...props} />)
   const rows: BreakdownRow[] = ['Food', 'Rent', 'Bills'].map((key, i) => ({ key, label: key, icon: null, spent: 30 - i, assigned: 100, assignedIsCarried: false, pct: 33 }))
   rerender(<CategoryBreakdown {...props} rows={rows} categoryRows={rows} />)
   expect(screen.queryByText('Nothing spent yet')).not.toBeInTheDocument()
   const slices = JSON.parse(screen.getByTestId('donut-colors').textContent!)
-  expect(slices.map((s: { color: string }) => s.color)).toEqual(['var(--blue)', 'var(--mint)', 'var(--violet)'])
+  expect(slices.map((s: { color: string }) => s.color)).toEqual(['Food', 'Rent', 'Bills'].map(avatarInkFor))
 })
