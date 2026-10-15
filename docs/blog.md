@@ -30,12 +30,22 @@ Body text. Link to [the salary planner](/tools/salary-budget-planner) or
 | --- | --- | --- |
 | `title` | yes | The page `<title>`, the h1 and the RSS title. Put the search phrase in it. Keep it under 80 characters. |
 | `description` | yes | Meta description, social card text and the blurb on `/blog`. 70 to 160 characters. |
-| `published` | yes | `YYYY-MM-DD`. Sorts the index and fills the byline, Article JSON-LD and RSS. |
+| `published` | yes | `YYYY-MM-DD`. Sorts the index and fills the byline, Article JSON-LD and RSS. A future date schedules the post (see below). |
 | `updated` | yes | `YYYY-MM-DD`. Same as `published` at first. Change it when you edit the post, and the byline shows "Updated". |
 | `related` | yes | Two or three links shown at the end: other posts (`/blog/<slug>`) or site pages from `lib/seo.ts` (tools, compare, features). The build fails on a link that doesn't exist. |
 | `author` | no | Defaults to Sukrit. |
 
 Reading time is worked out from the word count. You don't set it.
+
+## Scheduling a post
+
+Set `published` to a future date and merge it like any other post. Until
+midnight IST on that date, the post 404s and stays out of `/blog`, the sitemap
+and the RSS feed. Those pages revalidate hourly, so the post appears within an
+hour of midnight with no deploy needed.
+
+A post can only link to posts published on or before its own date, so nothing
+points at a post that isn't live yet. `lib/blog.test.ts` checks this.
 
 ## Writing
 

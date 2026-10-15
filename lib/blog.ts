@@ -49,9 +49,13 @@ async function load(slug: string): Promise<{ post: Post; Content: ComponentType 
 
 export const getPost = load
 
-/** Every post, newest first. */
-export async function allPosts(): Promise<Post[]> {
-  const posts = await Promise.all(postSlugs().map(async (slug) => (await load(slug)).post))
+/** Today's date in India. A post goes live at midnight IST on its `published` date. */
+export const todayInIndia = (now = new Date()) => now.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' })
+export const isLive = (post: PostMeta, now = new Date()) => post.published <= todayInIndia(now)
+
+/** Live posts, newest first. `scheduled` includes posts dated in the future too. */
+export async function allPosts({ scheduled = false } = {}): Promise<Post[]> {
+  const posts = (await Promise.all(postSlugs().map(async (slug) => (await load(slug)).post))).filter((p) => scheduled || isLive(p))
   return posts.sort((a, b) => b.published.localeCompare(a.published) || a.title.localeCompare(b.title))
 }
 

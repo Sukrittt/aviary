@@ -1,8 +1,8 @@
 import { allPosts } from '@/lib/blog'
 import { SITE_URL } from '@/lib/seo'
 
-// Built once with the posts.
-export const dynamic = 'force-static'
+// Rebuilt hourly so scheduled posts appear on their date.
+export const revalidate = 3600
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 

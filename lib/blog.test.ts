@@ -4,16 +4,23 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { pages } from './seo'
-import { allPosts, articleJsonLd, getPost, postMetadata, postSlugs, readingMinutes, wordCount } from './blog'
+import { allPosts, articleJsonLd, getPost, isLive, postMetadata, postSlugs, readingMinutes, todayInIndia, wordCount } from './blog'
 import { GET as rss } from '@/app/(site)/blog/rss.xml/route'
 import BlogPostPage from '@/app/(site)/blog/[slug]/page'
 
 const words = (slug: string) => wordCount(readFileSync(join(process.cwd(), 'content/blog', `${slug}.mdx`), 'utf8'))
 
 describe('blog posts', () => {
+  it('404 until their published date', async () => {
+    for (const post of (await allPosts({ scheduled: true })).filter((p) => !isLive(p))) {
+      await expect(BlogPostPage({ params: Promise.resolve({ slug: post.slug }) })).rejects.toThrow(/NEXT_HTTP_ERROR_FALLBACK;404|NEXT_NOT_FOUND/)
+    }
+    await expect(BlogPostPage({ params: Promise.resolve({ slug: 'no-such-post' }) })).rejects.toThrow(/NEXT_HTTP_ERROR_FALLBACK;404|NEXT_NOT_FOUND/)
+  })
+
   it('each have complete frontmatter, 1,200 to 2,000 words, and related links that exist', async () => {
     const slugs = postSlugs()
-    for (const post of await allPosts()) {
+    for (const post of await allPosts({ scheduled: true })) {
       expect(post.title.length, post.slug).toBeLessThanOrEqual(80)
       expect(post.description.length, post.slug).toBeGreaterThanOrEqual(70)
       expect(post.description.length, post.slug).toBeLessThanOrEqual(160)
@@ -25,6 +32,24 @@ describe('blog posts', () => {
         expect(href.startsWith('/blog/') ? slugs.includes(href.slice(6)) : href in pages, `${post.slug} → ${href}`).toBe(true)
       }
     }
+  })
+
+  it('only link to posts published on or before their own date, so nothing links to a post that isn’t live yet', async () => {
+    const posts = await allPosts({ scheduled: true })
+    const date = Object.fromEntries(posts.map((p) => [p.slug, p.published]))
+    for (const post of posts) {
+      const body = readFileSync(join(process.cwd(), 'content/blog', `${post.slug}.mdx`), 'utf8')
+      const linked = [...post.related, ...[...body.matchAll(/\]\((\/blog\/[^)#\s]+)/g)].map((m) => m[1])].filter((h) => h.startsWith('/blog/'))
+      for (const href of linked) expect(date[href.slice(6)] <= post.published, `${post.slug} → ${href}`).toBe(true)
+    }
+  })
+
+  it('go live at midnight in India on their published date', () => {
+    expect(todayInIndia(new Date('2026-10-18T18:29:00Z'))).toBe('2026-10-18')
+    expect(todayInIndia(new Date('2026-10-18T18:30:00Z'))).toBe('2026-10-19')
+    const post = { published: '2026-10-19' } as Parameters<typeof isLive>[0]
+    expect(isLive(post, new Date('2026-10-18T18:29:00Z'))).toBe(false)
+    expect(isLive(post, new Date('2026-10-18T18:30:00Z'))).toBe(true)
   })
 
   it('keep "envelope budgeting" in the copy and no em dashes', () => {
@@ -60,9 +85,9 @@ describe('blog posts', () => {
     expect(articleJsonLd(post)).toMatchObject({ '@type': 'Article', author: { name: 'Sukrit' }, mainEntityOfPage: 'https://www.useaviary.com/blog/first-salary-budget' })
   })
 
-  it('all go in the RSS feed', async () => {
+  it('all go in the RSS feed once live, and scheduled ones stay out', async () => {
     const xml = await (await rss()).text()
-    for (const slug of postSlugs()) expect(xml).toContain(`<link>https://www.useaviary.com/blog/${slug}</link>`)
+    for (const post of await allPosts({ scheduled: true })) expect(xml.includes(`<link>https://www.useaviary.com${post.path}</link>`), post.slug).toBe(isLive(post))
     expect(xml).not.toMatch(/&(?!amp;|lt;|gt;)/)
   })
 })
