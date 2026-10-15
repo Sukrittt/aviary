@@ -5,9 +5,7 @@ import { ContentPage, Screen, SoftCta } from '@/src/components/content/ContentPa
 export const metadata = pageMetadata('/features/ask-aviary')
 
 export default function AskAviaryPage() {
-  return <ContentPage section="features" path="/features/ask-aviary" related={['/features/bill-scanning', '/features/recurring-expenses', '/compare/ynab-alternative-india']}>
-    <h1>Ask Aviary: talk to your budget</h1>
-    <p className="lp-lede-doc">Ask Aviary is a chat inside your budget. Type what you spent and it logs it. Ask a question about your money and it answers from your own numbers.</p>
+  return <ContentPage section="features" path="/features/ask-aviary" title="Ask Aviary: talk to your budget" lede={<>Ask Aviary is a chat inside your budget. Type what you spent and it logs it. Ask a question about your money and it answers from your own numbers.</>} related={['/features/bill-scanning', '/features/recurring-expenses', '/compare/ynab-alternative-india']}>
     <Screen src="/landing/poster-ask.jpg" alt="Ask Aviary chat: asked whether a ₹90,000 iPhone is affordable, it answers not yet, since ₹36,802 is left this month." caption="“Can I afford a 90k iPhone?” answered from your own budget." />
 
     <h2>Catch up in one line</h2>

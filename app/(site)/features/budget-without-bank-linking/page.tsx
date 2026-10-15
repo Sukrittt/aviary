@@ -5,9 +5,7 @@ import { ContentPage, Screen, SoftCta } from '@/src/components/content/ContentPa
 export const metadata = pageMetadata('/features/budget-without-bank-linking')
 
 export default function NoBankLinkPage() {
-  return <ContentPage section="features" path="/features/budget-without-bank-linking" related={['/compare/axio', '/compare/goodbudget', '/features/recurring-expenses']}>
-    <h1>Budget without linking your bank</h1>
-    <p className="lp-lede-doc">Aviary never asks for your bank login, account aggregator consent or SMS access. You log what you spend, and Aviary makes that take one tap.</p>
+  return <ContentPage section="features" path="/features/budget-without-bank-linking" title="Budget without linking your bank" lede={<>Aviary never asks for your bank login, account aggregator consent or SMS access. You log what you spend, and Aviary makes that take one tap.</>} related={['/compare/axio', '/compare/goodbudget', '/features/recurring-expenses']}>
     <Screen src="/landing/poster-log.jpg" alt="Aviary’s Log expense keypad with ₹150 entered for Bike to office in the Metro category." caption="₹150, Bike to office. The category picks itself." />
 
     <h2>Why not just sync?</h2>

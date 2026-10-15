@@ -5,9 +5,7 @@ import { ContentPage, Screen, SoftCta } from '@/src/components/content/ContentPa
 export const metadata = pageMetadata('/features/recurring-expenses')
 
 export default function RecurringExpensesPage() {
-  return <ContentPage section="features" path="/features/recurring-expenses" related={['/features/budget-without-bank-linking', '/features/ask-aviary', '/tools/salary-budget-planner']}>
-    <h1>Track subscriptions and recurring expenses</h1>
-    <p className="lp-lede-doc">Rent, EMIs, the milk bill, Netflix, Spotify, the gym. They come every month whether you notice or not. In Aviary they log themselves, and you get a heads-up before a renewal charges.</p>
+  return <ContentPage section="features" path="/features/recurring-expenses" title="Track subscriptions and recurring expenses" lede={<>Rent, EMIs, the milk bill, Netflix, Spotify, the gym. They come every month whether you notice or not. In Aviary they log themselves, and you get a heads-up before a renewal charges.</>} related={['/features/budget-without-bank-linking', '/features/ask-aviary', '/tools/salary-budget-planner']}>
     <Screen src="/landing/subscriptions.png" alt="Aviary’s Subscriptions screen: ₹1,883 a month across 9 subscriptions, about ₹22,596 a year, with Spotify and YouTube Premium the biggest." caption="Nine subscriptions, ₹1,883 a month. About ₹22,596 a year." />
 
     <h2>See what you’re really paying</h2>

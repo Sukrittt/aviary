@@ -6,10 +6,7 @@ import { CompareTable, ContentPage, SoftCta, Sources } from '@/src/components/co
 export const metadata = pageMetadata('/compare/axio')
 
 export default function AxioPage() {
-  return <ContentPage section="compare" path="/compare/axio" related={['/compare/walnut', '/features/budget-without-bank-linking', '/features/recurring-expenses']}>
-    <h1>Aviary vs axio</h1>
-    <p className="legal-updated">Facts about axio checked {COMPARE_CHECKED}</p>
-    <p className="lp-lede-doc">axio, formerly Walnut, tracks your spending by reading transactional SMS from your bank. It’s also a credit platform with Pay Later, EMIs and personal loans. Aviary is a budget you log yourself. It never reads your SMS and has nothing to lend you.</p>
+  return <ContentPage section="compare" path="/compare/axio" title="Aviary vs axio" kicker={`Compare · Facts checked ${COMPARE_CHECKED}`} lede={<>axio, formerly Walnut, tracks your spending by reading transactional SMS from your bank. It’s also a credit platform with Pay Later, EMIs and personal loans. Aviary is a budget you log yourself. It never reads your SMS and has nothing to lend you.</>} related={['/compare/walnut', '/features/budget-without-bank-linking', '/features/recurring-expenses']}>
 
     <h2>The short version</h2>
     <p>If you want a budget, not just a record of what you spent, Aviary is the better fit.</p>

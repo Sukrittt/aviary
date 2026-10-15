@@ -7,13 +7,18 @@ import { pages, SITE_URL, type PagePath } from '@/lib/seo'
 import { PLAY_STORE_URL } from '@/src/components/billing/copy'
 import { TrackedLink } from '@/src/components/TrackedLink'
 import { jsonLd } from '@/src/components/JsonLd'
+import { serifFont } from './serifFont'
+
+const KICKERS: Record<ContentSection, string> = { compare: 'Compare', tools: 'Free tool', features: 'Feature', blog: 'Blog' }
 
 /**
- * Shell for a public content page (compare, tools, features): breadcrumbs with
- * BreadcrumbList JSON-LD, the page in one readable column, then related pages.
- * Lives inside app/(site)/layout.tsx's header and footer.
+ * Shell for a public content page (compare, tools, features, blog): breadcrumbs
+ * with BreadcrumbList JSON-LD, an article header (kicker, serif title, lede),
+ * the page in one readable column, then related pages. Blog posts pass no
+ * title and render their own header with the author. Lives inside
+ * app/(site)/layout.tsx's header and footer.
  */
-export function ContentPage({ section, path, label, related = [], className, children }: { section: ContentSection; path: string; label?: string; related?: Related[]; className?: string; children: ReactNode }) {
+export function ContentPage({ section, path, label, title, kicker, lede, related = [], children }: { section: ContentSection; path: string; label?: string; title?: string; kicker?: string; lede?: ReactNode; related?: Related[]; children: ReactNode }) {
   const hub = CONTENT_SECTIONS[section]
   const crumbs: [string, string][] = [['/', 'Home'], [hub.path, hub.label], ...(path === hub.path ? [] : [[path, label ?? contentLabel(path as PagePath)] as [string, string]])]
   return <>
@@ -25,7 +30,16 @@ export function ContentPage({ section, path, label, related = [], className, chi
     <nav className="lp-crumbs" aria-label="Breadcrumb"><ol>
       {crumbs.map(([href, name], i) => <li key={href}>{i === crumbs.length - 1 ? <span aria-current="page">{name}</span> : <Link href={href}>{name}</Link>}</li>)}
     </ol></nav>
-    <article className={`legal-doc content-doc${className ? ` ${className}` : ''}`}>{children}</article>
+    <article className={`legal-doc article-doc ${serifFont.variable}`}>
+      {title ? <>
+        <header className="article-head">
+          <p className="article-kicker">{kicker ?? (path === hub.path ? hub.label : KICKERS[section])}</p>
+          <h1>{title}</h1>
+          {lede && <p className="article-dek">{lede}</p>}
+        </header>
+        <div className="article-body">{children}</div>
+      </> : children}
+    </article>
     {related.length > 0 && <RelatedPages paths={related} />}
   </>
 }
@@ -56,7 +70,7 @@ export function SoftCta({ title, children, placement }: { title: string; childre
 
 /** A hub page's list of every page in its section. */
 export function SectionIndex({ section }: { section: ContentSection }) {
-  return <ul className="lp-hub">{CONTENT_SECTIONS[section].pages.map(([p, label]) => <li key={p}><Link href={p}><strong>{label}</strong><span>{pages[p].description}</span></Link></li>)}</ul>
+  return <ul className="article-cards">{CONTENT_SECTIONS[section].pages.map(([p, label]) => <li key={p} className="article-card"><Link href={p}><strong>{label}</strong><span>{pages[p].description}</span></Link></li>)}</ul>
 }
 
 /** Side-by-side facts: [row label, Aviary, them]. */
