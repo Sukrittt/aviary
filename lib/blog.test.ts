@@ -1,12 +1,14 @@
 // @vitest-environment node
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { pages } from './seo'
 import { allPosts, articleJsonLd, getPost, postMetadata, postSlugs, readingMinutes, wordCount } from './blog'
 import { GET as rss } from '@/app/(site)/blog/rss.xml/route'
 import BlogPostPage from '@/app/(site)/blog/[slug]/page'
+
+vi.mock('next/font/google', () => ({ Newsreader: () => ({ variable: 'serif' }) }))
 
 const words = (slug: string) => wordCount(readFileSync(join(process.cwd(), 'content/blog', `${slug}.mdx`), 'utf8'))
 
@@ -40,7 +42,8 @@ describe('blog posts', () => {
   it('render server-side with a byline, dates, reading time, Article JSON-LD and links to tools', async () => {
     const html = renderToStaticMarkup(await BlogPostPage({ params: Promise.resolve({ slug: 'envelope-budgeting-upi' }) }))
     expect(html.match(/<h1/g)).toHaveLength(1)
-    expect(html).toContain('By <a href="https://github.com/Sukrittt"')
+    expect(html).toContain('<a href="https://github.com/Sukrittt" rel="author noreferrer" target="_blank">Sukrit</a>')
+    expect(html).toContain('aria-label="Share on WhatsApp"')
     expect(html).toContain('<time dateTime="2026-10-15">15 October 2026</time>')
     expect(html).toMatch(/\d+ min read/)
     expect(html).toContain('<table>')

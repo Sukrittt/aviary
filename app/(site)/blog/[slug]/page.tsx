@@ -1,7 +1,9 @@
-import { pages, type PagePath } from '@/lib/seo'
-import { AUTHOR, articleJsonLd, formatPostDate, getPost, postMetadata, postSlugs } from '@/lib/blog'
+import { pages, SITE_URL, type PagePath } from '@/lib/seo'
+import { AUTHOR, articleJsonLd, formatPostDate, getPost, postMetadata, postSlugs, type Post } from '@/lib/blog'
 import { jsonLd } from '@/src/components/JsonLd'
 import { ContentPage, SoftCta, type Related } from '@/src/components/content/ContentPage'
+import { LinkedinLogoIcon, WhatsappLogoIcon, XLogoIcon } from '@/src/components/icons'
+import { serifFont } from '../fonts'
 
 // Every post is a file in content/blog, so the list is known at build time.
 export const dynamicParams = false
@@ -23,16 +25,42 @@ export default async function BlogPostPage({ params }: Props) {
   // Fail the build on a typo'd related link rather than shipping a dead one.
   for (const r of related) if (typeof r === 'string' && !(r in pages)) throw new Error(`${post.slug}: unknown related page ${r}`)
 
-  return <ContentPage section="blog" path={post.path} label={post.title} related={related}>
+  return <ContentPage section="blog" path={post.path} label={post.title} related={related} className={`blog-doc ${serifFont.variable}`}>
     {jsonLd(articleJsonLd(post))}
-    <h1>{post.title}</h1>
-    <p className="legal-updated lp-byline">
-      By {post.author === AUTHOR.name ? <><a href={AUTHOR.url} rel="author noreferrer" target="_blank">{post.author}</a>, {AUTHOR.bio}</> : post.author}
-      {' · '}<time dateTime={post.published}>{formatPostDate(post.published)}</time>
-      {post.updated !== post.published && <> · Updated <time dateTime={post.updated}>{formatPostDate(post.updated)}</time></>}
-      {' · '}{post.readingMinutes} min read
-    </p>
-    <div className="lp-post"><Content /></div>
+    <header className="blog-head">
+      <p className="blog-kicker">
+        <time dateTime={post.published}>{formatPostDate(post.published)}</time>
+        {post.updated !== post.published && <> · Updated <time dateTime={post.updated}>{formatPostDate(post.updated)}</time></>}
+        {' · '}{post.readingMinutes} min read
+      </p>
+      <h1>{post.title}</h1>
+      <p className="blog-dek">{post.description}</p>
+      <div className="blog-author">
+        <span aria-hidden="true">{post.author[0]}</span>
+        <p>{post.author === AUTHOR.name ? <><a href={AUTHOR.url} rel="author noreferrer" target="_blank">{post.author}</a><small>{AUTHOR.bio}</small></> : post.author}</p>
+      </div>
+    </header>
+    <div className="blog-body">
+      <ShareLinks post={post} />
+      <div className="lp-post"><Content /></div>
+    </div>
     <SoftCta title="Budget the way this post describes" placement={`blog_${post.slug}`}>Aviary gives every rupee a category and makes logging one tap. Free for 30 days, no card, no bank link.</SoftCta>
   </ContentPage>
+}
+
+/** Plain share links, no scripts: WhatsApp first, since that's where most Indian readers share. */
+function ShareLinks({ post }: { post: Post }) {
+  const url = new URL(post.path, SITE_URL).href
+  const text = encodeURIComponent(post.title)
+  const links = [
+    ['WhatsApp', `https://wa.me/?text=${encodeURIComponent(`${post.title} ${url}`)}`, WhatsappLogoIcon],
+    ['X', `https://x.com/intent/post?text=${text}&url=${encodeURIComponent(url)}`, XLogoIcon],
+    ['LinkedIn', `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`, LinkedinLogoIcon],
+  ] as const
+  return <aside className="blog-share" aria-label="Share this post">
+    <div>
+      <span>Share</span>
+      {links.map(([name, href, Icon]) => <a key={name} href={href} target="_blank" rel="noreferrer" aria-label={`Share on ${name}`}><Icon size={18} aria-hidden="true" /></a>)}
+    </div>
+  </aside>
 }
