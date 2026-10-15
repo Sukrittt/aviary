@@ -24,7 +24,8 @@ crop() { ffmpeg -v error -y -ss "$2" -i "$1" -frames:v 1 -update 1 -vf "crop=576
 build() {
   r=$1; out=public/landing$2; store=$STORE$2; mkdir -p "$out" "$store"
   src=$REC/$r
-  clip "$src/log-expense.mp4" "$out/clip-log.mp4" 0
+  # Skips the hold-to-save ring, which reads as a glitch at clip size.
+  joined "$src/log-expense.mp4" "$out/clip-log.mp4" $LOG
   frame "$src/log-expense.mp4" "$KEYPAD" "$out/poster-log.jpg"
   # The "Added" card, cropped to the phone's middle so it reads at card size.
   ffmpeg -v error -y -ss "$ADDED" -i "$src/log-expense.mp4" -vf "crop=576:640:0:$ADDED_Y" $ENC "$out/clip-added.mp4"
@@ -48,7 +49,7 @@ build() {
   frame "$src/wrapped.mp4" "$PERSONA" "$store/wr_homebody@2x.png"
 }
 
-KEYPAD=3.9 ADDED=6.4 ADDED_Y=208 SCAN=10.5 ASK="6.5 13.5 19.2 24.9 27.4 29.2" INSIGHTS="3.0 21.0" SUBS=29.6 INVEST=3.0 STREAK=43 PERSONA=52 CARD=10.8 \
+KEYPAD=3.9 LOG="0 3.95 4.55 99" ADDED=6.4 ADDED_Y=208 SCAN=10.5 ASK="6.5 13.5 19.2 24.9 27.4 29.2" INSIGHTS="3.0 21.0" SUBS=29.6 INVEST=3.0 STREAK=43 PERSONA=52 CARD=10.8 \
   build india ""
-KEYPAD=4.8 ADDED=7.6 ADDED_Y=215 SCAN=7.4 ASK="6.5 13.0 17.0 22.6 25.0 26.8" INSIGHTS="2.5 23.0" SUBS=30.9 INVEST=17.5 STREAK=42 PERSONA=50 CARD=12.8 \
+KEYPAD=4.8 LOG="0 5.15 5.95 99" ADDED=7.6 ADDED_Y=215 SCAN=7.4 ASK="6.5 13.0 17.0 22.6 25.0 26.8" INSIGHTS="2.5 23.0" SUBS=30.9 INVEST=17.5 STREAK=42 PERSONA=50 CARD=12.8 \
   build international /intl
