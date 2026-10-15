@@ -41,8 +41,9 @@ Reading time is worked out from the word count. You don't set it.
 
 Set `published` to a future date and merge it like any other post. Until
 midnight IST on that date, the post 404s and stays out of `/blog`, the sitemap
-and the RSS feed. Those pages revalidate hourly, so the post appears within an
-hour of midnight with no deploy needed.
+and the RSS feed. Those pages revalidate hourly, so the post appears with no
+deploy needed, usually within an hour or two of midnight. (A stale page is
+served once while the fresh one renders, so it's the next visit that shows it.)
 
 A post can only link to posts published on or before its own date, so nothing
 points at a post that isn't live yet. `lib/blog.test.ts` checks this.
