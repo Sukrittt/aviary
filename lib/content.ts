@@ -41,6 +41,12 @@ export const CONTENT_SECTIONS = {
       ['/features/budget-without-bank-linking', 'Budget without linking your bank'],
     ],
   },
+  blog: {
+    label: 'Blog',
+    path: '/blog',
+    // Posts are files in content/blog, listed by lib/blog.ts.
+    pages: [],
+  },
 } satisfies Record<string, { label: string; path: PagePath; pages: [PagePath, string][] }>
 
 export type ContentSection = keyof typeof CONTENT_SECTIONS

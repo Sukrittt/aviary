@@ -11,7 +11,7 @@ import '@/src/expense-redesign.css'
 // /legal is public too: gating it held every legal page behind a loader until a
 // /api/user call that a signed-out visitor can only fail.
 // Public pages (landing, content, legal) must server-render their body for crawlers, so they skip the check.
-const ONBOARDING_EXEMPT_PATHS = ['/', '/intl', '/help', '/changelog', '/compare', '/tools', '/features', '/sign-in', '/email', '/code', '/onboarding', '/legal']
+const ONBOARDING_EXEMPT_PATHS = ['/', '/intl', '/help', '/changelog', '/compare', '/tools', '/features', '/blog', '/sign-in', '/email', '/code', '/onboarding', '/legal']
 
 // Set once /api/user confirms onboarding, so a returning visit renders the app
 // without waiting on that round trip first. It isn't keyed by account, so the
