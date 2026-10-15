@@ -706,7 +706,7 @@ html:has(.lp) { scroll-behavior: smooth; }
 .lp-starters { margin-top: 34px; }
 .lp-starters > span { display: block; font-size: 15px; font-weight: 700; }
 .lp-starters > div { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-.lp .lp-starter { min-height: 44px; padding: 0 18px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); color: var(--ink); font-size: 15px; font-weight: 700; transition: border-color .16s ease, transform .12s ease; }
+.lp .lp-starter { min-height: 44px; padding: 0 18px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); color: var(--ink); font-size: 15px; font-weight: 700; text-box: trim-both cap alphabetic; transition: border-color .16s ease, transform .12s ease; }
 .lp .lp-starter:hover { border-color: #cfcabe; }
 .lp .lp-starter:active { transform: scale(.96); }
 .lp-play-note { margin-top: 22px; font-size: 14px; color: var(--muted); }

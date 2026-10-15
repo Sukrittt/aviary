@@ -4,7 +4,7 @@ import { useCurrency } from '@/src/context/CurrencyContext'
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { animate, motion, useMotionValue, useTransform, type MotionValue } from 'motion/react'
-import { CaretDownIcon } from '@/src/components/icons'
+import { CaretDownIcon, ChatTextIcon, HandCoinsIcon } from '@/src/components/icons'
 import { DotLottieReact } from '@lottiefiles/dotlottie-react'
 import { CATEGORY_ICON_COMPONENTS } from '@/src/components/CategoryIcon'
 import type { CategoryIconKey } from '@/src/lib/categoryIcons'
@@ -80,6 +80,7 @@ function suggestCategory(item: string, categories: string[]): string {
 
 const ON_ACCENT_DIM = 'rgba(255, 255, 255, 0.7)'
 const FIELD_BG = 'rgba(255, 255, 255, 0.16)'
+const HEADER_ICON: CSSProperties = { ...pressable, width: 36, height: 36, borderRadius: 18, ...row, justifyContent: 'center', background: FIELD_BG }
 
 const AMOUNT_SIZE = type.hero * 1.3
 /**
@@ -94,12 +95,15 @@ export function LogExpenseScreen({
   prefill,
   publish,
   onAdded,
+  onElsewhere,
 }: {
   categories: DemoCategory[]
   groups: string[]
   prefill?: LoggedExpense | null
   publish: (state: SubmitState) => void
   onAdded: (expense: LoggedExpense) => void
+  /** The header's capture and income buttons lead to screens this demo doesn't have. */
+  onElsewhere?: () => void
 }) {
   const { formatAmountInput, currencyPrefix } = useCurrency()
 
@@ -198,8 +202,14 @@ export function LogExpenseScreen({
 
   return (
     <div style={{ ...col, height: '100%', background: T.accent, position: 'relative' }}>
-      <div style={{ ...row, justifyContent: 'center', paddingTop: PHONE.top + space.sm, paddingInline: space.lg, paddingBottom: 8 }}>
+      <div style={{ ...row, justifyContent: 'space-between', paddingTop: PHONE.top + space.xs, paddingInline: space.lg, paddingBottom: 8 }}>
+        <button type="button" aria-label="Log several spends at once" onClick={onElsewhere} style={HEADER_ICON}>
+          <ChatTextIcon size={18} color="#ffffff" />
+        </button>
         <span style={{ color: '#ffffff', ...font.displaySemiBold, fontSize: type.bodyLg }}>Log expense</span>
+        <button type="button" aria-label="Add income" onClick={onElsewhere} style={HEADER_ICON}>
+          <HandCoinsIcon size={18} color="#ffffff" />
+        </button>
       </div>
 
       <div style={{ ...col, flex: 1, paddingTop: 8, paddingInline: space.lg }}>
