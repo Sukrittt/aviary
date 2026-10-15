@@ -27,7 +27,8 @@ export function LandingHeader({ base = '', faq = `${base}#faq`, ios = false }: {
 
 export function LandingFooter({ base = '', faq = `${base}#faq` }: { base?: string; faq?: string }) {
   return <footer className="lp-footer"><div><a href={base || '#top'} className="lp-logo"><BirdMark size={26} perched /><span>Aviary<b aria-hidden="true">.</b></span></a><p>Learns your spending. Never touches your bank.</p></div><nav aria-label="Footer">
-    <div><h2>Product</h2><a href={PLAY_STORE_URL}>Android app</a><Link href="/expense">Web app</Link><a href={`${base}#get`}>iPhone waitlist</a><Link href="/legal/pricing">Pricing</Link><a href={faq}>Help &amp; FAQ</a></div>
+    <div><h2>Product</h2><a href={PLAY_STORE_URL}>Android app</a><Link href="/expense">Web app</Link><a href={`${base}#get`}>iPhone waitlist</a><Link href="/legal/pricing">Pricing</Link><Link href="/intl">Outside India</Link></div>
+    <div><h2>Learn</h2><Link href="/help">Help</Link><a href={faq}>FAQ</a><Link href="/changelog">Changelog</Link></div>
     <div><h2>Community</h2><Link href={FEEDBACK_BOARD_PATH}>Feedback board</Link><a href={GITHUB}>GitHub</a><Link href="/legal/contact">Contact</Link></div>
     <div><h2>Legal</h2><Link href="/legal/privacy">Privacy</Link><Link href="/legal/terms">Terms</Link><Link href="/legal/refunds">Refunds</Link><Link href="/legal/delete-account">Delete account</Link></div>
   </nav></footer>

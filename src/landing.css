@@ -264,7 +264,7 @@ html:has(.lp) { scroll-behavior: smooth; }
 .lp-footer { max-width: 1240px; padding: 36px 32px 44px; margin: auto; border-top: 1px solid var(--line); display: flex; align-items: flex-start; justify-content: space-between; gap: 30px; }
 .lp-footer .lp-logo { font-size: 22px; }
 .lp-footer p { font-size: 14px; color: var(--muted); margin-top: 8px; }
-.lp-footer nav { display: grid; grid-template-columns: repeat(3, minmax(140px, auto)); gap: 22px 56px; font-size: 14px; font-weight: 600; color: var(--muted); }
+.lp-footer nav { display: grid; grid-template-columns: repeat(4, minmax(120px, auto)); gap: 22px 44px; font-size: 14px; font-weight: 600; color: var(--muted); }
 .lp-footer nav div { display: flex; flex-direction: column; align-items: flex-start; }
 .lp-footer nav h2 { margin-bottom: 4px; font-size: 13px; font-weight: 700; color: var(--ink); }
 .lp-footer nav a { min-height: 36px; display: inline-flex; align-items: center; }
@@ -813,3 +813,13 @@ html:has(.lp) { scroll-behavior: smooth; }
   .lp-contact-copy { top: 22px; right: 22px; transform: none; }
   .lp-contact-ways { grid-template-columns: 1fr; }
 }
+/* Public content pages (/help, /changelog) reuse .legal-doc */
+.legal-doc h3 { font-family: var(--font-display), sans-serif; font-weight: 600; font-size: 19px; margin-top: 28px; }
+.legal-doc h3 + p { margin-top: 8px; }
+.changelog-public .changelog-history-entry { margin-top: 44px; }
+.changelog-public .changelog-history-entry h2 { margin-top: 6px; }
+.changelog-public .changelog-meta { color: var(--muted); font-size: 14px; font-weight: 600; }
+.changelog-public .changelog-history-entry ul { margin-top: 12px; }
+/* Market switch (/ is India, /intl everywhere else) */
+.lp-market { margin: 0 auto 14px; font-size: 14px; color: var(--muted); }
+.lp-market a { color: var(--accent-ink); text-decoration: underline; text-underline-offset: 3px; }
