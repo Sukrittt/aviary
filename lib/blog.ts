@@ -77,7 +77,7 @@ export function articleJsonLd(post: Post) {
     // The profile URL is Sukrit's, so it only goes with Sukrit's name.
     author: { '@type': 'Person', name: post.author, ...(post.author === AUTHOR.name && { url: AUTHOR.url }) },
     publisher: { '@type': 'Organization', name: 'Aviary', logo: { '@type': 'ImageObject', url: new URL('/icon.png', SITE_URL).href } },
-    image: new URL('/og.png', SITE_URL).href,
+    image: new URL(`/og${post.path}`, SITE_URL).href,
     mainEntityOfPage: url,
     url,
   }

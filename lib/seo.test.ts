@@ -91,8 +91,10 @@ describe('site metadata', () => {
       expect(description!.length, `${path} description`).toBeGreaterThanOrEqual(70)
       expect(description!.length, `${path} description`).toBeLessThanOrEqual(160)
       expect(description, `${path} description`).not.toContain('—')
-      expect(openGraph?.images).toEqual([expect.objectContaining({ url: '/og.png', width: 1200, height: 630 })])
+      expect(openGraph?.images).toEqual([expect.objectContaining({ url: path === '/' || path === '/intl' ? '/og.png' : `/og${path}`, width: 1200, height: 630 })])
       expect(twitter).toMatchObject({ card: 'summary_large_image' })
     }
+    // Private pages never get a card of their own.
+    expect(pageMetadata('/expense').openGraph?.images).toEqual([expect.objectContaining({ url: '/og.png' })])
   })
 })

@@ -90,6 +90,18 @@ export const marketAlternates = (path: string) => (path === '/' || path === '/in
 /** 1200×630 share card, rendered by app/og.png/route.tsx. */
 export const OG_IMAGE = { url: '/og.png', width: 1200, height: 630, alt: 'Aviary: the budget app that learns your spending' }
 
+/** Indexed pages with a card of their own (app/og/[...path]); the home pages keep the brand card. Blog posts are added from lib/blog.ts. */
+export const ogCardPaths = () => (Object.keys(pages) as PagePath[]).filter((p) => p !== '/' && p !== '/intl' && 'index' in pages[p] && pages[p].index)
+
+/** "Privacy Policy | Aviary" reads as just "Privacy Policy" on a card that already shows the logo. */
+export const ogTitle = (title: string) => title.replace(/ \| Aviary$/, '')
+
+/** The share card for a public page: its own card when it has one, else the brand card. */
+export function ogImage(path: string, index: boolean, alt: string) {
+  const own = index && path !== '/' && path !== '/intl'
+  return own ? { ...OG_IMAGE, url: `/og${path}`, alt } : OG_IMAGE
+}
+
 export function pageMetadata(path: PagePath): Metadata {
   const page = pages[path]
   const index = 'index' in page && page.index
@@ -103,12 +115,13 @@ export function pageMetadata(path: PagePath): Metadata {
 export function seoMetadata({ path, title, description, index, openGraph }: { path: string; title: string; description: string; index: boolean; openGraph?: Metadata['openGraph'] }): Metadata {
   const url = new URL(path, SITE_URL).href
   const languages = marketAlternates(path)
+  const image = ogImage(path, index, title)
   return {
     title,
     description,
     alternates: { canonical: url, ...(languages && { languages }), ...(path.startsWith('/blog') && { types: { 'application/rss+xml': [{ url: '/blog/rss.xml', title: 'Aviary Blog' }] } }) },
     robots: { index, follow: index, ...(!index && { noarchive: true }) },
-    openGraph: { type: 'website', siteName: 'Aviary', title, description, url, images: [OG_IMAGE], ...openGraph } as Metadata['openGraph'],
-    twitter: { card: 'summary_large_image', title, description, images: [OG_IMAGE] },
+    openGraph: { type: 'website', siteName: 'Aviary', title, description, url, images: [image], ...openGraph } as Metadata['openGraph'],
+    twitter: { card: 'summary_large_image', title, description, images: [image] },
   }
 }
