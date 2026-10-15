@@ -10557,8 +10557,8 @@ button.account-feature-card {
 .ideas-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .ideas-empty { padding: 20px; }
 .ui-select.ideas-status-select { width: 180px; margin-left: auto; }
-/* Same height as the status select beside it */
-.ideas-toolbar .ideas-pitch { align-self: stretch; }
+/* Same height as the status select beside it, with the label centered in that height */
+.ideas-toolbar .ideas-pitch { align-self: stretch; display: inline-flex; align-items: center; justify-content: center; }
 .ideas-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .ideas-row { display: flex; gap: 16px; padding: 16px 18px; align-items: center; transition: border-color 0.15s ease; }
 .ideas-row:hover { border-color: var(--erd-border-strong); }
