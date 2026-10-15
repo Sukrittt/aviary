@@ -1,0 +1,11 @@
+# envelope-staging has Git auto-deploys off; vercel.json only lets main deploy
+# through Git (to envelope). Pushes to staging deploy via the project's hook.
+name: Deploy staging
+on:
+  push:
+    branches: [staging]
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -fsS -X POST "${{ secrets.VERCEL_STAGING_DEPLOY_HOOK }}"
