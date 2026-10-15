@@ -26,6 +26,10 @@ describe('expense screen visual regressions', () => {
     )
   })
 
+  it('centers Pitch an idea in the height it stretches to beside the status select', () => {
+    expect(expenseCss).toMatch(/\.ideas-toolbar \.ideas-pitch\s*{[^}]*align-self:\s*stretch[^}]*align-items:\s*center/)
+  })
+
   it('keeps the bulk return CTA solid and its description close to the title', () => {
     expect(expensePage).toContain('className="is-active erd-accent-action"')
     expect(expenseCss).toMatch(
