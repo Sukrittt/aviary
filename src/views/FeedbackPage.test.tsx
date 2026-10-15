@@ -53,3 +53,13 @@ it('shows written copy when an image cannot be read', async () => {
   fireEvent.change(screen.getByLabelText('Choose a screenshot'), { target: { files: [new File(['x'], 'bad.heic')] } })
   expect(await screen.findByText("Couldn't read that image. Try another one.")).toBeInTheDocument()
 })
+
+it('says the screenshot is too big instead of blaming the connection', async () => {
+  submitFeedback.mockRejectedValue(new Error('too_large'))
+  render(<BugReportForm onDone={vi.fn()} />)
+  fireEvent.change(screen.getByLabelText('Choose a screenshot'), { target: { files: [new File(['x'], 'huge.png')] } })
+  await screen.findByRole('img', { name: 'Your screenshot' })
+  fill()
+  fireEvent.click(screen.getByRole('button', { name: 'Send report' }))
+  expect(await screen.findByText("That screenshot's too big. Crop it or try a smaller one.")).toBeInTheDocument()
+})

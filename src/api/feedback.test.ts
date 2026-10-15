@@ -27,6 +27,8 @@ it('sends an optional screenshot', async () => {
 it('rejects with bare messages, never a status number', async () => {
   mockedApiFetch.mockResolvedValue({ ok: false, status: 429 })
   await expect(submitFeedback('bug', 't', 'd')).rejects.toThrow('rate_limited')
+  mockedApiFetch.mockResolvedValue({ ok: false, status: 413 })
+  await expect(submitFeedback('bug', 't', 'd')).rejects.toThrow('too_large')
   mockedApiFetch.mockResolvedValue({ ok: false, status: 500 })
   await expect(submitFeedback('bug', 't', 'd')).rejects.toThrow(/^failed$/)
 })

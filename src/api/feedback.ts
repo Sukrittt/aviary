@@ -36,5 +36,7 @@ export async function submitFeedback(
     body: JSON.stringify({ type, title: title.trim(), description: description.trim(), diagnostics: diagnostics(), ...(screenshot && { screenshot }) }),
   })
   if (resp.status === 429) throw new Error('rate_limited')
+  // The route's 5MB cap, or the platform's body limit ahead of it.
+  if (resp.status === 413) throw new Error('too_large')
   if (!resp.ok) throw new Error('failed')
 }

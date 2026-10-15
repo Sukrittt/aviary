@@ -54,10 +54,13 @@ export function BugReportForm({ onDone, dialog = false }: { onDone: () => void; 
       succeed(onDone)
     } catch (err) {
       fail()
+      const message = err instanceof Error ? err.message : ''
       setError(
-        err instanceof Error && err.message === 'rate_limited'
+        message === 'rate_limited'
           ? "You've sent a few already. Try again later."
-          : "Couldn't send that. Check your connection and try again.",
+          : message === 'too_large'
+            ? "That screenshot's too big. Crop it or try a smaller one."
+            : "Couldn't send that. Check your connection and try again.",
       )
     }
   }
