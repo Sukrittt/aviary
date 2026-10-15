@@ -552,6 +552,16 @@
   border-radius: 50%;
 }
 
+.ins-row-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
 .ins-row-name {
   flex: 1;
   overflow: hidden;
@@ -855,7 +865,7 @@
 
 .ins-filter-list label {
   display: grid;
-  grid-template-columns: 8px auto minmax(0, 1fr) auto;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
   min-height: 48px;
@@ -867,8 +877,7 @@
 
 .ins-filter-list label + label { border-top: 1px solid var(--erd-border); }
 .ins-filter-list label:hover { background: var(--erd-input-bg); }
-.ins-filter-list label > i { width: 8px; height: 8px; border-radius: 50%; }
-.ins-filter-list label > span[aria-hidden] { font-size: 16px; }
+.ins-filter-list label > i { justify-self: center; width: 8px; height: 8px; border-radius: 50%; }
 .ins-filter-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ins-filter-list input { position: absolute; opacity: 0; pointer-events: none; }
 .ins-check { display: grid; place-items: center; width: 22px; height: 22px; border: 1.5px solid var(--erd-border-strong); border-radius: 7px; }

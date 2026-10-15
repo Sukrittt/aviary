@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { AnimatePresence, motion } from 'motion/react'
 import { CheckIcon, FunnelSimpleIcon, TrendDownIcon, TrendUpIcon, XIcon } from '@/src/components/icons'
 import type { BreakdownRow, MonthComparison } from '@/src/lib/monthly'
-import { CHART_COLORS } from '@/src/theme/chartColors'
+import { avatarInkFor, avatarStyleFor } from '@/src/lib/emoji'
 import { DonutChart, type DonutSegment } from './DonutChart'
 import { AutoHeight, PopIn, ease } from '@/src/components/landing/mobile/kit'
 import { BirdEmptyState } from '../BirdEmptyState'
@@ -171,9 +171,11 @@ export function CategoryBreakdown({ rows, categoryRows, groupRows, categoryGroup
     return () => clearTimeout(id)
   }, [filterOpen, pendingFilters, selectedKey, mode, categoryRows, categoryGroupMap, onSelectKey])
 
+  // Same name-hashed ink as the category's tile on the Categories card, so a
+  // category is one colour everywhere instead of whatever its rank here is.
   const colors = useMemo(() => {
     const map = new Map<string, string>()
-    rows.forEach((row, index) => map.set(row.key, CHART_COLORS[index % CHART_COLORS.length]))
+    rows.forEach((row) => map.set(row.key, avatarInkFor(row.label)))
     return map
   }, [rows])
 
@@ -323,8 +325,7 @@ export function CategoryBreakdown({ rows, categoryRows, groupRows, categoryGroup
                       <PopIn key={`${revealKey}:${row.key}`} play={play} delay={rowDelay}>
                         <button type="button" key={row.key} className={selected ? 'ins-breakdown-row is-selected' : 'ins-breakdown-row'} onClick={() => onSelectKey(selected ? null : row.key)} aria-pressed={selected}>
                           <span className="ins-row-top">
-                            <i style={{ background: colors.get(row.key) }} />
-                            {row.icon && <span aria-hidden="true"><CategoryIcon name="" icon={row.icon} /></span>}
+                            <RowMark row={row} color={colors.get(row.key)} />
                             <span className="ins-row-name">{row.label}</span>
                             <strong>{formatCurrency(row.spent, hideAmounts)}</strong>
                             {row.deltaPct != null && Math.round(row.deltaPct) !== 0 && (
@@ -419,8 +420,7 @@ export function CategoryBreakdown({ rows, categoryRows, groupRows, categoryGroup
                 return (
                   <motion.label key={`${filterTab}:${row.key}`} layout="position" transition={LIST_SPRING} initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { duration: 0.15 } }} exit={{ opacity: 0, transition: { duration: 0.12 } }}>
                     <input type="checkbox" checked={checked} onChange={() => toggleDraftKey(row.key)} />
-                    <i style={{ background: colors.get(row.key) ?? 'var(--erd-text3)' }} />
-                    {row.icon ? <span aria-hidden="true"><CategoryIcon name="" icon={row.icon} /></span> : <span />}
+                    <RowMark row={row} color={colors.get(row.key)} />
                     <span className="ins-filter-label">{row.label}</span>
                     <span className={checked ? 'ins-check is-checked' : 'ins-check'}>{checked && <CheckIcon size={14} weight="bold" />}</span>
                   </motion.label>
@@ -443,5 +443,16 @@ export function CategoryBreakdown({ rows, categoryRows, groupRows, categoryGroup
       )}
       </AnimatePresence>
     </>
+  )
+}
+
+/** Ties a row to its donut wedge: the category's tinted icon tile (as on the
+ *  Categories card), or a plain dot in the wedge colour when there's no icon. */
+function RowMark({ row, color }: { row: BreakdownRow; color: string | undefined }) {
+  if (!row.icon) return <i style={{ background: color ?? 'var(--erd-text3)' }} />
+  return (
+    <span className="ins-row-icon" style={avatarStyleFor(row.label)} aria-hidden="true">
+      <CategoryIcon name="" icon={row.icon} />
+    </span>
   )
 }
