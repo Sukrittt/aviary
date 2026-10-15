@@ -2,7 +2,7 @@ import { ObjectId } from 'mongodb'
 import { json, error, readBody, getCollection } from '@/lib/http'
 import { getAuth, readOnlyGuard } from '@/lib/access'
 import { requireAccess } from '@/lib/billing/guard'
-import { PHOTO_EXT_BY_MIME, MAX_PHOTO_BYTES, putExpensePhoto, deleteExpensePhoto, deleteExpensePhotoQuietly, getExpensePhotoUrl } from '@/lib/expensePhoto'
+import { decodePhoto, putExpensePhoto, deleteExpensePhoto, deleteExpensePhotoQuietly, getExpensePhotoUrl } from '@/lib/expensePhoto'
 
 export const dynamic = 'force-dynamic'
 
@@ -41,17 +41,10 @@ export async function POST(req: Request, ctx: Ctx) {
   const { auth, coll, _id, id } = loaded
 
   const body = await readBody(req)
-  const image = typeof body.image === 'string' ? body.image : ''
   const mimeType = typeof body.mimeType === 'string' ? body.mimeType : ''
-  if (!Object.hasOwn(PHOTO_EXT_BY_MIME, mimeType)) return error('mimeType must be image/jpeg, image/png, or image/webp', 400)
-  if (!image) return error('image required', 400)
-  // Reject on length before decoding so a huge body is never buffered twice.
-  if (image.length > Math.ceil((MAX_PHOTO_BYTES * 4) / 3) + 4) return error('image too large (max 5MB)', 413)
-  // Buffer.from skips bad characters instead of failing, so junk would store as an unviewable photo.
-  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(image)) return error('image must be base64', 400)
-  const buffer = Buffer.from(image, 'base64')
-  if (buffer.length === 0) return error('image required', 400)
-  if (buffer.length > MAX_PHOTO_BYTES) return error('image too large (max 5MB)', 413)
+  const decoded = decodePhoto(body.image, mimeType)
+  if ('error' in decoded) return error(decoded.error, decoded.status)
+  const { buffer } = decoded
 
   const file = await putExpensePhoto(auth.userId, id, buffer, mimeType)
   // Swap only from the file we last read, so two uploads racing each other

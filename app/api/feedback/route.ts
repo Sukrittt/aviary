@@ -2,7 +2,8 @@ import { json, error, readBody } from '@/lib/http'
 import { getAuth, readOnlyGuard } from '@/lib/access'
 import { isRateLimited } from '@/lib/rateLimit'
 import { triageFeedback } from '@/lib/ai/feedbackTriage'
-import { recordFeedback } from '@/lib/feedback'
+import { recordFeedback, putFeedbackScreenshot, deleteFeedbackScreenshotQuietly } from '@/lib/feedback'
+import { decodePhoto } from '@/lib/expensePhoto'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 30
@@ -55,9 +56,22 @@ export async function POST(req: Request) {
     screen: diag(rawDiagnostics.screen),
   }
 
+  // Optional, bugs only: `{ image: base64, mimeType }`. Validated before triage
+  // so a bad upload fails fast, but stored only once the report is known good.
+  let screenshotBytes: { buffer: Buffer; mimeType: string } | null = null
+  if (type === 'bug' && body.screenshot && typeof body.screenshot === 'object') {
+    const raw = body.screenshot as Record<string, unknown>
+    const decoded = decodePhoto(raw.image, raw.mimeType)
+    if ('error' in decoded) return error(decoded.error, decoded.status)
+    screenshotBytes = { buffer: decoded.buffer, mimeType: raw.mimeType as string }
+  }
+
+  // Triage reads only the text. A screenshot can show balances, so it never reaches the model.
   const triage = await triageFeedback(title, description, { userId: auth.userId, feature: 'feedback' }).catch(() => null)
 
+  let screenshot: string | null = null
   try {
+    if (screenshotBytes) screenshot = await putFeedbackScreenshot(auth.userId, screenshotBytes.buffer, screenshotBytes.mimeType)
     await recordFeedback({
       userId: auth.userId,
       type,
@@ -66,9 +80,11 @@ export async function POST(req: Request) {
       diagnostics,
       area: triage?.area ?? null,
       severity: triage?.severity ?? null,
+      screenshot,
     })
   } catch (err) {
     console.error('feedback insert failed:', err)
+    if (screenshot) await deleteFeedbackScreenshotQuietly(screenshot)
     return error('could not send that', 502)
   }
 
