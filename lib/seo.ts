@@ -29,6 +29,7 @@ export const pages = {
   '/features/ask-aviary': { title: 'Ask Aviary: an AI Expense Tracker You Can Talk To', description: 'Type “auto 240, lunch 150” and Aviary logs both. Ask how this month compares to last. An AI chat for your budget that you check before it logs.', index: true },
   '/features/recurring-expenses': { title: 'Subscription Tracker and Recurring Expenses App', description: 'Track rent, EMIs and subscriptions like Netflix and Spotify. Aviary logs recurring expenses on their date and warns you before renewals.', index: true },
   '/features/budget-without-bank-linking': { title: 'Expense Tracker Without Bank Linking or SMS Access', description: 'A budget app that never asks for your bank login or SMS. Log spends in one tap, with nudges, so you notice where your money goes.', index: true },
+  '/blog': { title: 'Aviary Blog: Budgeting in India, Explained Simply', description: 'Plain guides to budgeting in India: envelope and zero-based budgeting, tracking UPI spends, and making your salary last. Real ₹ examples, no jargon.', index: true },
   '/legal/privacy': { title: 'Privacy Policy | Aviary', description: 'How Aviary stores and processes your data: encryption, AI features, analytics, and how you export or delete everything. No ads, and your data is never sold.', index: true },
   '/legal/terms': { title: 'Terms of Service | Aviary', description: 'The terms for using Aviary, the budget app: account requirements, acceptable use, subscriptions, and your responsibilities.', index: true },
   '/legal/pricing': { title: 'Aviary Pricing: Free 30-Day Trial, Then Monthly or Yearly', description: 'Try the whole Aviary budget app free for 30 days, no card needed. Then pick a monthly or yearly plan on the web or Google Play. Cancel any time.', index: true },
@@ -95,22 +96,19 @@ export function pageMetadata(path: PagePath): Metadata {
   // Public pages carry their own keyword titles; private ones are just labelled in the tab.
   const title = index ? page.title : `Aviary | ${page.title}`
   // Dynamic admin IDs never enter public canonical or social URLs.
-  const url = new URL(path.includes('[') ? '/admin/users' : path, SITE_URL).href
-  const languages = marketAlternates(path)
+  return seoMetadata({ path: path.includes('[') ? '/admin/users' : path, title, description: page.description, index })
+}
 
+/** Title, description, canonical, robots and social cards for any URL, including ones not in `pages` (blog posts). */
+export function seoMetadata({ path, title, description, index, openGraph }: { path: string; title: string; description: string; index: boolean; openGraph?: Metadata['openGraph'] }): Metadata {
+  const url = new URL(path, SITE_URL).href
+  const languages = marketAlternates(path)
   return {
     title,
-    description: page.description,
-    alternates: { canonical: url, ...(languages && { languages }) },
+    description,
+    alternates: { canonical: url, ...(languages && { languages }), ...(path.startsWith('/blog') && { types: { 'application/rss+xml': [{ url: '/blog/rss.xml', title: 'Aviary Blog' }] } }) },
     robots: { index, follow: index, ...(!index && { noarchive: true }) },
-    openGraph: {
-      type: 'website',
-      siteName: 'Aviary',
-      title,
-      description: page.description,
-      url,
-      images: [OG_IMAGE],
-    },
-    twitter: { card: 'summary_large_image', title, description: page.description, images: [OG_IMAGE] },
+    openGraph: { type: 'website', siteName: 'Aviary', title, description, url, images: [OG_IMAGE], ...openGraph } as Metadata['openGraph'],
+    twitter: { card: 'summary_large_image', title, description, images: [OG_IMAGE] },
   }
 }

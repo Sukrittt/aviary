@@ -13,9 +13,9 @@ import { jsonLd } from '@/src/components/JsonLd'
  * BreadcrumbList JSON-LD, the page in one readable column, then related pages.
  * Lives inside app/(site)/layout.tsx's header and footer.
  */
-export function ContentPage({ section, path, related = [], wide = false, children }: { section: ContentSection; path: PagePath; related?: PagePath[]; wide?: boolean; children: ReactNode }) {
+export function ContentPage({ section, path, label, related = [], wide = false, children }: { section: ContentSection; path: string; label?: string; related?: Related[]; wide?: boolean; children: ReactNode }) {
   const hub = CONTENT_SECTIONS[section]
-  const crumbs: [string, string][] = [['/', 'Home'], [hub.path, hub.label], ...(path === hub.path ? [] : [[path, contentLabel(path)] as [string, string]])]
+  const crumbs: [string, string][] = [['/', 'Home'], [hub.path, hub.label], ...(path === hub.path ? [] : [[path, label ?? contentLabel(path as PagePath)] as [string, string]])]
   return <>
     {jsonLd({
       '@context': 'https://schema.org',
@@ -30,10 +30,14 @@ export function ContentPage({ section, path, related = [], wide = false, childre
   </>
 }
 
-export function RelatedPages({ paths, title = 'Keep reading' }: { paths: PagePath[]; title?: string }) {
+/** A related link: a page from lib/seo.ts by path, or anything else spelled out (blog posts). */
+export type Related = PagePath | { href: string; label: string; description: string }
+
+export function RelatedPages({ paths, title = 'Keep reading' }: { paths: Related[]; title?: string }) {
+  const items = paths.map((p) => (typeof p === 'string' ? { href: p, label: contentLabel(p), description: pages[p].description } : p))
   return <section className="lp-related" aria-labelledby="related-title">
     <h2 id="related-title">{title}</h2>
-    <ul>{paths.map((p) => <li key={p}><Link href={p}><strong>{contentLabel(p)}</strong><span>{pages[p].description}</span></Link></li>)}</ul>
+    <ul>{items.map((p) => <li key={p.href}><Link href={p.href}><strong>{p.label}</strong><span>{p.description}</span></Link></li>)}</ul>
   </section>
 }
 

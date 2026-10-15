@@ -6,6 +6,7 @@ import sitemap from '@/app/sitemap'
 import robots from '@/app/robots'
 import { pageMetadata, pages, publicPagePaths, SITE_URL, type PagePath } from './seo'
 import { CONTENT_SECTIONS } from './content'
+import { postSlugs } from './blog'
 
 function pageFiles(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -20,6 +21,11 @@ describe('site metadata', () => {
       const route = '/' + relative(join(process.cwd(), 'app'), file)
         .split('/').filter((part) => !part.startsWith('(') && part !== 'page.tsx').join('/')
       const path = route === '/privacy-policy' ? '/legal/privacy' : route
+      // Blog posts are files, not entries in `pages`: their route builds metadata from each post.
+      if (path === '/blog/[slug]') {
+        expect(readFileSync(file, 'utf8')).toContain('return postMetadata(')
+        continue
+      }
       expect(pages, `${route} needs its own metadata`).toHaveProperty(path)
       const source = readFileSync(file, 'utf8')
       const metadataSource = source.startsWith("'use client'") || source.startsWith('"use client"')
@@ -47,31 +53,33 @@ describe('site metadata', () => {
     }
   })
 
-  it('indexes only public content and keeps all financial, auth and admin pages private', () => {
+  it('indexes only public content and keeps all financial, auth and admin pages private', async () => {
     const contentPaths = Object.values(CONTENT_SECTIONS).flatMap((s) => [s.path, ...s.pages.map(([p]) => p)])
-    expect(contentPaths).toHaveLength(20)
+    expect(contentPaths).toHaveLength(21)
     const publicPaths = ['/', '/intl', '/changelog', '/help', ...contentPaths, '/legal/privacy', '/legal/terms', '/legal/pricing', '/legal/refunds', '/legal/contact', '/legal/delete-account']
     for (const path of Object.keys(pages) as PagePath[]) {
       expect(pageMetadata(path).robots).toMatchObject({ index: publicPaths.includes(path) })
     }
-    expect(sitemap().map((entry) => entry.url).sort())
-      .toEqual(publicPaths.map((path) => new URL(path, SITE_URL).href).sort())
+    const postPaths = postSlugs().map((slug) => `/blog/${slug}`)
+    expect(postPaths.length).toBeGreaterThanOrEqual(4)
+    expect((await sitemap()).map((entry) => entry.url).sort())
+      .toEqual([...publicPaths, ...postPaths].map((path) => new URL(path, SITE_URL).href).sort())
     expect(robots()).toMatchObject({
       rules: { userAgent: '*', allow: '/' },
       sitemap: 'https://useaviary.com/sitemap.xml',
     })
   })
 
-  it('links / (India) and /intl as hreflang alternates, in metadata and the sitemap', () => {
+  it('links / (India) and /intl as hreflang alternates, in metadata and the sitemap', async () => {
     const languages = { 'en-IN': '/', en: '/intl', 'x-default': '/' }
     expect(pageMetadata('/').alternates).toEqual({ canonical: 'https://useaviary.com/', languages })
     expect(pageMetadata('/intl').alternates).toEqual({ canonical: 'https://useaviary.com/intl', languages })
     expect(pageMetadata('/help').alternates).toEqual({ canonical: 'https://useaviary.com/help' })
     const absolute = { 'en-IN': 'https://useaviary.com/', en: 'https://useaviary.com/intl', 'x-default': 'https://useaviary.com/' }
     for (const url of ['https://useaviary.com/', 'https://useaviary.com/intl']) {
-      expect(sitemap().find((entry) => entry.url === url)?.alternates).toEqual({ languages: absolute })
+      expect((await sitemap()).find((entry) => entry.url === url)?.alternates).toEqual({ languages: absolute })
     }
-    expect(sitemap().find((entry) => entry.url === 'https://useaviary.com/help')).not.toHaveProperty('alternates')
+    expect((await sitemap()).find((entry) => entry.url === 'https://useaviary.com/help')).not.toHaveProperty('alternates')
   })
 
   it('gives public pages keyword titles, search-length descriptions and a large share card', () => {

@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next'
+import createMDX from '@next/mdx'
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
@@ -11,4 +12,5 @@ const nextConfig: NextConfig = {
   },
 }
 
-export default nextConfig
+// Blog posts (content/blog/*.mdx). remark-gfm for tables. Passed by name so it works under Turbopack too.
+export default createMDX({ options: { remarkPlugins: [['remark-gfm']] } })(nextConfig)
