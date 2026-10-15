@@ -77,7 +77,7 @@ export function FloatingNav({
     <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, paddingBottom: NAV_BOTTOM_GAP }}>
       <div style={{ ...row, justifyContent: 'space-between', height: ROW_HEIGHT + PHONE.bottom, paddingInline: NAV_SIDE }}>
         <div
-          role="tablist"
+          data-testid="nav-pill"
           style={{
             ...row,
             position: 'relative',
@@ -98,9 +98,8 @@ export function FloatingNav({
             <button
               key={name}
               type="button"
-              role="tab"
               aria-label={label}
-              aria-selected={active === name}
+              aria-current={active === name ? 'page' : undefined}
               onClick={() => onSelect(name)}
               style={{ ...pressable, position: 'relative', width: TAB_W, height: TAB_H, ...row, justifyContent: 'center' }}
             >

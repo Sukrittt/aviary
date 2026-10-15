@@ -16,8 +16,11 @@ describe('FloatingNav', () => {
   })
 
   it('keeps the four tabs in the pill and add outside it, as its own button', () => {
-    render(<FloatingNav active={null} addActive onSelect={vi.fn()} onAdd={vi.fn()} />)
-    expect(screen.getAllByRole('tab').map((t) => t.getAttribute('aria-label'))).toEqual(['Home', 'Activity', 'Categories', 'More'])
-    expect(screen.getByRole('tablist')).not.toContainElement(screen.getByRole('button', { name: 'Log expense' }))
+    render(<FloatingNav active="activity" addActive onSelect={vi.fn()} onAdd={vi.fn()} />)
+    const pill = screen.getByTestId('nav-pill')
+    expect([...pill.querySelectorAll('button')].map((b) => b.getAttribute('aria-label'))).toEqual(['Home', 'Activity', 'Categories', 'More'])
+    expect(screen.getByRole('button', { name: 'Activity' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('button', { name: 'Home' })).not.toHaveAttribute('aria-current')
+    expect(pill).not.toContainElement(screen.getByRole('button', { name: 'Log expense' }))
   })
 })

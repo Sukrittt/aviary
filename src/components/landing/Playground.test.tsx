@@ -62,7 +62,7 @@ describe('log playground', () => {
     expect(screen.queryByRole('button', { name: 'Pause the demo' })).not.toBeInTheDocument()
 
     // Tabs this demo doesn't have say so.
-    fireEvent.click(screen.getByRole('tab', { name: 'Categories' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Categories' }))
     expect(screen.getByText(/This demo only logs/)).toBeInTheDocument()
 
     // The demo is off for good: nothing types itself in.
