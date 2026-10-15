@@ -1,11 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { SuccessButton, useButtonPhase } from '../components/SuccessButton'
 import { CountedTextarea } from '../components/CountedTextarea'
 import { submitFeedback } from '../api/feedback'
 import { track } from '../lib/analytics'
+import { base64Of, dataUrlFromFile } from '../features/scan-bill/image'
+import { ImageSquareIcon, XIcon } from '../components/icons'
 
 /**
  * `/account/feedback`. Twin of Mobile's account/feedback.tsx: a private bug
@@ -22,8 +24,24 @@ export function BugReportForm({ onDone, dialog = false }: { onDone: () => void; 
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [error, setError] = useState('')
+  // A JPEG data URL, downscaled like a bill scan so small text stays legible.
+  const [screenshot, setScreenshot] = useState<string | null>(null)
+  const [reading, setReading] = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
   const { saving, success, start, succeed, fail } = useButtonPhase()
-  const canSubmit = title.trim() !== '' && description.trim() !== ''
+  const canSubmit = title.trim() !== '' && description.trim() !== '' && !reading
+
+  async function handlePick(file: File) {
+    setError('')
+    setReading(true)
+    try {
+      setScreenshot(await dataUrlFromFile(file))
+    } catch {
+      setError("Couldn't read that image. Try another one.")
+    } finally {
+      setReading(false)
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -31,8 +49,8 @@ export function BugReportForm({ onDone, dialog = false }: { onDone: () => void; 
     setError('')
     start()
     try {
-      await submitFeedback('bug', title, description)
-      track('feedback_sent', { type: 'bug' })
+      await submitFeedback('bug', title, description, screenshot ? { image: base64Of(screenshot), mimeType: 'image/jpeg' } : undefined)
+      track('feedback_sent', { type: 'bug', screenshot: !!screenshot })
       succeed(onDone)
     } catch (err) {
       fail()
@@ -72,6 +90,41 @@ export function BugReportForm({ onDone, dialog = false }: { onDone: () => void; 
         rows={7}
       />
       <p className="recurring-hint">Only our team sees this. Leave out passwords or personal details.</p>
+
+      <div className="erd-log-label">Screenshot (optional)</div>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        hidden
+        aria-label="Choose a screenshot"
+        onChange={(e) => {
+          const file = e.target.files?.[0]
+          e.target.value = ''
+          if (file) void handlePick(file)
+        }}
+      />
+      {screenshot ? (
+        <div className="erd-photo">
+          <div className="erd-photo-frame">
+            <a href={screenshot} target="_blank" rel="noreferrer" className="erd-photo-thumb" aria-label="View screenshot">
+              {/* eslint-disable-next-line @next/next/no-img-element -- a local data URL, nothing to optimize */}
+              <img src={screenshot} alt="Your screenshot" />
+            </a>
+            <button type="button" className="erd-photo-remove" aria-label="Remove screenshot" disabled={saving || success} onClick={() => setScreenshot(null)}>
+              <XIcon size={12} aria-hidden="true" />
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button type="button" className="erd-date-chip" disabled={reading} onClick={() => fileRef.current?.click()}>
+          <ImageSquareIcon size={15} aria-hidden="true" />
+          {reading ? 'Loading…' : 'Add a screenshot'}
+        </button>
+      )}
+      <p className="recurring-hint">
+        Screenshots can show your balances and expenses. Want them hidden? Turn on Hide amounts in your account settings before you take one.
+      </p>
 
       {error && <p className="erd-log-error">{error}</p>}
 

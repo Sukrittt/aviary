@@ -23,11 +23,17 @@ function diagnostics(): { appVersion: string; device: string; screen: string } {
 // Bare messages on purpose, matching mobile: a status number in the message
 // would misfire mobile's sign-in bounce guard, and both apps render these
 // through the same written copy rather than showing the raw text.
-export async function submitFeedback(type: FeedbackType, title: string, description: string): Promise<void> {
+// `screenshot.image` is raw base64, bugs only: the server ignores it on ideas.
+export async function submitFeedback(
+  type: FeedbackType,
+  title: string,
+  description: string,
+  screenshot?: { image: string; mimeType: 'image/jpeg' },
+): Promise<void> {
   const resp = await apiFetch('/api/feedback', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ type, title: title.trim(), description: description.trim(), diagnostics: diagnostics() }),
+    body: JSON.stringify({ type, title: title.trim(), description: description.trim(), diagnostics: diagnostics(), ...(screenshot && { screenshot }) }),
   })
   if (resp.status === 429) throw new Error('rate_limited')
   if (!resp.ok) throw new Error('failed')
