@@ -13,9 +13,10 @@ export function ChangelogEditor({ release, revision }: { release?: ChangelogRele
   const [version, setVersion] = useState(release?.version ?? '')
   const [highlights, setHighlights] = useState(release?.highlights.join('\n') ?? '')
   const [body, setBody] = useState(release?.body ?? '')
+  const [otaAfter, setOtaAfter] = useState(release?.otaAfter?.slice(0, 16) ?? '')
   const preview: ChangelogRelease = {
     id: release?.id ?? 'preview', platform, title: title || 'Your next update', version,
-    highlights: highlights.split(/\r?\n/).map((line) => line.trim()).filter(Boolean).slice(0, 3), body, publishedAt: release?.publishedAt ?? null,
+    highlights: highlights.split(/\r?\n/).map((line) => line.trim()).filter(Boolean).slice(0, 3), body, otaAfter: otaAfter || null, publishedAt: release?.publishedAt ?? null,
   }
 
   return (
@@ -27,6 +28,7 @@ export function ChangelogEditor({ release, revision }: { release?: ChangelogRele
           <label>App<select className="adm-input" name="platform" value={platform} onChange={(e) => setPlatform(e.target.value as ChangelogPlatform)}><option value="web">Web</option><option value="mobile">Mobile</option></select></label>
           <label>Title<input className="adm-input" name="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. A faster way to log expenses" maxLength={CHANGELOG_LIMITS.title} required /></label>
           <label><span>Version label <span className="adm-sub">(optional)</span></span><input className="adm-input" name="version" value={version} onChange={(e) => setVersion(e.target.value)} placeholder="e.g. v1.2" maxLength={CHANGELOG_LIMITS.version} /></label>
+          {platform === 'mobile' && <label><span>Ships in an OTA published after <span className="adm-sub">(optional, UTC)</span></span><input className="adm-input" type="datetime-local" name="otaAfter" value={otaAfter} onChange={(e) => setOtaAfter(e.target.value)} aria-describedby="changelog-ota-hint" /><span className="adm-sub" id="changelog-ota-hint">For notes that ship over the air. Pick a time after the previous OTA and before you ran this one. The app waits until it&apos;s running that update. Leave empty for a store build.</span></label>}
           <label>Highlights<textarea className="adm-input" name="highlights" value={highlights} onChange={(e) => setHighlights(e.target.value)} placeholder="One highlight per line" rows={4} maxLength={CHANGELOG_LIMITS.highlights * (CHANGELOG_LIMITS.highlight + 2)} required aria-describedby="changelog-highlights-hint" /><span className="adm-sub" id="changelog-highlights-hint">1–3 highlights, up to 180 characters each.</span></label>
           <label><span>Full notes <span className="adm-sub">(optional)</span></span><textarea className="adm-input" name="body" value={body} onChange={(e) => setBody(e.target.value)} placeholder="Explain what changed and how to use it…" rows={7} maxLength={CHANGELOG_LIMITS.body} /><span className="adm-sub">Plain text, shown in the full changelog.</span></label>
           <div><SubmitButton variant="primary">Save draft</SubmitButton></div>
