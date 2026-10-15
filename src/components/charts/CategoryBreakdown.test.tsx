@@ -1,5 +1,5 @@
 import { expect, it, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { CategoryBreakdown } from './CategoryBreakdown'
 import type { BreakdownRow } from '@/src/lib/monthly'
 import { avatarInkFor } from '@/src/lib/emoji'
@@ -26,4 +26,13 @@ it("colours slices with each category's tile ink, not its rank, and removes the 
   expect(screen.queryByText('Nothing spent yet')).not.toBeInTheDocument()
   const slices = JSON.parse(screen.getByTestId('donut-colors').textContent!)
   expect(slices.map((s: { color: string }) => s.color)).toEqual(['Food', 'Rent', 'Bills'].map(avatarInkFor))
+})
+
+it('portals the filter dialog out of the chart card so it centres on the viewport', () => {
+  const rows: BreakdownRow[] = ['Food', 'Rent'].map((key) => ({ key, label: key, icon: null, spent: 30, assigned: 100, assignedIsCarried: false, pct: 50 }))
+  vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} })
+  const { container } = render(<CategoryBreakdown {...props} rows={rows} categoryRows={rows} />)
+  fireEvent.click(screen.getByRole('button', { name: 'Filter chart' }))
+  const dialog = screen.getByRole('dialog', { name: 'Filter chart' })
+  expect(container.contains(dialog)).toBe(false)
 })

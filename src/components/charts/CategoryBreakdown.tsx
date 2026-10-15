@@ -11,6 +11,7 @@ import { avatarInkFor, avatarStyleFor } from '@/src/lib/emoji'
 import { DonutChart, type DonutSegment } from './DonutChart'
 import { AutoHeight, PopIn, ease } from '@/src/components/landing/mobile/kit'
 import { BirdEmptyState } from '../BirdEmptyState'
+import { Scrim } from '../MotionSheet'
 import { CategoryIcon } from '../CategoryIcon'
 
 interface Props {
@@ -365,7 +366,7 @@ export function CategoryBreakdown({ rows, categoryRows, groupRows, categoryGroup
 
       <AnimatePresence>
       {filterOpen && (
-        <motion.div
+        <Scrim
           key="filter"
           className="ins-filter-overlay"
           role="presentation"
@@ -439,7 +440,7 @@ export function CategoryBreakdown({ rows, categoryRows, groupRows, categoryGroup
             </div>
             </AutoHeight>
           </motion.section>
-        </motion.div>
+        </Scrim>
       )}
       </AnimatePresence>
     </>
