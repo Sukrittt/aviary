@@ -24,7 +24,7 @@ export interface Post extends PostMeta { slug: string; path: string; readingMinu
 const DIR = join(process.cwd(), 'content/blog')
 const WORDS_PER_MINUTE = 200
 
-export const AUTHOR = { name: 'Sukrit', bio: 'who builds Aviary', url: 'https://github.com/Sukrittt' }
+export const AUTHOR = { name: 'Sukrit', bio: 'Founder, builds Aviary', url: 'https://github.com/Sukrittt' }
 
 export function postSlugs(): string[] {
   return readdirSync(DIR).filter((f) => f.endsWith('.mdx')).map((f) => f.slice(0, -4))

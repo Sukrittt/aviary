@@ -26,19 +26,19 @@ export default function WalnutPage() {
       ['Platforms', 'Android and web', 'Android. We couldn’t confirm a working iPhone listing'],
     ]} />
 
-    <h2>Where axio (ex-Walnut) is stronger</h2>
-    <ul>
-      <li><strong>No typing.</strong> SMS tracking fills in your spends for you.</li>
-      <li><strong>Free.</strong> There’s no subscription to track spending.</li>
-      <li><strong>Scale.</strong> The listing shows over a crore downloads.</li>
-    </ul>
-
     <h2>Where Aviary is stronger</h2>
     <ul>
       <li><strong>No SMS or bank access.</strong> Aviary never reads your messages or links your bank.</li>
       <li><strong>A real budget.</strong> You plan the month in categories, so you know what’s left for food or fun before you pay.</li>
       <li><strong>Nothing to sell you.</strong> No loans or offers. Your subscription is how Aviary makes money.</li>
       <li><strong>A web app.</strong> Same budget on a bigger screen.</li>
+    </ul>
+
+    <h2>Where axio (ex-Walnut) is stronger</h2>
+    <ul>
+      <li><strong>No typing.</strong> SMS tracking fills in your spends for you.</li>
+      <li><strong>Free.</strong> There’s no subscription to track spending.</li>
+      <li><strong>Scale.</strong> The listing shows over a crore downloads.</li>
     </ul>
 
     <Sources checked={COMPARE_CHECKED} links={[

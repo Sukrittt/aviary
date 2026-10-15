@@ -13,7 +13,7 @@ import { jsonLd } from '@/src/components/JsonLd'
  * BreadcrumbList JSON-LD, the page in one readable column, then related pages.
  * Lives inside app/(site)/layout.tsx's header and footer.
  */
-export function ContentPage({ section, path, label, related = [], wide = false, children }: { section: ContentSection; path: string; label?: string; related?: Related[]; wide?: boolean; children: ReactNode }) {
+export function ContentPage({ section, path, label, related = [], className, children }: { section: ContentSection; path: string; label?: string; related?: Related[]; className?: string; children: ReactNode }) {
   const hub = CONTENT_SECTIONS[section]
   const crumbs: [string, string][] = [['/', 'Home'], [hub.path, hub.label], ...(path === hub.path ? [] : [[path, label ?? contentLabel(path as PagePath)] as [string, string]])]
   return <>
@@ -25,7 +25,7 @@ export function ContentPage({ section, path, label, related = [], wide = false, 
     <nav className="lp-crumbs" aria-label="Breadcrumb"><ol>
       {crumbs.map(([href, name], i) => <li key={href}>{i === crumbs.length - 1 ? <span aria-current="page">{name}</span> : <Link href={href}>{name}</Link>}</li>)}
     </ol></nav>
-    <article className={`legal-doc content-doc${wide ? ' content-doc--wide' : ''}`}>{children}</article>
+    <article className={`legal-doc content-doc${className ? ` ${className}` : ''}`}>{children}</article>
     {related.length > 0 && <RelatedPages paths={related} />}
   </>
 }
