@@ -171,8 +171,8 @@ export function LandingPage({ monthlyPrice, ios = false, android = false, intl =
           <h3>A streak worth keeping.</h3>
           <p>Expense Wrapped turns your month into a recap, longest logging streak included.</p>
           <div className="lp-win-shots">
-            <Image src={`/landing/${intl ? 'intl/' : ''}wrapped-streak.png`} alt="Longest logging streak: 23 days, 8 Sep to 30 Sep." width={576} height={640} sizes="(max-width: 760px) 45vw, 250px" />
-            <Image src={`/landing/${intl ? 'intl/' : ''}wrapped-persona.png`} alt="Your spending personality: The Homebody." width={576} height={640} sizes="(max-width: 760px) 45vw, 250px" />
+            <Image src={`/landing/${intl ? 'intl/' : ''}wrapped-streak.png`} alt={intl ? 'Longest logging streak: 23 days, 8 Sep to 30 Sep.' : 'Longest logging streak: 15 days, 12 Sep to 26 Sep.'} width={576} height={640} sizes="(max-width: 760px) 45vw, 250px" />
+            <Image src={`/landing/${intl ? 'intl/' : ''}wrapped-persona.png`} alt={intl ? 'Your spending personality: The Homebody.' : 'Your spending personality: The Quiet Investor.'} width={576} height={640} sizes="(max-width: 760px) 45vw, 250px" />
           </div>
         </article>
       </div>

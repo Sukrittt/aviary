@@ -3,7 +3,7 @@
 import { createContext, useContext, type ReactNode } from 'react'
 import { CurrencyScope } from '@/src/context/CurrencyContext'
 import { CATEGORIES, CATEGORIES_INTL } from './mobile/demo'
-import { AirplaneIcon, BarbellIcon, BowlSteamIcon, BusIcon, CookieIcon, GameControllerIcon, HouseIcon, LightbulbIcon, ShoppingBagIcon, ShoppingCartIcon, TrainIcon, type PhosphorIcon } from '@/src/components/icons'
+import { BowlSteamIcon, BusIcon, ChartLineIcon, CoffeeIcon, CookieIcon, GameControllerIcon, HouseIcon, LightbulbIcon, MopedIcon, PizzaIcon, ShoppingCartIcon, TaxiIcon, type PhosphorIcon } from '@/src/components/icons'
 
 /**
  * The landing's sample data, by where the visitor is. India sees rupees, chai and UPI;
@@ -32,7 +32,7 @@ const IN = {
     habit: 'Chai on Tuesdays, around 4pm', other: ['Metro card', 100] as [string, number],
   },
   cabHome: 240,
-  investments: 'Equity, FDs, gold and crypto',
+  investments: 'Mutual funds, FDs, PPF and gold',
   playItem: 'Coffee with Sam', playAmount: ['1', '8', '0'],
   // Mobile's capture tip example (log-expense.tsx CAPTURE_TIP_COPY).
   starters: ['Chai', 'Uber home', 'Groceries', 'Netflix'],
@@ -56,23 +56,24 @@ const IN = {
   // What each recording shows, for the cards around it and screen readers.
   scan: {
     copy: 'Point your camera at a receipt. Aviary reads every line, taxes included.',
-    rows: [['Paneer Biryani', 'Split 3 ways', '₹380'], ['Gobi Manchurian', 'Split 2 ways', '₹155'], ['Coke Tin 330 ML', 'Split 2 ways', '₹133']] as [string, string, string][],
-    bill: '₹1,725.70', shared: '2 or 3 ways', share: '₹672.96', envelope: 'Eating out',
-    sr: 'A ₹1,725.70 Meghana Foods bill is scanned. Aviary reads every line, you mark which items were shared two or three ways, and it logs your ₹672.96 share to Eating out.',
+    rows: [['Med Brownie', 'Split 2 ways', '₹48.57'], ['Coke Float', 'Split 2 ways', '₹20'], ['CGST @ 2.5%', 'Split 2 ways', '₹1.72']] as [string, string, string][],
+    bill: '₹144', shared: '2 ways', share: '₹72', envelope: 'Eating out',
+    sr: 'A ₹144 McDonald’s bill is scanned. Aviary reads every line, you mark the brownie and the Coke float as shared two ways, and it logs your ₹72 share to Eating out.',
   },
-  added: 'Added ₹150 for Bike to office. Metro has ₹960 left of ₹1,110.',
+  added: 'Added ₹250 for Rapido. Cabs & Auto has ₹1,890 left of ₹3,500.',
   notice: {
-    quote: '“Bike to office? Log it while it’s fresh.”',
-    steps: ['Noticed it’s Friday, 9:15am, like the last three', 'Filled in Bike to office · Metro · ₹150 · UPI', 'Logged with one tap on the notification', 'Metro has ₹960 left this month'],
+    quote: '“Rapido? Log it while it’s fresh.”',
+    steps: ['Noticed it’s Friday, 9:15am, like the last three', 'Filled in Rapido · Cabs & Auto · ₹250 · UPI', 'Logged with one tap on the notification', 'Cabs & Auto has ₹1,890 left this month'],
     label: 'Today in Aviary',
     // First row is the one the nudge just logged; it slides in once the steps finish.
-    rows: [[tile(TrainIcon), '#f6ecd2', 'Bike to office', '2 Oct ’26 · Metro', '₹150'], [tile(ShoppingBagIcon), '#ead2f2', 'Shopping', '2 Oct ’26 · Shopping', '₹1,500'], [tile(AirplaneIcon), '#f8d9cf', 'Trip with friends', '2 Oct ’26 · Travel', '₹1,500'], [tile(LightbulbIcon), '#d4e5ea', 'Electricity', '2 Oct ’26 · Utilities', '₹6,000'], [tile(ShoppingCartIcon), '#f6ecd2', 'Groceries', '2 Oct ’26 · Groceries', '₹5,000'], [tile(BarbellIcon), '#d4e5ea', 'Gym membership', '2 Oct ’26 · Fitness', '₹1,500']] as [ReactNode, string, string, string, string][],
+    // The rest mirrors the demo account's Activity list (demo-recordings/india/activity.jpeg).
+    rows: [[tile(MopedIcon), '#d4e5ea', 'Rapido', '16 Oct ’26 · Cabs & Auto', '₹250'], [tile(TaxiIcon), '#d4e5ea', 'Namma Yatri', '15 Oct ’26 · Cabs & Auto', '₹270'], [tile(CoffeeIcon), '#f8d9cf', 'Filter coffee', '15 Oct ’26 · Coffee & snacks', '₹100'], [tile(BowlSteamIcon), '#d6e7d8', 'Vidyarthi Bhavan', '15 Oct ’26 · Eating out', '₹690'], [tile(ChartLineIcon), '#f6ecd2', 'PPF deposit', '15 Oct ’26 · Investments', '₹5,000'], [tile(LightbulbIcon), '#f6ecd2', 'BWSSB water', '12 Oct ’26 · Utilities', '₹320']] as [ReactNode, string, string, string, string][],
   },
-  headsUp: '₹199 due in 3 days (Oct 28).',
+  headsUp: '₹649 due in 3 days (Nov 12).',
   ask: {
     chips: ['What can I cut back on?', 'How does this month compare?', 'Can I afford 90k iPhone?'],
-    left: '₹36,802', bar: 0.53,
-    sr: 'You ask “Can I afford 90k iPhone?” and Aviary answers from your budget: not yet. You have ₹36,802 left to spend this month, so it suggests a gadget category you add to each month.',
+    left: '₹43,640', bar: 0.34,
+    sr: 'You ask “Can I afford a 90k iPhone?” and Aviary answers from your budget: yes, if you use your unspent money and savings. You have ₹43,640 unspent across categories this month, and it suggests covering the remaining ₹50,859 from savings.',
   },
 }
 
@@ -88,7 +89,7 @@ const INTL: Sample = {
     habit: 'Coffee on Tuesdays, around 4pm', other: ['Bus fare', 2.75] as [string, number],
   },
   cabHome: 18,
-  investments: 'Stocks, savings, gold and crypto',
+  investments: 'Stocks, a 401(k), savings and crypto',
   playItem: 'Coffee with Sam', playAmount: ['6'],
   starters: ['Coffee', 'Uber home', 'Groceries', 'Netflix'],
   widgetToday: [{ item: 'Coffee with Sam', amount: 6 }, { item: 'Bus fare', amount: 2.75 }],
@@ -119,12 +120,12 @@ const INTL: Sample = {
     quote: '“Coffee with Sam? Log it while it’s fresh.”',
     steps: ['Noticed it’s Friday, 4:15pm, like the last three', 'Filled in Coffee with Sam · Eating out · $6 · Card', 'Logged with one tap on the notification', 'Eating out has $240 left this month'],
     label: 'This week in Aviary',
-    rows: [[tile(BowlSteamIcon), '#d6e7d8', 'Coffee with Sam', '9 Oct ’26 · Eating out', '$6'], [tile(BusIcon), '#ead2f2', 'Bus Fare', '9 Oct ’26 · Commute', '$3'], [tile(GameControllerIcon), '#d6e7d8', 'Movie tickets', '9 Oct ’26 · Entertainment', '$50'], [tile(BusIcon), '#ead2f2', 'Commute', '9 Oct ’26 · Commute', '$20'], [tile(BowlSteamIcon), '#d6e7d8', 'Coffee', '7 Oct ’26 · Eating out', '$4'], [tile(HouseIcon), '#f8d9cf', 'Rent', '5 Oct ’26 · Rent', '$1,500']] as [ReactNode, string, string, string, string][],
+    rows: [[tile(BowlSteamIcon), '#d6e7d8', 'Coffee with Sam', '9 Oct ’26 · Eating out', '$6'], [tile(BusIcon), '#ead2f2', 'Bus Fare', '9 Oct ’26 · Commute', '$3'], [tile(PizzaIcon), '#f6ecd2', 'DoorDash', '9 Oct ’26 · Food Delivery', '$24.40'], [tile(ShoppingCartIcon), '#f8d9cf', 'Milk', '10 Oct ’26 · Groceries', '$3.49'], [tile(GameControllerIcon), '#d6e7d8', 'Movie tickets', '16 Oct ’26 · Entertainment', '$50'], [tile(HouseIcon), '#f8d9cf', 'Rent', '5 Oct ’26 · Rent', '$1,500']] as [ReactNode, string, string, string, string][],
   },
   headsUp: '$15.49 due in 3 days (Oct 28).',
   ask: {
     chips: ['What can I cut back on?', 'How does this month compare?', 'Can I afford a $900 iPhone?'],
-    left: '$2,568', bar: 0.57,
+    left: '$2,497', bar: 0.55,
     sr: 'You ask “Can I afford a $900 iPhone?” and Aviary answers from your budget: yes, if it comes out of Savings. Your Savings category has $1,160 this month, so it suggests moving $900 from there.',
   },
 }

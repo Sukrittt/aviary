@@ -39,8 +39,8 @@ type ChapterId = 'learns' | 'scan' | 'ask'
 // Each chapter's screen-reader text comes from the visitor's sample in HeroStage.
 const CHAPTERS: { id: ChapterId; label: string; ms: number }[] = [
   { id: 'learns', label: 'Learns your habits', ms: 7300 },
-  { id: 'scan', label: 'Scan a bill', ms: 15500 },
-  { id: 'ask', label: 'Ask Aviary', ms: 16000 },
+  { id: 'scan', label: 'Scan a bill', ms: 20200 },
+  { id: 'ask', label: 'Ask Aviary', ms: 16100 },
 ]
 // Clip chapters run ~1.5s past their recording so the finished screen holds before the cut.
 // Learns' beats: lock screen, nudge lands, thumb on "Log", logged.
