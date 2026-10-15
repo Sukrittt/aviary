@@ -5,10 +5,7 @@ import { CompareTable, ContentPage, SoftCta, Sources } from '@/src/components/co
 export const metadata = pageMetadata('/compare/goodbudget')
 
 export default function GoodbudgetPage() {
-  return <ContentPage section="compare" path="/compare/goodbudget" related={['/compare/ynab-alternative-india', '/features/budget-without-bank-linking', '/tools/50-30-20-calculator']}>
-    <h1>Aviary vs Goodbudget</h1>
-    <p className="legal-updated">Facts about Goodbudget checked {COMPARE_CHECKED}</p>
-    <p className="lp-lede-doc">Goodbudget and Aviary are close cousins. Both use envelope budgeting: you split your money into envelopes, or categories, and spend from them. Both work well without linking a bank, which matters in India because neither one syncs with Indian banks.</p>
+  return <ContentPage section="compare" path="/compare/goodbudget" title="Aviary vs Goodbudget" kicker={`Compare · Facts checked ${COMPARE_CHECKED}`} lede={<>Goodbudget and Aviary are close cousins. Both use envelope budgeting: you split your money into envelopes, or categories, and spend from them. Both work well without linking a bank, which matters in India because neither one syncs with Indian banks.</>} related={['/compare/ynab-alternative-india', '/features/budget-without-bank-linking', '/tools/50-30-20-calculator']}>
 
     <h2>The short version</h2>
     <p>For most people in India, Aviary is the better fit.</p>

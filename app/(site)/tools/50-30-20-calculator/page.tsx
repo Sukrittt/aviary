@@ -6,9 +6,7 @@ import { Calculator503020 } from '@/src/components/content/Calculators'
 export const metadata = pageMetadata('/tools/50-30-20-calculator')
 
 export default function Calculator503020Page() {
-  return <ContentPage section="tools" path="/tools/50-30-20-calculator" related={['/tools/salary-budget-planner', '/tools/emergency-fund-calculator', '/tools/rent-affordability-calculator']}>
-    <h1>50/30/20 budget calculator</h1>
-    <p className="lp-lede-doc">Put in what lands in your account each month. The calculator splits it into needs, wants and savings.</p>
+  return <ContentPage section="tools" path="/tools/50-30-20-calculator" title="50/30/20 budget calculator" lede={<>Put in what lands in your account each month. The calculator splits it into needs, wants and savings.</>} related={['/tools/salary-budget-planner', '/tools/emergency-fund-calculator', '/tools/rent-affordability-calculator']}>
     <Calculator503020 />
 
     <h2>What the 50/30/20 rule says</h2>

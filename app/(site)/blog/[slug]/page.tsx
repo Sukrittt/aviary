@@ -3,7 +3,6 @@ import { AUTHOR, articleJsonLd, formatPostDate, getPost, postMetadata, postSlugs
 import { jsonLd } from '@/src/components/JsonLd'
 import { ContentPage, SoftCta, type Related } from '@/src/components/content/ContentPage'
 import { LinkedinLogoIcon, WhatsappLogoIcon, XLogoIcon } from '@/src/components/icons'
-import { serifFont } from '../fonts'
 
 // Every post is a file in content/blog, so the list is known at build time.
 export const dynamicParams = false
@@ -25,22 +24,22 @@ export default async function BlogPostPage({ params }: Props) {
   // Fail the build on a typo'd related link rather than shipping a dead one.
   for (const r of related) if (typeof r === 'string' && !(r in pages)) throw new Error(`${post.slug}: unknown related page ${r}`)
 
-  return <ContentPage section="blog" path={post.path} label={post.title} related={related} className={`blog-doc ${serifFont.variable}`}>
+  return <ContentPage section="blog" path={post.path} label={post.title} related={related}>
     {jsonLd(articleJsonLd(post))}
-    <header className="blog-head">
-      <p className="blog-kicker">
+    <header className="article-head">
+      <p className="article-kicker">
         <time dateTime={post.published}>{formatPostDate(post.published)}</time>
         {post.updated !== post.published && <> · Updated <time dateTime={post.updated}>{formatPostDate(post.updated)}</time></>}
         {' · '}{post.readingMinutes} min read
       </p>
       <h1>{post.title}</h1>
-      <p className="blog-dek">{post.description}</p>
+      <p className="article-dek">{post.description}</p>
       <div className="blog-author">
         <span aria-hidden="true">{post.author[0]}</span>
         <p>{post.author === AUTHOR.name ? <><a href={AUTHOR.url} rel="author noreferrer" target="_blank">{post.author}</a><small>{AUTHOR.bio}</small></> : post.author}</p>
       </div>
     </header>
-    <div className="blog-body">
+    <div className="article-body">
       <ShareLinks post={post} />
       <div className="lp-post"><Content /></div>
     </div>

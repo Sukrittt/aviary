@@ -6,10 +6,7 @@ import { CompareTable, ContentPage, SoftCta, Sources } from '@/src/components/co
 export const metadata = pageMetadata('/compare/walnut')
 
 export default function WalnutPage() {
-  return <ContentPage section="compare" path="/compare/walnut" related={['/compare/axio', '/features/budget-without-bank-linking', '/features/bill-scanning']}>
-    <h1>Looking for Walnut? Here’s what changed</h1>
-    <p className="legal-updated">Checked {COMPARE_CHECKED}</p>
-    <p className="lp-lede-doc">Walnut was one of India’s best-known expense trackers. It doesn’t exist as its own app any more. Its Google Play listing is now <strong>axio: Income &amp; Expense Tracker</strong>, from Axio Digital.</p>
+  return <ContentPage section="compare" path="/compare/walnut" title="Looking for Walnut? Here’s what changed" kicker={`Compare · Facts checked ${COMPARE_CHECKED}`} lede={<>Walnut was one of India’s best-known expense trackers. It doesn’t exist as its own app any more. Its Google Play listing is now <strong>axio: Income &amp; Expense Tracker</strong>, from Axio Digital.</>} related={['/compare/axio', '/features/budget-without-bank-linking', '/features/bill-scanning']}>
     <p>axio says it’s “formerly known as Capital Float, Walnut &amp; Walnut 369”. So if you had Walnut installed, the app you’d get today is axio. It still tracks spending from your SMS, and it also offers credit: Pay Later, EMIs and personal loans.</p>
 
     <h2>What that means if you want a Walnut alternative</h2>

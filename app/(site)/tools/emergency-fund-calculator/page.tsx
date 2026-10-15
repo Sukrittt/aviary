@@ -6,9 +6,7 @@ import { EmergencyFundCalculator } from '@/src/components/content/Calculators'
 export const metadata = pageMetadata('/tools/emergency-fund-calculator')
 
 export default function EmergencyFundPage() {
-  return <ContentPage section="tools" path="/tools/emergency-fund-calculator" related={['/tools/salary-budget-planner', '/tools/50-30-20-calculator', '/tools/rent-affordability-calculator']}>
-    <h1>Emergency fund calculator</h1>
-    <p className="lp-lede-doc">Find out how much you need set aside for a bad month, and how long it’ll take to get there.</p>
+  return <ContentPage section="tools" path="/tools/emergency-fund-calculator" title="Emergency fund calculator" lede={<>Find out how much you need set aside for a bad month, and how long it’ll take to get there.</>} related={['/tools/salary-budget-planner', '/tools/50-30-20-calculator', '/tools/rent-affordability-calculator']}>
     <EmergencyFundCalculator />
 
     <h2>What an emergency fund is for</h2>

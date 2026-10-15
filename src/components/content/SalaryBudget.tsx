@@ -9,9 +9,7 @@ const SALARY_PAGES: [number, PagePath][] = [[25000, '/tools/budget-for-25000-sal
 /** A pre-filled salary budget page. The copy is each page's own; this is just the frame. */
 export function SalaryBudget({ salary, path, intro, children }: { salary: number; path: PagePath; intro: ReactNode; children: ReactNode }) {
   const others = SALARY_PAGES.filter(([, p]) => p !== path).map(([, p]) => p)
-  return <ContentPage section="tools" path={path} related={['/tools/salary-budget-planner', ...others, '/tools/emergency-fund-calculator']}>
-    <h1>How to budget a {lakhs(salary)} salary</h1>
-    <p className="lp-lede-doc">{intro}</p>
+  return <ContentPage section="tools" path={path} title={`How to budget a ${lakhs(salary)} salary`} lede={intro} related={['/tools/salary-budget-planner', ...others, '/tools/emergency-fund-calculator']}>
     <h2>A starting plan for {lakhs(salary)} a month</h2>
     <p>This uses take-home pay and puts rent at 30%. Got a different rent? Type it in and the rest adjusts: wants shrink first, savings last.</p>
     <SalaryPlanner initial={salary} />

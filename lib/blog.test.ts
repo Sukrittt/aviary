@@ -1,14 +1,12 @@
 // @vitest-environment node
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { pages } from './seo'
 import { allPosts, articleJsonLd, getPost, postMetadata, postSlugs, readingMinutes, wordCount } from './blog'
 import { GET as rss } from '@/app/(site)/blog/rss.xml/route'
 import BlogPostPage from '@/app/(site)/blog/[slug]/page'
-
-vi.mock('next/font/google', () => ({ Newsreader: () => ({ variable: 'serif' }) }))
 
 const words = (slug: string) => wordCount(readFileSync(join(process.cwd(), 'content/blog', `${slug}.mdx`), 'utf8'))
 

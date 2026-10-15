@@ -6,9 +6,7 @@ import { RentCalculator } from '@/src/components/content/Calculators'
 export const metadata = pageMetadata('/tools/rent-affordability-calculator')
 
 export default function RentCalculatorPage() {
-  return <ContentPage section="tools" path="/tools/rent-affordability-calculator" related={['/tools/salary-budget-planner', '/tools/budget-for-40000-salary', '/tools/emergency-fund-calculator']}>
-    <h1>How much rent can I afford?</h1>
-    <p className="lp-lede-doc">Put in your monthly take-home salary and any EMIs. You’ll get a comfortable rent and a stretch rent, rounded the way listings are.</p>
+  return <ContentPage section="tools" path="/tools/rent-affordability-calculator" title="How much rent can I afford?" lede={<>Put in your monthly take-home salary and any EMIs. You’ll get a comfortable rent and a stretch rent, rounded the way listings are.</>} related={['/tools/salary-budget-planner', '/tools/budget-for-40000-salary', '/tools/emergency-fund-calculator']}>
     <RentCalculator />
 
     <h2>The rule behind it</h2>

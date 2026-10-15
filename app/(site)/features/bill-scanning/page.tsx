@@ -5,9 +5,7 @@ import { ContentPage, Screen, SoftCta } from '@/src/components/content/ContentPa
 export const metadata = pageMetadata('/features/bill-scanning')
 
 export default function BillScanningPage() {
-  return <ContentPage section="features" path="/features/bill-scanning" related={['/features/ask-aviary', '/features/budget-without-bank-linking', '/compare/money-manager']}>
-    <h1>Scan a bill, and it’s in your budget</h1>
-    <p className="lp-lede-doc">Long restaurant bills and grocery receipts are the spends people put off logging. Snap the bill and Aviary reads every line, taxes included.</p>
+  return <ContentPage section="features" path="/features/bill-scanning" title="Scan a bill, and it’s in your budget" lede={<>Long restaurant bills and grocery receipts are the spends people put off logging. Snap the bill and Aviary reads every line, taxes included.</>} related={['/features/ask-aviary', '/features/budget-without-bank-linking', '/compare/money-manager']}>
     <Screen src="/landing/poster-scan.jpg" alt="Aviary after scanning a Meghana Foods bill: Added ₹672.96, with ₹408.04 left of ₹1,501 in Eating Out." caption="A ₹1,725.70 dinner bill, split three ways. Your share lands in Eating out." />
 
     <h2>How it works</h2>

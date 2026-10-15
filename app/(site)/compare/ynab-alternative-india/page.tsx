@@ -6,10 +6,7 @@ import { CompareTable, ContentPage, SoftCta, Sources } from '@/src/components/co
 export const metadata = pageMetadata('/compare/ynab-alternative-india')
 
 export default function YnabAlternativePage() {
-  return <ContentPage section="compare" path="/compare/ynab-alternative-india" related={['/compare/goodbudget', '/features/budget-without-bank-linking', '/tools/salary-budget-planner']}>
-    <h1>A YNAB alternative for India</h1>
-    <p className="legal-updated">Facts about YNAB checked {COMPARE_CHECKED}</p>
-    <p className="lp-lede-doc">YNAB made zero-based budgeting popular: every time money comes in, you decide what it’s for. If you’re in India, you’ve probably hit two walls. It’s priced in US dollars, and its bank import doesn’t cover Indian banks.</p>
+  return <ContentPage section="compare" path="/compare/ynab-alternative-india" title="A YNAB alternative for India" kicker={`Compare · Facts checked ${COMPARE_CHECKED}`} lede={<>YNAB made zero-based budgeting popular: every time money comes in, you decide what it’s for. If you’re in India, you’ve probably hit two walls. It’s priced in US dollars, and its bank import doesn’t cover Indian banks.</>} related={['/compare/goodbudget', '/features/budget-without-bank-linking', '/tools/salary-budget-planner']}>
     <p>Aviary uses the same idea. You give your money jobs in categories, and every spend shows what’s left for that job. It’s built for paying by UPI and logging on your phone, and it’s priced in rupees.</p>
 
     <h2>The short version</h2>
