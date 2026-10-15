@@ -36,7 +36,7 @@ const FAQS = [
   { q: 'What happens when my trial ends?', a: 'Nothing is charged. When you open the app, you’ll see the two plans and pick one to carry on. Your categories and history stay exactly where you left them, and you can export your data whether or not you subscribe.' },
   { q: 'Do I need a card to start?', a: 'No. There’s no card, no UPI mandate and nothing to cancel during the 30 days. You only set up a payment method if you decide to keep going.' },
   { q: 'Can I cancel?', a: 'Any time, with no fee and no notice period. You keep full access until the end of the period you’ve already paid for.' },
-  { q: 'Do you offer refunds?', a: <>Payments cover the period you’ve started, so we don’t refund part of a month or year after you cancel. Some cases do get a full refund, and the <Link href="/legal/refunds">refund and cancellation policy</Link> lists them.</> },
+  { q: 'Do you offer refunds?', a: 'Payments cover the period you’ve started, so we don’t refund part of a month or year after you cancel. Some cases do get a full refund, and the refund policy lists them.', link: { href: '/legal/refunds', label: 'Read the refund and cancellation policy' } },
   { q: 'Are taxes included?', a: 'Yes. The price you see here is the price you pay on the website. Google Play sets its own local prices, so the Android app may show a slightly different number.' },
   { q: 'Why isn’t Aviary free?', a: 'Aviary is built by one person and paid for by the people who use it. That keeps it free of ads and free of selling your data. The code is open source, too.' },
 ]
@@ -58,7 +58,7 @@ export default async function PricingPage() {
         <TrackedLink className="lp-button lp-button--dark" href={PLAY_STORE_URL} event="store_cta_clicked" properties={{ placement: 'pricing_hero' }}><DeviceMobileIcon size={18} aria-hidden="true" />Start your free trial</TrackedLink>
         <Link href="/expense" className="lp-button lp-button--ghost"><MonitorIcon size={18} aria-hidden="true" />Open web app</Link>
       </div>
-      <span className="lp-hero-note">Prices include taxes · Pay on the web or through Google Play</span>
+      <span className="lp-hero-note">Prices are set for your country and include taxes · Pay on the web or through Google Play</span>
     </section>
 
     <section className="lp-plans-wrap" aria-labelledby="plans-title">

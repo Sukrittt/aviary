@@ -101,7 +101,7 @@ describe('WebPlanPicker', () => {
   })
 
   it('checks out through PayPal for visitors the server routes there, and says so', () => {
-    plansMock.mockReturnValue({ data: { plans: [{ period: 'monthly', amount: 490, currency: 'USD' }, { period: 'yearly', amount: 4900, currency: 'USD' }], provider: 'paypal' }, isLoading: false, isError: false })
+    plansMock.mockReturnValue({ data: { plans: [{ period: 'monthly', amount: 499, currency: 'USD' }, { period: 'yearly', amount: 4999, currency: 'USD' }], provider: 'paypal' }, isLoading: false, isError: false })
     render(<WebPlanPicker />)
     expect(checkoutMock).toHaveBeenCalledWith(expect.anything(), 'paypal')
     expect(screen.getByText(/Pay with PayPal or a card/)).toBeTruthy()

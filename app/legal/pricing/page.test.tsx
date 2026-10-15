@@ -41,12 +41,12 @@ describe('public pricing', () => {
     render(await PricingPage())
 
     const monthly = within(screen.getByRole('region', { name: 'Monthly' }))
-    expect(monthly.getByText('$4.90')).toBeInTheDocument()
-    expect(monthly.getByText('About $0.16 a day.')).toBeInTheDocument()
+    expect(monthly.getByText('$4.99')).toBeInTheDocument()
+    expect(monthly.getByText('About $0.17 a day.')).toBeInTheDocument()
     const yearly = within(screen.getByRole('region', { name: 'Yearly' }))
-    expect(yearly.getByText('$49')).toBeInTheDocument()
+    expect(yearly.getByText('$49.99')).toBeInTheDocument()
     expect(yearly.getByText('Save 16%')).toBeInTheDocument()
-    expect(yearly.getByText('Works out to $4.08 a month.')).toBeInTheDocument()
+    expect(yearly.getByText('Works out to $4.17 a month.')).toBeInTheDocument()
     expect(getPlanPrices).not.toHaveBeenCalled()
   })
 

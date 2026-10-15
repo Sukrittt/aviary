@@ -5,6 +5,7 @@ import { MiniWidget, EnvelopeWidget } from '../components/landing/mobile/Widget'
 import { ArrowRightIcon, CaretUpIcon, GithubLogoIcon, ChatTextIcon, MonitorIcon, RepeatIcon, ScanIcon, DeviceMobileIcon, HandWavingIcon, WifiSlashIcon } from '@/src/components/icons'
 import { Playground } from '../components/landing/Playground'
 import { AddedClip, Faq, LandingMotion } from '../components/landing/LandingClient'
+import { landingFaqs } from '../components/landing/faqs'
 import { TrackedLink } from '../components/TrackedLink'
 import { IosWaitlist } from '../components/landing/IosWaitlist'
 // Parked while the page leads with habit nudges; see the commented section below.
@@ -41,21 +42,6 @@ const DAYS: [string, string, string][] = [
 ]
 
 
-const faqs = (intl: boolean) => [
-  { q: 'How does Aviary learn my habits?', a: 'It looks at what you’ve logged. Log the same thing on the same weekday, around the same time, three times in eight weeks, and Aviary treats it as a habit. It then nudges you 15 minutes after your usual time with the details filled in. You can turn nudges off in notification settings.' },
-  { q: 'Do I connect my bank? How do expenses get added?', a: 'There’s no bank connection. You log purchases yourself, which makes spending a deliberate check-in. Habit nudges, the home-screen widget, recurring expenses, receipt scanning and typing a few spends at once keep that quick. Transactions aren’t imported from your bank.' },
-  { q: 'What if I miss a few days?', a: `Nothing breaks. Open Ask Aviary and type whatever you remember, like ${intl ? '“bus 3, lunch 15, Friday dinner 60”' : '“auto 240, lunch 150, Friday dinner 900”'}. Aviary turns it into separate spends, picks the categories, and you check them before they’re logged. Two missed days take about a minute.` },
-  { q: 'What’s a category?', a: 'A category is a slice of your money set aside for one purpose, like rent, groceries or fun. Your bank balance mixes all of those together. Categories show what’s available for each one before you spend. Savings is a purpose too: you don’t have to spend everything you set aside.' },
-  { q: `I’ve put every ${intl ? 'dollar' : 'rupee'} in a category. Am I out of money?`, a: 'No. It means all your money has a purpose. It’s still yours until you spend it. Check each category to see what’s left for that purpose.' },
-  { q: 'Why not just use a spreadsheet?', a: 'A spreadsheet can do the math. The hard part is keeping it up on your phone, at the counter, every day. Aviary has the method built in, and most logs take one tap.' },
-  { q: 'Does it work if my income changes every month?', a: 'Yes. You only budget money you already have. When a payment lands, give it jobs: rent first, then essentials. A slow month just fills fewer categories.' },
-  { q: 'Is Aviary free?', a: <>You can try Aviary free for 30 days, with no payment details needed to get started. After the trial, you’ll need a paid subscription to keep using the app. <Link href="/legal/pricing">See plans and pricing</Link>. Aviary is also open source; you can inspect the code on GitHub.</> },
-  { q: 'Can I use it on my phone and computer?', a: 'Yes. Android and web share your account’s budgets and transactions. Android also offers a home-screen widget and notifications. New expenses can be logged offline on mobile and sync when you reconnect; other actions need a connection. There’s no iPhone app yet. Use the web version on iPhone, or join the iPhone waitlist at the bottom of this page.' },
-  { q: 'What happens to my financial data?', a: <>Amounts, notes and other sensitive fields are encrypted with AES-256-GCM, and the key is kept apart from the database. The server decrypts them to run the app; this isn’t end-to-end encryption. Ask Aviary and AI briefs send relevant transaction and budget context to Google Gemini, and bill scanning sends receipt photos. There are no ads, and your data is never sold. Your subscription is how Aviary makes money. You can export or delete your data in account settings. <Link href="/legal/privacy">Read the privacy policy</Link> for storage, analytics, and processing details.</> },
-  { q: 'What if Aviary shuts down?', a: 'You won’t get stuck. Export your data to CSV any time, even without a subscription. And the code stays open source on GitHub.' },
-  { q: 'Can I use another currency?', a: 'Yes. Choose your display currency during setup or change it in More. One currency applies to your whole budget; changing it doesn’t convert amounts.' },
-]
-
 function StoreLink({ placement, children = 'Get it on Android' }: { placement: string; children?: string }) {
   return <TrackedLink className="lp-button lp-button--dark" href={PLAY_STORE} event="store_cta_clicked" properties={{ placement }}><DeviceMobileIcon size={18} aria-hidden="true" />{children}</TrackedLink>
 }
@@ -64,8 +50,9 @@ function StoreLink({ placement, children = 'Get it on Android' }: { placement: s
  * `ios` swaps every Play Store CTA for the iPhone waitlist: the Android link is a dead end on iPhone.
  * `android` drops the waitlist: they can install today. Desktop keeps both, since it could be either phone.
  */
-/** `intl` (any visitor outside India) swaps the sample data to dollars and examples that read anywhere. */
-export function LandingPage({ monthlyPrice, ios = false, android = false, intl = false }: { monthlyPrice?: string; ios?: boolean; android?: boolean; intl?: boolean }) {
+/** `intl` (the /intl page) swaps the sample data to dollars and examples that read anywhere. */
+/** `otherMarket`: the visitor's IP says they belong on the other market's page, so link them there. */
+export function LandingPage({ monthlyPrice, ios = false, android = false, intl = false, otherMarket = false }: { monthlyPrice?: string; ios?: boolean; android?: boolean; intl?: boolean; otherMarket?: boolean }) {
   const afterTrial = monthlyPrice ? <> · Then {monthlyPrice}/month</> : null
   // The hero stage is the mobile LCP element, and this background is its paint.
   // As a CSS url() it's only found once the stylesheet has loaded; the preload
@@ -82,6 +69,9 @@ export function LandingPage({ monthlyPrice, ios = false, android = false, intl =
     <LandingHeader ios={ios} />
 
     <section className="lp-hero" aria-labelledby="landing-title">
+      {otherMarket && (intl
+        ? <p className="lp-market">In India? <Link href="/">See the India page</Link></p>
+        : <p className="lp-market">Outside India? <Link href="/intl">See the page for your region</Link></p>)}
       <Link className="lp-early" href={FEEDBACK_BOARD_PATH}><b>Early access</b><span className="lp-early-desktop">Your feedback shapes what we build next</span><span className="lp-early-mobile">Help shape Aviary</span><ArrowRightIcon size={14} aria-hidden="true" /></Link>
       <h1 id="landing-title">The budgeting app you’ll still open on <span className="lp-learns">day 4<svg viewBox="0 0 200 14" preserveAspectRatio="none" aria-hidden="true"><path d="M3 10 C 40 3, 70 3, 100 8 S 160 13, 197 5" /></svg></span>.</h1>
       <p>It notices your <RotatingHabit /> and nudges you while it’s still fresh.<br className="lp-desktop-break" /> Miss a day? Type what you remember and you’re caught up.<br className="lp-desktop-break" /> No bank link, no loans, no offers.</p>
@@ -219,7 +209,7 @@ export function LandingPage({ monthlyPrice, ios = false, android = false, intl =
     </section>
 
 
-    <section id="faq" className="lp-section lp-faq-section" aria-labelledby="faq-title"><h2 id="faq-title" className="lp-h2">Good questions.</h2><Faq items={faqs(intl)} /></section>
+    <section id="faq" className="lp-section lp-faq-section" aria-labelledby="faq-title"><h2 id="faq-title" className="lp-h2">Good questions.</h2><Faq items={landingFaqs(intl, monthlyPrice)} /></section>
 
     <section id="get" className="lp-section lp-close" aria-labelledby="get-title">
       <span className="lp-close-bird"><BirdLanding size={120} alive /></span>

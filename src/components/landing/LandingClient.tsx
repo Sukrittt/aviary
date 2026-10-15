@@ -1,9 +1,11 @@
 'use client'
 
 import { useRef, useState, type ReactNode } from 'react'
-import { AnimatePresence, MotionConfig, motion, useReducedMotion } from 'motion/react'
+import Link from 'next/link'
+import { MotionConfig, motion, useReducedMotion } from 'motion/react'
 import { SpeakerHighIcon } from '@/src/components/icons'
 import { useSample } from './sample'
+import type { FaqItem } from './faqs'
 
 
 export function LandingMotion({ children }: { children: ReactNode }) {
@@ -11,18 +13,19 @@ export function LandingMotion({ children }: { children: ReactNode }) {
   return <MotionConfig reducedMotion="user" transition={reduced ? { duration: 0 } : undefined}>{children}</MotionConfig>
 }
 
-/** One open at a time; the answer springs its height open and closed instead of the browser's instant details toggle. */
-export function Faq({ items }: { items: { q: string; a: ReactNode }[] }) {
+/**
+ * One open at a time; the answer springs its height open and closed instead of the browser's instant details toggle.
+ * Answers stay in the DOM while closed (collapsed and inert) so crawlers see them and FAQPage JSON-LD matches the page.
+ */
+export function Faq({ items }: { items: FaqItem[] }) {
   const [open, setOpen] = useState(-1)
   return <div className="lp-faq">{items.map((item, i) => <div className="lp-faq-item" key={item.q}>
     <button type="button" className="lp-faq-q" aria-expanded={open === i} onClick={() => setOpen((o) => (o === i ? -1 : i))}>
       {item.q}<span className={`lp-faq-icon${open === i ? ' is-open' : ''}`} aria-hidden="true">+</span>
     </button>
-    <AnimatePresence initial={false}>
-      {open === i && <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ height: { type: 'spring', bounce: 0, duration: 0.35 }, opacity: { duration: 0.2 } }} style={{ overflow: 'hidden' }}>
-        <div className="lp-faq-answer">{item.a}</div>
-      </motion.div>}
-    </AnimatePresence>
+    <motion.div initial={false} animate={open === i ? { height: 'auto', opacity: 1 } : { height: 0, opacity: 0 }} transition={{ height: { type: 'spring', bounce: 0, duration: 0.35 }, opacity: { duration: 0.2 } }} style={{ overflow: 'hidden' }} inert={open !== i}>
+      <div className="lp-faq-answer">{item.a}{item.link && <> <Link href={item.link.href}>{item.link.label}</Link>.</>}</div>
+    </motion.div>
   </div>)}</div>
 }
 

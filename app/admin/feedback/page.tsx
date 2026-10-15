@@ -4,7 +4,7 @@ import type { Filter } from 'mongodb'
 import { TrayIcon } from '@/src/components/icons'
 import { getDb } from '@/lib/mongodb'
 import { escapeRegExp } from '@/lib/http'
-import { FEEDBACK, type FeedbackDoc } from '@/lib/feedback'
+import { FEEDBACK, getFeedbackScreenshotUrl, type FeedbackDoc } from '@/lib/feedback'
 import { FEEDBACK_AREAS } from '@/lib/ai/feedbackTriage'
 import type { UserDoc } from '@/lib/users'
 import { num, fmtDateTime } from '../format'
@@ -49,6 +49,11 @@ export default async function AdminFeedback({ searchParams }: { searchParams: Pa
 
   const userIds = [...new Set(rows.map((r) => r.userId))]
   const emails = new Map((await users.find({ _id: { $in: userIds } }, { projection: { email: 1 } }).toArray()).map((u) => [u._id, u.email]))
+
+  // Signed per render and short-lived: screenshots can show a user's balances.
+  const screenshots = new Map(
+    await Promise.all(rows.filter((r) => r.screenshot).map(async (r) => [String(r._id), await getFeedbackScreenshotUrl(r.screenshot!)] as const)),
+  )
 
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE))
   const filtered = !!(q || type || area || severity !== null)
@@ -100,6 +105,11 @@ export default async function AdminFeedback({ searchParams }: { searchParams: Pa
                     <td>
                       <div>{r.title}</div>
                       <div className="adm-muted">{r.description}</div>
+                      {screenshots.has(String(r._id)) && (
+                        <a href={screenshots.get(String(r._id))} target="_blank" rel="noreferrer">
+                          Screenshot
+                        </a>
+                      )}
                     </td>
                     <td>{r.area ?? '—'}</td>
                     <td>{r.severity !== null ? SEVERITY_LABEL[r.severity] : '—'}</td>

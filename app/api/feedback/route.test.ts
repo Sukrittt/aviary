@@ -18,8 +18,12 @@ vi.mock('@/lib/ai/feedbackTriage', () => ({
 }))
 
 const recordFeedbackMock = vi.fn(async () => undefined)
+const putFeedbackScreenshotMock = vi.fn(async () => 'feedback-screenshots/user_a/abc.png')
+const deleteFeedbackScreenshotQuietlyMock = vi.fn(async () => undefined)
 vi.mock('@/lib/feedback', () => ({
   recordFeedback: recordFeedbackMock,
+  putFeedbackScreenshot: putFeedbackScreenshotMock,
+  deleteFeedbackScreenshotQuietly: deleteFeedbackScreenshotQuietlyMock,
 }))
 
 const { POST } = await import('./route')
@@ -50,6 +54,8 @@ beforeEach(() => {
   triageFeedbackMock.mockResolvedValue({ area: 'budget', severity: 2 })
   recordFeedbackMock.mockClear()
   recordFeedbackMock.mockResolvedValue(undefined)
+  putFeedbackScreenshotMock.mockClear()
+  deleteFeedbackScreenshotQuietlyMock.mockClear()
 })
 
 describe('POST /api/feedback', () => {
@@ -69,6 +75,7 @@ describe('POST /api/feedback', () => {
       diagnostics: { appVersion: '1.4.0 (12)', device: 'iPhone 15 · iOS 17.4', screen: '/account/help' },
       area: 'budget',
       severity: 2,
+      screenshot: null,
     })
   })
 
@@ -127,5 +134,44 @@ describe('POST /api/feedback', () => {
     expect(res.status).toBe(502)
     const body = await res.json()
     expect(body.error).not.toMatch(/write conflict/)
+  })
+
+  describe('screenshot', () => {
+    const png = { image: Buffer.from('fake png bytes').toString('base64'), mimeType: 'image/png' }
+
+    it('stores a bug report screenshot privately and stamps it on the report', async () => {
+      const res = await POST(postRequest({ ...validBody, screenshot: png }))
+      expect(res.status).toBe(200)
+      expect(putFeedbackScreenshotMock).toHaveBeenCalledWith('user_a', Buffer.from('fake png bytes'), 'image/png')
+      expect(recordFeedbackMock).toHaveBeenCalledWith(expect.objectContaining({ screenshot: 'feedback-screenshots/user_a/abc.png' }))
+    })
+
+    it('keeps the screenshot out of AI triage', async () => {
+      await POST(postRequest({ ...validBody, screenshot: png }))
+      expect(triageFeedbackMock).toHaveBeenCalledWith(validBody.title, validBody.description, expect.anything())
+      expect(JSON.stringify(triageFeedbackMock.mock.calls)).not.toContain(png.image)
+    })
+
+    it('ignores a screenshot on an idea', async () => {
+      const res = await POST(postRequest({ ...validBody, type: 'idea', screenshot: png }))
+      expect(res.status).toBe(200)
+      expect(putFeedbackScreenshotMock).not.toHaveBeenCalled()
+      expect(recordFeedbackMock).toHaveBeenCalledWith(expect.objectContaining({ screenshot: null }))
+    })
+
+    it('rejects a bad screenshot before triaging or saving anything', async () => {
+      const res = await POST(postRequest({ ...validBody, screenshot: { ...png, mimeType: 'image/gif' } }))
+      expect(res.status).toBe(400)
+      expect(triageFeedbackMock).not.toHaveBeenCalled()
+      expect(putFeedbackScreenshotMock).not.toHaveBeenCalled()
+      expect(recordFeedbackMock).not.toHaveBeenCalled()
+    })
+
+    it('deletes the stored screenshot when the report fails to save', async () => {
+      recordFeedbackMock.mockRejectedValueOnce(new Error('mongo down'))
+      const res = await POST(postRequest({ ...validBody, screenshot: png }))
+      expect(res.status).toBe(502)
+      expect(deleteFeedbackScreenshotQuietlyMock).toHaveBeenCalledWith('feedback-screenshots/user_a/abc.png')
+    })
   })
 })

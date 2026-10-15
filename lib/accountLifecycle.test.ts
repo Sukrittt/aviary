@@ -39,7 +39,7 @@ describe('purgeAccountNow', () => {
   it('sweeps every per-user Blob prefix, expense photos included', async () => {
     process.env.BLOB_READ_WRITE_TOKEN = 'token'
     await purgeAccountNow(db, 'user_1')
-    expect(listMock.mock.calls.map(([o]) => o.prefix)).toEqual(['bills/user_1/', 'exports/user_1/', 'expense-photos/user_1/'])
+    expect(listMock.mock.calls.map(([o]) => o.prefix)).toEqual(['bills/user_1/', 'exports/user_1/', 'expense-photos/user_1/', 'feedback-screenshots/user_1/'])
   })
 
   it("deletes every per-user collection, the Ask Aviary brief cache included", async () => {

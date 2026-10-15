@@ -183,6 +183,18 @@ describe('web and mobile releases', () => {
     expect(await latestUnseenRelease('user_1', 'mobile')).toBeNull()
   })
 
+  it('carries a mobile release\'s OTA cutoff to the app, and drops it for web', async () => {
+    await published({ platform: 'mobile', otaAfter: '2026-10-15T09:30' })
+    expect((await latestUnseenRelease('user_1', 'mobile'))?.otaAfter).toBe('2026-10-15T09:30:00.000Z')
+    await published({ otaAfter: '2026-10-15T09:30:00.000Z' })
+    expect((await latestUnseenRelease('user_1'))?.otaAfter).toBeNull()
+    await published({ platform: 'mobile' })
+    expect((await latestUnseenRelease('user_1', 'mobile'))?.otaAfter).toBeNull()
+    for (const otaAfter of ['not a date', '2026-02-30T09:30', '2026-04-31T09:30:00.000Z']) {
+      expect((await saveChangelogAction(null, form({ platform: 'mobile', otaAfter })))?.ok).toBe(false)
+    }
+  })
+
   it('rejects an unknown platform', async () => {
     expect((await saveChangelogAction(null, form({ platform: 'desktop' })))?.ok).toBe(false)
   })

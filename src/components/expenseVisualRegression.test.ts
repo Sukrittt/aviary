@@ -26,6 +26,12 @@ describe('expense screen visual regressions', () => {
     )
   })
 
+  it('centers Pitch an idea in the height it stretches to beside the status select', () => {
+    const ideasPage = readFileSync(join(root, 'src/views/IdeasBoardPage.tsx'), 'utf8')
+    expect(ideasPage).toMatch(/className="[^"]*\bideas-pitch\b[^"]*"/)
+    expect(expenseCss).toMatch(/\.ideas-toolbar \.ideas-pitch\s*{[^}]*align-self:\s*stretch[^}]*display:\s*inline-flex[^}]*align-items:\s*center/)
+  })
+
   it('keeps the bulk return CTA solid and its description close to the title', () => {
     expect(expensePage).toContain('className="is-active erd-accent-action"')
     expect(expenseCss).toMatch(

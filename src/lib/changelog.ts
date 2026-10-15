@@ -8,6 +8,12 @@ export interface ChangelogContent {
   version: string
   highlights: string[]
   body: string
+  /**
+   * Mobile only: ISO time just before the OTA update that ships these notes. The app waits
+   * until its running bundle was published at or after this, so nobody reads about a
+   * feature they don't have yet. Null for store releases and web notes.
+   */
+  otaAfter?: string | null
 }
 
 export interface ChangelogRelease extends ChangelogContent {
@@ -24,6 +30,11 @@ export function parseChangelog(form: FormData): ChangelogContent | string {
   const version = String(form.get('version') ?? '').trim()
   const highlights = String(form.get('highlights') ?? '').split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
   const body = String(form.get('body') ?? '').trim()
+  const rawOtaAfter = String(form.get('otaAfter') ?? '').trim()
+  // The admin field is a zone-less datetime-local in UTC, like every admin date. The
+  // round-trip check catches days Date would roll over (Feb 30 into March).
+  const otaMatch = /^(\d{4}-\d\d-\d\dT\d\d:\d\d)(:\d\d(?:\.\d{3})?)?z?$/i.exec(rawOtaAfter)
+  const otaAfter = platform === 'mobile' && rawOtaAfter ? new Date(otaMatch ? `${otaMatch[1]}${otaMatch[2] ?? ''}Z` : NaN) : null
   if (!CHANGELOG_PLATFORMS.includes(platform as ChangelogPlatform)) return 'Choose web or mobile.'
   if (!title || title.length > CHANGELOG_LIMITS.title) return 'Add a title of 1–80 characters.'
   if (version.length > CHANGELOG_LIMITS.version) return 'Keep the version label under 33 characters.'
@@ -31,5 +42,6 @@ export function parseChangelog(form: FormData): ChangelogContent | string {
     return 'Add 1–3 highlights, one per line, up to 180 characters each.'
   }
   if (body.length > CHANGELOG_LIMITS.body) return 'Keep the full notes under 5,001 characters.'
-  return { platform: platform as ChangelogPlatform, title, version, highlights, body }
+  if (otaAfter && (Number.isNaN(otaAfter.getTime()) || !otaAfter.toISOString().startsWith(otaMatch![1]))) return 'Pick a valid OTA update time.'
+  return { platform: platform as ChangelogPlatform, title, version, highlights, body, otaAfter: otaAfter?.toISOString() ?? null }
 }

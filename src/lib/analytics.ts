@@ -153,6 +153,9 @@ export function initAnalytics(): Promise<void> {
     .then(({ default: posthog }) => {
       posthog.init(KEY, {
         api_host: HOST,
+        // HOST may be our own proxy subdomain, so links back to PostHog (the
+        // toolbar) need the real app's address spelled out.
+        ui_host: 'https://us.posthog.com',
         // Next's router moves with pushState, which a plain page-load capture
         // would miss after the first page.
         capture_pageview: 'history_change',
