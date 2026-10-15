@@ -46,8 +46,8 @@
 
 .ins-period-copy > span {
   color: var(--erd-text3);
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .ins-back-btn,
@@ -100,8 +100,8 @@
   border-radius: 999px;
   background: var(--gold-soft);
   color: var(--gold-ink);
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
 }
 
@@ -216,9 +216,9 @@
 .ins-top-item {
   overflow: hidden;
   color: var(--erd-text);
-  font-family: var(--font-nunito);
+  font-family: var(--font-body);
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 500;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -233,9 +233,9 @@
 
 .ins-top-amount {
   color: var(--erd-text);
-  font-family: var(--font-nunito);
+  font-family: var(--font-body);
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
   text-align: right;
   white-space: nowrap;
@@ -266,7 +266,7 @@
 .ins-filter-head p {
   margin: 3px 0 0;
   color: var(--erd-text3);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .ins-icon-btn {
@@ -283,8 +283,8 @@
 }
 
 .ins-icon-btn span {
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .ins-breakdown-controls {
@@ -308,8 +308,8 @@
   border-radius: 999px;
   background: transparent;
   color: var(--erd-text2);
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
 }
 
@@ -358,7 +358,7 @@
   max-width: 105px;
   overflow: hidden;
   color: var(--erd-text);
-  font-family: var(--font-fredoka);
+  font-family: var(--font-display);
   font-size: 15px;
   line-height: 1.15;
   text-overflow: ellipsis;
@@ -366,7 +366,7 @@
 
 .ins-donut-center span,
 .ins-donut-center small {
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.3;
 }
 
@@ -464,7 +464,7 @@
   justify-content: space-between;
   margin-top: 6px;
   color: var(--erd-text3);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .ins-allocation-segment {
@@ -487,7 +487,7 @@
   align-items: center;
   gap: 7px;
   color: var(--erd-text2);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .ins-allocation-legend i {
@@ -566,7 +566,7 @@
 .ins-delta {
   width: 42px;
   justify-content: flex-end;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .ins-budget-track {
@@ -587,14 +587,14 @@
 .ins-breakdown-row small {
   margin-top: 5px;
   color: var(--erd-text3);
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .ins-breakdown-row a {
   margin-top: 4px;
   color: var(--gold-ink);
-  font-size: 10px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   text-decoration: none;
 }
 
@@ -604,7 +604,7 @@
   border: 0;
   background: none;
   color: var(--gold-ink);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 750;
   cursor: pointer;
 }
@@ -617,7 +617,7 @@
   padding-top: 16px;
   border-top: 1px solid var(--erd-border);
   color: var(--erd-text2);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .ins-leftover strong {
@@ -634,7 +634,7 @@
   justify-content: space-between;
   margin: 16px 5px -10px;
   color: var(--erd-text3);
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .ins-trend-svg {
@@ -658,9 +658,9 @@
 /* Card-coloured halo keeps the label legible where it crosses a bar. */
 .ins-trend-baseline-label {
   fill: var(--erd-text2);
-  font-family: var(--font-nunito);
-  font-size: 10px;
-  font-weight: 700;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
   paint-order: stroke;
   stroke: var(--erd-card-solid);
   stroke-width: 4px;
@@ -720,8 +720,8 @@
 .ins-trend-label,
 .ins-trend-value {
   fill: var(--erd-text3);
-  font-family: var(--font-nunito);
-  font-size: 10px;
+  font-family: var(--font-body);
+  font-size: 12px;
 }
 
 .ins-trend-label.is-selected,
@@ -733,7 +733,7 @@
 .ins-chart-note {
   margin: -6px 5px 0;
   color: var(--erd-text3);
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .ins-chart-empty {
@@ -745,7 +745,7 @@
   font-size: 14px;
 }
 
-.ins-head-delta { font-size: 11px; }
+.ins-head-delta { font-size: 12px; }
 
 .ins-heatmap-heading {
   align-items: center;
@@ -767,13 +767,13 @@
 .ins-heatmap-weekday,
 .ins-heatmap-day {
   fill: var(--erd-text3);
-  font-family: var(--font-nunito);
-  font-size: 10px;
+  font-family: var(--font-body);
+  font-size: 12px;
 }
 
 .ins-heatmap-day {
   fill: var(--erd-text2);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .ins-heatmap-day.is-bright { fill: var(--erd-on-accent); }
@@ -806,7 +806,7 @@
   gap: 5px;
   margin-top: 13px;
   color: var(--erd-text3);
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .ins-heatmap-legend i {
@@ -873,7 +873,7 @@
 .ins-filter-list input { position: absolute; opacity: 0; pointer-events: none; }
 .ins-check { display: grid; place-items: center; width: 22px; height: 22px; border: 1.5px solid var(--erd-border-strong); border-radius: 7px; }
 .ins-check.is-checked { border-color: var(--gold); background: var(--gold); color: var(--erd-on-accent); }
-.ins-filter-error { margin: 8px 0; color: var(--coral); font-size: 11px; }
+.ins-filter-error { margin: 8px 0; color: var(--coral); font-size: 12px; }
 .ins-filter-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 18px; }
 
 .ins-mobile-header { display: none; }
@@ -967,5 +967,5 @@
   text-align: center;
   color: var(--erd-text);
 }
-.ins-breakdown-empty strong { margin-top: 8px; font-family: var(--font-fredoka); font-size: 18px; font-weight: 600; }
+.ins-breakdown-empty strong { margin-top: 8px; font-family: var(--font-display); font-size: 18px; font-weight: 600; }
 .ins-breakdown-empty p { margin: 4px 0 0; color: var(--erd-text2); font-size: 13px; }

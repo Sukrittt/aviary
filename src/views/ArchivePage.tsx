@@ -4,7 +4,7 @@ import { useCurrency } from '@/src/context/CurrencyContext'
 
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { Folder, Receipt, Repeat, Tag, TrendingUp, Wallet, X } from 'lucide-react'
+import { FolderIcon, ReceiptIcon, RepeatIcon, TagIcon, TrendUpIcon, WalletIcon, XIcon } from '@/src/components/icons'
 import { ROW_SPRING } from '../components/DeletingRow'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { LoadingCaption } from '../components/LoadingCaption'
@@ -26,13 +26,13 @@ const CHIP_LABELS: Record<ArchivableCollection, string> = {
   holdings: 'Holdings',
 }
 
-const KIND: Record<ArchivableCollection, { label: string; Icon: typeof Receipt }> = {
-  expenses: { label: 'Transaction', Icon: Receipt },
-  budgets: { label: 'Budget', Icon: Wallet },
-  categories: { label: 'Category', Icon: Tag },
-  groups: { label: 'Group', Icon: Folder },
-  subscriptions: { label: 'Subscription', Icon: Repeat },
-  holdings: { label: 'Holding', Icon: TrendingUp },
+const KIND: Record<ArchivableCollection, { label: string; Icon: typeof ReceiptIcon }> = {
+  expenses: { label: 'Transaction', Icon: ReceiptIcon },
+  budgets: { label: 'Budget', Icon: WalletIcon },
+  categories: { label: 'Category', Icon: TagIcon },
+  groups: { label: 'Group', Icon: FolderIcon },
+  subscriptions: { label: 'Subscription', Icon: RepeatIcon },
+  holdings: { label: 'Holding', Icon: TrendUpIcon },
 }
 
 type Filter = 'all' | ArchivableCollection
@@ -329,7 +329,7 @@ export function ArchivePage() {
                       </span>
                     </span>
                     <span className={`archive-kind is-${item.collection}`} aria-hidden="true">
-                      <Icon size={20} strokeWidth={2.2} />
+                      <Icon size={20} />
                     </span>
                     <span className="archive-row-body">
                       <span className="archive-row-name">{item.label || 'Untitled'}</span>
@@ -348,7 +348,7 @@ export function ArchivePage() {
                           disabled={isPending || restored}
                           onClick={() => setPurgeTarget(item)}
                         >
-                          <X size={15} strokeWidth={2.4} aria-hidden="true" />
+                          <XIcon size={15} weight="bold" aria-hidden="true" />
                         </button>
                         <button
                           type="button"
@@ -462,7 +462,7 @@ export function ArchivePage() {
             cancelLabel="Keep"
             onCancel={() => setPurgeTarget(null)}
           >
-            <button type="button" className="account-danger-btn" style={{ marginTop: 0 }} onClick={() => handlePurge(purgeTarget)}>
+            <button type="button" className="account-danger-btn" onClick={() => handlePurge(purgeTarget)}>
               Delete forever
             </button>
           </ConfirmDialog>

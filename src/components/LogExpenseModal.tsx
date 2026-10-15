@@ -3,7 +3,7 @@
 import { useCurrency } from '@/src/context/CurrencyContext'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Calendar, MessageSquareText, PencilLine, Plus, Tag, TriangleAlert, WalletMinimal } from 'lucide-react'
+import { CalendarBlankIcon, ChatTextIcon, PlusIcon, TagIcon, WarningIcon, WalletIcon, XIcon } from '@/src/components/icons'
 import { useOptionalMoneyBrain } from '@/components/moneyBrainContext'
 import { useHiddenFeatures } from '../hooks/useUser'
 import { Scrim, Sheet } from './MotionSheet'
@@ -23,7 +23,8 @@ import { defaultAccountFor } from '../lib/defaultAccount'
 import { useCategories } from '../hooks/useCategories'
 import { useAddExpense, useDeleteExpense, useRecentExpenses, useUploadExpensePhoto } from '../hooks/useExpenses'
 import { unusualAmount } from '../lib/unusualAmount'
-import { categoryEmoji, splitEmoji } from '../lib/emoji'
+import { splitEmoji } from '../lib/emoji'
+import { categoryIconKey } from '../lib/categoryIcons'
 import { createThinkingGate, type ThinkingGate } from '../lib/thinkingGate'
 import { AutoPickStatus } from '../features/log-expense/AutoPickStatus'
 import { EMPTY } from '../lib/constants'
@@ -132,23 +133,22 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
   const warning = unusual && unusualWarnedFor === warnKey ? unusual : null
   const [unusualNudge, setUnusualNudge] = useState(0)
 
-  const rollEmojis = useMemo(
-    () => [...new Set((categoriesQ.data ?? EMPTY).map((c) => categoryEmoji(c.name, c.group)).filter(Boolean))],
+  const rollIcons = useMemo(
+    () => [...new Set((categoriesQ.data ?? EMPTY).map((c) => categoryIconKey(c.name, c.icon, c.group)))],
     [categoriesQ.data],
   )
   const selectedRow = (categoriesQ.data ?? EMPTY).find((c) => c.name === category)
     ?? (createdCategory?.name === category ? createdCategory : undefined)
   const selectedCategory = selectedRow
-    ? { emoji: categoryEmoji(selectedRow.name, selectedRow.group), name: splitEmoji(selectedRow.name).text }
+    ? { icon: categoryIconKey(selectedRow.name, selectedRow.icon, selectedRow.group), name: splitEmoji(selectedRow.name).text }
     : null
 
   // Bumped on each blocked save; 0 means nothing is highlighted yet.
   const [nudge, setNudge] = useState(0)
-  const missing = missingFields({ amount, item, category: effectiveCategory })
+  const missing = missingFields({ amount, category: effectiveCategory })
   const flag = (f: (typeof missing)[number]) => nudge > 0 && missing.includes(f)
   const amountNudgeRef = useNudge<HTMLDivElement>(nudge, missing.includes('amount'))
-  const itemNudgeRef = useNudge<HTMLInputElement>(nudge, missing.includes('item'))
-  const categoryNudgeRef = useNudge<HTMLDivElement>(nudge, missing.includes('category'))
+    const categoryNudgeRef = useNudge<HTMLDivElement>(nudge, missing.includes('category'))
   const [amountShakeRef, shakeAmount] = useShake<HTMLInputElement>()
 
   useEffect(() => {
@@ -327,11 +327,13 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
     }
     start()
     setError('')
+    // A blank item saves under the category's name, like Mobile.
+    const savedItem = item.trim() || splitEmoji(effectiveCategory).text
     // The photo controls are locked while saving, so this is what the user sees.
     const pickedPhoto = photo
     try {
       const result = await addExpenseM.mutateAsync({
-        item: item.trim(),
+        item: savedItem,
         amount_inr: String(Math.round(parsed)),
         category: effectiveCategory,
         date: date || undefined,
@@ -349,7 +351,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
         id: result.id,
         version: result.version,
         timestamp: result.timestamp ?? '',
-        item: item.trim(),
+        item: savedItem,
         category: effectiveCategory,
         date,
         amount: Math.round(parsed),
@@ -411,7 +413,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
             <Toast
               trigger={nudge}
               message={missingFieldsMessage(missing)}
-              icon={missing[0] === 'amount' ? WalletMinimal : missing[0] === 'item' ? PencilLine : Tag}
+              icon={missing[0] === 'amount' ? WalletIcon : TagIcon}
             />
             <Toast
               trigger={unusualNudge}
@@ -420,7 +422,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
                   ? `${formatMoney(parsedAmount)} is ${unusual.ratio}× your usual ${splitEmoji(effectiveCategory).text} (${formatMoney(Math.round(unusual.typical))}). Save again to keep it.`
                   : ''
               }
-              icon={TriangleAlert}
+              icon={WarningIcon}
             />
             <div className="erd-modal-head">
               <h3>Log expense</h3>
@@ -431,7 +433,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
                 aria-label="Close"
                 disabled={success}
               >
-                ✕
+                <XIcon size={18} aria-hidden="true" />
               </button>
             </div>
 
@@ -471,14 +473,13 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
                 </label>
                 <div className="erd-log-item-field">
                   <input
-                    ref={itemNudgeRef}
                     id="erd-log-item"
-                    className={`erd-log-input${flag('item') ? ' is-missing' : ''}`}
+                    className="erd-log-input"
                     placeholder="e.g. Bike repair"
                     value={item}
                     onChange={(e) => handleItemChange(e.target.value)}
                   />
-                  <AutoPickStatus thinking={suggesting} picked={autoPicked ? selectedCategory : null} selected={selectedCategory} pickTick={categoryPickTick} rollEmojis={rollEmojis} />
+                  <AutoPickStatus thinking={suggesting} picked={autoPicked ? selectedCategory : null} selected={selectedCategory} pickTick={categoryPickTick} rollIcons={rollIcons} />
                 </div>
               </section>
 
@@ -492,7 +493,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
                   additionalCategory={createdCategory}
                   trailing={
                     <button type="button" className="erd-chip erd-chip--add" onClick={() => setShowAddCategory(true)}>
-                      <Plus size={15} aria-hidden="true" />
+                      <PlusIcon size={15} aria-hidden="true" />
                       Add
                     </button>
                   }
@@ -507,7 +508,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
                     onChange={setAccountPick}
                     trailing={
                       <button type="button" className="erd-chip erd-chip--add" aria-label="Add account" onClick={() => setShowAddAccount(true)}>
-                        <Plus size={15} aria-hidden="true" />
+                        <PlusIcon size={15} aria-hidden="true" />
                         Add
                       </button>
                     }
@@ -538,7 +539,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
                     className={`erd-date-chip${showCalendar || (date !== today && date !== yesterday) ? ' is-active' : ''}`}
                     onClick={() => setShowCalendar((v) => !v)}
                   >
-                    <Calendar size={15} aria-hidden="true" />
+                    <CalendarBlankIcon size={15} aria-hidden="true" />
                     {showCalendar
                       ? 'Close'
                       : date !== today && date !== yesterday
@@ -590,7 +591,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
                     brain.openCapture()
                   }}
                 >
-                  <MessageSquareText size={14} aria-hidden="true" /> Log several at once
+                  <ChatTextIcon size={14} aria-hidden="true" /> Log several at once
                 </button>
               )}
             </div>

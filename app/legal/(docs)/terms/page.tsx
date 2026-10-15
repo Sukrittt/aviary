@@ -15,7 +15,7 @@ export default function TermsPage() {
 
       <h2>The service</h2>
       <p>
-        Aviary helps you track envelopes, expenses, subscriptions, and investments for personal, non-commercial
+        Aviary helps you track categories, expenses, subscriptions, and investments for personal, non-commercial
         use. It&apos;s developed and operated by an individual, not a company, and offered as-is.
       </p>
 
@@ -34,7 +34,7 @@ export default function TermsPage() {
 
       <h2>Subscriptions and billing</h2>
       <p>
-        New accounts get a 45-day free trial that starts when you finish onboarding. No payment details are
+        New accounts get a 30-day free trial that starts when you finish onboarding. No payment details are
         needed for the trial and it never charges you automatically. To keep using Aviary afterwards, you can
         buy a monthly or yearly subscription in either of two places. Current prices are on our{' '}
         <a href="/legal/pricing">pricing page</a> and are shown again before you pay.

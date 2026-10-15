@@ -1,5 +1,6 @@
 'use client'
 
+import { XIcon } from '@/src/components/icons'
 import { useCurrency } from '@/src/context/CurrencyContext'
 
 import type { RecurringExpenseInput } from '../api/recurringExpenses'
@@ -19,7 +20,7 @@ import {
 } from '../hooks/useRecurringExpenses'
 import { suggestCategoryLLM } from '../lib/autoCategory'
 import { EMPTY } from '../lib/constants'
-import { todayIST } from '../lib/date'
+import { todayLocal } from '../lib/date'
 import { splitEmoji } from '../lib/emoji'
 
 const FREQUENCIES = ['daily', 'weekly', 'monthly', 'yearly']
@@ -66,7 +67,7 @@ export function RecurringExpenseModal({ id, initialValues, suggestionId, onAdded
   const [item, setItem] = useState(initial?.item ?? '')
   const [amount, setAmount] = useState(initial?.amount_inr ?? '')
   const [frequency, setFrequency] = useState(initial?.frequency || 'monthly')
-  const [startDate, setStartDate] = useState(initial?.start_date || todayIST())
+  const [startDate, setStartDate] = useState(initial?.start_date || todayLocal())
   const [endDate, setEndDate] = useState(initial?.end_date ?? '')
   const [notes, setNotes] = useState(initial?.notes ?? '')
   const [category, setCategory] = useState(initial?.category ?? '')
@@ -166,7 +167,7 @@ export function RecurringExpenseModal({ id, initialValues, suggestionId, onAdded
         <div className="erd-modal-head">
           <h3>{isEdit ? 'Edit recurring' : 'New recurring'}</h3>
           <button type="button" className="erd-modal-close" onClick={onClose} aria-label="Close" disabled={success}>
-            ✕
+            <XIcon size={18} aria-hidden="true" />
           </button>
         </div>
 
@@ -280,7 +281,7 @@ export function RecurringExpenseModal({ id, initialValues, suggestionId, onAdded
               <p className="recurring-hint">
                 {category
                   ? `We'll add this expense in ${splitEmoji(category).text} on every due date.`
-                  : 'Pick one so we know which envelope to file it under.'}
+                  : 'Pick one so we know which category to file it under.'}
               </p>
             </section>
           </div>
@@ -312,7 +313,7 @@ export function RecurringExpenseModal({ id, initialValues, suggestionId, onAdded
                     <button type="button" className="account-confirm-cancel" disabled={mutatingAction} onClick={() => setConfirmingDelete(false)}>
                       Back
                     </button>
-                    <button type="button" className="account-danger-btn" style={{ marginTop: 0 }} disabled={mutatingAction} onClick={() => runAction('delete')}>
+                    <button type="button" className="account-danger-btn" disabled={mutatingAction} onClick={() => runAction('delete')}>
                       {deleteRecurring.isPending ? 'Working…' : 'Delete'}
                     </button>
                   </div>

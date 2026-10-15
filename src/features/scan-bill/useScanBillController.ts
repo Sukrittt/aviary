@@ -7,7 +7,7 @@ import { useSaveBillScan } from '@/src/hooks/useBillScans'
 import { useScanBill } from '@/src/hooks/useScanBill'
 import { useButtonPhase } from '@/src/components/SuccessButton'
 import { EMPTY } from '@/src/lib/constants'
-import { todayIST } from '@/src/lib/date'
+import { todayLocal } from '@/src/lib/date'
 import { splitEmoji } from '@/src/lib/emoji'
 
 // Twin of Mobile/src/features/scan-bill/useScanBillController.ts. Where they
@@ -33,7 +33,7 @@ export function useScanBillController({ onDone }: { onDone: () => void }) {
 
   const [merchant, setMerchant] = useState('')
   const [category, setCategory] = useState('')
-  const [date, setDate] = useState(todayIST())
+  const [date, setDate] = useState(todayLocal())
   const { items, peopleCount, totals, actions } = useBillSplit()
   const { productItems, myShare, billTotal } = totals
   const [query, setQuery] = useState('')
@@ -77,7 +77,7 @@ export function useScanBillController({ onDone }: { onDone: () => void }) {
         onSuccess: (res) => {
           setMerchant(res.merchant)
           setCategory(res.category ?? '')
-          setDate(res.date ?? todayIST())
+          setDate(res.date ?? todayLocal())
           actions.load(res)
           setQuery('')
           setSelected([])
@@ -179,7 +179,7 @@ export function useScanBillController({ onDone }: { onDone: () => void }) {
     setConfirmError('')
     setMerchant('')
     setCategory('')
-    setDate(todayIST())
+    setDate(todayLocal())
     setQuery('')
     setSelected([])
     setSelecting(false)

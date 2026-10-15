@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { EnvelopeGrid } from './EnvelopeGrid'
@@ -26,10 +26,11 @@ describe('EnvelopeGrid actions', () => {
     const { onSetAssigned } = setup()
     const user = userEvent.setup()
     await user.click(screen.getByRole('button', { name: /Rent/ }))
-    expect(screen.getByRole('button', { name: /Rent/ })).toHaveAttribute('aria-expanded', 'true')
-    await user.click(screen.getByRole('button', { name: 'Edit assigned amount' }))
+    const item = await screen.findByRole('menuitem', { name: 'Edit assigned amount' })
+    await waitFor(() => expect(screen.getByRole('button', { name: /Rent/ })).toHaveAttribute('aria-expanded', 'true'))
+    await user.click(item)
     expect(onSetAssigned).toHaveBeenCalledWith('Rent')
-    expect(screen.getByRole('button', { name: /Rent/ })).toHaveAttribute('aria-expanded', 'false')
+    await waitFor(() => expect(screen.getByRole('button', { name: /Rent/ })).toHaveAttribute('aria-expanded', 'false'))
   })
 
   it('keeps amounts hidden in the updated row', () => {
@@ -44,24 +45,9 @@ describe('EnvelopeGrid menu', () => {
     setup()
     const user = userEvent.setup()
     await user.click(screen.getByRole('button', { name: /Rent/ }))
+    expect(await screen.findByRole('menuitem', { name: 'Edit assigned amount' })).toBeInTheDocument()
     await user.keyboard('{Escape}')
-    expect(screen.queryByRole('button', { name: 'Edit assigned amount' })).not.toBeInTheDocument()
-  })
-
-  it('opens above the row when there is no room below', async () => {
-    setup()
-    const row = screen.getByRole('button', { name: /Rent/ })
-    vi.spyOn(row, 'getBoundingClientRect').mockReturnValue(
-      { top: window.innerHeight - 60, bottom: window.innerHeight - 10, right: 300 } as DOMRect,
-    )
-    const height = vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(200)
-    try {
-      await userEvent.setup().click(row)
-      const menu = screen.getByRole('button', { name: 'Edit assigned amount' }).parentElement!
-      expect(menu.style.top).toBe(`${window.innerHeight - 64 - 200}px`)
-    } finally {
-      height.mockRestore()
-    }
+    await waitFor(() => expect(screen.queryByRole('menuitem', { name: 'Edit assigned amount' })).not.toBeInTheDocument())
   })
 })
 

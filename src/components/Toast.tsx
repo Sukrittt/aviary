@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion } from 'motion/react'
 import { createPortal } from 'react-dom'
-import type { LucideIcon } from 'lucide-react'
+import { type PhosphorIcon } from '@/src/components/icons'
 
 const VISIBLE_MS = 2600
 /** Mobile's DROP_SPRING. */
@@ -16,7 +16,7 @@ const DROP_SPRING = { type: 'spring', mass: 0.8, damping: 13, stiffness: 190 } a
  * Portalled to the page root and pinned to the top of the viewport, above any
  * open dialog (a dialog's transform would otherwise trap `position: fixed`).
  */
-export function Toast({ message, trigger, icon: Icon }: { message: string; trigger: number; icon?: LucideIcon }) {
+export function Toast({ message, trigger, icon: Icon }: { message: string; trigger: number; icon?: PhosphorIcon }) {
   const [shown, setShown] = useState(false)
   const [seenTrigger, setSeenTrigger] = useState(trigger)
   const [text, setText] = useState(message)
@@ -65,7 +65,7 @@ export function Toast({ message, trigger, icon: Icon }: { message: string; trigg
       <div ref={pill} className={`erd-toast-pill${Icon ? ' has-icon' : ''}`} role={shown ? 'alert' : undefined}>
         {Icon ? (
           <span className="erd-toast-badge">
-            <Icon size={15} color="#ffffff" strokeWidth={2.5} />
+            <Icon size={15} color="#ffffff" weight="bold" />
           </span>
         ) : null}
         <span className="erd-toast-text">{text}</span>

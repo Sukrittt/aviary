@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { ChevronRight, Compass, Database, ExternalLink, Lock, MessageCircle, RefreshCw, type LucideIcon } from 'lucide-react'
+import { CaretRightIcon, CompassIcon, DatabaseIcon, ArrowSquareOutIcon, LockIcon, ChatCircleIcon, ArrowsClockwiseIcon, type PhosphorIcon } from '@/src/components/icons'
 import '@/src/expense-redesign.css'
 import { useBillingStatus, useSyncBilling } from '@/src/hooks/useBillingStatus'
 import { lockedReason, PLAY_STORE_URL } from './copy'
@@ -39,9 +39,9 @@ export function RestrictedNotice() {
             background: 'var(--tk-warn-soft)',
           }}
         >
-          <Lock size={20} color="var(--tk-warn)" />
+          <LockIcon size={20} color="var(--tk-warn)" />
         </div>
-        <h1 style={{ margin: 0, fontFamily: 'var(--font-fredoka), system-ui', fontSize: 26, color: 'var(--tk-text)' }}>
+        <h1 style={{ margin: 0, fontFamily: 'var(--font-display), system-ui', fontSize: 26, color: 'var(--tk-text)' }}>
           Subscription needed
         </h1>
         <p style={{ margin: 0, color: 'var(--tk-text2)', lineHeight: 1.55 }}>{lockedReason(status)}</p>
@@ -81,12 +81,12 @@ export function RestrictedNotice() {
               borderRadius: 999,
               // Secondary once web checkout is on the page, so there's one obvious way to pay.
               ...(status?.purchaseEnabled
-                ? { border: '1px solid var(--tk-border-strong)', background: 'transparent', color: 'var(--tk-text)', fontWeight: 600 }
-                : { background: 'var(--tk-accent)', color: 'var(--tk-on-accent)', fontWeight: 700 }),
+                ? { border: '1px solid var(--tk-border-strong)', background: 'transparent', color: 'var(--tk-text)', fontWeight: 500 }
+                : { background: 'var(--tk-accent)', color: 'var(--tk-on-accent)', fontWeight: 600 }),
               textDecoration: 'none',
             }}
           >
-            {status?.purchaseEnabled ? 'Get the Android app' : 'Open Google Play'} <ExternalLink size={15} aria-hidden />
+            {status?.purchaseEnabled ? 'Get the Android app' : 'Open Google Play'} <ArrowSquareOutIcon size={15} aria-hidden />
           </a>
           {/* For someone who already paid on their phone and is waiting for
               this tab to catch up, rather than a second way to buy. */}
@@ -103,11 +103,11 @@ export function RestrictedNotice() {
               border: '1px solid var(--tk-border-strong)',
               background: 'transparent',
               color: 'var(--tk-text)',
-              fontWeight: 600,
+              fontWeight: 500,
               cursor: sync.isPending ? 'progress' : 'pointer',
             }}
           >
-            <RefreshCw size={15} aria-hidden />
+            <ArrowsClockwiseIcon size={15} aria-hidden />
             {sync.isPending ? 'Checking…' : 'Already subscribed? Refresh'}
           </button>
         </div>
@@ -124,21 +124,21 @@ export function RestrictedNotice() {
           (bill scans) or has nothing to say here (plan, legal). Each one
           opens the real page, so nothing is duplicated on this screen. */}
       <div className="account-card">
-        <ExitRow icon={Lock} label="Account & security" href="/account/security" />
-        <ExitRow icon={Database} label="Your data" href="/account/data" />
-        <ExitRow icon={Compass} label="How this works" href="/account/guided-tour" />
-        <ExitRow icon={MessageCircle} label="Help & feedback" href="/account/help" />
+        <ExitRow icon={LockIcon} label="Account & security" href="/account/security" />
+        <ExitRow icon={DatabaseIcon} label="Your data" href="/account/data" />
+        <ExitRow icon={CompassIcon} label="How this works" href="/account/guided-tour" />
+        <ExitRow icon={ChatCircleIcon} label="Help & feedback" href="/account/help" />
       </div>
     </div>
   )
 }
 
-function ExitRow({ icon: Icon, label, href }: { icon: LucideIcon; label: string; href: string }) {
+function ExitRow({ icon: Icon, label, href }: { icon: PhosphorIcon; label: string; href: string }) {
   return (
     <Link href={href} className="account-row">
       <Icon size={16} aria-hidden="true" />
       <span className="account-row-label">{label}</span>
-      <ChevronRight size={16} className="account-row-arrow" aria-hidden="true" />
+      <CaretRightIcon size={16} className="account-row-arrow" aria-hidden="true" />
     </Link>
   )
 }

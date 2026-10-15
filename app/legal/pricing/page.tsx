@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Bell, Brain, Gift, Landmark, Mail, Monitor, PieChart, Repeat, ScanLine, Smartphone, Wallet, WifiOff } from 'lucide-react'
+import { BellIcon, BrainIcon, GiftIcon, BankIcon, EnvelopeSimpleIcon, MonitorIcon, ChartPieIcon, RepeatIcon, ScanIcon, DeviceMobileIcon, WalletIcon, WifiSlashIcon } from '@/src/components/icons'
 import { pageMetadata } from '@/lib/seo'
 import { visitorCheckoutProvider, visitorPlanPrices } from '@/lib/billing/prices'
 import { formatPrice, PLAY_STORE_URL, yearlySavingsPercent } from '@/src/components/billing/copy'
@@ -20,21 +20,21 @@ const perUnit = (amount: number, parts: number, currency: string) => {
 }
 
 const INCLUDED = [
-  { icon: Wallet, tone: 'rent', title: 'Envelopes', body: 'Set money aside by purpose. See what’s left before you spend.' },
-  { icon: Bell, tone: 'fun', title: 'Habit nudges', body: 'Aviary learns your routine and nudges you while it’s fresh.' },
-  { icon: ScanLine, tone: 'food', title: 'Receipt scanning', body: 'Snap the bill. Every line read, split if you shared.' },
-  { icon: Repeat, tone: 'savings', title: 'Bills and subscriptions', body: 'Renewals with due dates, and a heads-up before they charge.' },
-  { icon: PieChart, tone: 'savings', title: 'Insights', body: 'Every month next to the last twelve, category by category.' },
-  { icon: Landmark, tone: 'rent', title: 'Investments', body: 'Equity, FDs, gold and crypto, with your net worth charted.' },
-  { icon: Brain, tone: 'food', title: 'Money Brain', body: 'Ask about your spending in plain words and get a straight answer.' },
-  { icon: Gift, tone: 'fun', title: 'Wrapped', body: 'Your month as a recap, longest logging streak included.' },
-  { icon: Monitor, tone: 'rent', title: 'Web app', body: 'Same budget, bigger screen, always in sync.' },
-  { icon: WifiOff, tone: 'food', title: 'Works offline', body: 'Logs wait on your phone, then sync when you’re back.' },
+  { icon: WalletIcon, tone: 'rent', title: 'Categories', body: 'Set money aside by purpose. See what’s left before you spend.' },
+  { icon: BellIcon, tone: 'fun', title: 'Habit nudges', body: 'Aviary learns your routine and nudges you while it’s fresh.' },
+  { icon: ScanIcon, tone: 'food', title: 'Receipt scanning', body: 'Snap the bill. Every line read, split if you shared.' },
+  { icon: RepeatIcon, tone: 'savings', title: 'Bills and subscriptions', body: 'Renewals with due dates, and a heads-up before they charge.' },
+  { icon: ChartPieIcon, tone: 'savings', title: 'Insights', body: 'Every month next to the last twelve, category by category.' },
+  { icon: BankIcon, tone: 'rent', title: 'Investments', body: 'Equity, FDs, gold and crypto, with your net worth charted.' },
+  { icon: BrainIcon, tone: 'food', title: 'Money Brain', body: 'Ask about your spending in plain words and get a straight answer.' },
+  { icon: GiftIcon, tone: 'fun', title: 'Wrapped', body: 'Your month as a recap, longest logging streak included.' },
+  { icon: MonitorIcon, tone: 'rent', title: 'Web app', body: 'Same budget, bigger screen, always in sync.' },
+  { icon: WifiSlashIcon, tone: 'food', title: 'Works offline', body: 'Logs wait on your phone, then sync when you’re back.' },
 ]
 
 const FAQS = [
-  { q: 'What happens when my trial ends?', a: 'Nothing is charged. When you open the app, you’ll see the two plans and pick one to carry on. Your envelopes and history stay exactly where you left them, and you can export your data whether or not you subscribe.' },
-  { q: 'Do I need a card to start?', a: 'No. There’s no card, no UPI mandate and nothing to cancel during the 45 days. You only set up a payment method if you decide to keep going.' },
+  { q: 'What happens when my trial ends?', a: 'Nothing is charged. When you open the app, you’ll see the two plans and pick one to carry on. Your categories and history stay exactly where you left them, and you can export your data whether or not you subscribe.' },
+  { q: 'Do I need a card to start?', a: 'No. There’s no card, no UPI mandate and nothing to cancel during the 30 days. You only set up a payment method if you decide to keep going.' },
   { q: 'Can I cancel?', a: 'Any time, with no fee and no notice period. You keep full access until the end of the period you’ve already paid for.' },
   { q: 'Do you offer refunds?', a: <>Payments cover the period you’ve started, so we don’t refund part of a month or year after you cancel. Some cases do get a full refund, and the <Link href="/legal/refunds">refund and cancellation policy</Link> lists them.</> },
   { q: 'Are taxes included?', a: 'Yes. The price you see here is the price you pay on the website. Google Play sets its own local prices, so the Android app may show a slightly different number.' },
@@ -51,12 +51,12 @@ export default async function PricingPage() {
     <LandingHeader base="/" faq="#faq" />
 
     <section className="lp-hero" aria-labelledby="pricing-title">
-      <p className="lp-early lp-early--still"><b>45 days free</b><span className="lp-early-desktop">No card. No mandate. Nothing to cancel.</span><span className="lp-early-mobile">No card. Nothing to cancel.</span></p>
-      <h1 id="pricing-title">Try it for 45 days.<br />Then one simple plan.</h1>
+      <p className="lp-early lp-early--still"><b>30 days free</b><span className="lp-early-desktop">No card. No mandate. Nothing to cancel.</span><span className="lp-early-mobile">No card. Nothing to cancel.</span></p>
+      <h1 id="pricing-title">Try it for 30 days.<br />Then one simple plan.</h1>
       <p>Every account starts with a free trial of the whole app. When it ends, pick monthly or yearly. Cancel any time.</p>
       <div className="lp-hero-actions">
-        <TrackedLink className="lp-button lp-button--dark" href={PLAY_STORE_URL} event="store_cta_clicked" properties={{ placement: 'pricing_hero' }}><Smartphone size={18} aria-hidden="true" />Start your free trial</TrackedLink>
-        <Link href="/expense" className="lp-button lp-button--ghost"><Monitor size={18} aria-hidden="true" />Open web app</Link>
+        <TrackedLink className="lp-button lp-button--dark" href={PLAY_STORE_URL} event="store_cta_clicked" properties={{ placement: 'pricing_hero' }}><DeviceMobileIcon size={18} aria-hidden="true" />Start your free trial</TrackedLink>
+        <Link href="/expense" className="lp-button lp-button--ghost"><MonitorIcon size={18} aria-hidden="true" />Open web app</Link>
       </div>
       <span className="lp-hero-note">Prices include taxes · Pay on the web or through Google Play</span>
     </section>
@@ -89,7 +89,7 @@ export default async function PricingPage() {
       <p className="lp-lede">No tiers, no add-ons, no features behind a bigger plan. Both plans unlock the whole nest.</p>
       <ul className="lp-includes">
         {INCLUDED.map(({ icon: Icon, tone, title, body }) => <li key={title} className="lp-card">
-          <span className={`lp-include-icon lp-tone-${tone}`} aria-hidden="true"><Icon size={22} strokeWidth={2.2} /></span>
+          <span className={`lp-include-icon lp-tone-${tone}`} aria-hidden="true"><Icon size={22} /></span>
           <strong>{title}</strong><span>{body}</span>
         </li>)}
       </ul>
@@ -100,12 +100,12 @@ export default async function PricingPage() {
       <p className="lp-lede">Same plan, two ways to pay. Pick the checkout that suits you.</p>
       <div className="lp-pay">
         <div className="lp-card lp-pay-card">
-          <span className="lp-include-icon lp-tone-savings" aria-hidden="true"><Monitor size={22} strokeWidth={2.2} /></span>
+          <span className="lp-include-icon lp-tone-savings" aria-hidden="true"><MonitorIcon size={22} /></span>
           <strong>On the website</strong>
           <span>{provider === 'paypal' ? 'PayPal or a card, through PayPal.' : 'UPI AutoPay or a card, through Razorpay.'} Manage it any time from Account, then Subscription.</span>
         </div>
         <div className="lp-card lp-pay-card">
-          <span className="lp-include-icon lp-tone-food" aria-hidden="true"><Smartphone size={22} strokeWidth={2.2} /></span>
+          <span className="lp-include-icon lp-tone-food" aria-hidden="true"><DeviceMobileIcon size={22} /></span>
           <strong>In the Android app</strong>
           <span>Through Google Play, next to your other subscriptions. Cancel from the Play Store like any other.</span>
         </div>
@@ -120,12 +120,12 @@ export default async function PricingPage() {
 
     <section className="lp-section lp-close" aria-labelledby="get-title">
       <span className="lp-close-bird"><BirdLanding size={120} alive /></span>
-      <h2 id="get-title" className="lp-h2">Start with the free 45 days.</h2>
+      <h2 id="get-title" className="lp-h2">Start with the free 30 days.</h2>
       <div className="lp-hero-actions">
-        <TrackedLink className="lp-button lp-button--dark" href={PLAY_STORE_URL} event="store_cta_clicked" properties={{ placement: 'pricing_footer' }}><Smartphone size={18} aria-hidden="true" />Get it on Google Play</TrackedLink>
-        <Link href="/expense" className="lp-button lp-button--ghost"><Monitor size={18} aria-hidden="true" />Open web app</Link>
+        <TrackedLink className="lp-button lp-button--dark" href={PLAY_STORE_URL} event="store_cta_clicked" properties={{ placement: 'pricing_footer' }}><DeviceMobileIcon size={18} aria-hidden="true" />Get it on Google Play</TrackedLink>
+        <Link href="/expense" className="lp-button lp-button--ghost"><MonitorIcon size={18} aria-hidden="true" />Open web app</Link>
       </div>
-      <span className="lp-hero-note">No card needed · Cancel any time · <Link href="/legal/contact"><Mail size={13} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 4 }} />Questions? Write to us</Link></span>
+      <span className="lp-hero-note">No card needed · Cancel any time · <Link href="/legal/contact"><EnvelopeSimpleIcon size={13} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 4 }} />Questions? Write to us</Link></span>
     </section>
 
     <LandingFooter base="/" faq="#faq" />

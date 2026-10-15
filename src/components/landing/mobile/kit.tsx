@@ -15,7 +15,7 @@ import {
 } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'motion/react'
-import { ChevronLeft, type LucideIcon } from 'lucide-react'
+import { CaretLeftIcon, type PhosphorIcon } from '@/src/components/icons'
 import { darkTokens, lightTokens } from '@/src/theme/tokens'
 import { OPERATORS, pushAmountKey } from '@/src/lib/calcAmount'
 
@@ -58,19 +58,19 @@ export const elevation = {
   floating: '0 8px 22px rgba(0,0,0,0.15)',
 }
 
-const display = 'var(--font-fredoka), sans-serif'
-const body = 'var(--font-nunito), sans-serif'
+const display = 'var(--font-display), sans-serif'
+const body = 'var(--font-body), sans-serif'
 
 // Mobile/src/theme/fonts.ts
 export const font = {
-  displayMedium: { fontFamily: display, fontWeight: 500 },
+  displayMedium: { fontFamily: display, fontWeight: 600 },
   displaySemiBold: { fontFamily: display, fontWeight: 600 },
   displayBold: { fontFamily: display, fontWeight: 700 },
-  bodyMedium: { fontFamily: body, fontWeight: 500 },
-  bodySemiBold: { fontFamily: body, fontWeight: 600 },
-  bodyBold: { fontFamily: body, fontWeight: 700 },
-  bodyExtraBold: { fontFamily: body, fontWeight: 800 },
-  bodyBlack: { fontFamily: body, fontWeight: 900 },
+  bodyMedium: { fontFamily: body, fontWeight: 400 },
+  bodySemiBold: { fontFamily: body, fontWeight: 500 },
+  bodyBold: { fontFamily: body, fontWeight: 600 },
+  bodyExtraBold: { fontFamily: body, fontWeight: 700 },
+  bodyBlack: { fontFamily: body, fontWeight: 700 },
 } satisfies Record<string, CSSProperties>
 
 /** The simulated device. `top`/`bottom` stand in for safe-area insets. */
@@ -353,7 +353,7 @@ export function IconButton({
   background = T.cardSolid,
   label,
 }: {
-  icon: LucideIcon
+  icon: PhosphorIcon
   onPress: () => void
   size?: number
   color?: string
@@ -378,7 +378,7 @@ export function IconButton({
         flexShrink: 0,
       }}
     >
-      <Icon size={Math.round(size * 0.45)} color={color} strokeWidth={2} />
+      <Icon size={Math.round(size * 0.45)} color={color} />
     </motion.button>
   )
 }
@@ -389,7 +389,7 @@ export function Chip({
   selected,
   onPress,
 }: {
-  icon?: string
+  icon?: ReactNode
   label: string
   selected?: boolean
   onPress: () => void
@@ -504,7 +504,7 @@ export function Numpad({
             }}
           >
             {isToggle && calcOpen && <span style={{ position: 'absolute', width: 56, height: 56, borderRadius: 28, background: CALC_FILL }} />}
-            {isDel ? <ChevronLeft size={22} color={keyColor} /> : <span style={{ position: 'relative' }}>{label(k)}</span>}
+            {isDel ? <CaretLeftIcon size={22} color={keyColor} /> : <span style={{ position: 'relative' }}>{label(k)}</span>}
           </button>
         )
       })}</div>)}

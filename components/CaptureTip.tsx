@@ -4,14 +4,14 @@ import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { usePathname } from 'next/navigation'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useAuth } from '@workos-inc/authkit-nextjs/components'
-import { MessageSquareText, X } from 'lucide-react'
+import { ChatTextIcon, XIcon } from '@/src/components/icons'
 import { useMoneyBrain } from './MoneyBrainProvider'
 import { useHiddenFeatures } from '@/src/hooks/useUser'
 import { interrupted, subscribeInterruptions } from './ChangelogAnnouncement'
 import { useRecentExpenses } from '@/src/hooks/useExpenses'
 import { usePersistentState } from '@/src/hooks/usePersistentState'
 import { captureTipReason, MANUAL_LOG_EVENT, NO_TIP_STATE, parseTipState, type CaptureTipReason } from '@/src/lib/captureTip'
-import { todayIST } from '@/src/lib/date'
+import { todayLocal } from '@/src/lib/date'
 import { track } from '@/src/lib/analytics'
 import '@/src/components/Changelog.css'
 
@@ -59,7 +59,7 @@ export function CaptureTip() {
   const ready = Boolean(user && !askHidden && onApp && rows && !blocked && !brain.isMoneyBrainOpen)
   if (ready && shown === null) {
     // eslint-disable-next-line react-hooks/purity -- read once, when deciding whether to latch
-    const reason = captureTipReason({ rows: rows!, today: todayIST(), now: Date.now(), manualLogs, state: { ...state, done: tried } })
+    const reason = captureTipReason({ rows: rows!, today: todayLocal(), now: Date.now(), manualLogs, state: { ...state, done: tried } })
     if (reason) setShown(reason)
   }
 
@@ -85,7 +85,7 @@ export function CaptureTip() {
           exit={{ opacity: 0, transition: { duration: 0.16, ease: 'easeOut' } }}
         >
           <aside className="changelog-card" aria-label={COPY[reason].title}>
-            <div className="changelog-eyebrow"><MessageSquareText size={14} aria-hidden="true" /> Tip</div>
+            <div className="changelog-eyebrow"><ChatTextIcon size={14} aria-hidden="true" /> Tip</div>
             <button
               type="button"
               className="changelog-close"
@@ -95,7 +95,7 @@ export function CaptureTip() {
                 setShown('closed')
               }}
             >
-              <X size={18} aria-hidden="true" />
+              <XIcon size={18} aria-hidden="true" />
             </button>
             <h2>{COPY[reason].title}</h2>
             <p className="changelog-body">{COPY[reason].body}</p>

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { ExternalLink, RefreshCw, XCircle } from 'lucide-react'
+import { ArrowSquareOutIcon, ArrowsClockwiseIcon, XCircleIcon } from '@/src/components/icons'
 import { ConfirmDialog } from '@/src/components/ConfirmDialog'
 import { useBillingStatus, useCancelWebSubscription, usePayPalReturn, useSyncBilling, type PayPalReturn } from '@/src/hooks/useBillingStatus'
 import { billingVisible, formatDate, PLAY_STORE_URL, trialRemainingLabel } from './copy'
@@ -45,14 +45,14 @@ export function SubscriptionSection() {
         <div className="account-row" style={{ cursor: 'default' }}>
           <span className="account-row-label">
             {data.mode === 'paid' ? (
-              <span style={{ fontWeight: 800, color: 'var(--tk-accent-ink)' }}>Aviary Pro</span>
+              <span style={{ fontWeight: 700, color: 'var(--tk-accent-ink)' }}>Aviary Pro</span>
             ) : (
               'Plan'
             )}
             <span className="account-row-hint">{describePlan(data)}</span>
           </span>
           {data.mode === 'paid' ? (
-            <span style={{ fontSize: 12, fontWeight: 800, padding: '4px 10px', borderRadius: 999, whiteSpace: 'nowrap', ...CHIP_TONE[chipTone(data)] }}>{statusChip(data)}</span>
+            <span style={{ fontSize: 12, fontWeight: 700, padding: '4px 10px', borderRadius: 999, whiteSpace: 'nowrap', ...CHIP_TONE[chipTone(data)] }}>{statusChip(data)}</span>
           ) : (
             <span style={{ color: 'var(--tk-text2)', fontSize: 14 }}>{statusChip(data)}</span>
           )}
@@ -86,7 +86,7 @@ export function SubscriptionSection() {
               Manage in Google Play
               <span className="account-row-hint">Change plan, update payment method, or cancel.</span>
             </span>
-            <ExternalLink size={16} className="account-row-arrow" aria-hidden />
+            <ArrowSquareOutIcon size={16} className="account-row-arrow" aria-hidden />
           </a>
         )}
 
@@ -108,7 +108,7 @@ export function SubscriptionSection() {
                     : `You keep everything until ${formatDate(data.paidExpiresAt)}.`}
               </span>
             </span>
-            <XCircle size={16} className="account-row-arrow" aria-hidden />
+            <XCircleIcon size={16} className="account-row-arrow" aria-hidden />
           </button>
         )}
 
@@ -139,7 +139,7 @@ export function SubscriptionSection() {
             animate={{ rotate: sync.isPending && !reduceMotion ? 360 : 0 }}
             transition={sync.isPending ? { repeat: Infinity, duration: 0.9, ease: 'linear' } : { duration: 0 }}
           >
-            <RefreshCw size={16} />
+            <ArrowsClockwiseIcon size={16} />
           </motion.span>
         </button>
       </div>

@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   addCategory,
@@ -45,10 +46,16 @@ export function useCategories() {
   return useQuery({ queryKey: key, queryFn: getCategories, staleTime: 30_000 })
 }
 
+/** Each category's picked icon by name, for rows that only carry the name. */
+export function useCategoryIcons(): Map<string, string> {
+  const { data } = useCategories()
+  return useMemo(() => new Map((data ?? []).flatMap((c) => (c.icon ? [[c.name, c.icon] as const] : []))), [data])
+}
+
 export function useAddCategory() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (params: { name: string; group?: string }) => addCategory(params.name, params.group),
+    mutationFn: (params: { name: string; group?: string; icon?: string }) => addCategory(params.name, params.group, params.icon),
     onSuccess: (_data, params) => {
       // Envelopes get created from two places: the setup wizard and the
       // inline "new category" row inside log-expense. $screen_name tells them
@@ -62,7 +69,7 @@ export function useAddCategory() {
 export function useUpdateCategory() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (params: { name: string; updates: { newName?: string; group?: string; alertPcts?: number[] | null } }) =>
+    mutationFn: (params: { name: string; updates: { newName?: string; group?: string; icon?: string; alertPcts?: number[] | null } }) =>
       updateCategory(params.name, params.updates),
     onSuccess: () => qc.invalidateQueries({ queryKey: key }),
   })

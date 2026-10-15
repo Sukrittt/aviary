@@ -4,11 +4,12 @@ import { useCurrency } from '@/src/context/CurrencyContext'
 import { motion } from 'motion/react'
 import { AmountText, STAGGER, popIn, staggerDelay } from '@/src/components/landing/mobile/kit'
 import { useEffect, useState } from 'react'
-import { Check, Search, Trash2 } from 'lucide-react'
+import { CheckIcon, MagnifyingGlassIcon, TrashIcon } from '@/src/components/icons'
 
 import { CategoryPicker } from '@/src/components/CategoryPicker'
 import { DatePicker } from '@/src/components/DatePicker'
-import { categoryEmoji, splitEmoji } from '@/src/lib/emoji'
+import { splitEmoji } from '@/src/lib/emoji'
+import { CategoryIcon } from '@/src/components/CategoryIcon'
 
 import { round2 } from '@/src/lib/split'
 import { DIVISORS, PEOPLE_COUNTS, splitLabel } from './presentation'
@@ -44,7 +45,7 @@ export function ScanReview(s: ScanBillState) {
         </motion.section>
         <motion.div className="scan-toolbar" {...popIn(STAGGER.mount + STAGGER.block)}>
           <div className="scan-search-field">
-            <Search size={17} aria-hidden="true" />
+            <MagnifyingGlassIcon size={17} aria-hidden="true" />
             <input
               type="search"
               className="scan-search"
@@ -76,7 +77,7 @@ export function ScanReview(s: ScanBillState) {
                     aria-label={`Select ${it.name || 'item'}`}
                   >
                     <span className={`setup-pick-check scan-item-check ${s.selected.includes(it.key) ? 'is-on' : ''}`} aria-hidden="true">
-                      <Check size={16} strokeWidth={3} className="setup-pick-check-icon" />
+                      <CheckIcon size={16} weight="bold" className="setup-pick-check-icon" />
                     </span>
                     <span className="scan-select-name">{it.name || 'Item'}</span>
                     <span className="scan-select-price">{formatMoney(it.price)}</span>
@@ -128,7 +129,7 @@ export function ScanReview(s: ScanBillState) {
                         aria-label={`Remove ${it.name || 'item'}`}
                         onClick={() => s.removeItem(it.key)}
                       >
-                        <Trash2 size={16} aria-hidden="true" />
+                        <TrashIcon size={16} aria-hidden="true" />
                       </button>
                     </div>
                   </>
@@ -175,7 +176,7 @@ export function ScanReview(s: ScanBillState) {
                     aria-label={`Remove ${it.name || 'fee'}`}
                     onClick={() => s.removeItem(it.key)}
                   >
-                    <Trash2 size={16} aria-hidden="true" />
+                    <TrashIcon size={16} aria-hidden="true" />
                   </button>
                 </div>
               ))}
@@ -255,9 +256,12 @@ export function ScanReview(s: ScanBillState) {
           aria-expanded={pickingCategory}
           onClick={() => setPickingCategory((v) => !v)}
         >
-          {selectedCategory
-            ? `${categoryEmoji(selectedCategory.name, selectedCategory.group)} ${splitEmoji(selectedCategory.name).text}`
-            : 'Pick a category'}
+          {selectedCategory ? (
+            <>
+              <CategoryIcon name={selectedCategory.name} icon={selectedCategory.icon} group={selectedCategory.group} />{' '}
+              {splitEmoji(selectedCategory.name).text}
+            </>
+          ) : 'Pick a category'}
         </button>
         {pickingCategory && (
           <CategoryPicker

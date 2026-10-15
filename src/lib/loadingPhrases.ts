@@ -1,11 +1,11 @@
 export const LOADING_PHRASES = {
   general: [
-    'Balancing the envelopes…',
+    'Balancing the categories…',
     'Giving your money a job…',
     "Counting what's Ready to Assign…",
     "Chasing down last month's leftovers…",
     'Reconciling the chaos…',
-    'Squeezing blood from the Bills envelope…',
+    'Squeezing blood from Bills…',
     'Asking Rent to behave…',
     'Tallying the damage…',
     'Waking up the ledger…',
@@ -103,7 +103,7 @@ export const LOADING_PHRASES = {
   chatThinking: [
     'Thinking it through…',
     'Reading your recent transactions…',
-    'Checking your envelopes…',
+    'Checking your categories…',
     'Doing the math…',
     'Putting your answer together…',
     'Looking at your spending…',
@@ -111,6 +111,14 @@ export const LOADING_PHRASES = {
   exports: ['Loading your exports…', 'Almost there…'],
   exportBuilding: ['Packing your data…', 'Tidying the columns…', 'Almost ready…'],
   appEntry: ['Opening the nest…', 'Finding your perch…', 'Smoothing the feathers…', 'Almost there…'],
+  ideas: [
+    "Rounding up the flock's ideas…",
+    'Counting the votes…',
+    'Shuffling the wishlist…',
+    'Reading the suggestion box…',
+    'Sorting the bright ideas…',
+    'Listening for new chirps…',
+  ],
   accounts: ['Opening your wallet…', 'Shaking the piggy bank…', 'Shuffling your cards…', 'Counting the coin jar…'],
   wrappedStatus: ['Checking last month…', 'Counting transactions…', 'Tallying it up…', 'Almost there…'],
 } as const

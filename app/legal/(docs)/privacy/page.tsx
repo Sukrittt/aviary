@@ -6,7 +6,7 @@ export default function PrivacyPage() {
   return (
     <article className="legal-doc">
       <h1>Privacy Policy</h1>
-      <p className="legal-updated">Last updated 5 October 2026</p>
+      <p className="legal-updated">Last updated 14 October 2026</p>
 
       <p>
         Aviary (&ldquo;we&rdquo;, &ldquo;us&rdquo;) is an independently developed, personal budgeting app.
@@ -28,7 +28,7 @@ export default function PrivacyPage() {
           or an emailed one-time code. Authentication is handled by our identity provider, WorkOS.
         </li>
         <li>
-          <strong>The financial data you enter.</strong> Envelopes, budgets, transactions, item names, notes,
+          <strong>The financial data you enter.</strong> Categories, budgets, transactions, item names, notes,
           subscriptions, and investment holdings you add. Amounts, item names, notes, and AI chat text are
           encrypted at rest with AES-256-GCM before they reach our database. Dates, category names, payment
           methods, subscription and holding names are stored as plain text so search and filtering work; we
@@ -41,7 +41,7 @@ export default function PrivacyPage() {
         </li>
         <li>
           <strong>Ask Aviary / AI chat.</strong> If you ask our AI assistant a question, we send it your recent
-          transactions, envelope balances, and subscription and investment summaries so it can answer
+          transactions, category balances, and subscription and investment summaries so it can answer
           accurately, along with the text you type. Conversations are stored in our database so you can revisit
           them, and you can delete them at any time.
         </li>
@@ -49,7 +49,7 @@ export default function PrivacyPage() {
           <strong>Product analytics.</strong> The mobile app and the web app send your email and name, the
           screens and pages you open, and product events (e.g. signing in, each step of setup, logging an
           expense, moving money, scanning a bill, viewing plans) to PostHog, an analytics provider based in the
-          United States. No amounts, item text or envelope names are included in these events, and we don&apos;t
+          United States. No amounts, item text or category names are included in these events, and we don&apos;t
           record your screen. On the website, visitors who aren&apos;t signed in are counted anonymously.
           Analytics is on by default. You can turn it off at any time in Settings &rarr; Your data &rarr;
           Share usage analytics, on either app; turning it off stops new data from being sent from that device
@@ -60,6 +60,13 @@ export default function PrivacyPage() {
           bill reminders, and digests. Notification text can include category names and amounts (e.g.
           &ldquo;You&apos;ve overspent &#8377;500 in Food&rdquo;), delivered through Google&apos;s and
           Apple&apos;s push services.
+        </li>
+        <li>
+          <strong>Bug reports and ideas.</strong> If you report a bug, we store what you write with your app
+          version, device model and the screen you were on, and AI sorts it by area and severity. Only our
+          team sees bug reports. Ideas you post on the feedback board and your votes are stored with your
+          account. Other signed-in users see your idea with your first name, but never who voted. Deleting
+          your account removes both.
         </li>
         {/* Promise below: once the iPhone launch email has gone out, delete every
             `waitlist` document with platform 'ios'. Keeping them breaks this policy.
@@ -83,7 +90,6 @@ export default function PrivacyPage() {
       <ul>
         <li><strong>WorkOS</strong> — sign-in and account identity.</li>
         <li><strong>MongoDB Atlas</strong> — where your data is stored, with the encryption described above.</li>
-        <li><strong>UserJot</strong> — the external feedback board, when you choose to open it and submit feedback.</li>
         <li>
           <strong>Google Gemini</strong> — receives transaction and budget context for Ask Aviary and AI
           briefs, and receipt photos for bill scanning. Google does not use this data to train its models under
@@ -92,6 +98,10 @@ export default function PrivacyPage() {
         <li><strong>PostHog</strong> — product analytics, U.S.-hosted, toggleable off as described above.</li>
         <li><strong>Expo / Google Firebase</strong> — delivers push notifications.</li>
         <li><strong>Vercel</strong> — hosts the app and its API, and stores data exports you request.</li>
+        <li>
+          <strong>TypeSafe AI</strong>, through Vercel&apos;s AI Gateway: receives the title and details of a bug
+          report to sort it by area and severity. Nothing else about you or your account is sent.
+        </li>
         <li>
           <strong>Razorpay</strong> — takes payment when you subscribe on the website. Your card or UPI details go
           to Razorpay, not to us. We keep your subscription&apos;s id, plan and renewal dates.
@@ -112,7 +122,7 @@ export default function PrivacyPage() {
 
       <h2>How long we keep it</h2>
       <p>
-        Deleting an envelope, transaction, or your whole account moves it into a recoverable, inaccessible state
+        Deleting a category, transaction, or your whole account moves it into a recoverable, inaccessible state
         for 7 days &mdash; enough time to undo an accidental deletion by signing back in &mdash; after which it
         is permanently deleted from our active systems, including your account with our identity provider.
       </p>

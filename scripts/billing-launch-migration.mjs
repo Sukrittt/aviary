@@ -1,8 +1,8 @@
-// Grants every existing onboarded user one fresh 45-day trial at the public
+// Grants every existing onboarded user one fresh 30-day trial at the public
 // subscriptions launch instant.
 //
 // Not counted from account creation, from the deploy, or from an old
-// `onboardedAt` — pricing.md promises existing users a *fresh* 45 days, and
+// `onboardedAt` — pricing.md promises existing users a *fresh* 30 days, and
 // anchoring to any historical date would hand some of them an already-dead
 // trial on day one.
 //
@@ -17,7 +17,7 @@
 //
 // Both are idempotent, and neither can restart a clock that legitimately ran:
 // case 1 uses `$setOnInsert`, and case 2 is selected by `trialCohort:
-// 'onboarding-v1'` plus a start date before launch, then stamped
+// 'onboarding-v1' or 'onboarding-v2'` plus a start date before launch, then stamped
 // 'legacy-launch-v1' — so a rerun matches nothing. A trial granted after the
 // launch instant is never touched.
 //
@@ -34,7 +34,7 @@ import { loadEnv, args } from './lib/env.mjs'
 loadEnv()
 const argv = args()
 const DRY = Boolean(argv['dry-run'])
-const TRIAL_DAYS = 45
+const TRIAL_DAYS = 30
 const COHORT = 'legacy-launch-v1'
 
 if (!process.env.MONGODB_URI) throw new Error('MONGODB_URI not set')
@@ -62,7 +62,8 @@ try {
   const toGrant = cohort.filter((u) => !existing.has(u._id))
 
   // Trials that started before subscriptions were a product. See the header.
-  const prelaunchFilter = { trialCohort: 'onboarding-v1', trialStartedAt: { $lt: startedAt } }
+  // Both onboarding cohorts: a v2 (30-day) trial started before launch needs the same reset.
+  const prelaunchFilter = { trialCohort: { $in: ['onboarding-v1', 'onboarding-v2'] }, trialStartedAt: { $lt: startedAt } }
   const toReset = await db.collection('billing_accounts').countDocuments(prelaunchFilter)
 
   console.log(`cohort: ${cohort.length} onboarded live user(s); ${existing.size} already have a billing account`)

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { ReceiptText, Upload } from 'lucide-react'
+import { InvoiceIcon, UploadSimpleIcon } from '@/src/components/icons'
 import { Scrim, Sheet } from '@/src/components/MotionSheet'
 import { LoadingCaption } from '@/src/components/LoadingCaption'
 import { ScanReview } from './ScanReview'
@@ -62,7 +62,7 @@ export function ScanBillModal({ onClose, onEnterManually }: Props) {
                 onClick={() => replacementInputRef.current?.click()}
                 disabled={state.confirmButton.saving || state.confirmButton.success}
               >
-                <Upload size={15} aria-hidden="true" />
+                <UploadSimpleIcon size={15} aria-hidden="true" />
                 <span className="scan-reupload-label">Re-upload bill</span>
               </button>
             )}
@@ -218,7 +218,7 @@ function ScanPick({ pickFile, pickFrame }: Pick<ScanBillState, 'pickFile' | 'pic
         if (file) void pickFile(file)
       }}
     >
-      <ReceiptText className="scan-drop-icon" size={34} strokeWidth={1.75} aria-hidden="true" />
+      <InvoiceIcon className="scan-drop-icon" size={34} aria-hidden="true" />
       <p className="scan-drop-title">Drop a bill or a screenshot here</p>
       <p className="scan-drop-copy">We&apos;ll read the items and calculate your share.</p>
       <div className="scan-actions-row">

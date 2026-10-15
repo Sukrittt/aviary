@@ -2,6 +2,10 @@ import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import path from 'node:path'
 
+// Pin a zone so date tests don't depend on the machine. *.tz.test.ts files
+// override it to cover users elsewhere.
+process.env.TZ = 'Asia/Kolkata'
+
 export default defineConfig({
   plugins: [react()],
   test: {

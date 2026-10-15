@@ -2,43 +2,32 @@
 
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
-import { Plus } from 'lucide-react'
+import { FolderOpenIcon, HouseIcon, PlusIcon, ReceiptIcon, UserIcon, type PhosphorIcon, type IconWeight } from '@/src/components/icons'
 import { CheckIcon, PHONE, T, elevation, font, pressable, radius, row, spring, springTight, useShake } from './kit'
 
 /** Twin of Mobile/src/components/nav/{FloatingNav,NavIcons,AddCircleAnim}.tsx. */
 
 export type NavRoute = 'index' | 'activity' | 'envelopes' | 'more'
-type Glyph = (props: { size: number; color: string }) => ReactNode
+type Glyph = (props: { size: number; color: string; weight?: IconWeight }) => ReactNode
 
 const fade = (color: string, prop: 'fill' | 'stroke'): CSSProperties => ({ [prop]: color, transition: `${prop} 200ms` })
 
-const phosphor = (d: string): Glyph =>
-  function PhosphorGlyph({ size, color }) {
-    return (
-      <svg width={size} height={size} viewBox="0 0 256 256">
-        <path d={d} style={fade(color, 'fill')} />
-      </svg>
-    )
+// Regular when idle, fill on the selected tab, matching Mobile's NavIcons.
+const glyph = (Icon: PhosphorIcon): Glyph =>
+  function NavGlyph({ size, color, weight = 'regular' }) {
+    return <Icon size={size} weight={weight} style={fade(color, 'fill')} />
   }
 
-const HomeGlyph = phosphor(
-  'M219.31,108.68l-80-80a16,16,0,0,0-22.62,0l-80,80A15.87,15.87,0,0,0,32,120v96a8,8,0,0,0,8,8h64a8,8,0,0,0,8-8V160h32v56a8,8,0,0,0,8,8h64a8,8,0,0,0,8-8V120A15.87,15.87,0,0,0,219.31,108.68ZM208,208H160V152a8,8,0,0,0-8-8H104a8,8,0,0,0-8,8v56H48V120l80-80,80,80Z',
-)
-const ActivityGlyph = phosphor(
-  'M72,104a8,8,0,0,1,8-8h96a8,8,0,0,1,0,16H80A8,8,0,0,1,72,104Zm8,40h96a8,8,0,0,0,0-16H80a8,8,0,0,0,0,16ZM232,56V208a8,8,0,0,1-11.58,7.15L192,200.94l-28.42,14.21a8,8,0,0,1-7.16,0L128,200.94,99.58,215.15a8,8,0,0,1-7.16,0L64,200.94,35.58,215.15A8,8,0,0,1,24,208V56A16,16,0,0,1,40,40H216A16,16,0,0,1,232,56Zm-16,0H40V195.06l20.42-10.22a8,8,0,0,1,7.16,0L96,199.06l28.42-14.22a8,8,0,0,1,7.16,0L160,199.06l28.42-14.22a8,8,0,0,1,7.16,0L216,195.06Z',
-)
-const EnvelopeGlyph = phosphor(
-  'M245,110.64A16,16,0,0,0,232,104H216V88a16,16,0,0,0-16-16H130.67L102.94,51.2a16.14,16.14,0,0,0-9.6-3.2H40A16,16,0,0,0,24,64V208h0a8,8,0,0,0,8,8H211.1a8,8,0,0,0,7.59-5.47l28.49-85.47A16.05,16.05,0,0,0,245,110.64ZM93.34,64,123.2,86.4A8,8,0,0,0,128,88h72v16H69.77a16,16,0,0,0-15.18,10.94L40,158.7V64Zm112,136H43.1l26.67-80H232Z',
-)
-const ProfileGlyph = phosphor(
-  'M230.92,212c-15.23-26.33-38.7-45.21-66.09-54.16a72,72,0,1,0-73.66,0C63.78,166.78,40.31,185.66,25.08,212a8,8,0,1,0,13.85,8c18.84-32.56,52.14-52,89.07-52s70.23,19.44,89.07,52a8,8,0,1,0,13.85-8ZM72,96a56,56,0,1,1,56,56A56.06,56.06,0,0,1,72,96Z',
-)
-const PlusGlyph: Glyph = ({ size, color }) => <Plus size={size} strokeWidth={2.5} style={fade(color, 'stroke')} />
+const HomeGlyph = glyph(HouseIcon)
+const ActivityGlyph = glyph(ReceiptIcon)
+const EnvelopeGlyph = glyph(FolderOpenIcon)
+const ProfileGlyph = glyph(UserIcon)
+const PlusGlyph: Glyph = ({ size, color }) => <PlusIcon size={size} weight="bold" style={fade(color, 'fill')} />
 
 const NAV_ROUTES: { name: NavRoute; glyph: Glyph; label: string }[] = [
   { name: 'index', glyph: HomeGlyph, label: 'Home' },
   { name: 'activity', glyph: ActivityGlyph, label: 'Activity' },
-  { name: 'envelopes', glyph: EnvelopeGlyph, label: 'Envelopes' },
+  { name: 'envelopes', glyph: EnvelopeGlyph, label: 'Categories' },
   { name: 'more', glyph: ProfileGlyph, label: 'More' },
 ]
 
@@ -359,7 +348,7 @@ function NavCircle({
               boxShadow: selected || floating ? elevation.floating : elevation.card,
             }}
           >
-            {overrideContent ?? <GlyphIcon size={ICON} color={color} />}
+            {overrideContent ?? <GlyphIcon size={ICON} color={color} weight={selected ? 'fill' : 'regular'} />}
           </button>
         </div>
       </motion.div>

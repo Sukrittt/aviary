@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { motion } from 'motion/react'
 import { LIST_SPRING } from '@/src/components/landing/mobile/kit'
 import { LoadingCaption } from '@/src/components/LoadingCaption'
+import { BroomIcon } from '@/src/components/icons'
 import { analyticsReady, isAnalyticsEnabled, setAnalyticsEnabled, track } from '@/src/lib/analytics'
 
 interface Summary {
@@ -141,7 +142,7 @@ export default function DataPage() {
       <div className="account-export-row">
         <div className="account-export-title">Export</div>
         <div className="account-export-meta">
-          {summary ? `${summary.transactionCount} transactions · ${summary.envelopeCount} envelopes` : '—'}
+          {summary ? `${summary.transactionCount} transactions · ${summary.envelopeCount} categories` : '—'}
           {exports
             ? ` · ${Math.min(exports.usedThisMonth, exports.limit)} of ${exports.limit} exports used this month`
             : ''}
@@ -219,11 +220,11 @@ export default function DataPage() {
 
       <button type="button" className="account-clear-btn" onClick={() => setConfirmingClear(true)}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span aria-hidden="true">🧹</span>
+          <BroomIcon size={20} aria-hidden />
           <span>
-            <span style={{ display: 'block', fontSize: 14, fontWeight: 700 }}>Clear all transactions</span>
-            <span style={{ display: 'block', fontSize: 11, color: 'var(--erd-text2)', marginTop: 2 }}>
-              Keeps envelopes, wipes history
+            <span style={{ display: 'block', fontSize: 14, fontWeight: 600 }}>Clear all transactions</span>
+            <span style={{ display: 'block', fontSize: 12, color: 'var(--erd-text2)', marginTop: 2 }}>
+              Keeps categories, wipes history
             </span>
           </span>
         </span>
@@ -232,7 +233,7 @@ export default function DataPage() {
       {confirmingClear ? (
         <div className="account-confirm-panel">
           <div className="account-confirm-copy">
-            This deletes every transaction. Envelopes and budgets stay. There is no undo.
+            This deletes every transaction. Categories and budgets stay. There&apos;s no undo.
           </div>
           <div className="account-confirm-actions">
             <button type="button" className="account-confirm-cancel" onClick={() => setConfirmingClear(false)} disabled={clearing}>

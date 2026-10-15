@@ -25,7 +25,7 @@ vi.mock('../hooks/useExpenses', () => ({
 vi.mock('../api/categoryMap', () => ({ getCategoryMap: vi.fn(async () => ({ words: {}, updatedAt: '' })) }))
 vi.mock('../lib/autoCategory', () => ({ suggestCategoryLLM: vi.fn() }))
 vi.mock('../hooks/useUser', () => ({ useHiddenFeatures: () => [] }))
-vi.mock('../hooks/useGroups', () => ({ useGroups: () => ({ data: ['Food', 'Home'] }) }))
+vi.mock('../hooks/useGroups', () => ({ useGroups: () => ({ data: ['Food', 'Home'] }), useGroupIcons: () => new Map() }))
 vi.mock('../hooks/useCategories', () => ({
   useAddCategory: () => ({ mutateAsync: addCategoryMutation }),
   useCategories: () => ({ data: [{ name: 'Groceries' }, { name: 'Rent' }, { name: 'Eating out' }] }),
@@ -165,6 +165,17 @@ it('saves through the expense mutation so Activity is invalidated immediately', 
     category: 'Groceries',
   })))
   expect(onSaved).toHaveBeenCalledOnce()
+})
+
+it('saves a blank item under the category name, like Mobile', async () => {
+  addExpenseMutation.mockResolvedValue({ id: 'expense-1', pending: false })
+  render(<LogExpenseModal onClose={vi.fn()} onSaved={vi.fn()} />)
+  fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '450' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Choose Groceries' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Save expense' }))
+
+  await waitFor(() => expect(addExpenseMutation).toHaveBeenCalledWith(expect.objectContaining({ item: 'Groceries', category: 'Groceries' })))
+  expect(await screen.findByText('Added ₹450 · Groceries')).toBeInTheDocument()
 })
 
 describe('LogExpenseModal category suggestion', () => {
@@ -341,20 +352,20 @@ it('opens category creation from the web expense form and selects the saved cate
   type('Gym membership')
   fireEvent.click(screen.getByRole('button', { name: 'Add' }))
   expect(screen.getByRole('dialog', { name: 'Add category' })).toBeInTheDocument()
-  fireEvent.change(screen.getByLabelText('Name'), { target: { value: '  🏋️ Gym  ' } })
+  fireEvent.change(screen.getByLabelText('Name'), { target: { value: '  Gym  ' } })
   fireEvent.click(screen.getByRole('button', { name: /Home/ }))
   fireEvent.click(screen.getByRole('button', { name: 'Add category' }))
-  expect(addCategoryMutation).toHaveBeenCalledWith({ name: '🏋️ Gym', group: 'Home' })
+  expect(addCategoryMutation).toHaveBeenCalledWith({ name: 'Gym', group: 'Home', icon: 'Barbell' })
   expect(screen.getByRole('button', { name: 'Saving…' })).toBeDisabled()
   save.resolve()
   await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Add category' })).not.toBeInTheDocument())
-  expect(category()).toBe('🏋️ Gym')
+  expect(category()).toBe('Gym')
   expect(screen.getByLabelText('Amount')).toHaveValue('450')
   expect(screen.getByLabelText('What was it for?')).toHaveValue('Gym membership')
   fireEvent.click(screen.getByRole('button', { name: 'Save expense' }))
-  await waitFor(() => expect(addExpenseMutation).toHaveBeenCalledWith(expect.objectContaining({ item: 'Gym membership', amount_inr: '450', category: '🏋️ Gym' })))
+  await waitFor(() => expect(addExpenseMutation).toHaveBeenCalledWith(expect.objectContaining({ item: 'Gym membership', amount_inr: '450', category: 'Gym' })))
   const receipt = (await screen.findByText('Added ₹450 · Gym membership')).parentElement
-  expect(receipt).toHaveAttribute('data-category-name', '🏋️ Gym')
+  expect(receipt).toHaveAttribute('data-category-name', 'Gym')
   expect(receipt).toHaveAttribute('data-category-group', 'Home')
 })
 

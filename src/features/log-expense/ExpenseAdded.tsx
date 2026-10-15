@@ -12,7 +12,8 @@ import { useRecentExpenses } from '@/src/hooks/useExpenses'
 import { useGroups } from '@/src/hooks/useGroups'
 import type { CategoryRow } from '@/src/types'
 import { EMPTY } from '@/src/lib/constants'
-import { categoryEmoji, splitEmoji } from '@/src/lib/emoji'
+import { splitEmoji } from '@/src/lib/emoji'
+import { CategoryIcon } from '@/src/components/CategoryIcon'
 import { computeEnvelopeState, currentMonthKey, daysLeftInMonth } from '@/src/lib/envelope'
 import { formatDateTimeLong } from '@/src/lib/format'
 import { darkTokens, lightTokens } from '@/src/theme/tokens'
@@ -157,6 +158,7 @@ export function ExpenseAdded({
   }, [showEnvelope])
 
   const categoryName = splitEmoji(category).text
+  const categoryRow = (categoriesQ.data ?? EMPTY).find((c) => c.name === category) ?? expense.categorySnapshot
   const subtitle = item || categoryName
   // A small "we're learning you" moment: only once the item is a habit this week.
   const noticed = useMemo(
@@ -176,7 +178,9 @@ export function ExpenseAdded({
         </FadeInDown>
         {subtitle !== '' && (
           <FadeInDown delay={at(STAGGER.detail)} duration={at(420)} className="erd-added-subtitle">
-            {!item && category ? `${categoryEmoji(category, envelope?.group)} ` : ''}
+            {!item && category && (
+              <><CategoryIcon name={category} icon={categoryRow?.icon} group={categoryRow?.group ?? envelope?.group} />{' '}</>
+            )}
             {subtitle}
           </FadeInDown>
         )}
@@ -209,7 +213,7 @@ export function ExpenseAdded({
           >
             {over ? (
               <>
-                <span>Cover it from another envelope?</span>
+                <span>Cover it from another category?</span>
                 <button type="button" className="account-pill-btn" onClick={onCover}>Cover it</button>
               </>
             ) : (

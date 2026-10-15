@@ -115,6 +115,21 @@ const INDEXES = {
   ],
   // Future scan-history screen's list query, plus a lookup from an expense
   // back to the scan it came from.
+  // Feedback board (lib/ideas.ts). The board's two sorts over visible ideas;
+  // user_id serves the account purge.
+  ideas: [
+    [{ hidden: 1, score: -1, createdAt: -1 }, {}],
+    [{ hidden: 1, createdAt: -1 }, {}],
+    [{ user_id: 1 }, {}],
+  ],
+  // One vote per user per idea: the unique index is what castVote's upsert
+  // relies on to never write a second row for the same user.
+  idea_votes: [
+    [{ ideaId: 1, user_id: 1 }, { unique: true }],
+    [{ user_id: 1 }, {}],
+  ],
+  // Bug reports for /admin/feedback, newest first.
+  feedback: [[{ at: -1 }, {}]],
   // Admin page (app/admin): audit trail, newest first overall and per target user.
   admin_audit: [
     [{ at: -1 }, {}],

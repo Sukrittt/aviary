@@ -8,6 +8,13 @@ const state = vi.hoisted(() => ({ recents: [] as string[] }))
 vi.mock('../hooks/useCategories', () => ({
   useCategories: vi.fn(),
 }))
+// Stands in for the SVG with the key it resolves, so chips can be read as text.
+vi.mock('./CategoryIcon', async () => {
+  const { categoryIconKey } = await import('../lib/categoryIcons')
+  return {
+    CategoryIcon: ({ name, icon, group }: { name: string; icon?: string; group?: string }) => <i>{`[${categoryIconKey(name, icon, group)}]`}</i>,
+  }
+})
 vi.mock('../hooks/useExpenses', () => ({
   useRecentExpenses: () => ({ data: [] }),
 }))
@@ -18,7 +25,7 @@ vi.mock('../hooks/useRecentCategories', () => ({
   }),
 }))
 
-function setCategories(rows: { name: string; group: string }[]) {
+function setCategories(rows: { name: string; group: string; icon?: string }[]) {
   vi.mocked(useCategoriesMock).mockReturnValue({ data: rows } as ReturnType<typeof useCategoriesMock>)
 }
 
@@ -41,19 +48,19 @@ it('merges duplicate categories into a single chip', () => {
   expect(screen.getByRole('button', { name: /Rent/ })).toBeInTheDocument()
   const groceries = screen.getAllByRole('button').filter((b) => b.textContent?.includes('Groceries'))
   expect(groceries).toHaveLength(1)
-  expect(groceries[0].textContent).toBe('🍎Groceries')
+  expect(groceries[0].textContent).toBe('[Basket]Groceries')
 })
 
-it('shows a clear emoji for legacy plain-named categories', () => {
+it('shows a clear icon for plain-named categories, preferring a picked one', () => {
   setCategories([
     { name: 'Groceries', group: '' },
     { name: 'Eating out', group: '' },
-    { name: 'Travel', group: '' },
+    { name: 'Travel', group: '', icon: 'Airplane' },
   ])
   pick()
-  expect(screen.getByRole('button', { name: /Groceries/ }).textContent).toBe('🍅Groceries')
-  expect(screen.getByRole('button', { name: /Eating out/ }).textContent).toBe('🍽️Eating out')
-  expect(screen.getByRole('button', { name: /Travel/ }).textContent).toBe('🛵Travel')
+  expect(screen.getByRole('button', { name: /Groceries/ }).textContent).toBe('[ShoppingCart]Groceries')
+  expect(screen.getByRole('button', { name: /Eating out/ }).textContent).toBe('[ForkKnife]Eating out')
+  expect(screen.getByRole('button', { name: /Travel/ }).textContent).toBe('[Airplane]Travel')
 })
 
 it('puts the MRU list at the front of the wrap', () => {

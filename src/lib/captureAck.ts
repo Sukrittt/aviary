@@ -9,7 +9,7 @@ export const ACK_PHRASES = [
   'All set, your books are up to date.',
   "Done. You're all caught up.",
   'Logged and filed. Nice one.',
-  'All in. Your envelopes are current.',
+  'All in. Your categories are current.',
   "Sorted. Your budget's up to date.",
   'In the books. Thanks for keeping up.',
   "Easy. You're all caught up now.",

@@ -5,13 +5,8 @@ import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence } from "motion/react";
 import { useRouter } from "next/navigation";
-import {
-  ArrowLeft,
-  ChevronLeft,
-  ChevronRight,
-  TrendingDown,
-  TrendingUp,
-} from "lucide-react";
+import { ArrowLeftIcon, CaretLeftIcon, CaretRightIcon, GearIcon, HouseIcon, InvoiceIcon, MoonIcon, SunIcon, TrendDownIcon, TrendUpIcon } from "@/src/components/icons";
+import { CategoryIcon } from "@/src/components/CategoryIcon";
 import { useAppearance } from "@/components/AppearanceProvider";
 import { ExpenseSidebar } from "@/src/components/ExpenseSidebar";
 import { LoadingCaption } from "@/src/components/LoadingCaption";
@@ -23,7 +18,7 @@ import {
   type TrendPoint,
 } from "@/src/components/charts/TrendChart";
 import { useBudgets } from "@/src/hooks/useBudgets";
-import { useCategories } from "@/src/hooks/useCategories";
+import { useCategories, useCategoryIcons } from "@/src/hooks/useCategories";
 import { useExpenses } from "@/src/hooks/useExpenses";
 import { useGroups } from "@/src/hooks/useGroups";
 import { useHideAmounts } from "@/src/hooks/useHideAmounts";
@@ -36,12 +31,8 @@ import {
   prevMonthKey,
   shiftMonthKey,
 } from "@/src/lib/envelope";
-import {
-  avatarColorFor,
-  categoryEmoji,
-  splitEmoji,
-} from "@/src/lib/emoji";
-import { todayIST } from "@/src/lib/date";
+import { avatarStyleFor, splitEmoji } from "@/src/lib/emoji";
+import { todayLocal } from "@/src/lib/date";
 import { formatDateShort, formatShortDate } from "@/src/lib/format";
 import {
   categoryBreakdown,
@@ -88,6 +79,7 @@ export function InsightsPage() {
   const budgetsQuery = useBudgets();
   const expensesQuery = useExpenses();
   const categoriesQuery = useCategories();
+  const categoryIcons = useCategoryIcons();
   const groupsQuery = useGroups();
 
   const budgets = budgetsQuery.data ?? EMPTY;
@@ -95,7 +87,7 @@ export function InsightsPage() {
   const categories = categoriesQuery.data ?? EMPTY;
   const groups = groupsQuery.data ?? EMPTY;
   const currentMonth = currentMonthKey();
-  const today = todayIST();
+  const today = todayLocal();
 
   const [insightMonth, setInsightMonth] = useState(currentMonth);
   const [breakdownMode, setBreakdownMode] = useState<"category" | "group">(
@@ -357,10 +349,9 @@ export function InsightsPage() {
         date: expense.date,
         item: expense.item || splitEmoji(expense.category).text,
         category: splitEmoji(expense.category).text,
-        emoji: categoryEmoji(
-          expense.category,
-          categoryGroupMap.get(expense.category),
-        ),
+        fullCategory: expense.category,
+        icon: categoryIcons.get(expense.category),
+        group: categoryGroupMap.get(expense.category),
         amount: Number(expense.amount_inr) || 0,
       }))
       .sort((a, b) => b.amount - a.amount)
@@ -373,6 +364,7 @@ export function InsightsPage() {
     selectedBreakdownKey,
     breakdownMode,
     categoryGroupMap,
+    categoryIcons,
   ]);
 
   const selectedRow =
@@ -390,7 +382,7 @@ export function InsightsPage() {
         onClick={() => setTheme(theme === "light" ? "dark" : "light")}
         aria-label="Toggle theme"
       >
-        {theme === "dark" ? "☀️" : "🌙"}
+        {theme === "dark" ? <SunIcon size={18} aria-hidden /> : <MoonIcon size={18} aria-hidden />}
       </button>
 
       <header className="erd-mobile-header ins-mobile-header">
@@ -400,7 +392,7 @@ export function InsightsPage() {
           onClick={() => router.back()}
           aria-label="Back"
         >
-          <ArrowLeft size={18} />
+          <ArrowLeftIcon size={18} />
         </button>
         <div className="erd-mobile-greet">Insights</div>
       </header>
@@ -428,7 +420,7 @@ export function InsightsPage() {
                     : "No earlier months"
                 }
               >
-                <ChevronLeft size={18} />
+                <CaretLeftIcon size={18} />
               </button>
               <div className="ins-period-copy">
                 <h1>{monthLabel(insightMonth)}</h1>
@@ -462,7 +454,7 @@ export function InsightsPage() {
                     : "Already on this month"
                 }
               >
-                <ChevronRight size={18} />
+                <CaretRightIcon size={18} />
               </button>
             </div>
           </header>
@@ -497,9 +489,9 @@ export function InsightsPage() {
                           }
                         >
                           {trendSummary.deltaPct > 0 ? (
-                            <TrendingUp size={14} />
+                            <TrendUpIcon size={14} />
                           ) : (
-                            <TrendingDown size={14} />
+                            <TrendDownIcon size={14} />
                           )}
                           {Math.abs(trendSummary.deltaPct).toFixed(0)}%
                         </span>
@@ -595,9 +587,9 @@ export function InsightsPage() {
                           <span
                             className="ins-top-icon"
                             title={spend.category}
-                            style={{ background: avatarColorFor(spend.category) }}
+                            style={avatarStyleFor(spend.category)}
                           >
-                            {spend.emoji}
+                            <CategoryIcon name={spend.fullCategory} icon={spend.icon} group={spend.group} />
                           </span>
                           <span className="ins-top-body">
                             <span className="ins-top-item">{spend.item}</span>
@@ -675,16 +667,16 @@ export function InsightsPage() {
 
       <nav className="erd-tabbar" aria-label="Primary">
         <Link href="/expense" className="erd-tab">
-          <span aria-hidden="true">🏠</span>
+          <HouseIcon size={22} aria-hidden />
           <span>Home</span>
         </Link>
         <Link href="/expense/transactions" className="erd-tab">
-          <span aria-hidden="true">🧾</span>
+          <InvoiceIcon size={22} aria-hidden />
           <span>Activity</span>
         </Link>
         <InsightsTab active />
         <Link href="/account" className="erd-tab">
-          <span aria-hidden="true">⚙️</span>
+          <GearIcon size={22} aria-hidden />
           <span>More</span>
         </Link>
       </nav>

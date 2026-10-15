@@ -7,6 +7,7 @@ import { useAppearance } from '@/components/AppearanceProvider'
 import { ExpenseSidebar } from '@/src/components/ExpenseSidebar'
 import '../../src/expense-redesign.css'
 import { InsightsTab } from '@/src/components/InsightsTab'
+import { GearIcon, HouseIcon, InvoiceIcon, MoonIcon, SunIcon } from '@/src/components/icons'
 
 export default function AccountShell({ children }: { children: ReactNode }) {
   const pathname = usePathname() ?? ''
@@ -15,12 +16,12 @@ export default function AccountShell({ children }: { children: ReactNode }) {
   return (
     <section className="expense-redesign">
       <button type="button" className="erd-theme-toggle" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')} aria-label="Toggle theme">
-        {theme === 'dark' ? '☀️' : '🌙'}
+        {theme === 'dark' ? <SunIcon aria-hidden /> : <MoonIcon aria-hidden />}
       </button>
 
       <header className="erd-mobile-header">
         <div className="erd-mobile-greet">
-          Account <span>⚙️</span>
+          Account <GearIcon aria-hidden />
         </div>
       </header>
 
@@ -32,10 +33,10 @@ export default function AccountShell({ children }: { children: ReactNode }) {
       </div>
 
       <nav className="erd-tabbar" aria-label="Primary">
-        <Link href="/expense" className="erd-tab"><span aria-hidden="true">🏠</span><span>Home</span></Link>
-        <Link href="/expense/transactions" className="erd-tab"><span aria-hidden="true">🧾</span><span>Activity</span></Link>
+        <Link href="/expense" className="erd-tab"><HouseIcon size={22} aria-hidden /><span>Home</span></Link>
+        <Link href="/expense/transactions" className="erd-tab"><InvoiceIcon size={22} aria-hidden /><span>Activity</span></Link>
         <InsightsTab />
-        <Link href="/account" className={`erd-tab ${pathname.startsWith('/account') ? 'is-active' : ''}`}><span aria-hidden="true">⚙️</span><span>More</span></Link>
+        <Link href="/account" className={`erd-tab ${pathname.startsWith('/account') ? 'is-active' : ''}`}><GearIcon size={22} weight={pathname.startsWith('/account') ? 'fill' : 'regular'} aria-hidden /><span>More</span></Link>
       </nav>
     </section>
   )

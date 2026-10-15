@@ -5,7 +5,8 @@ import { useCategories } from '../hooks/useCategories'
 import { useRecentExpenses } from '../hooks/useExpenses'
 import { useRecentCategories } from '../hooks/useRecentCategories'
 import { deriveRecentsFromExpenses } from '../lib/recentCategories'
-import { categoryEmoji, splitEmoji } from '../lib/emoji'
+import { splitEmoji } from '../lib/emoji'
+import { CategoryIcon } from './CategoryIcon'
 import { EMPTY } from '../lib/constants'
 import type { CategoryRow, ExpenseRow } from '../types'
 
@@ -79,7 +80,7 @@ function rankCategories(
 
 /**
  * Flat category picker — one wrap of de-duplicated, MRU-sorted chips, each with
- * a single clear emoji. Self-contained (fetches categories/expenses/recents
+ * a single clear icon. Self-contained (fetches categories/expenses/recents
  * itself) so any modal can drop it in without threading data through props.
  * Twin of Mobile's CategoryPickerSheet, flattened to match the log-expense
  * redesign (no group headers, no recents rail).
@@ -130,7 +131,6 @@ export function CategoryPicker({ value, onChange, additionalCategory, trailing }
         {shown.map((c) => {
           const name = c.name
           const text = splitEmoji(name).text
-          const icon = categoryEmoji(name, c.group)
           const selected = valueKey !== '' && valueKey === plainKey(name)
           return (
             <button
@@ -140,11 +140,9 @@ export function CategoryPicker({ value, onChange, additionalCategory, trailing }
               aria-pressed={selected}
               onClick={() => pick(name)}
             >
-              {icon && (
-                <span className="erd-chip-icon" aria-hidden="true">
-                  {icon}
-                </span>
-              )}
+              <span className="erd-chip-icon" aria-hidden="true">
+                <CategoryIcon name={name} icon={c.icon} group={c.group} />
+              </span>
               {text}
             </button>
           )

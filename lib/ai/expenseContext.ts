@@ -260,13 +260,13 @@ export function summarizeExpenses(input: SummarizeExpensesInput): SummarizeExpen
       ? `INCOME: ${round(income)}`
       : `INCOME: ${round(income)} (monthly ${round(envelopeState.incomeBase)}, recurs; plus one-off ${round(envelopeState.incomeExtra)} this month only)`,
     `ASSIGNED THIS MONTH: ${round(envelopeState.totalAssigned)}`,
-    `READY TO ASSIGN: ${round(envelopeState.readyToAssign)} (income not given to any envelope yet; recurs every month unless assignments change)`,
+    `READY TO ASSIGN: ${round(envelopeState.readyToAssign)} (income not given to any category yet; recurs every month unless assignments change)`,
     ccEnvelope
       ? `CREDIT CARD: assigned ${round(ccEnvelope.assigned)}, charged ${round(ccEnvelope.spent)} this month, available ${round(ccEnvelope.available)}`
       : 'CREDIT CARD: no activity',
   ]
 
-  const envelopeLines = ['ENVELOPES (category|group|assigned|spent|available|overspent):']
+  const envelopeLines = ['CATEGORIES (category|group|assigned|spent|available|overspent):']
   for (const e of envelopeState.envelopes) {
     if (e.isCreditCardPayment) continue // reported separately in the header, not a spending envelope
     envelopeLines.push(
@@ -280,7 +280,7 @@ export function summarizeExpenses(input: SummarizeExpensesInput): SummarizeExpen
   envelopeLines.push(
     `TOTALS: assigned ${round(envelopeState.totalAssigned)}, spent ${round(envelopeState.totalSpent)}, available ${round(unspent - overspent)} (unspent ${round(unspent)}, overspent ${round(overspent)})`,
     `LEFT THIS MONTH: ${round(unspent - overspent + envelopeState.readyToAssign)} (available plus ready to assign; answers "how much is left")`,
-    `FREE FOR NEW COSTS: ${round(envelopeState.readyToAssign - overspent)} (ready to assign minus overspent; unspent envelope money is already promised)`,
+    `FREE FOR NEW COSTS: ${round(envelopeState.readyToAssign - overspent)} (ready to assign minus overspent; unspent category money is already promised)`,
   )
 
   // Trend: per-category totals for each of the last TREND_MONTHS months.
@@ -327,7 +327,7 @@ export function summarizeExpenses(input: SummarizeExpensesInput): SummarizeExpen
     trendLines.push(`SAVED (income minus spending)|${cells.join('|')}|${savedAvg}`)
     const from = saved.since > trendMonths[0] ? saved.since : trendMonths[0]
     const total = saved.points.filter((p) => p.date >= from && p.date < currentMonth).reduce((sum, p) => sum + p.value, 0)
-    trendLines.push(`SAVED SINCE ${from}: ${round(total)} (finished months; the running savings, since unspent envelope money does not carry over)`)
+    trendLines.push(`SAVED SINCE ${from}: ${round(total)} (finished months; the running savings, since unspent category money does not carry over)`)
   }
 
   // Top 10 items this month by amount.

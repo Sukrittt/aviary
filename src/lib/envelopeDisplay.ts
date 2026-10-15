@@ -3,7 +3,7 @@
  * inline in EnvelopeRow.tsx and ProgressBar.tsx, which is why web's copies in
  * EnvelopeGrid.tsx had drifted — see `lastSpentLabel`.
  */
-import { toISTDateString } from './date'
+import { parseLocalDate, toLocalDateString } from './date'
 import type { Envelope } from './envelope'
 
 const SHORT_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -23,9 +23,9 @@ export function usedPctLabel(e: Pick<Envelope, 'assigned' | 'spent'>): string {
 }
 
 /**
- * "Today" / "Yesterday" / "5d ago" / "3 Mar" for a stored IST date string.
+ * "Today" / "Yesterday" / "5d ago" / "3 Mar" for a stored date string.
  *
- * Compares against the IST calendar date, not the UTC one. Web's previous copy
+ * Compares against the device-local calendar date, not the UTC one. Web's previous copy
  * used `new Date().toISOString().slice(0, 10)`, which is a day behind IST
  * between 00:00 and 05:29 — so anything logged in those hours read as
  * "Yesterday" on the day it happened. Written by hand rather than through
@@ -33,14 +33,15 @@ export function usedPctLabel(e: Pick<Envelope, 'assigned' | 'spent'>): string {
  */
 export function lastSpentLabel(iso: string | undefined): string {
   if (!iso) return '—'
-  const d = new Date(iso)
+  const d = parseLocalDate(iso)
   if (Number.isNaN(d.getTime())) return '—'
   const today = new Date()
-  if (iso === toISTDateString(today)) return 'Today'
+  if (iso === toLocalDateString(today)) return 'Today'
   const yesterday = new Date(today)
   yesterday.setDate(yesterday.getDate() - 1)
-  if (iso === toISTDateString(yesterday)) return 'Yesterday'
-  const days = Math.round((today.getTime() - d.getTime()) / 86400000)
+  if (iso === toLocalDateString(yesterday)) return 'Yesterday'
+  const midnight = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+  const days = Math.round((midnight.getTime() - d.getTime()) / 86400000)
   if (days >= 1 && days <= 31) return `${days}d ago`
   return `${d.getDate()} ${SHORT_MONTHS[d.getMonth()]}`
 }

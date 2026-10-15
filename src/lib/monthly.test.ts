@@ -70,7 +70,7 @@ describe('categoryBreakdown', () => {
     const expenses = [expense('2026-08-05', '🍔 Food', '200')]
     const rows = categoryBreakdown([], expenses, categories, groups, '2026-08', 'category')
     const row = rows.find((r) => r.label === 'Food')
-    expect(row?.emoji).toBe('🍔')
+    expect(row?.icon).toBe('Hamburger')
   })
 
   it('joins assigned amounts from budgets', () => {
@@ -135,10 +135,22 @@ describe('categoryBreakdown', () => {
     expect(row?.assignedIsCarried).toBe(false)
   })
 
-  it('falls back to the category emoji table for a name with no leading emoji', () => {
+  it('falls back to the name for a category with no leading emoji', () => {
     const expenses = [expense('2026-08-05', 'Cook', '200')]
     const rows = categoryBreakdown([], expenses, [{ name: 'Cook', group: 'Living' }], groups, '2026-08', 'category')
-    expect(rows.find((r) => r.key === 'Cook')?.emoji).toBe('👨‍🍳')
+    expect(rows.find((r) => r.key === 'Cook')?.icon).toBe('CookingPot')
+  })
+
+  it("prefers the category's picked icon", () => {
+    const expenses = [expense('2026-08-05', '🍔 Food', '200')]
+    const rows = categoryBreakdown([], expenses, [{ name: '🍔 Food', group: 'Living', icon: 'Pizza' }], groups, '2026-08', 'category')
+    expect(rows[0].icon).toBe('Pizza')
+  })
+
+  it('gives a group nothing it would only get the default icon for', () => {
+    const expenses = [expense('2026-08-05', 'Misc', '50')]
+    const rows = categoryBreakdown([], expenses, [{ name: 'Misc', group: 'Zzq' }], ['Zzq'], '2026-08', 'group')
+    expect(rows[0].icon).toBeNull()
   })
 
   it('splits the emoji off a group label', () => {
@@ -147,7 +159,7 @@ describe('categoryBreakdown', () => {
     const rows = categoryBreakdown([], expenses, cats, ['🏠 Living'], '2026-08', 'group')
     const row = rows.find((r) => r.key === '🏠 Living')
     expect(row?.label).toBe('Living')
-    expect(row?.emoji).toBe('🏠')
+    expect(row?.icon).toBe('House')
   })
 })
 
@@ -302,14 +314,14 @@ describe('fixedCategories', () => {
 
 describe('withDelta', () => {
   it('computes deltaPct against the previous month rows', () => {
-    const rows = [{ key: 'Food', label: 'Food', emoji: '', spent: 150, assigned: 0, assignedIsCarried: false, pct: 0 }]
-    const prevRows = [{ key: 'Food', label: 'Food', emoji: '', spent: 100, assigned: 0, assignedIsCarried: false, pct: 0 }]
+    const rows = [{ key: 'Food', label: 'Food', icon: null, spent: 150, assigned: 0, assignedIsCarried: false, pct: 0 }]
+    const prevRows = [{ key: 'Food', label: 'Food', icon: null, spent: 100, assigned: 0, assignedIsCarried: false, pct: 0 }]
     const result = withDelta(rows, prevRows)
     expect(result[0].deltaPct).toBe(50)
   })
 
   it('returns null delta when the previous month had zero spend', () => {
-    const rows = [{ key: 'Food', label: 'Food', emoji: '', spent: 150, assigned: 0, assignedIsCarried: false, pct: 0 }]
+    const rows = [{ key: 'Food', label: 'Food', icon: null, spent: 150, assigned: 0, assignedIsCarried: false, pct: 0 }]
     const prevRows: typeof rows = []
     const result = withDelta(rows, prevRows)
     expect(result[0].deltaPct).toBeNull()

@@ -11,8 +11,9 @@ const isOp = (c: string) => (OPERATORS as readonly string[]).includes(c)
 
 export const hasOperator = (expr: string) => OP_RE.test(expr)
 
-/** "5+5+" -> "5 + 5 +", for the line under the total. */
-export const formatExpression = (expr: string) => expr.replace(/([+−×÷])/g, ' $1 ').trim()
+/** "1200+5+" -> "1200 + 5 +", for the line under the total. `formatNumber` can group each operand ("1,200"). */
+export const formatExpression = (expr: string, formatNumber = (n: string) => n) =>
+  expr.replace(/[\d.]+/g, formatNumber).replace(/([+−×÷])/g, ' $1 ').trim()
 
 /** Total of the expression, rounded to 2 decimals. A trailing operator is ignored. */
 export function evaluateAmount(expr: string): number {

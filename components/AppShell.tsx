@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useAppearance } from './AppearanceProvider'
 import { CaptureTip } from './CaptureTip'
 import { ChangelogAnnouncement } from './ChangelogAnnouncement'
+import { FeedbackFab } from './FeedbackFab'
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname() ?? ''
@@ -24,6 +25,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </div>
       <ChangelogAnnouncement />
       <CaptureTip />
+      <FeedbackFab />
     </main>
   )
 }

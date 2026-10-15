@@ -1,6 +1,6 @@
 'use client'
 
-import { Smartphone } from 'lucide-react'
+import { DeviceMobileIcon } from '@/src/components/icons'
 import { Scrim, Sheet } from './MotionSheet'
 import { IosWaitlist } from './landing/IosWaitlist'
 import { PLAY_STORE_URL } from './billing/copy'
@@ -17,7 +17,7 @@ export function GetAppDialog({ email, onClose }: { email?: string; onClose: () =
         <div className="archive-confirm-actions">
           <a className="action-button get-app-play" href={PLAY_STORE_URL} target="_blank" rel="noreferrer"
             onClick={() => track('store_cta_clicked', { placement: 'account_notifications' })}>
-            <Smartphone size={16} aria-hidden="true" />Open Google Play
+            <DeviceMobileIcon size={16} aria-hidden="true" />Open Google Play
           </a>
         </div>
         <IosWaitlist placement="account_notifications" className="get-app-waitlist" buttonClass="action-button" knownEmail={email} />

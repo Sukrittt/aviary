@@ -4,9 +4,10 @@ import { useCurrency } from '@/src/context/CurrencyContext'
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { animate, motion, useMotionValue, useTransform, type MotionValue } from 'motion/react'
-import { ChevronDown, MessageSquareText } from 'lucide-react'
+import { CaretDownIcon } from '@/src/components/icons'
 import { DotLottieReact } from '@lottiefiles/dotlottie-react'
-import { categoryEmoji, groupEmoji, splitEmoji } from '@/src/lib/emoji'
+import { CATEGORY_ICON_COMPONENTS } from '@/src/components/CategoryIcon'
+import type { CategoryIconKey } from '@/src/lib/categoryIcons'
 import { formatDateTimeLong } from '@/src/lib/format'
 import type { ThemeTokens } from '@/src/theme/tokens'
 import {
@@ -28,22 +29,23 @@ import {
   type,
   useAmountEntry,
 } from './kit'
-import { DAYS_LEFT, WORDS, toEnvelope, type DemoCategory } from './demo'
+import { DAYS_LEFT, GROUP_ICONS, WORDS, toEnvelope, type DemoCategory } from './demo'
 import { AutoCategoryPill } from './AutoCategoryPill'
 import { chime } from '../LandingClient'
-import { CaptureTipBubble } from './CaptureTipBubble'
 import { evaluateAmount, formatExpression, hasOperator } from '@/src/lib/calcAmount'
 
 /** Twins of Mobile's app/modals/log-expense.tsx, expense-added.tsx, CategoryPickerSheet and DeltaBar. */
 
 export interface SubmitState {
   canSubmit: boolean
+  /** An amount is in, so + does something: logs it, or asks for the category first. */
+  hasAmount: boolean
   saving: boolean
   success: boolean
   submit: () => void
 }
 
-export const EMPTY_SUBMIT: SubmitState = { canSubmit: false, saving: false, success: false, submit: () => {} }
+export const EMPTY_SUBMIT: SubmitState = { canSubmit: false, hasAmount: false, saving: false, success: false, submit: () => {} }
 
 export interface LoggedExpense {
   item: string
@@ -79,26 +81,27 @@ function suggestCategory(item: string, categories: string[]): string {
 const ON_ACCENT_DIM = 'rgba(255, 255, 255, 0.7)'
 const FIELD_BG = 'rgba(255, 255, 255, 0.16)'
 
+const AMOUNT_SIZE = type.hero * 1.3
+/**
+ * Shrinks the amount so a long one ("₹99,99,99,999") stays inside the phone.
+ * ponytail: assumes ~0.62em per glyph, the bold display face's digit width; measure the text if a font swap breaks it.
+ */
+export const fitAmountSize = (text: string) => Math.min(AMOUNT_SIZE, (PHONE.width - 2 * space.lg) / (text.length * 0.62))
+
 export function LogExpenseScreen({
   categories,
   groups,
   prefill,
   publish,
   onAdded,
-  onSeveral,
-  tip,
 }: {
   categories: DemoCategory[]
   groups: string[]
   prefill?: LoggedExpense | null
   publish: (state: SubmitState) => void
   onAdded: (expense: LoggedExpense) => void
-  /** The header's chat icon: Mobile opens Ask Aviary to type several spends at once. */
-  onSeveral: () => void
-  /** Mobile's batch capture tip, off the chat icon. */
-  tip?: { body: string; onTry: () => void; onDismiss: () => void } | null
 }) {
-  const { formatAmountInput } = useCurrency()
+  const { formatAmountInput, currencyPrefix } = useCurrency()
 
   // `expr` is what was typed, maybe a sum ("5+5"); `amount` is its total.
   const { amount: expr, setAmount, pushDigit, handleBackspace, shakeRef } = useAmountEntry(
@@ -142,10 +145,16 @@ export function LogExpenseScreen({
   }, [item, categories, categoryTouched])
 
   const selectedCategory = categories.find((c) => c.name === category)
-  const rollEmojis = useMemo(() => categories.map((c) => categoryEmoji(c.name, c.group)), [categories])
+  const rollIcons = useMemo(() => categories.map((c) => c.icon), [categories])
   const parsedAmount = Number(amount)
   // "What was it for?" is optional: left blank, the row is named after its category.
-  const canSubmit = category !== '' && !Number.isNaN(parsedAmount) && parsedAmount > 0
+  const hasAmount = !Number.isNaN(parsedAmount) && parsedAmount > 0
+  const canSubmit = category !== '' && hasAmount
+  // + with an amount but no category opens the picker, and picking one finishes the log.
+  const logOnPick = useRef(false)
+  const submitAfterPick = useRef(false)
+  // Bumped on every pick, so re-picking the category auto-suggest already set still logs.
+  const [picks, setPicks] = useState(0)
 
   // Let the nav circle's ripple -> tick (~950ms) finish before the success screen replaces this one.
   useEffect(() => {
@@ -165,14 +174,26 @@ export function LogExpenseScreen({
   }, [saving])
 
   const handleSubmit = useCallback(() => {
+    if (hasAmount && category === '') {
+      logOnPick.current = true
+      setPickerOpen(true)
+      return
+    }
     if (!canSubmit) return
-    pending.current = { item: item.trim() || splitEmoji(category).text, amount: parsedAmount, category, loggedAt: new Date().toISOString() }
+    pending.current = { item: item.trim() || category, amount: parsedAmount, category, loggedAt: new Date().toISOString() }
     setSaving(true)
-  }, [canSubmit, item, parsedAmount, category])
+  }, [canSubmit, hasAmount, item, parsedAmount, category])
+
+  // Runs once the pick has landed in state, so this submit sees the category.
+  useEffect(() => {
+    if (!submitAfterPick.current || category === '') return
+    submitAfterPick.current = false
+    handleSubmit()
+  }, [picks, category, handleSubmit])
 
   useEffect(() => {
-    publish({ canSubmit, saving, success: logSuccess, submit: handleSubmit })
-  }, [canSubmit, saving, logSuccess, handleSubmit, publish])
+    publish({ canSubmit, hasAmount, saving, success: logSuccess, submit: handleSubmit })
+  }, [canSubmit, hasAmount, saving, logSuccess, handleSubmit, publish])
   useEffect(() => () => publish(EMPTY_SUBMIT), [publish])
 
   return (
@@ -180,11 +201,6 @@ export function LogExpenseScreen({
       <div style={{ ...row, justifyContent: 'center', paddingTop: PHONE.top + space.sm, paddingInline: space.lg, paddingBottom: 8 }}>
         <span style={{ color: '#ffffff', ...font.displaySemiBold, fontSize: type.bodyLg }}>Log expense</span>
       </div>
-      <button type="button" className="m-several" onClick={onSeveral} aria-label="Log several spends at once"
-        style={{ ...pressable, ...row, justifyContent: 'center', position: 'absolute', left: space.lg, top: PHONE.top + space.xs, width: 36, height: 36, borderRadius: 18, background: FIELD_BG }}>
-        <MessageSquareText size={18} color="#ffffff" />
-      </button>
-      {tip && <CaptureTipBubble anchor={{ top: PHONE.top + space.xs, left: space.lg, size: 36 }} title="Logging a few?" body={tip.body} onTry={tip.onTry} onDismiss={tip.onDismiss} />}
 
       <div style={{ ...col, flex: 1, paddingTop: 8, paddingInline: space.lg }}>
         <div style={{ ...col, flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.sm }}>
@@ -192,16 +208,16 @@ export function LogExpenseScreen({
             <AmountText
               value={parsedAmount || 0}
               rawText={formatAmountInput(amount)}
-              size={type.hero * 1.3}
+              size={fitAmountSize(formatAmountInput(amount))}
               color={amount === '' ? ON_ACCENT_DIM : '#ffffff'}
               weight="displayBold"
               animate
             />
           </div>
-          {hasOperator(expr) && <span style={{ color: ON_ACCENT_DIM, ...font.bodySemiBold, fontSize: type.caption }}>{formatExpression(expr)}</span>}
+          {hasOperator(expr) && <span style={{ color: ON_ACCENT_DIM, ...font.bodySemiBold, fontSize: type.caption }}>{formatExpression(expr, (n) => formatAmountInput(n).slice(currencyPrefix.length))}</span>}
           <button type="button" onClick={() => setShowMore(true)} style={{ ...pressable, ...row, gap: space.xs }}>
             <span style={{ color: ON_ACCENT_DIM, ...font.bodySemiBold, fontSize: type.caption }}>More</span>
-            <ChevronDown size={16} color={ON_ACCENT_DIM} />
+            <CaretDownIcon size={16} color={ON_ACCENT_DIM} />
           </button>
         </div>
       </div>
@@ -233,9 +249,9 @@ export function LogExpenseScreen({
           />
           <div style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)' }}>
             <AutoCategoryPill
-              selected={selectedCategory ? { emoji: categoryEmoji(selectedCategory.name, selectedCategory.group), name: splitEmoji(selectedCategory.name).text } : null}
+              selected={selectedCategory ? { icon: selectedCategory.icon, name: selectedCategory.name } : null}
               thinking={thinking}
-              rollEmojis={rollEmojis}
+              rollIcons={rollIcons}
               onPress={() => setPickerOpen(true)}
             />
           </div>
@@ -246,13 +262,18 @@ export function LogExpenseScreen({
 
       <CategoryPickerSheet
         visible={pickerOpen}
-        onClose={() => setPickerOpen(false)}
+        onClose={() => {
+          setPickerOpen(false)
+          logOnPick.current = false
+        }}
         value={category}
         categories={categories}
         groups={groups}
         onSelect={(c) => {
+          if (logOnPick.current && c !== '') submitAfterPick.current = true
           setCategory(c)
           setCategoryTouched(true)
+          setPicks((n) => n + 1)
         }}
         title="Choose a category"
         noneLabel="No category"
@@ -360,7 +381,7 @@ function CategoryPickerSheet({
   const groupLabel: CSSProperties = {
     color: T.text3,
     ...font.bodyBold,
-    fontSize: 11,
+    fontSize: 12,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginTop: 12,
@@ -418,8 +439,8 @@ function CategoryPickerSheet({
                 <Chip
                   key={c.name}
                   selected={value === c.name}
-                  icon={categoryEmoji(c.name, c.group)}
-                  label={splitEmoji(c.name).text}
+                  icon={<Glyph icon={c.icon} />}
+                  label={c.name}
                   onPress={() => pick(c.name)}
                 />
               ))}
@@ -429,7 +450,7 @@ function CategoryPickerSheet({
         {filtered.map((group) => (
           <div key={group.name}>
             <div style={groupLabel}>
-              {groupEmoji(group.name)} {splitEmoji(group.name).text}
+              {GROUP_ICONS[group.name] && <Glyph icon={GROUP_ICONS[group.name]} />} {group.name}
             </div>
             <div style={{ borderLeft: `0.5px solid ${T.border}`, marginLeft: 8, paddingLeft: 4 }}>
               {group.items.map((c, i) => (
@@ -440,7 +461,7 @@ function CategoryPickerSheet({
                   onClick={() => pick(c.name)}
                 >
                   <span style={{ color: T.text, ...font.bodyMedium, fontSize: 14 }}>
-                    {categoryEmoji(c.name, group.name)} {splitEmoji(c.name).text}
+                    <Glyph icon={c.icon} /> {c.name}
                   </span>
                 </button>
               ))}
@@ -692,7 +713,7 @@ export function ExpenseAddedScreen({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const categoryName = splitEmoji(category).text
+  const categoryName = category
   const subtitle = item || categoryName
 
   return (
@@ -762,4 +783,10 @@ export function ExpenseAddedScreen({
       </FadeInDown>
     </div>
   )
+}
+
+/** A demo category's icon at the surrounding text size. */
+function Glyph({ icon }: { icon: CategoryIconKey }) {
+  const Icon = CATEGORY_ICON_COMPONENTS[icon]
+  return <Icon size="1em" style={{ verticalAlign: '-0.125em' }} aria-hidden />
 }

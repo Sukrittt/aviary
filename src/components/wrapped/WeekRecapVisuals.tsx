@@ -2,12 +2,14 @@
 
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
-import { Check } from 'lucide-react'
+import { CheckIcon } from '@/src/components/icons'
 import type { WeekRecap } from '@/src/api/weekRecap'
 import { BirdMark } from '@/src/components/BirdMark'
 import { Confetti } from '@/src/components/onboarding/Confetti'
 import { formatDateShort } from '@/src/lib/format'
 import { splitEmoji } from '@/src/lib/emoji'
+import { CategoryIcon } from '@/src/components/CategoryIcon'
+import { useCategoryIcons } from '@/src/hooks/useCategories'
 import type { RecapSlide } from './weekRecapSlides'
 
 /**
@@ -162,7 +164,7 @@ function DayDots({ recap }: { recap: WeekRecap }) {
     <div className="week-recap-dots">
       {days.map((day, i) => (
         <Pop key={day.date} delay={0.45 + i * 0.09} className="week-recap-dot-col">
-          <span className="week-recap-dot is-on"><Check size={20} strokeWidth={3} /></span>
+          <span className="week-recap-dot is-on"><CheckIcon size={20} weight="bold" /></span>
           <small>{day.letter}</small>
         </Pop>
       ))}
@@ -225,13 +227,16 @@ function DayArc({ minutes, usual }: { minutes: number[]; usual: number }) {
  */
 function CategoryBars({ categories, money, total }: { categories: NonNullable<WeekRecap['categories']>; money: (n: number) => string; total: number }) {
   const reduceMotion = useReducedMotion()
+  const icons = useCategoryIcons()
   const shades = [1, 0.62, 0.42, 0.28]
   const rest = Math.max(0, total - categories.reduce((s, c) => s + c.total, 0))
-  const parts = [
-    ...categories.map((c, i) => {
-      const { icon, text } = splitEmoji(c.category)
-      return { key: c.category, label: `${icon ? `${icon} ` : ''}${text || c.category}`, amount: c.total, opacity: shades[i] }
-    }),
+  const parts: { key: string; label: ReactNode; amount: number; opacity: number }[] = [
+    ...categories.map((c, i) => ({
+      key: c.category,
+      label: <><CategoryIcon name={c.category} icon={icons.get(c.category)} /> {splitEmoji(c.category).text || c.category}</>,
+      amount: c.total,
+      opacity: shades[i],
+    })),
     ...(rest > 0 ? [{ key: '__rest', label: 'Everything else', amount: rest, opacity: 0.16 }] : []),
   ]
   return (
@@ -253,10 +258,10 @@ function CategoryBars({ categories, money, total }: { categories: NonNullable<We
 }
 
 function Receipt({ biggest, accent, money }: { biggest: NonNullable<WeekRecap['biggest']>; accent: string; money: (n: number) => string }) {
-  const { text, icon } = splitEmoji(biggest.category)
-  const rows: [string, string][] = [
+  const icons = useCategoryIcons()
+  const rows: [string, ReactNode][] = [
     ['Item', biggest.item],
-    ['Category', `${icon ? `${icon} ` : ''}${text || biggest.category}`],
+    ['Category', <><CategoryIcon name={biggest.category} icon={icons.get(biggest.category)} /> {splitEmoji(biggest.category).text || biggest.category}</>],
     ['Date', formatDateShort(biggest.date)],
   ]
   return (

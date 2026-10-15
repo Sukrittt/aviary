@@ -1,0 +1,73 @@
+/* Sits under the changelog card and capture tip (z-index 100), which own this corner when they show. */
+.feedback-fab {
+  position: fixed;
+  right: 24px;
+  bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--tk-accent);
+  color: var(--tk-on-accent);
+  font-size: 26px;
+  box-shadow: 0 10px 24px -8px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  transition: scale var(--dur-press) var(--ease-press);
+}
+.feedback-fab:active { scale: 0.92; }
+.feedback-fab:focus-visible { outline: 2px solid var(--tk-accent); outline-offset: 3px; }
+.feedback-fab-menu {
+  inset: auto 24px calc(88px + env(safe-area-inset-bottom, 0px)) auto;
+  margin: 0;
+  padding: 6px;
+  min-width: 200px;
+  border: 1px solid var(--tk-border-strong);
+  border-radius: 16px;
+  background: var(--tk-card-solid);
+  color: var(--tk-text);
+  box-shadow: 0 10px 38px -16px rgba(0, 0, 0, 0.28);
+  font-family: var(--font-body), sans-serif;
+  /* Grows out of the button. allow-discrete keeps it visible while it animates out. */
+  transform-origin: bottom right;
+  opacity: 0;
+  scale: 0.9;
+  translate: 0 8px;
+  transition: opacity 160ms ease-out, scale 220ms cubic-bezier(0.2, 0.9, 0.3, 1), translate 220ms cubic-bezier(0.2, 0.9, 0.3, 1),
+    display 220ms allow-discrete, overlay 220ms allow-discrete;
+}
+.feedback-fab-menu:popover-open { opacity: 1; scale: 1; translate: 0 0; }
+@starting-style {
+  .feedback-fab-menu:popover-open { opacity: 0; scale: 0.9; translate: 0 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .feedback-fab-menu, .feedback-fab-menu:popover-open { scale: 1; translate: 0 0; }
+}
+.feedback-fab-menu button {
+  width: 100%;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 10px;
+  color: inherit;
+  font-size: 14px;
+  font-weight: 600;
+}
+.feedback-fab-menu button svg { font-size: 20px; color: var(--tk-accent-ink); }
+.feedback-fab-menu button:focus-visible { outline: 2px solid var(--tk-accent); outline-offset: -2px; }
+@media (hover: hover) and (pointer: fine) {
+  .feedback-fab-menu button:hover { background: var(--tk-input-bg); }
+}
+@media (max-width: 900px) {
+  .feedback-fab { right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); width: 48px; height: 48px; font-size: 24px; }
+  .feedback-fab-menu { inset: auto 16px calc(76px + env(safe-area-inset-bottom, 0px)) auto; }
+}

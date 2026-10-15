@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { SectionLabel, ResultCard } from '@/src/components/tour/parts'
 import { useTourContent } from '@/src/components/tour/useTourContent'
 import { NORMAL_BARS, NORMAL_BAR_MAX } from '@/src/components/tour/content'
+import { BrainIcon } from '@/src/components/icons'
 
 const TYPE_INTERVAL_MS = 16
 const CHARS_PER_TICK = 2
@@ -83,7 +84,7 @@ export function InsightsDemo({ onComplete }: { onComplete: () => void }) {
       {asked && (
         <ResultCard tone="accent">
           <div className="tour-brain-answer">
-            <span style={{ fontSize: 15 }}>🧠</span>
+            <BrainIcon size={15} aria-hidden style={{ flexShrink: 0 }} />
             <p>{typed}</p>
           </div>
         </ResultCard>

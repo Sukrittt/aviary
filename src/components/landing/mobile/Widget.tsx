@@ -5,6 +5,7 @@ import { DAYS_LEFT } from './demo'
 import { useSample } from '../sample'
 import { useCurrency } from '@/src/context/CurrencyContext'
 import { lightTokens as T } from '@/src/theme/tokens'
+import { BasketIcon, MopedIcon, ShoppingBagIcon } from '@/src/components/icons'
 
 /**
  * Web twins of Mobile's home-screen widgets (src/widgets/EnvelopeMiniWidget.tsx
@@ -14,12 +15,15 @@ import { lightTokens as T } from '@/src/theme/tokens'
  * 214px card the phone frame leaves.
  */
 
+/** The action pills are a centring grid; flex keeps the icon beside its label. */
+const ACTION = { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 } as const
+
 const EYE = { cx: 306, cy: 216, r: 19 }
 
 /** Card widths inside the phone frame: 2 of 4 columns for the mini, all 4 for the large. */
 export const MINI = 104
 const CARD = 214
-const BAND = 88
+const BAND = 100
 
 /** The widgets' numbers, from this visitor's sample month and currency. */
 function useWidgetData() {
@@ -30,9 +34,9 @@ function useWidgetData() {
   const assigned = spendable.reduce((s, c) => s + c.assigned, 0)
   const left = spendable.reduce((s, c) => s + Math.max(0, c.assigned - c.spent), 0)
   const perDay = fmt(left / DAYS_LEFT)
-  const rows = ['🍅 Groceries', '🛍️ Shopping', '🛵 Travel'].map((name) => {
-    const c = categories.find((x) => x.name === name)!
-    return { icon: name.split(' ')[0], name: name.slice(name.indexOf(' ') + 1), left: fmt(c.assigned - c.spent), pct: (c.spent / c.assigned) * 100 }
+  const rows = ([['Groceries', BasketIcon], ['Shopping', ShoppingBagIcon], ['Travel', MopedIcon]] as const).map(([key, icon]) => {
+    const c = categories.find((x) => x.name === key)!
+    return { icon, name: key, left: fmt(c.assigned - c.spent), pct: (c.spent / c.assigned) * 100 }
   })
   const pills = [
     { label: 'per day', value: perDay, tint: T.text },
@@ -120,14 +124,15 @@ export function MiniWidget() {
 
 /** The large widget: bird band with the total, stat pills across the full width, three envelopes, today's logs, quick-log chips. */
 export function EnvelopeWidget() {
-  const { fmt, leftPct, perDay, rows, pills, today, symbol, digits } = useWidgetData()
+  const { fmt, leftPct, rows, pills, today, symbol, digits } = useWidgetData()
   return <div className="m-widget">
     <div className="m-widget-band">
       <Doodles width={CARD} height={BAND} />
       <Bird size={72} />
       <div className="m-widget-hero">
         <b><small>{symbol}</small>{digits}</b>
-        <span><Ring size={11} pct={leftPct} />{DAYS_LEFT} days left · {perDay}/day</span>
+        {/* No "· ₹697/day" here: at 12px it doesn't fit, and the per-day pill below already says it. */}
+        <span><Ring size={11} pct={leftPct} />{DAYS_LEFT} days left</span>
       </div>
       <div className="m-widget-pills">
         {pills.map((p) => <div key={p.label}><b style={{ color: p.tint }}>{p.value}</b><span>{p.label}</span></div>)}
@@ -135,12 +140,12 @@ export function EnvelopeWidget() {
     </div>
     <div className="m-widget-rows">
       {rows.map((r) => <div key={r.name}>
-        <div className="m-widget-row"><span>{r.icon}</span><b>{r.name}</b><em>{r.left}</em></div>
+        <div className="m-widget-row"><span><r.icon aria-hidden /></span><b>{r.name}</b><em>{r.left}</em></div>
         <div className="m-widget-bar"><i style={{ width: `${Math.max(2, Math.min(92, Math.round(r.pct)))}%` }} /></div>
       </div>)}
     </div>
     <span className="m-widget-today">TODAY</span>
     {today.map((t) => <div key={t.item} className="m-widget-log"><span>{t.item}</span><b>{fmt(t.amount)}</b></div>)}
-    <div className="m-widget-actions"><span>🍅 Groceries</span><span>🛵 Travel</span><span className="m-widget-plus"><Plus size={16} /></span></div>
+    <div className="m-widget-actions"><span style={ACTION}><BasketIcon aria-hidden />Groceries</span><span style={ACTION}><MopedIcon aria-hidden />Travel</span><span className="m-widget-plus"><Plus size={16} /></span></div>
   </div>
 }

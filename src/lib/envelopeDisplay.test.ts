@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { usedPct, usedPctLabel, lastSpentLabel, fillTone } from './envelopeDisplay'
-import { toISTDateString } from './date'
+import { toLocalDateString } from './date'
 
 afterEach(() => vi.useRealTimers())
 
@@ -26,7 +26,7 @@ describe('lastSpentLabel', () => {
     // compared against the UTC date and called this "Yesterday".
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-03-11T20:30:00Z'))
-    expect(toISTDateString()).toBe('2026-03-12')
+    expect(toLocalDateString()).toBe('2026-03-12')
     expect(lastSpentLabel('2026-03-12')).toBe('Today')
   })
 
@@ -38,11 +38,9 @@ describe('lastSpentLabel', () => {
 
   it('falls back to a day count, then a date', () => {
     vi.useFakeTimers()
-    // The stored date parses as midnight UTC and "now" is midday, so the gap
-    // rounds up by one. Both apps inherit that from the same arithmetic, so
-    // it is pinned here rather than corrected on one side only.
+    // Whole calendar days from local midnight, like Mobile's EnvelopeRow.
     vi.setSystemTime(new Date('2026-03-20T12:00:00Z'))
-    expect(lastSpentLabel('2026-03-15')).toBe('6d ago')
+    expect(lastSpentLabel('2026-03-15')).toBe('5d ago')
     expect(lastSpentLabel('2025-11-03')).toBe('3 Nov')
   })
 

@@ -1,19 +1,6 @@
 import { pageMetadata } from '@/lib/seo'
 import Link from 'next/link'
-import {
-  CalendarClock,
-  CircleDollarSign,
-  CreditCard,
-  Repeat,
-  ShieldCheck,
-  Smartphone,
-  TrendingDown,
-  TrendingUp,
-  TriangleAlert,
-  Users,
-  Globe,
-  type LucideIcon,
-} from 'lucide-react'
+import { CalendarDotsIcon, CurrencyCircleDollarIcon, CreditCardIcon, RepeatIcon, ShieldCheckIcon, DeviceMobileIcon, TrendDownIcon, TrendUpIcon, WarningIcon, UsersIcon, GlobeIcon, type PhosphorIcon } from '@/src/components/icons'
 import { getDb } from '@/lib/mongodb'
 import { displayName, type UserDoc } from '@/lib/users'
 import { getPlanPrices } from '@/lib/billing/razorpay'
@@ -73,7 +60,7 @@ function delta(now: number, then: number): { text: string; up: boolean } | null 
   return { text: `${change > 0 ? '+' : '−'}${Math.abs(Math.round(change * 100))}%`, up: change > 0 }
 }
 
-function Hero({ label, value, note, icon: Icon, change }: { label: string; value: string; note: string; icon: LucideIcon; change?: ReturnType<typeof delta> }) {
+function Hero({ label, value, note, icon: Icon, change }: { label: string; value: string; note: string; icon: PhosphorIcon; change?: ReturnType<typeof delta> }) {
   return (
     <div className="adm-kpi adm-stat adm-tone t-paid">
       <div className="adm-stat-top">
@@ -82,7 +69,7 @@ function Hero({ label, value, note, icon: Icon, change }: { label: string; value
         </span>
         {change && (
           <span className={`adm-delta ${change.up ? 'is-up' : 'is-down'}`}>
-            {change.up ? <TrendingUp size={13} /> : <TrendingDown size={13} />}
+            {change.up ? <TrendUpIcon size={13} /> : <TrendDownIcon size={13} />}
             {change.text}
           </span>
         )}
@@ -164,11 +151,11 @@ export default async function AdminRevenue({ searchParams }: { searchParams: Par
         <h1>Revenue</h1>
         <div className="adm-status">
           <span className={`adm-chip ${prices ? 'adm-tone t-paid' : 'is-off'}`}>
-            <CircleDollarSign size={14} />
+            <CurrencyCircleDollarIcon size={14} />
             {prices ? `${inr(prices.monthly)}/mo · ${inr(prices.yearly)}/yr` : 'Prices unavailable'}
           </span>
           <span className="adm-chip">
-            <ShieldCheck size={14} />
+            <ShieldCheckIcon size={14} />
             Production only{sandbox ? ` · ${num(sandbox)} test rows hidden` : ''}
           </span>
         </div>
@@ -176,13 +163,13 @@ export default async function AdminRevenue({ searchParams }: { searchParams: Par
 
       {incomplete && (
         <div className="adm-notice" role="alert">
-          <TriangleAlert size={17} />
+          <WarningIcon size={17} />
           <p>Revenue figures are incomplete. This view uses at most {num(MAX_SCAN)} recent production subscriptions and trial accounts.</p>
         </div>
       )}
       {!prices && (
         <div className="adm-notice">
-          <TriangleAlert size={17} />
+          <WarningIcon size={17} />
           <p>
             Couldn&apos;t read plan prices from Razorpay, so money figures are hidden and the chart shows paying subscribers. Check the RAZORPAY_* settings, or try
             again in a minute.
@@ -191,7 +178,7 @@ export default async function AdminRevenue({ searchParams }: { searchParams: Par
       )}
       {s.byPeriod.unpriced.n > 0 && (
         <div className="adm-notice">
-          <TriangleAlert size={17} />
+          <WarningIcon size={17} />
           <p>
             {num(s.byPeriod.unpriced.n)} paying subscriber{s.byPeriod.unpriced.n === 1 ? ' is' : 's are'} on a plan that isn&apos;t monthly or yearly, so they&apos;re
             counted but add nothing to MRR.
@@ -200,10 +187,10 @@ export default async function AdminRevenue({ searchParams }: { searchParams: Par
       )}
 
       <div className="adm-grid adm-grid-4">
-        <Hero label="MRR" icon={Repeat} value={money(s.mrr)} note="Yearly plans counted as a twelfth a month" change={prices ? delta(s.mrr, last30.start.mrr) : null} />
-        <Hero label="ARR" icon={CalendarClock} value={money(s.arr)} note="MRR × 12" change={prices ? delta(s.arr, last30.start.mrr * 12) : null} />
-        <Hero label="Paying subscribers" icon={Users} value={num(s.payers)} note="Gifted plans and trials left out" change={delta(s.payers, last30.start.payers)} />
-        <Hero label="ARPPU" icon={CreditCard} value={money(s.arppu)} note="Average MRR per paying user" />
+        <Hero label="MRR" icon={RepeatIcon} value={money(s.mrr)} note="Yearly plans counted as a twelfth a month" change={prices ? delta(s.mrr, last30.start.mrr) : null} />
+        <Hero label="ARR" icon={CalendarDotsIcon} value={money(s.arr)} note="MRR × 12" change={prices ? delta(s.arr, last30.start.mrr * 12) : null} />
+        <Hero label="Paying subscribers" icon={UsersIcon} value={num(s.payers)} note="Gifted plans and trials left out" change={delta(s.payers, last30.start.payers)} />
+        <Hero label="ARPPU" icon={CreditCardIcon} value={money(s.arppu)} note="Average MRR per paying user" />
       </div>
       <p className="adm-sub">Changes compare with 30 days ago.</p>
 
@@ -315,8 +302,8 @@ export default async function AdminRevenue({ searchParams }: { searchParams: Par
             title="By store"
             total={s.payers}
             rows={[
-              { key: 'play', label: 'Google Play', tone: 't-gift', icon: Smartphone, ...s.byStore.play },
-              { key: 'web', label: 'Web (Razorpay)', tone: 't-trial', icon: Globe, ...s.byStore.web },
+              { key: 'play', label: 'Google Play', tone: 't-gift', icon: DeviceMobileIcon, ...s.byStore.play },
+              { key: 'web', label: 'Web (Razorpay)', tone: 't-trial', icon: GlobeIcon, ...s.byStore.web },
             ]}
             money={money}
           />
@@ -447,7 +434,7 @@ export default async function AdminRevenue({ searchParams }: { searchParams: Par
   )
 }
 
-type MixRow = { key: string; label: string; tone: string; n: number; mrr: number; icon?: LucideIcon }
+type MixRow = { key: string; label: string; tone: string; n: number; mrr: number; icon?: PhosphorIcon }
 
 /** One share bar plus its legend: how payers split, with the MRR each part brings. */
 function Mix({ title, rows, total, money }: { title: string; rows: MixRow[]; total: number; money: (paise: number) => string }) {

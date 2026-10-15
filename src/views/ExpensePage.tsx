@@ -1,14 +1,14 @@
 "use client";
 
 import { useCurrency } from "@/src/context/CurrencyContext";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactElement } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "motion/react";
 import { AmountText, CheckIcon } from "../components/landing/mobile/kit";
 import { track } from "../lib/analytics";
 import { currencyUnit } from "../lib/currencies";
-import { ChevronRight, Pencil } from "lucide-react";
+import { CaretRightIcon, GearIcon, HouseIcon, InvoiceIcon, MoneyWavyIcon, MoonIcon, PencilSimpleIcon, PlantIcon, SunIcon } from "@/src/components/icons";
 import { useAppearance } from "../../components/AppearanceProvider";
 
 import { FluidDemo } from "../components/FluidDemo";
@@ -25,6 +25,8 @@ import {
   AddIncomeScreen,
 } from "../components/MoneyScreens";
 import { ExpenseSidebar } from "../components/ExpenseSidebar";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { MENU_ITEM, MENU_POPUP } from "../components/menuStyles";
 import { Scrim, Sheet } from "../components/MotionSheet";
 import { ExpensePageLoading } from "../components/ExpensePageLoading";
 import {
@@ -35,8 +37,8 @@ import { buildExpensePanel } from "../lib/expensePanel";
 import { EMPTY } from "../lib/constants";
 import { useBudgets, useTransferBudget, useUpdateBudget } from "../hooks/useBudgets";
 import { useRecentExpenses, useLastSpent, useAddExpense } from "../hooks/useExpenses";
-import { useCategories } from "../hooks/useCategories";
-import { useGroups } from "../hooks/useGroups";
+import { useCategories, useCategoryIcons } from "../hooks/useCategories";
+import { useGroupIcons, useGroups } from "../hooks/useGroups";
 import { useSubscriptions, useCancelSubscription, useReactivateSubscription } from "../hooks/useSubscriptions";
 import { useHideAmounts } from "../hooks/useHideAmounts";
 import { GetStartedCard } from "../components/home/GetStartedCard";
@@ -75,6 +77,8 @@ export function ExpensePage() {
   const expensesQuery = useRecentExpenses();
   const lastSpent = useLastSpent().data;
   const categoriesQuery = useCategories();
+  const categoryIcons = useCategoryIcons();
+  const groupIcons = useGroupIcons();
   const groupsQuery = useGroups();
   const subscriptionsQuery = useSubscriptions();
   const user = useUser().data;
@@ -145,8 +149,6 @@ export function ExpensePage() {
   const [assignTarget, setAssignTarget] = useState<string | null>(null);
   const [editReady, setEditReady] = useState(false);
   const [incomeScreen, setIncomeScreen] = useState<"add" | "monthly" | null>(null);
-  // The pencil and the income pill open the same menu, each under itself.
-  const [incomeMenuAt, setIncomeMenuAt] = useState<"pencil" | "pill" | null>(null);
   // Change income edits the monthly schedule Ready to Assign counts from day 1.
   // With more than one, or before they've loaded (a create form then could
   // duplicate one), the Income page is the place to pick.
@@ -154,72 +156,46 @@ export function ExpensePage() {
   // Warms the accounts cache so Log expense has them on its first open.
   useAccounts();
   const monthlySchedules = (schedulesQ.data ?? []).filter((r) => r.frequency === "monthly" && r.status === "active");
-  const incomeMenuRef = useRef<HTMLDivElement | null>(null);
-  const incomePillRef = useRef<HTMLDivElement | null>(null);
-  useEffect(() => {
-    if (!incomeMenuAt) return;
-    const anchor = incomeMenuAt === "pill" ? incomePillRef : incomeMenuRef;
-    function onPointer(e: MouseEvent) {
-      if (!anchor.current?.contains(e.target as Node)) setIncomeMenuAt(null);
-    }
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setIncomeMenuAt(null);
-    }
-    document.addEventListener("mousedown", onPointer);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onPointer);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [incomeMenuAt]);
-  const incomeMenu = (
-    <div className="env-menu" role="menu">
-      <button
-        type="button"
-        role="menuitem"
-        className="env-menu-item"
-        onClick={() => {
-          setIncomeMenuAt(null);
-          if (!schedulesQ.data || monthlySchedules.length > 1) router.push("/account/income");
-          else setIncomeScreen("monthly");
-        }}
-      >
-        Change income
-      </button>
-      <button
-        type="button"
-        role="menuitem"
-        className="env-menu-item"
-        onClick={() => {
-          setIncomeMenuAt(null);
-          router.push("/account/income");
-        }}
-      >
-        Manage income
-      </button>
-      <button
-        type="button"
-        role="menuitem"
-        className="env-menu-item"
-        onClick={() => {
-          setIncomeMenuAt(null);
-          setIncomeScreen("add");
-        }}
-      >
-        Add income
-      </button>
-      <button
-        type="button"
-        role="menuitem"
-        className="env-menu-item"
-        onClick={() => {
-          setIncomeMenuAt(null);
-          setEditReady(true);
-        }}
-      >
-        Set Ready to Assign
-      </button>
-    </div>
+  // The pencil and the income pill open the same menu, each under itself.
+  const incomeMenu = (trigger: ReactElement, align: "start" | "center" | "end") => (
+    <DropdownMenu>
+      <DropdownMenuTrigger render={trigger} />
+      <DropdownMenuContent align={align} sideOffset={6} className={MENU_POPUP}>
+        <DropdownMenuItem
+          className={MENU_ITEM}
+          onClick={() => {
+            if (!schedulesQ.data || monthlySchedules.length > 1) router.push("/account/income");
+            else setIncomeScreen("monthly");
+          }}
+        >
+          Change income
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          className={MENU_ITEM}
+          onClick={() => {
+            router.push("/account/income");
+          }}
+        >
+          Manage income
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          className={MENU_ITEM}
+          onClick={() => {
+            setIncomeScreen("add");
+          }}
+        >
+          Add income
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          className={MENU_ITEM}
+          onClick={() => {
+            setEditReady(true);
+          }}
+        >
+          Set Ready to Assign
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
   const [showBulkReturnConfirm, setShowBulkReturnConfirm] = useState(false);
   const previousMonth = prevMonthKey(panel?.month ?? currentMonthKey());
@@ -353,7 +329,7 @@ export function ExpensePage() {
       bulkReturnPhase.succeed(() => setShowBulkReturnConfirm(false));
     } catch {
       bulkReturnPhase.fail();
-      setActionError("Couldn't return the money — your envelopes were not changed.");
+      setActionError("Couldn't return the money. Your categories weren't changed.");
     }
   }
 
@@ -422,7 +398,7 @@ export function ExpensePage() {
         onClick={() => setTheme(theme === "light" ? "dark" : "light")}
         aria-label="Toggle theme"
       >
-        {theme === "dark" ? "☀️" : "🌙"}
+        {theme === "dark" ? <SunIcon aria-hidden /> : <MoonIcon aria-hidden />}
       </button>
 
       <header className="erd-mobile-header">
@@ -465,37 +441,30 @@ export function ExpensePage() {
                     {/* The pencil is easy to miss, so this pill names where the
                         number comes from. With no income yet it goes straight to
                         setting it. */}
-                    <div className="env-action-wrap erd-home-pill-wrap" ref={incomePillRef}>
-                      <button
-                        type="button"
-                        aria-haspopup={envelopeState.income === 0 ? undefined : "menu"}
-                        aria-expanded={envelopeState.income === 0 ? undefined : incomeMenuAt === "pill"}
-                        className={`erd-home-income-pill ${envelopeState.income === 0 ? "is-empty" : ""}`}
-                        onClick={() => {
-                          if (envelopeState.income === 0) setIncomeScreen("monthly");
-                          else setIncomeMenuAt((at) => (at === "pill" ? null : "pill"));
-                        }}
-                      >
-                        {envelopeState.income === 0
-                          ? "Set your income"
-                          : `Income · ${formatCurrency(envelopeState.income, hideAmounts)}`}
-                        <ChevronRight size={14} aria-hidden="true" />
-                      </button>
-                      {incomeMenuAt === "pill" && incomeMenu}
+                    <div className="env-action-wrap erd-home-pill-wrap">
+                      {envelopeState.income === 0 ? (
+                        <button type="button" className="erd-home-income-pill is-empty" onClick={() => setIncomeScreen("monthly")}>
+                          Set your income
+                          <CaretRightIcon size={14} aria-hidden="true" />
+                        </button>
+                      ) : (
+                        incomeMenu(
+                          <button type="button" className="erd-home-income-pill">
+                            {`Income · ${formatCurrency(envelopeState.income, hideAmounts)}`}
+                            <CaretRightIcon size={14} aria-hidden="true" />
+                          </button>,
+                          "center",
+                        )
+                      )}
                     </div>
                   </div>
-                  <div className="env-action-wrap erd-home-hero-menu" ref={incomeMenuRef}>
-                    <button
-                      type="button"
-                      className="env-menu-trigger"
-                      aria-label="Income options"
-                      aria-haspopup="menu"
-                      aria-expanded={incomeMenuAt === "pencil"}
-                      onClick={() => setIncomeMenuAt((at) => (at === "pencil" ? null : "pencil"))}
-                    >
-                      <Pencil size={15} aria-hidden="true" />
-                    </button>
-                    {incomeMenuAt === "pencil" && incomeMenu}
+                  <div className="env-action-wrap erd-home-hero-menu">
+                    {incomeMenu(
+                      <button type="button" className="env-menu-trigger" aria-label="Income options">
+                        <PencilSimpleIcon size={15} aria-hidden="true" />
+                      </button>,
+                      "end",
+                    )}
                   </div>
                 </article>
               )}
@@ -509,41 +478,40 @@ export function ExpensePage() {
                     <strong>{monthLabel(panel.month)}</strong>
                     <span>{daysLeftLabel}</span>
                   </div>
-                  <div className="env-action-wrap erd-home-rta-slim-wrap" ref={incomePillRef}>
-                    <button
-                      type="button"
-                      className={`erd-card erd-home-rta-slim${rtaCelebrating ? " is-celebrating" : ""}`}
-                      aria-label="Ready to Assign options"
-                      aria-haspopup="menu"
-                      aria-expanded={incomeMenuAt === "pill"}
-                      onClick={() => setIncomeMenuAt((at) => (at === "pill" ? null : "pill"))}
-                    >
-                      <AnimatePresence mode="wait" initial={false}>
-                        <motion.span
-                          key={rtaCelebrating ? "celebrate" : "label"}
-                          className={rtaCelebrating ? "erd-home-rta-celebrate" : undefined}
-                          role={rtaCelebrating ? "status" : undefined}
-                          initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
-                          transition={{ duration: 0.22, ease: "easeOut" }}
-                        >
-                          {rtaCelebrating ? (
-                            <>
-                              <CheckIcon color="var(--mint)" size={18} />
-                              Every {currencyUnit(currencyCode)} has a job.
-                            </>
-                          ) : (
-                            <>💸&nbsp;&nbsp;Ready to Assign</>
-                          )}
-                        </motion.span>
-                      </AnimatePresence>
-                      <span className="erd-home-rta-slim-amount">
-                        {hideAmounts ? "---" : <AmountText value={envelopeState.readyToAssign} animate id="ready-to-assign" />}
-                        <ChevronRight size={16} aria-hidden="true" />
-                      </span>
-                    </button>
-                    {incomeMenuAt === "pill" && incomeMenu}
+                  <div className="env-action-wrap erd-home-rta-slim-wrap">
+                    {incomeMenu(
+                      <button
+                        type="button"
+                        className={`erd-card erd-home-rta-slim${rtaCelebrating ? " is-celebrating" : ""}`}
+                        aria-label="Ready to Assign options"
+                      >
+                        <AnimatePresence mode="wait" initial={false}>
+                          <motion.span
+                            key={rtaCelebrating ? "celebrate" : "label"}
+                            className={rtaCelebrating ? "erd-home-rta-celebrate" : undefined}
+                            role={rtaCelebrating ? "status" : undefined}
+                            initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
+                            transition={{ duration: 0.22, ease: "easeOut" }}
+                          >
+                            {rtaCelebrating ? (
+                              <>
+                                <CheckIcon color="var(--mint)" size={18} />
+                                Every {currencyUnit(currencyCode)} has a job.
+                              </>
+                            ) : (
+                              <><span className="erd-rta-icon" aria-hidden="true"><MoneyWavyIcon size={18} /></span>Ready to Assign</>
+                            )}
+                          </motion.span>
+                        </AnimatePresence>
+                        <span className="erd-home-rta-slim-amount">
+                          {hideAmounts ? "---" : <AmountText value={envelopeState.readyToAssign} animate id="ready-to-assign" />}
+                          <CaretRightIcon size={16} aria-hidden="true" />
+                        </span>
+                      </button>,
+                      "end",
+                    )}
                   </div>
                 </>
               )}
@@ -570,7 +538,7 @@ export function ExpensePage() {
                     }}
                   >
                     <article className="erd-card home-leftover-notice">
-                      <p>🌱 {formatCurrency(previousLeftover, hideAmounts)} went to savings last month.</p>
+                      <p><PlantIcon size={18} aria-hidden="true" style={{ verticalAlign: "-3px", marginRight: 6 }} />{formatCurrency(previousLeftover, hideAmounts)} went to savings last month.</p>
                       <button type="button" onClick={() => setLeftoverDismissed(true)}>Nice</button>
                     </article>
                   </motion.div>
@@ -617,6 +585,8 @@ export function ExpensePage() {
                   transition={homeTransition}
                 >
                   <EnvelopeGrid
+                    categoryIcons={categoryIcons}
+                    groupIcons={groupIcons}
                     envelopes={envelopeState.envelopes}
                     groups={envelopeState.groups}
                     hideAmounts={hideAmounts}
@@ -636,7 +606,7 @@ export function ExpensePage() {
                   layout={reduceMotion ? false : "position"}
                   transition={homeTransition}
                 >
-                  Trends and daily spend <ChevronRight size={16} />
+                  Trends and daily spend <CaretRightIcon size={16} />
                 </MotionLink>
               )}
             </div>
@@ -656,7 +626,7 @@ export function ExpensePage() {
                   homeRail
                 />
               )}
-              <RecentActivity expenses={expenseRows} hideAmounts={hideAmounts} />
+              <RecentActivity expenses={expenseRows} hideAmounts={hideAmounts} categoryIcons={categoryIcons} />
             </aside>
           </div>
           </LayoutGroup>
@@ -880,11 +850,11 @@ export function ExpensePage() {
       </div>
       <nav className="erd-tabbar" aria-label="Primary">
         <Link href="/expense" className="erd-tab">
-          <span aria-hidden="true">🏠</span>
+          <HouseIcon size={22} aria-hidden />
           <span>Home</span>
         </Link>
         <Link href="/expense/transactions" className="erd-tab">
-          <span aria-hidden="true">🧾</span>
+          <InvoiceIcon size={22} aria-hidden />
           <span>Activity</span>
         </Link>
         <button
@@ -897,7 +867,7 @@ export function ExpensePage() {
         </button>
         <InsightsTab />
         <Link href="/account" className="erd-tab">
-          <span aria-hidden="true">⚙️</span>
+          <GearIcon size={22} aria-hidden />
           <span>More</span>
         </Link>
       </nav>

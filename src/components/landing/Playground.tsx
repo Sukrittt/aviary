@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { Pause, Play, RotateCcw } from 'lucide-react'
+import { PauseIcon, PlayIcon, ArrowCounterClockwiseIcon } from '@/src/components/icons'
 
 import { PHONE, PhoneScreenContext, T } from './mobile/kit'
 import { FloatingNav } from './mobile/nav'
@@ -36,7 +36,7 @@ async function typeInto(input: HTMLInputElement, text: string, alive: () => bool
 
 export function Playground() {
   // Starters are each in demo.ts's WORDS, so the pill always has an envelope to land on.
-  const { categories: sampleCategories, playItem, playAmount, starters, batchExample } = useSample()
+  const { categories: sampleCategories, playItem, playAmount, starters } = useSample()
   const reduced = useReducedMotion()
   const [paused, setPaused] = useState(false)
   const [tookOver, setTookOver] = useState(false)
@@ -57,9 +57,8 @@ export function Playground() {
   const mine = tookOver || !!reduced
   const playing = visible && !paused && !mine
 
-  // The visitor's own logs, for the + hint (first log) and the capture tip (after two by hand, like Mobile's `batch`).
+  // The visitor's own logs, for the + hint on their first.
   const [logs, setLogs] = useState(0)
-  const [tipDone, setTipDone] = useState(false)
   const onAdded = useCallback((expense: LoggedExpense) => {
     if (mine) setLogs((n) => n + 1)
     setAdded({ expense, before: categories.find((c) => c.name === expense.category) })
@@ -142,7 +141,7 @@ export function Playground() {
     setStarter((prev) => ({ text, n: (prev?.n ?? 0) + 1 }))
   }
 
-  // The nav's other tabs and the chat icon lead to screens this demo doesn't have; say so instead of doing nothing.
+  // The nav's other tabs lead to screens this demo doesn't have; say so instead of doing nothing.
   const [elsewhere, setElsewhere] = useState<{ text: string; n: number } | null>(null)
   useEffect(() => {
     if (!elsewhere) return
@@ -150,7 +149,6 @@ export function Playground() {
     return () => clearTimeout(id)
   }, [elsewhere])
   const say = (text: string) => setElsewhere((prev) => ({ text, n: (prev?.n ?? 0) + 1 }))
-  const toAskAviary = () => say('Logging a few at once happens in Ask Aviary, in the app.')
 
   const hint = !mine
     ? 'It’s playing itself. Tap the phone to take over.'
@@ -164,7 +162,7 @@ export function Playground() {
     <section id="play" className="lp-section lp-play" aria-labelledby="play-title" ref={sectionRef}>
       <div className="lp-play-copy">
         <h2 id="play-title" className="lp-h2">Go on, log one.</h2>
-        <p className="lp-lede">That’s the app’s real log screen, not a recording. Say what it was, watch the envelope pick itself, then tap the amount and hit +.</p>
+        <p className="lp-lede">That’s the app’s real log screen, not a recording. Say what it was, watch the category pick itself, then tap the amount and hit +.</p>
         <div className="lp-starters">
           <span id="play-starters">Stuck? Start with one of these.</span>
           <div role="group" aria-labelledby="play-starters">
@@ -184,13 +182,7 @@ export function Playground() {
                   <motion.div key={screen === 'log' ? `log:${run}` : 'added'} style={{ position: 'absolute', inset: 0 }}
                     initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { duration: 0.25 } }} exit={{ opacity: 0, transition: { duration: 0.25 } }}>
                     {screen === 'log'
-                      ? <LogExpenseScreen categories={categories} groups={GROUPS} prefill={prefill} publish={setSubmit} onAdded={onAdded}
-                          onSeveral={() => { setTipDone(true); toAskAviary() }}
-                          tip={mine && logs >= 2 && !tipDone ? {
-                            body: `Type them all at once in Ask Aviary, like “${batchExample}”.`,
-                            onTry: () => { setTipDone(true); toAskAviary() },
-                            onDismiss: () => setTipDone(true),
-                          } : null} />
+                      ? <LogExpenseScreen categories={categories} groups={GROUPS} prefill={prefill} publish={setSubmit} onAdded={onAdded} />
                       : added && <ExpenseAddedScreen expense={added.expense} before={added.before} muted={!mine}
                           onDone={() => fresh(true)}
                           onUndo={() => {
@@ -205,7 +197,7 @@ export function Playground() {
                   <div style={{ pointerEvents: 'auto' }}>
                     <FloatingNav active={null} addActive addSaving={submit.saving} addSuccess={submit.success}
                       addHint={logs === 0 && submit.canSubmit && !submit.saving && !submit.success}
-                      addInvalid={!submit.canSubmit} addDisabled={submit.saving || submit.success} onSelect={() => { say('This demo only logs. Home, envelopes and the rest are in the app.'); return false }} onAdd={() => submit.submit()} />
+                      addInvalid={!submit.hasAmount} addDisabled={submit.saving || submit.success} onSelect={() => { say('This demo only logs. Home, categories and the rest are in the app.'); return false }} onAdd={() => submit.submit()} />
                   </div>
                 </div>}
               </div>
@@ -216,9 +208,9 @@ export function Playground() {
         </div>
         <p className="lp-phone-hint" aria-live="polite">{hint}</p>
         {!reduced && (mine
-          ? <button type="button" className="lp-replay" onClick={() => { fresh(); setTookOver(false); setPaused(false) }}><RotateCcw size={15} aria-hidden="true" />Watch the demo instead</button>
+          ? <button type="button" className="lp-replay" onClick={() => { fresh(); setTookOver(false); setPaused(false) }}><ArrowCounterClockwiseIcon size={15} aria-hidden="true" />Watch the demo instead</button>
           : <button type="button" className="lp-stage-pause lp-play-pause" onClick={() => setPaused((p) => !p)} aria-label={paused ? 'Play the demo' : 'Pause the demo'}>
-              {paused ? <Play size={14} /> : <Pause size={14} />}
+              {paused ? <PlayIcon size={14} /> : <PauseIcon size={14} />}
             </button>)}
       </div>
     </section>

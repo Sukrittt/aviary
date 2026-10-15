@@ -1,7 +1,7 @@
 'use client'
 
 import { useId, useRef, useState } from 'react'
-import { Camera, ChevronDown, X } from 'lucide-react'
+import { CameraIcon, CaretDownIcon, XIcon } from '@/src/components/icons'
 
 interface Props {
   /** What to show as the thumbnail: a local data URL before saving, or the signed URL of a saved photo. */
@@ -40,7 +40,7 @@ export function ExpensePhotoMore({ photoUrl, hasPhoto, busy, error, onOpen, onPi
         }}
       >
         {hasPhoto && !open ? 'More · 1 photo' : 'More'}
-        <ChevronDown size={14} aria-hidden="true" className={open ? 'is-open' : undefined} />
+        <CaretDownIcon size={14} aria-hidden="true" className={open ? 'is-open' : undefined} />
       </button>}
 
       {open && (
@@ -67,13 +67,13 @@ export function ExpensePhotoMore({ photoUrl, hasPhoto, busy, error, onOpen, onPi
                   <img src={photoUrl} alt="Expense photo" />
                 </a>
                 <button type="button" className="erd-photo-remove" aria-label="Remove photo" disabled={busy} onClick={onRemove}>
-                  <X size={12} aria-hidden="true" />
+                  <XIcon size={12} aria-hidden="true" />
                 </button>
               </div>
             </div>
           ) : (
             <button type="button" className="erd-date-chip" disabled={busy} onClick={() => inputRef.current?.click()}>
-              <Camera size={15} aria-hidden="true" />
+              <CameraIcon size={15} aria-hidden="true" />
               {busy ? 'Loading…' : 'Add a photo'}
             </button>
           )}

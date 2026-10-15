@@ -2,6 +2,7 @@ import { useCurrency } from '@/src/context/CurrencyContext'
 import { useState } from 'react'
 
 import { SectionLabel, ResultCard, FadeIn, Reaction } from '@/src/components/tour/parts'
+import { LightbulbIcon } from '@/src/components/icons'
 import { MOVE_AMOUNT, MOVE_IN_ENVELOPE, MOVE_NEED, MOVE_SOURCES } from '@/src/components/tour/content'
 
 /** Chapter 3: cover a shortfall by borrowing from an envelope with slack. */
@@ -16,10 +17,10 @@ export function MoveDemo({ onComplete }: { onComplete: () => void }) {
   return (
     <div className="tour-demo">
       <div className="tour-move-dest">
-        <div className="tour-move-tile">💡</div>
+        <div className="tour-move-tile"><LightbulbIcon size={22} aria-hidden /></div>
         <div className="tour-row-body">
           <p className="tour-kicker">ELECTRICITY · {formatCurrency(MOVE_NEED)} DUE THE 5TH</p>
-          <span className="tour-move-amount">{formatCurrency(inEnvelope)} in the envelope</span>
+          <span className="tour-move-amount">{formatCurrency(inEnvelope)} set aside</span>
           <span className={`tour-move-status ${short > 0 ? 'is-coral' : 'is-mint'}`}>
             {short > 0 ? `${formatCurrency(short)} short` : 'fully funded ✓'}
           </span>
@@ -41,7 +42,7 @@ export function MoveDemo({ onComplete }: { onComplete: () => void }) {
               onComplete()
             }}
           >
-            <div className="tour-row-tile">{source.emoji}</div>
+            <div className="tour-row-tile"><source.icon size={18} aria-hidden /></div>
             <div className="tour-row-body">
               <span className="tour-row-name">{source.name}</span>
               <span className={`tour-row-note ${taken ? 'is-accent' : isProtected ? 'is-warn' : ''}`}>

@@ -54,4 +54,5 @@ it('formats the expression line', () => {
   expect(hasOperator('12.5')).toBe(false)
   expect(hasOperator('5+')).toBe(true)
   expect(formatExpression('5+5+')).toBe('5 + 5 +')
+  expect(formatExpression('12000+450.5×2', (n) => Number(n).toLocaleString('en-US'))).toBe('12,000 + 450.5 × 2')
 })

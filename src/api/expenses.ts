@@ -1,6 +1,6 @@
 import { ExpenseWriteError } from '@/src/lib/expenseConflict'
 import { apiFetch, HttpError } from './client'
-import { nowIST } from '@/src/lib/date'
+import { nowLocal } from '@/src/lib/date'
 import type { CsvResponse, ExpenseRow } from '@/src/types'
 
 export async function getExpenses(): Promise<ExpenseRow[]> {
@@ -87,14 +87,14 @@ export type ExpensePayload = NewExpenseRow & { client_id: string; date: string; 
  * never again: `client_id` names this create so a retry (offline queue, or a
  * lost response) is recognized as the same intent instead of inserting a
  * second row. `timestamp` is minted from the device's clock the same way the
- * server derives it (`date` + current IST time-of-day) so an expense logged
+ * server derives it (`date` + current local time-of-day) so an expense logged
  * offline is dated the day it was actually logged, not the day the queue
  * happens to flush.
  */
 export function mintExpensePayload(row: NewExpenseRow): ExpensePayload {
-  const ist = nowIST()
-  const date = row.date || ist.date
-  return { ...row, date, timestamp: `${date}T${ist.timestamp.slice(11)}`, client_id: row.client_id || crypto.randomUUID() }
+  const now = nowLocal()
+  const date = row.date || now.date
+  return { ...row, date, timestamp: `${date}T${now.timestamp.slice(11)}`, client_id: row.client_id || crypto.randomUUID() }
 }
 
 /** Resolves with the created (or, on a client_id replay, already-existing) row's identity. */

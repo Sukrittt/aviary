@@ -20,7 +20,7 @@ it('shows the snoozing empty state only after queries finish', () => {
 
 it('uses the mobile chart cycle for slices and removes the mascot when spending arrives', () => {
   const { rerender } = render(<CategoryBreakdown {...props} />)
-  const rows: BreakdownRow[] = ['Food', 'Rent', 'Bills'].map((key, i) => ({ key, label: key, emoji: '', spent: 30 - i, assigned: 100, assignedIsCarried: false, pct: 33 }))
+  const rows: BreakdownRow[] = ['Food', 'Rent', 'Bills'].map((key, i) => ({ key, label: key, icon: null, spent: 30 - i, assigned: 100, assignedIsCarried: false, pct: 33 }))
   rerender(<CategoryBreakdown {...props} rows={rows} categoryRows={rows} />)
   expect(screen.queryByText('Nothing spent yet')).not.toBeInTheDocument()
   const slices = JSON.parse(screen.getByTestId('donut-colors').textContent!)

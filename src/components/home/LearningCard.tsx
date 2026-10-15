@@ -2,7 +2,7 @@
 
 import type { CSSProperties } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
-import { Check } from 'lucide-react'
+import { CheckIcon } from '@/src/components/icons'
 import { BirdMark } from '@/src/components/BirdMark'
 import { useWeekRecap } from '@/src/components/wrapped/WeekRecap'
 import { useRecentExpenses } from '@/src/hooks/useExpenses'
@@ -55,7 +55,7 @@ export function LearningCard() {
             const done = i < learning.day - 1 || (d.today && logged.has(d.date))
             return (
               <li key={d.date} className={done ? 'is-on' : d.today ? 'is-today' : ''} style={{ '--i': i } as CSSProperties} aria-label={`${d.date}${done ? ', done' : d.today ? ', today' : ''}`}>
-                <span>{done && <Check size={18} strokeWidth={3} />}</span>
+                <span>{done && <CheckIcon size={18} weight="bold" />}</span>
                 <small>{d.letter}</small>
               </li>
             )

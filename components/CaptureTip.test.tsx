@@ -1,7 +1,7 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { MANUAL_LOG_EVENT } from '@/src/lib/captureTip'
-import { todayIST } from '@/src/lib/date'
+import { todayLocal } from '@/src/lib/date'
 
 const brain = vi.hoisted(() => ({ openCapture: vi.fn(), isMoneyBrainOpen: false }))
 const data = vi.hoisted(() => ({ rows: [] as { date: string; source: string }[] }))
@@ -16,7 +16,7 @@ const { CaptureTip } = await import('./CaptureTip')
 beforeEach(() => {
   window.localStorage.clear()
   vi.clearAllMocks()
-  data.rows = [{ date: todayIST(), source: 'manual' }]
+  data.rows = [{ date: todayLocal(), source: 'manual' }]
 })
 
 it('pops up after a second manual log, and Try it opens capture for good', () => {

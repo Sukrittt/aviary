@@ -5,7 +5,7 @@ import { CurrencyScope, useCurrency } from '@/src/context/CurrencyContext'
 
 import { useEffect, useId, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
-import { ArrowLeft, Check, CopyX, FolderOpen, Plus, Tags, WalletCards } from 'lucide-react'
+import { ArrowLeftIcon, CheckIcon, CopyIcon, FolderOpenIcon, PlusIcon, TagIcon, CardholderIcon } from '@/src/components/icons'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import '../../src/expense-redesign.css'
@@ -24,6 +24,10 @@ import { Confetti } from '../../src/components/onboarding/Confetti'
 import { PickExtras } from '../../src/components/onboarding/PickExtras'
 import { LoadingCaption } from '../../src/components/LoadingCaption'
 import { Toast } from '../../src/components/Toast'
+import { CategoryIcon, CATEGORY_ICON_COMPONENTS } from '../../src/components/CategoryIcon'
+import { CategoryIconPicker } from '../../src/components/CategoryIconPicker'
+import { categoryIconKey, type CategoryIconKey } from '../../src/lib/categoryIcons'
+import { avatarStyleFor } from '../../src/lib/emoji'
 
 // Twin of Mobile's app/setup.tsx: currency → income → done on a starter
 // budget, or "Pick my own" for groups → categories → assign. Writes land on finish, same reasoning as mobile — groups/categories
@@ -31,7 +35,6 @@ import { Toast } from '../../src/components/Toast'
 // here: those exist on mobile because a thumb keyboard is painful, and a
 // desktop already has a real one, so a plain input (under the ticker) and
 // inline number fields replace them.
-const EMOJI_CHOICES = ['🏠', '🎬', '🌱', '🛒', '💡', '🚌', '🍜', '📺', '🛍', '🛟', '📈', '🎓', '🐶', '💊', '✈️', '🎁']
 const QUICK_PICKS = ['30000', '50000', '75000', '100000']
 // Shortest time a Finish-button save step stays on screen.
 const STEP_MIN_MS = 500
@@ -40,7 +43,8 @@ const LAST_STEP_MIN_MS = 1000
 
 interface Item {
   id: string
-  emoji: string
+  /** A category's picked icon. Unset follows its name; groups always do. */
+  icon?: CategoryIconKey
   name: string
   on: boolean
 }
@@ -50,7 +54,6 @@ interface LiveCat {
   groupId: string
   catId: string
   group: string
-  emoji: string
   name: string
 }
 
@@ -59,30 +62,30 @@ const makeId = () => `setup-${nextId++}`
 
 function defaultGroups(): Item[] {
   return [
-    { id: 'g1', emoji: '🏠', name: 'Essentials', on: true },
-    { id: 'g2', emoji: '🎬', name: 'Lifestyle', on: true },
-    { id: 'g3', emoji: '🌱', name: 'Savings', on: false },
+    { id: 'g1', name: 'Essentials', on: true },
+    { id: 'g2', name: 'Lifestyle', on: true },
+    { id: 'g3', name: 'Savings', on: false },
   ]
 }
 
 function defaultCats(): Record<string, Item[]> {
   return {
     g1: [
-      { id: makeId(), emoji: '🏠', name: 'Rent', on: true },
-      { id: makeId(), emoji: '🛒', name: 'Groceries', on: true },
-      { id: makeId(), emoji: '💡', name: 'Utilities', on: true },
-      { id: makeId(), emoji: '🚌', name: 'Transport', on: false },
+      { id: makeId(), icon: 'House', name: 'Rent', on: true },
+      { id: makeId(), icon: 'ShoppingCart', name: 'Groceries', on: true },
+      { id: makeId(), icon: 'Lightbulb', name: 'Utilities', on: true },
+      { id: makeId(), icon: 'Bus', name: 'Transport', on: false },
     ],
     g2: [
-      { id: makeId(), emoji: '🍜', name: 'Eating out', on: true },
-      { id: makeId(), emoji: '🎬', name: 'Entertainment', on: true },
-      { id: makeId(), emoji: '💻', name: 'Software', on: false },
-      { id: makeId(), emoji: '📺', name: 'Subscriptions', on: false },
-      { id: makeId(), emoji: '🛍', name: 'Shopping', on: false },
+      { id: makeId(), icon: 'ForkKnife', name: 'Eating out', on: true },
+      { id: makeId(), icon: 'FilmSlate', name: 'Entertainment', on: true },
+      { id: makeId(), icon: 'Laptop', name: 'Software', on: false },
+      { id: makeId(), icon: 'Repeat', name: 'Subscriptions', on: false },
+      { id: makeId(), icon: 'ShoppingBag', name: 'Shopping', on: false },
     ],
     g3: [
-      { id: makeId(), emoji: '🛟', name: 'Emergency fund', on: true },
-      { id: makeId(), emoji: '📈', name: 'Investments', on: false },
+      { id: makeId(), icon: 'Lifebuoy', name: 'Emergency fund', on: true },
+      { id: makeId(), icon: 'ChartLineUp', name: 'Investments', on: false },
     ],
   }
 }
@@ -108,8 +111,8 @@ function selectNamedItems(items: Item[], reservedNames: string[] = []): Item[] {
   })
 }
 
-function label(item: Item): string {
-  return `${item.emoji} ${item.name.trim()}`
+function catIcon(c: Item, group: string): CategoryIconKey {
+  return c.icon ?? categoryIconKey(c.name, undefined, group)
 }
 
 async function ignoreConflict(err: unknown): Promise<void> {
@@ -125,7 +128,7 @@ const TITLES: Record<number, [string, string]> = {
   0: ['Choose your currency', 'The currency you use for your budget. You can change it later in More.'],
   1: ['What lands each month?', 'Your take-home income. This becomes the pot you assign from. Not sure yet? Skip it and add it from Home later.'],
   2: ['Group your money', 'Groups are the big buckets. Accept these or rename them to fit your life.'],
-  3: ['Add your categories', 'These are the envelopes you actually spend from. Pick the ones you recognize.'],
+  3: ['Add your categories', 'These are the buckets you actually spend from. Pick the ones you recognize.'],
   4: ['Assign your money', 'We suggested a split based on what each category is for. Change any amount. Anything you leave waits in Ready to Assign.'],
 }
 
@@ -205,7 +208,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
     const out: LiveCat[] = []
     selectedGroups.forEach((g) => {
       ;(cats[g.id] ?? []).forEach((c) => {
-        if (c.on && c.name.trim()) out.push({ key: `${g.id}:${c.id}`, groupId: g.id, catId: c.id, group: g.name, emoji: c.emoji, name: c.name })
+        if (c.on && c.name.trim()) out.push({ key: `${g.id}:${c.id}`, groupId: g.id, catId: c.id, group: g.name, name: c.name })
       })
     })
     return out
@@ -419,13 +422,13 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
   const addGroupRow = () => {
     setGroupSelectionUndo(null)
     const id = makeId()
-    setGroups((gs) => [...gs, { id, emoji: '🎁', name: '', on: false }])
+    setGroups((gs) => [...gs, { id, name: '', on: false }])
     setCats((c) => ({ ...c, [id]: [] }))
   }
 
   const addCatRow = (groupId: string) => {
     setCategorySelectionUndo(null)
-    setCats((c) => ({ ...c, [groupId]: [...(c[groupId] ?? []), { id: makeId(), emoji: '🎁', name: '', on: false }] }))
+    setCats((c) => ({ ...c, [groupId]: [...(c[groupId] ?? []), { id: makeId(), name: '', on: false }] }))
   }
 
   const setAmount = (key: string, v: number) => {
@@ -463,7 +466,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
     setError('')
     const incomeValue = Math.round(Number(income)) || 0
     const categories = selectedGroups.flatMap((g) =>
-      (cats[g.id] ?? []).filter((c) => c.on && c.name.trim()).map((c) => ({ name: label(c), group: label(g) })),
+      (cats[g.id] ?? []).filter((c) => c.on && c.name.trim()).map((c) => ({ name: c.name.trim(), group: g.name.trim(), icon: catIcon(c, g.name) })),
     )
     const categoryCount = categories.length
     const finishSetup = (recoveredAfterError = false) => {
@@ -486,7 +489,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
     let doneWrites = 0
     const tick = () => setSaveProgress(++doneWrites / totalWrites)
     setSaveProgress(0)
-    setSaveStep('Creating your envelopes…')
+    setSaveStep('Creating your categories…')
     // Each step stays readable for at least STEP_MIN_MS, so a fast write never
     // flashes its text past the user or cuts straight to the next screen.
     let stepShownAt = Date.now()
@@ -506,14 +509,14 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
       // together, matching mobile. Completion waits for every setup write.
       await Promise.all([
         (async () => {
-          for (const g of selectedGroups) await addGroup(label(g)).catch(ignoreConflict).then(tick)
+          for (const g of selectedGroups) await addGroup(g.name.trim()).catch(ignoreConflict).then(tick)
         })(),
         (async () => {
-          for (const c of categories) await addCategory(c.name, c.group).catch(ignoreConflict).then(tick)
+          for (const c of categories) await addCategory(c.name, c.group, c.icon).catch(ignoreConflict).then(tick)
         })(),
         updateBudget(month, INCOME_CATEGORY, { assigned: String(incomeValue), rolled_over: '0' }, versionFor(INCOME_CATEGORY)).then(tick),
         ...live.map((item) => {
-          const catLabel = `${item.emoji} ${item.name.trim()}`
+          const catLabel = item.name.trim()
           return updateBudget(month, catLabel, { assigned: String(amounts[item.key] ?? 0), rolled_over: '0' }, versionFor(catLabel)).then(tick)
         }),
       ])
@@ -634,7 +637,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
     <div className="expense-redesign setup-page">
       <div className="setup-top">
         <button type="button" className="setup-back" onClick={back} disabled={step === 0} aria-label="Back">
-          <ArrowLeft size={16} aria-hidden="true" />
+          <ArrowLeftIcon size={16} aria-hidden="true" />
         </button>
         <div className="setup-dots" role="img" aria-label={`Step ${step + 1} of ${dots.length}`}>
           {dots.map((n) => (
@@ -700,20 +703,18 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
             {groups.map((g) => (
               <PickRow
                 key={g.id}
-                emoji={g.emoji}
                 name={g.name}
                 on={g.on}
                 placeholder="Group name"
                 incompleteHint={!g.name.trim() ? 'Name to select' : undefined}
-                onPickEmoji={(emoji) => patchGroup(g.id, { emoji })}
                 onChangeName={(name) => renameGroup(g, name)}
                 onToggle={() => toggleGroup(g)}
               />
             ))}
             <button type="button" className="setup-add-row" onClick={addGroupRow}>
-              <Plus size={16} aria-hidden="true" /> Add your own group
+              <PlusIcon size={16} aria-hidden="true" /> Add your own group
             </button>
-            <p className="setup-micro-hint">click a name to rename · click the emoji to pick another</p>
+            <p className="setup-micro-hint">click a name to rename it</p>
           </div>
         </div>
       )}
@@ -742,7 +743,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
               return (
                 <div key={g.id} className="setup-section">
                   <div className="setup-section-header">
-                    <span>{g.emoji}</span>
+                    <CategoryIcon kind="group" name={g.name} />
                     <span className="setup-section-title">{g.name.toUpperCase()}</span>
                     <span className="setup-section-count">{selection.selectedCount} picked</span>
                   </div>
@@ -754,19 +755,19 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
                     {rows.map((c) => (
                       <PickRow
                         key={c.id}
-                        emoji={c.emoji}
+                        icon={catIcon(c, g.name)}
                         name={c.name}
                         on={c.on}
                         placeholder="Category name"
                         incompleteHint={!c.name.trim() ? 'Name to select' : undefined}
-                        onPickEmoji={(emoji) => patchCat(g.id, c.id, { emoji })}
+                        onPickIcon={(icon) => patchCat(g.id, c.id, { icon })}
                         onChangeName={(name) => renameCat(g.id, c, name)}
                         onToggle={() => toggleCat(g.id, c)}
                       />
                     ))}
                   </div>
                   <button type="button" className="setup-add-pill" onClick={() => addCatRow(g.id)}>
-                    <Plus size={14} aria-hidden="true" /> Add category
+                    <PlusIcon size={14} aria-hidden="true" /> Add category
                   </button>
                 </div>
               )
@@ -819,21 +820,19 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
               return (
                 <div key={g.id} className="setup-section">
                   <div className="setup-section-header">
-                    <span>{g.emoji}</span>
+                    <CategoryIcon kind="group" name={g.name} />
                     <span className="setup-section-title">{g.name.toUpperCase()}</span>
                     <span className="setup-section-subtotal">{formatMoney(subtotal)}</span>
                   </div>
                   {rows.map((c) => {
                     const key = `${g.id}:${c.id}`
                     const v = amounts[key] ?? 0
+                    const Icon = CATEGORY_ICON_COMPONENTS[catIcon(c, g.name)]
                     return (
                       <div key={c.id} className="setup-assign-row">
-                        <EmojiPicker
-                          emoji={c.emoji}
-                          label={`Change emoji for ${c.name}`}
-                          className="setup-assign-emoji"
-                          onPick={(emoji) => patchCat(g.id, c.id, { emoji })}
-                        />
+                        <span className="setup-assign-emoji" style={avatarStyleFor(c.name.trim())} aria-hidden="true">
+                          <Icon size={18} />
+                        </span>
                         <AssignName name={c.name} onCommit={(name) => renameAssigned(g.id, c, name)} />
                         <span className={`setup-assign-bucket is-${buckets[key]}`}>{BUCKET_LABELS[buckets[key]]}</span>
                         <input
@@ -859,7 +858,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
         </div>
       )}
 
-      <Toast trigger={rowToast.n} message={rowToast.message} icon={CopyX} />
+      <Toast trigger={rowToast.n} message={rowToast.message} icon={CopyIcon} />
 
       {error !== '' && <p className="setup-error">{error}</p>}
 
@@ -912,114 +911,31 @@ function AssignName({ name, onCommit }: { name: string; onCommit: (name: string)
   )
 }
 
-// An emoji button that opens a grid of EMOJI_CHOICES. Shared by the
-// group/category rows and the assign step's rows.
-function EmojiPicker({
-  emoji,
-  label,
-  className,
-  onPick,
-}: {
-  emoji: string
-  label: string
-  className: string
-  onPick: (emoji: string) => void
-}) {
-  // Where the popover sits, in viewport coordinates. It's position: fixed so a
-  // scrolling category column can't clip it; null means closed.
-  const [picking, setPicking] = useState<{ top: number; left: number } | null>(null)
-  const pickerRef = useRef<HTMLDivElement>(null)
-
-  const togglePicker = (e: React.MouseEvent<HTMLButtonElement>) => {
-    if (picking) return setPicking(null)
-    const r = e.currentTarget.getBoundingClientRect()
-    // Flip above the button when there's no room for the grid below it.
-    const top = r.bottom + 108 > window.innerHeight ? r.top - 108 : r.bottom + 8
-    setPicking({ top, left: r.left })
-  }
-
-  useEffect(() => {
-    if (!picking) return
-    const close = () => setPicking(null)
-    const onDown = (e: PointerEvent) => {
-      if (!pickerRef.current?.contains(e.target as Node)) close()
-    }
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') close()
-    }
-    document.addEventListener('pointerdown', onDown)
-    document.addEventListener('keydown', onKey)
-    // A fixed popover would drift off its button on scroll, so close instead.
-    window.addEventListener('scroll', close, true)
-    return () => {
-      document.removeEventListener('pointerdown', onDown)
-      document.removeEventListener('keydown', onKey)
-      window.removeEventListener('scroll', close, true)
-    }
-  }, [picking])
-
-  return (
-    <div className="setup-pick-emoji-wrap" ref={pickerRef}>
-      <button
-        type="button"
-        className={className}
-        onClick={togglePicker}
-        aria-label={label}
-        aria-expanded={picking !== null}
-      >
-        {emoji}
-      </button>
-      {picking && (
-        <div className="setup-emoji-pop" role="group" aria-label="Pick an emoji" style={picking}>
-          {EMOJI_CHOICES.map((e) => (
-            <button
-              key={e}
-              type="button"
-              className={`setup-emoji-opt ${e === emoji ? 'is-active' : ''}`}
-              aria-pressed={e === emoji}
-              onClick={() => {
-                onPick(e)
-                setPicking(null)
-              }}
-            >
-              {e}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
+// A group or category row. Categories get the icon picker beside their name;
+// groups have no stored icon, so theirs just follows the name.
 function PickRow({
-  emoji,
+  icon,
   name,
   on,
   placeholder,
   incompleteHint,
-  onPickEmoji,
+  onPickIcon,
   onChangeName,
   onToggle,
 }: {
-  emoji: string
+  icon?: CategoryIconKey
   name: string
   on: boolean
   placeholder: string
   incompleteHint?: string
-  onPickEmoji: (emoji: string) => void
+  onPickIcon?: (icon: CategoryIconKey) => void
   onChangeName: (name: string) => void
   onToggle: () => void
 }) {
   const nameHintId = useId()
-
-  return (
-    <div className={`setup-pick-row ${on ? 'is-on' : ''} ${incompleteHint ? 'is-incomplete' : ''}`}>
-      <EmojiPicker
-        emoji={emoji}
-        label={`Change emoji for ${name || placeholder}`}
-        className="setup-pick-emoji"
-        onPick={onPickEmoji}
-      />
+  const tint = avatarStyleFor(name.trim())
+  const fields = (
+    <>
       <input
         type="text"
         className="setup-pick-input"
@@ -1033,8 +949,28 @@ function PickRow({
       />
       {incompleteHint && <span id={nameHintId} className="setup-pick-name-hint">{incompleteHint}</span>}
       <button type="button" className={`setup-pick-check ${on ? 'is-on' : ''}`} onClick={onToggle} role="checkbox" aria-checked={on} aria-describedby={incompleteHint ? nameHintId : undefined} aria-label={`${on ? 'Deselect' : 'Select'} ${name || placeholder}`}>
-        <Check size={16} strokeWidth={3} aria-hidden="true" className="setup-pick-check-icon" />
+        <CheckIcon size={16} weight="bold" aria-hidden="true" className="setup-pick-check-icon" />
       </button>
+    </>
+  )
+
+  return (
+    <div className={`setup-pick-row ${on ? 'is-on' : ''} ${incompleteHint ? 'is-incomplete' : ''}`}>
+      {icon && onPickIcon ? (
+        // The picker lays its tile out beside the name fields.
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <CategoryIconPicker value={icon} onChange={onPickIcon} tint={tint}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 11, flex: 1, minWidth: 0 }}>{fields}</div>
+          </CategoryIconPicker>
+        </div>
+      ) : (
+        <>
+          <span className="setup-pick-emoji" style={{ ...tint, cursor: 'default' }} aria-hidden="true">
+            <CategoryIcon kind="group" name={name} size={18} />
+          </span>
+          {fields}
+        </>
+      )}
     </div>
   )
 }
@@ -1049,17 +985,17 @@ function SetupDone({
   const { formatMoney } = useCurrency()
 
   const summary = [
-    { icon: WalletCards, label: 'Monthly income', value: result.income > 0 ? formatMoney(result.income) : 'Add it later' },
-    { icon: FolderOpen, label: 'Groups', value: String(result.groupCount) },
-    { icon: Tags, label: 'Categories', value: String(result.categoryCount) },
+    { icon: CardholderIcon, label: 'Monthly income', value: result.income > 0 ? formatMoney(result.income) : 'Add it later' },
+    { icon: FolderOpenIcon, label: 'Groups', value: String(result.groupCount) },
+    { icon: TagIcon, label: 'Categories', value: String(result.categoryCount) },
   ]
 
   return (
     <div className="setup-done">
       <Confetti />
-      <div className="setup-done-badge"><Check size={30} strokeWidth={2.4} aria-hidden="true" /></div>
+      <div className="setup-done-badge"><CheckIcon size={30} weight="bold" aria-hidden="true" /></div>
       <h1 className="setup-done-title">Your budget is ready to go.</h1>
-      <p className="setup-done-blurb">Everything below can be changed later from Envelopes.</p>
+      <p className="setup-done-blurb">Everything below can be changed later from Categories.</p>
       <p className="setup-done-promise">Your first-week recap lands in 7 days</p>
       <div className="setup-done-list">
         {summary.map((s) => (

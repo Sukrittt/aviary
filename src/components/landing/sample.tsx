@@ -3,6 +3,7 @@
 import { createContext, useContext, type ReactNode } from 'react'
 import { CurrencyScope } from '@/src/context/CurrencyContext'
 import { CATEGORIES, CATEGORIES_INTL } from './mobile/demo'
+import { AirplaneIcon, BarbellIcon, BowlSteamIcon, BusIcon, CookieIcon, GameControllerIcon, HouseIcon, LightbulbIcon, ShoppingBagIcon, ShoppingCartIcon, TrainIcon, type PhosphorIcon } from '@/src/components/icons'
 
 /**
  * The landing's sample data, by where the visitor is. India sees rupees, chai and UPI;
@@ -11,6 +12,9 @@ import { CATEGORIES, CATEGORIES_INTL } from './mobile/demo'
  * dollar one. `media()` falls back to the India file for any not yet recorded in
  * dollars, so add a file to INTL_MEDIA once its intl copy exists.
  */
+
+/** A notice row's icon, drawn on the tint Nudges puts behind it. */
+const tile = (Icon: PhosphorIcon) => <Icon />
 
 const INTL_MEDIA = new Set([
   'clip-log.mp4', 'poster-log.jpg', 'clip-added.mp4', 'poster-added.jpg', 'clip-scan.mp4', 'poster-scan.jpg',
@@ -21,9 +25,9 @@ const INTL_MEDIA = new Set([
 const IN = {
   media: (file: string) => `/landing/${file}`,
   categories: CATEGORIES,
-  habits: ['4pm chai', 'Friday cab home', 'Sunday groceries', 'morning metro'],
+  habits: ['4pm chai', 'Friday cab home', 'Sunday groceries', 'office lunch', 'Swiggy Saturdays', 'phone bill'],
   learns: {
-    item: 'Chai', amount: 20, envelope: '🍪 Snacks', of: 600, pay: 'UPI',
+    item: 'Chai', amount: 20, envelope: <><CookieIcon aria-hidden style={{ verticalAlign: '-0.125em' }} /> Snacks</>, of: 600, pay: 'UPI',
     ask: 'Afternoon chai?', body: 'Time for your Tuesday chai fix? Tap Log and it’s in.', done: 'Chai is in. Nice one.',
     habit: 'Chai on Tuesdays, around 4pm', other: ['Metro card', 100] as [string, number],
   },
@@ -31,7 +35,6 @@ const IN = {
   investments: 'Equity, FDs, gold and crypto',
   playItem: 'Coffee with Sam', playAmount: ['1', '8', '0'],
   // Mobile's capture tip example (log-expense.tsx CAPTURE_TIP_COPY).
-  batchExample: 'auto 240, lunch 150',
   starters: ['Chai', 'Uber home', 'Groceries', 'Netflix'],
   widgetToday: [{ item: 'Coffee with Sam', amount: 180 }, { item: 'Metro card', amount: 100 }],
   statement: [
@@ -63,13 +66,13 @@ const IN = {
     steps: ['Noticed it’s Friday, 9:15am, like the last three', 'Filled in Bike to office · Metro · ₹150 · UPI', 'Logged with one tap on the notification', 'Metro has ₹960 left this month'],
     label: 'Today in Aviary',
     // First row is the one the nudge just logged; it slides in once the steps finish.
-    rows: [['🚃', '#f6ecd2', 'Bike to office', '2 Oct ’26 · Metro', '₹150'], ['🛍️', '#ead2f2', 'Shopping', '2 Oct ’26 · Shopping', '₹1,500'], ['✈️', '#f8d9cf', 'Trip with friends', '2 Oct ’26 · Travel', '₹1,500'], ['💡', '#d4e5ea', 'Electricity', '2 Oct ’26 · Utilities', '₹6,000'], ['🛒', '#f6ecd2', 'Groceries', '2 Oct ’26 · Groceries', '₹5,000'], ['🏋️', '#d4e5ea', 'Gym membership', '2 Oct ’26 · Fitness', '₹1,500']] as [string, string, string, string, string][],
+    rows: [[tile(TrainIcon), '#f6ecd2', 'Bike to office', '2 Oct ’26 · Metro', '₹150'], [tile(ShoppingBagIcon), '#ead2f2', 'Shopping', '2 Oct ’26 · Shopping', '₹1,500'], [tile(AirplaneIcon), '#f8d9cf', 'Trip with friends', '2 Oct ’26 · Travel', '₹1,500'], [tile(LightbulbIcon), '#d4e5ea', 'Electricity', '2 Oct ’26 · Utilities', '₹6,000'], [tile(ShoppingCartIcon), '#f6ecd2', 'Groceries', '2 Oct ’26 · Groceries', '₹5,000'], [tile(BarbellIcon), '#d4e5ea', 'Gym membership', '2 Oct ’26 · Fitness', '₹1,500']] as [ReactNode, string, string, string, string][],
   },
   headsUp: '₹199 due in 3 days (Oct 28).',
   ask: {
     chips: ['What can I cut back on?', 'How does this month compare?', 'Can I afford 90k iPhone?'],
     left: '₹36,802', bar: 0.53,
-    sr: 'You ask “Can I afford 90k iPhone?” and Aviary answers from your budget: not yet. You have ₹36,802 left to spend this month, so it suggests a gadget envelope you add to each month.',
+    sr: 'You ask “Can I afford 90k iPhone?” and Aviary answers from your budget: not yet. You have ₹36,802 left to spend this month, so it suggests a gadget category you add to each month.',
   },
 }
 
@@ -78,16 +81,15 @@ export type Sample = typeof IN
 const INTL: Sample = {
   media: (file) => `/landing/${INTL_MEDIA.has(file) ? 'intl/' : ''}${file}`,
   categories: CATEGORIES_INTL,
-  habits: ['4pm coffee', 'Friday ride home', 'Sunday groceries', 'morning bus'],
+  habits: ['4pm coffee', 'Friday ride home', 'Sunday groceries', 'office lunch', 'takeout Saturdays', 'phone bill'],
   learns: {
-    item: 'Coffee', amount: 4, envelope: '🍪 Snacks', of: 60, pay: 'Card',
+    item: 'Coffee', amount: 4, envelope: <><CookieIcon aria-hidden style={{ verticalAlign: '-0.125em' }} /> Snacks</>, of: 60, pay: 'Card',
     ask: 'Afternoon coffee?', body: 'Time for your Tuesday coffee fix? Tap Log and it’s in.', done: 'Coffee is in. Nice one.',
     habit: 'Coffee on Tuesdays, around 4pm', other: ['Bus fare', 2.75] as [string, number],
   },
   cabHome: 18,
   investments: 'Stocks, savings, gold and crypto',
   playItem: 'Coffee with Sam', playAmount: ['6'],
-  batchExample: 'bus 3, lunch 15',
   starters: ['Coffee', 'Uber home', 'Groceries', 'Netflix'],
   widgetToday: [{ item: 'Coffee with Sam', amount: 6 }, { item: 'Bus fare', amount: 2.75 }],
   statement: [
@@ -117,13 +119,13 @@ const INTL: Sample = {
     quote: '“Coffee with Sam? Log it while it’s fresh.”',
     steps: ['Noticed it’s Friday, 4:15pm, like the last three', 'Filled in Coffee with Sam · Eating out · $6 · Card', 'Logged with one tap on the notification', 'Eating out has $240 left this month'],
     label: 'This week in Aviary',
-    rows: [['🍜', '#d6e7d8', 'Coffee with Sam', '9 Oct ’26 · Eating out', '$6'], ['🚌', '#ead2f2', 'Bus Fare', '9 Oct ’26 · Commute', '$3'], ['🎮', '#d6e7d8', 'Movie tickets', '9 Oct ’26 · Entertainment', '$50'], ['🚌', '#ead2f2', 'Commute', '9 Oct ’26 · Commute', '$20'], ['🍜', '#d6e7d8', 'Coffee', '7 Oct ’26 · Eating out', '$4'], ['🏠', '#f8d9cf', 'Rent', '5 Oct ’26 · Rent', '$1,500']] as [string, string, string, string, string][],
+    rows: [[tile(BowlSteamIcon), '#d6e7d8', 'Coffee with Sam', '9 Oct ’26 · Eating out', '$6'], [tile(BusIcon), '#ead2f2', 'Bus Fare', '9 Oct ’26 · Commute', '$3'], [tile(GameControllerIcon), '#d6e7d8', 'Movie tickets', '9 Oct ’26 · Entertainment', '$50'], [tile(BusIcon), '#ead2f2', 'Commute', '9 Oct ’26 · Commute', '$20'], [tile(BowlSteamIcon), '#d6e7d8', 'Coffee', '7 Oct ’26 · Eating out', '$4'], [tile(HouseIcon), '#f8d9cf', 'Rent', '5 Oct ’26 · Rent', '$1,500']] as [ReactNode, string, string, string, string][],
   },
   headsUp: '$15.49 due in 3 days (Oct 28).',
   ask: {
     chips: ['What can I cut back on?', 'How does this month compare?', 'Can I afford a $900 iPhone?'],
     left: '$2,568', bar: 0.57,
-    sr: 'You ask “Can I afford a $900 iPhone?” and Aviary answers from your budget: yes, if it comes out of Savings. Your Savings envelope has $1,160 this month, so it suggests moving $900 from there.',
+    sr: 'You ask “Can I afford a $900 iPhone?” and Aviary answers from your budget: yes, if it comes out of Savings. Your Savings category has $1,160 this month, so it suggests moving $900 from there.',
   },
 }
 

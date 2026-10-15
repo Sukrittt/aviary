@@ -3,6 +3,7 @@ import { getAuth, readOnlyGuard } from '@/lib/access'
 import { requireAccess } from '@/lib/billing/guard'
 import { invalidate } from '@/lib/cache'
 import { withTx } from '@/lib/mongodb'
+import { isCategoryIconKey } from '@/src/lib/categoryIcons'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,6 +30,7 @@ export async function GET(req: Request) {
       .map((d) => ({
         name: d.name ?? '',
         group: d.group ?? '',
+        ...(isCategoryIconKey(d.icon) ? { icon: d.icon } : {}),
         ...(Array.isArray(d.alertPcts) ? { alertPcts: d.alertPcts } : {}),
       }))
       .filter((c) => c.name),
@@ -44,6 +46,7 @@ export async function POST(req: Request) {
 
   const body = await readBody(req)
   if (!body.name) return error('name required')
+  if (body.icon !== undefined && !isCategoryIconKey(body.icon)) return error('unknown icon')
 
   const coll = await getCollection('categories', auth)
   const exists = await coll.findOne({ name: String(body.name) })
@@ -53,7 +56,12 @@ export async function POST(req: Request) {
   // The pre-check above loses to a concurrent create of the same name; the
   // unique index is what actually decides, so report its verdict the same way.
   try {
-    await coll.insertOne({ name: String(body.name), group: String(body.group ?? ''), order })
+    await coll.insertOne({
+      name: String(body.name),
+      group: String(body.group ?? ''),
+      order,
+      ...(body.icon !== undefined ? { icon: body.icon } : {}),
+    })
   } catch (err) {
     if (isDuplicateName(err)) return error('category already exists', 409)
     throw err
@@ -84,6 +92,7 @@ export async function PUT(req: Request) {
     if (!valid) return error('alertPcts must be at most 5 unique integers between 0 and 100')
     alertPcts = [...pcts].sort((a, b) => a - b)
   }
+  if (body.icon !== undefined && !isCategoryIconKey(body.icon)) return error('unknown icon')
 
   const coll = await getCollection('categories', auth)
   const budgetColl = await getCollection('budgets', auth)
@@ -133,6 +142,10 @@ export async function PUT(req: Request) {
 
       if (body.group !== undefined) {
         await coll.updateOne({ name: effectiveName }, { $set: { group: String(body.group) } }, { session })
+      }
+
+      if (body.icon !== undefined) {
+        await coll.updateOne({ name: effectiveName }, { $set: { icon: body.icon } }, { session })
       }
 
       if (body.alertPcts === null) {

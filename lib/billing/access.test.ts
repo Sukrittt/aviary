@@ -42,9 +42,9 @@ const resolve = (input: Partial<Parameters<typeof resolveAccess>[0]>) =>
   resolveAccess({ now: NOW, account: null, subscription: null, enforced: true, ...input })
 
 describe('trialWindow', () => {
-  it('is exactly 45 × 24h, not 45 calendar days', () => {
+  it('is exactly 30 × 24h, not 30 calendar days', () => {
     const start = new Date('2026-09-18T12:00:00.000Z')
-    expect(trialWindow(start).trialEndsAt.toISOString()).toBe('2026-11-02T12:00:00.000Z')
+    expect(trialWindow(start).trialEndsAt.toISOString()).toBe('2026-10-18T12:00:00.000Z')
     expect(trialWindow(start).trialEndsAt.getTime() - start.getTime()).toBe(TRIAL_DAYS * DAY)
   })
 

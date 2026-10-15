@@ -6,6 +6,8 @@ import { invalidate } from './cache'
 import { invalidateCategoryMap } from './categoryMap'
 import { BRIEF_CACHE_COLLECTION, invalidateBrief } from './ai/briefCache'
 import { COLLECTIONS } from './models'
+import { purgeUserIdeas } from './ideas'
+import { FEEDBACK } from './feedback'
 import type { UserDoc } from './users'
 import { getWorkOSClient } from './workosClient'
 
@@ -84,6 +86,10 @@ export async function purgeAccountNow(db: Db, userId: string): Promise<{ rows: n
   for (const name of [...Object.values(COLLECTIONS), ...EXTRA_USER_COLLECTIONS]) {
     rows += (await db.collection(name).deleteMany({ user_id: userId })).deletedCount
   }
+  // Not a plain sweep: their votes have to come off other people's idea counts.
+  rows += await purgeUserIdeas(db, userId)
+  // Bug reports predate the user_id convention and key on `userId`.
+  rows += (await db.collection(FEEDBACK).deleteMany({ userId })).deletedCount
 
   let blobs = 0
   if (process.env.BLOB_READ_WRITE_TOKEN) {

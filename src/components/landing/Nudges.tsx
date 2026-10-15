@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
 import { useReducedMotion } from 'motion/react'
-import { Check, ChevronDown, ChevronUp, Pause, Play, RotateCcw } from 'lucide-react'
+import { CheckIcon, CaretDownIcon, CaretUpIcon, PauseIcon, PlayIcon, ArrowCounterClockwiseIcon } from '@/src/components/icons'
 import { BirdMark } from '../BirdMark'
 import { useOnScreen } from './useOnScreen'
 import { useSample } from './sample'
@@ -103,7 +103,7 @@ export function HeroStage() {
       <p className="lp-sr-only" aria-live="polite">{current.label}. Sample: {sr}</p>
       <Scene id={current.id} beat={learnBeat} playing={playing} key={`${current.id}:${take}`} />
       {!reduced && <button type="button" className="lp-stage-pause" onClick={() => setPaused((p) => !p)} aria-label={paused ? 'Play the demo' : 'Pause the demo'}>
-        {paused ? <Play size={14} /> : <Pause size={14} />}
+        {paused ? <PlayIcon size={14} /> : <PauseIcon size={14} />}
       </button>}
       <span className="lp-stage-sample">Sample data</span>
     </div>
@@ -170,11 +170,11 @@ function LearnsScene({ beat }: { beat: number }) {
       <div className="lp-lock-time">4:15</div>
       <div className="lp-lock-date">Tuesday, 6 October</div>
       <div className="lp-notif">
-        <div className="lp-notif-app"><span className="lp-notif-icon"><BirdMark size={14} perched /></span>Aviary<span className="lp-notif-time">• now</span><ChevronUp size={14} strokeWidth={2.4} /></div>
+        <div className="lp-notif-app"><span className="lp-notif-icon"><BirdMark size={14} perched /></span>Aviary<span className="lp-notif-time">• now</span><CaretUpIcon size={14} weight="bold" /></div>
         {/* Each part folds open or shut, so the card eases from the ask's height to the logged one's. */}
         <div className={logged ? 'is-logged' : undefined}>
           <div className="lp-notif-fold lp-notif-ask"><div className="lp-notif-body"><strong>{s.ask}</strong><span>{s.body}</span></div></div>
-          <div className="lp-notif-fold lp-notif-done"><div className="lp-notif-body"><strong><Check size={15} strokeWidth={3} /> Logged {m(s.amount)}</strong><span>{s.done}</span></div></div>
+          <div className="lp-notif-fold lp-notif-done"><div className="lp-notif-body"><strong><CheckIcon size={15} weight="bold" /> Logged {m(s.amount)}</strong><span>{s.done}</span></div></div>
           <div className="lp-notif-fold lp-notif-act"><div className="lp-notif-actions"><span className="lp-notif-log">Log {m(s.amount)}<span className="lp-thumb" /></span><span>Not this one</span></div></div>
         </div>
       </div>
@@ -216,7 +216,7 @@ function AskScene({ playing }: { playing: boolean }) {
     <Card label="It reads your budget" className="lp-reveal lp-reveal-late">
       <div className="lp-envelope-line"><span>Left to spend</span><strong>{ask.left}<small> this month</small></strong></div>
       <div className="lp-envelope-bar"><i style={{ transform: `scaleX(${ask.bar})` }} /></div>
-      <p className="lp-stage-note">Answers come from your own envelopes and spending.</p>
+      <p className="lp-stage-note">Answers come from your own categories and spending.</p>
     </Card>
   </>
 }
@@ -245,7 +245,7 @@ export function MoreInside() {
           <img className="lp-clip" src={media('subscriptions.png')} alt="" />
           {/* An Android heads-up, in the app's real bill-reminder copy (Mobile's tour/content.ts). */}
           <div className="lp-app-banner lp-heads-up">
-            <div className="lp-notif-app"><span className="lp-notif-icon"><BirdMark size={13} perched /></span>Aviary<span className="lp-heads-up-time">· now</span><ChevronDown size={14} strokeWidth={2.4} /></div>
+            <div className="lp-notif-app"><span className="lp-notif-icon"><BirdMark size={13} perched /></span>Aviary<span className="lp-heads-up-time">· now</span><CaretDownIcon size={14} weight="bold" /></div>
             <div className="lp-heads-up-row"><b>Netflix renews soon</b><span>{headsUp}</span></div>
           </div>
         </div>
@@ -326,7 +326,7 @@ export function NoticeSplit() {
       <div className="lp-split2-who"><span className="lp-split2-avatar"><BirdMark size={26} perched /></span>{done > STEPS.length ? 'Aviary is done' : 'Aviary is on it'}</div>
       <ol className="lp-split2-steps">
         {STEPS.map((s, i) => <li key={s} className={done > i + 1 ? 'is-done' : done === i + 1 ? 'is-busy' : ''}>
-          <span className="lp-split2-icon">{done > i + 1 ? <Check size={13} strokeWidth={3.2} /> : null}</span>{s}
+          <span className="lp-split2-icon">{done > i + 1 ? <CheckIcon size={13} weight="bold" /> : null}</span>{s}
         </li>)}
       </ol>
       {/* The logged row is absent until the steps finish, then it grows in and
@@ -339,7 +339,7 @@ export function NoticeSplit() {
           </li>)}
         </ol>
       </div>
-      {!reduced && <button type="button" className="lp-replay" onClick={() => { setStep(0); setTake((t) => t + 1) }}><RotateCcw size={15} aria-hidden="true" />Replay</button>}
+      {!reduced && <button type="button" className="lp-replay" onClick={() => { setStep(0); setTake((t) => t + 1) }}><ArrowCounterClockwiseIcon size={15} aria-hidden="true" />Replay</button>}
     </div>
   </div>
 }

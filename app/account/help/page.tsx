@@ -1,6 +1,7 @@
 import { pageMetadata } from '@/lib/seo'
 import Link from 'next/link'
-import { FEEDBACK_BOARD_URL } from '@/lib/links'
+import { FEEDBACK_BOARD_PATH } from '@/lib/links'
+import { BugIcon, ChatCircleIcon, CompassIcon, StarIcon } from '@/src/components/icons'
 
 const REPO_URL = 'https://github.com/Sukrittt/aviary-mobile'
 
@@ -10,13 +11,13 @@ export default function HelpPage() {
       <div className="account-card">
         <div style={{ padding: 16 }}>
           <div className="account-row-label" style={{ marginBottom: 6 }}>
-            How envelopes work
+            How categories work
           </div>
           <p className="account-help-copy">
-            All income gets assigned to an envelope — rent, food, subscriptions, whatever you spend on.
-            Money that hasn&apos;t been assigned yet sits in Ready to Assign. Overspend an envelope and you move
+            All income gets assigned to a category: rent, food, subscriptions, whatever you spend on.
+            Money that hasn&apos;t been assigned yet sits in Ready to Assign. Overspend a category and you move
             money into it from another one; the total never lies, it just moves. At the start of a new month,
-            whatever&apos;s left in each envelope rolls forward instead of resetting to zero, so a slow month in
+            whatever&apos;s left in each category rolls forward instead of resetting to zero, so a slow month in
             one category quietly covers a busy one later.
           </p>
         </div>
@@ -24,25 +25,34 @@ export default function HelpPage() {
       <div className="account-card">
         <Link href="/account/guided-tour" className="account-row">
           <span className="account-row-icon" aria-hidden="true">
-            🧭
+            <CompassIcon size={18} />
           </span>
           <span className="account-row-label">Take the guided tour</span>
           <span className="account-row-arrow" aria-hidden="true">
             →
           </span>
         </Link>
-        <a href={FEEDBACK_BOARD_URL} target="_blank" rel="noreferrer" className="account-row">
+        <Link href={FEEDBACK_BOARD_PATH} className="account-row">
           <span className="account-row-icon" aria-hidden="true">
-            💬
+            <ChatCircleIcon size={18} />
           </span>
           <span className="account-row-label">Feedback board</span>
           <span className="account-row-arrow" aria-hidden="true">
             →
           </span>
-        </a>
+        </Link>
+        <Link href="/account/feedback" className="account-row">
+          <span className="account-row-icon" aria-hidden="true">
+            <BugIcon size={18} />
+          </span>
+          <span className="account-row-label">Report a bug</span>
+          <span className="account-row-arrow" aria-hidden="true">
+            →
+          </span>
+        </Link>
         <a href={REPO_URL} target="_blank" rel="noreferrer" className="account-row">
           <span className="account-row-icon" aria-hidden="true">
-            ⭐
+            <StarIcon size={18} />
           </span>
           <span className="account-row-label">Star the repo</span>
           <span className="account-row-arrow" aria-hidden="true">

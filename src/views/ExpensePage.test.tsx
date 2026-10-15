@@ -1,5 +1,6 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { renderToString } from 'react-dom/server'
 import { hydrateRoot } from 'react-dom/client'
@@ -16,7 +17,7 @@ vi.mock('@/src/api/budgets', () => ({ getBudgets: vi.fn(), addBudget: vi.fn(), u
 vi.mock('@/src/api/account', () => ({ getUser: vi.fn() }))
 vi.mock('@/src/api/expenses', () => ({ getRecentExpenses: vi.fn(async () => ({ rows: [], lastSpent: {} })), mintExpensePayload: vi.fn(), postExpensePayload: vi.fn() }))
 vi.mock('@/src/api/categories', () => ({ getCategories: vi.fn(async () => [{ name: 'Food', group: 'Essentials' }]) }))
-vi.mock('@/src/api/groups', () => ({ getGroups: vi.fn(async () => ['Essentials']) }))
+vi.mock('@/src/api/groups', () => ({ getGroups: vi.fn(async () => ['Essentials']), getGroupIcons: vi.fn(async () => new Map()) }))
 vi.mock('@/src/api/subscriptions', () => ({ getSubscriptions: vi.fn(async () => []), cancelSubscription: vi.fn(), reactivateSubscription: vi.fn() }))
 vi.mock('../components/ExpenseSidebar', () => ({ ExpenseSidebar: ({ onBulkReturn }: { onBulkReturn?: () => void }) => <button onClick={onBulkReturn}>Return all to RTA</button> }))
 vi.mock('../components/EnvelopeGrid', () => ({ EnvelopeGrid: () => <div>Envelope content</div> }))
@@ -47,7 +48,7 @@ beforeEach(() => {
 it('starts a new month automatically and shows only a dismissible leftover notice', async () => {
   const client = renderPage()
   // Last month kept ₹20,000 of income with nothing spent: framed as a win.
-  expect(await screen.findByText('🌱 ₹20,000 went to savings last month.')).toBeInTheDocument()
+  expect(await screen.findByText('₹20,000 went to savings last month.')).toBeInTheDocument()
   expect(screen.queryByText(`Start ${monthLabel(month)}`)).not.toBeInTheDocument()
   expect(screen.queryByText(/Copy last month/)).not.toBeInTheDocument()
   expect(screen.getByLabelText('₹15,000')).toBeInTheDocument()
@@ -191,8 +192,8 @@ it('renders the finished home screen from a filled cache on the first render, an
 it('names income in a pill under the hero that opens the income menu', async () => {
   const client = renderPage()
   const pill = await screen.findByRole('button', { name: 'Income · ₹20,000' })
-  fireEvent.click(pill)
-  expect(pill.parentElement).toContainElement(screen.getByRole('menuitem', { name: 'Change income' }))
+  await userEvent.setup().click(pill)
+  expect(await screen.findByRole('menuitem', { name: 'Change income' })).toBeInTheDocument()
   expect(pill).toHaveAttribute('aria-expanded', 'true')
   client.clear()
 })

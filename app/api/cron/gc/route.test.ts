@@ -20,6 +20,8 @@ vi.mock('@/lib/mongodb', () => ({
   })),
 }))
 
+vi.mock('@/lib/ideas', () => ({ purgeUserIdeas: vi.fn(async () => 0) }))
+
 vi.mock('@/lib/workosClient', () => ({
   getWorkOSClient: vi.fn(() => ({ userManagement: { deleteUser: deleteUserMock } })),
 }))

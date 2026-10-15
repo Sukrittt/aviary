@@ -1,6 +1,6 @@
-// Category/group names from the API already embed their emoji as the leading
-// character (e.g. "🏠 Rent" — see productivity/categories.csv). splitEmoji()
-// pulls that out; the lookup tables below only cover legacy plain names.
+// Older category/group names embed an emoji as the leading character (e.g.
+// "🏠 Rent", see productivity/categories.csv). splitEmoji() pulls it off for
+// display; src/lib/categoryIcons.ts turns it into an icon.
 const LEADING_EMOJI_RE = /^(\p{Extended_Pictographic}(?:️|‍\p{Extended_Pictographic})*)\s*/u
 
 export function splitEmoji(raw: string): { icon: string; text: string } {
@@ -13,62 +13,6 @@ export function splitEmoji(raw: string): { icon: string; text: string } {
   return { icon: '', text: trimmed }
 }
 
-export const GROUP_EMOJI: Record<string, string> = {
-  Home: '🏠',
-  Essentials: '🧺',
-  Lifestyle: '🛍️',
-  Food: '🍔',
-  Travel: '🛵',
-  Entertainment: '🎉',
-  Savings: '🪙',
-  Investments: '💎',
-}
-
-const CATEGORY_EMOJI: Record<string, string> = {
-  rent: '🏠',
-  water: '🚿',
-  electricity: '⚡',
-  utilities: '🔌',
-  cook: '👨‍🍳',
-  'bathroom clean': '🚻',
-  'furniture rent': '🪑',
-  laundry: '🧺',
-  bills: '📋',
-  groceries: '🍅',
-  grocery: '🍅',
-  'food order': '🍜',
-  'eating out': '🍽️',
-  food: '🍔',
-  travel: '🛵',
-  transport: '🚗',
-  fuel: '⛽',
-  vacation: '🏖️',
-  football: '⚽',
-  outings: '🎡',
-  entertainment: '🎬',
-  software: '💻',
-  shopping: '🎁',
-  clothes: '👕',
-  haircut: '💇',
-  "children's": '🧸',
-  miscellaneous: '📺',
-  subscriptions: '📱',
-  investments: '💎',
-  savings: '🪙',
-  'emergency fund': '🛟',
-  'rainy day': '🌧️',
-  gifts: '🎁',
-}
-
-export function groupEmoji(name: string): string {
-  return splitEmoji(name).icon || GROUP_EMOJI[name] || '📁'
-}
-
-export function categoryEmoji(name: string, group?: string): string {
-  const { icon } = splitEmoji(name)
-  return icon || CATEGORY_EMOJI[name.trim().toLowerCase()] || (group ? GROUP_EMOJI[group] : '') || '💰'
-}
-
 // Keep the same stable, soft-hue cycle as Mobile's Activity avatars.
 const AVATAR_HUES = [
   'var(--mint-soft)',
@@ -78,13 +22,29 @@ const AVATAR_HUES = [
   'var(--warn-soft)',
   'var(--coral-soft)',
 ]
+// The icon colour on each tint above, same order.
+const AVATAR_INKS = ['var(--mint)', 'var(--violet)', 'var(--blue)', 'var(--gold-ink)', 'var(--warn-ink)', 'var(--coral)']
 
 /** Deterministic avatar tint for a category, shared by Activity and Insights
  *  so one category is never two colours in the same session. */
-export function avatarColorFor(category: string): string {
+function avatarColorFor(category: string): string {
+  return AVATAR_HUES[avatarHash(category) % AVATAR_HUES.length]
+}
+
+/** The icon colour that sits on {@link avatarColorFor}'s tint. */
+export function avatarInkFor(category: string): string {
+  return AVATAR_INKS[avatarHash(category) % AVATAR_INKS.length]
+}
+
+/** Background and icon colour together, for a category tile's `style`. */
+export function avatarStyleFor(category: string): { background: string; color: string } {
+  return { background: avatarColorFor(category), color: avatarInkFor(category) }
+}
+
+function avatarHash(category: string): number {
   let hash = 0
   for (let i = 0; i < category.length; i++) {
     hash = (hash * 31 + category.charCodeAt(i)) >>> 0
   }
-  return AVATAR_HUES[hash % AVATAR_HUES.length]
+  return hash
 }

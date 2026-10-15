@@ -7,7 +7,7 @@ import { useAppearance } from '@/components/AppearanceProvider'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
 import { STAGGER, popIn, staggerDelay } from './landing/mobile/kit'
-import { ArrowLeft, ArrowRight, ArrowUp, Check, Clock3, Plus, Search, X } from 'lucide-react'
+import { ArrowLeftIcon, ArrowRightIcon, ArrowUpIcon, BatteryLowIcon, CheckIcon, ClockIcon, DiamondIcon, FireIcon, HourglassIcon, PlusIcon, MagnifyingGlassIcon, ReceiptIcon, RepeatIcon, SirenIcon, SparkleIcon, TrendUpIcon, XIcon, type PhosphorIcon } from '@/src/components/icons'
 import { useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
 import { useBudgets } from '@/src/hooks/useBudgets'
@@ -26,6 +26,18 @@ import { BirdMark, BirdThinking } from './BirdMark'
 import { ChatMarkdown } from './ChatMarkdown'
 import { BirdEmptyState } from './BirdEmptyState'
 import { CaptureReview } from './CaptureReview'
+
+/** Brief cards carry an emoji `icon` (lib/ai/briefCards.ts, shared with Mobile); Web draws the Phosphor match. */
+const BRIEF_ICONS: Record<string, PhosphorIcon> = {
+  '🚨': SirenIcon,
+  '🔥': FireIcon,
+  '⏳': HourglassIcon,
+  '🧾': ReceiptIcon,
+  '📈': TrendUpIcon,
+  '🔁': RepeatIcon,
+  '🪫': BatteryLowIcon,
+  '💎': DiamondIcon,
+}
 
 export interface OpenChat {
   sessionId: string | null
@@ -311,7 +323,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onL
         <header className="brain-head">
           {view === 'history' ? (
             <button className="brain-icon-btn" type="button" onClick={() => setView('chat')} aria-label="Back to chat">
-              <ArrowLeft size={18} />
+              <ArrowLeftIcon size={18} />
             </button>
           ) : <span className="brain-orbit" aria-hidden="true"><BirdMark size={26} /></span>}
           <div className="brain-heading">
@@ -321,14 +333,14 @@ export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onL
           <div className="brain-head-actions">
             {view === 'chat' && (
               <button className="brain-pill-btn" type="button" onClick={() => setView('history')} aria-label="Chat history">
-                <Clock3 size={15} />{count.data !== undefined && <span>{count.data}</span>}
+                <ClockIcon size={15} />{count.data !== undefined && <span>{count.data}</span>}
               </button>
             )}
             <button className="brain-pill-btn brain-pill-btn--accent" type="button" onClick={startNewChat} aria-label="New chat">
-              <Plus size={15} /><span>New</span>
+              <PlusIcon size={15} /><span>New</span>
             </button>
             <button className="brain-icon-btn" type="button" onClick={onClose} aria-label="Close Ask Aviary">
-              <X size={18} />
+              <XIcon size={18} />
             </button>
           </div>
         </header>
@@ -336,7 +348,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onL
         {view === 'history' ? (
           <div className="brain-history">
             <label className="brain-search">
-              <Search size={16} aria-hidden="true" />
+              <MagnifyingGlassIcon size={16} aria-hidden="true" />
               <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search your chats…" />
             </label>
             {history.isLoading && !history.data ? <LoadingCaption /> : historySessions.length ? (
@@ -389,23 +401,44 @@ export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onL
                 <div className="brain-progress" aria-label={`${Math.round(spentPct)}% of assigned money spent`}>
                   <i style={{ transform: `scaleX(${spentPct / 100})` }} />
                 </div>
-                {brief.isLoading ? <LoadingCaption /> : brief.isError ? (
+                {brief.isLoading ? (
+                  <div className="brain-skel-lines" role="status" aria-label="Loading your money brief">
+                    <i className="brain-skel" /><i className="brain-skel" /><i className="brain-skel" />
+                  </div>
+                ) : brief.isError ? (
                   <button className="brain-retry" type="button" onClick={() => void brief.refetch()}>Couldn’t load your money brief. Retry</button>
                 ) : <p>{brief.data?.narrative}</p>}
               </motion.section>
+              {brief.isLoading && (
+                <div aria-hidden="true">
+                  <section className="brain-insight-grid">
+                    {[0, 1, 2].map((i) => (
+                      <div key={i} className="brain-insight">
+                        <i className="brain-insight-icon brain-skel" />
+                        <div><i className="brain-skel" /><i className="brain-skel brain-skel--short" /></div>
+                        <i className="brain-skel brain-skel--value" />
+                      </div>
+                    ))}
+                  </section>
+                  <div className="brain-chips">
+                    {[0, 1, 2].map((i) => <i key={i} className="brain-skel brain-skel--chip" />)}
+                  </div>
+                </div>
+              )}
               {brief.data?.cards.length ? (
                 <section className="brain-insight-grid">
-                  {brief.data.cards.map((card, i) => (
-                    <motion.article
+                  {brief.data.cards.map((card, i) => {
+                    const Icon = BRIEF_ICONS[card.icon] ?? SparkleIcon
+                    return <motion.article
                       key={`${card.title}-${card.valueLabel}`}
                       className={`brain-insight brain-insight--${card.tone}`}
                       {...popIn(staggerDelay(i, STAGGER.mount + STAGGER.block))}
                     >
-                      <span className="brain-insight-icon" aria-hidden="true">{card.icon}</span>
+                      <span className="brain-insight-icon" aria-hidden="true"><Icon size={20} /></span>
                       <div><strong>{card.title}</strong><small>{card.subtitle}</small></div>
                       <div className="brain-insight-value"><b>{formatCurrency(card.amount, hideAmounts)}</b><small>{card.valueLabel}</small></div>
                     </motion.article>
-                  ))}
+                  })}
                 </section>
               ) : null}
               {brief.data?.questions.length ? (
@@ -434,7 +467,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onL
                       <div className={`brain-bubble brain-bubble--${message.role}${message.ack ? ' brain-ack' : ''}`}>
                         {message.ack && (
                           <span className="brain-ack-kicker">
-                            <Check size={13} strokeWidth={3} aria-hidden="true" />
+                            <CheckIcon size={13} weight="bold" aria-hidden="true" />
                             {loggedLabel(messages[index - 1]?.proposal?.expenseIds?.length)}
                           </span>
                         )}
@@ -444,7 +477,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onL
                         )}
                         {message.ack && (
                           <Link href="/expense/transactions" className="brain-ack-link" onClick={onClose}>
-                            See them in Activity <ArrowRight size={14} aria-hidden="true" />
+                            See them in Activity <ArrowRightIcon size={14} aria-hidden="true" />
                           </Link>
                         )}
                       </div>
@@ -477,7 +510,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onL
                 placeholder={capture ? 'What did you spend?' : 'Ask about your money…'}
                 aria-label="Ask Aviary"
               />
-              <button type="submit" disabled={sending || !input.trim()} aria-label="Send question"><ArrowUp size={18} /></button>
+              <button type="submit" disabled={sending || !input.trim()} aria-label="Send question"><ArrowUpIcon size={18} /></button>
             </form>
           </>
         )}

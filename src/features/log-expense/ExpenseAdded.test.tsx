@@ -27,7 +27,7 @@ vi.mock('@/src/hooks/useExpenses', () => ({
   useRecentExpenses: () => ({ data: [{ timestamp: 'old', date: `${month}-01`, item: 'Eggs', amount_inr: '200', category: 'Groceries' }] }),
 }))
 vi.mock('@/src/hooks/useCategories', () => ({ useCategories: () => ({ data: [{ name: 'Groceries', group: 'Needs' }] }) }))
-vi.mock('@/src/hooks/useGroups', () => ({ useGroups: () => ({ data: ['Needs'] }) }))
+vi.mock('@/src/hooks/useGroups', () => ({ useGroups: () => ({ data: ['Needs'] }), useGroupIcons: () => new Map() }))
 
 function expense(overrides: Partial<AddedExpense> = {}): AddedExpense {
   return {
@@ -107,7 +107,7 @@ it('shows an overspend as "Over by" with a way to cover it, never a negative lef
   expect(screen.getByText('Over by ₹100')).toBeInTheDocument()
   expect(screen.queryByText(/left of/)).not.toBeInTheDocument()
   expect(screen.queryByText(/\/day/)).not.toBeInTheDocument()
-  expect(screen.getByText('Cover it from another envelope?')).toBeInTheDocument()
+  expect(screen.getByText('Cover it from another category?')).toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: 'Cover it' }))
   expect(handlers.onCover).toHaveBeenCalledOnce()
 })

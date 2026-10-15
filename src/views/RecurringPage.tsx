@@ -1,6 +1,6 @@
 'use client'
 
-import { Plus } from 'lucide-react'
+import { PlusIcon } from '@/src/components/icons'
 import { useCurrency } from '@/src/context/CurrencyContext'
 
 import { useState } from 'react'
@@ -12,7 +12,7 @@ import { RecurringSuggestions } from '../components/RecurringSuggestions'
 import { RecurringExpenseModal } from '../components/RecurringExpenseModal'
 import { useRecurringExpenses } from '../hooks/useRecurringExpenses'
 import { useHideAmounts } from '../hooks/useHideAmounts'
-import { toISTDateString } from '../lib/date'
+import { toLocalDateString } from '../lib/date'
 import { splitEmoji } from '../lib/emoji'
 import { formatDateShort } from '../lib/format'
 import { CHART_COLORS } from '../theme/chartColors'
@@ -45,14 +45,14 @@ export function monthlyAmount(amount: number, frequency: string): number {
   }
 }
 
-/** Same IST date-string compare as Mobile, no Intl. */
+/** Same local date-string compare as Mobile, no Intl. */
 export function dueLabel(nextRunDate: string): string {
   if (!nextRunDate) return 'Not scheduled'
   const today = new Date()
-  if (nextRunDate === toISTDateString(today)) return 'Due today'
+  if (nextRunDate === toLocalDateString(today)) return 'Due today'
   const tomorrow = new Date(today)
   tomorrow.setDate(tomorrow.getDate() + 1)
-  if (nextRunDate === toISTDateString(tomorrow)) return 'Due tomorrow'
+  if (nextRunDate === toLocalDateString(tomorrow)) return 'Due tomorrow'
   return `Next on ${formatDateShort(nextRunDate)}`
 }
 
@@ -135,7 +135,7 @@ export function RecurringPage() {
         </div>
         <div className="txn-page-actions">
           <button type="button" className="erd-log-btn txn-page-log-btn" onClick={() => setEditing('')}>
-            <Plus size={14} aria-hidden="true" />
+            <PlusIcon size={14} aria-hidden="true" />
             Add recurring
           </button>
         </div>

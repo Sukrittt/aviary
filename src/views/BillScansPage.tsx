@@ -5,11 +5,13 @@ import { useCurrency } from '@/src/context/CurrencyContext'
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { AmountText, STAGGER, popIn, staggerDelay } from '../components/landing/mobile/kit'
-import { ChevronRight, Eye, EyeOff, X } from 'lucide-react'
+import { CaretRightIcon, EyeIcon, EyeSlashIcon, XIcon } from '@/src/components/icons'
 import { LoadingCaption } from '../components/LoadingCaption'
 import { Scrim, Sheet } from '../components/MotionSheet'
 import { useBillScan, useBillScans } from '../hooks/useBillScans'
 import { useHideAmounts } from '../hooks/useHideAmounts'
+import { useCategoryIcons } from '../hooks/useCategories'
+import { CategoryIcon } from '../components/CategoryIcon'
 import { splitEmoji } from '../lib/emoji'
 import { formatDate, formatDateShort } from '../lib/format'
 import { feeDiff, groupByDivisor, isFeeLine, round2 } from '../lib/split'
@@ -87,7 +89,7 @@ export function BillScansPage() {
                     </span>
                   </span>
                   <strong>{formatCurrency(row.my_share, hideAmounts)}</strong>
-                  <ChevronRight size={16} className="account-row-arrow" aria-hidden="true" />
+                  <CaretRightIcon size={16} className="account-row-arrow" aria-hidden="true" />
                 </button>
               </motion.li>
             ))}
@@ -105,6 +107,7 @@ function BillScanDetail({ id, onClose }: { id: string; onClose: () => void }) {
   const [hideAmounts] = useHideAmounts()
   const scanQ = useBillScan(id)
   const scan = scanQ.data
+  const categoryIcons = useCategoryIcons()
   const [showPhoto, setShowPhoto] = useState(false)
 
   const category = splitEmoji(scan?.category ?? '')
@@ -130,7 +133,7 @@ function BillScanDetail({ id, onClose }: { id: string; onClose: () => void }) {
         <div className="bill-scan-head">
           <h3>{scan?.merchant || 'Scan detail'}</h3>
           <button type="button" className="scan-icon-btn" aria-label="Close" onClick={onClose}>
-            <X size={14} />
+            <XIcon size={14} />
           </button>
         </div>
 
@@ -148,7 +151,7 @@ function BillScanDetail({ id, onClose }: { id: string; onClose: () => void }) {
               aria-expanded={showPhoto}
               onClick={() => setShowPhoto(!showPhoto)}
             >
-              {showPhoto ? <EyeOff size={16} /> : <Eye size={16} />}
+              {showPhoto ? <EyeSlashIcon size={16} /> : <EyeIcon size={16} />}
               {scan.image_status === 'failed'
                 ? "Photo couldn't be saved"
                 : !photoReady
@@ -165,7 +168,7 @@ function BillScanDetail({ id, onClose }: { id: string; onClose: () => void }) {
             <motion.div className="account-card bill-scan-hero" {...popIn(STAGGER.mount + STAGGER.item)}>
               <div className="bill-scan-heading">
                 <span className="bill-scan-icon" aria-hidden="true">
-                  {category.icon || '🧾'}
+                  <CategoryIcon name={scan.category} icon={scan.category ? categoryIcons.get(scan.category) : 'Receipt'} />
                 </span>
                 <div style={{ minWidth: 0 }}>
                   <div className="account-row-label">{scan.merchant}</div>

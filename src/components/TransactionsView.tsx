@@ -3,12 +3,12 @@ import { ExpenseWriteError } from '../lib/expenseConflict';
 import { useCurrency } from "@/src/context/CurrencyContext";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { Copy, Plus, Search, X } from "lucide-react";
+import { CopyIcon, PlusIcon, MagnifyingGlassIcon, MoneyWavyIcon, XIcon } from "@/src/components/icons";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { toTransactions, type Transaction } from "../lib/expenseTransactions";
 import { useBudgets } from "../hooks/useBudgets";
-import { useCategories } from "../hooks/useCategories";
+import { useCategories, useCategoryIcons } from "../hooks/useCategories";
 import { useExpensesPage, useDeleteExpense, useDuplicates } from "../hooks/useExpenses";
 import { DuplicateReviewDialog } from "./DuplicateReviewDialog";
 import { ConfirmDialog } from "./ConfirmDialog";
@@ -17,28 +17,28 @@ import { EMPTY } from "../lib/constants";
 import { orderWithRecents } from "../lib/recentCategories";
 import { useRecentCategories } from "../hooks/useRecentCategories";
 
-import { LoadingCaption } from "./LoadingCaption";
+import { ActivitySkeleton } from "./TabSkeleton";
 import { TransactionEditModal } from "./TransactionEditModal";
 import { LogExpenseModal } from "./LogExpenseModal";
 import { DatePicker } from "./DatePicker";
 import { Select } from "./Select";
-import { avatarColorFor, categoryEmoji, splitEmoji } from "../lib/emoji";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { MENU_ITEM, MENU_POPUP } from "./menuStyles";
+import { avatarStyleFor, splitEmoji } from "../lib/emoji";
+import { CategoryIcon } from "./CategoryIcon";
 import { formatShortDate } from "../lib/format";
+import { parseLocalDate, toLocalDateString } from "../lib/date";
 import { BirdEmptyState } from "./BirdEmptyState";
 import { useIncomes } from "../hooks/useIncomes";
 import { liveAccounts, useAccounts } from "../hooks/useAccounts";
 import { incomesForPage, periodEnd } from "../lib/incomeActivity";
-import { accountEmoji, accountLabel, accountName } from "./AccountChips";
+import { AccountIcon, accountLabel, accountName } from "./AccountChips";
 import type { IncomeRow } from "../types";
 
 type PeriodKey = "week" | "month" | "custom";
 
 const PAGE_SIZE = 40;
 
-
-function toDateInput(d: Date): string {
-  return d.toISOString().slice(0, 10);
-}
 
 function formatDateHeading(iso: string): string {
   const date = new Date(`${iso}T00:00:00`);
@@ -72,6 +72,7 @@ export function TransactionsView({
 
   const budgetsQuery = useBudgets();
   const categoriesQuery = useCategories();
+  const categoryIcons = useCategoryIcons();
   const deleteExpenseM = useDeleteExpense();
   const duplicates = useDuplicates().data ?? [];
   const [reviewingDuplicates, setReviewingDuplicates] = useState(false);
@@ -99,7 +100,7 @@ export function TransactionsView({
   const anchorDate = useMemo(() => {
     const iso = anchorQuery.data?.rows[0]?.date;
     if (!iso) return null;
-    const d = new Date(iso);
+    const d = parseLocalDate(iso);
     return Number.isNaN(d.getTime()) ? null : d;
   }, [anchorQuery.data]);
 
@@ -135,22 +136,6 @@ export function TransactionsView({
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [showLogModal, setShowLogModal] = useState(false);
   const [actionsKey, setActionsKey] = useState<string | null>(null);
-  const actionsMenuRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (!actionsKey) return;
-    function handleClick(e: MouseEvent) {
-      if ((e.target as Element).closest(".txn-row-trigger")) return;
-      if (
-        actionsMenuRef.current &&
-        !actionsMenuRef.current.contains(e.target as Node)
-      ) {
-        setActionsKey(null);
-      }
-    }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, [actionsKey]);
 
   /**
    * The custom range's default: the day named in ?date=, else the month
@@ -161,8 +146,8 @@ export function TransactionsView({
     if (dateParam) return { start: dateParam, end: dateParam };
     const latest = anchorDate ?? new Date();
     return {
-      start: toDateInput(new Date(latest.getFullYear(), latest.getMonth(), 1)),
-      end: toDateInput(latest),
+      start: toLocalDateString(new Date(latest.getFullYear(), latest.getMonth(), 1)),
+      end: toLocalDateString(latest),
     };
   }, [dateParam, anchorDate]);
 
@@ -219,10 +204,10 @@ export function TransactionsView({
     } else if (period === "month") {
       start = new Date(end.getFullYear(), end.getMonth(), 1);
     } else if (period === "custom" && customStart && customEnd) {
-      start = new Date(customStart);
-      end.setTime(new Date(customEnd).getTime());
+      start = parseLocalDate(customStart);
+      end.setTime(parseLocalDate(customEnd).getTime());
     }
-    return { from: toDateInput(start), to: toDateInput(end) };
+    return { from: toLocalDateString(start), to: toLocalDateString(end) };
   }, [period, customStart, customEnd, latestDate]);
 
   const expensesQuery = useExpensesPage({
@@ -359,10 +344,6 @@ export function TransactionsView({
   // so there is nothing left for callers to refresh by hand.
   function refreshTransactions() {}
 
-  function toggleActions(rowKey: string) {
-    setActionsKey((key) => key === rowKey ? null : rowKey);
-  }
-
   async function handleDelete(t: Transaction) {
     const key = txnKey(t);
     setRemovedKeys((keys) => new Set(keys).add(key));
@@ -482,7 +463,7 @@ export function TransactionsView({
               className="action-button txn-page-duplicates-btn"
               onClick={() => setReviewingDuplicates(true)}
             >
-              <Copy size={15} strokeWidth={2.2} aria-hidden="true" />
+              <CopyIcon size={15} aria-hidden="true" />
               Review {duplicates.length} possible duplicate{duplicates.length === 1 ? "" : "s"}
             </button>
           )}
@@ -491,7 +472,7 @@ export function TransactionsView({
             className="erd-log-btn txn-page-log-btn"
             onClick={() => setShowLogModal(true)}
           >
-            <Plus size={17} strokeWidth={2.4} aria-hidden="true" />
+            <PlusIcon size={17} weight="bold" aria-hidden="true" />
             Log expense
           </button>
         </div>
@@ -511,7 +492,7 @@ export function TransactionsView({
                 type="button"
                 role="tab"
                 aria-selected={period === key}
-                className={`action-button ${period === key ? "is-active erd-accent-action" : ""}`}
+                className={`action-button ${period === key ? "is-active" : ""}`}
                 onClick={() => setPeriod(key)}
               >
                 {key === "week"
@@ -547,7 +528,11 @@ export function TransactionsView({
               searchable={orderedCategories.length >= 12}
               options={[
                 { value: "", label: "All categories" },
-                ...orderedCategories.map((c) => ({ value: c, label: splitEmoji(c).text, icon: categoryEmoji(c) })),
+                ...orderedCategories.map((c) => ({
+                  value: c,
+                  label: splitEmoji(c).text,
+                  icon: <CategoryIcon name={c} icon={categoryIcons.get(c)} />,
+                })),
               ]}
             />
           </div>
@@ -561,14 +546,14 @@ export function TransactionsView({
                 placeholder="All accounts"
                 options={[
                   { value: "", label: "All accounts" },
-                  ...accountOptions.map((a) => ({ value: a.id, label: accountLabel(a), icon: accountEmoji(a) })),
+                  ...accountOptions.map((a) => ({ value: a.id, label: accountLabel(a), icon: <AccountIcon account={a} /> })),
                 ]}
               />
             </div>
           )}
 
           <label className="txn-search-field">
-            <Search size={16} strokeWidth={2} aria-hidden="true" />
+            <MagnifyingGlassIcon size={16} aria-hidden="true" />
             <span className="sr-only">Search transactions</span>
             <input
               type="search"
@@ -599,9 +584,7 @@ export function TransactionsView({
       {deleteNotice && <ExpenseNoticeDialog status={deleteNotice.status} action="delete" onBack={() => setDeleteNotice(null)} />}
 
       {loading ? (
-        <div className="txn-timeline-loading">
-          <LoadingCaption placement="page" />
-        </div>
+        <ActivitySkeleton />
       ) : error ? (
         <div className="txn-timeline-empty">
           Couldn&apos;t load transactions. {error}
@@ -657,7 +640,7 @@ export function TransactionsView({
                       <Link href="/account/income" className="txn-row-trigger" aria-label={`${income.label}, income. Open Income`} />
                       <span className="txn-check-slot" aria-hidden="true" />
                       <span className="txn-timeline-icon" aria-hidden="true" style={{ background: "var(--mint-soft)" }}>
-                        💰
+                        <MoneyWavyIcon />
                       </span>
                       <span className="txn-timeline-body">
                         <span className="txn-timeline-item">{income.label}</span>
@@ -692,14 +675,22 @@ export function TransactionsView({
                           onClick={() => toggleSelected(t)}
                         />
                       ) : (
-                        <button
-                          type="button"
-                          className="txn-row-trigger"
-                          aria-label={`Open actions for ${t.item}`}
-                          aria-haspopup="menu"
-                          aria-expanded={actionsKey === rowKey}
-                          onClick={() => toggleActions(rowKey)}
-                        />
+                        <DropdownMenu
+                          open={actionsKey === rowKey}
+                          onOpenChange={(open) => setActionsKey(open ? rowKey : null)}
+                        >
+                          <DropdownMenuTrigger
+                            render={<button type="button" className="txn-row-trigger" aria-label={`Open actions for ${t.item}`} />}
+                          />
+                          <DropdownMenuContent align="end" className={MENU_POPUP}>
+                            <DropdownMenuItem className={MENU_ITEM} onClick={() => setEditingTxn(t)}>
+                              Edit transaction
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className={MENU_ITEM} variant="destructive" onClick={() => setDeleteTxn(t)}>
+                              Delete transaction
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       )}
                       <span className="txn-check-slot" aria-hidden="true">
                         <span className={`txn-check${isSelected ? " is-on" : ""}`}>
@@ -720,9 +711,9 @@ export function TransactionsView({
                       <span
                         className="txn-timeline-icon"
                         title={categoryName}
-                        style={{ background: avatarColorFor(categoryName) }}
+                        style={avatarStyleFor(categoryName)}
                       >
-                        {categoryEmoji(t.category)}
+                        <CategoryIcon name={t.category} icon={categoryIcons.get(t.category)} />
                       </span>
                       <span className="txn-timeline-body">
                         <span className="txn-timeline-item">{t.item}</span>
@@ -737,38 +728,7 @@ export function TransactionsView({
                           ? "---"
                           : formatCurrency(t.amountInr)}
                       </span>
-                      <span
-                        className="txn-actions"
-                        onClick={(event) => event.stopPropagation()}
-                        onKeyDown={(event) => event.stopPropagation()}
-                      >
-                        <div className="env-action-wrap">
-                          {actionsKey === rowKey && (
-                            <div className="env-menu" ref={actionsMenuRef} role="menu">
-                              <button
-                                type="button"
-                                className="env-menu-item"
-                                onClick={() => {
-                                  setEditingTxn(t);
-                                  setActionsKey(null);
-                                }}
-                              >
-                                Edit transaction
-                              </button>
-                              <button
-                                type="button"
-                                className="env-menu-item env-menu-item-danger"
-                                onClick={() => {
-                                  setDeleteTxn(t);
-                                  setActionsKey(null);
-                                }}
-                              >
-                                Delete transaction
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </span>
+                      <span className="txn-actions" />
                     </DeletingRow>
                   );
                 })}
@@ -825,7 +785,7 @@ export function TransactionsView({
               disabled={bulkDeleting}
               onClick={exitSelecting}
             >
-              <X size={16} strokeWidth={2.4} aria-hidden="true" />
+              <XIcon size={16} weight="bold" aria-hidden="true" />
             </button>
           </motion.div>
         )}
@@ -880,7 +840,7 @@ export function TransactionsView({
             <button
               type="button"
               className="account-danger-btn"
-              style={{ marginTop: 0 }}
+             
               onClick={() => {
                 queuedDelete.current = deleteTxn;
                 setDeleteTxn(null);
@@ -900,7 +860,7 @@ export function TransactionsView({
             <button
               type="button"
               className="account-danger-btn"
-              style={{ marginTop: 0 }}
+             
               onClick={() => void handleBulkDelete(selectedTxns)}
             >
               Remove

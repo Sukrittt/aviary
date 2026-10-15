@@ -1,7 +1,7 @@
 import Link from 'next/link'
-import { Github, Mail, MessageSquareHeart } from 'lucide-react'
+import { GithubLogoIcon, EnvelopeSimpleIcon, ChatCircleTextIcon } from '@/src/components/icons'
 import { pageMetadata } from '@/lib/seo'
-import { FEEDBACK_BOARD_URL } from '@/lib/links'
+import { FEEDBACK_BOARD_PATH } from '@/lib/links'
 import { GITHUB } from '@/src/components/landing/Chrome'
 import { CopyEmailButton } from './CopyEmailButton'
 
@@ -20,7 +20,7 @@ export default function ContactPage() {
 
       <div className="lp-contact-mail-wrap">
         <a className="lp-contact-mail" href={`mailto:${SUPPORT_EMAIL}`}>
-          <span className="lp-include-icon lp-tone-fun" aria-hidden="true"><Mail size={22} strokeWidth={2.2} /></span>
+          <span className="lp-include-icon lp-tone-fun" aria-hidden="true"><EnvelopeSimpleIcon size={22} /></span>
           <span className="lp-contact-mail-copy">
             <strong>{SUPPORT_EMAIL}</strong>
             <span>Include the email you sign in with, so your account is easy to find.</span>
@@ -30,13 +30,13 @@ export default function ContactPage() {
       </div>
 
       <div className="lp-contact-ways">
-        <a className="lp-card lp-pay-card" href={FEEDBACK_BOARD_URL} target="_blank" rel="noreferrer">
-          <span className="lp-include-icon lp-tone-savings" aria-hidden="true"><MessageSquareHeart size={22} strokeWidth={2.2} /></span>
+        <Link className="lp-card lp-pay-card" href={FEEDBACK_BOARD_PATH}>
+          <span className="lp-include-icon lp-tone-savings" aria-hidden="true"><ChatCircleTextIcon size={22} /></span>
           <strong>Feedback board</strong>
           <span>Suggest a feature or vote on what gets built next.</span>
-        </a>
+        </Link>
         <a className="lp-card lp-pay-card" href={GITHUB} target="_blank" rel="noreferrer">
-          <span className="lp-include-icon lp-tone-rent" aria-hidden="true"><Github size={22} strokeWidth={2.2} /></span>
+          <span className="lp-include-icon lp-tone-rent" aria-hidden="true"><GithubLogoIcon size={22} /></span>
           <strong>GitHub</strong>
           <span>Aviary is open source. Read the code or open an issue.</span>
         </a>

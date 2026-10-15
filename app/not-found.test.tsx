@@ -22,7 +22,7 @@ it('error page retries the route without showing the raw error', () => {
 })
 
 it('global error page retries without showing the raw error', async () => {
-  vi.doMock('next/font/google', () => ({ Fredoka: () => ({ variable: 'f' }), Nunito: () => ({ variable: 'n' }) }))
+  vi.doMock('next/font/google', () => ({ Geist: () => ({ variable: 'g' }) }))
   const { default: GlobalError } = await import('./global-error')
   const reset = vi.fn()
   render(<GlobalError error={new Error('Mongo exploded')} reset={reset} />)

@@ -15,7 +15,7 @@ vi.mock('../hooks/useBudgets', () => ({
 }))
 vi.mock('../hooks/useExpenses', () => ({ useRecentExpenses: () => ({ data: [] }) }))
 vi.mock('../hooks/useCategories', () => ({ useCategories: () => ({ data: [{ name: 'Food', group: 'Home' }, { name: 'Rent', group: 'Home' }] }) }))
-vi.mock('../hooks/useGroups', () => ({ useGroups: () => ({ data: ['Home'] }) }))
+vi.mock('../hooks/useGroups', () => ({ useGroups: () => ({ data: ['Home'] }), useGroupIcons: () => new Map() }))
 vi.mock('../hooks/useHideAmounts', () => ({ useHideAmounts: () => [false] }))
 vi.mock('../hooks/useIncomes', () => ({ useAddIncome: () => ({ mutateAsync: mocks.addIncome }), useUpdateIncome: () => ({ mutateAsync: mocks.updateIncome }) }))
 vi.mock('../hooks/useAccounts', () => ({ useAccounts: () => ({ data: mocks.accounts }), liveAccounts: (rows: { archived: boolean }[]) => rows.filter((a) => !a.archived) }))

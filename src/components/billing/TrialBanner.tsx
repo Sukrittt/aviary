@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Clock, X } from 'lucide-react'
+import { ClockIcon, XIcon } from '@/src/components/icons'
 import { useBillingStatus } from '@/src/hooks/useBillingStatus'
 import { shouldWarnAboutTrial, trialRemainingLabel } from './copy'
 
@@ -38,12 +38,12 @@ export function TrialBanner() {
         fontSize: 14,
       }}
     >
-      <Clock size={16} aria-hidden style={{ flexShrink: 0, color: urgent ? 'var(--tk-warn)' : 'var(--tk-text2)' }} />
+      <ClockIcon size={16} aria-hidden style={{ flexShrink: 0, color: urgent ? 'var(--tk-warn)' : 'var(--tk-text2)' }} />
       <span style={{ flex: 1, minWidth: 0 }}>
         <strong>Free trial: {trialRemainingLabel(days)}.</strong>{' '}
         <span style={{ color: 'var(--tk-text2)' }}>Pick a plan to keep budgeting.</span>
       </span>
-      <Link href="/account" style={{ color: 'var(--tk-accent)', fontWeight: 700, textDecoration: 'none', flexShrink: 0 }}>
+      <Link href="/account" style={{ color: 'var(--tk-accent-ink)', fontWeight: 600, textDecoration: 'none', flexShrink: 0 }}>
         Details
       </Link>
       <button
@@ -63,7 +63,7 @@ export function TrialBanner() {
           cursor: 'pointer',
         }}
       >
-        <X size={14} aria-hidden />
+        <XIcon size={14} aria-hidden />
       </button>
     </div>
   )

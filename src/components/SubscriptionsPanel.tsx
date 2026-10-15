@@ -2,12 +2,13 @@
 
 import { useCurrency } from "@/src/context/CurrencyContext";
 import { useState } from "react";
-import { ChevronRight, Plus } from "lucide-react";
+import { CaretRightIcon, PlusIcon } from "@/src/components/icons";
 import { AnimatePresence, motion } from "motion/react";
 import { getEffectiveDueDate } from "@/lib/subscriptions";
 import { AllocationBar, type AllocationSegment } from "./charts/AllocationBar";
 import { CHART_COLORS } from "../theme/chartColors";
 import { formatDateShort } from "../lib/format";
+import { brandColor } from "../lib/subscriptionPresets";
 import { LoadingCaption } from "./LoadingCaption";
 import { BirdEmptyState } from "./BirdEmptyState";
 
@@ -37,54 +38,8 @@ interface Props {
   homeRail?: boolean;
 }
 
-// Twin of Mobile's SubscriptionsPanel BRAND_COLORS, so a service gets the same color on both apps.
-const BRAND_COLORS: Record<string, string> = {
-  netflix: "#E50914",
-  hotstar: "#0C3B7C",
-  "disney+": "#0C3B7C",
-  prime: "#00A8E1",
-  "amazon prime": "#00A8E1",
-  spotify: "#1DB954",
-  apple: "#A2AAAD",
-  "apple music": "#FA2D48",
-  "apple tv": "#A2AAAD",
-  youtube: "#FF0000",
-  "youtube premium": "#FF0000",
-  google: "#4285F4",
-  "google one": "#4285F4",
-  microsoft: "#00A4EF",
-  office: "#D83B01",
-  "microsoft 365": "#D83B01",
-  notion: "#FFFFFF",
-  slack: "#4A154B",
-  discord: "#5865F2",
-  figma: "#A259FF",
-  canva: "#00C4CC",
-  adobe: "#FF0000",
-  dropbox: "#0061FF",
-  twitch: "#9146FF",
-  hulu: "#1CE783",
-  "hbo max": "#B537F2",
-  max: "#002BE7",
-  jio: "#0A2F8F",
-  jiocinema: "#0A2F8F",
-  airtel: "#ED1C24",
-  zee5: "#8B2FC9",
-  sonyliv: "#0066CC",
-  voot: "#E4002B",
-  github: "#6e40c9",
-  chatgpt: "#10A37F",
-  openai: "#10A37F",
-  mastercard: "#EB001B",
-  visa: "#1A1F71",
-};
-
 function colorFor(service: string, i: number): string {
-  const lower = service.toLowerCase();
-  for (const [key, color] of Object.entries(BRAND_COLORS)) {
-    if (lower.includes(key)) return color;
-  }
-  return CHART_COLORS[i % CHART_COLORS.length];
+  return brandColor(service)?.solid ?? CHART_COLORS[i % CHART_COLORS.length];
 }
 
 function monthlyEq(sub: SubscriptionPanelItem): number {
@@ -242,7 +197,7 @@ export function SubscriptionsPanel({
         <div className="erd-panel-head">
           <h3>Subscriptions</h3>
           <button type="button" className="action-button is-active erd-accent-action subp-add-button" onClick={onAdd} disabled={loading}>
-            <Plus size={14} aria-hidden="true" /> Add
+            <PlusIcon size={14} aria-hidden="true" /> Add
           </button>
         </div>
       )}
@@ -297,7 +252,7 @@ export function SubscriptionsPanel({
                     animate={{ rotate: showCancelled ? 90 : 0 }}
                     transition={{ type: "spring", damping: 64, stiffness: 600 }}
                   >
-                    <ChevronRight size={14} />
+                    <CaretRightIcon size={14} />
                   </motion.span>
                   CANCELLED ({cancelled.length})
                 </button>

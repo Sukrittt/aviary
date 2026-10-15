@@ -1,6 +1,6 @@
 'use client'
 
-import { Pencil, Plus, ReceiptText, Trash2 } from 'lucide-react'
+import { PencilSimpleIcon, PlusIcon, InvoiceIcon, TrashIcon, XIcon } from '@/src/components/icons'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
@@ -9,8 +9,7 @@ import { LoadingCaption } from '../components/LoadingCaption'
 import { Scrim, Sheet } from '../components/MotionSheet'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { SuccessButton, useButtonPhase } from '../components/SuccessButton'
-import { ACCOUNT_TYPE_EMOJI, accountEmoji, accountLabel } from '../components/AccountChips'
-import { splitEmoji } from '../lib/emoji'
+import { AccountIcon, accountLabel } from '../components/AccountChips'
 import { AccountWriteError } from '../api/accounts'
 import { liveAccounts, useAccounts, useAddAccount, useUpdateAccount } from '../hooks/useAccounts'
 import { useBalanceStatus } from '../hooks/useBalanceCheck'
@@ -77,7 +76,7 @@ export function AccountsPage() {
         </div>
         <div className="txn-page-actions">
           <button type="button" className="erd-log-btn txn-page-log-btn" onClick={() => setEditing('')}>
-            <Plus size={14} aria-hidden="true" />
+            <PlusIcon size={14} aria-hidden="true" />
             Add account
           </button>
         </div>
@@ -96,7 +95,7 @@ export function AccountsPage() {
           <ul className="account-card recurring-list" aria-label="Accounts">
             {live.map((a, i) => (
               <motion.li key={a.id} className="account-row" style={{ cursor: 'default' }} {...popIn(staggerDelay(i))}>
-                <span aria-hidden="true" style={{ fontSize: 20 }}>{accountEmoji(a)}</span>
+                <AccountIcon account={a} size={20} />
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <span className="account-row-label recurring-title">{accountLabel(a)}</span>
                   <span className="account-row-meta">{TYPE_LABEL[a.type] ?? 'Account'}</span>
@@ -104,9 +103,9 @@ export function AccountsPage() {
                 <span className="income-row-actions">
                   {/* The actions pop in one by one once the row has landed. */}
                   {[
-                    { icon: ReceiptText, label: `View ${a.name} transactions`, onClick: () => router.push(`/expense/transactions?account=${encodeURIComponent(a.id)}`) },
-                    { icon: Pencil, label: `Edit ${a.name}`, onClick: () => setEditing(a.id) },
-                    { icon: Trash2, label: `Delete ${a.name}`, onClick: () => setDeleting(a) },
+                    { icon: InvoiceIcon, label: `View ${a.name} transactions`, onClick: () => router.push(`/expense/transactions?account=${encodeURIComponent(a.id)}`) },
+                    { icon: PencilSimpleIcon, label: `Edit ${a.name}`, onClick: () => setEditing(a.id) },
+                    { icon: TrashIcon, label: `Delete ${a.name}`, onClick: () => setDeleting(a) },
                   ].map(({ icon: Icon, label, onClick }, j) => (
                     <motion.button key={label} type="button" className="env2-icon-btn" aria-label={label} title={label} onClick={onClick} {...popIn(staggerDelay(i) + 120 + j * 45)}>
                       <Icon size={15} aria-hidden="true" />
@@ -125,7 +124,7 @@ export function AccountsPage() {
               <ul className="account-card recurring-list" aria-label="Archived accounts">
                 {archived.map((a) => (
                   <li key={a.id} className="account-row" style={{ cursor: 'default' }}>
-                    <span aria-hidden="true" style={{ fontSize: 20, opacity: 0.5 }}>{accountEmoji(a)}</span>
+                    <span aria-hidden="true" style={{ display: 'inline-flex', opacity: 0.5 }}><AccountIcon account={a} size={20} /></span>
                     <span style={{ flex: 1, minWidth: 0, opacity: 0.6 }} className="account-row-label">{accountLabel(a)}</span>
                     <button type="button" className="scan-link-btn is-mint" disabled={update.isPending} onClick={() => restore(a)}>Restore</button>
                   </li>
@@ -147,7 +146,7 @@ export function AccountsPage() {
             onCancel={() => setDeleting(null)}
             busy={update.isPending}
           >
-            <button type="button" className="account-danger-btn" style={{ marginTop: 0 }} onClick={() => remove(deleting)} disabled={update.isPending}>
+            <button type="button" className="account-danger-btn" onClick={() => remove(deleting)} disabled={update.isPending}>
               {update.isPending ? 'Deleting…' : 'Delete'}
             </button>
           </ConfirmDialog>
@@ -210,7 +209,7 @@ function StarterPicks({ names }: { names: string[] }) {
             aria-pressed={c.picked}
             onClick={() => setChoices((all) => all.map((x, j) => (j === i ? { ...x, picked: !x.picked } : x)))}
           >
-            <span aria-hidden="true">{accountEmoji(c)}</span> {accountLabel(c)}
+            <AccountIcon account={c} /> {accountLabel(c)}
           </button>
         ))}
       </div>
@@ -268,31 +267,28 @@ export function AccountModal({ id, onClose }: { id?: string; onClose: () => void
       <Sheet className="erd-modal-card erd-recurring-card" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={existing ? 'Edit account' : 'New account'}>
         <div className="erd-modal-head">
           <h3>{existing ? 'Edit account' : 'New account'}</h3>
-          <button type="button" className="erd-modal-close" onClick={onClose} aria-label="Close" disabled={busy}>✕</button>
+          <button type="button" className="erd-modal-close" onClick={onClose} aria-label="Close" disabled={busy}><XIcon size={18} /></button>
         </div>
         <div className="erd-recurring-body">
           <section className="erd-recurring-section">
             <label className="erd-log-label" htmlFor="account-name">Name</label>
             <div className="env-sheet-name-row">
-              <div className="env-sheet-icon-swatch" aria-hidden="true">{accountEmoji({ name, type })}</div>
+              <div className="env-sheet-icon-swatch" aria-hidden="true"><AccountIcon account={{ name, type }} /></div>
               <input id="account-name" className="erd-log-input" style={{ flex: 1, minWidth: 0 }} placeholder="e.g. Main bank" maxLength={30} value={name} onChange={(e) => setName(e.target.value)} autoFocus={!existing} />
             </div>
-            {name.trim() && !splitEmoji(name).icon && (
-              <p className="recurring-hint">💡 Tip: start the name with an emoji, like 🐷 Savings, to give it its own icon.</p>
-            )}
           </section>
           <section className="erd-recurring-section">
             <div className="erd-log-label">Type</div>
             <div className="erd-chip-row">
               {ACCOUNT_TYPES.map((t) => (
                 <button key={t.value} type="button" className={`erd-chip ${type === t.value ? 'is-selected' : ''}`} aria-pressed={type === t.value} onClick={() => setType(t.value)}>
-                  <span aria-hidden="true">{ACCOUNT_TYPE_EMOJI[t.value]}</span> {t.label}
+                  <AccountIcon account={{ name: '', type: t.value }} /> {t.label}
                 </button>
               ))}
             </div>
             <p className="recurring-hint">
               {type === 'credit_card'
-                ? 'Spends on a card set money aside in your Credit Card envelope.'
+                ? 'Spends on a card set money aside in your Credit Card Payment category.'
                 : type === 'cash'
                   ? "Cash spends don't count in your balance check."
                   : 'Your weekly balance check asks about this one.'}
@@ -313,7 +309,7 @@ export function AccountModal({ id, onClose }: { id?: string; onClose: () => void
                   </div>
                   <div className="account-confirm-actions">
                     <button type="button" className="account-confirm-cancel" disabled={busy} onClick={() => setConfirmArchive(false)}>Back</button>
-                    <button type="button" className="account-danger-btn" style={{ marginTop: 0 }} disabled={busy} onClick={archive}>
+                    <button type="button" className="account-danger-btn" disabled={busy} onClick={archive}>
                       {update.isPending ? 'Working…' : 'Archive'}
                     </button>
                   </div>

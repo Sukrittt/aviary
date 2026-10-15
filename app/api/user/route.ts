@@ -81,7 +81,7 @@ export async function PATCH(req: Request) {
   const seeingWeekRecap = body.weekRecapSeen === true
 
   // `onboardedAt` is no longer a client-writable profile field: completing
-  // onboarding is what starts the 45-day trial clock, so its instant has to
+  // onboarding is what starts the 30-day trial clock, so its instant has to
   // be the server's. Released app versions still PATCH it here, so the key
   // is honoured as a *request to complete onboarding* — the value they send
   // is discarded — and routed through the same server-owned action as

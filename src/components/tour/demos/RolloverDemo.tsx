@@ -80,7 +80,7 @@ export function RolloverDemo({ onComplete }: { onComplete: () => void }) {
       {ROLLOVER_ROWS.map((row) => (
         <TourRow
           key={row.name}
-          emoji={row.emoji}
+          icon={row.icon}
           name={row.name}
           note={
             isOctober

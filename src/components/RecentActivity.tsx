@@ -1,12 +1,18 @@
 import Link from 'next/link'
 import { useCurrency } from '@/src/context/CurrencyContext'
 import type { ExpenseRow } from '../types'
-import { avatarColorFor, categoryEmoji, splitEmoji } from '../lib/emoji'
+import { avatarStyleFor, splitEmoji } from '../lib/emoji'
+import { CategoryIcon } from './CategoryIcon'
 import { formatShortDate } from '../lib/format'
 import { CREDIT_CARD_CATEGORY, INCOME_CATEGORY } from '../lib/envelope'
 import { BirdEmptyState } from './BirdEmptyState'
 
-export function RecentActivity({ expenses, hideAmounts }: { expenses: ExpenseRow[]; hideAmounts: boolean }) {
+export function RecentActivity({ expenses, hideAmounts, categoryIcons }: {
+  expenses: ExpenseRow[]
+  hideAmounts: boolean
+  /** Stored icons by category name, from `useCategoryIcons()`. */
+  categoryIcons?: Map<string, string>
+}) {
   const { formatCurrency } = useCurrency()
   const recent = expenses
     .filter((expense) => expense.category !== INCOME_CATEGORY && expense.category !== CREDIT_CARD_CATEGORY)
@@ -36,8 +42,8 @@ export function RecentActivity({ expenses, hideAmounts }: { expenses: ExpenseRow
               <Link key={expense.id ?? `${expense.timestamp}-${index}`}
                 href={`/expense/transactions?date=${encodeURIComponent(expense.date)}`}
                 className="ins-top-row">
-                <span className="ins-top-icon" style={{ background: avatarColorFor(category) }} aria-hidden="true">
-                  {categoryEmoji(expense.category)}
+                <span className="ins-top-icon" style={avatarStyleFor(category)} aria-hidden="true">
+                  <CategoryIcon name={expense.category} icon={categoryIcons?.get(expense.category)} />
                 </span>
                 <span className="ins-top-body">
                   <span className="ins-top-item">{expense.item || category}</span>

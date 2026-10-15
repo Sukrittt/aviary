@@ -17,6 +17,7 @@ vi.mock('@/src/api/categories', () => ({
 }))
 vi.mock('@/src/api/groups', () => ({
   getGroups: vi.fn(),
+  getGroupIcons: vi.fn(async () => new Map()),
   addGroup: vi.fn(),
   updateGroup: vi.fn(),
   deleteGroup: vi.fn(),
@@ -46,7 +47,7 @@ function renderPage() {
  */
 async function groupList() {
   await screen.findByText('Rent')
-  return within(screen.getByRole('list', { name: 'Envelope groups' }))
+  return within(screen.getByRole('list', { name: 'Category groups' }))
 }
 
 beforeEach(() => {
@@ -86,6 +87,13 @@ describe('EnvelopesPage', () => {
     }
   })
 
+  it('names each icon action in a tooltip on hover', async () => {
+    renderPage()
+    const list = await groupList()
+    await userEvent.hover(list.getByRole('link', { name: 'View transactions for Rent' }))
+    expect(await screen.findByText('View transactions')).toBeInTheDocument()
+  })
+
   it('does not advertise drag reordering while DnD is unavailable', async () => {
     renderPage()
     const list = await groupList()
@@ -111,7 +119,8 @@ describe('EnvelopesPage', () => {
     expect(within(dialog).getByRole('button', { name: /Home/ })).toHaveAttribute('aria-pressed', 'true')
     await user.type(screen.getByPlaceholderText('Groceries, fuel, gym…'), 'Gas')
     await user.keyboard('{Enter}')
-    await waitFor(() => expect(addCategory).toHaveBeenCalledWith('Gas', 'Home'))
+    // The icon follows the name until one is picked.
+    await waitFor(() => expect(addCategory).toHaveBeenCalledWith('Gas', 'Home', 'Fire'))
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Add category' })).not.toBeInTheDocument())
   })
 
@@ -160,10 +169,28 @@ describe('EnvelopesPage', () => {
     await user.click(await screen.findByLabelText('Rename Rent'))
     const dialog = screen.getByRole('dialog', { name: 'Rename category' })
     const input = within(dialog).getByRole('textbox')
+    expect(input).toHaveValue('Rent')
     await user.clear(input)
-    await user.type(input, '🏠 Mortgage')
+    await user.type(input, 'Mortgage')
     await user.click(within(dialog).getByRole('button', { name: 'Rename' }))
+    // The legacy emoji stays on the stored name; Mobile still reads it.
     await waitFor(() => expect(updateCategory).toHaveBeenCalledWith('🏠 Rent', { newName: '🏠 Mortgage' }))
+  })
+
+  it('picks a new icon from the searchable grid', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await user.click(await screen.findByLabelText('Rename Rent'))
+    const dialog = screen.getByRole('dialog', { name: 'Rename category' })
+    await user.click(within(dialog).getByRole('button', { name: 'Icon: House. Change icon' }))
+    // A popover portalled to the body, outside the sheet.
+    const picker = screen.getByRole('dialog', { name: 'Choose an icon' })
+    await user.type(within(picker).getByPlaceholderText('Search icons'), 'pizza')
+    await user.click(within(picker).getByRole('button', { name: 'Pizza' }))
+    expect(screen.queryByRole('dialog', { name: 'Choose an icon' })).not.toBeInTheDocument()
+    expect(within(dialog).getByRole('button', { name: 'Icon: Pizza. Change icon' })).toBeInTheDocument()
+    await user.click(within(dialog).getByRole('button', { name: 'Rename' }))
+    await waitFor(() => expect(updateCategory).toHaveBeenCalledWith('🏠 Rent', { icon: 'Pizza' }))
   })
 
   it('renames a group through the edit dialog', async () => {
@@ -175,7 +202,20 @@ describe('EnvelopesPage', () => {
     await user.clear(input)
     await user.type(input, 'Housing')
     await user.click(within(dialog).getByRole('button', { name: 'Rename' }))
-    await waitFor(() => expect(updateGroup).toHaveBeenCalledWith('Home', 'Housing'))
+    await waitFor(() => expect(updateGroup).toHaveBeenCalledWith('Home', { newName: 'Housing' }))
+  })
+
+  it('picks a group icon without renaming it', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await user.click(await screen.findByLabelText('Rename Home'))
+    const dialog = screen.getByRole('dialog', { name: 'Rename group' })
+    await user.click(within(dialog).getByRole('button', { name: /Change icon/ }))
+    const picker = screen.getByRole('dialog', { name: 'Choose an icon' })
+    await user.type(within(picker).getByLabelText('Search icons'), 'tree')
+    await user.click(within(picker).getByRole('button', { name: 'Tree' }))
+    await user.click(within(dialog).getByRole('button', { name: 'Rename' }))
+    await waitFor(() => expect(updateGroup).toHaveBeenCalledWith('Home', { icon: 'Tree' }))
   })
 
   it('writes null for the default thresholds rather than pinning a copy', async () => {
@@ -219,7 +259,7 @@ describe('EnvelopesPage', () => {
 
     renderPage()
     // Wait on the group's own toggle: the collapsed state loads after mount.
-    const list = within(await screen.findByRole('list', { name: 'Envelope groups' }))
+    const list = within(await screen.findByRole('list', { name: 'Category groups' }))
     await waitFor(() => expect(list.getByRole('button', { name: /^Home/ })).toHaveAttribute('aria-expanded', 'false'))
   })
 

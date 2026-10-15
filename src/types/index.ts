@@ -79,6 +79,8 @@ export interface AccountRow {
 export interface CategoryRow {
   name: string
   group: string
+  /** A Phosphor icon name from src/lib/categoryIcons.ts, once the user picks one. */
+  icon?: string
   alertPcts?: number[]
 }
 

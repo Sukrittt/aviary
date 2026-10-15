@@ -8,18 +8,18 @@ export async function getCategories(): Promise<CategoryRow[]> {
   return resp.json()
 }
 
-export async function addCategory(name: string, group = ''): Promise<void> {
+export async function addCategory(name: string, group = '', icon?: string): Promise<void> {
   const resp = await apiFetch('/api/categories', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, group }),
+    body: JSON.stringify({ name, group, icon }),
   })
   if (!resp.ok) throw new Error(await apiErrorMessage(resp, 'Failed to add category'))
 }
 
 export async function updateCategory(
   name: string,
-  updates: { newName?: string; group?: string; alertPcts?: number[] | null },
+  updates: { newName?: string; group?: string; icon?: string; alertPcts?: number[] | null },
 ): Promise<void> {
   const resp = await apiFetch('/api/categories', {
     method: 'PUT',
