@@ -43,7 +43,11 @@ export async function plansFor(country: string | null): Promise<{ provider: Chec
  * than fail.
  */
 export async function visitorPlanPrices(): Promise<PlanPrice[] | null> {
-  const country = (await headers()).get('x-vercel-ip-country')
+  return planPricesFor((await headers()).get('x-vercel-ip-country'))
+}
+
+/** visitorPlanPrices for a given country, for pages that are pinned to one market (/ is India, /intl isn't). */
+export async function planPricesFor(country: string | null): Promise<PlanPrice[] | null> {
   if (country && country !== 'IN' && !paypalConfig()) return INTL_PRICES
   try {
     return (await plansFor(country)).plans

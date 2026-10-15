@@ -20,7 +20,7 @@ it('rejects invalid bearer on ordinary API routes', async () => {
  expect((await middleware(new NextRequest('https://example.com/api/expenses'), {} as NextFetchEvent))?.status).toBe(401)
 })
 
-it.each(['/', '/privacy-policy', '/legal/privacy', '/sign-in', '/email', '/code'])('keeps %s public without a session', async path => {
+it.each(['/', '/intl', '/changelog', '/help', '/privacy-policy', '/legal/privacy', '/sign-in', '/email', '/code'])('keeps %s public without a session', async path => {
  const response = await middleware(new NextRequest('https://example.com'+path), {} as NextFetchEvent)
  expect(response?.status).toBe(200)
  expect(response?.headers.get('location')).toBeNull()
@@ -38,7 +38,7 @@ it('lets a signed-in user through to the app', async () => {
  expect(response?.headers.get('location')).toBeNull()
 })
 
-it.each(['/', '/?utm_source=email'])('sends a signed-in visitor on %s to their expense page', async path => {
+it.each(['/', '/intl', '/?utm_source=email'])('sends a signed-in visitor on %s to their expense page', async path => {
  signedIn.value = true
  const response = await middleware(new NextRequest('https://example.com'+path), {} as NextFetchEvent)
  expect(response?.status).toBe(307)

@@ -5,13 +5,16 @@ export const SITE_URL = new URL('https://useaviary.com')
 // Only public content belongs in search results. Auth, personal finance and
 // admin pages still get descriptive browser titles without exposing user data.
 export const pages = {
-  '/': { title: 'Budgeting Apps Die on Day 3. This One’s Built for Day 4.', description: 'Aviary learns when you usually spend and nudges you to log it in one tap. Miss a day and you catch up in a minute. No bank link, no loans, no offers. Envelope budgeting on Android and the web.', index: true },
-  '/legal/privacy': { title: 'Privacy Policy', description: 'Learn how Aviary stores and processes your data, including encryption, AI features, analytics, and your options to export or delete it.', index: true },
-  '/legal/terms': { title: 'Terms of Service', description: 'Read the terms for using Aviary, including account requirements, acceptable use, subscriptions, and your responsibilities.', index: true },
-  '/legal/pricing': { title: 'Pricing', description: 'Aviary plans and prices: monthly and yearly subscriptions after a free trial, paid on the web or through Google Play.', index: true },
-  '/legal/refunds': { title: 'Refunds and Cancellation', description: 'How to cancel an Aviary subscription and when you can get a refund for a charge.', index: true },
-  '/legal/contact': { title: 'Contact', description: 'How to reach the Aviary team for support, billing questions, or privacy requests.', index: true },
-  '/legal/delete-account': { title: 'Delete Your Account', description: 'Learn how to delete your Aviary account and personal data from the app, or request account deletion through support.', index: true },
+  '/': { title: 'Aviary: Budget App & Expense Tracker for India', description: 'A budget app for India that learns when you spend and nudges you to log it in one tap. Give every rupee a job. No bank link. Android and web, free for 30 days.', index: true },
+  '/intl': { title: 'Aviary: Budget App & Expense Tracker That Learns Your Habits', description: 'A budget app that learns when you spend and nudges you to log it in one tap. Give every dollar a job, no bank link. Android and web, free for 30 days.', index: true },
+  '/changelog': { title: 'Aviary Changelog: What’s New in the Budget App', description: 'Every Aviary release in one place: new features, improvements and fixes for the budget app on the web, newest first.', index: true },
+  '/help': { title: 'Aviary Help: How Categories, Logging and Budgets Work', description: 'How Aviary’s categories and Ready to Assign work, how to log fast or catch up on missed days, plus answers on pricing, privacy and bank linking.', index: true },
+  '/legal/privacy': { title: 'Privacy Policy | Aviary', description: 'How Aviary stores and processes your data: encryption, AI features, analytics, and how you export or delete everything. No ads, and your data is never sold.', index: true },
+  '/legal/terms': { title: 'Terms of Service | Aviary', description: 'The terms for using Aviary, the budget app: account requirements, acceptable use, subscriptions, and your responsibilities.', index: true },
+  '/legal/pricing': { title: 'Aviary Pricing: Free 30-Day Trial, Then Monthly or Yearly', description: 'Try the whole Aviary budget app free for 30 days, no card needed. Then pick a monthly or yearly plan on the web or Google Play. Cancel any time.', index: true },
+  '/legal/refunds': { title: 'Refunds and Cancellation | Aviary', description: 'How to cancel your Aviary subscription, what happens to your access, and which charges can be refunded.', index: true },
+  '/legal/contact': { title: 'Contact Aviary Support', description: 'Reach the person who builds Aviary for help with your account, billing, refunds or privacy. You’ll hear back within 3 working days.', index: true },
+  '/legal/delete-account': { title: 'Delete Your Aviary Account', description: 'How to delete your Aviary account and personal data from the app, or ask support to do it for you.', index: true },
   '/sign-in': { title: 'Sign In', description: 'Sign in to Aviary with Google or a one-time email code to access your budget across Android and the web.' },
   '/email': { title: 'Sign In with Email', description: 'Enter your email to receive a one-time sign-in code for your Aviary account.' },
   '/code': { title: 'Verify Your Sign-In Code', description: 'Verify your one-time email code to securely sign in to Aviary.' },
@@ -59,18 +62,26 @@ export const publicPagePaths = (Object.keys(pages) as PagePath[]).filter(
   (path) => 'index' in pages[path] && pages[path].index,
 )
 
+/** / and /intl are the same page for two markets: tell search engines which is which. */
+const MARKET_ALTERNATES = { 'en-IN': '/', en: '/intl', 'x-default': '/' }
+export const marketAlternates = (path: string) => (path === '/' || path === '/intl' ? MARKET_ALTERNATES : undefined)
+
+/** 1200×630 share card, rendered by app/og.png/route.tsx. */
+export const OG_IMAGE = { url: '/og.png', width: 1200, height: 630, alt: 'Aviary: the budget app that learns your spending' }
+
 export function pageMetadata(path: PagePath): Metadata {
   const page = pages[path]
-  const title = `Aviary | ${page.title}`
   const index = 'index' in page && page.index
+  // Public pages carry their own keyword titles; private ones are just labelled in the tab.
+  const title = index ? page.title : `Aviary | ${page.title}`
   // Dynamic admin IDs never enter public canonical or social URLs.
   const url = new URL(path.includes('[') ? '/admin/users' : path, SITE_URL).href
-  const image = { url: '/icon.png', width: 512, height: 512, alt: 'Aviary bird app icon' }
+  const languages = marketAlternates(path)
 
   return {
     title,
     description: page.description,
-    alternates: { canonical: url },
+    alternates: { canonical: url, ...(languages && { languages }) },
     robots: { index, follow: index, ...(!index && { noarchive: true }) },
     openGraph: {
       type: 'website',
@@ -78,8 +89,8 @@ export function pageMetadata(path: PagePath): Metadata {
       title,
       description: page.description,
       url,
-      images: [image],
+      images: [OG_IMAGE],
     },
-    twitter: { card: 'summary', title, description: page.description, images: [image] },
+    twitter: { card: 'summary_large_image', title, description: page.description, images: [OG_IMAGE] },
   }
 }
