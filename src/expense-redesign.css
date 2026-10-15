@@ -6961,7 +6961,15 @@ button.account-feature-card {
   background: var(--erd-pill-bg);
   border: 1px solid var(--erd-border);
   border-radius: 999px;
-  padding: 1px 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 
 .env-group-actions,
