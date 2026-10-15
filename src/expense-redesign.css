@@ -5891,6 +5891,19 @@ button.account-row:hover {
   background: var(--erd-input-bg);
 }
 
+/* A row with a sibling badge (Plan & billing) highlights as one row, badge included. */
+.account-row-wrap {
+  transition: background-color 150ms ease;
+}
+
+.account-row-wrap:hover {
+  background: var(--erd-input-bg);
+}
+
+.account-row-wrap > a.account-row:hover {
+  background: none;
+}
+
 .account-row + .account-row,
 .account-row-wrap + .account-row,
 .account-row + .account-row-wrap,
