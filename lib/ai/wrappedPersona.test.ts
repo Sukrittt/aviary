@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import type { WrappedData } from '@/src/services/wrappedAdapter'
+import { computeWrapped, type WrappedData } from '@/src/services/wrappedAdapter'
 
 const runJev = vi.fn()
 vi.mock('./jev', () => ({ runJev: (...args: unknown[]) => runJev(...(args as [])) }))
@@ -27,6 +27,7 @@ function recap(overrides: Partial<WrappedData> = {}): WrappedData {
       { label: '15-21', total: 250 },
       { label: '22-end', total: 250 },
     ],
+    facts: computeWrapped([], '2026-08').facts,
     ...overrides,
   }
 }

@@ -2,7 +2,7 @@ import { json } from '@/lib/http'
 import { nowForUser } from '@/lib/userCurrency'
 import { getAuth } from '@/lib/access'
 import { requireAccess } from '@/lib/billing/guard'
-import { currentEdition, readRecap } from '@/lib/wrapped'
+import { currentEdition, readWrapped } from '@/lib/wrapped'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,5 +11,5 @@ export async function GET(req: Request) {
   const gate = await requireAccess(auth)
   if (gate) return gate
   const month = new URL(req.url).searchParams.get('month') ?? currentEdition((await nowForUser(auth.userId)).date)
-  return json(await readRecap(auth, month))
+  return json(await readWrapped(auth, month))
 }

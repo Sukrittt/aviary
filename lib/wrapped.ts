@@ -3,6 +3,7 @@ import { EXPENSE_HEADERS, toRow } from '@/lib/models'
 import type { Auth } from '@/lib/access'
 import { cachedRead } from '@/lib/cache'
 import { computeWrapped, type WrappedData } from '@/src/services/wrappedAdapter'
+import { pickStories, type BudgetLine, type Story } from '@/src/services/wrappedStories'
 
 /** Minimum logged expenses in a month before its Wrapped edition unlocks. */
 export const WRAPPED_MIN_TRANSACTIONS = 10
@@ -57,6 +58,54 @@ export function readRecap(auth: Auth, month: string): Promise<WrappedData> {
       const docs = await coll.find({ date: { $gte: start, $lte: end } }).toArray()
       return computeWrapped(docs.map((d) => toRow(EXPENSE_HEADERS, d)), month)
     },
-    month,
+    // v2: recaps carry `facts`; one cached before that would crash the story picker.
+    `v2:${month}`,
   )
+}
+
+/** What `/api/wrapped` sends: the recap minus its internal facts, plus the deck and last month's summary. */
+export type WrappedResponse = Omit<WrappedData, 'facts'> & {
+  stories: Story[]
+  previous: {
+    month: string
+    totalSpent: number
+    daysLogged: number
+    longestStreak: number
+    topCategories: { category: string; total: number }[]
+  } | null
+}
+
+/**
+ * The recap plus its story deck. Budgets are read fresh rather than cached with
+ * the recap, so editing an envelope shows up without busting every month's recap.
+ */
+export async function readWrapped(auth: Auth, month: string): Promise<WrappedResponse> {
+  // currentEdition answers "the month before this date", which is exactly last month.
+  const prevMonth = currentEdition(`${month}-01`)
+  const budgetColl = await getCollection('budgets', auth)
+  const [recap, prevRecap, budgetDocs] = await Promise.all([
+    readRecap(auth, month),
+    readRecap(auth, prevMonth),
+    budgetColl.find({ month: { $in: [month, prevMonth] } }).toArray(),
+  ])
+  const linesFor = (m: string): BudgetLine[] =>
+    budgetDocs
+      // `__credit_card__` and `__income__` rows aren't envelopes.
+      .filter((b) => b.month === m && !String(b.category).startsWith('__'))
+      .map((b) => ({ category: String(b.category), amount: (Number(b.assigned) || 0) + (Number(b.rolled_over) || 0) }))
+      .filter((b) => b.amount > 0)
+
+  const prev = prevRecap.totalTransactions > 0 ? prevRecap : null
+  const { facts: _facts, ...rest } = recap
+  return {
+    ...rest,
+    stories: pickStories(recap, prev, linesFor(month), linesFor(prevMonth), auth.userId),
+    previous: prev && {
+      month: prev.month,
+      totalSpent: prev.totalSpent,
+      daysLogged: prev.facts.selfLogged.days,
+      longestStreak: prev.facts.selfLogged.streak?.days ?? 0,
+      topCategories: prev.topCategories.map((c) => ({ category: c.category, total: c.total })),
+    },
+  }
 }
