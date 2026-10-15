@@ -12,6 +12,9 @@ export const PHOTO_EXT_BY_MIME: Record<string, string> = {
 export const MAX_PHOTO_BYTES = 5 * 1024 * 1024
 
 const PHOTO_URL_TTL_MS = 5 * 60 * 1000
+// Activity's photo feed: long enough that an image the client already cached
+// under this URL keeps loading while someone scrolls back up.
+export const FEED_PHOTO_URL_TTL_MS = 60 * 60 * 1000
 
 /**
  * Validates a client's `{ image: base64, mimeType }` upload, shared by expense
@@ -32,8 +35,8 @@ export function decodePhoto(image: unknown, mimeType: unknown): { buffer: Buffer
 }
 
 /** Short-lived signed GET URL for any private photo blob. */
-export async function signPhotoUrl(pathname: string): Promise<string> {
-  const signed = await issueSignedToken({ pathname, operations: ['get'], validUntil: Date.now() + PHOTO_URL_TTL_MS })
+export async function signPhotoUrl(pathname: string, ttlMs = PHOTO_URL_TTL_MS): Promise<string> {
+  const signed = await issueSignedToken({ pathname, operations: ['get'], validUntil: Date.now() + ttlMs })
   const { presignedUrl } = await presignUrl(signed, { operation: 'get', pathname, access: 'private' })
   return presignedUrl
 }
@@ -71,6 +74,6 @@ export async function deleteExpensePhotoQuietly(userId: string, expenseId: strin
 }
 
 /** Short-lived signed GET URL, same reasoning as `getBillScanImageUrl`: the store is private. */
-export async function getExpensePhotoUrl(userId: string, expenseId: string, file: string): Promise<string> {
-  return signPhotoUrl(pathnameOf(userId, expenseId, file))
+export async function getExpensePhotoUrl(userId: string, expenseId: string, file: string, ttlMs?: number): Promise<string> {
+  return signPhotoUrl(pathnameOf(userId, expenseId, file), ttlMs)
 }
