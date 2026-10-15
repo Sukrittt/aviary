@@ -36,7 +36,7 @@ it('sends a bug report from the dialog and closes it', async () => {
   await userEvent.type(screen.getByLabelText('Title'), 'Chart is blank')
   await userEvent.type(screen.getByLabelText('Details'), 'On insights')
   await userEvent.click(screen.getByRole('button', { name: 'Send report' }))
-  expect(submitFeedback).toHaveBeenCalledWith('bug', 'Chart is blank', 'On insights')
+  expect(submitFeedback).toHaveBeenCalledWith('bug', 'Chart is blank', 'On insights', undefined)
   await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull(), { timeout: 3000 })
 })
 
