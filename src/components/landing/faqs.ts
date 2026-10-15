@@ -27,4 +27,4 @@ export function landingFaqs(intl: boolean, price?: string): FaqItem[] {
 }
 
 /** The method in one paragraph, shared by /help and the signed-in /account/help. */
-export const HOW_CATEGORIES_WORK = 'All income gets assigned to a category: rent, food, subscriptions, whatever you spend on. Money that hasn’t been assigned yet sits in Ready to Assign. Overspend a category and you move money into it from another one; the total never lies, it just moves. At the start of a new month, whatever’s left in each category rolls forward instead of resetting to zero, so a slow month in one category quietly covers a busy one later.'
+export const HOW_CATEGORIES_WORK = 'All income gets assigned to a category: rent, food, subscriptions, whatever you spend on. Money that hasn’t been assigned yet sits in Ready to Assign. Overspend a category and you move money into it from another one; the total never lies, it just moves. At the start of a new month, each category keeps the amount you assigned last month, so you don’t set it all up again. Unspent money doesn’t carry over inside a category: each month starts fresh.'
