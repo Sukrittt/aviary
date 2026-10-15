@@ -52,6 +52,7 @@
   --tk-pill-over-bg: #fee2e2;
   --tk-success-bg: #bbf7d0;
   --tk-on-success: #166534;
+  --tk-chart-soften: 15%;
 }
 
 .theme-light {
@@ -98,6 +99,7 @@
   --tk-pill-over-bg: #fee2e2;
   --tk-success-bg: #bbf7d0;
   --tk-on-success: #166534;
+  --tk-chart-soften: 15%;
 }
 
 .theme-dark {
@@ -144,4 +146,5 @@
   --tk-pill-over-bg: rgba(255, 100, 111, 0.16);
   --tk-success-bg: #26e085;
   --tk-on-success: #1a0500;
+  --tk-chart-soften: 0%;
 }

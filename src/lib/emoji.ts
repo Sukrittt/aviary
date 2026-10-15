@@ -48,3 +48,9 @@ function avatarHash(category: string): number {
   }
   return hash
 }
+
+/** A chart fill for an ink: mixed toward white by --tk-chart-soften (15% in
+ *  light, 0 in dark), matching Mobile's chartInk. Icon glyphs keep the raw ink. */
+export function chartInk(ink: string): string {
+  return `color-mix(in srgb, ${ink}, white var(--tk-chart-soften))`
+}
