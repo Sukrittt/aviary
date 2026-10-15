@@ -58,7 +58,7 @@ export default async function PricingPage() {
         <TrackedLink className="lp-button lp-button--dark" href={PLAY_STORE_URL} event="store_cta_clicked" properties={{ placement: 'pricing_hero' }}><DeviceMobileIcon size={18} aria-hidden="true" />Start your free trial</TrackedLink>
         <Link href="/expense" className="lp-button lp-button--ghost"><MonitorIcon size={18} aria-hidden="true" />Open web app</Link>
       </div>
-      <span className="lp-hero-note">Prices include taxes · Pay on the web or through Google Play</span>
+      <span className="lp-hero-note">Prices are set for your country and include taxes · Pay on the web or through Google Play</span>
     </section>
 
     <section className="lp-plans-wrap" aria-labelledby="plans-title">

@@ -7,8 +7,8 @@ import { getPayPalPlanPrices, paypalConfig } from './paypal'
  * (cents). Once it is, they see PayPal's own plan prices instead.
  */
 export const INTL_PRICES: PlanPrice[] = [
-  { period: 'monthly', amount: 490, currency: 'USD' },
-  { period: 'yearly', amount: 4900, currency: 'USD' },
+  { period: 'monthly', amount: 499, currency: 'USD' },
+  { period: 'yearly', amount: 4999, currency: 'USD' },
 ]
 
 export type CheckoutProvider = 'razorpay' | 'paypal'

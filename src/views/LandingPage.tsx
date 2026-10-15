@@ -70,8 +70,8 @@ export function LandingPage({ monthlyPrice, ios = false, android = false, intl =
 
     <section className="lp-hero" aria-labelledby="landing-title">
       {otherMarket && (intl
-        ? <p className="lp-market">In India? <Link href="/">See prices in ₹</Link></p>
-        : <p className="lp-market">Outside India? <Link href="/intl">See prices in your currency</Link></p>)}
+        ? <p className="lp-market">In India? <Link href="/">See the India page</Link></p>
+        : <p className="lp-market">Outside India? <Link href="/intl">See the page for your region</Link></p>)}
       <Link className="lp-early" href={FEEDBACK_BOARD_PATH}><b>Early access</b><span className="lp-early-desktop">Your feedback shapes what we build next</span><span className="lp-early-mobile">Help shape Aviary</span><ArrowRightIcon size={14} aria-hidden="true" /></Link>
       <h1 id="landing-title">The budgeting app you’ll still open on <span className="lp-learns">day 4<svg viewBox="0 0 200 14" preserveAspectRatio="none" aria-hidden="true"><path d="M3 10 C 40 3, 70 3, 100 8 S 160 13, 197 5" /></svg></span>.</h1>
       <p>It notices your <RotatingHabit /> and nudges you while it’s still fresh.<br className="lp-desktop-break" /> Miss a day? Type what you remember and you’re caught up.<br className="lp-desktop-break" /> No bank link, no loans, no offers.</p>
