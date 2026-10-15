@@ -21,7 +21,7 @@ export function changelogId(value: string): ObjectId | null {
 }
 
 export function serializeRelease(doc: ChangelogDoc): ChangelogRelease {
-  return { id: doc._id.toHexString(), platform: doc.platform ?? 'web', title: doc.title, version: doc.version, highlights: doc.highlights, body: doc.body, publishedAt: doc.publishedAt?.toISOString() ?? null }
+  return { id: doc._id.toHexString(), platform: doc.platform ?? 'web', title: doc.title, version: doc.version, highlights: doc.highlights, body: doc.body, otaAfter: doc.otaAfter ?? null, publishedAt: doc.publishedAt?.toISOString() ?? null }
 }
 
 /** Releases saved before the platform field existed are web notes. */
