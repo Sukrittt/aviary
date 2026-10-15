@@ -26,7 +26,7 @@ describe('landing hero note', () => {
   })
 
   it('shows the USD price on /intl', async () => {
-    expect((await html(Intl)).match(/Free for 30 days · Then \$4\.90\/month/g)).toHaveLength(2)
+    expect((await html(Intl)).match(/Free for 30 days · Then \$4\.99\/month/g)).toHaveLength(2)
   })
 
   it('leaves the price out when Razorpay is unreachable', async () => {
@@ -78,8 +78,8 @@ describe('one URL per market', () => {
     country = 'IN'
     const out = await html(Intl)
     expect(out).toContain('4pm coffee')
-    expect(out).toContain('Then $4.90/month')
-    expect(out).toMatch(/href="\/"[^>]*>[^<]*₹/)
+    expect(out).toContain('Then $4.99/month')
+    expect(out).toMatch(/href="\/"[^>]*>See the India page/)
   })
 
   it('puts real prices, the organization and the FAQ in JSON-LD', async () => {
