@@ -113,6 +113,12 @@ describe('PATCH /api/user', () => {
     expect(usersUpdateOneMock).toHaveBeenCalledWith({ _id: 'user_a' }, { $set: { notifyWrapped: false } })
   })
 
+  it('accepts activityFeed and writes it through the allowlist', async () => {
+    const res = await PATCH(patchRequest({ activityFeed: true }))
+    expect(res.status).toBe(200)
+    expect(usersUpdateOneMock).toHaveBeenCalledWith({ _id: 'user_a' }, { $set: { activityFeed: true } })
+  })
+
   it('drops a non-boolean notifyWrapped instead of writing it', async () => {
     const res = await PATCH(patchRequest({ notifyWrapped: 'yes' }))
     expect(res.status).toBe(400)

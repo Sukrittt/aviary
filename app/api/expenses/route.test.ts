@@ -14,7 +14,12 @@ vi.mock('@/lib/access', () => ({
 }))
 
 const blobDel = vi.fn(async () => {})
-vi.mock('@vercel/blob', () => ({ del: (...a: unknown[]) => blobDel(...(a as [])) }))
+const issueSignedToken = vi.fn(async ({ pathname }: { pathname: string }) => ({ pathname }))
+vi.mock('@vercel/blob', () => ({
+  del: (...a: unknown[]) => blobDel(...(a as [])),
+  issueSignedToken: (o: { pathname: string }) => issueSignedToken(o),
+  presignUrl: async (t: { pathname: string }) => ({ presignedUrl: `https://blob.test/${t.pathname}?signed` }),
+}))
 
 vi.mock('@/lib/cache', () => ({
   invalidate: vi.fn(),
@@ -526,6 +531,34 @@ describe('expense photos', () => {
     }
     expect(body.headers).not.toContain('has_photo')
     expect(Object.fromEntries(body.rows.map((r) => [r.item, r.has_photo]))).toEqual({ Plant: true, Tea: false })
+  })
+
+  it('photos=1 adds a signed photo_url to photo rows only, and skips a row whose signing fails', async () => {
+    await POST(req('POST', { item: 'Plant', amount_inr: '300', category: 'Home' }))
+    await POST(req('POST', { item: 'Tea', amount_inr: '50', category: 'Food' }))
+    await POST(req('POST', { item: 'Lamp', amount_inr: '900', category: 'Home' }))
+    const [plant, , lamp] = stores.expenses
+    plant.photo_file = 'a1.jpg'
+    lamp.photo_file = 'b2.jpg'
+    issueSignedToken.mockClear()
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    issueSignedToken.mockImplementation(async ({ pathname }) => {
+      if (pathname.includes(String(lamp._id))) throw new Error('blob down')
+      return { pathname }
+    })
+    const list = async (qs: string) =>
+      ((await (await GET(new Request(`https://example.com/api/expenses?page=1&limit=10${qs}`))).json()) as {
+        rows: Array<{ item: string; photo_url?: string }>
+      }).rows
+    const urls = Object.fromEntries((await list('&photos=1')).map((r) => [r.item, r.photo_url]))
+    expect(urls.Plant).toBe(`https://blob.test/expense-photos/user_a/${plant._id}-a1.jpg?signed`)
+    expect(urls.Tea).toBeUndefined()
+    expect(urls.Lamp).toBeUndefined()
+    spy.mockRestore()
+
+    issueSignedToken.mockReset().mockImplementation(async ({ pathname }) => ({ pathname }))
+    expect((await list('')).every((r) => r.photo_url === undefined)).toBe(true)
+    expect(issueSignedToken).not.toHaveBeenCalled()
   })
 
   it('DELETE removes the photo blob and clears photo_file, so a restored row claims no photo', async () => {

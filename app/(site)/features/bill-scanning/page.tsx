@@ -6,7 +6,7 @@ export const metadata = pageMetadata('/features/bill-scanning')
 
 export default function BillScanningPage() {
   return <ContentPage section="features" path="/features/bill-scanning" title="Scan a bill, and it’s in your budget" lede={<>Long restaurant bills and grocery receipts are the spends people put off logging. Snap the bill and Aviary reads every line, taxes included.</>} related={['/features/ask-aviary', '/features/budget-without-bank-linking', '/compare/money-manager']}>
-    <Screen src="/landing/poster-scan.jpg" alt="Aviary after scanning a Meghana Foods bill: Added ₹672.96, with ₹408.04 left of ₹1,501 in Eating Out." caption="A ₹1,725.70 dinner bill, split three ways. Your share lands in Eating out." />
+    <Screen src="/landing/poster-scan.jpg" alt="Aviary after scanning a McDonald’s bill: Added ₹72, with ₹2,448 left of ₹6,000 in Eating out." caption="A ₹144 McDonald’s bill, split two ways. Your share lands in Eating out." />
 
     <h2>How it works</h2>
     <ol>
@@ -17,7 +17,7 @@ export default function BillScanningPage() {
     </ol>
 
     <h2>Built for split bills</h2>
-    <p>A group dinner is where logging usually breaks. The bill is ₹1,725.70, you had the biryani and half the starters, and nobody wants to do the maths at the table. With a scan, you tick what was shared and Aviary logs your ₹672.96. The rest is your friends’ problem.</p>
+    <p>A group dinner is where logging usually breaks. The bill is ₹144, you shared the brownie and the Coke float, and nobody wants to do the maths at the table. With a scan, you tick what was shared and Aviary logs your ₹72. The rest is your friends’ problem.</p>
 
     <h2>What it sends, and where</h2>
     <p>To read the bill, Aviary sends the photo to Google Gemini. Amounts and notes you save are encrypted in Aviary’s database, and your data is never sold. The <Link href="/legal/privacy">privacy policy</Link> has the details.</p>

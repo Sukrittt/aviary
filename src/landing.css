@@ -821,7 +821,7 @@ html:has(.lp) { scroll-behavior: smooth; }
 .changelog-public .changelog-meta { color: var(--muted); font-size: 14px; font-weight: 600; }
 .changelog-public .changelog-history-entry ul { margin-top: 12px; }
 /* Market switch (/ is India, /intl everywhere else) */
-.lp-market { margin: 0 auto 14px; font-size: 14px; color: var(--muted); }
+.lp-hero > .lp-market { margin: 0 auto 14px; font-size: 14px; line-height: 1.5; color: var(--muted); }
 .lp-market a { color: var(--accent-ink); text-decoration: underline; text-underline-offset: 3px; }
 /* Content pages (/compare, /tools, /features): breadcrumbs, related pages, soft CTA */
 .lp-crumbs ol { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; font-size: 14px; font-weight: 600; color: var(--muted); }

@@ -45,6 +45,8 @@ describe('landing sample data', () => {
     expect(out).toContain('Log ₹850')
     expect(out).toContain('UPI/DR/6021843/SWIGGY')
     expect(out).toContain('src="/landing/clip-log.mp4"')
+    expect(out).toContain('Added ₹250 for Rapido')
+    expect(out).toContain('The Quiet Investor')
     expect(out).not.toContain('/landing/intl/')
   })
 

@@ -6,7 +6,7 @@ export const metadata = pageMetadata('/features/budget-without-bank-linking')
 
 export default function NoBankLinkPage() {
   return <ContentPage section="features" path="/features/budget-without-bank-linking" title="Budget without linking your bank" lede={<>Aviary never asks for your bank login, account aggregator consent or SMS access. You log what you spend, and Aviary makes that take one tap.</>} related={['/compare/axio', '/compare/goodbudget', '/features/recurring-expenses']}>
-    <Screen src="/landing/poster-log.jpg" alt="Aviary’s Log expense keypad with ₹150 entered for Bike to office in the Metro category." caption="₹150, Bike to office. The category picks itself." />
+    <Screen src="/landing/poster-log.jpg" alt="Aviary’s Log expense keypad with ₹250 entered for Rapido in the Cabs & Auto category." caption="₹250, Rapido. The category picks itself." />
 
     <h2>Why not just sync?</h2>
     <p>Sync sounds easier, and for tracking, it is. But a budget only works if you notice what you spend. When an app reads your SMS and files every UPI payment away, money leaves and you never feel it. At the end of the month you get a chart, and the chart is too late.</p>

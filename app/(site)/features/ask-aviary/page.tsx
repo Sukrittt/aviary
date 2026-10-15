@@ -6,7 +6,7 @@ export const metadata = pageMetadata('/features/ask-aviary')
 
 export default function AskAviaryPage() {
   return <ContentPage section="features" path="/features/ask-aviary" title="Ask Aviary: talk to your budget" lede={<>Ask Aviary is a chat inside your budget. Type what you spent and it logs it. Ask a question about your money and it answers from your own numbers.</>} related={['/features/bill-scanning', '/features/recurring-expenses', '/compare/ynab-alternative-india']}>
-    <Screen src="/landing/poster-ask.jpg" alt="Ask Aviary chat: asked whether a ₹90,000 iPhone is affordable, it answers not yet, since ₹36,802 is left this month." caption="“Can I afford a 90k iPhone?” answered from your own budget." />
+    <Screen src="/landing/poster-ask.jpg" alt="Ask Aviary chat: asked whether a ₹90,000 iPhone is affordable, it answers yes, from ₹43,640 unspent this month plus savings." caption="“Can I afford a 90k iPhone?” answered from your own budget." />
 
     <h2>Catch up in one line</h2>
     <p>Missed a couple of days? Type whatever you remember, like “auto 240, lunch 150, Friday dinner 900”. Aviary turns it into three separate spends, picks a category for each, and shows them to you. Nothing is saved until you check it. Two missed days take about a minute.</p>
