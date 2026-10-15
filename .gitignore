@@ -65,3 +65,6 @@ launch-email-preview.html
 
 .claude/
 .lookup.mjs
+
+# one-off prod data fix, run 2026-10-15
+scripts/shorten-v1-trials.mjs
