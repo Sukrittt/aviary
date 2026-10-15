@@ -1,21 +1,30 @@
+import { notFound } from 'next/navigation'
 import { pages, SITE_URL, type PagePath } from '@/lib/seo'
-import { AUTHOR, articleJsonLd, formatPostDate, getPost, postMetadata, postSlugs, type Post } from '@/lib/blog'
+import { AUTHOR, allPosts, articleJsonLd, formatPostDate, getPost, isLive, postMetadata, postSlugs, type Post } from '@/lib/blog'
 import { jsonLd } from '@/src/components/JsonLd'
 import { ContentPage, SoftCta, type Related } from '@/src/components/content/ContentPage'
 import { LinkedinLogoIcon, WhatsappLogoIcon, XLogoIcon } from '@/src/components/icons'
 
-// Every post is a file in content/blog, so the list is known at build time.
-export const dynamicParams = false
-export const generateStaticParams = () => postSlugs().map((slug) => ({ slug }))
+// Live posts are built ahead. A scheduled post 404s until its date, then renders
+// on the first request after the hourly revalidate.
+export const revalidate = 3600
+export const generateStaticParams = async () => (await allPosts()).map((p) => ({ slug: p.slug }))
+
+async function livePost(slug: string) {
+  if (!postSlugs().includes(slug)) notFound()
+  const loaded = await getPost(slug)
+  if (!isLive(loaded.post)) notFound()
+  return loaded
+}
 
 type Props = { params: Promise<{ slug: string }> }
 
 export async function generateMetadata({ params }: Props) {
-  return postMetadata((await getPost((await params).slug)).post)
+  return postMetadata((await livePost((await params).slug)).post)
 }
 
 export default async function BlogPostPage({ params }: Props) {
-  const { post, Content } = await getPost((await params).slug)
+  const { post, Content } = await livePost((await params).slug)
   const related: Related[] = await Promise.all(post.related.map(async (href) => {
     if (!href.startsWith('/blog/')) return href as PagePath
     const { post: other } = await getPost(href.slice('/blog/'.length))

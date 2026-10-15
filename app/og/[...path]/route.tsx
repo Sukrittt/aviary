@@ -7,7 +7,7 @@ export const dynamic = 'force-static'
 export const dynamicParams = false
 
 export async function generateStaticParams() {
-  const posts = await allPosts()
+  const posts = await allPosts({ scheduled: true })
   return [...ogCardPaths(), ...posts.map((p) => p.path)].map((path) => ({ path: path.slice(1).split('/') }))
 }
 
@@ -16,7 +16,7 @@ const KICKERS: Record<string, string> = { compare: 'Compare', tools: 'Free tool'
 export async function GET(_: Request, { params }: { params: Promise<{ path: string[] }> }) {
   const segments = (await params).path
   const path = `/${segments.join('/')}`
-  const post = segments[0] === 'blog' && segments.length === 2 ? (await allPosts()).find((p) => p.path === path) : undefined
+  const post = segments[0] === 'blog' && segments.length === 2 ? (await allPosts({ scheduled: true })).find((p) => p.path === path) : undefined
   const title = post?.title ?? ogTitle(pages[path as PagePath].title)
   return ogCard({ kicker: KICKERS[segments[0]], title })
 }

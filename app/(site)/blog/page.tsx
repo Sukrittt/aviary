@@ -4,6 +4,8 @@ import { allPosts, formatPostDate, type Post } from '@/lib/blog'
 import { ContentPage, SoftCta } from '@/src/components/content/ContentPage'
 
 export const metadata = pageMetadata('/blog')
+// Hourly, so scheduled posts appear on their date.
+export const revalidate = 3600
 
 export default async function BlogIndexPage() {
   const [latest, ...rest] = await allPosts()

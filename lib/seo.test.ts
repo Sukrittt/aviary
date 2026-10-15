@@ -6,7 +6,7 @@ import sitemap from '@/app/sitemap'
 import robots from '@/app/robots'
 import { pageMetadata, pages, publicPagePaths, SITE_URL, type PagePath } from './seo'
 import { CONTENT_SECTIONS } from './content'
-import { postSlugs } from './blog'
+import { allPosts } from './blog'
 
 function pageFiles(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -60,7 +60,7 @@ describe('site metadata', () => {
     for (const path of Object.keys(pages) as PagePath[]) {
       expect(pageMetadata(path).robots).toMatchObject({ index: publicPaths.includes(path) })
     }
-    const postPaths = postSlugs().map((slug) => `/blog/${slug}`)
+    const postPaths = (await allPosts()).map((p) => p.path)
     expect(postPaths.length).toBeGreaterThanOrEqual(4)
     expect((await sitemap()).map((entry) => entry.url).sort())
       .toEqual([...publicPaths, ...postPaths].map((path) => new URL(path, SITE_URL).href).sort())
