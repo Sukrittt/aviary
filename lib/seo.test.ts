@@ -4,7 +4,7 @@ import { join, relative } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import sitemap from '@/app/sitemap'
 import robots from '@/app/robots'
-import { pageMetadata, pages, SITE_URL, type PagePath } from './seo'
+import { pageMetadata, pages, publicPagePaths, SITE_URL, type PagePath } from './seo'
 
 function pageFiles(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -47,7 +47,7 @@ describe('site metadata', () => {
   })
 
   it('indexes only public content and keeps all financial, auth and admin pages private', () => {
-    const publicPaths = ['/', '/legal/privacy', '/legal/terms', '/legal/pricing', '/legal/refunds', '/legal/contact', '/legal/delete-account']
+    const publicPaths = ['/', '/intl', '/changelog', '/help', '/legal/privacy', '/legal/terms', '/legal/pricing', '/legal/refunds', '/legal/contact', '/legal/delete-account']
     for (const path of Object.keys(pages) as PagePath[]) {
       expect(pageMetadata(path).robots).toMatchObject({ index: publicPaths.includes(path) })
     }
@@ -57,5 +57,31 @@ describe('site metadata', () => {
       rules: { userAgent: '*', allow: '/' },
       sitemap: 'https://useaviary.com/sitemap.xml',
     })
+  })
+
+  it('links / (India) and /intl as hreflang alternates, in metadata and the sitemap', () => {
+    const languages = { 'en-IN': '/', en: '/intl', 'x-default': '/' }
+    expect(pageMetadata('/').alternates).toEqual({ canonical: 'https://useaviary.com/', languages })
+    expect(pageMetadata('/intl').alternates).toEqual({ canonical: 'https://useaviary.com/intl', languages })
+    expect(pageMetadata('/help').alternates).toEqual({ canonical: 'https://useaviary.com/help' })
+    const absolute = { 'en-IN': 'https://useaviary.com/', en: 'https://useaviary.com/intl', 'x-default': 'https://useaviary.com/' }
+    for (const url of ['https://useaviary.com/', 'https://useaviary.com/intl']) {
+      expect(sitemap().find((entry) => entry.url === url)?.alternates).toEqual({ languages: absolute })
+    }
+    expect(sitemap().find((entry) => entry.url === 'https://useaviary.com/help')).not.toHaveProperty('alternates')
+  })
+
+  it('gives public pages keyword titles, search-length descriptions and a large share card', () => {
+    expect(pageMetadata('/').title).toBe('Aviary: Budget App & Expense Tracker for India')
+    expect(pageMetadata('/expense').title).toBe('Aviary | Budget Dashboard')
+    for (const path of publicPagePaths) {
+      const { title, description, openGraph, twitter } = pageMetadata(path)
+      expect((title as string).length, `${path} title`).toBeLessThanOrEqual(65)
+      expect(description!.length, `${path} description`).toBeGreaterThanOrEqual(70)
+      expect(description!.length, `${path} description`).toBeLessThanOrEqual(160)
+      expect(description, `${path} description`).not.toContain('—')
+      expect(openGraph?.images).toEqual([expect.objectContaining({ url: '/og.png', width: 1200, height: 630 })])
+      expect(twitter).toMatchObject({ card: 'summary_large_image' })
+    }
   })
 })
