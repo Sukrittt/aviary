@@ -264,7 +264,7 @@ html:has(.lp) { scroll-behavior: smooth; }
 .lp-footer { max-width: 1240px; padding: 36px 32px 44px; margin: auto; border-top: 1px solid var(--line); display: flex; align-items: flex-start; justify-content: space-between; gap: 30px; }
 .lp-footer .lp-logo { font-size: 22px; }
 .lp-footer p { font-size: 14px; color: var(--muted); margin-top: 8px; }
-.lp-footer nav { display: grid; grid-template-columns: repeat(4, minmax(120px, auto)); gap: 22px 44px; font-size: 14px; font-weight: 600; color: var(--muted); }
+.lp-footer nav { display: grid; grid-template-columns: repeat(4, minmax(150px, auto)); gap: 28px 44px; font-size: 14px; font-weight: 600; color: var(--muted); }
 .lp-footer nav div { display: flex; flex-direction: column; align-items: flex-start; }
 .lp-footer nav h2 { margin-bottom: 4px; font-size: 13px; font-weight: 700; color: var(--ink); }
 .lp-footer nav a { min-height: 36px; display: inline-flex; align-items: center; }
@@ -823,3 +823,51 @@ html:has(.lp) { scroll-behavior: smooth; }
 /* Market switch (/ is India, /intl everywhere else) */
 .lp-market { margin: 0 auto 14px; font-size: 14px; color: var(--muted); }
 .lp-market a { color: var(--accent-ink); text-decoration: underline; text-underline-offset: 3px; }
+/* Content pages (/compare, /tools, /features): breadcrumbs, related pages, soft CTA */
+.lp-crumbs ol { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; font-size: 14px; font-weight: 600; color: var(--muted); }
+.lp-crumbs li + li::before { content: '›'; margin-right: 6px; }
+.lp-crumbs a { color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
+.lp-crumbs a:hover { color: var(--ink); }
+.lp-crumbs [aria-current] { color: var(--ink); }
+.content-doc--wide { max-width: none; }
+.legal-doc .lp-lede-doc { font-size: 19px; color: var(--ink); }
+.legal-doc table { width: 100%; margin-top: 16px; border-collapse: collapse; font-size: 15px; }
+.legal-doc th, .legal-doc td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; color: var(--muted); }
+.legal-doc thead th { color: var(--ink); font-weight: 700; }
+.legal-doc tbody th { color: var(--ink); font-weight: 600; }
+.legal-doc .table-scroll { overflow-x: auto; }
+.legal-doc figure { margin: 28px auto 0; max-width: 300px; }
+.legal-doc figure img, .legal-doc figure video { width: 100%; height: auto; border-radius: 24px; border: 1px solid var(--line); }
+.legal-doc figcaption { margin-top: 10px; font-size: 14px; color: var(--muted); text-align: center; }
+.legal-doc .checked { margin-top: 14px !important; font-size: 14px; font-weight: 600; color: var(--muted); }
+.lp-related, .lp-softcta { margin-top: 28px; padding: 32px 36px; border-radius: 28px; background: var(--card); border: 1px solid var(--line); }
+.lp-related h2, .lp-softcta h2 { font-family: var(--font-display), sans-serif; font-weight: 600; font-size: 24px; letter-spacing: -.015em; }
+.lp-related ul, .lp-hub { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+.lp-hub { margin-top: 28px; }
+.lp-related a, .lp-hub a { display: flex; flex-direction: column; gap: 4px; height: 100%; padding: 16px 18px; border-radius: 18px; border: 1px solid var(--line); background: var(--bg); transition: border-color .16s ease; text-decoration: none !important; }
+.lp-related a:hover, .lp-hub a:hover { border-color: #cfcabe; }
+.lp-related strong, .lp-hub strong { color: var(--ink); font-size: 16px; }
+.lp-related span, .lp-hub span { color: var(--muted); font-size: 14px; line-height: 1.5; }
+.lp-softcta { margin-top: 44px; background: var(--tint); border-color: #ffd7c0; text-align: center; }
+.lp-softcta p { margin: 10px auto 0; max-width: 520px; color: var(--muted); font-size: 16px !important; }
+.lp-softcta .lp-hero-actions { margin-top: 20px; justify-content: center; }
+.lp-softcta .lp-hero-note { display: block; margin-top: 14px; }
+/* Calculators */
+.lp-calc { display: grid; gap: 16px; margin-top: 24px; padding: 24px; border-radius: 24px; background: var(--bg); border: 1px solid var(--line); }
+.lp-calc-item { display: flex; flex-direction: column; gap: 6px; }
+.lp-calc label { font-size: 14px; font-weight: 700; color: var(--ink); }
+.lp-calc-field { display: flex; align-items: center; gap: 6px; padding: 0 14px; min-height: 48px; border-radius: 14px; border: 1px solid var(--line); background: var(--card); font-size: 18px; }
+.lp-calc-field:focus-within { border-color: var(--ink); }
+.lp-calc-field input, .lp-calc-field select { flex: 1; min-width: 0; border: 0; background: transparent; font: inherit; color: var(--ink); outline: none; }
+.lp-calc-hint { font-size: 13px; font-weight: 500; color: var(--muted); }
+.lp-calc-out { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.lp-calc-out div { padding: 16px; border-radius: 18px; background: var(--card); border: 1px solid var(--line); }
+.lp-calc-out dt { font-size: 13px; font-weight: 700; color: var(--muted); }
+.lp-calc-out dd { margin-top: 4px; font-family: var(--font-display), sans-serif; font-size: 26px; font-weight: 600; color: var(--ink); }
+.lp-calc-out dd small { display: block; font-family: var(--font-body), sans-serif; font-size: 13px; font-weight: 500; color: var(--muted); }
+.lp-calc-note { font-size: 15px !important; }
+@media (max-width: 640px) {
+  .lp-related, .lp-softcta { padding: 24px 20px; }
+  .lp-related ul, .lp-hub { grid-template-columns: 1fr; }
+  .lp-calc { padding: 18px; }
+}

@@ -19,7 +19,7 @@ beforeEach(() => {
 })
 
 describe('OnboardingGate', () => {
-  it.each(['/legal/privacy', '/legal/terms', '/', '/intl', '/help', '/changelog'])('renders public page %s straight away, without asking for the user', (path) => {
+  it.each(['/legal/privacy', '/legal/terms', '/', '/intl', '/help', '/changelog', '/compare/goodbudget', '/tools/50-30-20-calculator', '/features/ask-aviary'])('renders public page %s straight away, without asking for the user', (path) => {
     mockPathname = path
     render(<OnboardingGate><p>page</p></OnboardingGate>)
     expect(screen.getByText('page')).toBeTruthy()

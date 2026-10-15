@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest'
 import sitemap from '@/app/sitemap'
 import robots from '@/app/robots'
 import { pageMetadata, pages, publicPagePaths, SITE_URL, type PagePath } from './seo'
+import { CONTENT_SECTIONS } from './content'
 
 function pageFiles(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -47,7 +48,9 @@ describe('site metadata', () => {
   })
 
   it('indexes only public content and keeps all financial, auth and admin pages private', () => {
-    const publicPaths = ['/', '/intl', '/changelog', '/help', '/legal/privacy', '/legal/terms', '/legal/pricing', '/legal/refunds', '/legal/contact', '/legal/delete-account']
+    const contentPaths = Object.values(CONTENT_SECTIONS).flatMap((s) => [s.path, ...s.pages.map(([p]) => p)])
+    expect(contentPaths).toHaveLength(20)
+    const publicPaths = ['/', '/intl', '/changelog', '/help', ...contentPaths, '/legal/privacy', '/legal/terms', '/legal/pricing', '/legal/refunds', '/legal/contact', '/legal/delete-account']
     for (const path of Object.keys(pages) as PagePath[]) {
       expect(pageMetadata(path).robots).toMatchObject({ index: publicPaths.includes(path) })
     }
