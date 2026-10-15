@@ -1,7 +1,7 @@
 'use client'
 
 import { useId, useState } from 'react'
-import { emergencyFund, lakhs, rentAffordability, salaryPlan, split503020 } from '@/lib/tools/money'
+import { emergencyFund, lakhs, rentAffordability, salaryPlan, sinkingFund, split503020 } from '@/lib/tools/money'
 import { formatINR } from '@/src/lib/format'
 
 /** A rupee amount field. Keeps digits only and shows the amount the Indian way under it. */
@@ -62,6 +62,40 @@ export function EmergencyFundCalculator() {
     <MoneyField label="You can put aside a month" value={perMonth} onChange={setPerMonth} />
     <Results items={[['Your target', r.target, lakhs(r.target)], ['Still to save', r.gap]]} />
     <p className="lp-calc-note" aria-live="polite">{r.monthsToGoal === 0 ? 'You’re covered. Anything more can go to your goals.' : r.monthsToGoal === null ? 'Add a monthly amount to see when you’ll get there.' : `At ${formatINR(perMonth ?? 0)} a month, you’ll get there in ${r.monthsToGoal} ${r.monthsToGoal === 1 ? 'month' : 'months'}.`}</p>
+  </div>
+}
+
+/** Common yearly costs to start from. Every row is editable. */
+const SINKING_DEFAULTS = [
+  { name: 'Health insurance', amount: 18000, months: 12 },
+  { name: 'Diwali', amount: 15000, months: 8 },
+  { name: 'Vehicle insurance', amount: 9000, months: 6 },
+  { name: 'New phone', amount: 24000, months: 18 },
+]
+
+const digits = (s: string, max: number) => Number(s.replace(/\D/g, '').slice(0, max))
+
+export function SinkingFundCalculator() {
+  const [costs, setCosts] = useState(SINKING_DEFAULTS)
+  const r = sinkingFund(costs)
+  const edit = (i: number, patch: Partial<(typeof costs)[number]>) => setCosts(costs.map((c, j) => (j === i ? { ...c, ...patch } : c)))
+  return <div className="lp-calc">
+    <div className="table-scroll"><table className="lp-calc-costs">
+      <thead><tr><th scope="col">Cost</th><th scope="col">Amount</th><th scope="col">Months until due</th><th scope="col">Set aside a month</th><th scope="col"><span className="lp-sr-only">Remove</span></th></tr></thead>
+      <tbody>{costs.map((c, i) => {
+        const what = c.name || `cost ${i + 1}`
+        return <tr key={i}>
+          <td><span className="lp-calc-field"><input aria-label={`Name of cost ${i + 1}`} autoComplete="off" value={c.name} placeholder="School fees" onChange={(e) => edit(i, { name: e.target.value })} /></span></td>
+          <td><span className="lp-calc-field"><span aria-hidden="true">₹</span><input aria-label={`Amount for ${what}`} inputMode="numeric" autoComplete="off" value={c.amount ? c.amount.toLocaleString('en-IN') : ''} placeholder="0" onChange={(e) => edit(i, { amount: digits(e.target.value, 10) })} /></span></td>
+          <td><span className="lp-calc-field"><input aria-label={`Months until ${what} is due`} inputMode="numeric" autoComplete="off" value={c.months || ''} placeholder="1" onChange={(e) => edit(i, { months: digits(e.target.value, 3) })} /></span></td>
+          <td>{formatINR(r.monthly[i])}</td>
+          <td><button type="button" className="lp-calc-remove" aria-label={`Remove ${what}`} onClick={() => setCosts(costs.filter((_, j) => j !== i))}>×</button></td>
+        </tr>
+      })}</tbody>
+    </table></div>
+    <button type="button" className="lp-button lp-button--ghost lp-calc-add" onClick={() => setCosts([...costs, { name: '', amount: 0, months: 12 }])}>Add a cost</button>
+    <Results items={[['Set aside a month', r.total, `${formatINR(r.total * 12)} a year`]]} />
+    <p className="lp-calc-note">Each amount is rounded up to the nearest ₹100, so you’ll have a little more than you need when the bill comes.</p>
   </div>
 }
 

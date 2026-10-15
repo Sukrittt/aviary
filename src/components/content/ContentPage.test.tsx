@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -5,8 +6,13 @@ import { describe, expect, it, vi } from 'vitest'
 import { CONTENT_SECTIONS } from '@/lib/content'
 import { LandingFooter } from '@/src/components/landing/Chrome'
 import YnabPage from '@/app/(site)/compare/ynab-alternative-india/page'
+import SpreadsheetPage from '@/app/(site)/compare/budget-spreadsheet/page'
 import Budget25kPage from '@/app/(site)/tools/budget-for-25000-salary/page'
-import { Calculator503020, RentCalculator, SalaryPlanner } from './Calculators'
+import Budget30kPage from '@/app/(site)/tools/budget-for-30000-salary/page'
+import Budget50kPage from '@/app/(site)/tools/budget-for-50000-salary/page'
+import Budget80kPage from '@/app/(site)/tools/budget-for-80000-salary/page'
+import SinkingFundPage from '@/app/(site)/tools/sinking-fund-calculator/page'
+import { Calculator503020, RentCalculator, SalaryPlanner, SinkingFundCalculator } from './Calculators'
 
 vi.mock('@/src/lib/analytics', () => ({ track: vi.fn() }))
 
@@ -39,8 +45,15 @@ describe('content pages', () => {
   })
 
   it('have em-dash-free copy', () => {
-    expect(renderToStaticMarkup(<YnabPage />)).not.toContain('—')
-    expect(renderToStaticMarkup(<Budget25kPage />)).not.toContain('—')
+    for (const Page of [YnabPage, SpreadsheetPage, Budget25kPage, Budget30kPage, Budget50kPage, Budget80kPage, SinkingFundPage]) expect(renderToStaticMarkup(<Page />)).not.toContain('—')
+  })
+
+  it('link a spreadsheet template whose envelopes add up to the ₹45,000 salary', () => {
+    expect(renderToStaticMarkup(<SpreadsheetPage />)).toContain('href="/templates/aviary-envelope-budget-template.csv"')
+    const rows = readFileSync('public/templates/aviary-envelope-budget-template.csv', 'utf8').trim().split('\n').slice(1, -1).map((r) => r.split(','))
+    expect(rows).toHaveLength(11)
+    expect(rows.reduce((sum, r) => sum + Number(r[1]), 0)).toBe(45000)
+    rows.forEach((r, i) => expect(r[3]).toBe(`=B${i + 2}-C${i + 2}`))
   })
 
   it('are all linked from the footer', () => {
@@ -52,6 +65,17 @@ describe('content pages', () => {
 })
 
 describe('calculators', () => {
+  it('total a monthly set-aside for yearly costs, and update as you edit or remove one', async () => {
+    render(<SinkingFundCalculator />)
+    expect(screen.getByText('₹6,300')).toBeInTheDocument()
+    const diwali = screen.getByLabelText('Months until Diwali is due')
+    await userEvent.clear(diwali)
+    await userEvent.type(diwali, '1')
+    expect(screen.getByRole('row', { name: /Diwali/ })).toHaveTextContent('₹15,000')
+    await userEvent.click(screen.getByRole('button', { name: 'Remove Diwali' }))
+    expect(screen.getByText('₹4,400')).toBeInTheDocument()
+  })
+
   it('recalculate in rupees with Indian grouping as you type', async () => {
     render(<Calculator503020 />)
     const input = screen.getByLabelText('Monthly take-home pay')

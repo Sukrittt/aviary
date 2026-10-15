@@ -4,7 +4,10 @@ import { lakhs } from '@/lib/tools/money'
 import { ContentPage, SoftCta } from './ContentPage'
 import { SalaryPlanner } from './Calculators'
 
-const SALARY_PAGES: [number, PagePath][] = [[25000, '/tools/budget-for-25000-salary'], [40000, '/tools/budget-for-40000-salary'], [60000, '/tools/budget-for-60000-salary'], [100000, '/tools/budget-for-1-lakh-salary']]
+const SALARY_PAGES: [number, PagePath][] = [
+  [25000, '/tools/budget-for-25000-salary'], [30000, '/tools/budget-for-30000-salary'], [40000, '/tools/budget-for-40000-salary'], [50000, '/tools/budget-for-50000-salary'],
+  [60000, '/tools/budget-for-60000-salary'], [80000, '/tools/budget-for-80000-salary'], [100000, '/tools/budget-for-1-lakh-salary'],
+]
 
 /** A pre-filled salary budget page. The copy is each page's own; this is just the frame. */
 export function SalaryBudget({ salary, path, intro, children }: { salary: number; path: PagePath; intro: ReactNode; children: ReactNode }) {

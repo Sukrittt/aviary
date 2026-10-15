@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { emergencyFund, lakhs, rentAffordability, salaryPlan, split503020 } from './money'
+import { emergencyFund, lakhs, rentAffordability, salaryPlan, sinkingFund, split503020 } from './money'
 
 describe('lakhs', () => {
   it('says round salaries the way people say them', () => {
@@ -103,5 +103,30 @@ describe('rentAffordability', () => {
 
   it('is zero, not negative, when EMIs already take 40% or more', () => {
     expect(rentAffordability({ salary: 50000, emis: 25000 })).toEqual({ comfortable: 0, stretch: 0 })
+  })
+})
+
+describe('sinkingFund', () => {
+  it('splits each cost over the months until it’s due, rounded up to ₹100, and totals the set-asides', () => {
+    expect(sinkingFund([
+      { amount: 18000, months: 12 },
+      { amount: 15000, months: 8 },
+      { amount: 9000, months: 6 },
+    ])).toEqual({ monthly: [1500, 1900, 1500], total: 4900 })
+  })
+
+  it('never sets aside less than the cost by its due date', () => {
+    const { monthly } = sinkingFund([{ amount: 24001, months: 18 }])
+    expect(monthly[0]).toBe(1400)
+    expect(monthly[0] * 18).toBeGreaterThanOrEqual(24001)
+  })
+
+  it('treats a cost due now, or junk months, as due in one month', () => {
+    for (const months of [0, -3, 0.5, Number.NaN]) expect(sinkingFund([{ amount: 5000, months }]).monthly).toEqual([5000])
+  })
+
+  it('ignores empty and negative amounts', () => {
+    expect(sinkingFund([{ amount: 0, months: 12 }, { amount: -500, months: 2 }])).toEqual({ monthly: [0, 0], total: 0 })
+    expect(sinkingFund([])).toEqual({ monthly: [], total: 0 })
   })
 })

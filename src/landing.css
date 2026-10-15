@@ -863,6 +863,15 @@ html:has(.lp) { scroll-behavior: smooth; }
 .lp-calc-out dd { margin-top: 4px; font-family: var(--font-display), sans-serif; font-size: 26px; font-weight: 600; color: var(--ink); }
 .lp-calc-out dd small { display: block; font-family: var(--font-body), sans-serif; font-size: 13px; font-weight: 500; color: var(--muted); }
 .lp-calc-note { font-size: 15px !important; }
+.lp-calc .lp-calc-costs { margin-top: 0; }
+.lp-calc-costs td { vertical-align: middle; color: var(--ink); white-space: nowrap; }
+.lp-calc-costs td:first-child { min-width: 170px; }
+.lp-calc-costs td:nth-child(2) { min-width: 130px; }
+.lp-calc-costs td:nth-child(3) { min-width: 90px; }
+.lp-calc-costs .lp-calc-field { min-height: 44px; padding: 0 10px; font-size: 16px; }
+.lp-calc-remove { width: 36px; height: 36px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); color: var(--muted); font-size: 20px; line-height: 1; cursor: pointer; }
+.lp-calc-remove:hover { color: var(--ink); border-color: var(--ink); }
+.lp .lp-calc-add { justify-self: start; min-height: 44px; padding: 0 20px; font-size: 15px; }
 @media (max-width: 640px) {
   .lp-related, .lp-softcta { padding: 24px 20px; }
   .lp-related ul { grid-template-columns: 1fr; }
