@@ -190,7 +190,9 @@ describe('web and mobile releases', () => {
     expect((await latestUnseenRelease('user_1'))?.otaAfter).toBeNull()
     await published({ platform: 'mobile' })
     expect((await latestUnseenRelease('user_1', 'mobile'))?.otaAfter).toBeNull()
-    expect((await saveChangelogAction(null, form({ platform: 'mobile', otaAfter: 'not a date' })))?.ok).toBe(false)
+    for (const otaAfter of ['not a date', '2026-02-30T09:30', '2026-04-31T09:30:00.000Z']) {
+      expect((await saveChangelogAction(null, form({ platform: 'mobile', otaAfter })))?.ok).toBe(false)
+    }
   })
 
   it('rejects an unknown platform', async () => {
