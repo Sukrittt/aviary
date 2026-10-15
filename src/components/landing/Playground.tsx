@@ -19,6 +19,8 @@ import { useOnScreen } from './useOnScreen'
  * against the sample month, chime and buzz included.
  */
 
+const ELSEWHERE = 'This demo only logs. Home, categories and the rest are in the app.'
+
 type Tap = { x: number; y: number; n: number }
 
 const sleep = (ms: number, alive: () => boolean) =>
@@ -182,7 +184,7 @@ export function Playground() {
                   <motion.div key={screen === 'log' ? `log:${run}` : 'added'} style={{ position: 'absolute', inset: 0 }}
                     initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { duration: 0.25 } }} exit={{ opacity: 0, transition: { duration: 0.25 } }}>
                     {screen === 'log'
-                      ? <LogExpenseScreen categories={categories} groups={GROUPS} prefill={prefill} publish={setSubmit} onAdded={onAdded} />
+                      ? <LogExpenseScreen categories={categories} groups={GROUPS} prefill={prefill} publish={setSubmit} onAdded={onAdded} onElsewhere={() => say(ELSEWHERE)} />
                       : added && <ExpenseAddedScreen expense={added.expense} before={added.before} muted={!mine}
                           onDone={() => fresh(true)}
                           onUndo={() => {
@@ -197,7 +199,7 @@ export function Playground() {
                   <div style={{ pointerEvents: 'auto' }}>
                     <FloatingNav active={null} addActive addSaving={submit.saving} addSuccess={submit.success}
                       addHint={logs === 0 && submit.canSubmit && !submit.saving && !submit.success}
-                      addInvalid={!submit.hasAmount} addDisabled={submit.saving || submit.success} onSelect={() => { say('This demo only logs. Home, categories and the rest are in the app.'); return false }} onAdd={() => submit.submit()} />
+                      addInvalid={!submit.hasAmount} addDisabled={submit.saving || submit.success} onSelect={() => say(ELSEWHERE)} onAdd={() => submit.submit()} />
                   </div>
                 </div>}
               </div>

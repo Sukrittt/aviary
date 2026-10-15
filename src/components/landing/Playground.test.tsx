@@ -75,7 +75,7 @@ describe('log playground', () => {
     expect(screen.getByRole('button', { name: 'Category: Travel' })).toBeInTheDocument()
 
     for (const k of ['2', '4', '0']) fireEvent.click(container.querySelector(`button.m-key[aria-label="${k}"]`)!)
-    fireEvent.click(screen.getByRole('tab', { name: 'Log expense' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Log expense' }))
     await run(2500)
     expect(screen.getByText('Added')).toBeInTheDocument()
     expect(play).toHaveBeenCalledTimes(1)
@@ -104,7 +104,7 @@ describe('log playground', () => {
     fireEvent.click(screen.getAllByRole('button', { name: /Outings/ }).at(-1)!)
     await run(400)
     expect(screen.getByText('Tap + to save')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('tab', { name: 'Log expense' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Log expense' }))
     await run(2500)
     expect(screen.getByText('Added')).toBeInTheDocument()
   })
@@ -116,7 +116,7 @@ describe('log playground', () => {
     await run(600)
     for (const k of ['5', '0']) fireEvent.click([...container.querySelectorAll(`button.m-key[aria-label="${k}"]`)].at(-1)!)
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Log expense' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Log expense' }))
     await run(400)
     expect(screen.getByText('Choose a category')).toBeInTheDocument()
     expect(screen.queryByText('Added')).not.toBeInTheDocument()
@@ -135,16 +135,20 @@ describe('log playground', () => {
     await run(700) // typed, but the suggestion hasn't landed yet
     expect(screen.getAllByRole('button', { name: 'Category' }).at(-1)).toHaveTextContent('Pick a category')
     for (const k of ['5', '0']) fireEvent.click([...container.querySelectorAll(`button.m-key[aria-label="${k}"]`)].at(-1)!)
-    fireEvent.click(screen.getByRole('tab', { name: 'Log expense' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Log expense' }))
     await run(3000) // the suggestion lands under the open picker
     fireEvent.click(screen.getAllByRole('button', { name: /Subscriptions/ }).at(-1)!)
     await run(2500)
     expect(screen.getByText('Added')).toBeInTheDocument()
   })
 
-  it('has no chat icon in the header', async () => {
+  it('has the app’s header buttons, which say the demo only logs', () => {
     render(<Playground />)
-    expect(screen.queryByRole('button', { name: 'Log several spends at once' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Try it yourself' }))
+    for (const name of ['Log several spends at once', 'Add income']) {
+      fireEvent.click(screen.getAllByRole('button', { name }).at(-1)!)
+      expect(screen.getByText(/This demo only logs/)).toBeInTheDocument()
+    }
   })
 })
 
