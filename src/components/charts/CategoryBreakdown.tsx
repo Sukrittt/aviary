@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { AnimatePresence, motion } from 'motion/react'
 import { CheckIcon, FunnelSimpleIcon, TrendDownIcon, TrendUpIcon, XIcon } from '@/src/components/icons'
 import type { BreakdownRow, MonthComparison } from '@/src/lib/monthly'
-import { avatarInkFor, avatarStyleFor } from '@/src/lib/emoji'
+import { avatarInkFor, avatarStyleFor, chartInk } from '@/src/lib/emoji'
 import { DonutChart, type DonutSegment } from './DonutChart'
 import { AutoHeight, PopIn, ease } from '@/src/components/landing/mobile/kit'
 import { BirdEmptyState } from '../BirdEmptyState'
@@ -81,6 +81,8 @@ function BudgetBar({ pct, color, play, delay }: { pct: number; color: string; pl
   )
 }
 
+const OTHER_FILL = chartInk('var(--erd-text3)')
+
 function buildSegments(rows: BreakdownRow[], colors: Map<string, string>): DonutSegment[] {
   const big = rows.filter((row) => row.pct >= DONUT_TAIL_PCT)
   const small = rows.filter((row) => row.pct < DONUT_TAIL_PCT)
@@ -89,7 +91,7 @@ function buildSegments(rows: BreakdownRow[], colors: Map<string, string>): Donut
     label: row.label,
     emoji: '',
     value: row.spent,
-    color: colors.get(row.key) ?? 'var(--erd-text3)',
+    color: colors.get(row.key) ?? OTHER_FILL,
   }))
   if (small.length > 0) {
     segments.push({
@@ -97,7 +99,7 @@ function buildSegments(rows: BreakdownRow[], colors: Map<string, string>): Donut
       label: 'Other',
       emoji: '',
       value: small.reduce((sum, row) => sum + row.spent, 0),
-      color: 'var(--erd-text3)',
+      color: OTHER_FILL,
     })
   }
   return segments
@@ -176,7 +178,7 @@ export function CategoryBreakdown({ rows, categoryRows, groupRows, categoryGroup
   // category is one colour everywhere instead of whatever its rank here is.
   const colors = useMemo(() => {
     const map = new Map<string, string>()
-    rows.forEach((row) => map.set(row.key, avatarInkFor(row.label)))
+    rows.forEach((row) => map.set(row.key, chartInk(avatarInkFor(row.label))))
     return map
   }, [rows])
 
@@ -336,7 +338,7 @@ export function CategoryBreakdown({ rows, categoryRows, groupRows, categoryGroup
                               </span>
                             )}
                           </span>
-                          {hasBudget ? <BudgetBar pct={pct} color={colors.get(row.key) ?? 'var(--erd-text3)'} play={play} delay={rowDelay + BAR_OFFSET_MS} /> : <span className="ins-budget-track" />}
+                          {hasBudget ? <BudgetBar pct={pct} color={colors.get(row.key) ?? OTHER_FILL} play={play} delay={rowDelay + BAR_OFFSET_MS} /> : <span className="ins-budget-track" />}
                           <small>{hasBudget ? `${formatCurrency(row.spent, hideAmounts)} of ${formatCurrency(row.assigned, hideAmounts)}` : 'No budget set'}</small>
                           {selected && mode === 'category' && (
                             <Link href={`/expense/transactions?category=${encodeURIComponent(row.key)}`} onClick={(event) => event.stopPropagation()}>
@@ -450,7 +452,7 @@ export function CategoryBreakdown({ rows, categoryRows, groupRows, categoryGroup
 /** Ties a row to its donut wedge: the category's tinted icon tile (as on the
  *  Categories card), or a plain dot in the wedge colour when there's no icon. */
 function RowMark({ row, color }: { row: BreakdownRow; color: string | undefined }) {
-  if (!row.icon) return <i style={{ background: color ?? 'var(--erd-text3)' }} />
+  if (!row.icon) return <i style={{ background: color ?? OTHER_FILL }} />
   return (
     <span className="ins-row-icon" style={avatarStyleFor(row.label)} aria-hidden="true">
       <CategoryIcon name="" icon={row.icon} />
