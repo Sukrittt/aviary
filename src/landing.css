@@ -882,7 +882,7 @@ html:has(.lp) { scroll-behavior: smooth; }
 .legal-doc .blog-dek { max-width: 600px; margin: 18px auto 0; font-size: 19px; line-height: 1.55; }
 .blog-dek a { white-space: nowrap; }
 .blog-author { display: inline-flex; align-items: center; gap: 12px; margin-top: 28px; text-align: left; }
-.blog-author > span { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; background: var(--tint); color: var(--accent-ink); font-family: var(--font-serif), Georgia, serif; font-size: 22px; font-weight: 600; }
+.blog-author > span { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; background: var(--tint); color: var(--accent-ink); font-family: var(--font-display), sans-serif; font-size: 20px; font-weight: 600; line-height: 1; }
 .legal-doc .blog-author p { display: flex; flex-direction: column; margin: 0; font-size: 15px; line-height: 1.35; }
 .legal-doc .blog-author a { color: var(--ink); font-weight: 700; text-decoration: none; }
 .blog-author small { font-size: 14px; color: var(--muted); }
