@@ -51,6 +51,7 @@ export async function PATCH(req: Request) {
       | 'notifyCoach'
       | 'notifyWrapped'
       | 'hiddenFeatures'
+      | 'activityFeed'
     >
   > = {}
   if ('currencyCode' in body) {
@@ -72,6 +73,7 @@ export async function PATCH(req: Request) {
   }
   if (typeof body.notifyCoach === 'boolean') updates.notifyCoach = body.notifyCoach
   if (typeof body.notifyWrapped === 'boolean') updates.notifyWrapped = body.notifyWrapped
+  if (typeof body.activityFeed === 'boolean') updates.activityFeed = body.activityFeed
   if ('hiddenFeatures' in body) {
     const list = body.hiddenFeatures
     if (!Array.isArray(list) || !list.every((f) => HIDEABLE_FEATURES.includes(f))) return error('invalid hiddenFeatures')

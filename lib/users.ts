@@ -46,6 +46,8 @@ export interface UserDoc {
   /** Push when a new monthly Wrapped edition unlocks — independent of `notifyCadence`. */
   notifyWrapped?: boolean
   hiddenFeatures?: HideableFeature[]
+  /** Activity can show expenses as a photo feed. Off unless turned on in More → Features. */
+  activityFeed?: boolean
   /** Legacy fields from before the flat `name` field — read via `displayName`, never written. */
   firstName?: string | null
   lastName?: string | null
