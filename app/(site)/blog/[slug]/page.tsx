@@ -27,7 +27,7 @@ export default async function BlogPostPage({ params }: Props) {
     {jsonLd(articleJsonLd(post))}
     <h1>{post.title}</h1>
     <p className="legal-updated lp-byline">
-      By <a href={AUTHOR.url} rel="author noreferrer" target="_blank">{post.author}</a>, {AUTHOR.bio}
+      By {post.author === AUTHOR.name ? <><a href={AUTHOR.url} rel="author noreferrer" target="_blank">{post.author}</a>, {AUTHOR.bio}</> : post.author}
       {' · '}<time dateTime={post.published}>{formatPostDate(post.published)}</time>
       {post.updated !== post.published && <> · Updated <time dateTime={post.updated}>{formatPostDate(post.updated)}</time></>}
       {' · '}{post.readingMinutes} min read
