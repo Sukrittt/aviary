@@ -13,7 +13,7 @@ import { resolveCategoryName } from '@/lib/categoryName'
 import { flagIfDuplicate } from '@/lib/duplicates'
 import { markManualTransactionComplete } from '@/lib/users'
 import { AccountError, liveAccount, paymentMethodFor } from '@/lib/accounts'
-import { deleteExpensePhotoQuietly } from '@/lib/expensePhoto'
+import { deleteExpensePhotoQuietly, getExpensePhotoUrl, FEED_PHOTO_URL_TTL_MS } from '@/lib/expensePhoto'
 
 export const dynamic = 'force-dynamic'
 
@@ -163,9 +163,15 @@ export async function GET(req: Request) {
     totalAmount = totals.amount
   }
 
+  // `photos=1` (Activity's feed view) adds a signed `photo_url` per photo row,
+  // so the feed doesn't make one request per card.
+  const rows = url.searchParams.get('photos') === '1'
+    ? await Promise.all(pageDocs.map((d) => expenseRowWithPhotoUrl(auth.userId, d)))
+    : pageDocs.map((d) => expenseRow(d))
+
   return json({
     headers: EXPENSE_HEADERS,
-    rows: pageDocs.map((d) => (expenseRow(d))),
+    rows,
     total,
     totalAmount,
     ...pageMeta(total, page, limit),
@@ -177,6 +183,19 @@ export async function GET(req: Request) {
 function expenseRow(doc: Record<string, unknown>) {
   // `account_id` rides outside EXPENSE_HEADERS like `id`: that array is also the CSV export's columns.
   return { ...toRow(EXPENSE_HEADERS, doc), id: String(doc._id), version: Number(doc.version ?? 0), account_id: String(doc.account_id ?? ''), has_photo: typeof doc.photo_file === 'string' }
+}
+
+// A signing failure drops just that row's `photo_url`; the feed falls back to
+// its category card rather than failing the whole page.
+async function expenseRowWithPhotoUrl(userId: string, doc: Record<string, unknown>) {
+  const row = expenseRow(doc)
+  if (typeof doc.photo_file !== 'string') return row
+  try {
+    return { ...row, photo_url: await getExpensePhotoUrl(userId, String(doc._id), doc.photo_file, FEED_PHOTO_URL_TTL_MS) }
+  } catch (err) {
+    console.error('expense photo: signing failed for', userId, String(doc._id), err)
+    return row
+  }
 }
 
 class ExpenseWriteError extends Error {
