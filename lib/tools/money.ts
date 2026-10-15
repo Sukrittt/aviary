@@ -63,6 +63,15 @@ export function emergencyFund({ monthlyEssentials, months = 6, saved = 0, monthl
 }
 
 /**
+ * What to put aside each month so every yearly or irregular cost is covered
+ * by its due date: the cost over the months left (at least 1), rounded up to ₹100.
+ */
+export function sinkingFund(costs: { amount: number; months: number }[]) {
+  const monthly = costs.map((c) => Math.ceil(amount(c.amount) / Math.max(1, amount(c.months)) / 100) * 100)
+  return { monthly, total: monthly.reduce((sum, n) => sum + n, 0) }
+}
+
+/**
  * Rent that fits a take-home `salary`: 25% is comfortable, 30% a stretch, and
  * rent plus EMIs stays within 40%. Rounded down to ₹500, like listings are.
  */
