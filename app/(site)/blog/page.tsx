@@ -15,7 +15,7 @@ export default async function BlogIndexPage() {
       <p className="blog-dek">Plain guides to budgeting in India. Real rupee examples, no jargon, nothing to sell you until the last line. New posts land in the <a href="/blog/rss.xml">RSS feed</a> too.</p>
     </header>
     <ul className="blog-cards">
-      <PostCard post={latest} featured />
+      {latest && <PostCard post={latest} featured />}
       {rest.map((post) => <PostCard key={post.slug} post={post} />)}
     </ul>
     <SoftCta title="Try the method, not just the reading" placement="blog_index">Aviary turns these guides into a budget you can keep up with. Free for 30 days.</SoftCta>
