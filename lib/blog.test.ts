@@ -53,15 +53,15 @@ describe('blog posts', () => {
   it('get article metadata with a canonical URL and an RSS link', async () => {
     const { post } = await getPost('first-salary-budget')
     const meta = postMetadata(post)
-    expect(meta.alternates?.canonical).toBe('https://useaviary.com/blog/first-salary-budget')
+    expect(meta.alternates?.canonical).toBe('https://www.useaviary.com/blog/first-salary-budget')
     expect(meta.alternates?.types).toHaveProperty('application/rss+xml')
     expect(meta.openGraph).toMatchObject({ type: 'article', publishedTime: post.published })
-    expect(articleJsonLd(post)).toMatchObject({ '@type': 'Article', author: { name: 'Sukrit' }, mainEntityOfPage: 'https://useaviary.com/blog/first-salary-budget' })
+    expect(articleJsonLd(post)).toMatchObject({ '@type': 'Article', author: { name: 'Sukrit' }, mainEntityOfPage: 'https://www.useaviary.com/blog/first-salary-budget' })
   })
 
   it('all go in the RSS feed', async () => {
     const xml = await (await rss()).text()
-    for (const slug of postSlugs()) expect(xml).toContain(`<link>https://useaviary.com/blog/${slug}</link>`)
+    for (const slug of postSlugs()) expect(xml).toContain(`<link>https://www.useaviary.com/blog/${slug}</link>`)
     expect(xml).not.toMatch(/&(?!amp;|lt;|gt;)/)
   })
 })
