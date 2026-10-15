@@ -71,7 +71,7 @@ const EXTRA_USER_COLLECTIONS = ['notification_threshold_state', 'ai_usage', 'ema
 /**
  * Irreversible, immediate account purge (admin only): WorkOS user, every
  * row with this `user_id` (live or archived), stored bill-scan images,
- * expense photos and exports in Vercel Blob, then the `users` doc. WorkOS goes first, like the
+ * expense photos, bug report screenshots and exports in Vercel Blob, then the `users` doc. WorkOS goes first, like the
  * GC cron, so a failure there leaves everything intact to retry.
  */
 export async function purgeAccountNow(db: Db, userId: string): Promise<{ rows: number; blobs: number }> {
@@ -93,7 +93,7 @@ export async function purgeAccountNow(db: Db, userId: string): Promise<{ rows: n
 
   let blobs = 0
   if (process.env.BLOB_READ_WRITE_TOKEN) {
-    for (const prefix of [`bills/${userId}/`, `exports/${userId}/`, `expense-photos/${userId}/`]) {
+    for (const prefix of [`bills/${userId}/`, `exports/${userId}/`, `expense-photos/${userId}/`, `feedback-screenshots/${userId}/`]) {
       let cursor: string | undefined
       do {
         const page = await list({ prefix, cursor })
