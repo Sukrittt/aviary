@@ -5,6 +5,19 @@ const globalWithMongo = globalThis as typeof globalThis & {
 }
 
 /**
+ * `users._id` is the WorkOS user id, so a server pairing the staging WorkOS
+ * with the prod DB (or the reverse) writes users whose ids the other side
+ * never issued — duplicate accounts per email. Staging keys are `sk_test_…`.
+ * Unknown DB names (tests, scratch) pass.
+ */
+export function assertWorkOSMatchesDb(dbName: string, apiKey: string | undefined): void {
+  if (!apiKey) return
+  const staging = apiKey.startsWith('sk_test_')
+  if (dbName === 'expenses' && staging) throw new Error('Refusing to start: staging WorkOS key (sk_test_) with the production DB "expenses".')
+  if (dbName === 'expenses-dev' && !staging) throw new Error('Refusing to start: production WorkOS key with the dev DB "expenses-dev".')
+}
+
+/**
  * Return a cached MongoClient connected to MONGODB_URI.
  *
  * The client is cached on `globalThis` so hot-reloads (dev) and repeated
@@ -20,6 +33,7 @@ export async function getClient(): Promise<MongoClient> {
     throw new Error('MONGODB_URI is not defined. Set it in .env.local or the deployment environment.')
   }
   if (!globalWithMongo._mongoClientPromise) {
+    assertWorkOSMatchesDb(new URL(uri).pathname.slice(1), process.env.WORKOS_API_KEY)
     const client = new MongoClient(uri)
     const connecting = client.connect().catch((err: unknown) => {
       if (globalWithMongo._mongoClientPromise === connecting) globalWithMongo._mongoClientPromise = undefined

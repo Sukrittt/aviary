@@ -9,7 +9,7 @@ vi.mock('mongodb', () => ({
   }),
 }))
 
-const { getClient } = await import('./mongodb')
+const { getClient, assertWorkOSMatchesDb } = await import('./mongodb')
 
 describe('getClient', () => {
   beforeEach(() => {
@@ -36,4 +36,13 @@ describe('getClient', () => {
     await expect(getClient()).resolves.toBeTruthy()
     expect(connect).toHaveBeenCalledTimes(2)
   })
+})
+
+it('refuses mismatched WorkOS environment and DB, allows the rest', () => {
+  expect(() => assertWorkOSMatchesDb('expenses', 'sk_test_abc')).toThrow(/staging WorkOS/)
+  expect(() => assertWorkOSMatchesDb('expenses-dev', 'sk_abc')).toThrow(/production WorkOS/)
+  expect(() => assertWorkOSMatchesDb('expenses', 'sk_abc')).not.toThrow()
+  expect(() => assertWorkOSMatchesDb('expenses-dev', 'sk_test_abc')).not.toThrow()
+  expect(() => assertWorkOSMatchesDb('scratch', 'sk_abc')).not.toThrow()
+  expect(() => assertWorkOSMatchesDb('expenses', undefined)).not.toThrow()
 })
