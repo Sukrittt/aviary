@@ -112,4 +112,11 @@ describe('GET /api/ai/brief', () => {
     expect(body.narrative).toContain('21,000')
     expect(body.cards).toHaveLength(3)
   })
+
+  it('gives the narrative a deadline well inside the app wait, so a slow Gemini still reaches the fallback', async () => {
+    await GET(req())
+    const opts = generateJSON.mock.calls[0][3] as { timeoutMs?: number } | undefined
+    // The app gives up at 15s and Vercel at maxDuration (30s). Without a deadline a hung call never falls back.
+    expect(opts?.timeoutMs).toBeLessThanOrEqual(8_000)
+  })
 })
