@@ -68,6 +68,8 @@ async function writeNarrative(
     prompt,
     { type: Type.OBJECT, properties: { narrative: { type: Type.STRING } }, required: ['narrative'] },
     caller,
+    // The app gives up on the whole brief at 15s; past this, fallbackNarrative answers instead.
+    { timeoutMs: 8_000 },
   )
   return scrubEmDashes(narrative)
 }

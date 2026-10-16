@@ -19,6 +19,15 @@ const MODEL = 'gemini-3.5-flash-lite'
 // Nothing has been streamed to the client yet at that point, so replaying is safe.
 const RETRY_STATUSES = [429, 503]
 
+// Each call's whole budget, its 503 retry included. Without one, the
+// 2026-10-13 spike (3.5-flash-lite answering 503 only after ~25s) held
+// requests until Vercel killed them at maxDuration, so nothing got to its
+// fallback (the brief's stock line), its 502 (scan) or its error frame (chat).
+// Kept under the apps' own waits: 15s for the brief, 45s for a scan.
+const TIMEOUT_MS = 10_000
+// A chat reply streams for its whole length under this, inside chat's 60s.
+const STREAM_TIMEOUT_MS = 40_000
+
 function isRetryable(err: unknown): boolean {
   const text = String((err as Error)?.message ?? err)
   return RETRY_STATUSES.some((status) => text.includes(String(status)))
@@ -139,10 +148,11 @@ export async function generateJSON<T>(
   responseSchema: Schema,
   caller: AiCaller,
   /** Race a backup model once the first call has taken this long (see `hedged`). For calls someone is waiting on. */
-  { hedgeAfterMs }: { hedgeAfterMs?: number } = {},
+  { hedgeAfterMs, timeoutMs = TIMEOUT_MS }: { hedgeAfterMs?: number; timeoutMs?: number } = {},
 ): Promise<T> {
   const ai = getGeminiClient()
-  const call = (first: string) => (abortSignal?: AbortSignal) =>
+  const deadline = AbortSignal.timeout(timeoutMs)
+  const call = (first: string) => (hedge?: AbortSignal) =>
     tracked(caller, (model) =>
       ai.models.generateContent({
         model,
@@ -150,7 +160,7 @@ export async function generateJSON<T>(
         config: {
           responseMimeType: 'application/json',
           responseSchema,
-          abortSignal,
+          abortSignal: hedge ? AbortSignal.any([hedge, deadline]) : deadline,
           ...(model === HEDGE_MODEL ? { thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL } } : {}),
         },
       }),
@@ -173,8 +183,10 @@ export async function generateJSONFromImage<T>(
   image: { data: string; mimeType: string },
   responseSchema: Schema,
   caller: AiCaller,
+  { timeoutMs = TIMEOUT_MS }: { timeoutMs?: number } = {},
 ): Promise<T> {
   const ai = getGeminiClient()
+  const deadline = AbortSignal.timeout(timeoutMs)
   const response = await tracked(caller, (model) =>
     ai.models.generateContent({
       model,
@@ -182,6 +194,7 @@ export async function generateJSONFromImage<T>(
       config: {
         responseMimeType: 'application/json',
         responseSchema,
+        abortSignal: deadline,
       },
     }),
   )
@@ -204,6 +217,9 @@ export async function streamText(
   await assertAiEnabled()
   const ai = getGeminiClient()
   const startedAt = Date.now()
+  // Stays armed while the body streams (the SDK keeps the fetch signal), so a
+  // reply that stalls halfway errors out too, not just one that never starts.
+  const deadline = AbortSignal.timeout(STREAM_TIMEOUT_MS)
   let opened
   try {
     opened = await once((model) => ai.models.generateContentStream({
@@ -212,6 +228,7 @@ export async function streamText(
       config: {
         systemInstruction,
         temperature: 0.4,
+        abortSignal: deadline,
         // Thinking tokens count against maxOutputTokens: at 700 a reasoning
         // reply got cut off mid-sentence, so the budget grows with it.
         ...(reason
