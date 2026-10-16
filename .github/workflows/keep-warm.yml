@@ -1,0 +1,41 @@
+# Keeps the API's functions booted so users don't wait on a cold start (1.9s
+# measured after ~10 idle minutes; a warm request is ~110ms). Vercel Hobby
+# crons run once a day, so the 5-minute timer lives here.
+#
+# Vercel bundles the API into one function per maxDuration (see
+# `vercel build`, .vercel/output/functions). Each ping warms one:
+#   /api/cron/warm          the core API (every route without a maxDuration),
+#                           plus its Mongo pool
+#   OPTIONS /api/ai/brief   maxDuration 30: brief, category suggest, feedback,
+#                           holdings predict-type, habit nudges, split buckets
+#   OPTIONS /api/expenses/scan  maxDuration 60: scan, chat, bills,
+#                           recurring suggestions
+# OPTIONS is answered by Next itself after loading the route module: no AI
+# call, no auth, no side effects. Add a ping if a new maxDuration value
+# creates a new function.
+#
+# ponytail: GitHub runs schedules best-effort (often 5 to 20 minutes late,
+# occasionally skipped), and only from the default branch (main). Move this
+# to a Vercel cron on Pro if gaps show up as cold starts again.
+name: Keep API warm
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Ping each function
+        env:
+          BASE: https://ynab-replacement.vercel.app
+        run: |
+          ping() { curl -sS -o /dev/null --max-time 30 -w "%{http_code} %{time_total}s $*\n" "$@" || echo "failed $*"; }
+          ping "$BASE/api/cron/warm"
+          ping -X OPTIONS "$BASE/api/ai/brief"
+          ping -X OPTIONS "$BASE/api/expenses/scan"
