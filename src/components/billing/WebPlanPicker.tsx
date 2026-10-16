@@ -1,12 +1,12 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import { CheckIcon } from '@/src/components/icons'
+import { useEffect, useReducer, useRef, useState } from 'react'
+import { BellIcon, ChatCircleIcon, CheckIcon, GiftIcon, ScanIcon, SquaresFourIcon, type PhosphorIcon } from '@/src/components/icons'
 import type { PlanPeriod } from '@/src/api/billing'
 import { useWebCheckout, useWebPlans } from '@/src/hooks/useBillingStatus'
 import { useUser } from '@/src/hooks/useUser'
 import { track } from '@/src/lib/analytics'
-import { defersFirstCharge, formatDate, formatPrice, yearlySavingsPercent } from './copy'
+import { defersFirstCharge, formatDate, formatPrice, REMINDER_DAYS, yearlySavingsPercent } from './copy'
 
 /**
  * What a subscription gets you. Mirrors Mobile's PlanPicker BENEFITS; there's
@@ -50,6 +50,7 @@ export function WebPlanPicker({ trialEndsAt = null, trigger = 'plan_screen' }: {
   const provider = plans.data?.provider ?? 'razorpay'
   const checkout = useWebCheckout(user ? { email: user.email, name: user.name ?? undefined } : undefined, provider)
   const [period, setPeriod] = useState<PlanPeriod>('yearly')
+  const [, rerender] = useReducer((n: number) => n + 1, 0)
 
   if (plans.isLoading) return <p style={note}>Loading plans…</p>
   if (plans.isError || !plans.data) return <p style={note}>Plans aren&apos;t loading right now. Check your connection and try again.</p>
@@ -62,100 +63,139 @@ export function WebPlanPicker({ trialEndsAt = null, trigger = 'plan_screen' }: {
   // Leaving for PayPal: keep everything locked until the page goes.
   const busy = checkout.isPending || outcome?.status === 'redirecting'
   const isYearly = period === 'yearly'
+  const paypal = provider === 'paypal'
+  // Mid-trial with the charge deferred: tell the story in dates. Otherwise
+  // (expired, or the trial's last minutes when the server charges now) show
+  // what the plan keeps switched on.
+  const timeline = !!trialEndsAt && defersFirstCharge(trialEndsAt)
 
   return (
-    <div style={{ display: 'grid', gap: 18 }}>
-      <div style={{ display: 'grid', gap: 4 }}>
-        <span style={{ fontSize: 12, letterSpacing: 1.2, fontWeight: 700, color: 'var(--tk-accent-ink)' }}>AVIARY PRO</span>
-        <h3 style={{ margin: 0, fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 22, color: 'var(--tk-text)' }}>
-          Keep your budget going
-        </h3>
-        <p style={{ ...note, fontWeight: 500 }}>One plan. Everything&apos;s included, here and in the Android app.</p>
+    <div style={{ display: 'grid', gap: 22, gridTemplateColumns: timeline ? 'repeat(auto-fit, minmax(250px, 1fr))' : undefined, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gap: 18 }}>
+        <div style={{ display: 'grid', gap: 6 }}>
+          <span style={{ fontSize: 12, letterSpacing: 1.2, fontWeight: 700, color: 'var(--tk-accent-ink)' }}>AVIARY PRO</span>
+          <h3 style={{ margin: 0, fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 24, lineHeight: 1.15, letterSpacing: '-0.02em', color: 'var(--tk-text)' }}>
+            {timeline ? 'Try everything. Pay only if it sticks.' : 'Keep your budget going'}
+          </h3>
+          <p style={{ ...note, fontWeight: 500 }}>
+            {timeline
+              ? `Your trial runs to ${formatDate(trialEndsAt)}. Subscribe now and the first charge waits for that date.`
+              : "One plan. No ads, ever. Here's what it keeps switched on."}
+          </p>
+        </div>
+
+        {timeline ? (
+          <ol style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid' }}>
+            {trialSteps(trialEndsAt, paypal).map((step, i, all) => (
+              <li key={step.title} style={{ display: 'grid', gridTemplateColumns: '24px 1fr', columnGap: 12 }}>
+                <span style={{ display: 'grid', gridTemplateRows: 'auto 1fr', justifyItems: 'center' }}>
+                  <span aria-hidden style={{ width: 24, height: 24, borderRadius: 12, display: 'grid', placeItems: 'center', ...STEP_TONE[step.tone] }}>
+                    {step.icon ? <step.icon size={12} weight="bold" /> : <span style={{ width: 8, height: 8, borderRadius: 4, background: 'var(--tk-accent)' }} />}
+                  </span>
+                  {i < all.length - 1 ? <span aria-hidden style={{ width: 2, margin: '4px 0', borderRadius: 1, background: i === 0 ? 'linear-gradient(var(--tk-accent), var(--tk-border-strong))' : 'var(--tk-border-strong)' }} /> : null}
+                </span>
+                <span style={{ display: 'grid', gap: 2, paddingBottom: i < all.length - 1 ? 16 : 0 }}>
+                  <strong style={{ fontSize: 14, lineHeight: '24px', fontWeight: 700, color: 'var(--tk-text)' }}>{step.title}</strong>
+                  <span style={{ ...note, fontSize: 13 }}>{step.body}</span>
+                </span>
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            {FEATURES.map(({ icon: Icon, title, blurb, tone }) => (
+              <li key={title} style={{ display: 'grid', gap: 8, alignContent: 'start', padding: 14, borderRadius: 16, border: '1px solid var(--tk-border)', background: 'var(--tk-card-solid)' }}>
+                <span aria-hidden style={{ width: 34, height: 34, borderRadius: 11, display: 'grid', placeItems: 'center', background: `var(--tk-${tone}-soft)`, color: `var(--tk-${tone === 'accent' || tone === 'warn' ? `${tone}-ink` : tone})` }}>
+                  <Icon size={18} weight="bold" />
+                </span>
+                <strong style={{ fontSize: 14, fontWeight: 700, color: 'var(--tk-text)' }}>{title}</strong>
+                <span style={{ ...note, fontSize: 12.5, lineHeight: 1.4 }}>{blurb}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
-      <div role="radiogroup" aria-label="Plan" style={{ display: 'grid', gap: 8 }}>
-        {[yearly, monthly].map((plan) => {
-          if (!plan) return null
-          const on = period === plan.period
-          const y = plan.period === 'yearly'
-          return (
-            <button
-              key={plan.period}
-              type="button"
-              role="radio"
-              aria-checked={on}
-              onClick={() => setPeriod(plan.period)}
-              disabled={busy}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                padding: 14,
-                borderRadius: 16,
-                font: 'inherit',
-                textAlign: 'left',
-                cursor: busy ? 'not-allowed' : 'pointer',
-                opacity: busy && !on ? 0.55 : 1,
-                color: 'var(--tk-text)',
-                border: `1.5px solid ${on ? 'var(--tk-accent)' : 'var(--tk-border)'}`,
-                background: on ? 'var(--tk-accent-soft)' : 'var(--tk-input-bg)',
-                transition: 'background 150ms, border-color 150ms',
-              }}
-            >
-              <span
-                aria-hidden
+      <div style={{ display: 'grid', gap: 12 }}>
+        <div role="radiogroup" aria-label="Plan" style={{ display: 'grid', gap: 8 }}>
+          {[yearly, monthly].map((plan) => {
+            if (!plan) return null
+            const on = period === plan.period
+            const y = plan.period === 'yearly'
+            // Rounded to whole rupees, the way people say it: ₹167 a month, not ₹166.58.
+            const perMonth = plan.currency === 'INR' ? Math.round(plan.amount / 1200) * 100 : Math.round(plan.amount / 12)
+            return (
+              <button
+                key={plan.period}
+                type="button"
+                role="radio"
+                aria-checked={on}
+                onClick={() => setPeriod(plan.period)}
+                disabled={busy}
                 style={{
-                  width: 20,
-                  height: 20,
-                  flexShrink: 0,
-                  borderRadius: 10,
-                  border: `2px solid ${on ? 'var(--tk-accent)' : 'var(--tk-border-strong)'}`,
-                  display: 'grid',
-                  placeItems: 'center',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  padding: 14,
+                  borderRadius: 16,
+                  font: 'inherit',
+                  textAlign: 'left',
+                  cursor: busy ? 'not-allowed' : 'pointer',
+                  opacity: busy && !on ? 0.55 : 1,
+                  color: 'var(--tk-text)',
+                  border: `1.5px solid ${on ? 'var(--tk-accent)' : 'var(--tk-border)'}`,
+                  background: on ? 'var(--tk-accent-soft)' : 'var(--tk-input-bg)',
+                  transition: 'background 150ms, border-color 150ms',
                 }}
               >
-                {on ? <span style={{ width: 10, height: 10, borderRadius: 5, background: 'var(--tk-accent)' }} /> : null}
-              </span>
-              <span style={{ flex: 1, display: 'grid', gap: 2 }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <strong style={{ fontSize: 15, fontWeight: 700 }}>{y ? 'Yearly' : 'Monthly'}</strong>
-                  {y && saving ? (
-                    <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: 0.3, padding: '2px 8px', borderRadius: 999, background: 'var(--tk-mint-soft)', color: 'var(--tk-mint)' }}>
-                      Save {saving}%
-                    </span>
-                  ) : null}
+                <span
+                  aria-hidden
+                  style={{
+                    width: 20,
+                    height: 20,
+                    flexShrink: 0,
+                    borderRadius: 10,
+                    border: `2px solid ${on ? 'var(--tk-accent)' : 'var(--tk-border-strong)'}`,
+                    display: 'grid',
+                    placeItems: 'center',
+                  }}
+                >
+                  {on ? <span style={{ width: 10, height: 10, borderRadius: 5, background: 'var(--tk-accent)' }} /> : null}
                 </span>
-                <span style={{ fontSize: 12, color: 'var(--tk-text2)', fontWeight: 500 }}>
-                  {y ? `${formatPrice(Math.round(plan.amount / 12), plan.currency)}/month, billed yearly` : 'Billed monthly'}
+                <span style={{ flex: 1, display: 'grid', gap: 2 }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <strong style={{ fontSize: 15, fontWeight: 700 }}>{y ? 'Yearly' : 'Monthly'}</strong>
+                    {y && saving ? (
+                      <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: 0.3, padding: '2px 8px', borderRadius: 999, whiteSpace: 'nowrap', background: 'var(--tk-mint-soft)', color: 'var(--tk-mint)' }}>
+                        Save {saving}%
+                      </span>
+                    ) : null}
+                  </span>
+                  <span style={{ fontSize: 12, color: 'var(--tk-text2)', fontWeight: 500 }}>
+                    {y ? `${formatPrice(perMonth, plan.currency)}/month · billed once a year` : 'Flexible, cancel any month'}
+                  </span>
                 </span>
-              </span>
-              <strong style={{ fontSize: 15, fontWeight: 700 }}>
-                {formatPrice(plan.amount, plan.currency)}/{y ? 'year' : 'month'}
-              </strong>
-            </button>
-          )
-        })}
-      </div>
+                <strong style={{ fontSize: 15, fontWeight: 700, whiteSpace: 'nowrap' }}>
+                  {formatPrice(plan.amount, plan.currency)}/{y ? 'year' : 'month'}
+                </strong>
+              </button>
+            )
+          })}
+        </div>
 
-      <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 10 }}>
-        {BENEFITS.map((b) => (
-          <li key={b} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 13, lineHeight: '19px', fontWeight: 500, color: 'var(--tk-text)' }}>
-            <span aria-hidden style={{ width: 20, height: 20, flexShrink: 0, borderRadius: 10, display: 'grid', placeItems: 'center', background: 'var(--tk-mint-soft)', color: 'var(--tk-mint)' }}>
-              <CheckIcon size={12} weight="bold" />
-            </span>
-            {b}
-          </li>
-        ))}
-      </ul>
-
-      <div style={{ display: 'grid', gap: 8 }}>
         <button
           type="button"
-          onClick={() => checkout.mutate(period)}
+          onClick={() => {
+            // Left open past the cutoff, the header still promises a deferred
+            // charge the server won't honour. Redraw with the true copy first.
+            if (timeline && !defersFirstCharge(trialEndsAt)) return rerender()
+            checkout.mutate(period)
+          }}
           disabled={busy || !selected}
           style={{
             font: 'inherit',
-            padding: '13px 18px',
+            marginTop: 4,
+            padding: '14px 18px',
             borderRadius: 999,
             border: 'none',
             background: 'var(--tk-accent)',
@@ -168,16 +208,26 @@ export function WebPlanPicker({ trialEndsAt = null, trigger = 'plan_screen' }: {
           }}
         >
           {busy
-            ? provider === 'paypal'
+            ? paypal
               ? 'Taking you to PayPal…'
               : 'Opening checkout…'
             : selected
-              ? `Subscribe ${isYearly ? 'yearly' : 'monthly'} · ${formatPrice(selected.amount, selected.currency)}`
-              : 'Subscribe'}
+              ? `Keep Aviary · ${formatPrice(selected.amount, selected.currency)}/${isYearly ? 'year' : 'month'}`
+              : 'Keep Aviary'}
         </button>
+
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '4px 16px' }}>
+          {['Cancel anytime', timeline ? (paypal ? 'PayPal or card' : 'UPI or card') : 'Export free, always'].map((t) => (
+            <span key={t} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12.5, fontWeight: 500, color: 'var(--tk-text2)' }}>
+              <CheckIcon size={12} weight="bold" color="var(--tk-mint)" aria-hidden />
+              {t}
+            </span>
+          ))}
+        </div>
+
+        <p style={{ ...note, fontSize: 12.5, padding: '10px 12px', borderRadius: 12, background: 'var(--tk-input-bg)' }}>Also works in the Android app. One plan, both places.</p>
         <p style={{ ...note, fontSize: 12, lineHeight: '16px', textAlign: 'center', color: 'var(--tk-text3)' }}>
-          {trialEndsAt && defersFirstCharge(trialEndsAt) ? `Nothing's charged until your trial ends on ${formatDate(trialEndsAt)}${provider === 'paypal' ? '' : ', except a refundable ₹5 to set up autopay'}. ` : ''}
-          Renews every {isYearly ? 'year' : 'month'} until you cancel. {provider === 'paypal' ? 'Pay with PayPal or a card.' : 'Pay with UPI or card.'} Cancel anytime from your account page.
+          Renews {isYearly ? 'yearly' : 'monthly'} until you cancel from your account page.
         </p>
       </div>
 
@@ -192,6 +242,36 @@ export function WebPlanPicker({ trialEndsAt = null, trigger = 'plan_screen' }: {
       ) : null}
     </div>
   )
+}
+
+/** The "what's switched on" cards for the no-trial header. Tone picks a token pair from the theme. */
+const FEATURES: { icon: PhosphorIcon; title: string; blurb: string; tone: 'accent' | 'violet' | 'warn' | 'mint' }[] = [
+  { icon: ScanIcon, title: 'Snap a bill', blurb: 'Split a receipt without typing it in.', tone: 'accent' },
+  { icon: ChatCircleIcon, title: 'Ask Aviary', blurb: '"Where did my money go?" Answered.', tone: 'violet' },
+  { icon: GiftIcon, title: 'Monthly Wrapped', blurb: 'Your month as a story, not a spreadsheet.', tone: 'warn' },
+  { icon: SquaresFourIcon, title: 'Widgets + web', blurb: 'Home screen on Android, full app on the web.', tone: 'mint' },
+]
+
+const STEP_TONE = {
+  now: { background: 'var(--tk-accent-soft)', color: 'var(--tk-accent-ink)', border: '2px solid var(--tk-accent)' },
+  later: { background: 'var(--tk-card-solid)', color: 'var(--tk-text3)', border: '2px solid var(--tk-border-strong)' },
+  end: { background: 'var(--tk-mint-soft)', color: 'var(--tk-mint)', border: '2px solid var(--tk-mint)' },
+}
+
+/**
+ * Today, the reminder a week out, and the first charge. The reminder step
+ * goes once its date has passed, so the timeline never promises a heads up
+ * that already happened (or didn't).
+ */
+function trialSteps(trialEndsAt: string, paypal: boolean, now = Date.now()) {
+  const end = new Date(trialEndsAt).getTime()
+  const reminder = end - REMINDER_DAYS[0] * 86_400_000
+  const day = (ms: number) => new Date(ms).toLocaleDateString(undefined, { day: 'numeric', month: 'long' })
+  return [
+    { title: 'Today', tone: 'now' as const, icon: null, body: paypal ? 'Pick a plan. We set up autopay and nothing else moves.' : 'Pick a plan. We set up autopay with a refundable ₹5 and nothing else moves.' },
+    ...(reminder > now ? [{ title: day(reminder), tone: 'later' as const, icon: BellIcon, body: "A heads up, one week out. Cancel in two clicks if you've changed your mind." }] : []),
+    { title: day(end), tone: 'end' as const, icon: CheckIcon, body: 'First charge. You keep budgeting without a gap.' },
+  ]
 }
 
 const note: React.CSSProperties = { margin: 0, color: 'var(--tk-text2)', fontSize: 13, lineHeight: 1.5 }

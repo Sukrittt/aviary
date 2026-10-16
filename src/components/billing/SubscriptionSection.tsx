@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState, type KeyboardEvent } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { ArrowSquareOutIcon, ArrowsClockwiseIcon, XCircleIcon } from '@/src/components/icons'
+import { ArrowSquareOutIcon, ArrowsClockwiseIcon, CaretRightIcon, XCircleIcon, XIcon } from '@/src/components/icons'
 import { ConfirmDialog } from '@/src/components/ConfirmDialog'
+import { Scrim, Sheet } from '@/src/components/MotionSheet'
 import { useBillingStatus, useCancelWebSubscription, usePayPalReturn, useSyncBilling, type PayPalReturn } from '@/src/hooks/useBillingStatus'
 import { billingVisible, formatDate, PLAY_STORE_URL, trialRemainingLabel } from './copy'
 import { WebPlanPicker } from './WebPlanPicker'
@@ -22,8 +23,15 @@ export function SubscriptionSection() {
   const sync = useSyncBilling()
   const cancel = useCancelWebSubscription()
   const [confirmingCancel, setConfirmingCancel] = useState(false)
+  const [plansOpen, setPlansOpen] = useState(false)
+  const plansRow = useRef<HTMLButtonElement>(null)
   const paypalReturn = usePayPalReturn()
   const reduceMotion = useReducedMotion()
+
+  function closePlans() {
+    setPlansOpen(false)
+    plansRow.current?.focus()
+  }
 
   // Hidden entirely until subscriptions are switched on, so nobody is shown a
   // plan they cannot buy and a countdown that does not apply to them yet.
@@ -123,6 +131,16 @@ export function SubscriptionSection() {
           </div>
         )}
 
+        {canBuy && (
+          <button ref={plansRow} type="button" className="account-row" onClick={() => setPlansOpen(true)} style={{ width: '100%', textAlign: 'left' }}>
+            <span className="account-row-label">
+              <span style={{ fontWeight: 700, color: 'var(--tk-accent-ink)' }}>See plans</span>
+              <span className="account-row-hint">Yearly or monthly. Everything&apos;s included, here and on Android.</span>
+            </span>
+            <CaretRightIcon size={16} className="account-row-arrow" aria-hidden />
+          </button>
+        )}
+
         <button type="button" className="account-row" onClick={() => sync.mutate()} disabled={sync.isPending} style={{ width: '100%', textAlign: 'left' }}>
           <span className="account-row-label">
             Refresh subscription status
@@ -144,11 +162,26 @@ export function SubscriptionSection() {
         </button>
       </div>
 
-      {canBuy && (
-        <div className="account-card" style={{ marginTop: 12, padding: 16 }}>
-          <WebPlanPicker trialEndsAt={data.mode === 'trial' ? data.trialEndsAt : null} />
-        </div>
-      )}
+      <AnimatePresence>
+        {canBuy && plansOpen && (
+          <Scrim className="erd-modal-overlay" onClick={closePlans}>
+            <Sheet
+              className="erd-modal-card"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Aviary Pro plans"
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => trapKeys(e, closePlans)}
+              style={{ position: 'relative', width: 640, maxWidth: 'calc(100vw - 24px)', maxHeight: 'calc(100dvh - 24px)', padding: '56px 24px 24px' }}
+            >
+              <button type="button" className="account-pill-btn" autoFocus onClick={closePlans} aria-label="Close" style={{ position: 'absolute', top: 14, right: 14, width: 34, height: 34, padding: 0, display: 'grid', placeItems: 'center' }}>
+                <XIcon size={16} />
+              </button>
+              <WebPlanPicker trialEndsAt={data.mode === 'trial' ? data.trialEndsAt : null} />
+            </Sheet>
+          </Scrim>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {confirmingCancel && (
@@ -175,6 +208,22 @@ export function SubscriptionSection() {
       </AnimatePresence>
     </div>
   )
+}
+
+/** Escape closes; Tab and Shift+Tab wrap inside the dialog instead of walking out behind the backdrop. */
+function trapKeys(e: KeyboardEvent<HTMLDivElement>, close: () => void) {
+  if (e.key === 'Escape') return close()
+  if (e.key !== 'Tab') return
+  const items = e.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled), a[href]')
+  const first = items[0]
+  const last = items[items.length - 1]
+  if (e.shiftKey && document.activeElement === first) {
+    e.preventDefault()
+    last?.focus()
+  } else if (!e.shiftKey && document.activeElement === last) {
+    e.preventDefault()
+    first?.focus()
+  }
 }
 
 function describePlan(data: { mode: string; trialEndsAt: string | null; paidExpiresAt: string | null; autoRenew: boolean; basePlanId: string | null; renewalState: string | null; gifted?: boolean }): string {

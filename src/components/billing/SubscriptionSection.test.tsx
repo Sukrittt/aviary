@@ -87,14 +87,21 @@ describe('SubscriptionSection', () => {
     expect(screen.queryByText('Cancel renewal')).toBeNull()
   })
 
-  it('offers the plan picker during the trial once purchases are open', () => {
+  it('opens the plans in a dialog from the account row during the trial, and closes on Escape', () => {
     renderWith({ mode: 'trial', store: null, trialDaysRemaining: 10, renewalState: null })
+    // Not on the page until asked for, so loading the account page isn't a paywall view.
+    expect(screen.queryByText('plan picker')).toBeNull()
+    fireEvent.click(screen.getByText('See plans'))
+    const dialog = screen.getByRole('dialog', { name: 'Aviary Pro plans' })
     expect(screen.getByText('plan picker')).toBeTruthy()
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Close' }))
+    fireEvent.keyDown(dialog, { key: 'Escape' })
+    expect(document.activeElement).toBe(screen.getByText('See plans').closest('button'))
   })
 
   it("doesn't offer plans to someone already paying", () => {
     renderWith({ store: 'play' })
-    expect(screen.queryByText('plan picker')).toBeNull()
+    expect(screen.queryByText('See plans')).toBeNull()
   })
 
   it('confirms a PayPal purchase on the way back, and says when it was cancelled', () => {
