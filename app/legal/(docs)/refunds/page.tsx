@@ -47,8 +47,8 @@ export default function RefundsPage() {
         </ul>
         <p>
           Write to <strong>{SUPPORT_EMAIL}</strong> with the email on your Aviary account and the date of the
-          charge. We reply within 3 working days. Approved refunds for website payments go back to the original
-          UPI account or card, and usually arrive within 5 to 7 working days, depending on your bank.
+          charge. We reply within 3 working days. Approved refunds for website payments go back the way you paid,
+          to your UPI account, card or PayPal account, and usually arrive within 5 to 7 working days.
         </p>
         <p>
           Refunds for Google Play purchases are handled by Google under{' '}

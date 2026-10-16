@@ -128,6 +128,8 @@ export default function PrivacyPage() {
           Deleting a category, transaction, or your whole account moves it into a recoverable, inaccessible state
           for 7 days &mdash; enough time to undo an accidental deletion by signing back in &mdash; after which it
           is permanently deleted from our active systems, including your account with our identity provider.
+          The one exception is your subscription record (its id, plan and payment dates, never your budgeting data),
+          which we keep so a late refund or renewal from the payment provider can still be matched to the purchase.
         </p>
 
         <h2>Your rights</h2>
