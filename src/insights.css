@@ -766,11 +766,13 @@
   margin: 22px 0 0;
 }
 
-/* Full card width, height falling out of the viewBox aspect. Capping height
-   instead would letterbox the calendar and hand the width back. */
+/* Fills the card on phones; on wide cards it stops at ~64px cells (viewBox
+   is 302 wide with 38-unit cells) and centers, so labels keep their ratio. */
 .ins-heatmap-svg {
   display: block;
   width: 100%;
+  max-width: 508px;
+  margin-inline: auto;
   height: auto;
   overflow: visible;
 }
@@ -779,14 +781,12 @@
 .ins-heatmap-day {
   fill: var(--erd-text3);
   font-family: var(--font-body);
-  /* Unchanged on phones; capped on wide cards, where the view box scales up. */
-  font-size: calc(min(12px * var(--hm-scale, 1), 15px) / var(--hm-scale, 1));
+  font-size: 12px;
 }
 
 .ins-heatmap-day {
   fill: var(--erd-text2);
-  font-size: calc(min(12px * var(--hm-scale, 1), 20px) / var(--hm-scale, 1));
-  font-variant-numeric: tabular-nums;
+  font-size: 12px;
 }
 
 .ins-heatmap-day.is-bright { fill: var(--erd-on-accent); }
