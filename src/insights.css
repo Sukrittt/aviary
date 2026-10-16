@@ -564,6 +564,8 @@
 
 .ins-row-name {
   flex: 1;
+  font-size: 15px;
+  font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -778,12 +780,14 @@
 .ins-heatmap-day {
   fill: var(--erd-text3);
   font-family: var(--font-body);
-  font-size: 12px;
+  /* Unchanged on phones; capped on wide cards, where the view box scales up. */
+  font-size: calc(min(12px * var(--hm-scale, 1), 15px) / var(--hm-scale, 1));
 }
 
 .ins-heatmap-day {
   fill: var(--erd-text2);
-  font-size: 12px;
+  font-size: calc(min(12px * var(--hm-scale, 1), 20px) / var(--hm-scale, 1));
+  font-variant-numeric: tabular-nums;
 }
 
 .ins-heatmap-day.is-bright { fill: var(--erd-on-accent); }

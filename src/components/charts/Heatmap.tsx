@@ -1,8 +1,7 @@
 'use client'
 
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { useCurrency } from '@/src/context/CurrencyContext'
-
-
 
 export interface HeatmapCell {
   date: string
@@ -41,12 +40,23 @@ export function Heatmap({ cells, todayDate, hideAmounts = false, onSelectDate }:
   const width = CELL * 7 + GAP * 6
   const height = TOP + rows * CELL + (rows - 1) * GAP
   const levels = heatmapLevels(cells)
+  // The SVG stretches to the card, so view-box text grows with it. Track the
+  // render scale and let CSS divide it back out to keep labels at a fixed px size.
+  const svgRef = useRef<SVGSVGElement>(null)
+  const [scale, setScale] = useState(1)
+  useEffect(() => {
+    const el = svgRef.current
+    if (!el) return
+    const observer = new ResizeObserver(([entry]) => setScale(entry.contentRect.width / width || 1))
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [width])
 
   return (
     <div className="ins-heatmap-shell">
-      <svg className="ins-heatmap-svg" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Daily spending calendar">
+      <svg ref={svgRef} className="ins-heatmap-svg" style={{ '--hm-scale': scale } as CSSProperties} viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Daily spending calendar">
         {LABELS.map((label, index) => (
-          <text key={`${label}-${index}`} x={index * (CELL + GAP) + CELL / 2} y={11} textAnchor="middle" className="ins-heatmap-weekday">
+          <text key={`${label}-${index}`} x={index * (CELL + GAP) + CELL / 2} y={11} textAnchor="middle" dominantBaseline="central" className="ins-heatmap-weekday">
             {label}
           </text>
         ))}
@@ -91,7 +101,7 @@ export function Heatmap({ cells, todayDate, hideAmounts = false, onSelectDate }:
                 className={`${future ? 'is-future' : ''} ${today ? 'is-today' : ''}`}
                 style={level > 0 && !future ? { fill: `color-mix(in oklab, var(--gold) ${LEVEL_OPACITY[level - 1] * 100}%, var(--erd-card-solid))` } : undefined}
               />
-              <text x={x + CELL / 2} y={y + CELL / 2 + 4} textAnchor="middle" className={level >= 3 && !future ? 'ins-heatmap-day is-bright' : 'ins-heatmap-day'}>
+              <text x={x + CELL / 2} y={y + CELL / 2} textAnchor="middle" dominantBaseline="central" className={level >= 3 && !future ? 'ins-heatmap-day is-bright' : 'ins-heatmap-day'}>
                 {cell.day}
               </text>
             </g>

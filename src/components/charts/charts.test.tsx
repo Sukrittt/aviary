@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { AllocationBar } from './AllocationBar'
-import { heatmapLevels } from './Heatmap'
+import { Heatmap, heatmapLevels } from './Heatmap'
 import { layoutDonutSegments } from './DonutChart'
 import { TrendChart } from './TrendChart'
 
@@ -76,5 +76,21 @@ describe('insights chart primitives', () => {
     expect(container.querySelector('rect.ins-trend-bar.is-missing')).not.toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Aug, No income set' }))
     expect(onSelect).toHaveBeenCalledWith('2026-08')
+  })
+
+  it('reports the heatmap render scale so day labels stay a fixed size on wide cards', () => {
+    const original = globalThis.ResizeObserver
+    globalThis.ResizeObserver = class {
+      constructor(private cb: ResizeObserverCallback) {}
+      observe() { this.cb([{ contentRect: { width: 302 * 3 } } as ResizeObserverEntry], this as unknown as ResizeObserver) }
+      disconnect() {}
+      unobserve() {}
+    } as unknown as typeof ResizeObserver
+    try {
+      const { container } = render(<Heatmap cells={[{ date: '2026-10-01', day: 1, value: 10 }]} />)
+      expect(container.querySelector('svg')!.style.getPropertyValue('--hm-scale')).toBe('3')
+    } finally {
+      globalThis.ResizeObserver = original
+    }
   })
 })
