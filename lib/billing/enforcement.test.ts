@@ -20,6 +20,7 @@ const OPEN: Record<string, string> = {
   'cron/gc': 'cron, CRON_SECRET',
   'cron/emails': 'transactional email retry cron, CRON_SECRET',
   'cron/evening-check': 'evening check push cron, CRON_SECRET',
+  'cron/warm': 'keep-warm ping from GitHub Actions, reads and returns nothing',
   'notifications/run': 'cron, CRON_SECRET',
   'billing/webhooks/revenuecat': 'provider webhook, shared secret',
   'billing/webhooks/razorpay': 'provider webhook, HMAC signature',
