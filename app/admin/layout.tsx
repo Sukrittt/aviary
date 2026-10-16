@@ -1,8 +1,8 @@
+import '@/src/appStyles'
 import type { ReactNode } from 'react'
 import { pageMetadata } from '@/lib/seo'
 import { requireAdmin } from '@/lib/admin'
 import { AdminNav } from './AdminNav'
-import '../../src/expense-redesign.css'
 import './admin.css'
 
 export const dynamic = 'force-dynamic'

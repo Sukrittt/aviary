@@ -1,19 +1,19 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
-import { BirdEmptyState } from '@/src/components/BirdEmptyState'
-import '@/src/expense-redesign.css'
+
+// Dynamic, so the app stylesheets it brings load only when a 404 renders (see AppErrorScreen).
+const AppErrorScreen = dynamic(() => import('@/src/components/AppErrorScreen').then((m) => m.AppErrorScreen))
 
 export default function NotFound() {
   const router = useRouter()
   return (
-    <main className="expense-redesign">
-      <BirdEmptyState
-        mood="searching"
-        title="This page flew off"
-        description="We looked everywhere. Let's get you back home."
-        action={{ label: 'Take me home', onClick: () => router.replace('/') }}
-      />
-    </main>
+    <AppErrorScreen
+      mood="searching"
+      title="This page flew off"
+      description="We looked everywhere. Let's get you back home."
+      action={{ label: 'Take me home', onClick: () => router.replace('/') }}
+    />
   )
 }

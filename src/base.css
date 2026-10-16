@@ -1,0 +1,208 @@
+/* The slice of the app stylesheet every page needs: design variables, the box-sizing
+   and heading resets, the AppShell frame (.mc-page/.mc-layout/.mc-main), focus rings
+   and reduced-motion. Loaded by the root layout; the rest of App.css loads only in
+   the signed-in app (src/appStyles.ts), so public pages don't download it. */
+:root {
+  /* ── Typography ───────────────────────────────────────────── */
+  /* --font-display / --font-body (Geist) come from next/font on <html>
+     (app/fonts.ts), with size-matched fallback faces. */
+  --font-stack: var(--font-body);
+  --fs-12: 0.75rem;
+  --fs-13: 0.8125rem;
+  --fs-14: 0.875rem;
+  --fs-15: 0.9375rem;
+  --fs-18: 1.125rem;
+  --fs-22: 1.375rem;
+  --lh-tight: 1.2;
+  --lh-body: 1.45;
+  --lh-relaxed: 1.55;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  /* ── Spacing & Layout ────────────────────────────────────── */
+  --sp-1: 4px;
+  --sp-2: 6px;
+  --sp-3: 10px;
+  --sp-4: 14px;
+  --sp-5: 18px;
+  --sp-6: 22px;
+  --sp-8: 30px;
+  /* Generous Apple-scale radii: cards read as soft sheets. */
+  --radius-card: 18px;
+  --radius-control: 10px;
+  --radius-sm: 8px;
+  --r-xs: var(--radius-sm);
+  --r-sm: var(--radius-control);
+  --r-md: var(--radius-card);
+  --r-lg: 20px;
+  --r-pill: 9999px;
+  /* ── Brand Colors ────────────────────────────────────────── */
+  /* Was a hand-picked "warm sunset" set from before the palette moved to
+     src/theme/tokens.ts. Only peach and mint survived, as fallbacks behind
+     --accent (which is always defined now) and in one gradient, so both
+     point at the real tokens rather than a second, diverging palette. */
+  --brand-peach: var(--tk-accent);
+  --brand-mint: var(--tk-mint);
+  --stroke-soft: 1px;
+  --shadow-0: none;
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.03);
+  --shadow-2:
+    0 6px 18px rgba(0, 0, 0, 0.1), 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --dur-fast: 120ms;
+  --dur-med: 180ms;
+  --dur-slow: 240ms;
+  /* Mobile's press spring (damping 15, stiffness 180, mass 1), sampled as linear(). */
+  --ease-press: linear(0, 0.07, 0.236, 0.441, 0.644, 0.819, 0.954, 1.046, 1.099, 1.119, 1.116, 1.1, 1.076, 1.051, 1.029, 1.011, 0.998, 0.99, 0.986, 0.986, 0.987, 0.99, 0.993, 0.996, 1);
+  --dur-press: 725ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-press: 0ms;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+h1,
+h2,
+h3,
+h4,
+p,
+ul {
+  margin: 0;
+}
+
+h1 {
+  font-family: var(--font-display);
+  font-size: var(--fs-22);
+  font-weight: 700;
+  letter-spacing: -0.022em;
+  line-height: var(--lh-tight);
+  font-variant-numeric: tabular-nums;
+}
+
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-size: var(--fs-18);
+  font-weight: var(--fw-semibold);
+  letter-spacing: -0.018em;
+  line-height: var(--lh-tight);
+}
+
+h4 {
+  font-size: var(--fs-14);
+  font-weight: var(--fw-semibold);
+  letter-spacing: -0.01em;
+}
+
+.mc-page {
+  position: relative;
+  min-height: 100vh;
+  font-family: var(--font-stack);
+  background: var(--bg);
+  color: var(--text);
+  font-size: var(--fs-14);
+  line-height: var(--lh-body);
+}
+
+.mc-page {
+  /* Colours come from src/theme/tokens.css, generated from src/theme/tokens.ts
+     — the twin of Mobile's palette. These local names are kept so the rules
+     downstream need no edit; only the values move. Both schemes now resolve
+     from the same --tk-* set, so this block no longer forks per theme. */
+  --bg: var(--tk-bg);
+  --bg-grad-a: var(--tk-card-solid);
+  --bg-grad-b: var(--tk-bg);
+  --panel: var(--tk-card-solid);
+  --panel-soft: var(--tk-input-bg);
+  --border: var(--tk-border);
+  --divider: var(--tk-border);
+  --divider-soft: var(--tk-border);
+  --text: var(--tk-text);
+  --fg: var(--tk-text);
+  --muted: var(--tk-text2);
+  --muted-2: var(--tk-text2);
+  --muted-3: var(--tk-text3);
+  --expense-muted: var(--tk-text2);
+  --accent: var(--tk-accent);
+  /* accent-strong labels text and icons, so it takes the ink variant that
+     clears 4.5:1 — the saturated accent only passes at large sizes. */
+  --accent-strong: var(--tk-accent-ink);
+  --accent-soft: var(--tk-accent-soft);
+  --ok-fg: var(--tk-mint);
+  --ok-bg: var(--tk-mint-soft);
+  --warn-fg: var(--tk-warn-ink);
+  --warn-bg: var(--tk-warn-soft);
+  --risk-fg: var(--tk-coral);
+  --risk-bg: var(--tk-coral-soft);
+  --chart-bar: var(--tk-border-strong);
+  --chart-bar-current: var(--tk-accent);
+  --chart-bar-red: var(--tk-coral);
+  --chart-bar-green: var(--tk-mint);
+  --hover: var(--tk-border);
+  --coral: var(--tk-coral);
+  --mint: var(--tk-mint);
+  --red: var(--tk-coral);
+  --input-bg: var(--tk-input-bg);
+  --scrim: rgba(0, 0, 0, 0.32);
+}
+
+.mc-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  min-height: 100vh;
+}
+
+.mc-main {
+  padding: var(--sp-4);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--sp-4);
+  align-content: start;
+  min-width: 0;
+}
+
+a:focus-visible,
+button:focus-visible,
+select:focus-visible,
+input[type="date"]:focus-visible,
+summary:focus-visible,
+.sidebar-link:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px var(--accent-soft);
+}
+
+@media (max-width: 1024px) {
+  .mc-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 767px) {
+  .mc-main {
+    padding: var(--sp-3);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition-duration: 1ms !important;
+    animation-duration: 1ms !important;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .mc-page {
+    background: var(--bg);
+  }
+}
