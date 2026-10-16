@@ -6,7 +6,9 @@ import './globals.css'
 import '../src/theme/tokens.css'
 import '../src/theme/scale.css'
 import '../src/index.css'
-import '../src/App.css'
+// The slice of App.css every page needs. The rest loads only in the app layouts
+// (src/appStyles.ts): public pages never use it.
+import '../src/base.css'
 import { ClientProviders } from '../components/ClientProviders'
 import { pageMetadata, SITE_URL } from '@/lib/seo'
 import { fontVariables } from './fonts'

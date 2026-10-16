@@ -2,7 +2,6 @@
 
 import Link from 'next/link'
 import { CaretRightIcon, CompassIcon, DatabaseIcon, ArrowSquareOutIcon, LockIcon, ChatCircleIcon, ArrowsClockwiseIcon, type PhosphorIcon } from '@/src/components/icons'
-import '@/src/expense-redesign.css'
 import { useBillingStatus, useSyncBilling } from '@/src/hooks/useBillingStatus'
 import { lockedReason, PLAY_STORE_URL } from './copy'
 import { WebPlanPicker } from './WebPlanPicker'

@@ -1,3 +1,4 @@
+import '@/src/appStyles'
 import type { ReactNode } from 'react'
 import { headers } from 'next/headers'
 import { pageMetadata } from '@/lib/seo'

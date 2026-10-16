@@ -1,7 +1,7 @@
+import '@/src/appStyles'
 import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { BirdMark } from '@/src/components/BirdMark'
-import '../../src/expense-redesign.css'
 
 /**
  * Shared chrome for /sign-in, /email, /code. Under 1024px: a centered card over

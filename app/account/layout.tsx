@@ -1,3 +1,4 @@
+import '@/src/appStyles'
 import type { ReactNode } from 'react'
 import { pageMetadata } from '@/lib/seo'
 import AccountShell from './AccountShell'
