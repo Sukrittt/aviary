@@ -3,15 +3,12 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { LoadingCaption } from '@/src/components/LoadingCaption'
-import '@/src/expense-redesign.css'
 
-// Pages that exist outside the "logged in and onboarded" app proper — never
-// bounce these to /onboarding even if the onboarding check would otherwise fire.
-// '/' is public; middleware sends signed-in visitors straight to /expense.
-// /legal is public too: gating it held every legal page behind a loader until a
-// /api/user call that a signed-out visitor can only fail.
-// Public pages (landing, content, legal) must server-render their body for crawlers, so they skip the check.
-const ONBOARDING_EXEMPT_PATHS = ['/', '/intl', '/help', '/changelog', '/compare', '/tools', '/features', '/blog', '/sign-in', '/email', '/code', '/onboarding', '/legal']
+// The "logged in and onboarded" app proper: the only pages held for the check.
+// Everything else skips it: public pages (landing, content, legal) must
+// server-render their body for crawlers, sign-in and /onboarding can't loop, and
+// a 404 renders straight away (its loader would have no app styles to wear).
+const GATED_PATHS = ['/expense', '/insights', '/investments', '/wrapped', '/account', '/admin']
 
 // Set once /api/user confirms onboarding, so a returning visit renders the app
 // without waiting on that round trip first. It isn't keyed by account, so the
@@ -44,7 +41,7 @@ const SERVER_CHECKED_PATHS = ['/expense']
 
 function isExempt(pathname: string): boolean {
   if (SERVER_CHECKED_PATHS.includes(pathname)) return true
-  return ONBOARDING_EXEMPT_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))
+  return !GATED_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))
 }
 
 /**

@@ -26,6 +26,22 @@ describe('OnboardingGate', () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
+  // A 404 isn't part of the app: holding it behind the loader server-rendered the
+  // loader instead of the 404, without the app styles it needs.
+  it('renders an unknown path (a 404) straight away, without asking for the user', () => {
+    mockPathname = '/no-such-page'
+    render(<OnboardingGate><p>page</p></OnboardingGate>)
+    expect(screen.getByText('page')).toBeTruthy()
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it.each(['/insights', '/investments', '/wrapped', '/account', '/account/income', '/admin', '/expense/transactions'])('holds app page %s until the onboarding check answers', (path) => {
+    mockPathname = path
+    render(<OnboardingGate><p>page</p></OnboardingGate>)
+    expect(screen.queryByText('page')).toBeNull()
+    expect(fetchMock).toHaveBeenCalledWith('/api/user')
+  })
+
   it('holds an app page until the onboarding check answers', () => {
     mockPathname = '/insights'
     render(<OnboardingGate><p>page</p></OnboardingGate>)
