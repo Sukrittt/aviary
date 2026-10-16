@@ -470,7 +470,7 @@ export function TransactionsView({
           {feedOn && (
             <button
               type="button"
-              className="action-button txn-page-view-btn"
+              className="action-button"
               aria-pressed={feedView}
               onClick={() => {
                 const next = feedView ? "list" : "feed";

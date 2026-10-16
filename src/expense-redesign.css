@@ -3392,7 +3392,8 @@
   align-items: center;
   gap: 10px;
 }
-.expense-redesign .txn-page-duplicates-btn {
+/* Every header action (Feed, Select, duplicates) shares the Log button's height. */
+.expense-redesign .txn-page-actions .action-button {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -13020,13 +13021,6 @@ button.account-feature-card {
 }
 
 /* Activity feed (TransactionsFeed.tsx): expenses as cards, photo first. */
-.expense-redesign .txn-page-view-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  padding-inline: 18px;
-}
 .expense-redesign .feed {
   display: flex;
   flex-direction: column;
