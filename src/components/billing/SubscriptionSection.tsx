@@ -172,7 +172,7 @@ export function SubscriptionSection() {
               aria-label="Aviary Pro plans"
               onClick={(e) => e.stopPropagation()}
               onKeyDown={(e) => trapKeys(e, closePlans)}
-              style={{ position: 'relative', width: 640, maxWidth: 'calc(100vw - 24px)', maxHeight: 'calc(100dvh - 24px)', padding: '56px 24px 24px' }}
+              style={{ position: 'relative', width: 760, maxWidth: 'calc(100vw - 24px)', maxHeight: 'calc(100dvh - 24px)', padding: '56px 28px 28px' }}
             >
               <button type="button" className="account-pill-btn" autoFocus onClick={closePlans} aria-label="Close" style={{ position: 'absolute', top: 14, right: 14, width: 34, height: 34, padding: 0, display: 'grid', placeItems: 'center' }}>
                 <XIcon size={16} />

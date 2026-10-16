@@ -13242,3 +13242,12 @@ button.account-feature-card {
   justify-content: center;
   gap: 6px;
 }
+
+/* Plan picker timeline: today's dot breathes so "you are here" reads at a glance. */
+.plan-step-now {
+  animation: plan-step-now 1.8s ease-out 1s infinite;
+}
+@keyframes plan-step-now {
+  0% { box-shadow: 0 0 0 0 var(--tk-accent-soft); }
+  70%, 100% { box-shadow: 0 0 0 8px transparent; }
+}
