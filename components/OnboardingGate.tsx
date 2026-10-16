@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { LoadingCaption } from '@/src/components/LoadingCaption'
 
@@ -67,13 +67,17 @@ export function OnboardingGate({ children, recheck = false }: {
   const pathname = usePathname() ?? ''
   const router = useRouter()
   const exempt = !recheck && isExempt(pathname)
-  const [checking, setChecking] = useState(() => !exempt)
+  // Whether the check has answered (or was skipped by the stored flag). It runs
+  // once, on the first app page: the visit may well start on a public one.
+  const [checked, setChecked] = useState(false)
+  const started = useRef(false)
 
   useEffect(() => {
-    if (exempt) return
+    if (exempt || started.current) return
+    started.current = true
     // A browser that has already seen this account onboarded skips the wait:
     // onboardedAt never goes back to null, so the check below only confirms it.
-    if (readOnboarded()) setChecking(false)
+    if (readOnboarded()) setChecked(true)
 
     void (async () => {
       try {
@@ -90,20 +94,20 @@ export function OnboardingGate({ children, recheck = false }: {
       } catch {
         // Network hiccup — not worth blocking the app over, next mount tries again.
       }
-      setChecking(false)
+      setChecked(true)
     })()
-    // Intentionally runs once per mount, not per pathname change.
+    // router is stable; the started ref keeps this to one check per mount.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [exempt])
 
   // Once the redirect lands, the check is done; finishing onboarding must not
   // return to a loader that is still waiting on it.
   useEffect(() => {
     if (SIGN_IN_PATHS.includes(pathname)) writeOnboarded(false)
-    if (exempt) setChecking(false)
+    if (exempt && started.current) setChecked(true)
   }, [pathname, exempt])
 
-  if (checking && !exempt) {
+  if (!checked && !exempt) {
     // .expense-redesign carries the app font and colors; erd-home-loading centers.
     return (
       <section className="expense-redesign">

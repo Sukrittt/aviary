@@ -35,6 +35,17 @@ describe('OnboardingGate', () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
+  it('checks on the first app page after a public one, without flashing it first', () => {
+    mockPathname = '/help'
+    const { rerender } = render(<OnboardingGate><p>page</p></OnboardingGate>)
+    expect(fetchMock).not.toHaveBeenCalled()
+
+    mockPathname = '/insights'
+    rerender(<OnboardingGate><p>page</p></OnboardingGate>)
+    expect(screen.queryByText('page')).toBeNull()
+    expect(fetchMock).toHaveBeenCalledWith('/api/user')
+  })
+
   it.each(['/insights', '/investments', '/wrapped', '/account', '/account/income', '/admin', '/expense/transactions'])('holds app page %s until the onboarding check answers', (path) => {
     mockPathname = path
     render(<OnboardingGate><p>page</p></OnboardingGate>)
