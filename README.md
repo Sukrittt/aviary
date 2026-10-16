@@ -1,22 +1,34 @@
 # Aviary
 
-**Open-source envelope budgeting, built for rupees.** Give every rupee a job, log a spend in three taps, and see what's safe to spend at a glance — on the web and Android.
+**The budgeting app you'll still open on day 4.** It notices your habits and nudges you while a spend is still fresh. Miss a day? Type what you remember and you're caught up. No bank link, no loans, no offers.
 
-[Web app](https://useaviary.com) · [Android (Google Play)](https://play.google.com/store/apps/details?id=com.sukrit04.envelope) · [Mobile repo](https://github.com/Sukrittt/aviary-mobile)
+[Get it on Google Play](https://play.google.com/store/apps/details?id=com.sukrit04.envelope) · [Web app](https://useaviary.com) · [Mobile repo](https://github.com/Sukrittt/aviary-mobile)
 
 <p align="center">
-  <img src="public/landing/home.jpeg" width="200" alt="Home" />
-  <img src="public/landing/envelopes.jpeg" width="200" alt="Envelopes" />
-  <img src="public/landing/log-expense.jpeg" width="200" alt="Log expense" />
-  <img src="public/landing/insights.jpeg" width="200" alt="Insights" />
+  <img src="docs/screenshots/log-expense.jpg" width="180" alt="Log a spend in two taps" />
+  <img src="docs/screenshots/categories.jpg" width="180" alt="Plan the month before it plans you" />
+  <img src="docs/screenshots/ask-aviary.jpg" width="180" alt="Can I afford it? Just ask" />
+  <img src="docs/screenshots/habit-nudge.jpg" width="180" alt="It learns your habits" />
+</p>
+<p align="center">
+  <img src="docs/screenshots/insights.jpg" width="180" alt="See where it all went" />
+  <img src="docs/screenshots/subscriptions.jpg" width="180" alt="Catch sneaky subscriptions" />
+  <img src="docs/screenshots/wrapped.jpg" width="180" alt="Your month, Wrapped" />
 </p>
 
 ## Why Aviary
 
-- **YNAB-style method, priced for India.** Envelope budgeting with Ready to Assign, rollovers, and moving money between envelopes — in INR, without a dollar subscription.
-- **Mobile-first.** A native Android app, not a PWA, sharing one account with the web dashboard.
-- **AI that knows your spending.** Ask Aviary chat, daily briefs, anomaly alerts, and a year-end Wrapped recap.
-- **Open source.** Every line that touches your financial data is public and auditable.
+Every budgeting app starts the same way, and so does the ending. You stop logging by day 4. That's not a willpower problem. Logging cost more than it gave back, so Aviary makes it cheap.
+
+- **It learns your habits.** Log the same thing on the same weekday, around the same time, three times in eight weeks, and Aviary nudges you 15 minutes after with the details filled in. Tap Log on the notification and it's in.
+- **Catch up in one line.** Missed yesterday? Type "auto 240, lunch 150, Friday dinner 900" into Ask Aviary. It splits that into separate spends, picks the categories, and you check them before they land.
+- **One tap on a normal day.** A home-screen widget, a keypad where the category picks itself, receipt scanning that splits shared bills, recurring expenses that log themselves, and offline logs that sync later.
+- **Noticing is the point.** There's no bank sync. Aviary keeps the one second where you notice a spend and takes away everything around it.
+- **Every log is a little win.** A check, a buzz and a chime, then what's left in that category. Expense Wrapped turns your month into a recap with your spending personality and longest streak.
+- **Give every rupee a job.** The envelope method YNAB made popular: Ready to Assign, categories, and moving money when you overspend. Rupees by default, or pick your own currency.
+- **More in the nest.** Ask Aviary answers "can I afford it?" from your own budget, Insights shows where it all went, and every subscription gets a heads-up before it renews.
+
+Free for 30 days, no card needed. Android and web today, with an iPhone waitlist on [useaviary.com](https://useaviary.com). No ads, and your data is never sold.
 
 ## About this repo
 

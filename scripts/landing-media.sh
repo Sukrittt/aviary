@@ -16,8 +16,8 @@ joined() { # joined <in> <out> <start end>...   pieces of one recording cut toge
   j_i=0; while [ $j_i -lt $j_n ]; do j_f="$j_f[s$j_i]"; j_i=$((j_i+1)); done
   ffmpeg -v error -y -i "$j_in" -filter_complex "${j_f}concat=n=$j_n:v=1:a=0" $ENC "$j_out"
 }
-last() { ffmpeg -v error -y -sseof -0.2 -i "$1" -frames:v 1 -update 1 -q:v 3 "$2"; }  # poster: the clip's finished state
-frame() { ffmpeg -v error -y -ss "$2" -i "$1" -frames:v 1 -update 1 -q:v 3 "$3"; }  # <in> <t> <out>
+last() { ffmpeg -v error -y -sseof -0.2 -i "$1" -frames:v 1 -update 1 -q:v 82 "$2"; }  # poster: the clip's finished state
+frame() { ffmpeg -v error -y -ss "$2" -i "$1" -frames:v 1 -update 1 -q:v 82 "$3"; }  # <in> <t> <out>
 crop() { ffmpeg -v error -y -ss "$2" -i "$1" -frames:v 1 -update 1 -vf "crop=576:640:0:$3" "$4"; }  # <in> <t> <y> <out>: 576x640 still
 
 # Both regions share one cut list; the moments (seconds into each take) are set per region below.
@@ -26,14 +26,14 @@ build() {
   src=$REC/$r
   # Skips the hold-to-save ring, which reads as a glitch at clip size.
   joined "$src/log-expense.mp4" "$out/clip-log.mp4" $LOG
-  frame "$src/log-expense.mp4" "$KEYPAD" "$out/poster-log.jpg"
+  frame "$src/log-expense.mp4" "$KEYPAD" "$out/poster-log.webp"
   # The "Added" card, cropped to the phone's middle so it reads at card size.
   ffmpeg -v error -y -ss "$ADDED" -i "$src/log-expense.mp4" -vf "crop=576:640:0:$ADDED_Y" $ENC "$out/clip-added.mp4"
-  last "$out/clip-added.mp4" "$out/poster-added.jpg"
-  clip "$src/scan-bill.mp4" "$out/clip-scan.mp4" "$SCAN"; last "$out/clip-scan.mp4" "$out/poster-scan.jpg"
-  joined "$src/ask-aviary.mp4" "$out/clip-ask.mp4" $ASK; last "$out/clip-ask.mp4" "$out/poster-ask.jpg"
-  clip "$src/insights.mp4" "$out/clip-insights.mp4" $INSIGHTS; last "$out/clip-insights.mp4" "$out/poster-insights.jpg"
-  clip "$src/investments.mp4" "$out/clip-invest.mp4" "$INVEST"; last "$out/clip-invest.mp4" "$out/poster-invest.jpg"
+  last "$out/clip-added.mp4" "$out/poster-added.webp"
+  clip "$src/scan-bill.mp4" "$out/clip-scan.mp4" "$SCAN"; last "$out/clip-scan.mp4" "$out/poster-scan.webp"
+  joined "$src/ask-aviary.mp4" "$out/clip-ask.mp4" $ASK; last "$out/clip-ask.mp4" "$out/poster-ask.webp"
+  clip "$src/insights.mp4" "$out/clip-insights.mp4" $INSIGHTS; last "$out/clip-insights.mp4" "$out/poster-insights.webp"
+  clip "$src/investments.mp4" "$out/clip-invest.mp4" "$INVEST"; last "$out/clip-invest.mp4" "$out/poster-invest.webp"
   frame "$src/insights.mp4" "$SUBS" "$out/subscriptions.png"
   crop "$src/wrapped.mp4" "$STREAK" 380 "$out/wrapped-streak.png"
   crop "$src/wrapped.mp4" "$PERSONA" 390 "$out/wrapped-persona.png"

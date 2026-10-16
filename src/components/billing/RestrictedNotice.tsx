@@ -2,7 +2,6 @@
 
 import Link from 'next/link'
 import { CaretRightIcon, CompassIcon, DatabaseIcon, ArrowSquareOutIcon, LockIcon, ChatCircleIcon, ArrowsClockwiseIcon, type PhosphorIcon } from '@/src/components/icons'
-import '@/src/expense-redesign.css'
 import { useBillingStatus, useSyncBilling } from '@/src/hooks/useBillingStatus'
 import { lockedReason, PLAY_STORE_URL } from './copy'
 import { WebPlanPicker } from './WebPlanPicker'
@@ -26,7 +25,7 @@ export function RestrictedNotice() {
   const sync = useSyncBilling()
 
   return (
-    <div style={{ maxWidth: 800, margin: '0 auto', padding: '48px 20px', display: 'grid', gap: 20 }}>
+    <div style={{ maxWidth: 600, margin: '0 auto', padding: '48px 20px', display: 'grid', gap: 20 }}>
       <div style={{ display: 'grid', gap: 10, justifyItems: 'start' }}>
         <div
           aria-hidden

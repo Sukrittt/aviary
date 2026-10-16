@@ -9,11 +9,22 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ replace }),
 }))
 
+// Counts loader renders: act() flushes the effect that drops the loader, so a
+// one-frame flash only shows up as a render here, never in the final DOM.
+const loaderRenders = vi.fn()
+vi.mock('@/src/components/LoadingCaption', () => ({
+  LoadingCaption: () => {
+    loaderRenders()
+    return <p>loading</p>
+  },
+}))
+
 const fetchMock = vi.fn(() => new Promise<Response>(() => {}))
 beforeEach(() => {
   fetchMock.mockReset()
   fetchMock.mockImplementation(() => new Promise<Response>(() => {}))
   replace.mockClear()
+  loaderRenders.mockClear()
   localStorage.clear()
   vi.stubGlobal('fetch', fetchMock)
 })
@@ -24,6 +35,47 @@ describe('OnboardingGate', () => {
     render(<OnboardingGate><p>page</p></OnboardingGate>)
     expect(screen.getByText('page')).toBeTruthy()
     expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  // A 404 isn't part of the app: holding it behind the loader server-rendered the
+  // loader instead of the 404, without the app styles it needs.
+  it('renders an unknown path (a 404) straight away, without asking for the user', () => {
+    mockPathname = '/no-such-page'
+    render(<OnboardingGate><p>page</p></OnboardingGate>)
+    expect(screen.getByText('page')).toBeTruthy()
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('checks on the first app page after a public one, without flashing it first', () => {
+    mockPathname = '/help'
+    const { rerender } = render(<OnboardingGate><p>page</p></OnboardingGate>)
+    expect(fetchMock).not.toHaveBeenCalled()
+
+    mockPathname = '/insights'
+    rerender(<OnboardingGate><p>page</p></OnboardingGate>)
+    expect(screen.queryByText('page')).toBeNull()
+    expect(fetchMock).toHaveBeenCalledWith('/api/user')
+  })
+
+  // The flash itself: coming from a public page the app sheets aren't loaded yet,
+  // so the loader drew unstyled in the corner before the page replaced it.
+  it.each(['/help', '/expense'])('goes from %s to an app page with no loader frame once this browser has seen the account onboarded', (from) => {
+    mockPathname = from
+    localStorage.setItem('aviary.onboarded', '1')
+    const { rerender } = render(<OnboardingGate><p>page</p></OnboardingGate>)
+
+    mockPathname = '/insights'
+    rerender(<OnboardingGate><p>page</p></OnboardingGate>)
+    expect(screen.getByText('page')).toBeTruthy()
+    expect(loaderRenders).not.toHaveBeenCalled()
+    expect(fetchMock).toHaveBeenCalledWith('/api/user')
+  })
+
+  it.each(['/insights', '/investments', '/wrapped', '/account', '/account/income', '/admin', '/expense/transactions'])('holds app page %s until the onboarding check answers', (path) => {
+    mockPathname = path
+    render(<OnboardingGate><p>page</p></OnboardingGate>)
+    expect(screen.queryByText('page')).toBeNull()
+    expect(fetchMock).toHaveBeenCalledWith('/api/user')
   })
 
   it('holds an app page until the onboarding check answers', () => {

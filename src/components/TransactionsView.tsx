@@ -3,7 +3,11 @@ import { ExpenseWriteError } from '../lib/expenseConflict';
 import { useCurrency } from "@/src/context/CurrencyContext";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { CopyIcon, PlusIcon, MagnifyingGlassIcon, MoneyWavyIcon, XIcon } from "@/src/components/icons";
+import { CopyIcon, ImagesIcon, PlusIcon, MagnifyingGlassIcon, MoneyWavyIcon, RowsIcon, XIcon } from "@/src/components/icons";
+import { TransactionsFeed } from "./TransactionsFeed";
+import { useActivityView } from "../hooks/useActivityView";
+import { useUser } from "../hooks/useUser";
+import { track } from "../lib/analytics";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { toTransactions, type Transaction } from "../lib/expenseTransactions";
@@ -136,6 +140,12 @@ export function TransactionsView({
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [showLogModal, setShowLogModal] = useState(false);
   const [actionsKey, setActionsKey] = useState<string | null>(null);
+  const feedOn = useUser().data?.activityFeed === true;
+  const [view, setView] = useActivityView();
+  // Turning the feed on in Features opens Activity on it; the header button
+  // still flips to the list, and that choice sticks in this browser.
+  // Selection is the list's; the feed has no checkboxes to show it with.
+  const feedView = feedOn && (view ?? "feed") === "feed" && !selecting;
 
   /**
    * The custom range's default: the day named in ?date=, else the month
@@ -435,6 +445,19 @@ export function TransactionsView({
   const hasActiveFilters =
     period !== "week" || Boolean(selectedCategory) || Boolean(selectedAccount) || Boolean(search.trim());
 
+  const emptyState = (
+    <BirdEmptyState
+      className="txn-timeline-empty"
+      mood={search || selectedCategory || selectedAccount ? 'searching' : 'snoozing'}
+      subject="expenses"
+      title={search || selectedCategory || selectedAccount ? 'Nothing turned up' : 'Your story starts here'}
+      description={search || selectedCategory || selectedAccount ? 'No transactions for this filter.' : 'Log your first expense and we’ll keep the little details here.'}
+      action={search || selectedCategory || selectedAccount
+        ? { label: 'Reset filters', onClick: resetFilters }
+        : { label: 'Log your first expense', onClick: () => setShowLogModal(true) }}
+    />
+  );
+
   return (
     <div className="txn-timeline">
       <header className="txn-page-header">
@@ -444,7 +467,23 @@ export function TransactionsView({
           <p>Review, search, and edit everything you have logged.</p>
         </div>
         <div className="txn-page-actions">
-          {visibleTransactions.length > 0 && !selecting && (
+          {feedOn && (
+            <button
+              type="button"
+              className="action-button"
+              aria-pressed={feedView}
+              onClick={() => {
+                const next = feedView ? "list" : "feed";
+                setActionsKey(null);
+                setView(next);
+                track("activity_view_changed", { view: next });
+              }}
+            >
+              {feedView ? <RowsIcon size={15} aria-hidden="true" /> : <ImagesIcon size={15} aria-hidden="true" />}
+              {feedView ? "List" : "Feed"}
+            </button>
+          )}
+          {visibleTransactions.length > 0 && !selecting && !feedView && (
             <button
               type="button"
               className="action-button"
@@ -583,23 +622,33 @@ export function TransactionsView({
       </AnimatePresence>
       {deleteNotice && <ExpenseNoticeDialog status={deleteNotice.status} action="delete" onBack={() => setDeleteNotice(null)} />}
 
-      {loading ? (
+      {feedView ? (
+        <TransactionsFeed
+          params={{
+            category: selectedCategory || undefined,
+            account: selectedAccount || undefined,
+            from,
+            to,
+            q: search || undefined,
+          }}
+          hideAmounts={hideAmounts}
+          accountNameOf={(id) => accountName(accountsQuery.data, id)}
+          removedKeys={removedKeys}
+          txnKey={txnKey}
+          isDeleting={(t) => pendingDelete?.id === t.id && pendingDelete?.timestamp === t.timestamp}
+          onDeleteDone={(t) => void handleDelete(t)}
+          onEdit={setEditingTxn}
+          onDelete={setDeleteTxn}
+          empty={emptyState}
+        />
+      ) : loading ? (
         <ActivitySkeleton />
       ) : error ? (
         <div className="txn-timeline-empty">
           Couldn&apos;t load transactions. {error}
         </div>
       ) : totalCount === 0 && visibleIncomes.length === 0 ? (
-        <BirdEmptyState
-          className="txn-timeline-empty"
-          mood={search || selectedCategory || selectedAccount ? 'searching' : 'snoozing'}
-          subject="expenses"
-          title={search || selectedCategory || selectedAccount ? 'Nothing turned up' : 'Your story starts here'}
-          description={search || selectedCategory || selectedAccount ? 'No transactions for this filter.' : 'Log your first expense and we’ll keep the little details here.'}
-          action={search || selectedCategory || selectedAccount
-            ? { label: 'Reset filters', onClick: resetFilters }
-            : { label: 'Log your first expense', onClick: () => setShowLogModal(true) }}
-        />
+        emptyState
       ) : (
         <motion.div
           key={page}
@@ -791,7 +840,7 @@ export function TransactionsView({
         )}
       </AnimatePresence>
 
-      {!loading && !error && (
+      {!feedView && !loading && !error && (
         <div className="txn-timeline-footer">
           <span>
             {totalCount} transaction{totalCount !== 1 ? "s" : ""}

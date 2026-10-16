@@ -8,6 +8,7 @@
 // have no counterpart below.
 import { apiFetch } from './client'
 import type { HideableFeature } from '@/src/lib/features'
+import type { HeardFrom } from '@/lib/users'
 
 export interface UserProfile {
   _id?: string
@@ -30,6 +31,10 @@ export interface UserProfile {
   createdAt?: string
   /** Features hidden from the app, see src/lib/features.ts. Absent = the default for the account's age. */
   hiddenFeatures?: HideableFeature[]
+  /** Activity's photo feed, turned on in Account → Features. Absent = off. */
+  activityFeed?: boolean
+  /** Setup's "Where did you hear about us?" answer. Absent = skipped. */
+  heardFrom?: HeardFrom
   /** Set while the account is within its post-delete grace window — null once active or purged. */
   deletionScheduledFor?: string | null
 }

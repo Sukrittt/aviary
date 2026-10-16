@@ -113,7 +113,6 @@
 }
 
 .ins-card {
-  box-shadow: none;
   animation: ins-card-rise 420ms cubic-bezier(.2,.8,.2,1) both;
 }
 
@@ -564,6 +563,8 @@
 
 .ins-row-name {
   flex: 1;
+  font-size: 15px;
+  font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -765,11 +766,13 @@
   margin: 22px 0 0;
 }
 
-/* Full card width, height falling out of the viewBox aspect. Capping height
-   instead would letterbox the calendar and hand the width back. */
+/* Fills the card on phones; on wide cards it stops at ~64px cells (viewBox
+   is 302 wide with 38-unit cells) and centers, so labels keep their ratio. */
 .ins-heatmap-svg {
   display: block;
   width: 100%;
+  max-width: 508px;
+  margin-inline: auto;
   height: auto;
   overflow: visible;
 }

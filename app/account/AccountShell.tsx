@@ -1,11 +1,11 @@
 'use client'
 
+import '@/src/appStyles'
 import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAppearance } from '@/components/AppearanceProvider'
 import { ExpenseSidebar } from '@/src/components/ExpenseSidebar'
-import '../../src/expense-redesign.css'
 import { InsightsTab } from '@/src/components/InsightsTab'
 import { GearIcon, HouseIcon, InvoiceIcon, MoonIcon, SunIcon } from '@/src/components/icons'
 

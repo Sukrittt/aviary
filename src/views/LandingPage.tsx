@@ -11,7 +11,7 @@ import { IosWaitlist } from '../components/landing/IosWaitlist'
 // Parked while the page leads with habit nudges; see the commented section below.
 // import { MoneyLesson } from '../components/landing/MoneyLesson'
 import { BirdLanding, BirdMark } from '../components/BirdMark'
-import { HeroStage, LearnDiagram, MoreInside, NoticeSplit, RotatingHabit } from '../components/landing/Nudges'
+import { HeroStage, LearnDiagram, MoreInside, NoticeSplit, RotatingHabit, ShotClip } from '../components/landing/Nudges'
 import { FEEDBACK_BOARD_PATH } from '@/lib/links'
 import { GITHUB, LandingFooter, LandingHeader } from '../components/landing/Chrome'
 import { SampleScope } from '../components/landing/sample'
@@ -141,7 +141,7 @@ export function LandingPage({ monthlyPrice, ios = false, android = false, intl =
         </figure>
         <figure className="lp-shot">
           <div className="lp-shot-art" aria-hidden="true">
-            <div className="lp-shot-phone"><video src={`/landing/${intl ? 'intl/' : ''}clip-log.mp4`} poster={`/landing/${intl ? 'intl/' : ''}poster-log.jpg`} autoPlay muted loop playsInline preload="metadata" /></div>
+            <ShotClip name="log" />
           </div>
           <figcaption><strong>The keypad</strong><span>Amount, a word or two, done. The category picks itself.</span></figcaption>
         </figure>

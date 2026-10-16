@@ -2,17 +2,18 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const logMock = vi.fn(async () => undefined)
 const generateContentStream = vi.fn()
+const generateContent = vi.fn()
 
 vi.mock('./usage', () => ({ logAiUsage: (...args: unknown[]) => logMock(...(args as [])) }))
 vi.mock('@google/genai', () => ({
   GoogleGenAI: class {
-    models = { generateContentStream }
+    models = { generateContentStream, generateContent }
   },
   ThinkingLevel: { MINIMAL: 'MINIMAL', LOW: 'LOW' },
 }))
 
 process.env.GEMINI_API_KEY = 'test'
-const { streamText, hedged } = await import('./gemini')
+const { streamText, hedged, generateJSON, generateJSONFromImage } = await import('./gemini')
 const caller = { userId: 'user_1', feature: 'chat' as const }
 
 async function* chunks() {
@@ -125,5 +126,37 @@ describe('hedged', () => {
     await expect(hedged(later(5, 'down', true), backup, 50)).rejects.toThrow('down')
     await new Promise((r) => setTimeout(r, 60))
     expect(backup).not.toHaveBeenCalled()
+  })
+})
+
+describe('deadline', () => {
+  /** A Gemini call that never answers, like the 2026-10-13 spike: it ends only when aborted. */
+  const hang = ({ config }: { config: { abortSignal: AbortSignal } }) =>
+    new Promise((_, reject) => config.abortSignal.addEventListener('abort', () => reject(new Error('This operation was aborted'))))
+
+  it('gives up on a hung call at its deadline, so the route answers before Vercel kills it', async () => {
+    generateContent.mockImplementation(hang)
+    await expect(generateJSON('p', {}, caller, { timeoutMs: 20 })).rejects.toThrow('aborted')
+    await expect(generateJSONFromImage('p', { data: '', mimeType: 'image/png' }, {}, caller, { timeoutMs: 20 })).rejects.toThrow('aborted')
+  })
+
+  it('shares one deadline between a call and its 503 retry', async () => {
+    generateContent.mockImplementationOnce(async () => {
+      await new Promise((r) => setTimeout(r, 15))
+      throw new Error('503 UNAVAILABLE')
+    })
+    generateContent.mockImplementationOnce(hang)
+    const started = Date.now()
+    await expect(generateJSON('p', {}, caller, { timeoutMs: 40 })).rejects.toThrow('aborted')
+    expect(generateContent).toHaveBeenCalledTimes(2)
+    expect(Date.now() - started).toBeLessThan(200)
+  })
+
+  it('arms the chat stream too, so a stalled reply ends in an error frame', async () => {
+    generateContentStream.mockResolvedValue(chunks())
+    await streamText('sys', [], caller)
+    const signal = generateContentStream.mock.calls[0][0].config.abortSignal
+    expect(signal).toBeInstanceOf(AbortSignal)
+    expect(signal.aborted).toBe(false)
   })
 })

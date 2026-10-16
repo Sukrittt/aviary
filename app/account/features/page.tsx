@@ -8,6 +8,9 @@ import { FEATURE_LABELS, FEATURE_ORDER, hiddenFeatures, type HideableFeature } f
 export default function FeaturesPage() {
   const user = useUser().data
   const updateUser = useUpdateUser()
+  // Its own mutation, so the switch can wait out its save: two saves in
+  // flight can land out of order and leave the older choice in the cache.
+  const updateFeed = useUpdateUser()
   const [failed, setFailed] = useState(false)
 
   // Local copy so rapid flips build on each other, not on a response still in flight.
@@ -57,6 +60,26 @@ export default function FeaturesPage() {
             />
           </label>
         ))}
+      </div>
+      <div className="account-card" style={{ marginTop: 16 }}>
+        <label className="account-row">
+          <span className="account-row-label">
+            Feed view in Activity
+            <span className="account-row-hint">Scroll your expenses like a photo feed</span>
+          </span>
+          <input
+            type="checkbox"
+            role="switch"
+            className="account-switch"
+            aria-label="Feed view in Activity"
+            checked={user?.activityFeed === true}
+            disabled={!user || updateFeed.isPending}
+            onChange={(e) => {
+              setFailed(false)
+              updateFeed.mutate({ activityFeed: e.target.checked }, { onError: () => setFailed(true) })
+            }}
+          />
+        </label>
       </div>
       {failed && <div className="account-confirm-copy" role="alert">Couldn&apos;t save. Check your connection and try again.</div>}
       <p className="account-row-hint" style={{ marginTop: 10 }}>

@@ -189,6 +189,31 @@ describe('recurring expenses in the nightly cron', () => {
     expect(sendPushNotificationMock).not.toHaveBeenCalled()
   })
 
+  // A seed script once wrote free-text labels straight into prod, past the
+  // route's bank/credit_card check; createExpense rejected them every night.
+  it.each([
+    ['Debit Card', 'bank'],
+    ['Bank Transfer', 'bank'],
+    ['Credit Card', 'credit_card'],
+  ])('logs a %s row as %s instead of failing every night', async (stored, logged) => {
+    recurrences = [{ ...base, payment_method: stored }]
+    await run()
+
+    expect(createExpenseMock).toHaveBeenCalledTimes(1)
+    expect(createExpenseMock.mock.calls[0][1].payment_method).toBe(logged)
+    expect(recurrences[0].next_run_date).toBe('2026-10-07')
+  })
+
+  it('pauses a recurrence that can never be logged and tells the user once', async () => {
+    recurrences = [{ ...base, amount_inr: '0' }]
+    await run()
+
+    expect(createExpenseMock).not.toHaveBeenCalled()
+    expect(recurrences[0].status).toBe('paused')
+    expect(sendPushNotificationMock).toHaveBeenCalledTimes(1)
+    expect(sendPushNotificationMock.mock.calls[0][0]).toMatchObject({ data: { route: '/account/recurring' } })
+  })
+
   it('one broken recurrence does not stop the next one', async () => {
     createExpenseMock.mockRejectedValueOnce(new Error('boom'))
     recurrences = [

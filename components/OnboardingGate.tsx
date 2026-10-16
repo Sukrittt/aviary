@@ -1,17 +1,19 @@
 'use client'
 
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
+import dynamic from 'next/dynamic'
 import { usePathname, useRouter } from 'next/navigation'
 import { LoadingCaption } from '@/src/components/LoadingCaption'
-import '@/src/expense-redesign.css'
 
-// Pages that exist outside the "logged in and onboarded" app proper — never
-// bounce these to /onboarding even if the onboarding check would otherwise fire.
-// '/' is public; middleware sends signed-in visitors straight to /expense.
-// /legal is public too: gating it held every legal page behind a loader until a
-// /api/user call that a signed-out visitor can only fail.
-// Public pages (landing, content, legal) must server-render their body for crawlers, so they skip the check.
-const ONBOARDING_EXEMPT_PATHS = ['/', '/intl', '/help', '/changelog', '/compare', '/tools', '/features', '/blog', '/sign-in', '/email', '/code', '/onboarding', '/legal']
+// The loader stands in for the route, so the route's layout (which links the app
+// stylesheets) never renders: it pulls them itself, as AppErrorScreen does.
+const AppSheets = dynamic(() => import('@/src/components/AppSheets').catch(() => ({ default: () => null })))
+
+// The "logged in and onboarded" app proper: the only pages held for the check.
+// Everything else skips it: public pages (landing, content, legal) must
+// server-render their body for crawlers, sign-in and /onboarding can't loop, and
+// a 404 renders straight away (its loader would have no app styles to wear).
+const GATED_PATHS = ['/expense', '/insights', '/investments', '/wrapped', '/account', '/admin']
 
 // Set once /api/user confirms onboarding, so a returning visit renders the app
 // without waiting on that round trip first. It isn't keyed by account, so the
@@ -26,6 +28,13 @@ function readOnboarded(): boolean {
   } catch {
     return false
   }
+}
+
+// False while server-rendering and hydrating, true after: storage can only be
+// read during render once the server HTML (which never knows it) is matched.
+const noop = () => () => {}
+function useHydrated(): boolean {
+  return useSyncExternalStore(noop, () => true, () => false)
 }
 
 function writeOnboarded(onboarded: boolean): void {
@@ -44,7 +53,7 @@ const SERVER_CHECKED_PATHS = ['/expense']
 
 function isExempt(pathname: string): boolean {
   if (SERVER_CHECKED_PATHS.includes(pathname)) return true
-  return ONBOARDING_EXEMPT_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))
+  return !GATED_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))
 }
 
 /**
@@ -70,13 +79,20 @@ export function OnboardingGate({ children, recheck = false }: {
   const pathname = usePathname() ?? ''
   const router = useRouter()
   const exempt = !recheck && isExempt(pathname)
-  const [checking, setChecking] = useState(() => !exempt)
+  // Whether the check has answered (or was skipped by the stored flag). It runs
+  // once, on the first app page: the visit may well start on a public one.
+  const [checked, setChecked] = useState(false)
+  const started = useRef(false)
+  // A client-side visit to the first app page doesn't wait a frame on the effect
+  // below: that frame drew the loader, unstyled when coming from a public page.
+  const knownOnboarded = useHydrated() && readOnboarded()
 
   useEffect(() => {
-    if (exempt) return
+    if (exempt || started.current) return
+    started.current = true
     // A browser that has already seen this account onboarded skips the wait:
     // onboardedAt never goes back to null, so the check below only confirms it.
-    if (readOnboarded()) setChecking(false)
+    if (readOnboarded()) setChecked(true)
 
     void (async () => {
       try {
@@ -93,23 +109,24 @@ export function OnboardingGate({ children, recheck = false }: {
       } catch {
         // Network hiccup — not worth blocking the app over, next mount tries again.
       }
-      setChecking(false)
+      setChecked(true)
     })()
-    // Intentionally runs once per mount, not per pathname change.
+    // router is stable; the started ref keeps this to one check per mount.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [exempt])
 
   // Once the redirect lands, the check is done; finishing onboarding must not
   // return to a loader that is still waiting on it.
   useEffect(() => {
     if (SIGN_IN_PATHS.includes(pathname)) writeOnboarded(false)
-    if (exempt) setChecking(false)
+    if (exempt && started.current) setChecked(true)
   }, [pathname, exempt])
 
-  if (checking && !exempt) {
+  if (!checked && !exempt && !knownOnboarded) {
     // .expense-redesign carries the app font and colors; erd-home-loading centers.
     return (
       <section className="expense-redesign">
+        <AppSheets />
         <div className="erd-home-loading">
           <LoadingCaption feature="appEntry" placement="page" />
         </div>

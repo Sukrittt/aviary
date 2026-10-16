@@ -32,6 +32,9 @@
 .changelog-history-entry { scroll-margin-top: 96px; }
 .changelog-history-entry h2 { font: 600 22px/1.3 var(--font-display), sans-serif; margin: 8px 0 12px; }
 .changelog-history-entry ul { padding-left: 20px; line-height: 1.6; }
+.changelog-permalink { color: inherit; text-decoration: none; }
+.changelog-details-label { margin: 16px 0 0; font-size: 12px; font-weight: 700; color: var(--tk-text2); }
+.changelog-details-label + .changelog-body { margin-top: 6px; }
 .changelog-body { white-space: pre-wrap; overflow-wrap: anywhere; color: var(--tk-text2); font-size: 14px; line-height: 1.65; margin: 16px 0 0; }
 @media (hover: hover) and (pointer: fine) {
   .changelog-close:hover { background: var(--tk-input-bg); }

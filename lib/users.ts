@@ -8,6 +8,10 @@ import { queueWelcomeEmail, type WelcomeDelivery } from './email/welcome'
 export const HIDEABLE_FEATURES = ['askAviary', 'investments', 'billScan', 'recurring', 'subscriptions', 'insights', 'wrapped', 'income', 'accounts'] as const
 export type HideableFeature = (typeof HIDEABLE_FEATURES)[number]
 
+/** Answers to setup's "Where did you hear about us?". Twin of Mobile's HeardFrom.tsx options. */
+export const HEARD_FROM_SOURCES = ['friend', 'search', 'social', 'reddit', 'youtube', 'appStore', 'article', 'other'] as const
+export type HeardFrom = (typeof HEARD_FROM_SOURCES)[number]
+
 export interface UserDoc {
   currencyCode?: string
   /** IANA zone (e.g. `America/New_York`) reported by the client. Absent = IST, which is what every pre-existing account was. */
@@ -48,6 +52,8 @@ export interface UserDoc {
   hiddenFeatures?: HideableFeature[]
   /** Activity can show expenses as a photo feed. Off unless turned on in More → Features. */
   activityFeed?: boolean
+  /** Setup's "Where did you hear about us?" answer. Absent = skipped or signed up before it was asked. */
+  heardFrom?: HeardFrom
   /** Legacy fields from before the flat `name` field — read via `displayName`, never written. */
   firstName?: string | null
   lastName?: string | null

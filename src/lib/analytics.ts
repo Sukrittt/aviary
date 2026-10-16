@@ -46,6 +46,7 @@ export type AppEvent =
   | 'onboarding_failed'
   | 'onboarding_completed'
   | 'onboarding_extras_chosen'
+  | 'onboarding_heard_from'
   | 'tour_started'
   | 'tour_step_viewed'
   | 'tour_skipped'
@@ -54,6 +55,10 @@ export type AppEvent =
   | 'expense_logged'
   | 'expense_edited'
   | 'expense_deleted'
+  // A photo put on an expense; `from` is 'log' or 'feed'.
+  | 'expense_photo_added'
+  // Activity's list / feed switch; `view` is the one picked.
+  | 'activity_view_changed'
   | 'ai_category_suggested'
   | 'money_moved'
   | 'rta_zero_celebrated'

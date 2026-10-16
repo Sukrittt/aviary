@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest'
 import { TransactionsView } from './TransactionsView'
@@ -10,6 +10,8 @@ const { remove, dismiss, duplicates, page, pageArgs } = vi.hoisted(() => ({
   duplicates: { data: [] as unknown[] },
   page: { extra: [] as unknown[] },
 }))
+const feedMocks = vi.hoisted(() => ({ user: {} as { activityFeed?: boolean } }))
+vi.mock('../hooks/useUser', () => ({ useUser: () => ({ data: feedMocks.user }) }))
 vi.mock('../hooks/useAccounts', () => ({ useAccounts: () => ({ data: [] }), liveAccounts: () => [] }))
 vi.mock('../hooks/useIncomes', () => ({ useIncomes: () => ({ data: incomeMocks.rows }) }))
 const incomeMocks = vi.hoisted(() => ({ rows: [] as Record<string, unknown>[] }))
@@ -22,6 +24,15 @@ vi.mock('../hooks/useExpenses', () => ({
   useDeleteExpense: () => ({ mutateAsync: remove }),
   useDuplicates: () => duplicates,
   useDismissDuplicate: () => ({ mutateAsync: dismiss }),
+  useExpensesFeed: () => ({
+    data: { pages: [{ rows: [{ id: 'one', version: 0, timestamp: '2026-09-18T10:00:00', date: '2026-09-18', item: 'Lunch', amount_inr: '100', category: 'Food' }], page: 1, pageCount: 1 }] },
+    isLoading: false,
+    isError: false,
+    hasNextPage: false,
+    isFetchingNextPage: false,
+    fetchNextPage: vi.fn(),
+  }),
+  useUploadExpensePhoto: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }))
 
 it('opens the transaction actions when the row is clicked', () => {
@@ -226,4 +237,41 @@ it('queries the calendar days it shows, not the day before, east of UTC', () => 
   render(<TransactionsView />)
   fireEvent.click(screen.getByRole('tab', { name: 'This month' }))
   expect(pageArgs.at(-1)).toMatchObject({ from: '2026-09-01', to: '2026-09-18' })
+})
+
+describe('feed view', () => {
+  beforeEach(() => {
+    feedMocks.user = { activityFeed: true }
+  })
+  afterEach(() => {
+    feedMocks.user = {}
+    window.localStorage.clear()
+  })
+
+  it('stays on the list with no switch until the feed is turned on in Features', () => {
+    feedMocks.user = {}
+    render(<TransactionsView />)
+    expect(screen.getByRole('button', { name: 'Open actions for Lunch' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Feed' })).not.toBeInTheDocument()
+  })
+
+  it('opens on the feed once turned on, and switches to the list and back', () => {
+    render(<TransactionsView />)
+    expect(screen.getByRole('button', { name: 'Lunch, Food. View details' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Select' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'List' }))
+    expect(screen.getByRole('button', { name: 'Open actions for Lunch' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Feed' }))
+    expect(screen.getByRole('button', { name: 'Lunch, Food. View details' })).toBeInTheDocument()
+  })
+
+  it('deletes from the detail dialog: closes it, confirms, then sends the delete', async () => {
+    remove.mockReset().mockResolvedValue(undefined)
+    render(<TransactionsView />)
+    fireEvent.click(screen.getByRole('button', { name: 'Lunch, Food. View details' }))
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Lunch' })).getByRole('button', { name: 'Delete' }))
+    await screen.findByRole('alertdialog', { name: 'Delete this transaction?' })
+    fireEvent.click(screen.getByText('Remove'))
+    await waitFor(() => expect(remove).toHaveBeenCalledWith(expect.objectContaining({ id: 'one' })))
+  })
 })
