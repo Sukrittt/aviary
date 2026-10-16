@@ -123,6 +123,18 @@ describe('detail dialog', () => {
     expect(within(dialog).getByRole('link', { name: 'Open photo of Plant' })).toHaveAttribute('href', 'https://blob.test/a.jpg?s=1')
   })
 
+  it('shows the time for a same-day expense and when it was logged for a backdated one', () => {
+    m.rows = [
+      row({ id: 'a', item: 'Tea', date: '2026-10-12', timestamp: '2026-10-12T23:30:00+05:30' }),
+      row({ id: 'b', item: 'Rent', date: '2026-10-01', timestamp: '2026-10-12T09:00:00+05:30' }),
+    ]
+    renderFeed()
+    fireEvent.click(screen.getByRole('button', { name: 'Tea, Home. View details' }))
+    expect(within(screen.getByRole('dialog', { name: 'Tea' })).getByText('Time')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Rent, Home. View details' }))
+    expect(within(screen.getByRole('dialog', { name: 'Rent' })).getByText('Logged')).toBeInTheDocument()
+  })
+
   it('says when an expense has no account', () => {
     renderFeed()
     fireEvent.click(screen.getByRole('button', { name: 'Plant, Home. View details' }))

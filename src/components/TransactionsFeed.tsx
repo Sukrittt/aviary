@@ -34,10 +34,6 @@ function timeOf(timestamp: string): string {
   return d.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' }).toLowerCase()
 }
 
-function localDate(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
 /**
  * Activity's feed view: every expense as a card, photo first, newest at the
  * top, loading more as you scroll. Expenses without a photo show their
@@ -286,8 +282,11 @@ function TransactionDetailDialog({ txn, layoutKey, hideAmounts, icon, account, o
   }, [onClose])
 
   const logged = new Date(txn.timestamp)
-  // A backdated expense was logged on another day; its time is when it was logged, not spent.
-  const sameDay = !Number.isNaN(logged.getTime()) && localDate(logged) === txn.date
+  // A backdated expense was logged on another day; its time is when it was
+  // logged, not spent. Timestamps carry the user's own offset
+  // (2026-09-21T08:30:15+05:30), so their date part is the user's day too,
+  // whatever zone this browser is in.
+  const sameDay = txn.timestamp.slice(0, 10) === txn.date
   const time = timeOf(txn.timestamp)
   const rows = [
     { icon: TagIcon, label: 'Category', value: name },

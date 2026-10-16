@@ -8,6 +8,9 @@ import { FEATURE_LABELS, FEATURE_ORDER, hiddenFeatures, type HideableFeature } f
 export default function FeaturesPage() {
   const user = useUser().data
   const updateUser = useUpdateUser()
+  // Its own mutation, so the switch can wait out its save: two saves in
+  // flight can land out of order and leave the older choice in the cache.
+  const updateFeed = useUpdateUser()
   const [failed, setFailed] = useState(false)
 
   // Local copy so rapid flips build on each other, not on a response still in flight.
@@ -70,10 +73,10 @@ export default function FeaturesPage() {
             className="account-switch"
             aria-label="Feed view in Activity"
             checked={user?.activityFeed === true}
-            disabled={!user}
+            disabled={!user || updateFeed.isPending}
             onChange={(e) => {
               setFailed(false)
-              updateUser.mutate({ activityFeed: e.target.checked }, { onError: () => setFailed(true) })
+              updateFeed.mutate({ activityFeed: e.target.checked }, { onError: () => setFailed(true) })
             }}
           />
         </label>
