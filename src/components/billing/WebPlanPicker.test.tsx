@@ -100,6 +100,22 @@ describe('WebPlanPicker', () => {
     expect(screen.getByText('Keep your budget going')).toBeTruthy()
   })
 
+  it("won't check out on a deferred-charge promise that ran out while the picker sat open", () => {
+    vi.useFakeTimers({ now: Date.now() })
+    try {
+      render(<WebPlanPicker trialEndsAt={new Date(Date.now() + 16 * 60_000).toISOString()} />)
+      expect(screen.getByText(/first charge waits/)).toBeTruthy()
+      vi.setSystemTime(Date.now() + 2 * 60_000)
+      fireEvent.click(screen.getByText('Keep Aviary · ₹999/year'))
+      expect(mutate).not.toHaveBeenCalled()
+      expect(screen.queryByText(/first charge waits/)).toBeNull()
+      fireEvent.click(screen.getByText('Keep Aviary · ₹999/year'))
+      expect(mutate).toHaveBeenCalledWith('yearly')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('buys the plan the user picked', () => {
     render(<WebPlanPicker />)
     fireEvent.click(screen.getByText('Monthly'))

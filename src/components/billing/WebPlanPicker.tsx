@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useReducer, useRef, useState } from 'react'
 import { BellIcon, ChatCircleIcon, CheckIcon, GiftIcon, ScanIcon, SquaresFourIcon, type PhosphorIcon } from '@/src/components/icons'
 import type { PlanPeriod } from '@/src/api/billing'
 import { useWebCheckout, useWebPlans } from '@/src/hooks/useBillingStatus'
@@ -50,6 +50,7 @@ export function WebPlanPicker({ trialEndsAt = null, trigger = 'plan_screen' }: {
   const provider = plans.data?.provider ?? 'razorpay'
   const checkout = useWebCheckout(user ? { email: user.email, name: user.name ?? undefined } : undefined, provider)
   const [period, setPeriod] = useState<PlanPeriod>('yearly')
+  const [, rerender] = useReducer((n: number) => n + 1, 0)
 
   if (plans.isLoading) return <p style={note}>Loading plans…</p>
   if (plans.isError || !plans.data) return <p style={note}>Plans aren&apos;t loading right now. Check your connection and try again.</p>
@@ -184,7 +185,12 @@ export function WebPlanPicker({ trialEndsAt = null, trigger = 'plan_screen' }: {
 
         <button
           type="button"
-          onClick={() => checkout.mutate(period)}
+          onClick={() => {
+            // Left open past the cutoff, the header still promises a deferred
+            // charge the server won't honour. Redraw with the true copy first.
+            if (timeline && !defersFirstCharge(trialEndsAt)) return rerender()
+            checkout.mutate(period)
+          }}
           disabled={busy || !selected}
           style={{
             font: 'inherit',
