@@ -48,37 +48,63 @@ describe('WebPlanPicker', () => {
   it('shows both live prices and the yearly saving, with yearly picked by default', () => {
     render(<WebPlanPicker />)
     expect(screen.getByText('Save 15%')).toBeTruthy()
-    fireEvent.click(screen.getByText('Subscribe yearly · ₹999'))
+    fireEvent.click(screen.getByText('Keep Aviary · ₹999/year'))
     expect(mutate).toHaveBeenCalledWith('yearly')
   })
 
-  it('lists what the plan includes and the per-month cost of yearly', () => {
+  it('quotes yearly per month in whole rupees', () => {
     render(<WebPlanPicker />)
-    expect(screen.getByText('No ads. Ever.')).toBeTruthy()
-    expect(screen.getByText('₹83.25/month, billed yearly')).toBeTruthy()
+    expect(screen.getByText('₹83/month · billed once a year')).toBeTruthy()
   })
 
-  it('says nothing is charged until the trial ends when bought mid-trial', () => {
-    render(<WebPlanPicker trialEndsAt={new Date(Date.now() + 12 * 86_400_000).toISOString()} />)
-    expect(screen.getByText(/Nothing's charged until your trial ends on .+, except a refundable ₹5 to set up autopay\./)).toBeTruthy()
+  it('walks a mid-trial buyer through the dates: today, the reminder a week out, the first charge', () => {
+    const end = new Date(Date.now() + 20 * 86_400_000)
+    const day = (d: Date) => d.toLocaleDateString(undefined, { day: 'numeric', month: 'long' })
+    render(<WebPlanPicker trialEndsAt={end.toISOString()} />)
+    expect(screen.getByText('Try everything. Pay only if it sticks.')).toBeTruthy()
+    expect(screen.getByText(/Your trial runs to .+\. Subscribe now and the first charge waits for that date\./)).toBeTruthy()
+    expect(screen.getByText('Today')).toBeTruthy()
+    expect(screen.getByText(day(new Date(end.getTime() - 7 * 86_400_000)))).toBeTruthy()
+    expect(screen.getByText(day(end))).toBeTruthy()
+    expect(screen.getByText(/refundable ₹5/)).toBeTruthy()
+    expect(screen.getByText('UPI or card')).toBeTruthy()
+    expect(screen.queryByText('Snap a bill')).toBeNull()
+  })
+
+  it('drops the reminder step once its date has passed', () => {
+    render(<WebPlanPicker trialEndsAt={new Date(Date.now() + 3 * 86_400_000).toISOString()} />)
+    expect(screen.getByText('Today')).toBeTruthy()
+    expect(screen.queryByText(/A heads up, one week out/)).toBeNull()
+    expect(screen.getByText(/First charge/)).toBeTruthy()
   })
 
   it("doesn't mention Razorpay's ₹5 mandate charge on PayPal", () => {
     plansMock.mockReturnValue({ data: { plans, provider: 'paypal' }, isLoading: false, isError: false })
     render(<WebPlanPicker trialEndsAt={new Date(Date.now() + 12 * 86_400_000).toISOString()} />)
-    expect(screen.getByText(/Nothing's charged until your trial ends/)).toBeTruthy()
+    expect(screen.getByText('Pick a plan. We set up autopay and nothing else moves.')).toBeTruthy()
+    expect(screen.getByText('PayPal or card')).toBeTruthy()
     expect(screen.queryByText(/₹5/)).toBeNull()
+  })
+
+  it('shows what the plan keeps switched on once access has expired', () => {
+    render(<WebPlanPicker trigger="access_expired" />)
+    expect(screen.getByText('Keep your budget going')).toBeTruthy()
+    for (const title of ['Snap a bill', 'Ask Aviary', 'Monthly Wrapped', 'Widgets + web']) expect(screen.getByText(title)).toBeTruthy()
+    expect(screen.getByText('Export free, always')).toBeTruthy()
+    expect(screen.queryByText('Today')).toBeNull()
   })
 
   it("doesn't promise a deferred charge in the trial's last minutes, when the server charges now", () => {
     render(<WebPlanPicker trialEndsAt={new Date(Date.now() + 10 * 60_000).toISOString()} />)
-    expect(screen.queryByText(/Nothing's charged until your trial ends/)).toBeNull()
+    expect(screen.queryByText(/first charge waits/)).toBeNull()
+    expect(screen.getByText('Keep your budget going')).toBeTruthy()
   })
 
   it('buys the plan the user picked', () => {
     render(<WebPlanPicker />)
     fireEvent.click(screen.getByText('Monthly'))
-    fireEvent.click(screen.getByText('Subscribe monthly · ₹99'))
+    fireEvent.click(screen.getByText('Keep Aviary · ₹99/month'))
+    expect(screen.getByText('Renews monthly until you cancel from your account page.')).toBeTruthy()
     expect(mutate).toHaveBeenCalledWith('monthly')
   })
 
@@ -104,7 +130,7 @@ describe('WebPlanPicker', () => {
     plansMock.mockReturnValue({ data: { plans: [{ period: 'monthly', amount: 499, currency: 'USD' }, { period: 'yearly', amount: 4999, currency: 'USD' }], provider: 'paypal' }, isLoading: false, isError: false })
     render(<WebPlanPicker />)
     expect(checkoutMock).toHaveBeenCalledWith(expect.anything(), 'paypal')
-    expect(screen.getByText(/Pay with PayPal or a card/)).toBeTruthy()
+    expect(screen.getByText('Keep Aviary · $49.99/year')).toBeTruthy()
     expect(screen.queryByText(/UPI/)).toBeNull()
   })
 
