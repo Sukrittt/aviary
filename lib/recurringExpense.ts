@@ -119,6 +119,17 @@ export function occurrencesDue(rec: RecurringExpenseSchedule, today: string): st
   return due
 }
 
+/**
+ * The expense `payment_method` a recurrence logs with. The route only stores
+ * 'bank' or 'credit_card', but rows written around it (a seed script left
+ * 'Debit Card' and 'Bank Transfer' in prod) carry free-text labels that
+ * `createExpense` rejects. Read those as the route's own default, 'bank',
+ * rather than failing the occurrence every night.
+ */
+export function paymentMethodOf(value: unknown): 'bank' | 'credit_card' {
+  return /^credit[\s_-]*card$/i.test(String(value ?? '').trim()) ? 'credit_card' : 'bank'
+}
+
 /** Whether `end_date` is strictly behind `today`, i.e. the recurrence is done. */
 export function isExpired(rec: Pick<RecurringExpenseSchedule, 'end_date'>, today: string): boolean {
   return Boolean(rec.end_date) && rec.end_date < today
