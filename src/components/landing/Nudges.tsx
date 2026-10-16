@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
 import { useReducedMotion } from 'motion/react'
+import Image from 'next/image'
 import { CheckIcon, CaretDownIcon, CaretUpIcon, PauseIcon, PlayIcon, ArrowCounterClockwiseIcon } from '@/src/components/icons'
 import { BirdMark } from '../BirdMark'
 import { useOnScreen } from './useOnScreen'
@@ -152,7 +153,7 @@ export function Clip({ name, playing, loop = false }: { name: string; playing: b
     if (playing) v.play()?.catch(() => {})
     else v.pause()
   }, [playing])
-  return <video ref={ref} className="lp-clip" src={media(`clip-${name}.mp4`)} poster={media(`poster-${name}.jpg`)} muted loop={loop} playsInline preload="metadata" />
+  return <video ref={ref} className="lp-clip" src={media(`clip-${name}.mp4`)} poster={media(`poster-${name}.webp`)} muted loop={loop} playsInline preload="metadata" />
 }
 
 function LearnsScene({ beat }: { beat: number }) {
@@ -241,8 +242,8 @@ export function MoreInside() {
     <figure className="lp-shot">
       <div className="lp-shot-art" aria-hidden="true">
         <div className="lp-shot-phone">
-          {/* eslint-disable-next-line @next/next/no-img-element -- fills the phone frame; next/image adds nothing at this size */}
-          <img className="lp-clip" src={media('subscriptions.png')} alt="" />
+          {/* next/image serves a 230px WebP/AVIF instead of the 576px source PNG. */}
+          <Image className="lp-clip" src={media('subscriptions.png')} alt="" width={576} height={1280} sizes="230px" />
           {/* An Android heads-up, in the app's real bill-reminder copy (Mobile's tour/content.ts). */}
           <div className="lp-app-banner lp-heads-up">
             <div className="lp-notif-app"><span className="lp-notif-icon"><BirdMark size={13} perched /></span>Aviary<span className="lp-heads-up-time">· now</span><CaretDownIcon size={14} weight="bold" /></div>

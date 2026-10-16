@@ -141,7 +141,7 @@ export function LandingPage({ monthlyPrice, ios = false, android = false, intl =
         </figure>
         <figure className="lp-shot">
           <div className="lp-shot-art" aria-hidden="true">
-            <div className="lp-shot-phone"><video src={`/landing/${intl ? 'intl/' : ''}clip-log.mp4`} poster={`/landing/${intl ? 'intl/' : ''}poster-log.jpg`} autoPlay muted loop playsInline preload="metadata" /></div>
+            <div className="lp-shot-phone"><video src={`/landing/${intl ? 'intl/' : ''}clip-log.mp4`} poster={`/landing/${intl ? 'intl/' : ''}poster-log.webp`} autoPlay muted loop playsInline preload="metadata" /></div>
           </div>
           <figcaption><strong>The keypad</strong><span>Amount, a word or two, done. The category picks itself.</span></figcaption>
         </figure>

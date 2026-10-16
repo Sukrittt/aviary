@@ -6,7 +6,7 @@ export const metadata = pageMetadata('/features/bill-scanning')
 
 export default function BillScanningPage() {
   return <ContentPage section="features" path="/features/bill-scanning" title="Scan a bill, and it’s in your budget" lede={<>Long restaurant bills and grocery receipts are the spends people put off logging. Snap the bill and Aviary reads every line, taxes included.</>} related={['/features/ask-aviary', '/features/budget-without-bank-linking', '/compare/money-manager']}>
-    <Screen src="/landing/poster-scan.jpg" alt="Aviary after scanning a McDonald’s bill: Added ₹72, with ₹2,448 left of ₹6,000 in Eating out." caption="A ₹144 McDonald’s bill, split two ways. Your share lands in Eating out." />
+    <Screen src="/landing/poster-scan.webp" alt="Aviary after scanning a McDonald’s bill: Added ₹72, with ₹2,448 left of ₹6,000 in Eating out." caption="A ₹144 McDonald’s bill, split two ways. Your share lands in Eating out." />
 
     <h2>How it works</h2>
     <ol>
