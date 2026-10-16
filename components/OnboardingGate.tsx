@@ -1,8 +1,13 @@
 'use client'
 
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
+import dynamic from 'next/dynamic'
 import { usePathname, useRouter } from 'next/navigation'
 import { LoadingCaption } from '@/src/components/LoadingCaption'
+
+// The loader stands in for the route, so the route's layout (which links the app
+// stylesheets) never renders: it pulls them itself, as AppErrorScreen does.
+const AppSheets = dynamic(() => import('@/src/components/AppSheets').catch(() => ({ default: () => null })))
 
 // The "logged in and onboarded" app proper: the only pages held for the check.
 // Everything else skips it: public pages (landing, content, legal) must
@@ -23,6 +28,13 @@ function readOnboarded(): boolean {
   } catch {
     return false
   }
+}
+
+// False while server-rendering and hydrating, true after: storage can only be
+// read during render once the server HTML (which never knows it) is matched.
+const noop = () => () => {}
+function useHydrated(): boolean {
+  return useSyncExternalStore(noop, () => true, () => false)
 }
 
 function writeOnboarded(onboarded: boolean): void {
@@ -71,6 +83,9 @@ export function OnboardingGate({ children, recheck = false }: {
   // once, on the first app page: the visit may well start on a public one.
   const [checked, setChecked] = useState(false)
   const started = useRef(false)
+  // A client-side visit to the first app page doesn't wait a frame on the effect
+  // below: that frame drew the loader, unstyled when coming from a public page.
+  const knownOnboarded = useHydrated() && readOnboarded()
 
   useEffect(() => {
     if (exempt || started.current) return
@@ -107,10 +122,11 @@ export function OnboardingGate({ children, recheck = false }: {
     if (exempt && started.current) setChecked(true)
   }, [pathname, exempt])
 
-  if (!checked && !exempt) {
+  if (!checked && !exempt && !knownOnboarded) {
     // .expense-redesign carries the app font and colors; erd-home-loading centers.
     return (
       <section className="expense-redesign">
+        <AppSheets />
         <div className="erd-home-loading">
           <LoadingCaption feature="appEntry" placement="page" />
         </div>
