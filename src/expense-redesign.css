@@ -573,7 +573,6 @@
   position: relative;
   background: none;
   border: 0;
-  box-shadow: none;
 }
 .erd-home-hero {
   display: flex;
@@ -1067,12 +1066,6 @@
   background: var(--erd-card-solid);
   border: 1px solid var(--erd-border);
   border-radius: var(--tk-radius-lg);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
-}
-
-.erd-subs-panel,
-.home-recent {
-  box-shadow: none;
 }
 
 /* ── Hero row ───────────────────────────────────────────────── */
@@ -12141,7 +12134,6 @@ button.account-feature-card {
 .setup-pick-row:has(.setup-pick-check:active) { transform: scale(0.985); }
 .setup-pick-check:active { transform: scale(0.9); }
 .setup-cta:enabled:active, .setup-add-row:active, .setup-add-pill:active { transform: scale(0.98); }
-.home-get-started, .home-leftover-notice { box-shadow: none; }
 @media (prefers-reduced-motion: reduce) {
   .setup-pick-row, .setup-pick-check-icon { transition: none; }
   .setup-pick-row:has(.setup-pick-check:active), .setup-pick-check:active,

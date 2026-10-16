@@ -113,7 +113,6 @@
 }
 
 .ins-card {
-  box-shadow: none;
   animation: ins-card-rise 420ms cubic-bezier(.2,.8,.2,1) both;
 }
 
