@@ -1,4 +1,4 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   deleteExpense,
   dismissDuplicate,
@@ -75,6 +75,17 @@ export function useExpensesPage(params: ExpensesPageParams) {
     queryFn: () => getExpensesPage(params),
     staleTime: 30_000,
     placeholderData: keepPreviousData,
+  })
+}
+
+/** Activity's photo feed: the same pages, with photo URLs, loaded as you scroll. */
+export function useExpensesFeed(params: Omit<ExpensesPageParams, 'page' | 'photos'>) {
+  return useInfiniteQuery({
+    queryKey: [...key, 'feed', params] as const,
+    queryFn: ({ pageParam }) => getExpensesPage({ ...params, page: pageParam, photos: true }),
+    initialPageParam: 1,
+    getNextPageParam: (last) => (last.page < last.pageCount ? last.page + 1 : undefined),
+    staleTime: 30_000,
   })
 }
 

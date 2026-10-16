@@ -34,6 +34,8 @@ export interface ExpenseRow {
   account_id?: string
   /** Set by the server when a photo is attached (app/api/expenses/[id]/photo). */
   has_photo?: boolean
+  /** Signed, ~1h. Only on Activity feed pages (`photos: true`). */
+  photo_url?: string
 }
 
 /** One payment that came in. `counted: 'extra'` rows are part of their month's Ready to Assign; 'monthly' rows are a payday of the monthly income, already counted from day 1. */
