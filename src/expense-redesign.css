@@ -5736,15 +5736,10 @@
   padding-top: 0;
 }
 
-.setup-heard-field {
-  width: 100%;
-  max-width: 360px;
+.setup-heard-row {
+  /* Same width as the CTA under it, so the chips wrap to its edges. */
+  max-width: 560px;
   margin: 22px 0 8px;
-  text-align: left;
-}
-
-.setup-heard .setup-cta {
-  max-width: 360px;
 }
 
 .setup-done-row {
