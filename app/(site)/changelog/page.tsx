@@ -13,12 +13,17 @@ export const dynamic = 'force-dynamic'
 export default async function PublicChangelogPage() {
   const releases = (await publishedChangelog()).map(serializeRelease)
   return <>
-    <article className="legal-doc changelog-public">
-      <h1>What’s new in Aviary</h1>
-      <p>Every release of the Aviary web app, newest first. Want something built? <Link href={FEEDBACK_BOARD_PATH}>Post it on the feedback board</Link>.</p>
-      {releases.length
-        ? <div className="changelog-timeline">{releases.map((release, i) => <ChangelogEntry key={release.id} release={release} latest={i === 0} />)}</div>
-        : <p>Updates will appear here when they’re published.</p>}
+    <article className="legal-doc article-doc changelog-public">
+      <header className="article-head">
+        <p className="article-kicker">Changelog</p>
+        <h1>What’s new in Aviary</h1>
+        <p className="article-dek">Every release of the Aviary web app, newest first. Want something built? <Link href={FEEDBACK_BOARD_PATH}>Post it on the feedback board</Link>.</p>
+      </header>
+      <div className="changelog-timeline">
+        {releases.length
+          ? releases.map((release, i) => <ChangelogEntry key={release.id} release={release} latest={i === 0} />)
+          : <p>Updates will appear here when they’re published.</p>}
+      </div>
     </article>
     <SoftCta title="Try what’s new" placement="changelog">Aviary works on Android and the web. Log a spend in one tap and see what’s left for the month.</SoftCta>
   </>
