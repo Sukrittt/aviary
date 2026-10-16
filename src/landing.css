@@ -928,7 +928,7 @@ html:has(.lp) { scroll-behavior: smooth; }
 .legal-doc.article-doc .lp-post p, .legal-doc.article-doc .lp-post li { font-size: 18px; line-height: 1.75; }
 .legal-doc.article-doc .lp-post h2 { margin-top: 52px; font-family: var(--font-serif), Georgia, serif; font-size: 32px; line-height: 1.2; letter-spacing: -.01em; }
 .lp-post > p:first-child { font-size: 20px !important; color: var(--ink); }
-.legal-doc .article-body > :first-child { margin-top: 0; }
+.legal-doc .article-body > :first-child, .legal-doc.article-doc .article-body > h2:first-child { margin-top: 0; }
 .article-body > p, .article-body > ul > li, .article-body > ol > li { font-size: 17px; line-height: 1.7; }
 .legal-doc.article-doc .article-body > h2 { margin-top: 52px; font-family: var(--font-serif), Georgia, serif; font-size: 30px; line-height: 1.2; letter-spacing: -.01em; }
 .legal-doc.article-doc .article-body > h2 + p, .legal-doc.article-doc .article-body > h2 + ul { margin-top: 14px; }
