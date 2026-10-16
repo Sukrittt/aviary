@@ -41,7 +41,7 @@ export function avatarStyleFor(category: string): { background: string; color: s
   return { background: avatarColorFor(category), color: avatarInkFor(category) }
 }
 
-function avatarHash(category: string): number {
+export function avatarHash(category: string): number {
   let hash = 0
   for (let i = 0; i < category.length; i++) {
     hash = (hash * 31 + category.charCodeAt(i)) >>> 0
