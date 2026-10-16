@@ -225,11 +225,6 @@ export function InsightsPage() {
     [budgets, expenses, categories, groups, insightMonth],
   );
   const breakdownRows = breakdownMode === "category" ? categoryRows : groupRows;
-  const breakdownColorOrder = useMemo(
-    () =>
-      breakdownMode === "category" ? categories.map((c) => c.name) : groups,
-    [breakdownMode, categories, groups],
-  );
   const leftover = useMemo(
     () => leftoverFor(budgets, expenses, categories, groups, insightMonth),
     [budgets, expenses, categories, groups, insightMonth],
@@ -655,7 +650,6 @@ export function InsightsPage() {
                   categoryRows={categoryRows}
                   groupRows={groupRows}
                   categoryGroupMap={categoryGroupMap}
-                  colorOrder={breakdownColorOrder}
                   mode={breakdownMode}
                   onModeChange={setBreakdownMode}
                   selectedKey={selectedBreakdownKey}

@@ -63,17 +63,6 @@ export interface ThemeTokens {
   /** How far chart fills (donut wedges, budget bars) mix toward white. Light's
    *  inks read loud as big wedges on a white card; dark's pass through. */
   chartSoften: string
-  /** "Where it went" donut wedges, one per category slot. Muted, warm-leaning
-   *  fills tuned for area (not icon) use, with no pure red or green so those
-   *  stay as the over/under signal. Validated as a set for CVD separation. */
-  chart1: string
-  chart2: string
-  chart3: string
-  chart4: string
-  chart5: string
-  chart6: string
-  chart7: string
-  chart8: string
 }
 
 export const darkTokens: ThemeTokens = {
@@ -121,14 +110,6 @@ export const darkTokens: ThemeTokens = {
   successBg: '#26e085',
   onSuccess: '#1a0500',
   chartSoften: '0%',
-  chart1: '#ce7951',
-  chart2: '#578ed4',
-  chart3: '#ba8a2e',
-  chart4: '#00a0a6',
-  chart5: '#7377c6',
-  chart6: '#cb7196',
-  chart7: '#8d9742',
-  chart8: '#926abe',
 }
 
 export const lightTokens: ThemeTokens = {
@@ -176,12 +157,4 @@ export const lightTokens: ThemeTokens = {
   successBg: '#bbf7d0',
   onSuccess: '#166534',
   chartSoften: '15%',
-  chart1: '#c16d45',
-  chart2: '#467cc0',
-  chart3: '#cc9c42',
-  chart4: '#009399',
-  chart5: '#585aa0',
-  chart6: '#cb7196',
-  chart7: '#909a45',
-  chart8: '#825ea9',
 }
