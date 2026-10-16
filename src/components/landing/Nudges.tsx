@@ -225,7 +225,7 @@ function AskScene({ playing }: { playing: boolean }) {
 // ─── More in the nest: what the logs add up to ────────────────────────────────
 
 /** A recording in a shot phone that plays only while that phone itself is in view, so a swiped-away one stops. */
-function ShotClip({ name }: { name: string }) {
+export function ShotClip({ name }: { name: string }) {
   const reduced = useReducedMotion()
   const { ref, visible } = useOnScreen<HTMLDivElement>(0.5)
   return <div className="lp-shot-phone" ref={ref}><Clip name={name} playing={visible && !reduced} loop /></div>
