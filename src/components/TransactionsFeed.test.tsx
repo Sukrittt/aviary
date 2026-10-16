@@ -1,0 +1,152 @@
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { TransactionsFeed } from './TransactionsFeed'
+import type { Transaction } from '../lib/expenseTransactions'
+
+const m = vi.hoisted(() => ({
+  rows: [] as Record<string, unknown>[],
+  hasNextPage: false,
+  fetchNextPage: vi.fn(),
+  upload: vi.fn(),
+  track: vi.fn(),
+}))
+vi.mock('../hooks/useExpenses', () => ({
+  useExpensesFeed: () => ({
+    data: { pages: [{ rows: m.rows, page: 1, pageCount: 1 }] },
+    isLoading: false,
+    isError: false,
+    hasNextPage: m.hasNextPage,
+    isFetchingNextPage: false,
+    fetchNextPage: m.fetchNextPage,
+  }),
+  useUploadExpensePhoto: () => ({ mutateAsync: m.upload, isPending: false }),
+}))
+vi.mock('../hooks/useCategories', () => ({ useCategoryIcons: () => new Map() }))
+vi.mock('../lib/analytics', () => ({ track: (...a: unknown[]) => m.track(...a) }))
+vi.mock('../features/scan-bill/image', () => ({
+  PHOTO_ENCODING: {},
+  dataUrlFromFile: async () => 'data:image/jpeg;base64,abc',
+  base64Of: (d: string) => d.split(',')[1],
+}))
+
+const row = (over: Record<string, unknown> = {}) => ({
+  id: 'e1', version: 1, timestamp: '2026-10-12T10:00:00', date: '2026-10-12', item: 'Plant', amount_inr: '300',
+  category: 'Home', notes: '', source: 'manual', account_id: '', ...over,
+})
+const txnKey = (t: Transaction) => t.id
+
+function renderFeed(props: Partial<Parameters<typeof TransactionsFeed>[0]> = {}) {
+  const onEdit = vi.fn()
+  const onDelete = vi.fn()
+  render(
+    <TransactionsFeed
+      params={{}}
+      hideAmounts={false}
+      accountNameOf={(id) => (id === 'acc1' ? 'HDFC Savings' : '')}
+      removedKeys={new Set()}
+      txnKey={txnKey}
+      isDeleting={() => false}
+      onDeleteDone={() => {}}
+      onEdit={onEdit}
+      onDelete={onDelete}
+      empty={<p>nothing here</p>}
+      {...props}
+    />,
+  )
+  return { onEdit, onDelete }
+}
+
+beforeEach(() => {
+  vi.clearAllMocks()
+  m.rows = [row()]
+  m.hasNextPage = false
+})
+
+it('shows a photo card for a signed photo and a category card with Add a photo otherwise', () => {
+  m.rows = [row({ id: 'a', item: 'Tea', has_photo: true, photo_url: 'https://blob.test/a.jpg?s=1' }), row({ id: 'b', item: 'Plant' })]
+  renderFeed()
+  expect(screen.getByRole('heading', { name: 'Monday, 12 October 2026' })).toBeInTheDocument()
+  expect(document.querySelector('img.feed-card-photo')).toHaveAttribute('src', 'https://blob.test/a.jpg?s=1')
+  expect(screen.queryByRole('button', { name: 'Add a photo to Tea' })).not.toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Add a photo to Plant' })).toBeInTheDocument()
+  expect(screen.getByText("You're all caught up.")).toBeInTheDocument()
+})
+
+it("doesn't offer a second photo when the row has one the server didn't sign", () => {
+  m.rows = [row({ has_photo: true })]
+  renderFeed()
+  expect(screen.queryByRole('button', { name: 'Add a photo to Plant' })).not.toBeInTheDocument()
+})
+
+it('shows the empty state when nothing matches', () => {
+  m.rows = []
+  renderFeed()
+  expect(screen.getByText('nothing here')).toBeInTheDocument()
+})
+
+it('adds a photo from the card, shows it straight away and tracks it', async () => {
+  m.upload.mockResolvedValue(undefined)
+  renderFeed()
+  const file = new File(['x'], 'p.jpg', { type: 'image/jpeg' })
+  fireEvent.change(screen.getByLabelText('Choose a photo for Plant'), { target: { files: [file] } })
+  await waitFor(() => expect(m.upload).toHaveBeenCalledWith({ id: 'e1', image: 'abc' }))
+  await waitFor(() => expect(m.track).toHaveBeenCalledWith('expense_photo_added', { from: 'feed' }))
+  expect(document.querySelector('img.feed-card-photo')).toHaveAttribute('src', 'data:image/jpeg;base64,abc')
+})
+
+it('takes the photo back off and says so when the upload fails', async () => {
+  m.upload.mockRejectedValue(new Error('503'))
+  renderFeed()
+  fireEvent.change(screen.getByLabelText('Choose a photo for Plant'), { target: { files: [new File(['x'], 'p.jpg')] } })
+  expect(await screen.findByRole('alert')).toHaveTextContent("Photo didn't upload. Check your connection and try again.")
+  expect(screen.queryByText('503')).not.toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Add a photo to Plant' })).toBeInTheDocument()
+  expect(m.track).not.toHaveBeenCalled()
+})
+
+it('loads the next page on request', () => {
+  m.hasNextPage = true
+  renderFeed()
+  fireEvent.click(screen.getByRole('button', { name: 'Load more' }))
+  expect(m.fetchNextPage).toHaveBeenCalled()
+})
+
+describe('detail dialog', () => {
+  it('opens from the card with everything about the expense', () => {
+    m.rows = [row({ account_id: 'acc1', notes: 'For the balcony', has_photo: true, photo_url: 'https://blob.test/a.jpg?s=1' })]
+    renderFeed()
+    fireEvent.click(screen.getByRole('button', { name: 'Plant, Home. View details' }))
+    const dialog = screen.getByRole('dialog', { name: 'Plant' })
+    expect(within(dialog).getByText('Monday, 12 October 2026')).toBeInTheDocument()
+    expect(within(dialog).getByText('HDFC Savings')).toBeInTheDocument()
+    expect(within(dialog).getByText('For the balcony')).toBeInTheDocument()
+    expect(within(dialog).getByRole('link', { name: 'Open photo of Plant' })).toHaveAttribute('href', 'https://blob.test/a.jpg?s=1')
+  })
+
+  it('says when an expense has no account', () => {
+    renderFeed()
+    fireEvent.click(screen.getByRole('button', { name: 'Plant, Home. View details' }))
+    expect(within(screen.getByRole('dialog', { name: 'Plant' })).getByText('Not set')).toBeInTheDocument()
+  })
+
+  it('edits straight away', () => {
+    const { onEdit } = renderFeed()
+    fireEvent.click(screen.getByRole('button', { name: 'Plant, Home. View details' }))
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Plant' })).getByRole('button', { name: 'Edit' }))
+    expect(onEdit).toHaveBeenCalledWith(expect.objectContaining({ id: 'e1' }))
+  })
+
+  it('closes before asking to delete', async () => {
+    const { onDelete } = renderFeed()
+    fireEvent.click(screen.getByRole('button', { name: 'Plant, Home. View details' }))
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Plant' })).getByRole('button', { name: 'Delete' }))
+    expect(onDelete).not.toHaveBeenCalled()
+    await waitFor(() => expect(onDelete).toHaveBeenCalledWith(expect.objectContaining({ id: 'e1' })))
+  })
+
+  it('puts focus on Close when it opens', () => {
+    renderFeed()
+    fireEvent.click(screen.getByRole('button', { name: 'Plant, Home. View details' }))
+    expect(screen.getByRole('button', { name: 'Close' })).toHaveFocus()
+  })
+})

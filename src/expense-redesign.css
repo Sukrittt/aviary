@@ -13018,3 +13018,295 @@ button.account-feature-card {
 @media (prefers-reduced-motion: reduce) {
   .sk-pulse { animation: none; }
 }
+
+/* Activity feed (TransactionsFeed.tsx): expenses as cards, photo first. */
+.expense-redesign .txn-page-view-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding-inline: 18px;
+}
+.expense-redesign .feed {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+.expense-redesign .feed-day-label {
+  margin: 0 0 12px;
+  padding: 0 6px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--erd-text2);
+}
+.expense-redesign .feed-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+.expense-redesign .feed-cell {
+  min-width: 0;
+}
+.expense-redesign .feed-card,
+.expense-redesign .feed-detail {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  border: 1px solid var(--erd-border);
+  background: var(--erd-card);
+  color: var(--erd-text);
+}
+.expense-redesign .feed-card {
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.expense-redesign .feed-card:hover {
+  border-color: var(--erd-border-strong);
+  box-shadow: 0 12px 30px -18px oklch(0% 0 0 / 0.5);
+}
+.expense-redesign .feed-card-open {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  border-radius: inherit;
+}
+.expense-redesign .feed-card-open:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: -2px;
+}
+.expense-redesign .feed-card-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+}
+.expense-redesign .feed-card-head .txn-timeline-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  font-size: 15px;
+  flex: none;
+}
+.expense-redesign .feed-card-title {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.expense-redesign .feed-card-item {
+  font-weight: 600;
+  font-size: 15px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.expense-redesign .feed-card-meta {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--erd-text3);
+}
+.expense-redesign .feed-card-amount {
+  font-weight: 600;
+  font-size: 15px;
+  white-space: nowrap;
+}
+.expense-redesign .feed-card-media {
+  position: relative;
+}
+.expense-redesign .feed-card-photo {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  background: var(--erd-input-bg);
+}
+.expense-redesign .feed-card-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 3 / 2;
+}
+.expense-redesign .feed-add-photo {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--erd-card-solid);
+  color: var(--gold-ink);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.expense-redesign .feed-add-photo:hover {
+  background: var(--gold-soft);
+}
+.expense-redesign .feed-card-busy {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: oklch(0% 0 0 / 0.25);
+}
+.expense-redesign .feed-card-busy::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 22px;
+  height: 22px;
+  margin: -11px 0 0 -11px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  border-top-color: transparent;
+  animation: feed-spin 0.8s linear infinite;
+}
+@keyframes feed-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.expense-redesign .feed-card-added {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 2;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--mint);
+  color: #fff;
+}
+.expense-redesign .feed-card-notes {
+  margin: 0;
+  padding: 12px 14px;
+  font-size: 14px;
+  color: var(--erd-text2);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.expense-redesign .feed-card-error {
+  position: relative;
+  z-index: 2;
+  margin: 0;
+  padding: 0 14px 12px;
+  font-size: 12px;
+  color: var(--coral);
+}
+.expense-redesign .feed-more,
+.expense-redesign .feed-status {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0 24px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--erd-text3);
+}
+.expense-redesign .feed-detail {
+  width: 460px;
+  max-width: 92vw;
+  max-height: 88vh;
+  overflow-y: auto;
+  background: var(--erd-modal-bg);
+  border-color: var(--erd-border-strong);
+  box-shadow: 0 30px 80px -20px oklch(0% 0 0 / 0.8);
+  backdrop-filter: blur(30px);
+}
+.expense-redesign .feed-detail .feed-card-photo {
+  aspect-ratio: 4 / 3;
+}
+.expense-redesign .feed-detail-close {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: 50%;
+  border: 1px solid var(--erd-border);
+  background: var(--erd-input-bg);
+  color: var(--erd-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.expense-redesign .feed-detail-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px 20px 20px;
+}
+.expense-redesign .feed-detail-amount {
+  font-family: var(--font-display);
+  font-size: 36px;
+  font-weight: 600;
+  line-height: 1.1;
+}
+.expense-redesign .feed-detail-rows {
+  margin: 0;
+  border: 1px solid var(--erd-border);
+  border-radius: 16px;
+  padding: 0 14px;
+}
+.expense-redesign .feed-detail-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  font-size: 14px;
+}
+.expense-redesign .feed-detail-row + .feed-detail-row {
+  border-top: 1px solid var(--erd-border);
+}
+.expense-redesign .feed-detail-row dt {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--erd-text2);
+  font-weight: 500;
+}
+.expense-redesign .feed-detail-row dd {
+  margin: 0;
+  font-weight: 600;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.expense-redesign .feed-detail-row dd.is-empty {
+  color: var(--erd-text3);
+}
+.expense-redesign .feed-detail-notes span {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--erd-text3);
+}
+.expense-redesign .feed-detail-notes p {
+  margin: 4px 0 0;
+  font-size: 15px;
+  line-height: 1.45;
+}
+.expense-redesign .feed-detail-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.expense-redesign .feed-detail-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
