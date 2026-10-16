@@ -58,6 +58,26 @@ export default function FeaturesPage() {
           </label>
         ))}
       </div>
+      <div className="account-card" style={{ marginTop: 16 }}>
+        <label className="account-row">
+          <span className="account-row-label">
+            Feed view in Activity
+            <span className="account-row-hint">Scroll your expenses like a photo feed</span>
+          </span>
+          <input
+            type="checkbox"
+            role="switch"
+            className="account-switch"
+            aria-label="Feed view in Activity"
+            checked={user?.activityFeed === true}
+            disabled={!user}
+            onChange={(e) => {
+              setFailed(false)
+              updateUser.mutate({ activityFeed: e.target.checked }, { onError: () => setFailed(true) })
+            }}
+          />
+        </label>
+      </div>
       {failed && <div className="account-confirm-copy" role="alert">Couldn&apos;t save. Check your connection and try again.</div>}
       <p className="account-row-hint" style={{ marginTop: 10 }}>
         Turn off what you don&apos;t use. Hiding a feature keeps its data, so you can turn it back on anytime.

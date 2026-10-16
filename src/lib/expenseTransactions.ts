@@ -14,6 +14,8 @@ export interface Transaction {
   /** '' when the row isn't on an account. */
   accountId: string
   hasPhoto: boolean
+  /** Signed photo URL, only on feed rows. */
+  photoUrl: string | null
 }
 
 /**
@@ -34,5 +36,6 @@ export function toTransactions(rows: ExpenseRow[]): Transaction[] {
     source: r.source ?? '',
     accountId: r.account_id ?? '',
     hasPhoto: r.has_photo === true,
+    photoUrl: r.photo_url ?? null,
   }))
 }

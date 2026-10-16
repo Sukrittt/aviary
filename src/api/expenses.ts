@@ -31,6 +31,8 @@ export type ExpensesPageParams = {
   from?: string
   to?: string
   q?: string
+  /** Sign each photo row's `photo_url`, for the Activity feed. */
+  photos?: boolean
 }
 
 export type ExpensesPage = {
@@ -49,6 +51,7 @@ export async function getExpensesPage(params: ExpensesPageParams): Promise<Expen
   if (params.from) qs.set('from', params.from)
   if (params.to) qs.set('to', params.to)
   if (params.q) qs.set('q', params.q)
+  if (params.photos) qs.set('photos', '1')
 
   const resp = await apiFetch(`/api/expenses?${qs.toString()}`)
   if (!resp.ok) throw new Error(`Failed to load expenses: ${resp.status}`)
