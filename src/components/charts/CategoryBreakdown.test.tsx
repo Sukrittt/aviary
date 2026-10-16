@@ -2,11 +2,11 @@ import { expect, it, vi } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { CategoryBreakdown } from './CategoryBreakdown'
 import type { BreakdownRow } from '@/src/lib/monthly'
-import { avatarInkFor, chartInk } from '@/src/lib/emoji'
+import { CATEGORY_CHART_COLORS } from '@/src/theme/chartColors'
 
 vi.mock('./DonutChart', () => ({ DonutChart: ({ segments }: { segments: { key: string; color: string }[] }) => <output data-testid="donut-colors">{JSON.stringify(segments)}</output> }))
 const props = {
-  rows: [], categoryRows: [], groupRows: [], categoryGroupMap: new Map<string, string>(),
+  rows: [], categoryRows: [], groupRows: [], categoryGroupMap: new Map<string, string>(), colorOrder: ['Rent', 'Bills', 'Food'],
   mode: 'category' as const, onModeChange: vi.fn(), selectedKey: null, onSelectKey: vi.fn(),
   comparison: null, leftover: 0, monthLabel: 'October 2026',
 }
@@ -19,13 +19,13 @@ it('shows the snoozing empty state only after queries finish', () => {
   expect(screen.getByText("Log an expense and it'll land here.")).toBeInTheDocument()
 })
 
-it("colours slices with each category's tile ink, not its rank, and removes the mascot when spending arrives", () => {
+it("colours slices by the category's place in the user's list, not its rank, and removes the mascot when spending arrives", () => {
   const { rerender } = render(<CategoryBreakdown {...props} />)
   const rows: BreakdownRow[] = ['Food', 'Rent', 'Bills'].map((key, i) => ({ key, label: key, icon: null, spent: 30 - i, assigned: 100, assignedIsCarried: false, pct: 33 }))
   rerender(<CategoryBreakdown {...props} rows={rows} categoryRows={rows} />)
   expect(screen.queryByText('Nothing spent yet')).not.toBeInTheDocument()
   const slices = JSON.parse(screen.getByTestId('donut-colors').textContent!)
-  expect(slices.map((s: { color: string }) => s.color)).toEqual(['Food', 'Rent', 'Bills'].map((k) => chartInk(avatarInkFor(k))))
+  expect(slices.map((s: { color: string }) => s.color)).toEqual([CATEGORY_CHART_COLORS[2], CATEGORY_CHART_COLORS[0], CATEGORY_CHART_COLORS[1]])
 })
 
 it('portals the filter dialog out of the chart card so it centres on the viewport', () => {
