@@ -10,6 +10,9 @@ const globalWithMongo = globalThis as typeof globalThis & {
  * The client is cached on `globalThis` so hot-reloads (dev) and repeated
  * route-handler invocations reuse a single connection pool. The connection is
  * created lazily so `next build` does not require MONGODB_URI to be present.
+ * A failed connect is dropped rather than cached, so the next request retries:
+ * a warm instance keeps serving long after the blip that failed its first
+ * connect.
  */
 export async function getClient(): Promise<MongoClient> {
   const uri = process.env.MONGODB_URI
@@ -18,7 +21,12 @@ export async function getClient(): Promise<MongoClient> {
   }
   if (!globalWithMongo._mongoClientPromise) {
     const client = new MongoClient(uri)
-    globalWithMongo._mongoClientPromise = client.connect()
+    const connecting = client.connect().catch((err: unknown) => {
+      if (globalWithMongo._mongoClientPromise === connecting) globalWithMongo._mongoClientPromise = undefined
+      void client.close().catch(() => {})
+      throw err
+    })
+    globalWithMongo._mongoClientPromise = connecting
   }
   return globalWithMongo._mongoClientPromise
 }

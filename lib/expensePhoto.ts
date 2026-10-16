@@ -8,7 +8,7 @@ export const PHOTO_EXT_BY_MIME: Record<string, string> = {
   'image/webp': 'webp',
 }
 
-/** Decoded size cap. Clients downscale to ~1280px JPEG first, so this is a backstop. */
+/** Decoded size cap, a backstop. Clients downscale to ~1280px JPEG first, except Mobile builds without expo-image-manipulator, which send the camera's full resolution. */
 export const MAX_PHOTO_BYTES = 5 * 1024 * 1024
 
 const PHOTO_URL_TTL_MS = 5 * 60 * 1000
@@ -34,10 +34,28 @@ export function decodePhoto(image: unknown, mimeType: unknown): { buffer: Buffer
   return { buffer }
 }
 
-/** Short-lived signed GET URL for any private photo blob. */
+// ponytail: per-instance, pruned of expired entries on each new signing. A
+// shared store only pays off once traffic spreads across many instances.
+const signedUrls = new Map<string, { url: string; until: number }>()
+
+/**
+ * Short-lived signed GET URL for any private photo blob, reused while at least
+ * half its lifetime is left. Each new one is a round trip to the Blob API
+ * (served from iad1, a few hundred ms from our bom1 functions), which a feed
+ * refetch paid for every photo on the page. Reusing it also keeps the URL
+ * stable, so the app's image cache hits instead of downloading the photo again.
+ */
 export async function signPhotoUrl(pathname: string, ttlMs = PHOTO_URL_TTL_MS): Promise<string> {
-  const signed = await issueSignedToken({ pathname, operations: ['get'], validUntil: Date.now() + ttlMs })
+  const key = `${ttlMs}:${pathname}`
+  const now = Date.now()
+  const cached = signedUrls.get(key)
+  if (cached && cached.until - now > ttlMs / 2) return cached.url
+
+  const until = now + ttlMs
+  const signed = await issueSignedToken({ pathname, operations: ['get'], validUntil: until })
   const { presignedUrl } = await presignUrl(signed, { operation: 'get', pathname, access: 'private' })
+  for (const [k, v] of signedUrls) if (v.until <= now) signedUrls.delete(k)
+  signedUrls.set(key, { url: presignedUrl, until })
   return presignedUrl
 }
 
