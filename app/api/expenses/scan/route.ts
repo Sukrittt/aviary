@@ -107,6 +107,8 @@ export async function POST(req: Request) {
         required: ['merchant', 'total', 'items'],
       },
       { userId: auth.userId, feature: 'scan' },
+      // Under the app's 45s wait, which also covers the upload, so a slow read ends in the 502 below.
+      { timeoutMs: 30_000 },
     )
   } catch {
     return error('bill scan failed', 502)

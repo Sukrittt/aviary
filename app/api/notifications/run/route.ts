@@ -16,9 +16,10 @@ import { applyHoldingAction } from '@/lib/holdings'
 import { isDueToday, isDueTomorrow, tomorrowOf } from '@/lib/holdingRecurrence'
 import { isSubscriptionDueToday } from '@/lib/subscriptions'
 import { applySubscriptionExpense } from '@/lib/subscriptionExpense'
-import { occurrencesDue, isExpired, advance } from '@/lib/recurringExpense'
+import { occurrencesDue, isExpired, advance, paymentMethodOf } from '@/lib/recurringExpense'
 import { runRecurringIncomes } from '@/lib/income'
 import { createExpense } from '@/lib/createExpense'
+import { expenseInputError } from '@/lib/inputValidation'
 import { notifyThresholdCrossed } from '@/lib/notifications/instant'
 import { sendPushNotification } from '@/lib/push'
 import { recordCronRun, triggerOf } from '@/lib/cronRuns'
@@ -262,22 +263,49 @@ async function runRecurringExpensesForUser(db: Db, user: UserDoc, today: string)
       // the moment the user picks one, rather than silently losing those dates.
       if (!category) continue
 
+      const input = (occurrence: string) => ({
+        item: String(rec.item ?? ''),
+        amount_inr: amount,
+        category,
+        notes: rec.notes ? `Auto-added from recurring expense · ${String(rec.notes)}` : 'Auto-added from recurring expense',
+        date: occurrence,
+        payment_method: paymentMethodOf(rec.payment_method),
+        source: 'recurring',
+        client_id: `recur:${id}:${occurrence}`,
+        // One threshold check after the whole backfill, not one per
+        // occurrence — it rebuilds the entire AI expense context per call.
+        notify: false,
+      })
+
+      // A row createExpense will always reject (a zero amount, an empty item)
+      // used to throw here every night, with the schedule never advancing and
+      // the user never told. Pause it instead, which the Recurring screen
+      // shows, and say so once.
+      const invalid = expenseInputError(input(due[0]))
+      if (invalid) {
+        console.warn('notifications/run: pausing recurring expense', user._id, id, invalid)
+        await coll.updateOne({ _id: rec._id }, { $set: { status: 'paused' } })
+        if (await claim(db, user._id, `recur-paused:${id}:${today}`)) {
+          try {
+            await sendPushNotification({
+              userId: user._id,
+              title: `${String(rec.item || 'A recurring expense')} is paused`,
+              body: "We couldn't add it automatically. Check its details, then turn it back on.",
+              data: { route: '/account/recurring' },
+            })
+            sent++
+          } catch (err) {
+            console.error('notifications/run: recurring pause push failed for', user._id, id, err)
+            await unclaim(db, user._id, `recur-paused:${id}:${today}`)
+          }
+        }
+        continue
+      }
+
       let logged = 0
 
       for (const occurrence of due) {
-        const result = await createExpense(auth, {
-          item: String(rec.item ?? ''),
-          amount_inr: amount,
-          category,
-          notes: rec.notes ? `Auto-added from recurring expense · ${String(rec.notes)}` : 'Auto-added from recurring expense',
-          date: occurrence,
-          payment_method: String(rec.payment_method ?? 'bank'),
-          source: 'recurring',
-          client_id: `recur:${id}:${occurrence}`,
-          // One threshold check after the whole backfill, not one per
-          // occurrence — it rebuilds the entire AI expense context per call.
-          notify: false,
-        })
+        const result = await createExpense(auth, input(occurrence))
         if (!result.duplicate) logged++
       }
 
