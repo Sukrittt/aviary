@@ -3,7 +3,7 @@ import { json, error, readBody, isValidTimezone } from '@/lib/http'
 import { getAuth } from '@/lib/access'
 import { getDb } from '@/lib/mongodb'
 import { getWorkOSClient } from '@/lib/workosClient'
-import { ensureUserById, serializeUser, HIDEABLE_FEATURES, type HideableFeature, type UserDoc } from '@/lib/users'
+import { ensureUserById, serializeUser, HIDEABLE_FEATURES, HEARD_FROM_SOURCES, type HideableFeature, type UserDoc } from '@/lib/users'
 import { purgesAt } from '@/lib/archive'
 import { softDeleteAccount } from '@/lib/accountLifecycle'
 import { cancelWebSubscriptions, completeOnboarding } from '@/lib/billing/service'
@@ -52,6 +52,7 @@ export async function PATCH(req: Request) {
       | 'notifyWrapped'
       | 'hiddenFeatures'
       | 'activityFeed'
+      | 'heardFrom'
     >
   > = {}
   if ('currencyCode' in body) {
@@ -74,6 +75,11 @@ export async function PATCH(req: Request) {
   if (typeof body.notifyCoach === 'boolean') updates.notifyCoach = body.notifyCoach
   if (typeof body.notifyWrapped === 'boolean') updates.notifyWrapped = body.notifyWrapped
   if (typeof body.activityFeed === 'boolean') updates.activityFeed = body.activityFeed
+  if ('heardFrom' in body) {
+    const heardFrom = HEARD_FROM_SOURCES.find((s) => s === body.heardFrom)
+    if (!heardFrom) return error('invalid heardFrom')
+    updates.heardFrom = heardFrom
+  }
   if ('hiddenFeatures' in body) {
     const list = body.hiddenFeatures
     if (!Array.isArray(list) || !list.every((f) => HIDEABLE_FEATURES.includes(f))) return error('invalid hiddenFeatures')
