@@ -7,8 +7,7 @@ import Link from 'next/link'
 import { AnimatePresence, motion } from 'motion/react'
 import { CheckIcon, FunnelSimpleIcon, TrendDownIcon, TrendUpIcon, XIcon } from '@/src/components/icons'
 import type { BreakdownRow, MonthComparison } from '@/src/lib/monthly'
-import { avatarStyleFor, chartInk } from '@/src/lib/emoji'
-import { categoryChartColor } from '@/src/theme/chartColors'
+import { avatarInkFor, avatarStyleFor, chartInk } from '@/src/lib/emoji'
 import { DonutChart, type DonutSegment } from './DonutChart'
 import { AutoHeight, PopIn, ease } from '@/src/components/landing/mobile/kit'
 import { BirdEmptyState } from '../BirdEmptyState'
@@ -20,8 +19,6 @@ interface Props {
   categoryRows: BreakdownRow[]
   groupRows: BreakdownRow[]
   categoryGroupMap: ReadonlyMap<string, string>
-  /** The user's category (or group, in group mode) names in list order; picks each wedge's colour. */
-  colorOrder: readonly string[]
   mode: 'category' | 'group'
   onModeChange: (mode: 'category' | 'group') => void
   selectedKey: string | null
@@ -108,7 +105,7 @@ function buildSegments(rows: BreakdownRow[], colors: Map<string, string>): Donut
   return segments
 }
 
-export function CategoryBreakdown({ rows, categoryRows, groupRows, categoryGroupMap, colorOrder, mode, onModeChange, selectedKey, onSelectKey, comparison, leftover, monthLabel, hideAmounts = false, loading = false }: Props) {
+export function CategoryBreakdown({ rows, categoryRows, groupRows, categoryGroupMap, mode, onModeChange, selectedKey, onSelectKey, comparison, leftover, monthLabel, hideAmounts = false, loading = false }: Props) {
   const { currencySymbol, formatCurrency } = useCurrency()
 
   const [expanded, setExpanded] = useState(false)
@@ -177,13 +174,13 @@ export function CategoryBreakdown({ rows, categoryRows, groupRows, categoryGroup
     return () => clearTimeout(id)
   }, [filterOpen, pendingFilters, selectedKey, mode, categoryRows, categoryGroupMap, onSelectKey])
 
-  // Keyed to the category's place in the user's list, not its rank here, so
-  // a wedge keeps its colour as spend shifts month to month.
+  // Same name-hashed ink as the category's tile on the Categories card, so a
+  // category is one colour everywhere instead of whatever its rank here is.
   const colors = useMemo(() => {
     const map = new Map<string, string>()
-    rows.forEach((row) => map.set(row.key, categoryChartColor(row.key, colorOrder)))
+    rows.forEach((row) => map.set(row.key, chartInk(avatarInkFor(row.label))))
     return map
-  }, [rows, colorOrder])
+  }, [rows])
 
   const segments = useMemo(() => buildSegments(displayRows, colors), [displayRows, colors])
   const sortedRows = useMemo(() => {
