@@ -2,18 +2,16 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { BankIcon, CalendarBlankIcon, CameraIcon, CheckIcon, ClockIcon, PencilSimpleIcon, TagIcon, TrashIcon, XIcon } from './icons'
+import { BankIcon, CalendarBlankIcon, ClockIcon, PencilSimpleIcon, TagIcon, TrashIcon, XIcon } from './icons'
 import { CategoryIcon } from './CategoryIcon'
 import { DeletingRow } from './DeletingRow'
 import { Scrim } from './MotionSheet'
-import { useExpensesFeed, useUploadExpensePhoto } from '../hooks/useExpenses'
+import { useExpensesFeed } from '../hooks/useExpenses'
 import { useCategoryIcons } from '../hooks/useCategories'
 import { useCurrency } from '../context/CurrencyContext'
 import { avatarStyleFor, splitEmoji } from '../lib/emoji'
 import { toTransactions, type Transaction } from '../lib/expenseTransactions'
 import { stablePhotoUrl } from '../lib/activityFeed'
-import { base64Of, dataUrlFromFile, PHOTO_ENCODING } from '../features/scan-bill/image'
-import { track } from '../lib/analytics'
 import { EMPTY } from '../lib/constants'
 
 const FEED_PAGE_SIZE = 24
@@ -37,7 +35,7 @@ function timeOf(timestamp: string): string {
 /**
  * Activity's feed view: every expense as a card, photo first, newest at the
  * top, loading more as you scroll. Expenses without a photo show their
- * category on its tint, with a way to add one. A card opens into its detail
+ * category on its tint. A card opens into its detail
  * dialog (the card itself grows into it), with Edit and Delete. Twin of
  * Mobile's src/components/activity/ActivityFeed.tsx; income stays in the list.
  */
@@ -158,48 +156,12 @@ function FeedCard({ txn, layoutKey, hideAmounts, icon, onOpen }: {
   onOpen: () => void
 }) {
   const { formatCurrency } = useCurrency()
-  const upload = useUploadExpensePhoto()
-  const input = useRef<HTMLInputElement>(null)
   const name = splitEmoji(txn.category).text
-  // The just-picked file shows at once, until the row's photo changes on the
-  // server (the upload's own refetch, or a later edit or removal).
-  const [picked, setPicked] = useState<{ uri: string; over: string | null } | null>(null)
-  if (picked && picked.over !== txn.photoUrl) setPicked(null)
-  const [justAdded, setJustAdded] = useState(false)
-  const [failed, setFailed] = useState<string | null>(null)
-  const signed = useMemo(() => (txn.photoUrl ? stablePhotoUrl(txn.photoUrl) : null), [txn.photoUrl])
-  const uri = picked?.uri ?? signed
-
-  useEffect(() => {
-    if (!justAdded) return
-    const timer = setTimeout(() => setJustAdded(false), 1100)
-    return () => clearTimeout(timer)
-  }, [justAdded])
-
-  async function addPhoto(file: File) {
-    if (!txn.id) return
-    setFailed(null)
-    let dataUrl: string
-    try {
-      dataUrl = await dataUrlFromFile(file, PHOTO_ENCODING)
-    } catch {
-      setFailed("Couldn't read that photo. Try another one.")
-      return
-    }
-    setPicked({ uri: dataUrl, over: txn.photoUrl })
-    try {
-      await upload.mutateAsync({ id: txn.id, image: base64Of(dataUrl) })
-      track('expense_photo_added', { from: 'feed' })
-      setJustAdded(true)
-    } catch {
-      setPicked(null)
-      setFailed("Photo didn't upload. Check your connection and try again.")
-    }
-  }
+  const uri = useMemo(() => (txn.photoUrl ? stablePhotoUrl(txn.photoUrl) : null), [txn.photoUrl])
 
   return (
     <motion.article layoutId={`feed-${layoutKey}`} className="feed-card">
-      {/* One button over the whole card, like the list rows' txn-row-trigger; the photo button sits above it. */}
+      {/* One button over the whole card, like the list rows' txn-row-trigger. */}
       <button type="button" className="feed-card-open" aria-label={`${txn.item}, ${name}. View details`} onClick={onOpen} />
       <header className="feed-card-head">
         <span className="txn-timeline-icon" style={avatarStyleFor(name)} aria-hidden="true">
@@ -215,43 +177,15 @@ function FeedCard({ txn, layoutKey, hideAmounts, icon, onOpen }: {
       </header>
       <div className="feed-card-media">
         {uri ? (
-          // eslint-disable-next-line @next/next/no-img-element -- a data URL or short-lived signed Blob URL, nothing to optimize
+          // eslint-disable-next-line @next/next/no-img-element -- a short-lived signed Blob URL, nothing to optimize
           <img src={uri} alt="" className="feed-card-photo" />
         ) : (
           <div className="feed-card-placeholder" style={avatarStyleFor(name)}>
             <CategoryIcon name={txn.category} icon={icon} size={48} />
           </div>
         )}
-        {/* A row with a photo the server didn't sign shows its category, without offering a second photo. */}
-        {!uri && !txn.hasPhoto && (
-          <>
-            <input
-              ref={input}
-              type="file"
-              accept="image/*"
-              hidden
-              aria-label={`Choose a photo for ${txn.item}`}
-              onChange={(e) => {
-                const file = e.target.files?.[0]
-                e.target.value = ''
-                if (file) void addPhoto(file)
-              }}
-            />
-            <button type="button" className="feed-add-photo" onClick={() => input.current?.click()} aria-label={`Add a photo to ${txn.item}`}>
-              <CameraIcon size={15} aria-hidden="true" />
-              Add a photo
-            </button>
-          </>
-        )}
-        {upload.isPending && <span className="feed-card-busy" role="status" aria-label="Uploading photo" />}
-        {justAdded && (
-          <span className="feed-card-added" aria-label="Photo added">
-            <CheckIcon size={18} weight="bold" aria-hidden="true" />
-          </span>
-        )}
       </div>
       {txn.notes.trim() ? <p className="feed-card-notes">{txn.notes.trim()}</p> : null}
-      {failed && <p className="feed-card-error" role="alert">{failed}</p>}
     </motion.article>
   )
 }

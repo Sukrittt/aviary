@@ -13129,64 +13129,6 @@ button.account-feature-card {
   justify-content: center;
   aspect-ratio: 3 / 2;
 }
-.expense-redesign .feed-add-photo {
-  position: absolute;
-  right: 12px;
-  bottom: 12px;
-  z-index: 2;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 12px;
-  border: 0;
-  border-radius: 999px;
-  background: var(--erd-card-solid);
-  color: var(--gold-ink);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-}
-.expense-redesign .feed-add-photo:hover {
-  background: var(--gold-soft);
-}
-.expense-redesign .feed-card-busy {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  background: oklch(0% 0 0 / 0.25);
-}
-.expense-redesign .feed-card-busy::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 22px;
-  height: 22px;
-  margin: -11px 0 0 -11px;
-  border-radius: 50%;
-  border: 2px solid #fff;
-  border-top-color: transparent;
-  animation: feed-spin 0.8s linear infinite;
-}
-@keyframes feed-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-.expense-redesign .feed-card-added {
-  position: absolute;
-  right: 12px;
-  bottom: 12px;
-  z-index: 2;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--mint);
-  color: #fff;
-}
 .expense-redesign .feed-card-notes {
   margin: 0;
   padding: 12px 14px;
@@ -13196,14 +13138,6 @@ button.account-feature-card {
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
-}
-.expense-redesign .feed-card-error {
-  position: relative;
-  z-index: 2;
-  margin: 0;
-  padding: 0 14px 12px;
-  font-size: 12px;
-  color: var(--coral);
 }
 .expense-redesign .feed-more,
 .expense-redesign .feed-status {

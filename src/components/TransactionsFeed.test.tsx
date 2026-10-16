@@ -7,8 +7,6 @@ const m = vi.hoisted(() => ({
   rows: [] as Record<string, unknown>[],
   hasNextPage: false,
   fetchNextPage: vi.fn(),
-  upload: vi.fn(),
-  track: vi.fn(),
 }))
 vi.mock('../hooks/useExpenses', () => ({
   useExpensesFeed: () => ({
@@ -19,15 +17,8 @@ vi.mock('../hooks/useExpenses', () => ({
     isFetchingNextPage: false,
     fetchNextPage: m.fetchNextPage,
   }),
-  useUploadExpensePhoto: () => ({ mutateAsync: m.upload, isPending: false }),
 }))
 vi.mock('../hooks/useCategories', () => ({ useCategoryIcons: () => new Map() }))
-vi.mock('../lib/analytics', () => ({ track: (...a: unknown[]) => m.track(...a) }))
-vi.mock('../features/scan-bill/image', () => ({
-  PHOTO_ENCODING: {},
-  dataUrlFromFile: async () => 'data:image/jpeg;base64,abc',
-  base64Of: (d: string) => d.split(',')[1],
-}))
 
 const row = (over: Record<string, unknown> = {}) => ({
   id: 'e1', version: 1, timestamp: '2026-10-12T10:00:00', date: '2026-10-12', item: 'Plant', amount_inr: '300',
@@ -62,46 +53,19 @@ beforeEach(() => {
   m.hasNextPage = false
 })
 
-it('shows a photo card for a signed photo and a category card with Add a photo otherwise', () => {
+it('shows a photo card for a signed photo and a category card otherwise, with no add-photo button', () => {
   m.rows = [row({ id: 'a', item: 'Tea', has_photo: true, photo_url: 'https://blob.test/a.jpg?s=1' }), row({ id: 'b', item: 'Plant' })]
   renderFeed()
   expect(screen.getByRole('heading', { name: 'Monday, 12 October 2026' })).toBeInTheDocument()
   expect(document.querySelector('img.feed-card-photo')).toHaveAttribute('src', 'https://blob.test/a.jpg?s=1')
-  expect(screen.queryByRole('button', { name: 'Add a photo to Tea' })).not.toBeInTheDocument()
-  expect(screen.getByRole('button', { name: 'Add a photo to Plant' })).toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: /Add a photo/ })).not.toBeInTheDocument()
   expect(screen.getByText("You're all caught up.")).toBeInTheDocument()
-})
-
-it("doesn't offer a second photo when the row has one the server didn't sign", () => {
-  m.rows = [row({ has_photo: true })]
-  renderFeed()
-  expect(screen.queryByRole('button', { name: 'Add a photo to Plant' })).not.toBeInTheDocument()
 })
 
 it('shows the empty state when nothing matches', () => {
   m.rows = []
   renderFeed()
   expect(screen.getByText('nothing here')).toBeInTheDocument()
-})
-
-it('adds a photo from the card, shows it straight away and tracks it', async () => {
-  m.upload.mockResolvedValue(undefined)
-  renderFeed()
-  const file = new File(['x'], 'p.jpg', { type: 'image/jpeg' })
-  fireEvent.change(screen.getByLabelText('Choose a photo for Plant'), { target: { files: [file] } })
-  await waitFor(() => expect(m.upload).toHaveBeenCalledWith({ id: 'e1', image: 'abc' }))
-  await waitFor(() => expect(m.track).toHaveBeenCalledWith('expense_photo_added', { from: 'feed' }))
-  expect(document.querySelector('img.feed-card-photo')).toHaveAttribute('src', 'data:image/jpeg;base64,abc')
-})
-
-it('takes the photo back off and says so when the upload fails', async () => {
-  m.upload.mockRejectedValue(new Error('503'))
-  renderFeed()
-  fireEvent.change(screen.getByLabelText('Choose a photo for Plant'), { target: { files: [new File(['x'], 'p.jpg')] } })
-  expect(await screen.findByRole('alert')).toHaveTextContent("Photo didn't upload. Check your connection and try again.")
-  expect(screen.queryByText('503')).not.toBeInTheDocument()
-  expect(screen.getByRole('button', { name: 'Add a photo to Plant' })).toBeInTheDocument()
-  expect(m.track).not.toHaveBeenCalled()
 })
 
 it('loads the next page on request', () => {
