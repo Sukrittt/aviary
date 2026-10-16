@@ -17,9 +17,9 @@ import { BowlSteamIcon, BusIcon, ChartLineIcon, CoffeeIcon, CookieIcon, GameCont
 const tile = (Icon: PhosphorIcon) => <Icon />
 
 const INTL_MEDIA = new Set([
-  'clip-log.mp4', 'poster-log.jpg', 'clip-added.mp4', 'poster-added.jpg', 'clip-scan.mp4', 'poster-scan.jpg',
-  'clip-insights.mp4', 'poster-insights.jpg', 'clip-invest.mp4', 'poster-invest.jpg', 'subscriptions.png',
-  'clip-ask.mp4', 'poster-ask.jpg',
+  'clip-log.mp4', 'poster-log.webp', 'clip-added.mp4', 'poster-added.webp', 'clip-scan.mp4', 'poster-scan.webp',
+  'clip-insights.mp4', 'poster-insights.webp', 'clip-invest.mp4', 'poster-invest.webp', 'subscriptions.png',
+  'clip-ask.mp4', 'poster-ask.webp',
 ])
 
 const IN = {

@@ -48,7 +48,7 @@ export function AddedClip() {
     chime()
   }
   return <div className="lp-win-added">
-    <video ref={ref} className="lp-win-shot" src={media('clip-added.mp4')} poster={media('poster-added.jpg')} autoPlay muted loop playsInline preload="metadata" aria-label={added} />
+    <video ref={ref} className="lp-win-shot" src={media('clip-added.mp4')} poster={media('poster-added.webp')} autoPlay muted loop playsInline preload="metadata" aria-label={added} />
     <button type="button" className="lp-hear" onClick={replay}><SpeakerHighIcon size={16} aria-hidden="true" />Hear the chime</button>
   </div>
 }
