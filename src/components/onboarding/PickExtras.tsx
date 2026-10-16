@@ -17,7 +17,7 @@ export const EXTRAS: { key: HideableFeature; icon: PhosphorIcon; pitch: string }
 ]
 
 /**
- * Setup's last screen: every extra a new account starts without, each one
+ * Setup's second-to-last screen: every extra a new account starts without, each one
  * line, so nobody has to stumble on them later. The budget is already saved,
  * so leaving here keeps the defaults.
  */
@@ -81,7 +81,7 @@ export function PickExtras({ onDone }: { onDone: () => void }) {
       </div>
       {failed && <p className="setup-done-blurb" role="alert">Couldn&apos;t save your extras. Turn them on anytime from Account, then Features.</p>}
       <button type="button" className="setup-cta" onClick={finish} disabled={saving}>
-        {saving ? 'Saving…' : failed ? 'Continue' : on.size ? 'Start budgeting' : 'Skip for now'}
+        {saving ? 'Saving…' : failed ? 'Continue' : on.size ? 'Continue' : 'Skip for now'}
       </button>
     </div>
   )

@@ -125,6 +125,18 @@ describe('PATCH /api/user', () => {
     expect(usersUpdateOneMock).not.toHaveBeenCalled()
   })
 
+  it('writes a known heardFrom answer', async () => {
+    const res = await PATCH(patchRequest({ heardFrom: 'reddit' }))
+    expect(res.status).toBe(200)
+    expect(usersUpdateOneMock).toHaveBeenCalledWith({ _id: 'user_a' }, { $set: { heardFrom: 'reddit' } })
+  })
+
+  it('rejects an unknown heardFrom answer', async () => {
+    const res = await PATCH(patchRequest({ heardFrom: 'billboard' }))
+    expect(res.status).toBe(400)
+    expect(usersUpdateOneMock).not.toHaveBeenCalled()
+  })
+
   it('writes a valid hiddenFeatures list, deduplicated', async () => {
     const res = await PATCH(patchRequest({ hiddenFeatures: ['insights', 'wrapped', 'insights'] }))
     expect(res.status).toBe(200)

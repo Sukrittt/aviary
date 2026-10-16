@@ -5730,6 +5730,11 @@
   gap: 8px;
 }
 
+.setup-heard-row {
+  max-width: 560px;
+  margin: 22px 0 8px;
+}
+
 .setup-done-row {
   display: flex;
   align-items: center;

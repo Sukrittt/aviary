@@ -46,6 +46,7 @@ export type AppEvent =
   | 'onboarding_failed'
   | 'onboarding_completed'
   | 'onboarding_extras_chosen'
+  | 'onboarding_heard_from'
   | 'tour_started'
   | 'tour_step_viewed'
   | 'tour_skipped'

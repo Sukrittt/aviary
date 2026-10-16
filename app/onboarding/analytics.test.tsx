@@ -59,10 +59,13 @@ describe('onboarding analytics', () => {
     expect(eventsNamed('onboarding_completed')[0]).toMatchObject({ total_seconds: 7, groups_count: 2, currency: 'USD', customized: true, skipped_income: false })
     expect(screen.queryByText('Assigned')).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
-    // Extras come last, then the trial notice.
+    // Extras, then where you heard about us, then the trial notice.
     fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Reddit' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Start budgeting' }))
     await waitFor(() => expect(replace).toHaveBeenCalledWith('/account/trial-notice'))
     expect(eventsNamed('onboarding_extras_chosen')).toEqual([{ extras: '', count: 0 }])
+    expect(eventsNamed('onboarding_heard_from')).toEqual([{ source: 'reddit' }])
     client.clear()
   })
 

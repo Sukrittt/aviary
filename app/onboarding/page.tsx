@@ -22,6 +22,7 @@ import { startTimer, track } from '../../src/lib/analytics'
 import { AmountTicker } from '../../src/components/onboarding/AmountTicker'
 import { Confetti } from '../../src/components/onboarding/Confetti'
 import { PickExtras } from '../../src/components/onboarding/PickExtras'
+import { HeardFrom } from '../../src/components/onboarding/HeardFrom'
 import { LoadingCaption } from '../../src/components/LoadingCaption'
 import { Toast } from '../../src/components/Toast'
 import { CategoryIcon, CATEGORY_ICON_COMPONENTS } from '../../src/components/CategoryIcon'
@@ -597,7 +598,15 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
   if (step === 6) {
     return (
       <div className="expense-redesign setup-page">
-        <PickExtras onDone={() => router.replace('/account/trial-notice')} />
+        <PickExtras onDone={() => setStep(7)} />
+      </div>
+    )
+  }
+
+  if (step === 7) {
+    return (
+      <div className="expense-redesign setup-page">
+        <HeardFrom onDone={() => router.replace('/account/trial-notice')} />
       </div>
     )
   }
