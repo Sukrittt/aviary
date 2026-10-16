@@ -5730,9 +5730,21 @@
   gap: 8px;
 }
 
-.setup-heard-row {
-  max-width: 560px;
+.setup-heard {
+  /* One short question, so it sits in the middle of the page, not the top. */
+  margin-block: auto;
+  padding-top: 0;
+}
+
+.setup-heard-field {
+  width: 100%;
+  max-width: 360px;
   margin: 22px 0 8px;
+  text-align: left;
+}
+
+.setup-heard .setup-cta {
+  max-width: 360px;
 }
 
 .setup-done-row {

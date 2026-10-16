@@ -1,3 +1,4 @@
+import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -61,7 +62,9 @@ describe('onboarding analytics', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     // Extras, then where you heard about us, then the trial notice.
     fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }))
-    fireEvent.click(await screen.findByRole('button', { name: 'Reddit' }))
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('combobox', { name: 'Where you heard about us' }))
+    await user.click(await screen.findByRole('option', { name: 'Reddit' }))
     fireEvent.click(screen.getByRole('button', { name: 'Start budgeting' }))
     await waitFor(() => expect(replace).toHaveBeenCalledWith('/account/trial-notice'))
     expect(eventsNamed('onboarding_extras_chosen')).toEqual([{ extras: '', count: 0 }])

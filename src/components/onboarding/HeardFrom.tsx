@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useUpdateUser } from '@/src/hooks/useUser'
 import { track } from '@/src/lib/analytics'
+import { Select } from '@/src/components/Select'
 import type { HeardFrom as Source } from '@/lib/users'
 
 /** Every answer, in the order shown. Twin of Mobile's HeardFrom.tsx. */
@@ -34,21 +35,17 @@ export function HeardFrom({ onDone }: { onDone: () => void }) {
   }
 
   return (
-    <div className="setup-done">
+    <div className="setup-done setup-heard">
       <h1 className="setup-done-title">Where did you hear about us?</h1>
       <p className="setup-done-blurb">Last one, promise. It helps us find more people like you.</p>
-      <div className="setup-quick-row setup-heard-row">
-        {(Object.keys(HEARD_FROM_LABELS) as Source[]).map((key) => (
-          <button
-            key={key}
-            type="button"
-            className={`setup-chip ${picked === key ? 'is-active' : ''}`}
-            aria-pressed={picked === key}
-            onClick={() => setPicked(picked === key ? null : key)}
-          >
-            {HEARD_FROM_LABELS[key]}
-          </button>
-        ))}
+      <div className="setup-heard-field">
+        <Select
+          aria-label="Where you heard about us"
+          placeholder="Pick one"
+          value={picked ?? ''}
+          onChange={(v) => setPicked(v as Source)}
+          options={(Object.keys(HEARD_FROM_LABELS) as Source[]).map((key) => ({ value: key, label: HEARD_FROM_LABELS[key] }))}
+        />
       </div>
       <button type="button" className="setup-cta" onClick={finish} disabled={saving}>
         {saving ? 'Saving…' : picked ? 'Start budgeting' : 'Skip for now'}
