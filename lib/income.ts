@@ -8,7 +8,7 @@ import { casRetry } from '@/lib/cas'
 import { nowForUser } from '@/lib/userCurrency'
 import { validDate, validMoney, validText } from '@/lib/inputValidation'
 import { isDuplicateKeyError } from '@/lib/createExpense'
-import { advance, firstRunOnOrAfter, occurrencesDue } from '@/lib/recurringExpense'
+import { advance, firstRunOnOrAfter, occurrencesDue, type Frequency } from '@/lib/recurringExpense'
 
 /**
  * The income ledger. Income used to live only on the `__income__` budget row:
@@ -29,7 +29,7 @@ import { advance, firstRunOnOrAfter, occurrencesDue } from '@/lib/recurringExpen
  */
 
 export const INCOME_CATEGORY = '__income__'
-export const INCOME_SOURCES = ['manual', 'recurring', 'balance_gap'] as const
+export const INCOME_SOURCES = ['manual', 'recurring', 'balance_gap', 'import'] as const
 export type IncomeSource = (typeof INCOME_SOURCES)[number]
 export type IncomeCounted = 'extra' | 'monthly'
 
@@ -129,6 +129,8 @@ export interface AddIncomeInput {
   recurring_id?: string
   /** Names the intent, so a retry is recognized before it inserts or bumps a second time. */
   client_id?: string
+  /** The import a backfilled row came from (lib/import/backfill.ts). */
+  import_id?: string
 }
 
 /** Whole cents only: rounding `1.005` or `0.001` would post a different amount than the user typed, or nothing. */
@@ -153,6 +155,8 @@ function invalidateIncome(auth: Auth) {
 export async function addIncome(auth: Auth, input: AddIncomeInput): Promise<{ id: string; version: number; duplicate: boolean }> {
   const invalid = incomeInputError(input)
   if (invalid) throw new IncomeWriteError(400, invalid)
+  // `source` is an unencrypted filter key, so only known values are stored.
+  if (!(INCOME_SOURCES as readonly string[]).includes(input.source)) throw new IncomeWriteError(400, 'invalid source')
   const coll = await getCollection('incomes', auth)
   if (input.client_id) {
     const existing = await coll.findOne({ client_id: input.client_id }, undefined, { includeDeleted: true })
@@ -176,6 +180,7 @@ export async function addIncome(auth: Auth, input: AddIncomeInput): Promise<{ id
           created_at: timestamp,
           version: 0,
           ...(input.client_id ? { client_id: input.client_id } : {}),
+          ...(input.import_id ? { import_id: input.import_id } : {}),
         },
         { session },
       )
@@ -397,4 +402,73 @@ export async function runRecurringIncomes(auth: Auth, today: string): Promise<nu
   }
   if (posted > 0) invalidate('recurring_incomes', auth.userId)
   return posted
+}
+
+/**
+ * After any schedule change: Ready to Assign counts the monthly ones from day
+ * 1 of this month, and anything due today posts now rather than tomorrow.
+ * The schedule is already saved. Failing the request here would make the
+ * client retry and save it twice, so a failed follow-up is logged instead:
+ * the next schedule write or the nightly pass catches up.
+ */
+export async function settleRecurringIncomes(auth: Auth): Promise<void> {
+  invalidate('recurring_incomes', auth.userId)
+  try {
+    const { date } = await nowForUser(auth.userId)
+    await syncMonthlyIncome(auth, date.slice(0, 7))
+    await runRecurringIncomes(auth, date)
+  } catch (err) {
+    console.error('recurring-incomes: settle failed for', auth.userId, err)
+  }
+}
+
+export interface RecurringIncomeInput {
+  label: string
+  amount: number
+  frequency: Frequency
+  /** The first payday. */
+  start_date: string
+  end_date?: string
+  account_id?: string
+  /** Names the intent, so a retried create returns the schedule it already made. */
+  client_id?: string
+}
+
+/**
+ * The one way a recurring income is created. Lifted out of
+ * `POST /api/recurring-incomes` so the import commit shares it. Migrates an
+ * older account's monthly income first, so that can't later mint a second
+ * schedule for the same pay. Returns the schedule's id.
+ */
+export async function createRecurringIncome(auth: Auth, input: RecurringIncomeInput): Promise<string> {
+  await ensureIncomeMigrated(auth)
+  const coll = await getCollection('recurring_incomes', auth)
+  const existing = async () => input.client_id ? coll.findOne({ client_id: input.client_id }, undefined, { includeDeleted: true }) : null
+  const found = await existing()
+  if (found) return String(found._id)
+  const { date: today, timestamp } = await nowForUser(auth.userId)
+  let id: string
+  try {
+    const inserted = await coll.insertOne({
+      label: input.label.trim(),
+      amount: String(round2(input.amount)),
+      frequency: input.frequency,
+      start_date: input.start_date,
+      end_date: input.end_date ?? '',
+      // Same rule as recurring expenses: a backdated first payday schedules
+      // forward rather than backfilling paydays nobody asked to record.
+      next_run_date: firstRunOnOrAfter(input.start_date, input.frequency, today),
+      account_id: input.account_id ?? '',
+      status: 'active',
+      created_at: timestamp,
+      ...(input.client_id ? { client_id: input.client_id } : {}),
+    })
+    id = String(inserted.insertedId)
+  } catch (err) {
+    const raced = isDuplicateKeyError(err) ? await existing() : null
+    if (!raced) throw err
+    return String(raced._id)
+  }
+  await settleRecurringIncomes(auth)
+  return id
 }

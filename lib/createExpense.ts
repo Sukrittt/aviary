@@ -39,6 +39,8 @@ export interface CreateExpenseInput {
   /** Names the intent, so a retry is recognized before it can insert a second row. */
   client_id?: string
   source?: string
+  /** The import a backfilled row came from, so a later "remove this import" can find it. Not in EXPENSE_HEADERS, like `client_id`. */
+  import_id?: string
   /**
    * Whether to run the post-insert threshold check. Defaults true. A backfill
    * writing several occurrences at once passes `false` and calls
@@ -168,6 +170,7 @@ export async function createExpense(auth: Auth, input: CreateExpenseInput): Prom
         payment_method: paymentMethod,
         ...(account ? { account_id: account.id } : {}),
         ...(clientId ? { client_id: clientId } : {}),
+        ...(input.import_id ? { import_id: input.import_id } : {}),
       },
       { session },
     )

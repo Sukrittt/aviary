@@ -3,6 +3,7 @@ import { getAuth, readOnlyGuard } from '@/lib/access'
 import { requireAccess } from '@/lib/billing/guard'
 import { invalidate } from '@/lib/cache'
 import { isCategoryIconKey } from '@/src/lib/categoryIcons'
+import { createGroup } from '@/lib/groups'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,13 +29,7 @@ export async function POST(req: Request) {
   const body = await readBody(req)
   if (!body.name) return error('name required')
 
-  const coll = await getCollection('groups', auth)
-  const exists = await coll.findOne({ name: String(body.name) })
-  if (exists) return error('group already exists', 409)
-  const maxDoc = await coll.find({}).sort({ order: -1 }).limit(1).next()
-  const order = (maxDoc && typeof maxDoc.order === 'number' ? maxDoc.order : 0) + 1
-  await coll.insertOne({ name: String(body.name), order })
-  invalidate('groups', auth.userId)
+  if ((await createGroup(auth, String(body.name))) === 'exists') return error('group already exists', 409)
   return json({ ok: true })
 }
 
