@@ -6,7 +6,7 @@ export const MAX_ROWS = 20_000
 const MAX_ITEM = 200
 const MAX_NOTES = 300
 
-export type ImportErrorCode = 'too_big' | 'unreadable' | 'no_columns' | 'not_found' | 'already_importing' | 'already_onboarded' | 'invalid'
+export type ImportErrorCode = 'too_big' | 'unreadable' | 'no_columns' | 'not_found' | 'already_importing' | 'already_onboarded' | 'busy' | 'invalid'
 
 /** A failure the client turns into written copy. The code is the whole message. */
 export class ImportError extends Error {
@@ -116,9 +116,10 @@ function readPlan(plan: Table | null, today: string): Record<string, number> {
   const [month, category, assigned] = [col('month'), col('category'), col('assigned')]
   if (month < 0 || category < 0 || assigned < 0) return {}
   const out: Record<string, number> = {}
+  const decimalComma = detectDecimalComma(plan.rows.slice(1).map((r) => r[assigned] ?? ''))
   for (const row of plan.rows.slice(1)) {
     const date = parseDate(`1 ${row[month] ?? ''}`, 'dmy') ?? parseDate(row[month] ?? '', 'dmy')
-    const amount = parseAmount(row[assigned] ?? '', false)
+    const amount = parseAmount(row[assigned] ?? '', decimalComma)
     const name = (row[category] ?? '').trim()
     if (date?.slice(0, 7) === today.slice(0, 7) && name && amount !== null) out[name] = amount
   }

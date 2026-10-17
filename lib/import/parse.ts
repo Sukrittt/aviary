@@ -26,7 +26,7 @@ export function detectDecimalComma(samples: string[]): boolean {
 export function parseAmount(raw: string, decimalComma: boolean): number | null {
   let s = raw.trim().replace(/[−‒–]/g, '-')
   let sign = 1
-  const suffix = s.match(/\s*\b(CR|DR)\.?$/i)
+  const suffix = s.match(/\s*(CR|DR)\.?$/i)
   if (suffix) {
     if (suffix[1].toUpperCase() === 'DR') sign = -1
     s = s.slice(0, suffix.index)

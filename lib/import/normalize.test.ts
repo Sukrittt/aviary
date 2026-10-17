@@ -156,6 +156,16 @@ describe('generic files', () => {
   })
 })
 
+describe('YNAB plan', () => {
+  it('reads a comma-decimal plan the same way as its register', () => {
+    const tables: Table[] = [
+      { name: 'Register.csv', rows: [['Account', 'Date', 'Payee', 'Category', 'Memo', 'Outflow', 'Inflow'], ['Giro', '01.10.2026', 'Rewe', 'Groceries', '', '12,50 €', '0,00 €']] },
+      { name: 'Plan.csv', rows: [['Month', 'Category', 'Assigned'], ['Oct 2026', 'Groceries', '1.250,00 €']] },
+    ]
+    expect(normalize(inspect(tables), TODAY).plan).toEqual({ Groceries: 1250 })
+  })
+})
+
 describe('resolveRows', () => {
   const rows: StoredRow[] = [
     { kind: 'expense', date: '2026-09-01', amount: 5, item: 'a', category: '', subcategory: '', account: '', notes: '', currency: 'INR', bySign: true },

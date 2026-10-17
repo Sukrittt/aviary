@@ -57,6 +57,23 @@ describe('parseCsv', () => {
     expect(parseCsv('Date\tAmount\n2026-10-01\t5')).toEqual([['Date', 'Amount'], ['2026-10-01', '5']])
   })
 
+  it('sniffs the delimiter from the rows, not a title line above them', () => {
+    expect(parseCsv('Statement for Jane Doe, October 2026\nDate;Description;Amount\n01/10/2026;Rent;-1.250,00\n02/10/2026;Bread;-3,50\n')).toEqual([
+      ['Statement for Jane Doe, October 2026'],
+      ['Date', 'Description', 'Amount'],
+      ['01/10/2026', 'Rent', '-1.250,00'],
+      ['02/10/2026', 'Bread', '-3,50'],
+    ])
+  })
+
+  it('reads a quote inside an unquoted field as text, not the start of a quoted one', () => {
+    expect(parseCsv('Date,Item,Amount\n2026-10-01,TV 55" screen,-500\n2026-10-02,Bread,-3\n')).toEqual([
+      ['Date', 'Item', 'Amount'],
+      ['2026-10-01', 'TV 55" screen', '-500'],
+      ['2026-10-02', 'Bread', '-3'],
+    ])
+  })
+
   it('drops blank lines', () => {
     expect(parseCsv('a,b\n\n1,2\n\n')).toEqual([['a', 'b'], ['1', '2']])
   })
@@ -89,6 +106,14 @@ describe('readZip', () => {
     const files = readZip(zip)
     expect(files.get('Budget - Register.csv')?.toString()).toBe('a,b\n1,2')
     expect(files.get('Budget - Plan.csv')?.toString()).toBe('c,d')
+  })
+})
+
+describe('readTable limits', () => {
+  it('refuses a zip that would inflate past the cap', async () => {
+    const zip = makeZip([{ name: 'big.csv', data: Buffer.alloc(60 * 1024 * 1024, 48), deflate: true }])
+    expect(zip.length).toBeLessThan(1024 * 1024)
+    await expect(readTable(zip, 'bomb.zip')).rejects.toThrow()
   })
 })
 

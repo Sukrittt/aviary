@@ -18,16 +18,26 @@ export function decodeText(buf: Buffer): string {
   return text.replace(/^﻿/, '')
 }
 
+/**
+ * The delimiter that splits the first lines most consistently: the most
+ * lines with the same non-zero count, then the most columns. Line 1 alone
+ * misleads when a title line sits above the header.
+ */
 function sniffDelimiter(text: string): string {
-  const counts: Record<string, number> = { ',': 0, ';': 0, '\t': 0 }
-  let quoted = false
-  for (const ch of text) {
-    if (ch === '"') quoted = !quoted
-    else if (!quoted && (ch === '\n' || ch === '\r')) break
-    else if (!quoted && ch in counts) counts[ch]++
+  const lines = text.split(/\r?\n/).filter((l) => l.trim()).slice(0, 10)
+  let best = ','
+  let bestScore = [0, 0]
+  for (const d of [',', ';', '\t']) {
+    const counts = lines.map((line) => line.replace(/"[^"]*"/g, '').split(d).length - 1).filter((n) => n > 0)
+    const freq = new Map<number, number>()
+    for (const n of counts) freq.set(n, (freq.get(n) ?? 0) + 1)
+    const [mode, lineCount] = [...freq].sort((a, b) => b[1] - a[1] || b[0] - a[0])[0] ?? [0, 0]
+    if (lineCount > bestScore[0] || (lineCount === bestScore[0] && mode > bestScore[1])) {
+      best = d
+      bestScore = [lineCount, mode]
+    }
   }
-  const [best, n] = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]
-  return n > 0 ? best : ','
+  return best
 }
 
 export function parseCsv(text: string): string[][] {
@@ -48,7 +58,7 @@ export function parseCsv(text: string): string[][] {
       if (ch === '"' && text[i + 1] === '"') { field += '"'; i++ }
       else if (ch === '"') quoted = false
       else field += ch
-    } else if (ch === '"') quoted = true
+    } else if (ch === '"' && field === '') quoted = true
     else if (ch === delimiter) { row.push(field); field = '' }
     else if (ch === '\n') endRow()
     else if (ch !== '\r') field += ch
@@ -68,6 +78,9 @@ export function findHeaderRow(rows: string[][], score: (cells: string[]) => numb
   return best
 }
 
+/** Most a zip may inflate to, in total: a 4 MB export never needs more, and a zip bomb does. */
+const MAX_INFLATED = 50 * 1024 * 1024
+
 export function readZip(buf: Buffer): Map<string, Buffer> {
   let end = -1
   for (let i = buf.length - 22; i >= Math.max(0, buf.length - 65_557); i--) {
@@ -77,10 +90,13 @@ export function readZip(buf: Buffer): Map<string, Buffer> {
   const count = buf.readUInt16LE(end + 10)
   let p = buf.readUInt32LE(end + 16)
   const files = new Map<string, Buffer>()
+  let inflated = 0
   for (let n = 0; n < count; n++) {
     if (buf.readUInt32LE(p) !== 0x02014b50) throw new Error('bad zip directory')
     const method = buf.readUInt16LE(p + 10)
     const size = buf.readUInt32LE(p + 20)
+    inflated += buf.readUInt32LE(p + 24)
+    if (inflated > MAX_INFLATED) throw new Error('zip too large')
     const nameLen = buf.readUInt16LE(p + 28)
     const extraLen = buf.readUInt16LE(p + 30)
     const commentLen = buf.readUInt16LE(p + 32)
@@ -90,7 +106,8 @@ export function readZip(buf: Buffer): Map<string, Buffer> {
     const body = buf.subarray(start, start + size)
     if (!name.endsWith('/')) {
       if (method === 0) files.set(name, Buffer.from(body))
-      else if (method === 8) files.set(name, inflateRawSync(body))
+      // The declared size above can lie; this cap can't.
+      else if (method === 8) files.set(name, inflateRawSync(body, { maxOutputLength: MAX_INFLATED }))
     }
     p += 46 + nameLen + extraLen + commentLen
   }
@@ -127,7 +144,11 @@ const isZip = (buf: Buffer) => buf.length > 4 && buf.readUInt32LE(0) === 0x04034
 /** Every table in the file. An xlsx is a zip too, so the name decides between them. */
 export async function readTable(buf: Buffer, filename: string): Promise<Table[]> {
   const lower = filename.toLowerCase()
-  if (lower.endsWith('.xlsx') || lower.endsWith('.xls')) return readXlsx(buf)
+  if (lower.endsWith('.xlsx') || lower.endsWith('.xls')) {
+    // ponytail: exceljs inflates on its own, so only the declared sizes are checked here; a lying xlsx still gets through.
+    readZip(buf)
+    return readXlsx(buf)
+  }
   if (lower.endsWith('.zip') || isZip(buf)) {
     return [...readZip(buf)]
       .filter(([name]) => name.toLowerCase().endsWith('.csv') && !name.split('/').pop()!.startsWith('.'))
