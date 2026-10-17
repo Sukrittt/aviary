@@ -58,6 +58,39 @@ describe('buildCategoryMap', () => {
     expect(map.words.swiggy).toBe('Food')
     expect(map.words.instamart).toBe('Groceries')
   })
+
+  // Seen in prod: "and"→Groceries, "to"→Metro, "ou"/"ch"/"ap" from half-typed text.
+  it('skips filler words and 1-2 letter fragments, from history and overrides alike', async () => {
+    const coll = fakeExpensesCollection([{ item: 'bus to office', category: 'Commute' }])
+    const overrides = {
+      find: vi.fn(() => ({ toArray: async () => [
+        { word: 'and', category: 'Groceries', source: 'llm' },
+        { word: 'ou', category: 'Outings', source: 'llm' },
+      ] })),
+    } as unknown as ScopedCollection
+
+    const map = await buildCategoryMap(coll, overrides)
+    expect(map.words).toEqual({ bus: 'Commute', office: 'Commute' })
+  })
+
+  it('lets an AI guess fill a gap but not beat what the user actually saved; user corrections still win', async () => {
+    const coll = fakeExpensesCollection([
+      { item: 'coffee', category: 'Eating out' },
+      { item: 'chai', category: 'Eating out' },
+    ])
+    const overrides = {
+      find: vi.fn(() => ({ toArray: async () => [
+        { word: 'coffee', category: 'Groceries', source: 'llm' },
+        { word: 'banana', category: 'Groceries', source: 'llm' },
+        { word: 'chai', category: 'Coffee', source: 'user' },
+      ] })),
+    } as unknown as ScopedCollection
+
+    const map = await buildCategoryMap(coll, overrides)
+    expect(map.words.coffee).toBe('Eating out')
+    expect(map.words.banana).toBe('Groceries')
+    expect(map.words.chai).toBe('Coffee')
+  })
 })
 
 describe('learnCategoryCorrection', () => {

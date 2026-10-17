@@ -105,8 +105,11 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
   // True while the category is one we picked, not one the user chose (the
   // Miscellaneous fallback doesn't count). Drives the "Picked for you" status.
   const [autoPicked, setAutoPicked] = useState(false)
-  // What made the current pick, for ai_category_suggested on save (same as mobile).
-  const suggestedBy = useRef<null | 'keyword' | 'ai'>(null)
+  // What made the current pick, for ai_category_suggested on save (same as mobile):
+  // "none" when keyword and AI both came up empty. pickMs is last keystroke to pick.
+  const suggestedBy = useRef<null | 'keyword' | 'ai' | 'none'>(null)
+  const pickMs = useRef(0)
+  const typedAt = useRef(0)
   // "Picking…" is only shown for the slow AI fallback, and only once it's been
   // pending long enough to be worth showing (see thinkingGate.ts).
   const [suggesting, setSuggesting] = useState(false)
@@ -169,16 +172,14 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
     if (categoryTouchedRef.current || latestItemRef.current !== value) return
     if (llmCategory && categories.includes(llmCategory)) {
       suggestedBy.current = 'ai'
+      pickMs.current = Date.now() - typedAt.current
       setCategory(llmCategory)
       setAutoPicked(true)
-      // Mirror the server's word overrides so the same words match locally, instantly, next time.
-      const learned = Object.fromEntries(
-        value.toLowerCase().split(/\s+/).filter((w) => w.length >= 2).map((w) => [w, llmCategory]),
-      )
-      setCategoryWords((words) => ({ ...words, ...learned }))
       return
     }
     const misc = categories.find((c) => c.toLowerCase().includes('miscellaneous'))
+    suggestedBy.current = 'none'
+    pickMs.current = Date.now() - typedAt.current
     setCategory(misc ?? '')
     setAutoPicked(false)
   }
@@ -186,6 +187,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
   function handleItemChange(value: string) {
     setItem(value)
     latestItemRef.current = value
+    typedAt.current = Date.now()
     if (llmDebounceRef.current) {
       clearTimeout(llmDebounceRef.current)
       llmDebounceRef.current = null
@@ -206,6 +208,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
       if (live) {
         gate.finish(() => {
           suggestedBy.current = 'keyword'
+          pickMs.current = 0
           setCategory(live)
           setAutoPicked(true)
         })
@@ -342,7 +345,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
         // since still lands on the right payment method.
         ...(accountId ? { account_id: accountId, payment_method: accounts.find((a) => a.id === accountId)?.type ?? 'bank' } : {}),
       })
-      if (suggestedBy.current) track('ai_category_suggested', { accepted: autoPicked, source: suggestedBy.current })
+      if (suggestedBy.current) track('ai_category_suggested', { accepted: autoPicked, source: suggestedBy.current, ms: pickMs.current })
       window.dispatchEvent(new Event(MANUAL_LOG_EVENT))
       onSaved()
       reset()
