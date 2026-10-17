@@ -105,6 +105,25 @@ describe('ImportFlow', () => {
     await waitFor(() => expect(onDone).toHaveBeenCalledWith({ result: expect.objectContaining({ total: 9 }), currency: 'EUR' }), { timeout: 2000 })
   })
 
+  it('a flip that finds a salary fills it in', async () => {
+    previewImport.mockResolvedValue({ ...review, salary: null })
+    recomputeImport.mockResolvedValue({ ...review, direction: 'positive_spend', salary: { label: 'Payroll', amount: 3100, day: 2 } })
+    toReview()
+    expect(await screen.findByLabelText('Monthly income')).toHaveValue(null)
+    fireEvent.click(screen.getByRole('button', { name: 'That’s backwards' }))
+    await waitFor(() => expect(screen.getByLabelText('Monthly income')).toHaveValue(3100))
+    expect(screen.getByLabelText('Payday, day of the month')).toHaveValue(2)
+  })
+
+  it('stops at more bank accounts than the app holds, rather than dropping one quietly', async () => {
+    const accounts: ImportReview['accounts'] = [...Array.from({ length: 5 }, (_, i) => ({ source: `B${i}`, name: `B${i}`, type: 'bank' as const })), { source: 'Cash', name: 'Cash', type: 'cash' }]
+    previewImport.mockResolvedValue({ ...review, accounts })
+    toReview()
+    fireEvent.change(await screen.findByLabelText('Type for Cash'), { target: { value: 'bank' } })
+    expect(screen.getByRole('alert')).toHaveTextContent('You can have up to 5 bank accounts. Make one of these cash or a credit card.')
+    expect(screen.getByRole('button', { name: 'Looks right, set me up' })).toBeDisabled()
+  })
+
   it('a cleared salary commits without one', async () => {
     toReview()
     fireEvent.change(await screen.findByLabelText('Monthly income'), { target: { value: '' } })

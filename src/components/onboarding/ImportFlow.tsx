@@ -18,6 +18,8 @@ import { countsLine, directionCopy, importErrorCopy, ordinal, skippedCopy } from
  */
 
 const MAX_BYTES = 4 * 1024 * 1024
+/** lib/accounts.ts's MAX_BANK_ACCOUNTS: the balance check asks about at most five. */
+const MAX_BANK_ACCOUNTS = 5
 
 type AppChoice = { id: string; name: string; kind: string; how: [string, string] }
 
@@ -212,6 +214,7 @@ function Review({ review, onReview, onDone }: { review: ImportReview; onReview: 
   const [recomputing, setRecomputing] = useState(false)
   const [error, setError] = useState('')
   const seen = useRef(`${review.importId}:${review.direction}:${review.currency}`)
+  const salaryEdited = useRef(false)
 
   // A flip or a currency change brings a new review: keep what the user edited, by source.
   useEffect(() => {
@@ -222,6 +225,11 @@ function Review({ review, onReview, onDone }: { review: ImportReview; onReview: 
       return old ? { ...c, name: old.name, group: old.group } : c
     }))
     setAccounts((prev) => review.accounts.map((a) => prev.find((p) => p.source === a.source) ?? a))
+    // A flip can find a salary the first read missed, or lose one it found.
+    if (!salaryEdited.current) {
+      setSalary(review.salary ? String(review.salary.amount) : '')
+      setDay(String(review.salary?.day ?? 1))
+    }
   }, [review])
 
   const recompute = async (change: { direction?: string; currency?: string }) => {
@@ -251,6 +259,7 @@ function Review({ review, onReview, onDone }: { review: ImportReview; onReview: 
   const salaryAmount = Math.round(Number(salary) * 100) / 100
   const hasSalary = salaryAmount > 0
   const budgetTotal = cats.reduce((sum, c) => sum + c.monthly, 0)
+  const tooManyBanks = accounts.filter((a) => a.type === 'bank').length > MAX_BANK_ACCOUNTS
   const busy = phase.saving || phase.success || recomputing
 
   const commit = async () => {
@@ -387,6 +396,9 @@ function Review({ review, onReview, onDone }: { review: ImportReview; onReview: 
                 </div>
               ))}
             </div>
+            {tooManyBanks && (
+              <p className="import-note" role="alert">{`You can have up to ${MAX_BANK_ACCOUNTS} bank accounts. Make one of these cash or a credit card.`}</p>
+            )}
             {review.droppedAccounts.length > 0 && (
               <p className="import-note">
                 {`We kept your ${accounts.length} busiest accounts. Rows from ${review.droppedAccounts.slice(0, 5).join(', ')}${review.droppedAccounts.length > 5 ? ' and the rest' : ''} come in without one.`}
@@ -411,7 +423,10 @@ function Review({ review, onReview, onDone }: { review: ImportReview; onReview: 
               placeholder="Monthly income"
               min={0}
               value={salary}
-              onChange={(e) => setSalary(e.target.value)}
+              onChange={(e) => {
+                salaryEdited.current = true
+                setSalary(e.target.value)
+              }}
             />
             <label className="import-day">
               <span>Payday</span>
@@ -422,7 +437,10 @@ function Review({ review, onReview, onDone }: { review: ImportReview; onReview: 
                 min={1}
                 max={31}
                 value={day}
-                onChange={(e) => setDay(e.target.value)}
+                onChange={(e) => {
+                  salaryEdited.current = true
+                  setDay(e.target.value)
+                }}
               />
             </label>
           </div>
@@ -449,7 +467,7 @@ function Review({ review, onReview, onDone }: { review: ImportReview; onReview: 
         success={phase.success}
         savingLabel="Setting you up…"
         successLabel="You’re set up"
-        disabled={busy}
+        disabled={busy || tooManyBanks}
         aria-busy={phase.saving}
         onClick={commit}
       >
