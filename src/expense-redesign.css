@@ -3254,11 +3254,13 @@
 /* Success-tick state for action buttons */
 .expense-redesign .action-button,
 .erd-log-submit,
+.setup-cta,
 .expense-redesign .txn-review-primary {
   position: relative;
 }
 .expense-redesign .action-button.is-success,
 .erd-log-submit.is-success,
+.setup-cta.is-success,
 .expense-redesign .txn-review-primary.is-success {
   background: var(--tk-success-bg);
   border-color: var(--tk-success-bg);
@@ -3272,17 +3274,20 @@
 }
 .expense-redesign .action-button.is-success:disabled,
 .erd-log-submit.is-success:disabled,
+.setup-cta.is-success:disabled,
 .expense-redesign .txn-review-primary.is-success:disabled {
   opacity: 1;
   cursor: default;
 }
 .expense-redesign .action-button.is-success .sb-label,
 .erd-log-submit.is-success .sb-label,
+.setup-cta.is-success .sb-label,
 .expense-redesign .txn-review-primary.is-success .sb-label {
   visibility: hidden;
 }
 .expense-redesign .action-button .sb-tick,
 .erd-log-submit .sb-tick,
+.setup-cta .sb-tick,
 .expense-redesign .txn-review-primary .sb-tick {
   position: absolute;
   inset: 0;
@@ -3294,12 +3299,14 @@
 }
 .expense-redesign .action-button .sb-tick svg,
 .erd-log-submit .sb-tick svg,
+.setup-cta .sb-tick svg,
 .expense-redesign .txn-review-primary .sb-tick svg {
   width: 18px;
   height: 18px;
 }
 .expense-redesign .action-button .sb-tick path,
 .erd-log-submit .sb-tick path,
+.setup-cta .sb-tick path,
 .expense-redesign .txn-review-primary .sb-tick path {
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
@@ -13254,6 +13261,216 @@ button.account-feature-card {
 @keyframes plan-step-now {
   0% { box-shadow: 0 0 0 0 var(--tk-accent-soft); }
   70%, 100% { box-shadow: 0 0 0 8px transparent; }
+}
+
+/* Switching from another app: onboarding's import screens and Home's banner. */
+.import-apps {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.import-app {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 52px;
+  padding: 12px 16px;
+  border: 1px solid var(--erd-border);
+  border-radius: 14px;
+  background: var(--erd-card);
+  color: var(--erd-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.import-app:hover {
+  border-color: var(--gold);
+}
+.import-app-name {
+  font-weight: 600;
+}
+.import-app-kind,
+.import-drop-hint,
+.import-note,
+.import-row-amount {
+  color: var(--erd-text3);
+  font-size: 13px;
+}
+.import-drop {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 180px;
+  padding: 24px;
+  border: 1.5px dashed var(--erd-border-strong);
+  border-radius: 18px;
+  text-align: center;
+  cursor: pointer;
+}
+.import-drop.is-dragging,
+.import-drop:focus-within {
+  border-color: var(--gold);
+  background: var(--gold-soft);
+}
+.import-drop.is-busy {
+  cursor: progress;
+}
+.import-drop-input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: inherit;
+}
+.import-drop-title {
+  font-weight: 600;
+}
+.import-review {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.import-review[aria-busy='true'] {
+  opacity: 0.6;
+}
+.import-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.import-heading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+}
+.import-note {
+  margin: 0;
+  line-height: 1.5;
+}
+.import-line,
+.import-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.import-line {
+  justify-content: space-between;
+}
+.import-row > .setup-pick-input,
+.import-row > .txn-entry-input {
+  flex: 1;
+  min-width: 0;
+}
+.import-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 340px;
+  overflow-y: auto;
+}
+.import-select {
+  min-height: 40px;
+  padding: 0 10px;
+  border: 1px solid var(--erd-border);
+  border-radius: 10px;
+  background: var(--erd-input-bg);
+  color: var(--erd-text);
+  font: inherit;
+  font-size: 13px;
+}
+.import-row-amount {
+  min-width: 72px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.import-samples {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+.import-samples li {
+  display: flex;
+  gap: 10px;
+}
+.import-sample-item {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.import-sample-amount {
+  font-variant-numeric: tabular-nums;
+}
+.import-sample-amount.is-income {
+  color: var(--mint);
+}
+.import-day {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.import-day .txn-entry-input {
+  width: 64px;
+}
+.import-banner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  overflow: hidden;
+  border: 1px solid var(--erd-border);
+  border-radius: 14px;
+  background: var(--erd-card);
+  color: var(--erd-text);
+  font-size: 13px;
+}
+.import-banner > span:first-child {
+  flex: 1;
+}
+.import-banner.is-failed {
+  border-color: var(--coral);
+}
+.import-banner-bar {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 3px;
+  background: var(--gold);
+  transform-origin: left;
+  transform: scaleX(var(--import-progress, 0));
+  transition: transform 400ms ease;
+}
+.import-banner-action {
+  border: 0;
+  background: transparent;
+  color: var(--gold-ink);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+.import-banner-close {
+  display: inline-flex;
+  border: 0;
+  background: transparent;
+  color: var(--erd-text3);
+  cursor: pointer;
+}
+@media (prefers-reduced-motion: reduce) {
+  .import-banner-bar {
+    transition: none;
+  }
 }
 
 /* Categories handles and group counts sit at text3, too dim on the dark surface. Light text3 already passes. */

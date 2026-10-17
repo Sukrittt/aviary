@@ -20,6 +20,7 @@ vi.mock('@/src/api/billing', () => ({
 function setup() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } })
   render(<QueryClientProvider client={client}><SetupWizardPage /></QueryClientProvider>)
+  fireEvent.click(screen.getByRole('button', { name: 'No, start fresh' }))
   return client
 }
 

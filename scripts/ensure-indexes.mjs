@@ -68,6 +68,11 @@ const INDEXES = {
     [{ user_id: 1, client_id: 1 }, { unique: true, partialFilterExpression: { client_id: { $type: 'string' } } }],
   ],
   accounts: [[{ user_id: 1 }, {}]],
+  // One user's current import, and the hourly sweep for passes whose lease ran out.
+  imports: [
+    [{ user_id: 1, status: 1 }, {}],
+    [{ status: 1, lockedUntil: 1 }, {}],
+  ],
   // TTL index: hits older than an hour (the longest window lib/rateLimit.ts
   // checks against) are garbage-collected automatically. Correctness never
   // depends on this running promptly — every check bounds by its own cutoff.

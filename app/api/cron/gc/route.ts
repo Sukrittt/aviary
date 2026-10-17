@@ -21,7 +21,7 @@ function cutoffIso(): string {
 }
 
 /**
- * Daily cron: permanently purges soft-deleted rows (lib/scoped.ts's
+ * Daily cron: drops abandoned import previews older than a day, and permanently purges soft-deleted rows (lib/scoped.ts's
  * `deleted_at`) once their `GRACE_DAYS` recovery window has passed, and
  * finishes account deletions the same way — deleting the WorkOS user only
  * here, never synchronously in DELETE /api/user, so the account stays
@@ -43,9 +43,18 @@ export async function GET(req: Request) {
   return json({ ok: true, ...result })
 }
 
-async function purgeExpired(): Promise<{ purged: number; accountsPurged: number }> {
+/** A previewed import nobody committed: its rows are a copy of a file, so it goes after a day. */
+const PREVIEW_TTL_MS = 24 * 60 * 60 * 1000
+
+async function purgeExpired(): Promise<{ purged: number; accountsPurged: number; previewsPurged: number }> {
   const db = await getDb()
   const cutoff = cutoffIso()
+  // Never one a commit is setting up right now (lib/import/commit.ts's claim).
+  const previews = await db.collection('imports').deleteMany({
+    status: 'previewed',
+    created_at: { $lt: new Date(Date.now() - PREVIEW_TTL_MS) },
+    $or: [{ claimedUntil: { $exists: false } }, { claimedUntil: { $lte: Date.now() } }],
+  })
 
   let purged = 0
   for (const name of ARCHIVABLE_COLLECTIONS) {
@@ -70,5 +79,5 @@ async function purgeExpired(): Promise<{ purged: number; accountsPurged: number 
     }
   }
 
-  return { purged, accountsPurged }
+  return { purged, accountsPurged, previewsPurged: previews.deletedCount }
 }

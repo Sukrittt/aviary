@@ -78,6 +78,14 @@ beforeEach(() => {
 })
 
 describe('createExpense', () => {
+  it('keeps an import id on the row, and only when one is given', async () => {
+    await createExpense(auth, { ...base, source: 'import', import_id: 'imp1', notify: false })
+    await createExpense(auth, base)
+    expect(stores.expenses[0]).toMatchObject({ source: 'import', import_id: 'imp1' })
+    expect(stores.expenses[1]).not.toHaveProperty('import_id')
+    expect(notifyThresholdCrossed).toHaveBeenCalledTimes(1)
+  })
+
   it('inserts one expense with the defaults the POST route used to apply inline', async () => {
     const result = await createExpense(auth, base)
 
