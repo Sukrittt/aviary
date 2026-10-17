@@ -13472,3 +13472,7 @@ button.account-feature-card {
     transition: none;
   }
 }
+
+/* Categories handles and group counts sit at text3, too dim on the dark surface. Light text3 already passes. */
+.theme-dark .expense-redesign .env-group-count,
+.theme-dark .expense-redesign .env-drag-handle { color: var(--erd-text2); }
