@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const runEveningCheck = vi.fn(async () => ({ sent: 2 }))
 vi.mock('@/lib/notifications/eveningCheck', () => ({ runEveningCheck: () => runEveningCheck() }))
+const sweepImports = vi.fn(async (_deadline: number) => 1)
+vi.mock('@/lib/import/backfill', () => ({ sweepImports: (deadline: number) => sweepImports(deadline) }))
 vi.mock('@/lib/cronRuns', () => ({
   recordCronRun: (_job: string, _trigger: string, fn: () => Promise<unknown>) => fn(),
   triggerOf: () => 'cron',
@@ -27,6 +29,16 @@ describe('GET /api/cron/evening-check', () => {
   it('runs the check and reports how many were sent', async () => {
     const res = await GET(req('test-secret'))
     expect(res.status).toBe(200)
-    expect(await res.json()).toEqual({ ok: true, sent: 2 })
+    expect(await res.json()).toEqual({ ok: true, sent: 2, importPasses: 1 })
+  })
+
+  it('sweeps imports with a deadline inside the route ceiling, and survives the sweep failing', async () => {
+    sweepImports.mockRejectedValueOnce(new Error('db down'))
+    const before = Date.now()
+    const res = await GET(req('test-secret'))
+    expect(await res.json()).toEqual({ ok: true, sent: 2, importPasses: 0 })
+    const [deadline] = sweepImports.mock.calls[0] as unknown as [number]
+    expect(deadline).toBeGreaterThanOrEqual(before + 49_000)
+    expect(deadline).toBeLessThanOrEqual(Date.now() + 50_000)
   })
 })

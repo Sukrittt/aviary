@@ -53,6 +53,15 @@ describe('GET /api/cron/gc', () => {
     expect(res.status).toBe(401)
   })
 
+  it('drops import previews older than a day, and only previews', async () => {
+    collectionDeleteMany('imports').mockResolvedValue({ deletedCount: 2 })
+    const res = await GET(req('test-secret'))
+    expect(((await res.json()) as { previewsPurged: number }).previewsPurged).toBe(2)
+    const [filter] = collectionDeleteMany('imports').mock.calls[0]
+    expect(filter.status).toBe('previewed')
+    expect(Date.now() - filter.created_at.$lt.getTime()).toBeGreaterThanOrEqual(24 * 60 * 60 * 1000)
+  })
+
   it('purges expired archived rows from every archivable collection', async () => {
     collectionDeleteMany('expenses').mockResolvedValue({ deletedCount: 3 })
     collectionDeleteMany('budgets').mockResolvedValue({ deletedCount: 1 })
