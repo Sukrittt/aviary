@@ -5519,6 +5519,10 @@
   margin: 8px 0 0;
 }
 
+/* A CTA straight after the blurb (no .setup-body between) needs its own
+   section gap, or it reads as glued to the text. */
+.setup-blurb + .setup-cta { margin-top: 32px; }
+
 .setup-cta {
   align-self: center;
   width: 100%;
@@ -13264,6 +13268,20 @@ button.account-feature-card {
 }
 
 /* Switching from another app: onboarding's import screens and Home's banner. */
+.import-ask {
+  /* A lone yes/no question: sit it at the optical centre (a touch above the
+     true middle) of the free space under the step dots. */
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 10vh;
+  text-align: center;
+}
+.import-ask .setup-blurb {
+  max-width: 600px;
+}
 .import-apps {
   display: flex;
   flex-direction: column;

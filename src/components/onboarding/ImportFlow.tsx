@@ -12,7 +12,7 @@ import { commitImport, ImportFailure, previewImport, recomputeImport, type Commi
 import { countsLine, directionCopy, importErrorCopy, ordinal, skippedCopy } from './importCopy'
 
 /**
- * "Switching from another app?": the first onboarding step, and the import
+ * "Switching apps?": the first onboarding step, and the import
  * that follows it. The review is the only screen with work on it; nothing
  * is written until its button is pressed.
  */
@@ -69,12 +69,12 @@ export function ImportFlow({ onFresh, onDone }: { onFresh: () => void; onDone: (
       </div>
 
       {stage === 'ask' && (
-        <>
-          <h1 className="setup-title">Switching from another app?</h1>
-          <p className="setup-blurb">Bring your categories, accounts and history with you. It takes one file.</p>
-          <button type="button" className="setup-cta" onClick={() => setStage('pick')}>Yes, bring my data</button>
+        <div className="import-ask">
+          <h1 className="setup-title">Switching apps?</h1>
+          <p className="setup-blurb">Don’t start from zero. Export one file from your old app and we’ll rebuild it all here.</p>
+          <button type="button" className="setup-cta" onClick={() => setStage('pick')}>Bring it all over</button>
           <button type="button" className="setup-pick-own" onClick={onFresh}>No, start fresh</button>
-        </>
+        </div>
       )}
 
       {stage === 'pick' && (

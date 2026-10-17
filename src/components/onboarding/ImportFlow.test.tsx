@@ -48,7 +48,7 @@ const file = (bytes = 10) => new File([new Uint8Array(bytes)], 'monefy.csv', { t
 function toReview() {
   const onDone = vi.fn()
   render(<ImportFlow onFresh={vi.fn()} onDone={onDone} />)
-  fireEvent.click(screen.getByRole('button', { name: 'Yes, bring my data' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Bring it all over' }))
   fireEvent.click(screen.getByRole('button', { name: /Monefy/ }))
   fireEvent.change(screen.getByLabelText('Choose your export file'), { target: { files: [file()] } })
   return onDone
@@ -65,7 +65,7 @@ describe('ImportFlow', () => {
   it('starting fresh hands straight back to the usual setup', () => {
     const onFresh = vi.fn()
     render(<ImportFlow onFresh={onFresh} onDone={vi.fn()} />)
-    expect(screen.getByRole('heading', { name: 'Switching from another app?' })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Switching apps?' })).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'No, start fresh' }))
     expect(onFresh).toHaveBeenCalled()
   })
@@ -139,7 +139,7 @@ describe('ImportFlow', () => {
 
   it('stops a file over 4 MB before uploading it', async () => {
     render(<ImportFlow onFresh={vi.fn()} onDone={vi.fn()} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Yes, bring my data' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Bring it all over' }))
     fireEvent.click(screen.getByRole('button', { name: /YNAB/ }))
     fireEvent.change(screen.getByLabelText('Choose your export file'), { target: { files: [file(4 * 1024 * 1024 + 1)] } })
     expect(await screen.findByRole('alert')).toHaveTextContent('That file’s too big. Export a shorter date range and try again.')

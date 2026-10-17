@@ -463,7 +463,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
     setCategorySelectionUndo(null)
     if (step > 0) track('onboarding_back_tapped', { from_step: step, step_name: STEP_NAMES[step] })
     setError('')
-    // Back from the first step is back to "Switching from another app?".
+    // Back from the first step is back to "Switching apps?".
     if (step === 0) setEntry('ask')
     setStep((s) => Math.max(0, s - 1))
   }
