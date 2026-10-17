@@ -24,7 +24,7 @@ vi.mock('@/lib/import/ai', () => ({ importAiAllowed: async () => false, pickCate
 
 import { getDb, getClient } from '@/lib/mongodb'
 import { scoped } from '@/lib/scoped'
-import { previewFile } from './service'
+import { previewFile, recomputePreview } from './service'
 import { commitImport, parseEdits, type CommitEdits } from './commit'
 import { chainPass, passAndChain, retryImport, runImportPass } from './backfill'
 import type { Review } from './service'
@@ -244,6 +244,20 @@ describe('commit edge cases', () => {
     await (await getDb()).collection('users').updateOne({ _id: USER as never }, { $set: { onboardedAt: '2026-10-17T09:00:00.000Z' } })
     await expect(commitImport(auth, review.importId, editsFrom(review))).rejects.toMatchObject({ code: 'already_onboarded' })
     expect(await count('categories')).toBe(0)
+  })
+
+  it('a second preview can’t be set up while another is mid-commit', async () => {
+    const a = await previewFile(auth, fixture('money-manager.csv'), 'a.csv')
+    // Two tabs: the second upload landed before the first purge could see it.
+    const { insertedId } = await (await coll('imports')).insertOne({ ...(await (await coll('imports')).findOne({ _id: new ObjectId(a.importId) }))!, _id: new ObjectId(), claimedUntil: Date.now() + 60_000 })
+    expect(insertedId).toBeTruthy()
+    await expect(commitImport(auth, a.importId, editsFrom(a))).rejects.toMatchObject({ code: 'busy' })
+  })
+
+  it('a flip that loses the race with a commit says so rather than show a stale review', async () => {
+    const review = await previewFile(auth, fixture('monefy.csv'), 'm.csv')
+    await commitImport(auth, review.importId, editsFrom(review))
+    await expect(recomputePreview(auth, review.importId, { direction: 'positive_spend' })).rejects.toMatchObject({ code: 'not_found' })
   })
 
   it('two commits at once set up one account, not two', async () => {

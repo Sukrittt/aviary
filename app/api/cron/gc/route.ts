@@ -49,7 +49,12 @@ const PREVIEW_TTL_MS = 24 * 60 * 60 * 1000
 async function purgeExpired(): Promise<{ purged: number; accountsPurged: number; previewsPurged: number }> {
   const db = await getDb()
   const cutoff = cutoffIso()
-  const previews = await db.collection('imports').deleteMany({ status: 'previewed', created_at: { $lt: new Date(Date.now() - PREVIEW_TTL_MS) } })
+  // Never one a commit is setting up right now (lib/import/commit.ts's claim).
+  const previews = await db.collection('imports').deleteMany({
+    status: 'previewed',
+    created_at: { $lt: new Date(Date.now() - PREVIEW_TTL_MS) },
+    $or: [{ claimedUntil: { $exists: false } }, { claimedUntil: { $lte: Date.now() } }],
+  })
 
   let purged = 0
   for (const name of ARCHIVABLE_COLLECTIONS) {

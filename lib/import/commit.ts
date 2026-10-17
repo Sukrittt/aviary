@@ -115,6 +115,8 @@ async function setUp(auth: Auth, importId: string, edits: CommitEdits): Promise<
   }
   const coll = await importsCollection(auth)
   if (await coll.findOne({ _id: { $ne: doc._id }, status: { $in: ['importing', 'done', 'failed'] } })) throw new ImportError('already_importing')
+  // Two uploads racing in two tabs leave two previews; only one of them may be set up at a time.
+  if (await coll.findOne({ _id: { $ne: doc._id }, status: 'previewed', claimedUntil: { $gt: Date.now() } })) throw new ImportError('busy')
   // A preview can outlive the manual setup finishing in another tab; history
   // never lands in an account that's already set up.
   const user = await (await getDb()).collection<UserDoc>('users').findOne({ _id: auth.userId }, { projection: { onboardedAt: 1 } })

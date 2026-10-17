@@ -60,6 +60,7 @@ describe('GET /api/cron/gc', () => {
     const [filter] = collectionDeleteMany('imports').mock.calls[0]
     expect(filter.status).toBe('previewed')
     expect(Date.now() - filter.created_at.$lt.getTime()).toBeGreaterThanOrEqual(24 * 60 * 60 * 1000)
+    expect(filter.$or).toEqual([{ claimedUntil: { $exists: false } }, { claimedUntil: { $lte: expect.any(Number) } }])
   })
 
   it('purges expired archived rows from every archivable collection', async () => {

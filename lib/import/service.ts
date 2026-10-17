@@ -216,7 +216,9 @@ export async function recomputePreview(auth: Auth, importId: string, change: { d
     if (!isCurrencyCode(change.currency)) throw new ImportError('invalid')
     set.currency = change.currency
   }
-  await (await importsCollection(auth)).updateOne({ _id: doc._id, status: 'previewed' }, { $set: set })
+  // A commit that got there first has moved it on: this review would no longer be what gets written.
+  const updated = await (await importsCollection(auth)).updateOne({ _id: doc._id, status: 'previewed' }, { $set: set })
+  if (updated.matchedCount !== 1) throw new ImportError('not_found')
   return buildReview(auth, { ...doc, ...set }, (await nowForUser(auth.userId)).date)
 }
 
