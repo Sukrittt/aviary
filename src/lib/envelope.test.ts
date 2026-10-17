@@ -272,3 +272,31 @@ describe('computeEnvelopeState: lastSpent from a bounded expense fetch', () => {
     expect(state.envelopes.find((e) => e.category === 'Rent')?.lastSpentDate).toBeUndefined()
   })
 })
+
+describe('an imported history', () => {
+  // What an import commit leaves: this month's budget, last month's income row
+  // from its salary (extra, since this month's assigned holds the salary), and
+  // last month's spending with no budget rows of its own.
+  const budgets = [
+    { month: '2026-10', category: 'Groceries', assigned: '1600', rolled_over: '0', extra: '', version: 1 },
+    { month: '2026-10', category: INCOME_CATEGORY, assigned: '85000', rolled_over: '0', extra: '0', version: 1 },
+    { month: '2026-09', category: INCOME_CATEGORY, assigned: '0', rolled_over: '0', extra: '85000', version: 1 },
+  ]
+  const expenses = [
+    { date: '2026-09-02', amount_inr: '1550', category: 'Groceries' },
+    { date: '2026-10-04', amount_inr: '340', category: 'Groceries' },
+  ] as never[]
+  const categories = [{ name: 'Groceries', group: 'Essentials' }]
+
+  it('shows a past month’s spending against no assignment, and its real income', () => {
+    const state = computeEnvelopeState(budgets, expenses, '2026-09', categories, ['Essentials'])
+    expect(state.envelopes.find((e) => e.category === 'Groceries')).toMatchObject({ assigned: 0, spent: 1550, available: -1550 })
+    expect(state.income).toBe(85000)
+  })
+
+  it('leaves this month alone: its own assignment, its own spending, no carry from the empty months', () => {
+    const state = computeEnvelopeState(budgets, expenses, '2026-10', categories, ['Essentials'])
+    expect(state.envelopes.find((e) => e.category === 'Groceries')).toMatchObject({ assigned: 1600, spent: 340, available: 1260 })
+    expect(state.income).toBe(85000)
+  })
+})
