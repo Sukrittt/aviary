@@ -28,7 +28,7 @@ export async function POST(req: Request) {
     const body = await readBody(req)
     if (typeof body.importId !== 'string') throw new ImportError('invalid')
     const result = await commitImport(auth, body.importId, parseEdits(body))
-    after(() => passAndChain(auth, result.importId, startedAt + PASS_BUDGET_MS, new URL(req.url).origin))
+    after(() => passAndChain(auth, result.importId, startedAt + PASS_BUDGET_MS))
     return json(result)
   } catch (err) {
     return importErrorResponse(err)

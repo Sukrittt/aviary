@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const runEveningCheck = vi.fn(async () => ({ sent: 2 }))
 vi.mock('@/lib/notifications/eveningCheck', () => ({ runEveningCheck: () => runEveningCheck() }))
-const sweepImports = vi.fn(async (_deadline: number, _origin: string) => 1)
-vi.mock('@/lib/import/backfill', () => ({ sweepImports: (deadline: number, origin: string) => sweepImports(deadline, origin) }))
+const sweepImports = vi.fn(async (_deadline: number) => 1)
+vi.mock('@/lib/import/backfill', () => ({ sweepImports: (deadline: number) => sweepImports(deadline) }))
 vi.mock('@/lib/cronRuns', () => ({
   recordCronRun: (_job: string, _trigger: string, fn: () => Promise<unknown>) => fn(),
   triggerOf: () => 'cron',
@@ -38,7 +38,6 @@ describe('GET /api/cron/evening-check', () => {
     const res = await GET(req('test-secret'))
     expect(await res.json()).toEqual({ ok: true, sent: 2, importPasses: 0 })
     const [deadline] = sweepImports.mock.calls[0] as unknown as [number]
-    expect(sweepImports.mock.calls[0][1]).toBe('https://example.com')
     expect(deadline).toBeGreaterThanOrEqual(before + 49_000)
     expect(deadline).toBeLessThanOrEqual(Date.now() + 50_000)
   })

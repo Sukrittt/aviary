@@ -29,7 +29,7 @@ export async function POST(req: Request) {
     const doc = await loadImport(auth, body.importId)
     if (body.retry === true) await retryImport(auth, body.importId)
     else if (doc.status !== 'importing') return json({ ok: true, status: doc.status })
-    after(() => passAndChain(auth, body.importId as string, startedAt + PASS_BUDGET_MS, new URL(req.url).origin))
+    after(() => passAndChain(auth, body.importId as string, startedAt + PASS_BUDGET_MS))
     return json({ ok: true, status: 'importing' })
   } catch (err) {
     return importErrorResponse(err)

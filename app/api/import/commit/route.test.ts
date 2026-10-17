@@ -34,9 +34,9 @@ describe('POST /api/import/commit', () => {
     expect(await res.json()).toEqual({ importId: 'imp1', total: 8, groupCount: 1, categoryCount: 4, income: 85000 })
     expect(passAndChain).not.toHaveBeenCalled()
     await afterCallbacks[0]()
-    const [, id, deadline, origin] = passAndChain.mock.calls[0] as unknown as [unknown, string, number, string]
+    const [, id, deadline] = passAndChain.mock.calls[0] as unknown as [unknown, string, number]
     expect(id).toBe('imp1')
-    expect(origin).toBe('https://example.com')
+    expect(passAndChain.mock.calls[0]).toHaveLength(3)
     expect(deadline).toBeGreaterThanOrEqual(before + 49_000)
     expect(deadline).toBeLessThanOrEqual(Date.now() + 50_000)
   })

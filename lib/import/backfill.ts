@@ -159,13 +159,26 @@ async function notifyOnce(auth: Auth, doc: ImportDoc, outcome: 'done' | 'failed'
 }
 
 /**
+ * This deployment's own address, from what Vercel sets, never from a request:
+ * a forged Host would otherwise receive the cron secret. Null off Vercel,
+ * where the banner and the sweep carry an import instead.
+ */
+function selfOrigin(): string | null {
+  const host = process.env.VERCEL_ENV === 'production' && process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? process.env.VERCEL_PROJECT_PRODUCTION_URL
+    : process.env.VERCEL_URL
+  return host ? `https://${host}` : null
+}
+
+/**
  * Asks this deployment to run the next pass in a fresh invocation, so an
  * import keeps going with no tab open instead of waiting for the hourly
  * sweep. Never throws: a broken chain just leaves the sweep to pick it up.
  */
-export async function chainPass(origin: string, userId: string, importId: string): Promise<void> {
+export async function chainPass(userId: string, importId: string): Promise<void> {
   const secret = process.env.CRON_SECRET
-  if (!secret) return
+  const origin = selfOrigin()
+  if (!secret || !origin) return
   try {
     await fetch(`${origin}/api/cron/import-pass`, {
       method: 'POST',
@@ -179,9 +192,9 @@ export async function chainPass(origin: string, userId: string, importId: string
 }
 
 /** One pass, then the next one queued if this one ran out of time. For `after()` callbacks. */
-export async function passAndChain(auth: Auth, importId: string, deadlineMs: number, origin: string): Promise<void> {
+export async function passAndChain(auth: Auth, importId: string, deadlineMs: number): Promise<void> {
   try {
-    if ((await runImportPass(auth, importId, deadlineMs)) === 'progress') await chainPass(origin, auth.userId, importId)
+    if ((await runImportPass(auth, importId, deadlineMs)) === 'progress') await chainPass(auth.userId, importId)
   } catch (err) {
     console.error('import: pass failed for', auth.userId, importId, err)
   }
@@ -194,7 +207,7 @@ export async function passAndChain(auth: Auth, importId: string, deadlineMs: num
  * With a cron secret each one starts its own chain, so they don't queue
  * behind each other in this one invocation.
  */
-export async function sweepImports(deadlineMs: number, origin: string): Promise<number> {
+export async function sweepImports(deadlineMs: number): Promise<number> {
   const stale = await (await getDb()).collection('imports')
     .find({ status: 'importing', lockedUntil: { $lte: Date.now() }, deleted_at: null }, { projection: { _id: 1, user_id: 1 } })
     .limit(20)
@@ -204,8 +217,8 @@ export async function sweepImports(deadlineMs: number, origin: string): Promise<
     if (Date.now() >= deadlineMs) break
     const auth = { userId: String(doc.user_id), readOnly: false, sessionId: null }
     try {
-      if (process.env.CRON_SECRET) {
-        await chainPass(origin, auth.userId, String(doc._id))
+      if (process.env.CRON_SECRET && selfOrigin()) {
+        await chainPass(auth.userId, String(doc._id))
         passes++
       } else if ((await runImportPass(auth, String(doc._id), deadlineMs)) !== 'leased') passes++
     } catch (err) {
