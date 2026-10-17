@@ -13295,6 +13295,17 @@ button.account-feature-card {
 .import-upload .setup-blurb {
   margin-inline: auto;
 }
+.import-upload {
+  /* One drop zone: same optical centre as the ask step. */
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-bottom: 10vh;
+}
+.import-upload .setup-body {
+  flex: 0 0 auto;
+}
 .import-apps {
   display: flex;
   flex-direction: column;
@@ -13354,7 +13365,15 @@ button.account-feature-card {
   position: absolute;
   inset: 0;
   opacity: 0;
-  cursor: inherit;
+  /* Chrome ignores an inherited cursor on file inputs; set it on both parts. */
+  cursor: pointer;
+}
+.import-drop-input::file-selector-button {
+  cursor: pointer;
+}
+.import-drop-input:disabled,
+.import-drop-input:disabled::file-selector-button {
+  cursor: progress;
 }
 .import-drop-title {
   font-weight: 600;
