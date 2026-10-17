@@ -30,7 +30,7 @@ export async function GET(req: Request) {
   }
 
   const result = await recordCronRun('eveningCheck', triggerOf(req), () => runEveningCheck())
-  const importPasses = await sweepImports(startedAt + (maxDuration - 10) * 1000).catch((err) => {
+  const importPasses = await sweepImports(startedAt + (maxDuration - 10) * 1000, new URL(req.url).origin).catch((err) => {
     console.error('cron/evening-check: import sweep failed', err)
     return 0
   })

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { ImportError } from '@/lib/import/normalize'
 
 const commitImport = vi.fn()
-const runImportPass = vi.fn(async () => 'done')
+const passAndChain = vi.fn(async (..._args: unknown[]) => {})
 const afterCallbacks: (() => unknown)[] = []
 
 vi.mock('next/server', async (original) => ({ ...(await original<typeof import('next/server')>()), after: (fn: () => unknown) => afterCallbacks.push(fn) }))
@@ -12,7 +12,7 @@ vi.mock('@/lib/import/commit', async (original) => ({
   ...(await original<typeof import('@/lib/import/commit')>()),
   commitImport: (...a: unknown[]) => commitImport(...a),
 }))
-vi.mock('@/lib/import/backfill', () => ({ runImportPass: (...a: unknown[]) => runImportPass(...(a as [])) }))
+vi.mock('@/lib/import/backfill', () => ({ passAndChain: (...a: unknown[]) => passAndChain(...a) }))
 
 const { POST } = await import('./route')
 
@@ -32,10 +32,11 @@ describe('POST /api/import/commit', () => {
     const before = Date.now()
     const res = await POST(req(edits))
     expect(await res.json()).toEqual({ importId: 'imp1', total: 8, groupCount: 1, categoryCount: 4, income: 85000 })
-    expect(runImportPass).not.toHaveBeenCalled()
+    expect(passAndChain).not.toHaveBeenCalled()
     await afterCallbacks[0]()
-    const [, id, deadline] = runImportPass.mock.calls[0] as unknown as [unknown, string, number]
+    const [, id, deadline, origin] = passAndChain.mock.calls[0] as unknown as [unknown, string, number, string]
     expect(id).toBe('imp1')
+    expect(origin).toBe('https://example.com')
     expect(deadline).toBeGreaterThanOrEqual(before + 49_000)
     expect(deadline).toBeLessThanOrEqual(Date.now() + 50_000)
   })

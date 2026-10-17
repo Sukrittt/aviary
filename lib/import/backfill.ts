@@ -159,11 +159,42 @@ async function notifyOnce(auth: Auth, doc: ImportDoc, outcome: 'done' | 'failed'
 }
 
 /**
- * The hourly sweep: one pass for each import whose last pass let go or died,
- * so an importer who closed the tab still finishes. Cross-tenant on purpose,
- * like the other crons; each pass itself runs scoped to its user.
+ * Asks this deployment to run the next pass in a fresh invocation, so an
+ * import keeps going with no tab open instead of waiting for the hourly
+ * sweep. Never throws: a broken chain just leaves the sweep to pick it up.
  */
-export async function sweepImports(deadlineMs: number): Promise<number> {
+export async function chainPass(origin: string, userId: string, importId: string): Promise<void> {
+  const secret = process.env.CRON_SECRET
+  if (!secret) return
+  try {
+    await fetch(`${origin}/api/cron/import-pass`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${secret}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, importId }),
+      signal: AbortSignal.timeout(5_000),
+    })
+  } catch (err) {
+    console.error('import: chaining the next pass failed for', userId, importId, err)
+  }
+}
+
+/** One pass, then the next one queued if this one ran out of time. For `after()` callbacks. */
+export async function passAndChain(auth: Auth, importId: string, deadlineMs: number, origin: string): Promise<void> {
+  try {
+    if ((await runImportPass(auth, importId, deadlineMs)) === 'progress') await chainPass(origin, auth.userId, importId)
+  } catch (err) {
+    console.error('import: pass failed for', auth.userId, importId, err)
+  }
+}
+
+/**
+ * The hourly sweep, for imports whose chain broke (a pass died, a deploy
+ * landed): a pass for each import whose lease ran out. Cross-tenant on
+ * purpose, like the other crons; each pass itself runs scoped to its user.
+ * With a cron secret each one starts its own chain, so they don't queue
+ * behind each other in this one invocation.
+ */
+export async function sweepImports(deadlineMs: number, origin: string): Promise<number> {
   const stale = await (await getDb()).collection('imports')
     .find({ status: 'importing', lockedUntil: { $lte: Date.now() }, deleted_at: null }, { projection: { _id: 1, user_id: 1 } })
     .limit(20)
@@ -173,7 +204,10 @@ export async function sweepImports(deadlineMs: number): Promise<number> {
     if (Date.now() >= deadlineMs) break
     const auth = { userId: String(doc.user_id), readOnly: false, sessionId: null }
     try {
-      if ((await runImportPass(auth, String(doc._id), deadlineMs)) !== 'leased') passes++
+      if (process.env.CRON_SECRET) {
+        await chainPass(origin, auth.userId, String(doc._id))
+        passes++
+      } else if ((await runImportPass(auth, String(doc._id), deadlineMs)) !== 'leased') passes++
     } catch (err) {
       console.error('import: sweep pass failed for', doc.user_id, doc._id, err)
     }

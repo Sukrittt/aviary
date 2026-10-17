@@ -3,7 +3,7 @@ import { json, readBody } from '@/lib/http'
 import { getAuth, readOnlyGuard } from '@/lib/access'
 import { requireAccess } from '@/lib/billing/guard'
 import { ImportError } from '@/lib/import/normalize'
-import { retryImport, runImportPass } from '@/lib/import/backfill'
+import { passAndChain, retryImport } from '@/lib/import/backfill'
 import { importErrorResponse, loadImport } from '@/lib/import/service'
 
 export const dynamic = 'force-dynamic'
@@ -29,9 +29,7 @@ export async function POST(req: Request) {
     const doc = await loadImport(auth, body.importId)
     if (body.retry === true) await retryImport(auth, body.importId)
     else if (doc.status !== 'importing') return json({ ok: true, status: doc.status })
-    after(() => runImportPass(auth, body.importId as string, startedAt + PASS_BUDGET_MS).catch((err) => {
-      console.error('import: pass failed for', auth.userId, body.importId, err)
-    }))
+    after(() => passAndChain(auth, body.importId as string, startedAt + PASS_BUDGET_MS, new URL(req.url).origin))
     return json({ ok: true, status: 'importing' })
   } catch (err) {
     return importErrorResponse(err)

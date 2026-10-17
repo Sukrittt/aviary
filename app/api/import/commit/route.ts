@@ -4,7 +4,7 @@ import { getAuth, readOnlyGuard } from '@/lib/access'
 import { requireAccess } from '@/lib/billing/guard'
 import { ImportError } from '@/lib/import/normalize'
 import { commitImport, parseEdits } from '@/lib/import/commit'
-import { runImportPass } from '@/lib/import/backfill'
+import { passAndChain } from '@/lib/import/backfill'
 import { importErrorResponse } from '@/lib/import/service'
 
 export const dynamic = 'force-dynamic'
@@ -28,9 +28,7 @@ export async function POST(req: Request) {
     const body = await readBody(req)
     if (typeof body.importId !== 'string') throw new ImportError('invalid')
     const result = await commitImport(auth, body.importId, parseEdits(body))
-    after(() => runImportPass(auth, result.importId, startedAt + PASS_BUDGET_MS).catch((err) => {
-      console.error('import: first pass failed for', auth.userId, result.importId, err)
-    }))
+    after(() => passAndChain(auth, result.importId, startedAt + PASS_BUDGET_MS, new URL(req.url).origin))
     return json(result)
   } catch (err) {
     return importErrorResponse(err)
