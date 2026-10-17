@@ -30,6 +30,11 @@ function monthYear(date: string): string {
   return new Date(`${date}T00:00:00Z`).toLocaleString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' })
 }
 
+/** "16 Oct 2026", for the sample rows. */
+export function shortDate(date: string): string {
+  return new Date(`${date}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
+}
+
 /** "1,240 spends · 36 paydays · Mar 2019 to Oct 2026" */
 export function countsLine(counts: ImportReview['counts']): string {
   const parts = [plural(counts.expense, 'spend', 'spends'), plural(counts.income, 'payday', 'paydays')]

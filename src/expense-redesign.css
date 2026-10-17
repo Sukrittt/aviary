@@ -13410,15 +13410,40 @@ button.account-feature-card {
   background: var(--erd-card);
   font-size: 14px;
 }
-.import-details-toggle {
-  margin-top: 4px;
+.import-summary-row {
+  width: 100%;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
 }
-.import-details {
+.import-summary-row:hover:not(:disabled) {
+  border-color: var(--gold);
+}
+.import-summary-row:disabled {
+  cursor: default;
+}
+.import-summary-caret {
+  color: var(--erd-text3);
+  flex-shrink: 0;
+}
+.import-sample-date {
+  min-width: 88px;
+  color: var(--erd-text3);
+  font-variant-numeric: tabular-nums;
+}
+.import-dialog-body {
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  padding-top: 6px;
-  border-top: 1px solid var(--erd-border);
+  gap: 12px;
+  margin-top: 12px;
+}
+.import-dialog-body .import-rows {
+  max-height: 50vh;
+}
+.import-dialog-done {
+  width: 100%;
+  max-width: none;
+  margin-top: 20px;
 }
 .import-review[aria-busy='true'] {
   opacity: 0.6;

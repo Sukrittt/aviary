@@ -1,7 +1,9 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { ArrowLeftIcon, CardholderIcon, PlusIcon, TagIcon, WalletIcon } from '@/src/components/icons'
+import { AnimatePresence } from 'motion/react'
+import { ArrowLeftIcon, CardholderIcon, CaretRightIcon, PlusIcon, TagIcon, WalletIcon } from '@/src/components/icons'
+import { Scrim, Sheet } from '@/src/components/MotionSheet'
 import { CurrencyPicker } from '@/src/components/CurrencyPicker'
 import { CurrencyScope, useCurrency } from '@/src/context/CurrencyContext'
 import { LoadingCaption } from '@/src/components/LoadingCaption'
@@ -9,7 +11,7 @@ import { SuccessButton, useButtonPhase } from '@/src/components/SuccessButton'
 import { currencyInfo } from '@/src/lib/currencies'
 import { track } from '@/src/lib/analytics'
 import { commitImport, ImportFailure, previewImport, recomputeImport, type CommitResult, type ImportReview } from '@/src/api/imports'
-import { countsLine, directionCopy, importErrorCopy, ordinal, skippedCopy } from './importCopy'
+import { countsLine, directionCopy, importErrorCopy, ordinal, shortDate, skippedCopy } from './importCopy'
 
 /**
  * "Switching apps?": the first onboarding step, and the import
@@ -210,7 +212,6 @@ function Review({ review, onReview, onDone }: { review: ImportReview; onReview: 
   const [accounts, setAccounts] = useState<AccountEdit[]>(review.accounts)
   const [salary, setSalary] = useState(review.salary ? String(review.salary.amount) : '')
   const [day, setDay] = useState(String(review.salary?.day ?? 1))
-  const [currencyOpen, setCurrencyOpen] = useState(false)
   const [recomputing, setRecomputing] = useState(false)
   const [error, setError] = useState('')
   const seen = useRef(`${review.importId}:${review.direction}:${review.currency}`)
@@ -285,16 +286,20 @@ function Review({ review, onReview, onDone }: { review: ImportReview; onReview: 
     }
   }
 
-  // The screen is a summary first: three counts, a few rows as proof, one
-  // button. Names, groups and the payday sit behind a toggle; an over-cap
-  // bank count forces it open so the disabled button explains itself.
-  const [detailsOpen, setDetailsOpen] = useState(false)
-  const showDetails = detailsOpen || tooManyBanks
+  // The screen is a summary first: three rows, a few transactions as proof,
+  // one button. Each row opens its editor in a dialog, as does the currency.
+  const [sheet, setSheet] = useState<'envelopes' | 'accounts' | 'income' | 'currency' | null>(null)
+  const close = () => setSheet(null)
   const summary = [
-    { icon: TagIcon, label: 'Envelopes', value: String(cats.length) },
-    ...(accounts.length > 0 ? [{ icon: WalletIcon, label: 'Accounts', value: String(accounts.length) }] : []),
-    { icon: CardholderIcon, label: 'Monthly income', value: hasSalary ? formatMoney(salaryAmount) : 'Add it later' },
+    { key: 'envelopes' as const, icon: TagIcon, label: 'Envelopes', value: String(cats.length) },
+    ...(accounts.length > 0 ? [{ key: 'accounts' as const, icon: WalletIcon, label: 'Accounts', value: String(accounts.length) }] : []),
+    { key: 'income' as const, icon: CardholderIcon, label: 'Monthly income', value: hasSalary ? formatMoney(salaryAmount) : 'Add it later' },
   ]
+  const budgetLine = !hasSalary
+    ? 'Each envelope starts at what you usually spend on it in a month. Change any of them later.'
+    : budgetTotal <= salaryAmount
+      ? `Your envelopes add up to ${formatMoney(budgetTotal)} a month. That fits inside your ${formatMoney(salaryAmount)} income.`
+      : `Your envelopes add up to ${formatMoney(budgetTotal)} a month, ${formatMoney(budgetTotal - salaryAmount)} more than your ${formatMoney(salaryAmount)} income.`
 
   return (
     <div className="import-review-shell">
@@ -303,11 +308,12 @@ function Review({ review, onReview, onDone }: { review: ImportReview; onReview: 
       <div className="setup-body import-review" aria-busy={recomputing}>
         <div className="setup-done-list import-summary">
           {summary.map((s) => (
-            <div key={s.label} className="setup-done-row">
+            <button key={s.key} type="button" className="setup-done-row import-summary-row" onClick={() => setSheet(s.key)} disabled={busy}>
               <span className="setup-done-icon"><s.icon size={16} strokeWidth={2.2} aria-hidden="true" /></span>
               <span className="setup-done-label">{s.label}</span>
               <span className="setup-done-value">{s.value}</span>
-            </div>
+              <CaretRightIcon size={14} aria-hidden="true" className="import-summary-caret" />
+            </button>
           ))}
         </div>
 
@@ -321,7 +327,7 @@ function Review({ review, onReview, onDone }: { review: ImportReview; onReview: 
           <ul className="import-samples">
             {review.samples.map((s, i) => (
               <li key={`${s.date}-${i}`}>
-                <span>{s.date}</span>
+                <span className="import-sample-date">{shortDate(s.date)}</span>
                 <span className="import-sample-item">{s.item}</span>
                 <span className={`import-sample-amount is-${s.kind}`}>{s.kind === 'expense' ? '−' : '+'}{formatMoney(s.amount)}</span>
               </li>
@@ -329,162 +335,13 @@ function Review({ review, onReview, onDone }: { review: ImportReview; onReview: 
           </ul>
         </section>
 
-        <p className="import-note">
-          {'We’ll set each envelope to what you spent on it in a typical month. '}
-          {!hasSalary
-            ? 'Change any of them later.'
-            : budgetTotal <= salaryAmount
-              ? `That’s ${formatMoney(budgetTotal)} a month, inside your ${formatMoney(salaryAmount)}.`
-              : `That’s ${formatMoney(budgetTotal)} a month, ${formatMoney(budgetTotal - salaryAmount)} more than comes in.`}
-        </p>
+        <p className="import-note">{budgetLine}</p>
         {skippedCopy(review).map((line) => <p key={line} className="import-note">{line}</p>)}
 
-        <section className="import-section" aria-label="Currency">
-          <div className="import-line import-note">
-            <span>Your money’s in {currencyInfo(review.currency).name} · {review.currency}</span>
-            <button type="button" className="setup-selection-action" onClick={() => setCurrencyOpen((o) => !o)} disabled={busy}>
-              {currencyOpen ? 'Done' : 'Change'}
-            </button>
-          </div>
-          {currencyOpen && (
-            <CurrencyPicker
-              value={review.currency}
-              disabled={busy}
-              onChange={(code) => {
-                setCurrencyOpen(false)
-                if (code !== review.currency) void recompute({ currency: code })
-              }}
-            />
-          )}
-        </section>
-
-        <button
-          type="button"
-          className="setup-pick-own import-details-toggle"
-          aria-expanded={showDetails}
-          onClick={() => setDetailsOpen((o) => !o)}
-          disabled={tooManyBanks}
-        >
-          {showDetails ? 'Hide the details' : 'Check names and groups'}
-        </button>
-
-        {showDetails && (
-          <div className="import-details">
-            <section className="import-section" aria-label="Envelopes">
-              <h2 className="import-heading">Your envelopes</h2>
-              <div className="import-rows">
-                {cats.map((c, i) => (
-                  <div key={c.source} className="import-row">
-                    <input
-                      type="text"
-                      className="setup-pick-input"
-                      aria-label={`Name for ${c.source}`}
-                      value={c.name}
-                      maxLength={60}
-                      onChange={(e) => setCats((all) => all.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))}
-                    />
-                    <select
-                      className="import-select"
-                      aria-label={`Group for ${c.source}`}
-                      value={c.group}
-                      onChange={(e) => setCats((all) => all.map((x, j) => (j === i ? { ...x, group: e.target.value } : x)))}
-                    >
-                      {groups.map((g) => <option key={g} value={g}>{g}</option>)}
-                    </select>
-                    <span className="import-row-amount">{formatMoney(c.monthly)}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="import-row">
-                <input
-                  type="text"
-                  className="setup-pick-input"
-                  placeholder="Add a group"
-                  aria-label="New group name"
-                  value={newGroup}
-                  maxLength={60}
-                  onChange={(e) => setNewGroup(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && addGroup()}
-                />
-                <button type="button" className="setup-add-pill" onClick={addGroup} disabled={!newGroup.trim()}>
-                  <PlusIcon size={14} aria-hidden="true" /> Add group
-                </button>
-              </div>
-            </section>
-
-            {accounts.length > 0 && (
-              <section className="import-section" aria-label="Accounts">
-                <h2 className="import-heading">Your accounts</h2>
-                <div className="import-rows">
-                  {accounts.map((a, i) => (
-                    <div key={a.source} className="import-row">
-                      <input
-                        type="text"
-                        className="setup-pick-input"
-                        aria-label={`Name for ${a.source}`}
-                        value={a.name}
-                        maxLength={30}
-                        onChange={(e) => setAccounts((all) => all.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))}
-                      />
-                      <select
-                        className="import-select"
-                        aria-label={`Type for ${a.source}`}
-                        value={a.type}
-                        onChange={(e) => setAccounts((all) => all.map((x, j) => (j === i ? { ...x, type: e.target.value as AccountEdit['type'] } : x)))}
-                      >
-                        {ACCOUNT_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-                      </select>
-                    </div>
-                  ))}
-                </div>
-                {review.droppedAccounts.length > 0 && (
-                  <p className="import-note">
-                    {`We kept your ${accounts.length} busiest accounts. Rows from ${review.droppedAccounts.slice(0, 5).join(', ')}${review.droppedAccounts.length > 5 ? ' and the rest' : ''} come in without one.`}
-                  </p>
-                )}
-              </section>
-            )}
-
-            <section className="import-section" aria-label="Income">
-              <h2 className="import-heading">Your income</h2>
-              <p className="import-note">
-                {review.salary
-                  ? `We think your salary is ${formatMoney(review.salary.amount)} on about the ${ordinal(review.salary.day)}.`
-                  : 'We didn’t spot a regular payday. Add your monthly income if you like, or leave it for later.'}
-              </p>
-              <div className="import-row">
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  className="txn-entry-input"
-                  aria-label="Monthly income"
-                  placeholder="Monthly income"
-                  min={0}
-                  value={salary}
-                  onChange={(e) => {
-                    salaryEdited.current = true
-                    setSalary(e.target.value)
-                  }}
-                />
-                <label className="import-day">
-                  <span>Payday</span>
-                  <input
-                    type="number"
-                    className="txn-entry-input"
-                    aria-label="Payday, day of the month"
-                    min={1}
-                    max={31}
-                    value={day}
-                    onChange={(e) => {
-                      salaryEdited.current = true
-                      setDay(e.target.value)
-                    }}
-                  />
-                </label>
-              </div>
-            </section>
-          </div>
-        )}
+        <div className="import-line import-note">
+          <span>Your money’s in {currencyInfo(review.currency).name} · {review.currency}</span>
+          <button type="button" className="setup-selection-action" onClick={() => setSheet('currency')} disabled={busy}>Change</button>
+        </div>
       </div>
 
       {tooManyBanks && (
@@ -505,6 +362,169 @@ function Review({ review, onReview, onDone }: { review: ImportReview; onReview: 
       >
         Looks right, set me up
       </SuccessButton>
+
+      <AnimatePresence>
+        {sheet === 'envelopes' && (
+          <ReviewDialog title="Your envelopes" onClose={close}>
+            <p className="import-note">Each starts at what you usually spend on it in a month.</p>
+            <div className="import-rows">
+              {cats.map((c, i) => (
+                <div key={c.source} className="import-row">
+                  <input
+                    type="text"
+                    className="setup-pick-input"
+                    aria-label={`Name for ${c.source}`}
+                    value={c.name}
+                    maxLength={60}
+                    onChange={(e) => setCats((all) => all.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))}
+                  />
+                  <select
+                    className="import-select"
+                    aria-label={`Group for ${c.source}`}
+                    value={c.group}
+                    onChange={(e) => setCats((all) => all.map((x, j) => (j === i ? { ...x, group: e.target.value } : x)))}
+                  >
+                    {groups.map((g) => <option key={g} value={g}>{g}</option>)}
+                  </select>
+                  <span className="import-row-amount">{formatMoney(c.monthly)}</span>
+                </div>
+              ))}
+            </div>
+            <div className="import-row">
+              <input
+                type="text"
+                className="setup-pick-input"
+                placeholder="Add a group"
+                aria-label="New group name"
+                value={newGroup}
+                maxLength={60}
+                onChange={(e) => setNewGroup(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && addGroup()}
+              />
+              <button type="button" className="setup-add-pill" onClick={addGroup} disabled={!newGroup.trim()}>
+                <PlusIcon size={14} aria-hidden="true" /> Add group
+              </button>
+            </div>
+          </ReviewDialog>
+        )}
+
+        {sheet === 'accounts' && (
+          <ReviewDialog title="Your accounts" onClose={close}>
+            <div className="import-rows">
+              {accounts.map((a, i) => (
+                <div key={a.source} className="import-row">
+                  <input
+                    type="text"
+                    className="setup-pick-input"
+                    aria-label={`Name for ${a.source}`}
+                    value={a.name}
+                    maxLength={30}
+                    onChange={(e) => setAccounts((all) => all.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))}
+                  />
+                  <select
+                    className="import-select"
+                    aria-label={`Type for ${a.source}`}
+                    value={a.type}
+                    onChange={(e) => setAccounts((all) => all.map((x, j) => (j === i ? { ...x, type: e.target.value as AccountEdit['type'] } : x)))}
+                  >
+                    {ACCOUNT_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                  </select>
+                </div>
+              ))}
+            </div>
+            {tooManyBanks && (
+              <p className="setup-error" role="alert">{`You can have up to ${MAX_BANK_ACCOUNTS} bank accounts. Make one of these cash or a credit card.`}</p>
+            )}
+            {review.droppedAccounts.length > 0 && (
+              <p className="import-note">
+                {`We kept your ${accounts.length} busiest accounts. Rows from ${review.droppedAccounts.slice(0, 5).join(', ')}${review.droppedAccounts.length > 5 ? ' and the rest' : ''} come in without one.`}
+              </p>
+            )}
+          </ReviewDialog>
+        )}
+
+        {sheet === 'income' && (
+          <ReviewDialog title="Your income" onClose={close}>
+            <p className="import-note">
+              {review.salary
+                ? `We think your salary is ${formatMoney(review.salary.amount)} on about the ${ordinal(review.salary.day)}.`
+                : 'We didn’t spot a regular payday. Add your monthly income if you like, or leave it for later.'}
+            </p>
+            <div className="import-row">
+              <input
+                type="number"
+                inputMode="decimal"
+                className="txn-entry-input"
+                aria-label="Monthly income"
+                placeholder="Monthly income"
+                min={0}
+                value={salary}
+                onChange={(e) => {
+                  salaryEdited.current = true
+                  setSalary(e.target.value)
+                }}
+              />
+              <label className="import-day">
+                <span>Payday</span>
+                <input
+                  type="number"
+                  className="txn-entry-input"
+                  aria-label="Payday, day of the month"
+                  min={1}
+                  max={31}
+                  value={day}
+                  onChange={(e) => {
+                    salaryEdited.current = true
+                    setDay(e.target.value)
+                  }}
+                />
+              </label>
+            </div>
+          </ReviewDialog>
+        )}
+
+        {sheet === 'currency' && (
+          <ReviewDialog title="Currency" onClose={close} done={false}>
+            <p className="import-note">Amounts stay as they are in your file. This only sets which currency they’re in.</p>
+            <CurrencyPicker
+              value={review.currency}
+              disabled={busy}
+              onChange={(code) => {
+                close()
+                if (code !== review.currency) void recompute({ currency: code })
+              }}
+            />
+          </ReviewDialog>
+        )}
+      </AnimatePresence>
     </div>
+  )
+}
+
+/** The review's editors, one at a time, in the app's usual modal card. */
+function ReviewDialog({ title, onClose, done = true, children }: { title: string; onClose: () => void; done?: boolean; children: React.ReactNode }) {
+  return (
+    <Scrim className="erd-modal-overlay" onClick={onClose}>
+      <Sheet
+        className="erd-modal-card import-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') {
+            e.stopPropagation()
+            onClose()
+          }
+        }}
+      >
+        <div className="erd-modal-head">
+          <h3>{title}</h3>
+          <button type="button" className="erd-modal-close" onClick={onClose} aria-label="Close">✕</button>
+        </div>
+        <div className="import-dialog-body">{children}</div>
+        {done && <button type="button" className="setup-cta import-dialog-done" onClick={onClose}>Done</button>}
+      </Sheet>
+    </Scrim>
   )
 }
