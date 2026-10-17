@@ -52,6 +52,8 @@ export interface ImportDoc {
   streak_start: number
   lockedUntil: number
   token?: string
+  /** A commit in progress holds this, so two commits can't both write. */
+  claimedUntil?: number
   last_error?: string
   summary?: { groupCount: number; categoryCount: number; income: number }
   created_at: Date
@@ -211,7 +213,7 @@ export async function recomputePreview(auth: Auth, importId: string, change: { d
 }
 
 const ERROR_STATUS: Record<ImportError['code'], number> = {
-  too_big: 413, unreadable: 400, no_columns: 400, invalid: 400, not_found: 404, already_importing: 409, already_onboarded: 403,
+  too_big: 413, unreadable: 400, no_columns: 400, invalid: 400, not_found: 404, already_importing: 409, already_onboarded: 403, busy: 409,
 }
 
 /** `{ error: code }` for a known import failure, which the client turns into copy. Anything else rethrows. */

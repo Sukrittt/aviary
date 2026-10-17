@@ -26,7 +26,7 @@ import { getDb, getClient } from '@/lib/mongodb'
 import { scoped } from '@/lib/scoped'
 import { previewFile } from './service'
 import { commitImport, parseEdits, type CommitEdits } from './commit'
-import { retryImport, runImportPass } from './backfill'
+import { passAndChain, retryImport, runImportPass } from './backfill'
 import type { Review } from './service'
 
 const USER = 'import-test'
@@ -192,6 +192,76 @@ describe('commit and backfill', () => {
     await (await coll('imports')).updateOne({ _id: new ObjectId(review.importId) }, { $set: { lockedUntil: Date.now() + 60_000 } })
     expect(await runImportPass(auth, review.importId, Date.now() + 30_000)).toBe('leased')
     expect(await count('expenses')).toBe(0)
+  })
+})
+
+describe('commit edge cases', () => {
+  const csv = (lines: string[]) => Buffer.from(lines.join('\n'))
+
+  it('a file with no spends still sets up and onboards, with one envelope to start from', async () => {
+    const review = await previewFile(auth, csv(['Date,Item,Amount', '2026-09-01,Pay,100', '2026-10-01,Pay,100']), 'pay.csv')
+    const result = await commitImport(auth, review.importId, editsFrom(review, { direction: 'negative_spend', salary: null }))
+    expect(result.categoryCount).toBe(1)
+    expect((await (await coll('categories')).find({}).toArray()).map((c) => c.name)).toEqual(['Uncategorised'])
+    expect(completeOnboarding).toHaveBeenCalledTimes(1)
+  })
+
+  it('a salary typed in without a detected pattern isn’t counted twice this month', async () => {
+    const review = await previewFile(auth, csv([
+      'Date,Item,Amount', '2026-08-01,Salary Aug,1000', '2026-09-01,Salary Sep,1000', '2026-10-01,Salary Oct,1000', '2026-10-02,Bread,-3',
+    ]), 'x.csv')
+    expect(review.salary).toBeNull()
+    await commitImport(auth, review.importId, editsFrom(review, { salary: { amount: 1000, day: 1 } }))
+    await runImportPass(auth, review.importId, Date.now() + 30_000)
+    const october = await budget('2026-10', '__income__')
+    expect(Number(october?.assigned) + Number(october?.extra)).toBe(1000)
+    expect(await (await coll('recurring_incomes')).findOne({ status: 'active' })).toMatchObject({ start_date: '2026-11-01' })
+  })
+
+  it('won’t import into an account that finished setting up another way', async () => {
+    const review = await previewFile(auth, fixture('money-manager.csv'), 'mm.csv')
+    await (await getDb()).collection('users').updateOne({ _id: USER as never }, { $set: { onboardedAt: '2026-10-17T09:00:00.000Z' } })
+    await expect(commitImport(auth, review.importId, editsFrom(review))).rejects.toMatchObject({ code: 'already_onboarded' })
+    expect(await count('categories')).toBe(0)
+  })
+
+  it('two commits at once set up one account, not two', async () => {
+    const review = await previewFile(auth, fixture('money-manager.csv'), 'mm.csv')
+    const results = await Promise.allSettled([commitImport(auth, review.importId, editsFrom(review)), commitImport(auth, review.importId, editsFrom(review))])
+    expect(results.some((r) => r.status === 'fulfilled')).toBe(true)
+    for (const r of results) if (r.status === 'rejected') expect(r.reason).toMatchObject({ code: 'busy' })
+    expect(await count('accounts')).toBe(3)
+  })
+
+  it('accounts renamed to the same name become one, and both keep their rows', async () => {
+    const review = await previewFile(auth, fixture('money-manager.csv'), 'mm.csv')
+    const accounts = review.accounts.map((a) => (a.source === 'HDFC Credit Card' ? { ...a, name: 'HDFC Bank', type: 'bank' as const } : a))
+    await commitImport(auth, review.importId, editsFrom(review, { accounts }))
+    await runImportPass(auth, review.importId, Date.now() + 30_000)
+    expect(await count('accounts')).toBe(2)
+    const dinner = (await (await coll('expenses')).find({}).toArray()).find((e) => e.item === 'Dinner')
+    expect(dinner?.account_id).toBeTruthy()
+  })
+})
+
+describe('chaining passes', () => {
+  it('queues the next pass while rows remain, and stops once done', async () => {
+    vi.stubEnv('CRON_SECRET', 'chain-secret')
+    const fetchMock = vi.fn(async () => new Response('{}'))
+    vi.stubGlobal('fetch', fetchMock)
+    try {
+      const review = await previewFile(auth, fixture('money-manager.csv'), 'mm.csv')
+      await commitImport(auth, review.importId, editsFrom(review))
+      // A deadline already past: the pass books nothing and hands on.
+      await passAndChain(auth, review.importId, Date.now() - 1, 'https://app.example')
+      expect(fetchMock).toHaveBeenCalledTimes(1)
+      expect(fetchMock.mock.calls[0]).toMatchObject(['https://app.example/api/cron/import-pass', { method: 'POST', headers: { Authorization: 'Bearer chain-secret' } }])
+      await passAndChain(auth, review.importId, Date.now() + 30_000, 'https://app.example')
+      expect(fetchMock).toHaveBeenCalledTimes(1)
+    } finally {
+      vi.unstubAllGlobals()
+      vi.stubEnv('CRON_SECRET', '')
+    }
   })
 })
 

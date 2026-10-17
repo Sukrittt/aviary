@@ -14,7 +14,7 @@ import { AccountWriteError, createAccount, isAccountType, MAX_ACCOUNT_NAME, same
 import { createRecurringIncome, ensureIncomeMigrated, INCOME_CATEGORY, syncMonthlyIncome, validIncomeAmount } from '@/lib/income'
 import { ImportError, resolveRows } from './normalize'
 import type { Direction } from './parse'
-import { CATEGORY_NAME_MAX, detectSalary, incomeCounted, proposeBudgets, proposeCategories } from './propose'
+import { CATEGORY_NAME_MAX, UNCATEGORISED, detectSalary, incomeCounted, proposeBudgets, proposeCategories } from './propose'
 import { importsCollection, loadImport, STARTER_GROUPS, storedRows, type BookingRow, type ImportDoc } from './service'
 
 export interface CommitEdits {
@@ -67,6 +67,13 @@ export function parseEdits(raw: Record<string, unknown>): CommitEdits {
   return { currency: raw.currency, direction: raw.direction, groups: groups.map((g: string) => clip(g, CATEGORY_NAME_MAX)), categories: cats, accounts: accts, salary }
 }
 
+const CLAIM_MS = 90_000
+
+function nextMonth(month: string): string {
+  const [y, m] = month.split('-').map(Number)
+  return new Date(Date.UTC(y, m, 1)).toISOString().slice(0, 7)
+}
+
 function payday(month: string, day: number): string {
   const [y, m] = month.split('-').map(Number)
   const last = new Date(Date.UTC(y, m, 0)).getUTCDate()
@@ -104,7 +111,35 @@ async function setUp(auth: Auth, importId: string, edits: CommitEdits): Promise<
   }
   const coll = await importsCollection(auth)
   if (await coll.findOne({ _id: { $ne: doc._id }, status: { $in: ['importing', 'done', 'failed'] } })) throw new ImportError('already_importing')
+  // A preview can outlive the manual setup finishing in another tab; history
+  // never lands in an account that's already set up.
+  const user = await (await getDb()).collection<UserDoc>('users').findOne({ _id: auth.userId }, { projection: { onboardedAt: 1 } })
+  if (user?.onboardedAt) throw new ImportError('already_onboarded')
 
+  // One commit writes at a time. Accounts have no unique index (their name is
+  // encrypted), so two racing commits would otherwise make every account twice.
+  const now = Date.now()
+  const claimed = await coll.updateOne(
+    { _id: doc._id, status: 'previewed', $or: [{ claimedUntil: { $lte: now } }, { claimedUntil: { $exists: false } }] },
+    { $set: { claimedUntil: now + CLAIM_MS } },
+  )
+  if (claimed.matchedCount !== 1) {
+    const current = await loadImport(auth, importId)
+    if (current.status !== 'previewed') return resultOf(current)
+    throw new ImportError('busy')
+  }
+  try {
+    return await writeSetup(auth, doc, edits)
+  } catch (err) {
+    // Let a retry claim it straight away rather than wait out the claim.
+    await coll.updateOne({ _id: doc._id, status: 'previewed' }, { $set: { claimedUntil: 0 } })
+    throw err
+  }
+}
+
+async function writeSetup(auth: Auth, doc: ImportDoc, edits: CommitEdits): Promise<CommitResult> {
+  const importId = String(doc._id)
+  const coll = await importsCollection(auth)
   const { date: today } = await nowForUser(auth.userId)
   const month = today.slice(0, 7)
   const rows = resolveRows(storedRows(doc), { direction: edits.direction, currency: edits.currency, hasCurrency: doc.hasCurrency })
@@ -128,6 +163,9 @@ async function setUp(auth: Auth, importId: string, edits: CommitEdits): Promise<
     if (!categories.has(key)) categories.set(key, { name, group })
     finalNames.set(source, categories.get(key)!.name)
   }
+  // A file with no spends (all paydays, or all read as transfers) still needs
+  // one envelope: completion requires a category, and so does a usable budget.
+  if (!categories.size) categories.set(normalizeItem(UNCATEGORISED), { name: UNCATEGORISED, group: groups[0] })
   const categoryOf = (r: (typeof live)[number]) => finalNames.get(plan.sourceOf(r)) ?? plan.sourceOf(r)
 
   // 1. Currency: the file's wins, since it describes the money. The user confirmed it on review.
@@ -141,11 +179,13 @@ async function setUp(auth: Auth, importId: string, edits: CommitEdits): Promise<
   // 3. Accounts. One that already exists by name (a retry) is reused; one past
   // the caps is left out and its rows import without an account.
   const accountIds = new Map<string, string>()
-  const existing = await (await getCollection('accounts', auth)).find({ archived: { $ne: true } }).toArray()
+  const existing: { _id: unknown; name?: unknown }[] = await (await getCollection('accounts', auth)).find({ archived: { $ne: true } }).toArray()
   for (const a of edits.accounts) {
+    // Two sources renamed to one name share an account.
     const found = existing.find((e) => sameAccountName(e.name, a.name))
     try {
       const id = found ? String(found._id) : await createAccount(auth, { name: a.name, type: a.type })
+      if (!found) existing.push({ _id: id, name: a.name })
       accountIds.set(a.source.toLowerCase(), id)
     } catch (err) {
       if (!(err instanceof AccountWriteError)) throw err
@@ -156,11 +196,16 @@ async function setUp(auth: Auth, importId: string, edits: CommitEdits): Promise<
   await ensureIncomeMigrated(auth)
   const salary = edits.salary ? detectSalary(live, today) : null
   if (edits.salary) {
+    // Without a detected pattern there's no telling which of this month's
+    // paydays is the salary, so they all stay `extra` and the schedule starts
+    // next month. Starting it now would count this month's pay twice.
+    const paidThisMonth = live.some((r) => r.kind === 'income' && r.date.startsWith(month))
+    const startMonth = !salary && paidThisMonth ? nextMonth(month) : month
     await createRecurringIncome(auth, {
       label: salary?.label || 'Salary',
       amount: edits.salary.amount,
       frequency: 'monthly',
-      start_date: payday(month, edits.salary.day),
+      start_date: payday(startMonth, edits.salary.day),
       client_id: `import-salary:${importId}`,
     })
   }
@@ -195,10 +240,9 @@ async function setUp(auth: Auth, importId: string, edits: CommitEdits): Promise<
     },
   })
   if (flipped.matchedCount !== 1) {
-    // A concurrent retry flipped it first; that one's result is this one's too.
-    const now = await loadImport(auth, importId)
-    if (now.status === 'previewed') throw new ImportError('not_found')
-    return resultOf(now)
+    const current = await loadImport(auth, importId)
+    if (current.status === 'previewed') throw new ImportError('not_found')
+    return resultOf(current)
   }
   return { importId, total: booking.length, ...summary }
 }

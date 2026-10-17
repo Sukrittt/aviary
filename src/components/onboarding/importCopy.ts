@@ -17,6 +17,7 @@ const ERRORS: Record<string, string> = {
   no_columns: 'We couldn’t find a date and an amount column. Check the file is the transactions export, not a report.',
   already_importing: 'You’re already bringing in a file. Give it a few minutes and check Home.',
   already_onboarded: 'You’re already set up. Head to Home to keep going.',
+  busy: 'We’re still setting you up. Give it a moment and try again.',
 }
 
 /** The written message for a failure code. Anything unknown gets the generic line, never the code itself. */
