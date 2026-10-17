@@ -6,7 +6,7 @@ export const MAX_ROWS = 20_000
 const MAX_ITEM = 200
 const MAX_NOTES = 300
 
-export type ImportErrorCode = 'too_big' | 'unreadable' | 'no_columns' | 'not_found' | 'already_importing' | 'invalid'
+export type ImportErrorCode = 'too_big' | 'unreadable' | 'no_columns' | 'not_found' | 'already_importing' | 'already_onboarded' | 'invalid'
 
 /** A failure the client turns into written copy. The code is the whole message. */
 export class ImportError extends Error {

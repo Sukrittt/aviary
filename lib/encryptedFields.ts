@@ -29,7 +29,8 @@
  * (sort keys and labels; every amount on a check is encrypted); on `incomes` —
  * date, source, counted, account_id, recurring_id (filter keys); on
  * `recurring_incomes` — frequency, the dates, status, account_id (the nightly
- * cron filters on them); on `accounts` — type and archived (filter keys).
+ * cron filters on them); on `accounts` — type and archived (filter keys); on `imports` —
+ * everything but `rows` (status, counters and the lease are filter keys).
  */
 export const ENCRYPTED_FIELDS: Record<string, string[]> = {
   expenses: ['item', 'notes', 'description', 'amount_inr', 'amount'],
@@ -44,6 +45,8 @@ export const ENCRYPTED_FIELDS: Record<string, string[]> = {
   incomes: ['amount', 'label', 'notes'],
   recurring_incomes: ['amount', 'label'],
   accounts: ['name'],
+  // Every imported row's item text and amount, as one JSON string (lib/import/service.ts).
+  imports: ['rows'],
   balance_checks: ['balance', 'gap', 'expected', 'logged', 'tolerance', 'forgotten', 'card_bill', 'card_shortfall', 'moved_out', 'accounts.name', 'accounts.balance'],
 }
 
