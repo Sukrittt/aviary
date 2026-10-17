@@ -22,6 +22,8 @@ export function detectDecimalComma(samples: string[]): boolean {
   return evidence
 }
 
+const MAX_AMOUNT = 1_000_000_000_000
+
 /** A signed amount in major units, rounded to cents, or null. */
 export function parseAmount(raw: string, decimalComma: boolean): number | null {
   let s = raw.trim().replace(/[−‒–]/g, '-')
@@ -40,10 +42,14 @@ export function parseAmount(raw: string, decimalComma: boolean): number | null {
     sign = -sign
     s = s.slice(1)
   }
-  s = decimalComma ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, '')
+  // In a comma-decimal file, 1,250 is still thousands: no money has three decimals.
+  const thousands = decimalComma && /^\d{1,3}(?:,\d{3})+$/.test(s)
+  s = decimalComma && !thousands ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, '')
   if (!/^\d+(?:\.\d+)?$/.test(s)) return null
   // Rounding through the exponent keeps 10.555 at 10.56, which `* 100` can't.
   const cents = Number(`${Math.round(Number(`${s}e2`))}e-2`)
+  // Past what the app stores (lib/inputValidation.ts's validMoney), or past a number at all.
+  if (!Number.isFinite(cents) || cents > MAX_AMOUNT) return null
   return cents === 0 ? 0 : sign * cents
 }
 

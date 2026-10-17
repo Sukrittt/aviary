@@ -46,11 +46,14 @@ describe('parseAmount', () => {
     ['1 250,00', 1250],
     ['-12,5', -12.5],
     ['€ 3,99', 3.99],
+    // Comma thousands mixed into a comma-decimal file: no money has three decimals.
+    ['1,250', 1250],
+    ['12,345,678', 12345678],
   ])('reads %s with a comma decimal', (raw, expected) => {
     expect(comma(raw)).toBe(expected)
   })
 
-  it.each(['', 'abc', '1.2.3', '--5', '12-'])('rejects %s', (raw) => {
+  it.each(['', 'abc', '1.2.3', '--5', '12-', '9'.repeat(400), '2000000000000'])('rejects %s', (raw) => {
     expect(dot(raw)).toBeNull()
   })
 })
