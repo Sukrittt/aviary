@@ -129,7 +129,7 @@ export default function AccountPage() {
               icon={GiftIcon}
               tone="coral"
               label="Expense Wrapped"
-              blurb={<span className="account-feature-copy">Download the mobile app to view this.</span>}
+              blurb="Download the mobile app to view this."
               href={PLAY_STORE_URL}
               external
               locked
@@ -313,7 +313,7 @@ function FeatureCard({
         <Icon size={18} />
       </span>
       <span className="account-feature-title">{label}</span>
-      {blurb}
+      <span className="account-feature-copy">{blurb}</span>
     </>
   )
   if (href && external) {
