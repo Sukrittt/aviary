@@ -94,6 +94,9 @@
   cursor: not-allowed;
 }
 
+/* At 0.4 the arrow all but vanished on the dark surface. text3 alone still reads as off. */
+.theme-dark .ins-month-btn:disabled { opacity: 1; }
+
 .ins-today-chip {
   padding: 4px 10px;
   border: 0;
@@ -373,8 +376,8 @@
   font-size: 22px !important;
 }
 
-.is-up { color: var(--coral) !important; }
-.is-down { color: var(--mint) !important; }
+.ins-donut-center .is-up, .ins-head-delta.is-up, .ins-delta.is-up { color: var(--coral) !important; }
+.ins-donut-center .is-down, .ins-head-delta.is-down, .ins-delta.is-down { color: var(--mint) !important; }
 
 .ins-donut-center .is-up,
 .ins-donut-center .is-down,
@@ -666,17 +669,18 @@
 
 .ins-trend-baseline-group { pointer-events: none; }
 
-/* Card-coloured halo keeps the label legible where it crosses a bar. */
-.ins-trend-baseline-label {
-  fill: var(--erd-text2);
-  font-family: var(--font-body);
-  font-size: 12px;
+.ins-axis-avg {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--erd-text2);
   font-weight: 600;
-  paint-order: stroke;
-  stroke: var(--erd-card-solid);
-  stroke-width: 4px;
-  stroke-linejoin: round;
-  animation: ins-fade-in 250ms ease calc(var(--ins-baseline-delay, 0ms) + 250ms) both;
+}
+
+.ins-axis-avg::before {
+  content: '';
+  width: 14px;
+  border-top: 1.5px dashed var(--erd-text3);
 }
 
 .ins-trend-column {
@@ -697,6 +701,14 @@
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.ins-trend-bar.is-dimmed { opacity: 0.42; }
+
+/* A faded orange reads as brown on the dark surface, so past months go neutral there. */
+.theme-dark .ins-trend-bar.is-dimmed:not(.is-missing, .is-negative) {
+  fill: var(--tk-chip-active-bg);
+  opacity: 1;
 }
 
 .ins-trend-bar.is-negative {
@@ -928,7 +940,6 @@
   .ins-line-plot svg,
   .ins-trend-bar,
   .ins-trend-baseline,
-  .ins-trend-baseline-label,
   .ins-heatmap-cell,
   .ins-filter-dialog {
     animation: none !important;
