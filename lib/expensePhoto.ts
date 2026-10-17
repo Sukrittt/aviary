@@ -13,7 +13,9 @@ export const MAX_PHOTO_BYTES = 5 * 1024 * 1024
 
 const PHOTO_URL_TTL_MS = 5 * 60 * 1000
 // Activity's photo feed: long enough that an image the client already cached
-// under this URL keeps loading while someone scrolls back up.
+// under this URL keeps loading while someone scrolls back up. Clients reuse a
+// feed URL for 25 minutes (src/lib/activityFeed.ts), which must stay under
+// the half-TTL `signPhotoUrl` guarantees is left on any URL it returns.
 export const FEED_PHOTO_URL_TTL_MS = 60 * 60 * 1000
 
 /**
