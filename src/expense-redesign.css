@@ -13282,14 +13282,17 @@ button.account-feature-card {
 .import-ask .setup-blurb {
   max-width: 600px;
 }
-.import-pick {
-  /* Same column as the ask step: a short list of names shouldn't span the page. */
+.import-pick,
+.import-upload {
+  /* Same column as the ask step: a short list of names or one drop zone
+     shouldn't span the page. */
   width: 100%;
   max-width: 560px;
   margin: 0 auto;
   text-align: center;
 }
-.import-pick .setup-blurb {
+.import-pick .setup-blurb,
+.import-upload .setup-blurb {
   margin-inline: auto;
 }
 .import-apps {

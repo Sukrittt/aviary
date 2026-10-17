@@ -21,19 +21,20 @@ const MAX_BYTES = 4 * 1024 * 1024
 /** lib/accounts.ts's MAX_BANK_ACCOUNTS: the balance check asks about at most five. */
 const MAX_BANK_ACCOUNTS = 5
 
-type AppChoice = { id: string; name: string; by?: string; how: [string, string] }
+type AppChoice = { id: string; name: string; by?: string; file: string; how: [string, string] }
 
+// how[0] is the path to the export, as a breadcrumb where the app has one.
 const APPS: AppChoice[] = [
-  { id: 'moneymanager', name: 'Money Manager', by: 'Realbyte', how: ['Open More, then Backup, then Export to Excel file.', 'Send the file to yourself and upload it here.'] },
-  { id: 'monefy', name: 'Monefy', how: ['Open Settings, then Export to file.', 'Share the csv to yourself and upload it here.'] },
-  { id: 'wallet', name: 'Wallet', by: 'BudgetBakers', how: ['In Wallet on the web, open Records and export them.', 'Pick csv as the format.'] },
-  { id: 'spendee', name: 'Spendee', how: ['Open a wallet’s settings and tap Export to CSV.', 'It lands in your email.'] },
-  { id: 'ynab', name: 'YNAB', how: ['On the web, open your plan’s menu and pick Export plan.', 'Upload the zip as it is. No need to unzip it.'] },
-  { id: 'goodbudget', name: 'Goodbudget', how: ['On the website, open Account, then Export data.', 'Upload the csv of your transactions.'] },
-  { id: 'axio', name: 'axio', by: 'formerly Walnut', how: ['Ask axio for your data from its settings.', 'Use the CSV from the email, not the PDF.'] },
+  { id: 'moneymanager', name: 'Money Manager', by: 'Realbyte', file: 'xlsx', how: ['More › Backup › Export to Excel file.', 'Send the file to yourself and upload it here.'] },
+  { id: 'monefy', name: 'Monefy', file: 'csv', how: ['Settings › Export to file.', 'Share the csv to yourself and upload it here.'] },
+  { id: 'wallet', name: 'Wallet', by: 'BudgetBakers', file: 'csv', how: ['On the web, Records › Export.', 'Pick csv as the format.'] },
+  { id: 'spendee', name: 'Spendee', file: 'csv', how: ['Wallet settings › Export to CSV.', 'It lands in your email.'] },
+  { id: 'ynab', name: 'YNAB', file: 'zip', how: ['On the web, plan menu › Export plan.', 'Upload the zip as it is. No need to unzip it.'] },
+  { id: 'goodbudget', name: 'Goodbudget', file: 'csv', how: ['On the website, Account › Export data.', 'Upload the csv of your transactions.'] },
+  { id: 'axio', name: 'axio', by: 'formerly Walnut', file: 'csv', how: ['Ask axio for your data from its settings.', 'Use the CSV from the email, not the PDF.'] },
 ]
 // The catch-all sits under the list as a text link, not as a ninth "app".
-const OTHER: AppChoice = { id: 'other', name: 'Another app or a spreadsheet', how: ['Any file with a date, an amount and a description works.', 'One row per transaction.'] }
+const OTHER: AppChoice = { id: 'other', name: 'Another app or a spreadsheet', file: 'csv or xlsx', how: ['Any file with a date, an amount and a description works.', 'One row per transaction.'] }
 
 const ACCOUNT_TYPES = [
   { value: 'bank', label: 'Bank' },
@@ -157,8 +158,8 @@ function Upload({ app, onPreview }: { app: AppChoice; onPreview: (review: Import
   }
 
   return (
-    <>
-      <h1 className="setup-title">Drop your export here</h1>
+    <div className="import-upload">
+      <h1 className="setup-title">{app.id === 'other' ? 'Drop your file here' : `Drop your ${app.name} export`}</h1>
       <p className="setup-blurb">{app.how[0]} {app.how[1]}</p>
       <div className="setup-body">
         <label
@@ -187,13 +188,13 @@ function Upload({ app, onPreview }: { app: AppChoice; onPreview: (review: Import
           ) : (
             <>
               <span className="import-drop-title">Choose a file, or drop it here</span>
-              <span className="import-drop-hint">csv, xlsx or the YNAB zip · up to 4 MB</span>
+              <span className="import-drop-hint">{app.file} · up to 4 MB</span>
             </>
           )}
         </label>
       </div>
       {error && <p className="setup-error" role="alert">{error}</p>}
-    </>
+    </div>
   )
 }
 
