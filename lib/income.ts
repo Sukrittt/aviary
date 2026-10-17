@@ -432,6 +432,8 @@ export interface RecurringIncomeInput {
   account_id?: string
   /** Names the intent, so a retried create returns the schedule it already made. */
   client_id?: string
+  /** Paydays before this date are already recorded (an import brought them in), so the first post is on or after it. */
+  next_run_from?: string
 }
 
 /**
@@ -457,7 +459,7 @@ export async function createRecurringIncome(auth: Auth, input: RecurringIncomeIn
       end_date: input.end_date ?? '',
       // Same rule as recurring expenses: a backdated first payday schedules
       // forward rather than backfilling paydays nobody asked to record.
-      next_run_date: firstRunOnOrAfter(input.start_date, input.frequency, today),
+      next_run_date: firstRunOnOrAfter(input.start_date, input.frequency, input.next_run_from && input.next_run_from > today ? input.next_run_from : today),
       account_id: input.account_id ?? '',
       status: 'active',
       created_at: timestamp,

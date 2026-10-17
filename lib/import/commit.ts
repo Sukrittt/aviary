@@ -14,7 +14,7 @@ import { AccountWriteError, createAccount, isAccountType, MAX_ACCOUNT_NAME, same
 import { createRecurringIncome, ensureIncomeMigrated, INCOME_CATEGORY, syncMonthlyIncome, validIncomeAmount } from '@/lib/income'
 import { ImportError, resolveRows } from './normalize'
 import type { Direction } from './parse'
-import { CATEGORY_NAME_MAX, UNCATEGORISED, detectSalary, incomeCounted, proposeBudgets, proposeCategories } from './propose'
+import { CATEGORY_NAME_MAX, UNCATEGORISED, detectSalary, incomeKey, incomeCounted, proposeBudgets, proposeCategories } from './propose'
 import { importsCollection, loadImport, planOf, STARTER_GROUPS, storedRows, type BookingRow, type ImportDoc, type ImportSummary } from './service'
 
 export interface CommitEdits {
@@ -68,6 +68,10 @@ export function parseEdits(raw: Record<string, unknown>): CommitEdits {
 }
 
 const CLAIM_MS = 90_000
+
+function dayAfter(date: string): string {
+  return new Date(Date.parse(`${date}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10)
+}
 
 function nextMonth(month: string): string {
   const [y, m] = month.split('-').map(Number)
@@ -201,19 +205,27 @@ async function writeSetup(auth: Auth, doc: ImportDoc, edits: CommitEdits): Promi
     // next month. Starting it now would count this month's pay twice.
     const paidThisMonth = live.some((r) => r.kind === 'income' && r.date.startsWith(month))
     const startMonth = !salary && paidThisMonth ? nextMonth(month) : month
+    // This month's salary already in the file isn't posted again by the schedule.
+    const lastSalary = salary ? live.filter((r) => r.kind === 'income' && r.date.startsWith(month) && incomeKey(r) === salary.key).at(-1) : undefined
     await createRecurringIncome(auth, {
       label: salary?.label || 'Salary',
       amount: edits.salary.amount,
       frequency: 'monthly',
       start_date: payday(startMonth, edits.salary.day),
       client_id: `import-salary:${importId}`,
+      ...(lastSalary ? { next_run_from: dayAfter(lastSalary.date) } : {}),
     })
   }
   // Writes this month's income row either way: completion needs one to exist.
   await syncMonthlyIncome(auth, month)
 
   // 5. This month's budget, per envelope, from the proposal.
-  const planByName = Object.fromEntries(Object.entries(planOf(doc)).map(([source, amount]) => [finalNames.get(source) ?? source, amount]))
+  // Two plan categories renamed into one envelope add up.
+  const planByName: Record<string, number> = {}
+  for (const [source, amount] of Object.entries(planOf(doc))) {
+    const name = finalNames.get(source) ?? source
+    planByName[name] = Math.round(((planByName[name] ?? 0) + amount) * 100) / 100
+  }
   const budgets = proposeBudgets(live, categoryOf, today, edits.currency, planByName)
   for (const c of categories.values()) {
     if (c.name === INCOME_CATEGORY) continue

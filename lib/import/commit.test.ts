@@ -26,7 +26,7 @@ import { getDb, getClient } from '@/lib/mongodb'
 import { scoped } from '@/lib/scoped'
 import { previewFile } from './service'
 import { commitImport, parseEdits, type CommitEdits } from './commit'
-import { passAndChain, retryImport, runImportPass } from './backfill'
+import { chainPass, passAndChain, retryImport, runImportPass } from './backfill'
 import type { Review } from './service'
 
 const USER = 'import-test'
@@ -207,6 +207,26 @@ describe('commit edge cases', () => {
     expect(completeOnboarding).toHaveBeenCalledTimes(1)
   })
 
+  it('a salary paid today is recorded once, not again by its new schedule', async () => {
+    const review = await previewFile(auth, csv(['Date,Item,Amount', '2026-08-17,Acme,1000', '2026-09-17,Acme,1000', '2026-10-17,Acme,1000', '2026-10-02,Bread,-3']), 'x.csv')
+    expect(review.salary).toMatchObject({ day: 17 })
+    await commitImport(auth, review.importId, editsFrom(review))
+    await runImportPass(auth, review.importId, Date.now() + 30_000)
+    expect(await count('incomes', { date: '2026-10-17' })).toBe(1)
+    expect(await (await coll('recurring_incomes')).findOne({ status: 'active' })).toMatchObject({ next_run_date: '2026-11-17' })
+    const october = await budget('2026-10', '__income__')
+    expect(Number(october?.assigned) + Number(october?.extra)).toBe(1000)
+  })
+
+  it('two YNAB categories renamed into one envelope keep both plan amounts', async () => {
+    const tables = Buffer.concat([readFileSync(path.join(import.meta.dirname, 'fixtures', 'ynab-register.csv'))])
+    const review = await previewFile(auth, tables, 'Register.csv')
+    await (await coll('imports')).updateOne({ _id: new ObjectId(review.importId) }, { $set: { plan: JSON.stringify({ Rent: 1500, Groceries: 400 }) } })
+    const categories = review.categories.map((c) => (c.source === 'Rent' || c.source === 'Groceries' ? { ...c, name: 'Home' } : c))
+    await commitImport(auth, review.importId, editsFrom(review, { categories }))
+    expect(await budget('2026-10', 'Home')).toMatchObject({ assigned: '1900' })
+  })
+
   it('a salary typed in without a detected pattern isn’t counted twice this month', async () => {
     const review = await previewFile(auth, csv([
       'Date,Item,Amount', '2026-08-01,Salary Aug,1000', '2026-09-01,Salary Sep,1000', '2026-10-01,Salary Oct,1000', '2026-10-02,Bread,-3',
@@ -254,14 +274,37 @@ describe('chaining passes', () => {
       const review = await previewFile(auth, fixture('money-manager.csv'), 'mm.csv')
       await commitImport(auth, review.importId, editsFrom(review))
       // A deadline already past: the pass books nothing and hands on.
-      await passAndChain(auth, review.importId, Date.now() - 1, 'https://app.example')
+      vi.stubEnv('VERCEL_ENV', 'production')
+      vi.stubEnv('VERCEL_PROJECT_PRODUCTION_URL', 'app.example')
+      await passAndChain(auth, review.importId, Date.now() - 1)
       expect(fetchMock).toHaveBeenCalledTimes(1)
       expect(fetchMock.mock.calls[0]).toMatchObject(['https://app.example/api/cron/import-pass', { method: 'POST', headers: { Authorization: 'Bearer chain-secret' } }])
-      await passAndChain(auth, review.importId, Date.now() + 30_000, 'https://app.example')
+      await passAndChain(auth, review.importId, Date.now() + 30_000)
       expect(fetchMock).toHaveBeenCalledTimes(1)
     } finally {
       vi.unstubAllGlobals()
       vi.stubEnv('CRON_SECRET', '')
+      vi.stubEnv('VERCEL_ENV', '')
+      vi.stubEnv('VERCEL_PROJECT_PRODUCTION_URL', '')
+    }
+  })
+
+  it('never sends the secret anywhere but a Vercel-set origin', async () => {
+    vi.stubEnv('CRON_SECRET', 'chain-secret')
+    vi.stubEnv('VERCEL_URL', '')
+    vi.stubEnv('VERCEL_PROJECT_PRODUCTION_URL', '')
+    const fetchMock = vi.fn(async () => new Response('{}'))
+    vi.stubGlobal('fetch', fetchMock)
+    try {
+      await chainPass(USER, '6710e6f0a1b2c3d4e5f60718')
+      expect(fetchMock).not.toHaveBeenCalled()
+      vi.stubEnv('VERCEL_URL', 'aviary-git-x.vercel.app')
+      await chainPass(USER, '6710e6f0a1b2c3d4e5f60718')
+      expect((fetchMock.mock.calls[0] as unknown as [string])[0]).toBe('https://aviary-git-x.vercel.app/api/cron/import-pass')
+    } finally {
+      vi.unstubAllGlobals()
+      vi.stubEnv('CRON_SECRET', '')
+      vi.stubEnv('VERCEL_URL', '')
     }
   })
 })
