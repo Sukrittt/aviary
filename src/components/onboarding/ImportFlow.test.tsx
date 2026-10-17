@@ -74,7 +74,7 @@ describe('ImportFlow', () => {
     toReview()
     expect(await screen.findByRole('heading', { name: 'Here’s what we found' })).toBeTruthy()
     expect(screen.getByText('7 spends · 2 paydays · Sep 2026 to Oct 2026')).toBeTruthy()
-    expect(screen.getByText('We left out 2 transfers between your accounts, 1 opening balance and 1 row in USD. They aren’t spending.')).toBeTruthy()
+    expect(screen.getByText('We left out 2 transfers between your accounts and 1 opening balance. They aren’t spending.')).toBeTruthy()
     expect(screen.getByText('We’re reading negative amounts as spends.')).toBeTruthy()
     expect(screen.getByText('We think your salary is €3,000 on about the 1st.')).toBeTruthy()
     expect(screen.getByText('Payroll')).toBeTruthy()

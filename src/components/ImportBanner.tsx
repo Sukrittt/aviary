@@ -7,7 +7,7 @@ import { XIcon } from '@/src/components/icons'
 import { continueImport, getImportStatus, type ImportStatus } from '@/src/api/imports'
 import { readPref, writePref } from '@/src/lib/localPref'
 import { track } from '@/src/lib/analytics'
-import { bannerProgress } from './onboarding/importCopy'
+import { bannerDone, bannerProgress } from './onboarding/importCopy'
 
 /**
  * The slim line on Home while an import's history comes in, and the nudge
@@ -100,7 +100,7 @@ export function ImportBanner() {
   if (dismissed === data.importId) return null
   return (
     <div className="import-banner is-done" role="status">
-      <span>All in. Want us to find your repeat payments?</span>
+      <span>{bannerDone(data.failed)}</span>
       <Link className="import-banner-action" href="/account/recurring" onClick={() => writePref(dismissKey(data.importId), '1')}>
         Find them
       </Link>

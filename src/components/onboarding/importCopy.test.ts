@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { bannerProgress, countsLine, directionCopy, importErrorCopy, listOf, ordinal, skippedCopy } from './importCopy'
+import { bannerDone, bannerProgress, countsLine, directionCopy, importErrorCopy, listOf, ordinal, skippedCopy } from './importCopy'
 
 describe('import copy', () => {
   it('counts spends, paydays and the date range', () => {
@@ -9,7 +9,8 @@ describe('import copy', () => {
 
   it('says what was left out and why', () => {
     expect(skippedCopy({ skipped: { transfer: 312, opening_balance: 2, other_currency: 14 }, otherCurrencies: ['USD'], droppedOverCap: 0 })).toEqual([
-      'We left out 312 transfers between your accounts, 2 opening balances and 14 rows in USD. They aren’t spending.',
+      'We left out 312 transfers between your accounts and 2 opening balances. They aren’t spending.',
+      'We also skipped 14 rows in USD.',
     ])
     expect(skippedCopy({ skipped: { transfer: 1, future: 17, unparseable: 2 }, otherCurrencies: [], droppedOverCap: 0 })).toEqual([
       'We left out 1 transfer between your accounts. They aren’t spending.',
@@ -29,6 +30,7 @@ describe('import copy', () => {
   it('maps failure codes to written copy and never shows a raw code', () => {
     expect(importErrorCopy('too_big')).toBe('That file’s too big. Export a shorter date range and try again.')
     expect(importErrorCopy('Internal Server Error')).toBe('Check your connection and try again.')
+    expect(importErrorCopy('not_found')).toBe('That preview’s expired. Upload your file again.')
   })
 
   it('has no em dashes in anything it builds', () => {
@@ -45,5 +47,7 @@ describe('import copy', () => {
     expect(listOf(['a', 'b', 'c'])).toBe('a, b and c')
     expect([1, 2, 3, 4, 11, 12, 13, 21, 22, 31].map(ordinal)).toEqual(['1st', '2nd', '3rd', '4th', '11th', '12th', '13th', '21st', '22nd', '31st'])
     expect(bannerProgress(4210, 11240)).toBe('Bringing in your history · 4,210 of 11,240')
+    expect(bannerDone(0)).toBe('All in. Want us to find your repeat payments?')
+    expect(bannerDone(12)).toBe('All in, apart from 12 rows we couldn’t add. Want us to find your repeat payments?')
   })
 })

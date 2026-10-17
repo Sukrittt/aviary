@@ -51,6 +51,11 @@ describe('ImportBanner', () => {
     expect(window.localStorage.getItem('mc-import-done-dismissed-imp1')).toBe('1')
   })
 
+  it('says when some rows didn’t make it in', async () => {
+    show({ ...base, status: 'done', done: 11240, failed: 3 })
+    expect(await screen.findByText('All in, apart from 3 rows we couldn’t add. Want us to find your repeat payments?')).toBeTruthy()
+  })
+
   it('offers a retry when it failed', async () => {
     show({ ...base, status: 'failed' })
     fireEvent.click(await screen.findByRole('button', { name: 'Try again' }))
