@@ -178,7 +178,7 @@ function Upload({ app, onPreview }: { app: AppChoice; onPreview: (review: Import
           <input
             type="file"
             className="import-drop-input"
-            accept=".csv,.tsv,.txt,.xlsx,.xls,.zip"
+            accept=".csv,.tsv,.txt,.xlsx,.zip"
             aria-label="Choose your export file"
             disabled={busy}
             onChange={(e) => void read(e.target.files?.[0])}

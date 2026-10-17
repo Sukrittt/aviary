@@ -91,6 +91,7 @@ export function readZip(buf: Buffer): Map<string, Buffer> {
   let p = buf.readUInt32LE(end + 16)
   const files = new Map<string, Buffer>()
   let inflated = 0
+  let actual = 0
   for (let n = 0; n < count; n++) {
     if (buf.readUInt32LE(p) !== 0x02014b50) throw new Error('bad zip directory')
     const method = buf.readUInt16LE(p + 10)
@@ -105,9 +106,16 @@ export function readZip(buf: Buffer): Map<string, Buffer> {
     const start = local + 30 + buf.readUInt16LE(local + 26) + buf.readUInt16LE(local + 28)
     const body = buf.subarray(start, start + size)
     if (!name.endsWith('/')) {
-      if (method === 0) files.set(name, Buffer.from(body))
-      // The declared size above can lie; this cap can't.
-      else if (method === 8) files.set(name, inflateRawSync(body, { maxOutputLength: MAX_INFLATED }))
+      if (method === 0) {
+        actual += body.length
+        files.set(name, Buffer.from(body))
+      }
+      // The declared sizes above can lie; the bytes actually inflated can't.
+      else if (method === 8) {
+        const out = inflateRawSync(body, { maxOutputLength: MAX_INFLATED - actual })
+        actual += out.length
+        files.set(name, out)
+      }
     }
     p += 46 + nameLen + extraLen + commentLen
   }
@@ -144,6 +152,8 @@ const isZip = (buf: Buffer) => buf.length > 4 && buf.readUInt32LE(0) === 0x04034
 /** Every table in the file. An xlsx is a zip too, so the name decides between them. */
 export async function readTable(buf: Buffer, filename: string): Promise<Table[]> {
   const lower = filename.toLowerCase()
+  // A binary (pre-2007) .xls isn't a zip and exceljs can't read it; one renamed from .xlsx is.
+  if (lower.endsWith('.xls') && !isZip(buf)) throw new Error('binary xls')
   if (lower.endsWith('.xlsx') || lower.endsWith('.xls')) {
     // ponytail: exceljs inflates on its own, so only the declared sizes are checked here; a lying xlsx still gets through.
     readZip(buf)

@@ -4,7 +4,7 @@ import ExcelJS from 'exceljs'
 import { decodeText, findHeaderRow, parseCsv, readTable, readZip } from './read'
 
 /** A minimal zip: local headers, one central directory, end record. Enough for readZip. */
-function makeZip(entries: { name: string; data: Buffer; deflate: boolean }[]): Buffer {
+function makeZip(entries: { name: string; data: Buffer; deflate: boolean; declared?: number }[]): Buffer {
   const locals: Buffer[] = []
   const centrals: Buffer[] = []
   let offset = 0
@@ -15,13 +15,13 @@ function makeZip(entries: { name: string; data: Buffer; deflate: boolean }[]): B
     local.writeUInt32LE(0x04034b50, 0)
     local.writeUInt16LE(e.deflate ? 8 : 0, 8)
     local.writeUInt32LE(body.length, 18)
-    local.writeUInt32LE(e.data.length, 22)
+    local.writeUInt32LE(e.declared ?? e.data.length, 22)
     local.writeUInt16LE(name.length, 26)
     const central = Buffer.alloc(46)
     central.writeUInt32LE(0x02014b50, 0)
     central.writeUInt16LE(e.deflate ? 8 : 0, 10)
     central.writeUInt32LE(body.length, 20)
-    central.writeUInt32LE(e.data.length, 24)
+    central.writeUInt32LE(e.declared ?? e.data.length, 24)
     central.writeUInt16LE(name.length, 28)
     central.writeUInt32LE(offset, 42)
     locals.push(local, name, body)
@@ -110,6 +110,16 @@ describe('readZip', () => {
 })
 
 describe('readTable limits', () => {
+  it('caps what the entries actually inflate to, not only what they declare', async () => {
+    const big = Buffer.alloc(30 * 1024 * 1024, 48)
+    const zip = makeZip([{ name: 'a.csv', data: big, deflate: true, declared: 10 }, { name: 'b.csv', data: big, deflate: true, declared: 10 }])
+    await expect(readTable(zip, 'liar.zip')).rejects.toThrow()
+  })
+
+  it('refuses a binary .xls, which exceljs can’t read', async () => {
+    await expect(readTable(Buffer.from([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1, 0, 0]), 'old.xls')).rejects.toThrow()
+  })
+
   it('refuses a zip that would inflate past the cap', async () => {
     const zip = makeZip([{ name: 'big.csv', data: Buffer.alloc(60 * 1024 * 1024, 48), deflate: true }])
     expect(zip.length).toBeLessThan(1024 * 1024)
