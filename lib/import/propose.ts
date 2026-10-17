@@ -57,6 +57,14 @@ export function guessAccountType(name: string): AccountType {
   return 'bank'
 }
 
+/** The name clipped to the app's limit, numbered when clipping makes it match one already taken. */
+function uniqueName(source: string, taken: string[]): string {
+  const used = new Set(taken.map((t) => t.toLowerCase()))
+  let name = source.slice(0, MAX_ACCOUNT_NAME).trim()
+  for (let n = 2; used.has(name.toLowerCase()); n++) name = `${source.slice(0, MAX_ACCOUNT_NAME - String(n).length - 1).trimEnd()} ${n}`
+  return name
+}
+
 /** Accounts by how often they appear, inside the app's caps. The rest are named so the review can say so. */
 export function proposeAccounts(rows: StoredRow[]): { accounts: { source: string; name: string; type: AccountType }[]; dropped: string[] } {
   const seen = new Map<string, { source: string; n: number }>()
@@ -73,7 +81,7 @@ export function proposeAccounts(rows: StoredRow[]): { accounts: { source: string
     const type = guessAccountType(source)
     const banks = accounts.filter((a) => a.type === 'bank').length
     if (accounts.length >= MAX_ACCOUNTS || (type === 'bank' && banks >= MAX_BANK_ACCOUNTS)) dropped.push(source)
-    else accounts.push({ source, name: source.slice(0, MAX_ACCOUNT_NAME), type })
+    else accounts.push({ source, name: uniqueName(source, accounts.map((a) => a.name)), type })
   }
   return { accounts, dropped }
 }
@@ -102,7 +110,9 @@ export function detectSalary(rows: StoredRow[], today: string): { key: string; l
     if (r.kind !== 'income') continue
     const key = incomeKey(r)
     if (!key) continue
-    groups.set(key, [...(groups.get(key) ?? []), r])
+    const group = groups.get(key)
+    if (group) group.push(r)
+    else groups.set(key, [r])
   }
   let best: { key: string; typical: number; last: StoredRow } | null = null
   for (const [key, group] of groups) {

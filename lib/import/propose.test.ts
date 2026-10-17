@@ -70,6 +70,12 @@ describe('proposeAccounts', () => {
   it('clips names to 30 characters', () => {
     expect(proposeAccounts([row({ account: 'a'.repeat(40) })]).accounts[0].name).toHaveLength(30)
   })
+
+  it('keeps accounts apart when clipping would give them the same name', () => {
+    const names = proposeAccounts([row({ account: 'HDFC Bank Savings Account no. 1234' }), row({ account: 'HDFC Bank Savings Account no. 5678' })]).accounts.map((a) => a.name)
+    expect(names).toEqual(['HDFC Bank Savings Account no.', 'HDFC Bank Savings Account no 2'])
+    expect(new Set(names.map((n) => n.toLowerCase())).size).toBe(2)
+  })
 })
 
 describe('detectSalary', () => {
