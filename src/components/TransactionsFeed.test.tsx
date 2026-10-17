@@ -53,11 +53,13 @@ beforeEach(() => {
   m.hasNextPage = false
 })
 
-it('shows a photo card for a signed photo and a category card otherwise, with no add-photo button', () => {
+it('shows a photo card for a signed photo and a compact card otherwise, with no add-photo button', () => {
   m.rows = [row({ id: 'a', item: 'Tea', has_photo: true, photo_url: 'https://blob.test/a.jpg?s=1' }), row({ id: 'b', item: 'Plant' })]
   renderFeed()
   expect(screen.getByRole('heading', { name: 'Monday, 12 October 2026' })).toBeInTheDocument()
   expect(document.querySelector('img.feed-card-photo')).toHaveAttribute('src', 'https://blob.test/a.jpg?s=1')
+  expect(document.querySelectorAll('.feed-card-media')).toHaveLength(1)
+  expect(document.querySelector('.feed-card-placeholder')).not.toBeInTheDocument()
   expect(screen.queryByRole('button', { name: /Add a photo/ })).not.toBeInTheDocument()
   expect(screen.getByText("You're all caught up.")).toBeInTheDocument()
 })

@@ -13139,6 +13139,10 @@ button.account-feature-card {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+/* No photo between them: the notes sit right under the header. */
+.expense-redesign .feed-card-head + .feed-card-notes {
+  padding-top: 0;
+}
 .expense-redesign .feed-more,
 .expense-redesign .feed-status {
   display: flex;

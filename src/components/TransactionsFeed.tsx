@@ -34,8 +34,8 @@ function timeOf(timestamp: string): string {
 
 /**
  * Activity's feed view: every expense as a card, photo first, newest at the
- * top, loading more as you scroll. Expenses without a photo show their
- * category on its tint. A card opens into its detail
+ * top, loading more as you scroll. Expenses without a photo stay a compact
+ * card, just the header and notes, so photos stand out. A card opens into its detail
  * dialog (the card itself grows into it), with Edit and Delete. Twin of
  * Mobile's src/components/activity/ActivityFeed.tsx; income stays in the list.
  */
@@ -175,16 +175,12 @@ function FeedCard({ txn, layoutKey, hideAmounts, icon, onOpen }: {
           {hideAmounts ? '---' : formatCurrency(txn.amountInr)}
         </span>
       </header>
-      <div className="feed-card-media">
-        {uri ? (
-          // eslint-disable-next-line @next/next/no-img-element -- a short-lived signed Blob URL, nothing to optimize
+      {uri ? (
+        <div className="feed-card-media">
+          {/* eslint-disable-next-line @next/next/no-img-element -- a short-lived signed Blob URL, nothing to optimize */}
           <img src={uri} alt="" className="feed-card-photo" />
-        ) : (
-          <div className="feed-card-placeholder" style={avatarStyleFor(name)}>
-            <CategoryIcon name={txn.category} icon={icon} size={48} />
-          </div>
-        )}
-      </div>
+        </div>
+      ) : null}
       {txn.notes.trim() ? <p className="feed-card-notes">{txn.notes.trim()}</p> : null}
     </motion.article>
   )
