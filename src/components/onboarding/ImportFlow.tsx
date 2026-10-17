@@ -21,18 +21,19 @@ const MAX_BYTES = 4 * 1024 * 1024
 /** lib/accounts.ts's MAX_BANK_ACCOUNTS: the balance check asks about at most five. */
 const MAX_BANK_ACCOUNTS = 5
 
-type AppChoice = { id: string; name: string; kind: string; how: [string, string] }
+type AppChoice = { id: string; name: string; by?: string; how: [string, string] }
 
 const APPS: AppChoice[] = [
-  { id: 'moneymanager', name: 'Money Manager', kind: 'xlsx', how: ['Open More, then Backup, then Export to Excel file.', 'Send the file to yourself and upload it here.'] },
-  { id: 'monefy', name: 'Monefy', kind: 'csv', how: ['Open Settings, then Export to file.', 'Share the csv to yourself and upload it here.'] },
-  { id: 'wallet', name: 'Wallet', kind: 'csv', how: ['In Wallet on the web, open Records and export them.', 'Pick csv as the format.'] },
-  { id: 'spendee', name: 'Spendee', kind: 'csv', how: ['Open a wallet’s settings and tap Export to CSV.', 'It lands in your email.'] },
-  { id: 'ynab', name: 'YNAB', kind: 'zip', how: ['On the web, open your plan’s menu and pick Export plan.', 'Upload the zip as it is. No need to unzip it.'] },
-  { id: 'goodbudget', name: 'Goodbudget', kind: 'csv', how: ['On the website, open Account, then Export data.', 'Upload the csv of your transactions.'] },
-  { id: 'axio', name: 'axio', kind: 'csv', how: ['Ask axio for your data from its settings.', 'Use the CSV from the email, not the PDF.'] },
-  { id: 'other', name: 'Another app or a spreadsheet', kind: 'csv or xlsx', how: ['Any file with a date, an amount and a description works.', 'One row per transaction.'] },
+  { id: 'moneymanager', name: 'Money Manager', by: 'Realbyte', how: ['Open More, then Backup, then Export to Excel file.', 'Send the file to yourself and upload it here.'] },
+  { id: 'monefy', name: 'Monefy', how: ['Open Settings, then Export to file.', 'Share the csv to yourself and upload it here.'] },
+  { id: 'wallet', name: 'Wallet', by: 'BudgetBakers', how: ['In Wallet on the web, open Records and export them.', 'Pick csv as the format.'] },
+  { id: 'spendee', name: 'Spendee', how: ['Open a wallet’s settings and tap Export to CSV.', 'It lands in your email.'] },
+  { id: 'ynab', name: 'YNAB', how: ['On the web, open your plan’s menu and pick Export plan.', 'Upload the zip as it is. No need to unzip it.'] },
+  { id: 'goodbudget', name: 'Goodbudget', how: ['On the website, open Account, then Export data.', 'Upload the csv of your transactions.'] },
+  { id: 'axio', name: 'axio', by: 'formerly Walnut', how: ['Ask axio for your data from its settings.', 'Use the CSV from the email, not the PDF.'] },
 ]
+// The catch-all sits under the list as a text link, not as a ninth "app".
+const OTHER: AppChoice = { id: 'other', name: 'Another app or a spreadsheet', how: ['Any file with a date, an amount and a description works.', 'One row per transaction.'] }
 
 const ACCOUNT_TYPES = [
   { value: 'bank', label: 'Bank' },
@@ -57,6 +58,12 @@ export function ImportFlow({ onFresh, onDone }: { onFresh: () => void; onDone: (
 
   const back = () => setStage((s) => (s === 'review' ? 'upload' : s === 'upload' ? 'pick' : 'ask'))
 
+  const pick = (a: AppChoice) => {
+    setApp(a)
+    track('import_started', { app: a.id })
+    setStage('upload')
+  }
+
   return (
     <>
       <div className="setup-top">
@@ -78,29 +85,21 @@ export function ImportFlow({ onFresh, onDone }: { onFresh: () => void; onDone: (
       )}
 
       {stage === 'pick' && (
-        <>
+        <div className="import-pick">
           <h1 className="setup-title">Where are you coming from?</h1>
           <p className="setup-blurb">Pick your app and we’ll tell you how to export from it.</p>
           <div className="setup-body">
             <div className="import-apps">
               {APPS.map((a) => (
-                <button
-                  key={a.id}
-                  type="button"
-                  className="import-app"
-                  onClick={() => {
-                    setApp(a)
-                    track('import_started', { app: a.id })
-                    setStage('upload')
-                  }}
-                >
+                <button key={a.id} type="button" className="import-app" onClick={() => pick(a)}>
                   <span className="import-app-name">{a.name}</span>
-                  <span className="import-app-kind">{a.kind}</span>
+                  {a.by && <span className="import-app-by">{a.by}</span>}
                 </button>
               ))}
             </div>
+            <button type="button" className="setup-pick-own" onClick={() => pick(OTHER)}>Using something else? Upload any csv or xlsx</button>
           </div>
-        </>
+        </div>
       )}
 
       {stage === 'upload' && app && (
