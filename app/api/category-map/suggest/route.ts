@@ -1,10 +1,8 @@
-import { after } from 'next/server'
-import { json, error, readBody, getCollection } from '@/lib/http'
+import { json, error, readBody } from '@/lib/http'
 import { getAuth, readOnlyGuard } from '@/lib/access'
 import { requireAccess } from '@/lib/billing/guard'
 import { pickCategory } from '@/lib/ai/jev'
 import { isRateLimited } from '@/lib/rateLimit'
-import { invalidateCategoryMap } from '@/lib/categoryMap'
 import { aiDisabledResponse } from '@/lib/systemSettings'
 import { aiAllowanceResponse } from '@/lib/ai/allowance'
 
@@ -12,9 +10,11 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 30
 
 const RATE_WINDOW_MS = 60 * 60 * 1000
-const SIGNED_IN_LIMIT = 60
+// One description can take a few calls while it's typed. Over the limit, the
+// pick silently lands on Miscellaneous, so these sit well above real logging.
+const SIGNED_IN_LIMIT = 200
 const BURST_WINDOW_MS = 60 * 1000
-const BURST_LIMIT = 20
+const BURST_LIMIT = 40
 const MAX_ITEM_LEN = 200
 const MAX_CATEGORIES = 100
 const MAX_CATEGORY_LEN = 60
@@ -60,26 +60,8 @@ export async function POST(req: Request) {
   if (limited) return error('rate limited', 429)
   if (category === null) return error('category suggestion failed', 502)
 
-  // The category map writes don't change this reply, so they run after it's sent.
-  if (category) {
-    after(async () => {
-      const overridesColl = await getCollection('category_map_overrides', auth)
-      const words = item.toLowerCase().split(/\s+/)
-      const now = new Date().toISOString()
-      await Promise.all(
-        words
-          .filter((word) => word.length >= 2)
-          .map((word) =>
-            overridesColl.updateOne(
-              { word },
-              { $set: { word, category, source: 'llm', createdAt: now } },
-              { upsert: true },
-            ),
-          ),
-      )
-      invalidateCategoryMap(auth.userId)
-    })
-  }
-
+  // No word overrides from here: this runs on half-typed text, and saving those
+  // guesses filled the map with fragments like "ou" and "ap". Saving the expense
+  // is what teaches the map.
   return json({ category })
 }

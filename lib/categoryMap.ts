@@ -6,7 +6,8 @@ export interface CategoryMap {
 }
 
 /**
- * One `category_map_overrides` doc: word → LLM-picked category.
+ * One `category_map_overrides` doc: word → category, from a user correction
+ * (`source: 'user'`) or, in older docs, an LLM pick (`source: 'llm'`).
  *
  * The word lives in a `word` field rather than being the `_id`. It used to be
  * the `_id`, which made it a globally unique key — two users could not both
@@ -26,8 +27,8 @@ export interface CategoryMapOverride {
  * instead of a CSV file.
  *
  * `overridesCollection`, when passed, is merged on top of the frequency-derived
- * words — overrides are deliberate LLM picks (from `/api/category-map/suggest`),
- * not majority-vote noise, so they win on conflicts.
+ * words. User corrections win on conflicts; older LLM picks only fill words the
+ * user has no history for.
  */
 export async function buildCategoryMap(
   collection: ScopedCollection,
@@ -43,9 +44,7 @@ export async function buildCategoryMap(
     const item = String(row.item ?? '')
     const category = String(row.category ?? '')
     if (!item || !category) continue
-    const words = item.toLowerCase().split(/\s+/)
-    for (const word of words) {
-      if (word.length < 2) continue
+    for (const word of itemWords(item)) {
       let catCount = wordCategories.get(word)
       if (!catCount) {
         catCount = new Map()
@@ -73,7 +72,10 @@ export async function buildCategoryMap(
     for (const doc of overrides) {
       const word = String(doc.word ?? '')
       const category = String(doc.category ?? '')
-      if (word && category) words[word] = category
+      if (!category || !isKeyWord(word)) continue
+      // An AI guess only fills a gap: what the user actually saved knows better.
+      if (doc.source === 'llm' && word in words) continue
+      words[word] = category
     }
   }
 
@@ -101,16 +103,24 @@ export async function getCachedCategoryMap(
 /**
  * Bust one user's cached map — call after anything that changes its inputs:
  * a new/edited expense (item/category feed the word-frequency scan) or a new
- * override (from /api/category-map/suggest). Without this the map only ever
+ * override (a user correction). Without this the map only ever
  * refreshes when the serverless instance recycles.
  */
 export function invalidateCategoryMap(userId: string): void {
   cache.delete(userId)
 }
 
-/** Item words the map keys on: lowercased, whitespace-split, 2+ chars. */
+// Words too generic to say anything about a category. Fragments under three
+// letters are dropped too: in prod they were mostly half-typed text ("ou", "ap").
+const FILLER = new Set(['and', 'the', 'for', 'with', 'from', 'into'])
+
+function isKeyWord(word: string): boolean {
+  return word.length >= 3 && !FILLER.has(word)
+}
+
+/** Item words the map keys on: lowercased, whitespace-split, 3+ chars, no filler. */
 function itemWords(item: string): string[] {
-  return item.toLowerCase().split(/\s+/).filter((word) => word.length >= 2)
+  return item.toLowerCase().split(/\s+/).filter(isKeyWord)
 }
 
 /**
