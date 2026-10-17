@@ -34,6 +34,7 @@ const completed = () => vi.mocked(track).mock.calls.filter(([e]) => e === 'onboa
 function start() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } })
   render(<QueryClientProvider client={client}><SetupWizardPage /></QueryClientProvider>)
+  fireEvent.click(screen.getByRole('button', { name: 'No, start fresh' }))
   fireEvent.click(button('Continue')) // currency
   return client
 }

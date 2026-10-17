@@ -83,6 +83,7 @@ describe('preview', () => {
       counts: { expense: 6, income: 2, from: '2026-09-01', to: '2026-10-04' },
       skipped: { transfer: 2, opening_balance: 1, zero: 1, future: 1, other_currency: 1 },
       salary: { label: 'Acme payroll', amount: 85000, day: 1 },
+      otherCurrencies: ['USD'],
       droppedAccounts: [],
     })
     expect(review.categories).toEqual([

@@ -23,6 +23,7 @@ export async function GET(req: Request) {
     total: doc.total,
     failed: doc.failed,
     skipped: doc.skipped,
+    startedAt: doc.committed_at ?? null,
     finishedAt: doc.finished_at ?? null,
     leased: Number(doc.lockedUntil ?? 0) > Date.now(),
   })

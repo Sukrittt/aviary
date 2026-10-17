@@ -23,6 +23,7 @@ import { AmountTicker } from '../../src/components/onboarding/AmountTicker'
 import { Confetti } from '../../src/components/onboarding/Confetti'
 import { PickExtras } from '../../src/components/onboarding/PickExtras'
 import { HeardFrom } from '../../src/components/onboarding/HeardFrom'
+import { ImportFlow, type ImportDone } from '../../src/components/onboarding/ImportFlow'
 import { LoadingCaption } from '../../src/components/LoadingCaption'
 import { Toast } from '../../src/components/Toast'
 import { CategoryIcon, CATEGORY_ICON_COMPONENTS } from '../../src/components/CategoryIcon'
@@ -147,6 +148,10 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
   const qc = useQueryClient()
 
   const [step, setStep] = useState(0)
+  // The first question, before any step: bring data from another app, or the
+  // usual setup. 'fresh' runs the steps below exactly as they always were.
+  const [entry, setEntry] = useState<'ask' | 'fresh'>('ask')
+  const [historyComing, setHistoryComing] = useState(false)
   // Whether the user chose to pick their own groups and categories. Without
   // it, setup finishes from the income step on the starter budget.
   const [custom, setCustom] = useState(false)
@@ -192,10 +197,10 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
   }, [])
 
   useEffect(() => {
-    if (step > 4) return
+    if (step > 4 || entry !== 'fresh') return
     stepTimer.current = startTimer()
     track('onboarding_step_viewed', { step, step_name: STEP_NAMES[step] })
-  }, [step])
+  }, [step, entry])
 
   const selectedGroups = groups.filter((g) => g.on && g.name.trim())
   const allSelectedGroups = selectNamedItems(groups)
@@ -458,6 +463,8 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
     setCategorySelectionUndo(null)
     if (step > 0) track('onboarding_back_tapped', { from_step: step, step_name: STEP_NAMES[step] })
     setError('')
+    // Back from the first step is back to "Switching from another app?".
+    if (step === 0) setEntry('ask')
     setStep((s) => Math.max(0, s - 1))
   }
 
@@ -587,10 +594,35 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
     setStep(2)
   }
 
+  // An import sets the account up on the server in one call, then lands on the same celebration.
+  const imported = ({ result: r, currency }: ImportDone) => {
+    onCurrencyChange(currency)
+    track('onboarding_completed', {
+      total_seconds: wizardTimer.current(),
+      groups_count: r.groupCount,
+      categories_count: r.categoryCount,
+      currency,
+      imported: true,
+      skipped_income: r.income === 0,
+    })
+    void qc.invalidateQueries()
+    setResult({ income: r.income, groupCount: r.groupCount, categoryCount: r.categoryCount })
+    setHistoryComing(r.total > 0)
+    setStep(5)
+  }
+
+  if (entry === 'ask' && step < 5) {
+    return (
+      <div className="expense-redesign setup-page">
+        <ImportFlow onFresh={() => setEntry('fresh')} onDone={imported} />
+      </div>
+    )
+  }
+
   if (step === 5 && result) {
     return (
       <div className="expense-redesign setup-page">
-        <SetupDone result={result} onFinish={() => setStep(6)} />
+        <SetupDone result={result} historyComing={historyComing} onFinish={() => setStep(6)} />
       </div>
     )
   }
@@ -645,7 +677,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
   return (
     <div className="expense-redesign setup-page">
       <div className="setup-top">
-        <button type="button" className="setup-back" onClick={back} disabled={step === 0} aria-label="Back">
+        <button type="button" className="setup-back" onClick={back} aria-label="Back">
           <ArrowLeftIcon size={16} aria-hidden="true" />
         </button>
         <div className="setup-dots" role="img" aria-label={`Step ${step + 1} of ${dots.length}`}>
@@ -986,9 +1018,12 @@ function PickRow({
 
 function SetupDone({
   result,
+  historyComing = false,
   onFinish,
 }: {
   result: { income: number; groupCount: number; categoryCount: number }
+  /** An import's transactions are still being booked behind the celebration. */
+  historyComing?: boolean
   onFinish: () => void
 }) {
   const { formatMoney } = useCurrency()
@@ -1005,6 +1040,7 @@ function SetupDone({
       <div className="setup-done-badge"><CheckIcon size={30} weight="bold" aria-hidden="true" /></div>
       <h1 className="setup-done-title">Your budget is ready to go.</h1>
       <p className="setup-done-blurb">Everything below can be changed later from Categories.</p>
+      {historyComing && <p className="setup-done-blurb">Your history is still coming in. Close the app if you like, we’ll let you know when it’s done.</p>}
       <p className="setup-done-promise">Your first-week recap lands in 7 days</p>
       <div className="setup-done-list">
         {summary.map((s) => (

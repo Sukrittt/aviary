@@ -70,6 +70,8 @@ export interface Review {
   hasCurrency: boolean
   counts: { expense: number; income: number; from: string; to: string }
   skipped: Partial<Record<SkipReason, number>>
+  /** The codes behind `skipped.other_currency`, most rows first. */
+  otherCurrencies: string[]
   droppedOverCap: number
   samples: { date: string; item: string; amount: number; kind: 'expense' | 'income' }[]
   groups: string[]
@@ -103,6 +105,8 @@ export async function buildReview(auth: Auth, doc: ImportDoc, today: string): Pr
   const rows = resolveRows(storedRows(doc), { direction: doc.direction, currency: doc.currency, hasCurrency: doc.hasCurrency })
   const live = rows.filter((r) => r.kind !== 'skipped')
   const otherCurrency = rows.length - live.length
+  const others = new Map<string, number>()
+  for (const r of rows) if (r.kind === 'skipped') others.set(r.currency, (others.get(r.currency) ?? 0) + 1)
   const categories = proposeCategories(live)
   const budgets = proposeBudgets(live, categories.sourceOf, today, doc.currency, doc.plan)
   const names = categories.list.map((c) => c.source)
@@ -128,6 +132,7 @@ export async function buildReview(auth: Auth, doc: ImportDoc, today: string): Pr
       to: dates.at(-1) ?? '',
     },
     skipped: { ...doc.skipped, ...(otherCurrency ? { other_currency: otherCurrency } : {}) },
+    otherCurrencies: [...others].sort((a, b) => b[1] - a[1]).map(([code]) => code),
     droppedOverCap: doc.droppedOverCap,
     samples: samplesOf(rows),
     groups: STARTER_GROUPS,
