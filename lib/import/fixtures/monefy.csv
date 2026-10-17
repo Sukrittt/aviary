@@ -1,0 +1,14 @@
+date,account,category,amount,currency,converted amount,currency,description
+01/09/2026,Bank,Salary,"3,000.00",EUR,"3,000.00",EUR,Payroll
+02/09/2026,Cash,Food,-12.50,EUR,-12.50,EUR,Bakery
+03/09/2026,Bank,Initial balance 'Bank',500.00,EUR,500.00,EUR,
+04/09/2026,Bank,To 'Cash',-100.00,EUR,-100.00,EUR,
+04/09/2026,Cash,From 'Bank',100.00,EUR,100.00,EUR,
+06/09/2026,Bank,Bills,-80.00,EUR,-80.00,EUR,Electricity
+08/09/2026,Card,Food,-23.40,USD,-21.00,EUR,Airport
+10/09/2026,Bank,Taxi,-15.00,EUR,-15.00,EUR,
+01/10/2026,Bank,Salary,"3,000.00",EUR,"3,000.00",EUR,Payroll
+02/10/2026,Cash,Food,-9.99,EUR,-9.99,EUR,Bakery
+02/10/2026,Cash,Food,-0.00,EUR,-0.00,EUR,
+05/10/2026,Bank,Gifts,-40.00,EUR,-40.00,EUR,Split dinner part 1
+05/10/2026,Bank,Gifts,-20.00,EUR,-20.00,EUR,Split dinner part 2

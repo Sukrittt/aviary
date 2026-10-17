@@ -1,0 +1,13 @@
+account,category,currency,amount,ref_currency,ref_currency_amount,type,payment_type,note,date,transfer,payee,labels
+Checking,Initial balance,GBP,1000.00,GBP,1000.00,Income,TRANSFER,,2026-08-01 00:00:00,false,,
+Checking,Salary,GBP,2500.00,GBP,2500.00,Income,TRANSFER,,2026-09-01 09:00:00,false,Employer Ltd,
+Checking,Groceries,GBP,-45.20,GBP,-45.20,Expenses,DEBIT_CARD,Weekly shop,2026-09-03 18:00:00,false,Tesco,
+Checking,Restaurant,GBP,-30.00,GBP,-30.00,Expenses,DEBIT_CARD,,2026-09-05 20:00:00,false,Pizza Place,
+Checking,Transfer,GBP,-200.00,GBP,-200.00,Expenses,TRANSFER,,2026-09-06 10:00:00,true,,
+Savings,Transfer,GBP,200.00,GBP,200.00,Income,TRANSFER,,2026-09-06 10:00:00,true,,
+Credit card,Fuel,GBP,-60.00,GBP,-60.00,Expenses,CREDIT_CARD,,2026-09-10 08:00:00,false,Shell,
+Credit card,Shopping,EUR,-25.00,GBP,-21.50,Expenses,CREDIT_CARD,Paris,2026-09-12 14:00:00,false,Fnac,
+Checking,Groceries,GBP,-12.00,GBP,-12.00,Expenses,DEBIT_CARD,Split: food,2026-09-15 18:00:00,false,Tesco,
+Checking,Household,GBP,-8.00,GBP,-8.00,Expenses,DEBIT_CARD,Split: cleaning,2026-09-15 18:00:00,false,Tesco,
+Checking,Salary,GBP,2500.00,GBP,2500.00,Income,TRANSFER,,2026-10-01 09:00:00,false,Employer Ltd,
+Checking,Groceries,GBP,-41.10,GBP,-41.10,Expenses,DEBIT_CARD,,2026-10-04 18:00:00,false,Tesco,

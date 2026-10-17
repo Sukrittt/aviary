@@ -1,0 +1,13 @@
+Date,Envelope,Account,Name,Notes,Amount,Status,Details
+09/01/2026,[Unallocated],Checking,Paycheck,,3200.00,,
+09/01/2026,,,Envelope Fill,,1600.00,,Groceries:400.00||Rent:1200.00
+09/02/2026,Rent,Checking,Landlord,,1200.00,,
+09/04/2026,Groceries,Checking,Trader Joe's,,85.40,,
+09/06/2026,Groceries,Visa,Costco,split,60.00,,
+09/06/2026,Household,Visa,Costco,split,25.00,,
+09/09/2026,,Checking,Account Transfer,,500.00,,Transfer to Savings
+09/12/2026,Dining,Visa,Taco Spot,,18.75,,
+09/20/2026,Groceries,Checking,Return,,-10.00,,
+10/01/2026,[Unallocated],Checking,Paycheck,,3200.00,,
+10/03/2026,Groceries,Checking,Trader Joe's,,72.10,,
+10/04/2026,Dining,Visa,Taco Spot,,0.00,,
