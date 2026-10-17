@@ -13378,10 +13378,47 @@ button.account-feature-card {
 .import-drop-title {
   font-weight: 600;
 }
+/* The review: same column as the other import steps, header centred, the
+   summary rows borrowed from the done screen, and the editors behind a toggle. */
+.import-review-shell {
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+.import-review-shell .setup-title,
+.import-review-shell .setup-blurb {
+  text-align: center;
+  margin-inline: auto;
+}
 .import-review {
   display: flex;
   flex-direction: column;
+  gap: 14px;
+}
+.import-summary {
+  margin-top: 0;
+}
+.import-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--erd-border);
+  border-radius: 18px;
+  background: var(--erd-card);
+  font-size: 14px;
+}
+.import-details-toggle {
+  margin-top: 4px;
+}
+.import-details {
+  display: flex;
+  flex-direction: column;
   gap: 18px;
+  padding-top: 6px;
+  border-top: 1px solid var(--erd-border);
 }
 .import-review[aria-busy='true'] {
   opacity: 0.6;

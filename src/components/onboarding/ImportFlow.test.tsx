@@ -61,6 +61,8 @@ beforeEach(() => {
   commitImport.mockResolvedValue({ importId: 'imp1', total: 9, groupCount: 2, categoryCount: 2, income: 3000 })
 })
 
+const openDetails = async () => fireEvent.click(await screen.findByRole('button', { name: 'Check names and groups' }))
+
 describe('ImportFlow', () => {
   it('starting fresh hands straight back to the usual setup', () => {
     const onFresh = vi.fn()
@@ -76,8 +78,11 @@ describe('ImportFlow', () => {
     expect(screen.getByText('7 spends · 2 paydays · Sep 2026 to Oct 2026')).toBeTruthy()
     expect(screen.getByText('We left out 2 transfers between your accounts and 1 opening balance. They aren’t spending.')).toBeTruthy()
     expect(screen.getByText('We’re reading negative amounts as spends.')).toBeTruthy()
-    expect(screen.getByText('We think your salary is €3,000 on about the 1st.')).toBeTruthy()
     expect(screen.getByText('Payroll')).toBeTruthy()
+    // Names and the payday wait behind the toggle.
+    expect(screen.queryByLabelText('Name for Bills')).toBeNull()
+    await openDetails()
+    expect(screen.getByText('We think your salary is €3,000 on about the 1st.')).toBeTruthy()
   })
 
   it("a flip asks the server to recompute, so what's approved is what's written", async () => {
@@ -89,7 +94,8 @@ describe('ImportFlow', () => {
 
   it('commits the edits with the check animation, then hands over', async () => {
     const onDone = toReview()
-    fireEvent.change(await screen.findByLabelText('Name for Bills'), { target: { value: 'Utilities' } })
+    await openDetails()
+    fireEvent.change(screen.getByLabelText('Name for Bills'), { target: { value: 'Utilities' } })
     fireEvent.change(screen.getByLabelText('Group for Gifts'), { target: { value: 'Savings' } })
     fireEvent.click(screen.getByRole('button', { name: 'Looks right, set me up' }))
     await waitFor(() => expect(commitImport).toHaveBeenCalled())
@@ -109,7 +115,8 @@ describe('ImportFlow', () => {
     previewImport.mockResolvedValue({ ...review, salary: null })
     recomputeImport.mockResolvedValue({ ...review, direction: 'positive_spend', salary: { label: 'Payroll', amount: 3100, day: 2 } })
     toReview()
-    expect(await screen.findByLabelText('Monthly income')).toHaveValue(null)
+    await openDetails()
+    expect(screen.getByLabelText('Monthly income')).toHaveValue(null)
     fireEvent.click(screen.getByRole('button', { name: 'That’s backwards' }))
     await waitFor(() => expect(screen.getByLabelText('Monthly income')).toHaveValue(3100))
     expect(screen.getByLabelText('Payday, day of the month')).toHaveValue(2)
@@ -119,14 +126,16 @@ describe('ImportFlow', () => {
     const accounts: ImportReview['accounts'] = [...Array.from({ length: 5 }, (_, i) => ({ source: `B${i}`, name: `B${i}`, type: 'bank' as const })), { source: 'Cash', name: 'Cash', type: 'cash' }]
     previewImport.mockResolvedValue({ ...review, accounts })
     toReview()
-    fireEvent.change(await screen.findByLabelText('Type for Cash'), { target: { value: 'bank' } })
+    await openDetails()
+    fireEvent.change(screen.getByLabelText('Type for Cash'), { target: { value: 'bank' } })
     expect(screen.getByRole('alert')).toHaveTextContent('You can have up to 5 bank accounts. Make one of these cash or a credit card.')
     expect(screen.getByRole('button', { name: 'Looks right, set me up' })).toBeDisabled()
   })
 
   it('a cleared salary commits without one', async () => {
     toReview()
-    fireEvent.change(await screen.findByLabelText('Monthly income'), { target: { value: '' } })
+    await openDetails()
+    fireEvent.change(screen.getByLabelText('Monthly income'), { target: { value: '' } })
     fireEvent.click(screen.getByRole('button', { name: 'Looks right, set me up' }))
     await waitFor(() => expect(commitImport.mock.calls[0][1]).toMatchObject({ salary: null }))
   })
