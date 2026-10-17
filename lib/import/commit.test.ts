@@ -109,6 +109,7 @@ describe('preview', () => {
     const { importId } = await previewFile(auth, fixture('money-manager.csv'), 'a.csv')
     const raw = await (await getDb()).collection('imports').findOne({ _id: new ObjectId(importId) })
     expect(String(raw?.rows)).not.toContain('Acme payroll')
+    expect(String(raw?.plan)).toMatch(/^enc:/)
   })
 })
 
@@ -269,7 +270,7 @@ describe('failing rows', () => {
   async function seedImport(rows: unknown[]) {
     const { insertedId } = await (await coll('imports')).insertOne({
       status: 'importing', app: 'generic', filename: 'x.csv', currency: 'INR', direction: 'negative_spend', directionSource: 'sign',
-      hasCurrency: false, rows: JSON.stringify(rows), skipped: {}, droppedOverCap: 0, plan: {}, total: rows.length, done: 0, failed: 0,
+      hasCurrency: false, rows: JSON.stringify(rows), skipped: {}, droppedOverCap: 0, plan: '{}', total: rows.length, done: 0, failed: 0,
       cursor: 0, streak: 0, streak_start: 0, lockedUntil: 0, created_at: new Date(),
     })
     return String(insertedId)

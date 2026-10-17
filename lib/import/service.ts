@@ -28,6 +28,8 @@ export type BookingRow = {
   counted?: 'monthly' | 'extra'
 }
 
+export type ImportSummary = { groupCount: number; categoryCount: number; income: number }
+
 export interface ImportDoc {
   _id: ObjectId
   status: ImportStatus
@@ -41,7 +43,8 @@ export interface ImportDoc {
   rows: string
   skipped: Partial<Record<SkipReason, number>>
   droppedOverCap: number
-  plan: Record<string, number>
+  /** JSON `Record<string, number>`: a YNAB plan's assigned amounts. Encrypted, being money. */
+  plan: string
   total: number
   done: number
   failed: number
@@ -55,7 +58,8 @@ export interface ImportDoc {
   /** A commit in progress holds this, so two commits can't both write. */
   claimedUntil?: number
   last_error?: string
-  summary?: { groupCount: number; categoryCount: number; income: number }
+  /** JSON `ImportSummary`, written at commit. Encrypted: it holds the salary. */
+  summary?: string
   created_at: Date
   committed_at?: Date
   finished_at?: Date
@@ -88,6 +92,10 @@ export async function importsCollection(auth: Auth) {
   return getCollection('imports', auth)
 }
 
+export function planOf(doc: Pick<ImportDoc, 'plan'>): Record<string, number> {
+  return doc.plan ? (JSON.parse(doc.plan) as Record<string, number>) : {}
+}
+
 export function storedRows(doc: Pick<ImportDoc, 'rows'>): StoredRow[] {
   return JSON.parse(doc.rows) as StoredRow[]
 }
@@ -110,7 +118,7 @@ export async function buildReview(auth: Auth, doc: ImportDoc, today: string): Pr
   const others = new Map<string, number>()
   for (const r of rows) if (r.kind === 'skipped') others.set(r.currency, (others.get(r.currency) ?? 0) + 1)
   const categories = proposeCategories(live)
-  const budgets = proposeBudgets(live, categories.sourceOf, today, doc.currency, doc.plan)
+  const budgets = proposeBudgets(live, categories.sourceOf, today, doc.currency, planOf(doc))
   const names = categories.list.map((c) => c.source)
   // AI off, over the allowance or failing: every category lands in Essentials and the user regroups.
   const groupsBy = (await importAiAllowed(auth))
@@ -174,7 +182,7 @@ export async function previewFile(auth: Auth, buf: Buffer, filename: string): Pr
     rows: JSON.stringify(n.rows),
     skipped: n.skipped,
     droppedOverCap: n.droppedOverCap,
-    plan: n.plan,
+    plan: JSON.stringify(n.plan),
     total: 0,
     done: 0,
     failed: 0,

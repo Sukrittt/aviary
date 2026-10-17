@@ -15,7 +15,7 @@ import { createRecurringIncome, ensureIncomeMigrated, INCOME_CATEGORY, syncMonth
 import { ImportError, resolveRows } from './normalize'
 import type { Direction } from './parse'
 import { CATEGORY_NAME_MAX, UNCATEGORISED, detectSalary, incomeCounted, proposeBudgets, proposeCategories } from './propose'
-import { importsCollection, loadImport, STARTER_GROUPS, storedRows, type BookingRow, type ImportDoc } from './service'
+import { importsCollection, loadImport, planOf, STARTER_GROUPS, storedRows, type BookingRow, type ImportDoc, type ImportSummary } from './service'
 
 export interface CommitEdits {
   currency: string
@@ -26,7 +26,7 @@ export interface CommitEdits {
   salary: { amount: number; day: number } | null
 }
 
-export type CommitResult = { importId: string; total: number } & NonNullable<ImportDoc['summary']>
+export type CommitResult = { importId: string; total: number } & ImportSummary
 
 const MAX_GROUPS = 20
 const MAX_EDITS = 200
@@ -83,7 +83,7 @@ function payday(month: string, day: number): string {
 const resultOf = (doc: ImportDoc): CommitResult => ({
   importId: String(doc._id),
   total: doc.total,
-  ...(doc.summary ?? { groupCount: 0, categoryCount: 0, income: 0 }),
+  ...(doc.summary ? (JSON.parse(doc.summary) as ImportSummary) : { groupCount: 0, categoryCount: 0, income: 0 }),
 })
 
 /**
@@ -213,7 +213,7 @@ async function writeSetup(auth: Auth, doc: ImportDoc, edits: CommitEdits): Promi
   await syncMonthlyIncome(auth, month)
 
   // 5. This month's budget, per envelope, from the proposal.
-  const planByName = Object.fromEntries(Object.entries(doc.plan).map(([source, amount]) => [finalNames.get(source) ?? source, amount]))
+  const planByName = Object.fromEntries(Object.entries(planOf(doc)).map(([source, amount]) => [finalNames.get(source) ?? source, amount]))
   const budgets = proposeBudgets(live, categoryOf, today, edits.currency, planByName)
   for (const c of categories.values()) {
     if (c.name === INCOME_CATEGORY) continue
@@ -236,7 +236,7 @@ async function writeSetup(auth: Auth, doc: ImportDoc, edits: CommitEdits): Promi
   const flipped = await coll.updateOne({ _id: doc._id, status: 'previewed' }, {
     $set: {
       status: 'importing', rows: JSON.stringify(booking), total: booking.length, done: 0, failed: 0, cursor: 0,
-      streak: 0, streak_start: 0, lockedUntil: 0, currency: edits.currency, direction: edits.direction, summary, committed_at: new Date(),
+      streak: 0, streak_start: 0, lockedUntil: 0, currency: edits.currency, direction: edits.direction, summary: JSON.stringify(summary), committed_at: new Date(),
     },
   })
   if (flipped.matchedCount !== 1) {
