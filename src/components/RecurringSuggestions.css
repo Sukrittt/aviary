@@ -93,7 +93,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 0 0;
+  padding: 12px 14px;
   margin-top: 12px;
   background: var(--erd-input-bg);
   border-radius: 12px;
@@ -181,7 +181,6 @@
   }
   .recurring-discovery-empty {
     align-items: flex-start;
-    padding: 12px 0 0;
   }
 }
 
