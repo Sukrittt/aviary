@@ -44,9 +44,11 @@ const review: ImportReview = {
 
 const file = (bytes = 10) => new File([new Uint8Array(bytes)], 'monefy.csv', { type: 'text/csv' })
 
+const onAlreadySetUp = vi.fn()
+
 function toReview() {
   const onDone = vi.fn()
-  render(<ImportFlow onFresh={vi.fn()} onDone={onDone} />)
+  render(<ImportFlow onFresh={vi.fn()} onDone={onDone} onAlreadySetUp={onAlreadySetUp} />)
   fireEvent.click(screen.getByRole('radio', { name: /^I’m switching apps/ }))
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
   fireEvent.click(screen.getByRole('button', { name: /Monefy/ }))
@@ -68,7 +70,7 @@ const done = () => fireEvent.click(screen.getByRole('button', { name: 'Done' }))
 describe('ImportFlow', () => {
   it('starting fresh hands straight back to the usual setup', () => {
     const onFresh = vi.fn()
-    render(<ImportFlow onFresh={onFresh} onDone={vi.fn()} />)
+    render(<ImportFlow onFresh={onFresh} onDone={vi.fn()} onAlreadySetUp={vi.fn()} />)
     expect(screen.getByRole('heading', { name: 'How do you want to start?' })).toBeTruthy()
     fireEvent.click(screen.getByRole('radio', { name: /^I’m starting fresh/ }))
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
@@ -77,7 +79,7 @@ describe('ImportFlow', () => {
 
   it('starts on starting fresh, and the choice can change before Continue', () => {
     const onFresh = vi.fn()
-    render(<ImportFlow onFresh={onFresh} onDone={vi.fn()} />)
+    render(<ImportFlow onFresh={onFresh} onDone={vi.fn()} onAlreadySetUp={vi.fn()} />)
     const fresh = screen.getByRole('radio', { name: /^I’m starting fresh/ })
     const switching = screen.getByRole('radio', { name: /^I’m switching apps/ })
     expect(fresh.getAttribute('aria-checked')).toBe('true')
@@ -166,6 +168,12 @@ describe('ImportFlow', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('We couldn’t find a date and an amount column. Check the file is the transactions export, not a report.')
   })
 
+  it('an account already set up elsewhere is handed on, not shown a dead end', async () => {
+    previewImport.mockRejectedValue(new ImportFailure('already_onboarded'))
+    toReview()
+    await waitFor(() => expect(onAlreadySetUp).toHaveBeenCalled())
+  })
+
   it('names the app it recognised over the review', async () => {
     toReview()
     expect(await screen.findByText('Monefy export')).toBeTruthy()
@@ -177,7 +185,7 @@ describe('ImportFlow', () => {
     ['backup.xls', 10, 'That’s an old Excel file (.xls). Open it, save it as .xlsx or .csv, then drop that here.'],
     ['export.csv', 0, 'That file’s empty. Export it again from your app and try once more.'],
   ])('turns away %s before uploading it, saying why', async (name, bytes, copy) => {
-    render(<ImportFlow onFresh={vi.fn()} onDone={vi.fn()} />)
+    render(<ImportFlow onFresh={vi.fn()} onDone={vi.fn()} onAlreadySetUp={vi.fn()} />)
     fireEvent.click(screen.getByRole('radio', { name: /^I’m switching apps/ }))
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     fireEvent.click(screen.getByRole('button', { name: /Wallet/ }))
@@ -187,7 +195,7 @@ describe('ImportFlow', () => {
   })
 
   it('gzips an export over 4 MB to fit the upload, under its own name', async () => {
-    render(<ImportFlow onFresh={vi.fn()} onDone={vi.fn()} />)
+    render(<ImportFlow onFresh={vi.fn()} onDone={vi.fn()} onAlreadySetUp={vi.fn()} />)
     fireEvent.click(screen.getByRole('radio', { name: /^I’m switching apps/ }))
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     fireEvent.click(screen.getByRole('button', { name: /YNAB/ }))
@@ -200,7 +208,7 @@ describe('ImportFlow', () => {
   it('stops a file still over 4 MB gzipped before uploading it', async () => {
     const noise = new Uint8Array(4 * 1024 * 1024 + 1)
     for (let i = 0; i < noise.length; i += 65_536) crypto.getRandomValues(noise.subarray(i, i + 65_536))
-    render(<ImportFlow onFresh={vi.fn()} onDone={vi.fn()} />)
+    render(<ImportFlow onFresh={vi.fn()} onDone={vi.fn()} onAlreadySetUp={vi.fn()} />)
     fireEvent.click(screen.getByRole('radio', { name: /^I’m switching apps/ }))
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     fireEvent.click(screen.getByRole('button', { name: /YNAB/ }))
