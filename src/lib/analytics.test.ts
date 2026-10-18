@@ -5,6 +5,7 @@ vi.mock('posthog-js', () => ({
   default: {
     init: vi.fn(),
     register: vi.fn(),
+    register_once: vi.fn(),
     capture: vi.fn(),
     identify: vi.fn(),
     reset: vi.fn(),
@@ -52,6 +53,15 @@ describe('outside production', () => {
 })
 
 describe('with a key', () => {
+  it('keeps the ?ref= tag that stripQuery would drop, on every later event', async () => {
+    window.history.replaceState(null, '', '/?ref=invite')
+    const a = await load('phc_test')
+    await a.initAnalytics()
+    expect(posthog.register_once).toHaveBeenCalledWith({ ref: 'invite' })
+    window.history.replaceState(null, '', '/')
+  })
+
+
   it('waits for initialization even before the provider effect starts it', async () => {
     const a = await load('phc_test')
     await a.analyticsReady()
