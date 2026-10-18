@@ -49,7 +49,7 @@ describe('ImportBanner', () => {
     show({ ...base, status: 'done', done: 11240 })
     expect(await screen.findByText('All 11,240 spends and paydays are in')).toBeTruthy()
     expect(screen.getByText('Want us to find your repeat payments?')).toBeTruthy()
-    expect(screen.getByRole('link', { name: 'Find them' }).getAttribute('href')).toBe('/account/recurring')
+    expect(screen.getByRole('link', { name: 'Find them' }).getAttribute('href')).toBe('/account/recurring?find=all')
     fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }))
     expect(screen.queryByText('All 11,240 spends and paydays are in')).toBeNull()
     expect(window.localStorage.getItem('mc-import-done-dismissed-imp1')).toBe('1')

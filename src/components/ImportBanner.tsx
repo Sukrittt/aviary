@@ -171,7 +171,7 @@ export function ImportBanner() {
           <strong>{historyDone(data.total, data.failed)}</strong>
           <span className="import-banner-sub">Want us to find your repeat payments?</span>
         </div>
-        <Link className="import-banner-action" href="/account/recurring" onClick={() => writePref(dismissKey(data.importId), '1')}>
+        <Link className="import-banner-action" href="/account/recurring?find=all" onClick={() => writePref(dismissKey(data.importId), '1')}>
           Find them
         </Link>
         <button
