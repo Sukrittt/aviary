@@ -8,14 +8,22 @@
 export type DateOrder = 'dmy' | 'mdy'
 export type Direction = 'negative_spend' | 'positive_spend'
 
-/** Comma is the decimal separator when no amount ends in a dot and at least one ends in a comma plus cents. */
+/**
+ * Comma is the decimal separator when no amount ends in a dot plus cents and at
+ * least one ends in a comma plus cents or groups its thousands with dots (50.000).
+ */
 export function detectDecimalComma(samples: string[]): boolean {
   let evidence = false
   for (const raw of samples) {
     const t = raw.replace(/[^\d.,]/g, '')
     const i = Math.max(t.lastIndexOf(','), t.lastIndexOf('.'))
     if (i < 0) continue
-    if (t[i] === '.') return false
+    if (t[i] === '.') {
+      // Same rule as 1,250 below: no money has three decimals, so 50.000 is thousands.
+      if (!/^\d{1,3}(?:\.\d{3})+$/.test(t)) return false
+      evidence = true
+      continue
+    }
     const after = t.length - i - 1
     if (after >= 1 && after <= 2) evidence = true
   }

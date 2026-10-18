@@ -17,6 +17,20 @@ describe('detectDecimalComma', () => {
   it('mixed last separators mean dot decimal', () => {
     expect(detectDecimalComma(['1,25', '1.50'])).toBe(false)
   })
+
+  it('reads dot as thousands when every dot is followed by three-digit groups', () => {
+    expect(detectDecimalComma(['50.000', '125.000', '1.250.000'])).toBe(true)
+    expect(detectDecimalComma(['50.000', '7'])).toBe(true)
+  })
+
+  it('a lone dot plus three digits is no evidence against a comma decimal', () => {
+    expect(detectDecimalComma(['5.000', '12,50'])).toBe(true)
+  })
+
+  it('any dot with cents still means dot decimal', () => {
+    expect(detectDecimalComma(['50.000', '12.50'])).toBe(false)
+    expect(detectDecimalComma(['1,250.000'])).toBe(false)
+  })
 })
 
 describe('parseAmount', () => {
