@@ -58,6 +58,8 @@ function toReview() {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  // The payday DatePicker reads the viewport; jsdom has no matchMedia.
+  vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }))
   previewImport.mockResolvedValue(review)
   recomputeImport.mockResolvedValue({ ...review, direction: 'positive_spend' })
   commitImport.mockResolvedValue({ importId: 'imp1', total: 9, groupCount: 2, categoryCount: 2, income: 3000 })
@@ -140,7 +142,9 @@ describe('ImportFlow', () => {
     expect(screen.getByLabelText('Monthly income')).toHaveValue(null)
     fireEvent.click(screen.getByRole('button', { name: 'That’s backwards' }))
     await waitFor(() => expect(screen.getByLabelText('Monthly income')).toHaveValue(3100))
-    expect(screen.getByLabelText('Payday, day of the month')).toHaveValue(2)
+    done()
+    fireEvent.click(screen.getByRole('button', { name: 'Looks right, set me up' }))
+    await waitFor(() => expect(commitImport.mock.calls[0][1]).toMatchObject({ salary: { amount: 3100, day: 2 } }))
   })
 
   it('stops at more bank accounts than the app holds, rather than dropping one quietly', async () => {

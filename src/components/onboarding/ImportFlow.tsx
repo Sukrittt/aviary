@@ -10,6 +10,8 @@ import { LoadingCaption } from '@/src/components/LoadingCaption'
 import { useCountUp } from '@/src/components/wrapped/WeekRecapVisuals'
 import { SuccessButton, useButtonPhase } from '@/src/components/SuccessButton'
 import { currencyInfo } from '@/src/lib/currencies'
+import { nextOnDay } from '@/src/lib/date'
+import { DatePicker } from '@/src/components/DatePicker'
 import { track } from '@/src/lib/analytics'
 import { commitImport, ImportFailure, previewImport, recomputeImport, type CommitResult, type ImportReview } from '@/src/api/imports'
 import { useImportStatus } from '@/src/components/ImportBanner'
@@ -349,7 +351,7 @@ function Review({ review, picked, onReview, onDone, onAlreadySetUp }: { review: 
   const [cats, setCats] = useState<CategoryEdit[]>(review.categories)
   const [accounts, setAccounts] = useState<AccountEdit[]>(review.accounts)
   const [salary, setSalary] = useState(review.salary ? String(review.salary.amount) : '')
-  const [day, setDay] = useState(String(review.salary?.day ?? 1))
+  const [payday, setPayday] = useState(() => nextOnDay(review.salary?.day ?? new Date().getDate()))
   const [recomputing, setRecomputing] = useState(false)
   const [error, setError] = useState('')
   const seen = useRef(`${review.importId}:${review.direction}:${review.currency}`)
@@ -367,7 +369,7 @@ function Review({ review, picked, onReview, onDone, onAlreadySetUp }: { review: 
     // A flip can find a salary the first read missed, or lose one it found.
     if (!salaryEdited.current) {
       setSalary(review.salary ? String(review.salary.amount) : '')
-      setDay(String(review.salary?.day ?? 1))
+      setPayday(nextOnDay(review.salary?.day ?? new Date().getDate()))
     }
   }, [review])
 
@@ -415,7 +417,7 @@ function Review({ review, picked, onReview, onDone, onAlreadySetUp }: { review: 
         groups,
         categories: cats.map((c) => ({ source: c.source, name: c.name.trim() || c.source, group: c.group })),
         accounts: accounts.map((a) => ({ ...a, name: a.name.trim() || a.source })),
-        salary: hasSalary ? { amount: salaryAmount, day: Math.min(31, Math.max(1, Math.round(Number(day)) || 1)) } : null,
+        salary: hasSalary ? { amount: salaryAmount, day: Number(payday.slice(8, 10)) } : null,
       })
       track('import_committed', { app: review.app, categories: cats.length, accounts: accounts.length, has_salary: hasSalary, rows: result.total })
       phase.succeed(() => onDone({ result, currency: review.currency, app: from }))
@@ -630,35 +632,41 @@ function Review({ review, picked, onReview, onDone, onAlreadySetUp }: { review: 
                 ? `We think your salary is ${formatMoney(review.salary.amount)} on about the ${ordinal(review.salary.day)}.`
                 : 'We didn’t spot a regular payday. Add your monthly income if you like, or leave it for later.'}
             </p>
-            <div className="import-row">
-              <input
-                type="number"
-                inputMode="decimal"
-                className="txn-entry-input"
-                aria-label="Monthly income"
-                placeholder="Monthly income"
-                min={0}
-                value={salary}
-                onChange={(e) => {
-                  salaryEdited.current = true
-                  setSalary(e.target.value)
-                }}
-              />
-              <label className="import-day">
-                <span>Payday</span>
+            <div className="erd-recurring-grid">
+              <section className="erd-recurring-section">
+                <label className="erd-log-label" htmlFor="import-income-amount">Amount ({currencyInfo(review.currency).symbol})</label>
                 <input
+                  id="import-income-amount"
+                  className="erd-log-input"
                   type="number"
-                  className="txn-entry-input"
-                  aria-label="Payday, day of the month"
-                  min={1}
-                  max={31}
-                  value={day}
+                  inputMode="decimal"
+                  aria-label="Monthly income"
+                  placeholder="0"
+                  min={0}
+                  step="any"
+                  value={salary}
                   onChange={(e) => {
                     salaryEdited.current = true
-                    setDay(e.target.value)
+                    setSalary(e.target.value)
                   }}
                 />
-              </label>
+              </section>
+              <section className="erd-recurring-section">
+                <div className="erd-log-label">Next payday</div>
+                <DatePicker
+                  mode="single"
+                  value={payday}
+                  onChange={(d) => {
+                    salaryEdited.current = true
+                    setPayday(d)
+                  }}
+                  disableFuture={false}
+                  popoverOnDesktop
+                />
+              </section>
+              <section className="erd-recurring-section erd-recurring-span">
+                <p className="recurring-hint">Comes in every month on this day. Change it any time from Income.</p>
+              </section>
             </div>
           </ReviewDialog>
         )}

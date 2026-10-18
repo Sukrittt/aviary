@@ -9,6 +9,13 @@ export function toLocalDateString(d: Date = new Date()): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
+/** The next local date (today included) falling on `day` of the month, clamped to short months. */
+export function nextOnDay(day: number, from: Date = new Date()): string {
+  const on = (y: number, m: number) => new Date(y, m, Math.min(day, new Date(y, m + 1, 0).getDate()))
+  const thisMonth = on(from.getFullYear(), from.getMonth())
+  return toLocalDateString(thisMonth.getDate() >= from.getDate() ? thisMonth : on(from.getFullYear(), from.getMonth() + 1))
+}
+
 /** Today's device-local calendar date. */
 export function todayLocal(): string {
   return toLocalDateString()
