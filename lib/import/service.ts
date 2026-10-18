@@ -170,7 +170,8 @@ export async function previewFile(auth: Auth, buf: Buffer, filename: string): Pr
   const coll = await importsCollection(auth)
   // A preview is a throwaway copy of the file. A real delete, not the soft
   // one: `imports` isn't archivable, so a soft-deleted blob would never go.
-  await coll.purgeMany({ status: 'previewed' })
+  // Never one a commit is setting up right now, or its final flip finds nothing.
+  await coll.purgeMany({ status: 'previewed', $or: [{ claimedUntil: { $exists: false } }, { claimedUntil: { $lte: Date.now() } }] })
   const doc: Omit<ImportDoc, '_id'> = {
     status: 'previewed',
     app: n.app,

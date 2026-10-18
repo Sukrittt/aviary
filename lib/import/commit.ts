@@ -214,7 +214,9 @@ async function writeSetup(auth: Auth, doc: ImportDoc, edits: CommitEdits): Promi
       amount: edits.salary.amount,
       frequency: 'monthly',
       start_date: payday(startMonth, edits.salary.day),
-      client_id: `import-salary:${importId}`,
+      // Per account, not per import: a commit that died after this step and a
+      // retry with a new file must land on the same schedule, not a second one.
+      client_id: 'import-salary',
       ...(lastSalary ? { next_run_from: dayAfter(lastSalary.date) } : {}),
     })
   }
