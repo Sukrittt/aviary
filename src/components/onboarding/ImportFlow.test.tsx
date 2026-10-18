@@ -178,6 +178,12 @@ describe('ImportFlow', () => {
     await waitFor(() => expect(onAlreadySetUp).toHaveBeenCalled())
   })
 
+  it('says why a file without categories lands in one envelope', async () => {
+    previewImport.mockResolvedValue({ ...review, categories: [{ source: 'Uncategorised', name: 'Uncategorised', group: 'Essentials', monthly: 27500 }] })
+    toReview()
+    expect(await screen.findByText('Your file doesn’t have categories, so every spend starts in one envelope. Rename it under Envelopes, or split it up later from Categories.')).toBeTruthy()
+  })
+
   it('names the app it recognised over the review', async () => {
     toReview()
     expect(await screen.findByText('Monefy export')).toBeTruthy()

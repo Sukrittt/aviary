@@ -24,6 +24,8 @@ import { commitSteps, countsLine, directionCopy, fileSize, historyDone, importEr
  */
 
 const MAX_BYTES = 4 * 1024 * 1024
+/** lib/import/propose.ts UNCATEGORISED: where spends without a category land. */
+const UNCATEGORISED = 'Uncategorised'
 
 /** An export past the upload cap, gzipped: text shrinks about tenfold, and the server reads either (lib/import/read.ts). */
 async function squeeze(file: File): Promise<File> {
@@ -515,6 +517,9 @@ function Review({ review, picked, onReview, onDone, onAlreadySetUp }: { review: 
 
         <motion.div className="import-notes" {...rise(summary.length + 1)}>
           <p className="import-note">{budgetLine}</p>
+          {cats.length === 1 && cats[0].source === UNCATEGORISED && review.counts.expense > 0 && (
+            <p className="import-note">Your file doesn’t have categories, so every spend starts in one envelope. Rename it under Envelopes, or split it up later from Categories.</p>
+          )}
           {skippedCopy(review).map((line) => <p key={line} className="import-note">{line}</p>)}
 
           <div className="import-line import-note">
