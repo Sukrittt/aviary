@@ -13875,3 +13875,10 @@ button.account-feature-card {
   color: var(--gold-ink);
   background: var(--gold-soft);
 }
+
+/* Review-line actions sit inside a text row, so they stay compact instead of the 44px setup size. */
+.import-line .setup-selection-action {
+  min-height: 0;
+  padding: 4px 10px;
+  border-radius: 8px;
+}
