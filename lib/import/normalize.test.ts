@@ -84,8 +84,9 @@ describe('presets', () => {
     expect(out.directionSource).toBe('sign')
     expect(out.defaultDirection).toBe('positive_spend')
     const rows = resolveRows(out.rows, { direction: out.defaultDirection, currency: 'USD', hasCurrency: false })
-    expect(counts(rows)).toEqual({ expense: 6, income: 3 })
-    expect(rows.filter((r) => r.kind === 'income').map((r) => r.item)).toEqual(['Paycheck', 'Return', 'Paycheck'])
+    expect(counts(rows)).toEqual({ expense: 7, income: 2 })
+    expect(rows.filter((r) => r.kind === 'income').map((r) => r.item)).toEqual(['Paycheck', 'Paycheck'])
+    expect(rows.find((r) => r.item === 'Return')).toMatchObject({ kind: 'expense', amount: -10, category: 'Groceries' })
     expect(rows.find((r) => r.item === 'Landlord')).toMatchObject({ kind: 'expense', amount: 1200, category: 'Rent' })
   })
 
@@ -149,13 +150,15 @@ describe('generic files', () => {
     expect(out.rows.map((r) => r.amount)).toEqual([50000, 1250000, 125000])
   })
 
-  it('keeps the newest 20,000 rows and says how many it dropped', () => {
-    const lines = ['Date,Item,Amount']
-    for (let i = 0; i < 20_001; i++) lines.push(`${i === 0 ? '2020-01-01' : '2026-01-01'},Row ${i},-1`)
+  it('keeps every row of fifteen years of history, the oldest included', () => {
+    const lines = ['Date,Description,Amount,Account,Category,Subcategory,Notes']
+    for (let i = 0; i < 50_000; i++) {
+      const date = new Date(Date.UTC(2011, 9, 1) + Math.floor(i / 9.2) * 86_400_000).toISOString().slice(0, 10)
+      lines.push(`${date},Swiggy dinner ${i % 50},-1250.50,HDFC Credit Card,Food,Eating out,${i % 5 ? '' : 'with friends'}`)
+    }
     const out = normalize(inspect(csv(lines)), TODAY)
-    expect(out.rows).toHaveLength(20_000)
-    expect(out.droppedOverCap).toBe(1)
-    expect(out.rows.some((r) => r.date === '2020-01-01')).toBe(false)
+    expect(out.rows).toHaveLength(50_000)
+    expect(out.rows[0].date).toBe('2011-10-01')
   })
 
   it('clips item text to 200 and notes to 300', () => {
@@ -168,13 +171,6 @@ describe('generic files', () => {
     const long = 'c'.repeat(150)
     const out = normalize(inspect(csv(['Date,Item,Amount,Account,Category,Subcategory', `2026-09-01,Bread,-1,${long},${long},${long}`])), TODAY)
     expect([out.rows[0].account, out.rows[0].category, out.rows[0].subcategory].map((s) => s.length)).toEqual([100, 100, 100])
-  })
-
-  it('refuses rows too big to store in one import, rather than failing the write', () => {
-    const lines = ['Date,Description,Amount,Notes,Account,Category,Subcategory']
-    const [text, note, long] = ['a'.repeat(200), 'b'.repeat(300), 'c'.repeat(100)]
-    for (let i = 0; i < 20_000; i++) lines.push(`2026-09-01,${text}${i},-1,${note},${long},${long},${long}`)
-    expect(() => normalize(inspect(csv(lines)), TODAY)).toThrow(new ImportError('too_big'))
   })
 
   it('asks for help with columns it cannot place, and only those', () => {
@@ -205,6 +201,45 @@ describe('generic files', () => {
   })
 })
 
+describe('refunds', () => {
+  const resolved = (lines: string[]) => {
+    const out = normalize(inspect(csv(lines)), TODAY)
+    return resolveRows(out.rows, { direction: out.defaultDirection, currency: 'INR', hasCurrency: false })
+  }
+
+  it('books money back on a spending category as a refund, a negative spend there, not income', () => {
+    const rows = resolved([
+      'Date,Item,Category,Amount', '2026-09-01,Acme payroll,Salary,85000', '2026-09-02,Myntra,Shopping,-3000',
+      '2026-09-05,Myntra return,Shopping,1200', '2026-09-08,IRCTC,Travel,-2400', '2026-09-09,IRCTC cancellation,Travel,1800',
+    ])
+    expect(rows.map((r) => [r.item, r.kind, r.amount])).toEqual([
+      ['Acme payroll', 'income', 85000], ['Myntra', 'expense', 3000], ['Myntra return', 'expense', -1200],
+      ['IRCTC', 'expense', 2400], ['IRCTC cancellation', 'expense', -1800],
+    ])
+  })
+
+  it('keeps money in as income on an income category, one with no spends, or none at all', () => {
+    const rows = resolved([
+      'Date,Item,Category,Amount', '2026-09-01,Acme payroll,Salary,85000', '2026-09-02,Payroll tax fix,Salary,-200',
+      '2026-09-03,Ready to Assign,Inflow: Ready to Assign,500', '2026-09-03,Oops,Inflow: Ready to Assign,-5',
+      '2026-09-04,Gift from mum,Gifts,2000', '2026-09-05,Cash found,,100', '2026-09-06,Bread,Food,-40',
+    ])
+    expect(rows.filter((r) => r.kind === 'income').map((r) => r.item)).toEqual(['Acme payroll', 'Ready to Assign', 'Gift from mum', 'Cash found'])
+  })
+
+  it('reads a YNAB inflow on a spending category as a refund', async () => {
+    const out = normalize(inspect(await load('ynab-register.csv')), TODAY)
+    const rows = resolveRows(out.rows, { direction: out.defaultDirection, currency: 'USD', hasCurrency: false })
+    expect(rows.find((r) => r.item === 'Store refund')).toMatchObject({ kind: 'expense', amount: -15, category: 'Groceries' })
+    expect(rows.filter((r) => r.kind === 'income').map((r) => r.item)).toEqual(['Acme Corp', 'Acme Corp'])
+  })
+
+  it('trusts an app’s own type column over the category', () => {
+    const rows = resolved(['Date,Item,Category,Amount,Type', '2026-09-01,Shop,Food,40,Expense', '2026-09-02,Cashback,Food,15,Income'])
+    expect(rows.map((r) => r.kind)).toEqual(['expense', 'income'])
+  })
+})
+
 describe('YNAB plan', () => {
   it('reads a comma-decimal plan the same way as its register', () => {
     const tables: Table[] = [
@@ -223,6 +258,15 @@ describe('resolveRows', () => {
 
   it('flips only rows whose direction came from the sign', () => {
     expect(resolveRows(rows, { direction: 'positive_spend', currency: 'INR', hasCurrency: false }).map((r) => r.kind)).toEqual(['income', 'income'])
+  })
+
+  it('turns a flipped row into a refund when it lands on a spending category', () => {
+    // Read as positive-is-spend: the 15 is the spend, the 40 money back on the same category.
+    const signed: StoredRow[] = [
+      { ...rows[0], category: 'Food', amount: 40, byAmount: true },
+      { ...rows[0], kind: 'income', category: 'Food', amount: 15, bySign: true, byAmount: true },
+    ]
+    expect(resolveRows(signed, { direction: 'positive_spend', currency: 'INR', hasCurrency: false }).map((r) => [r.kind, r.amount])).toEqual([['expense', -40], ['expense', 15]])
   })
 
   it('skips rows in another currency when the file has a currency column', () => {

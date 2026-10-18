@@ -114,7 +114,8 @@ export async function adjustCreditCardEnvelope(
 }
 
 export async function createExpense(auth: Auth, input: CreateExpenseInput): Promise<CreateExpenseResult> {
-  const invalid = expenseInputError({ ...input })
+  // Only the import books refunds; `source` is checked against CLIENT_SOURCES before a client's create gets here.
+  const invalid = expenseInputError({ ...input }, false, input.source === 'import')
   if (invalid) throw new Error(invalid)
   const ist = await nowForUser(auth.userId)
   const date = String(input.date || ist.date)

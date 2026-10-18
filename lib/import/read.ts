@@ -1,4 +1,4 @@
-import { inflateRawSync } from 'node:zlib'
+import { gunzipSync, inflateRawSync } from 'node:zlib'
 import ExcelJS from 'exceljs'
 
 /**
@@ -82,11 +82,11 @@ export function findHeaderRow(rows: string[][], score: (cells: string[]) => numb
 }
 
 /**
- * Most a zip may inflate to, in total. 15 MB of csv or sheet xml is well past
- * the 20,000 rows an import keeps; more only costs the preview its memory and
- * its 30 seconds.
+ * Most a zip or gzip may inflate to, in total. A 50,000-row workbook's sheet
+ * xml is about 17 MB, and 32 MB is past what the stored rows can hold anyway;
+ * more only costs the preview its memory and its 30 seconds.
  */
-const MAX_INFLATED = 15 * 1024 * 1024
+const MAX_INFLATED = 32 * 1024 * 1024
 
 /** A zip past MAX_INFLATED: too big, not unreadable, so the user hears to export less. */
 export class ZipTooLarge extends Error {}
@@ -160,15 +160,24 @@ async function readXlsx(buf: Buffer): Promise<Table[]> {
 }
 
 const isZip = (buf: Buffer) => buf.length > 4 && buf.readUInt32LE(0) === 0x04034b50
+const isGzip = (buf: Buffer) => buf.length > 2 && buf[0] === 0x1f && buf[1] === 0x8b
 
-/** Every table in the file. An xlsx is a zip too, so the name decides between them. */
+/**
+ * Every table in the file. An xlsx is a zip too, so the name decides between
+ * them. A gzip is the browser squeezing a big export under the upload cap
+ * (`ImportFlow`): its name is the file's own.
+ */
 export async function readTable(buf: Buffer, filename: string): Promise<Table[]> {
+  if (isGzip(buf)) {
+    try { buf = gunzipSync(buf, { maxOutputLength: MAX_INFLATED }) }
+    catch (e) { throw (e as { code?: string }).code === 'ERR_BUFFER_TOO_LARGE' ? new ZipTooLarge() : e }
+  }
   const lower = filename.toLowerCase()
   // A binary (pre-2007) .xls isn't a zip and exceljs can't read it; one renamed from .xlsx is.
   if (lower.endsWith('.xls') && !isZip(buf)) throw new Error('binary xls')
   if (lower.endsWith('.xlsx') || lower.endsWith('.xls')) {
     // Inflated here first so the cap holds on the bytes, not the declared sizes, before exceljs inflates it again.
-    // ponytail: exceljs loads the whole workbook; under MAX_INFLATED that's ~1.5s. A streaming WorkbookReader if the cap goes up.
+    // ponytail: exceljs loads the whole workbook; under MAX_INFLATED that's ~2s. A streaming WorkbookReader if the cap goes up.
     readZip(buf)
     return readXlsx(buf)
   }

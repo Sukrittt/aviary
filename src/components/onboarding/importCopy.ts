@@ -40,9 +40,9 @@ export function shortDate(date: string): string {
   return new Date(`${date}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
 }
 
-/** "1,240 spends · 36 paydays · Mar 2019 to Oct 2026" */
+/** "1,240 spends · 14 refunds · 36 paydays · Mar 2019 to Oct 2026", refunds only when there are some. */
 export function countsLine(counts: ImportReview['counts']): string {
-  const parts = [plural(counts.expense, 'spend', 'spends'), plural(counts.income, 'payday', 'paydays')]
+  const parts = [plural(counts.expense, 'spend', 'spends'), ...(counts.refund ? [plural(counts.refund, 'refund', 'refunds')] : []), plural(counts.income, 'payday', 'paydays')]
   if (counts.from && counts.to) {
     const from = monthYear(counts.from)
     const to = monthYear(counts.to)
@@ -55,7 +55,7 @@ export function countsLine(counts: ImportReview['counts']): string {
  * What we left out, in up to two sentences: the bookkeeping that isn't
  * spending, then the rows we couldn't use. Empty when nothing was skipped.
  */
-export function skippedCopy(review: Pick<ImportReview, 'skipped' | 'otherCurrencies' | 'droppedOverCap'>): string[] {
+export function skippedCopy(review: Pick<ImportReview, 'skipped' | 'otherCurrencies'>): string[] {
   const s = review.skipped
   const bookkeeping = [
     s.transfer && plural(s.transfer, 'transfer between your accounts', 'transfers between your accounts'),
@@ -72,7 +72,6 @@ export function skippedCopy(review: Pick<ImportReview, 'skipped' | 'otherCurrenc
   const out: string[] = []
   if (bookkeeping.length) out.push(`We left out ${listOf(bookkeeping)}. They aren’t spending.`)
   if (unusable.length) out.push(`We ${bookkeeping.length ? 'also ' : ''}skipped ${listOf(unusable)}.`)
-  if (review.droppedOverCap) out.push(`Your file has more than 20,000 rows, so we kept the newest and left out ${plural(review.droppedOverCap, 'older one', 'older ones')}.`)
   return out
 }
 

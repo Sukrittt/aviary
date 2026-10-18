@@ -8,7 +8,7 @@ import { sendEmail } from '@/lib/email/resend'
 import { transactionalTemplate } from '@/lib/email/transactionalTemplate'
 import { displayName, type UserDoc } from '@/lib/users'
 import type { AppId } from './presets'
-import { importsCollection, loadImport, type BookingRow, type ImportDoc } from './service'
+import { importsCollection, loadImport, unpackRows, type BookingRow, type ImportDoc } from './service'
 
 /**
  * Books a committed import's rows, oldest first, through the same paths a
@@ -64,7 +64,7 @@ export async function runImportPass(auth: Auth, importId: string, deadlineMs: nu
   if (taken.matchedCount !== 1) return 'leased'
   try {
     const doc = await loadImport(auth, importId)
-    const rows = JSON.parse(doc.rows) as BookingRow[]
+    const rows = unpackRows<BookingRow>(doc.rows)
     let { cursor, failed, streak, streak_start: streakStart } = doc
     while (cursor < rows.length && Date.now() < deadlineMs) {
       const chunk = rows.slice(cursor, cursor + CHUNK)

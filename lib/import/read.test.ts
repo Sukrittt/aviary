@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { deflateRawSync } from 'node:zlib'
+import { deflateRawSync, gzipSync } from 'node:zlib'
 import ExcelJS from 'exceljs'
 import { decodeText, findHeaderRow, parseCsv, readTable, readZip, ZipTooLarge } from './read'
 
@@ -133,9 +133,23 @@ describe('readTable limits', () => {
     await expect(readTable(zip, 'bomb.zip')).rejects.toThrow(ZipTooLarge)
   })
 
-  it('refuses a zip that inflates to 20 MB, more than a 4 MB export needs', async () => {
-    const zip = makeZip([{ name: 'big.csv', data: Buffer.alloc(20 * 1024 * 1024, 48), deflate: true }])
+  it('reads a zip that inflates to 18 MB, what a fifteen-year workbook does', async () => {
+    const zip = makeZip([{ name: 'big.csv', data: Buffer.from('a,b\n'.repeat(18 * 1024 * 1024 / 4)), deflate: true }])
+    await expect(readTable(zip, 'big.zip')).resolves.toHaveLength(1)
+  })
+
+  it('refuses a zip that inflates to 40 MB, more than a 4 MB export needs', async () => {
+    const zip = makeZip([{ name: 'big.csv', data: Buffer.alloc(40 * 1024 * 1024, 48), deflate: true }])
     await expect(readTable(zip, 'big.zip')).rejects.toThrow(ZipTooLarge)
+  })
+
+  it('reads a file the browser gzipped to fit the upload, under its own name', async () => {
+    const tables = await readTable(gzipSync(Buffer.from('Date,Item,Amount\n2026-09-01,Bread,-2')), 'History.csv')
+    expect(tables).toEqual([{ name: 'History.csv', rows: [['Date', 'Item', 'Amount'], ['2026-09-01', 'Bread', '-2']] }])
+  })
+
+  it('refuses a gzip that would inflate past the cap', async () => {
+    await expect(readTable(gzipSync(Buffer.alloc(60 * 1024 * 1024, 48)), 'bomb.csv')).rejects.toThrow(ZipTooLarge)
   })
 })
 

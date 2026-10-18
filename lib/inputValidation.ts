@@ -16,12 +16,13 @@ export function validDate(value: unknown): value is string {
 export function validText(value: unknown, max: number, empty = false): value is string {
   return typeof value === 'string' && value.length <= max && (empty || value.trim().length > 0)
 }
-export function expenseInputError(input: Record<string, unknown>, partial = false): string | null {
+/** `refund`: an import's money back on a spending category, booked as a negative spend. Never from a client. */
+export function expenseInputError(input: Record<string, unknown>, partial = false, refund = false): string | null {
   for (const [field, max, empty] of [['item', 500, false], ['category', 100, false], ['notes', 5000, true]] as const) {
     if ((input[field] !== undefined || (!partial && field !== 'notes')) && !validText(input[field], max, empty)) return `invalid ${field}`
   }
   // Edits may correct an amount to zero (the transaction editor allows it); new expenses must be positive.
-  if ((input.amount_inr !== undefined || !partial) && (!validMoney(input.amount_inr) || (!partial && Number(input.amount_inr) <= 0))) return 'amount must be a finite positive number'
+  if ((input.amount_inr !== undefined || !partial) && (!validMoney(input.amount_inr, refund) || (!partial && (refund ? Number(input.amount_inr) === 0 : Number(input.amount_inr) <= 0)))) return 'amount must be a finite positive number'
   if (input.timestamp !== undefined && (typeof input.timestamp !== 'string' || !validDate(input.timestamp.slice(0, 10)) ||
     !/^\d{4}-\d{2}-\d{2}T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d{1,3})?(?:Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)?$/.test(input.timestamp) || !Number.isFinite(Date.parse(input.timestamp)))) return 'invalid timestamp'
   if (input.date !== undefined && !validDate(input.date)) return 'invalid date'

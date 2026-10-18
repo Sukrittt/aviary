@@ -15,7 +15,7 @@ import { createRecurringIncome, ensureIncomeMigrated, INCOME_CATEGORY, syncMonth
 import { ImportError, resolveRows } from './normalize'
 import type { Direction } from './parse'
 import { CATEGORY_NAME_MAX, UNCATEGORISED, detectSalary, incomeKey, incomeCounted, proposeBudgets, proposeCategories } from './propose'
-import { importsCollection, loadImport, planOf, STARTER_GROUPS, storedRows, type BookingRow, type ImportDoc, type ImportSummary } from './service'
+import { importsCollection, loadImport, packRows, planOf, STARTER_GROUPS, storedRows, type BookingRow, type ImportDoc, type ImportSummary } from './service'
 
 export interface CommitEdits {
   currency: string
@@ -251,7 +251,7 @@ async function writeSetup(auth: Auth, doc: ImportDoc, edits: CommitEdits): Promi
   const summary = { groupCount: usedGroups.length, categoryCount: categories.size, income: edits.salary?.amount ?? 0 }
   const flipped = await coll.updateOne({ _id: doc._id, status: 'previewed' }, {
     $set: {
-      status: 'importing', rows: JSON.stringify(booking), total: booking.length, done: 0, failed: 0, cursor: 0,
+      status: 'importing', rows: packRows(booking), total: booking.length, done: 0, failed: 0, cursor: 0,
       streak: 0, streak_start: 0, lockedUntil: 0, currency: edits.currency, direction: edits.direction, summary: JSON.stringify(summary), committed_at: new Date(),
     },
   })

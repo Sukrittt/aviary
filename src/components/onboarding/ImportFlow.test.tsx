@@ -24,10 +24,9 @@ const review: ImportReview = {
   directionSource: 'sign',
   currency: 'EUR',
   hasCurrency: true,
-  counts: { expense: 7, income: 2, from: '2026-09-01', to: '2026-10-05' },
+  counts: { expense: 7, refund: 0, income: 2, from: '2026-09-01', to: '2026-10-05' },
   skipped: { transfer: 2, opening_balance: 1, other_currency: 1 },
   otherCurrencies: ['USD'],
-  droppedOverCap: 0,
   samples: [
     { date: '2026-10-05', item: 'Split dinner part 2', amount: 20, kind: 'expense' },
     { date: '2026-10-01', item: 'Payroll', amount: 3000, kind: 'income' },
@@ -179,11 +178,23 @@ describe('ImportFlow', () => {
     expect(previewImport).not.toHaveBeenCalled()
   })
 
-  it('stops a file over 4 MB before uploading it', async () => {
+  it('gzips an export over 4 MB to fit the upload, under its own name', async () => {
     render(<ImportFlow onFresh={vi.fn()} onDone={vi.fn()} />)
     fireEvent.click(screen.getByRole('button', { name: /^Bring my budget over/ }))
     fireEvent.click(screen.getByRole('button', { name: /YNAB/ }))
     fireEvent.change(screen.getByLabelText('Choose your export file'), { target: { files: [file(4 * 1024 * 1024 + 1)] } })
+    await waitFor(() => expect(previewImport).toHaveBeenCalled())
+    const sent = vi.mocked(previewImport).mock.calls[0][0]
+    expect([sent.name, sent.size < 64 * 1024]).toEqual(['monefy.csv', true])
+  })
+
+  it('stops a file still over 4 MB gzipped before uploading it', async () => {
+    const noise = new Uint8Array(4 * 1024 * 1024 + 1)
+    for (let i = 0; i < noise.length; i += 65_536) crypto.getRandomValues(noise.subarray(i, i + 65_536))
+    render(<ImportFlow onFresh={vi.fn()} onDone={vi.fn()} />)
+    fireEvent.click(screen.getByRole('button', { name: /^Bring my budget over/ }))
+    fireEvent.click(screen.getByRole('button', { name: /YNAB/ }))
+    fireEvent.change(screen.getByLabelText('Choose your export file'), { target: { files: [new File([noise], 'monefy.csv', { type: 'text/csv' })] } })
     expect(await screen.findByRole('alert')).toHaveTextContent('That file’s too big. Export a shorter date range and try again.')
     expect(previewImport).not.toHaveBeenCalled()
   })
