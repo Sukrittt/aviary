@@ -5545,6 +5545,13 @@
   cursor: default;
 }
 
+/* The button stays disabled through its success beat, so beat .setup-cta:disabled here. */
+.setup-cta.is-success,
+.setup-cta.is-success:disabled {
+  background: var(--tk-success-bg);
+  color: var(--tk-on-success);
+}
+
 .setup-cta.is-saving {
   position: relative;
   overflow: hidden;
@@ -13596,15 +13603,6 @@ button.account-feature-card {
 }
 .import-sample-amount.is-income {
   color: var(--mint);
-}
-.import-day {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-}
-.import-day .txn-entry-input {
-  width: 64px;
 }
 .import-banner {
   position: relative;
