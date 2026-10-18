@@ -53,9 +53,10 @@ html:has(.lp) { scroll-behavior: smooth; }
 .lp-early:hover { color: var(--ink); border-color: #cfcabe; }
 .lp-hero h1 { font-family: var(--font-display), sans-serif; font-weight: 600; font-size: clamp(46px, 6vw, 76px); line-height: 1; letter-spacing: -.035em; }
 .lp-learns { position: relative; display: inline-block; color: var(--accent-ink); }
-.lp-learns svg { position: absolute; left: -2%; right: -2%; bottom: -.08em; width: 104%; height: .2em; overflow: visible; }
-.lp-learns path { fill: none; stroke: var(--accent); stroke-width: 5; stroke-linecap: round; stroke-dasharray: 260; stroke-dashoffset: 260; animation: lp-draw 900ms cubic-bezier(.65, 0, .35, 1) 350ms forwards; vector-effect: non-scaling-stroke; }
-@keyframes lp-draw { to { stroke-dashoffset: 0; } }
+.lp-learns svg { position: absolute; left: -2%; right: -2%; bottom: -.08em; width: 104%; height: .2em; overflow: visible; clip-path: inset(-100% 100% -100% -5%); animation: lp-draw 900ms cubic-bezier(.65, 0, .35, 1) 350ms forwards; }
+.lp-learns path { fill: none; stroke: var(--accent); stroke-width: 5; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+/* Wipe the svg in, not a dash: a pixel dash length can't know how wide the habit word renders. */
+@keyframes lp-draw { to { clip-path: inset(-100% -5% -100% -5%); } }
 /* 680px: the first line holds the longest rotating habit (takeout Saturdays, 654px) without wrapping mid-rotation. */
 .lp-hero > p { max-width: 680px; margin-top: 22px; font-size: 20px; line-height: 1.55; color: var(--muted); text-wrap: pretty; }
 .lp-hero-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 28px; }
@@ -331,7 +332,7 @@ html:has(.lp) { scroll-behavior: smooth; }
 }
 @media (prefers-reduced-motion: reduce) {
   .lp *, .lp *::before, .lp *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
-  .lp-learns path { stroke-dashoffset: 0; }
+  .lp-learns svg { clip-path: none; }
 }
 
 /* Kept for the parked money lesson and the playground. */
