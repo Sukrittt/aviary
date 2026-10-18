@@ -70,13 +70,14 @@ export function skippedCopy(review: Pick<ImportReview, 'skipped' | 'otherCurrenc
     s.zero && plural(s.zero, 'zero amount', 'zero amounts'),
   ].filter(Boolean) as string[]
   const out: string[] = []
-  if (bookkeeping.length) out.push(`We left out ${listOf(bookkeeping)}. They aren’t spending.`)
+  const leftOut = (s.transfer ?? 0) + (s.opening_balance ?? 0) + (s.fill ?? 0)
+  if (bookkeeping.length) out.push(`We left out ${listOf(bookkeeping)}. ${leftOut === 1 ? 'It isn’t' : 'They aren’t'} spending.`)
   if (unusable.length) out.push(`We ${bookkeeping.length ? 'also ' : ''}skipped ${listOf(unusable)}.`)
   return out
 }
 
 export function directionCopy(review: Pick<ImportReview, 'direction' | 'directionSource'>): string {
-  if (review.directionSource === 'column') return 'We’re reading spends and paydays from your app’s own type column.'
+  if (review.directionSource === 'column') return 'Your file marks which rows are spends and which are paydays, so we’re going by that.'
   return review.direction === 'negative_spend' ? 'We’re reading negative amounts as spends.' : 'We’re reading positive amounts as spends.'
 }
 

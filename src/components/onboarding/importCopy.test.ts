@@ -46,7 +46,7 @@ describe('import copy', () => {
       'We also skipped 14 rows in USD.',
     ])
     expect(skippedCopy({ skipped: { transfer: 1, future: 17, unparseable: 2 }, otherCurrencies: [] })).toEqual([
-      'We left out 1 transfer between your accounts. They aren’t spending.',
+      'We left out 1 transfer between your accounts. It isn’t spending.',
       'We also skipped 2 rows we couldn’t read and 17 rows dated in the future.',
     ])
     expect(skippedCopy({ skipped: {}, otherCurrencies: [] })).toEqual([])
@@ -55,6 +55,7 @@ describe('import copy', () => {
   it('names how direction was read', () => {
     expect(directionCopy({ direction: 'negative_spend', directionSource: 'sign' })).toBe('We’re reading negative amounts as spends.')
     expect(directionCopy({ direction: 'positive_spend', directionSource: 'sign' })).toBe('We’re reading positive amounts as spends.')
+    expect(directionCopy({ direction: 'negative_spend', directionSource: 'column' })).toBe('Your file marks which rows are spends and which are paydays, so we’re going by that.')
   })
 
   it('maps failure codes to written copy and never shows a raw code', () => {
