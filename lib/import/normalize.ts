@@ -1,5 +1,6 @@
 import { findHeaderRow, type Table } from './read'
 import { defaultDirection, detectDateOrder, detectDecimalComma, parseAmount, parseDate, type Direction } from './parse'
+import { CURRENCIES, isCurrencyCode } from '@/src/lib/currencies'
 import { detectPreset, genericTell, headerScore, mapColumns, typeKind, type AppId, type Preset, type Role, type RowFields, type SkipReason } from './presets'
 
 export const MAX_ROWS = 20_000
@@ -9,7 +10,7 @@ const MAX_LABEL = 100
 /** The stored rows' JSON, at most: encrypted it grows by about a third, and the doc must stay under Mongo's 16 MB. */
 const MAX_ROWS_BYTES = 10 * 1024 * 1024
 
-export type ImportErrorCode = 'too_big' | 'unreadable' | 'no_columns' | 'not_found' | 'already_importing' | 'already_onboarded' | 'busy' | 'invalid'
+export type ImportErrorCode = 'too_big' | 'unreadable' | 'empty' | 'empty_file' | 'no_columns' | 'not_found' | 'already_importing' | 'already_onboarded' | 'busy' | 'invalid'
 
 /** A failure the client turns into written copy. The code is the whole message. */
 export class ImportError extends Error {
@@ -58,10 +59,28 @@ export interface Normalized {
   defaultDirection: Direction
   directionSource: 'column' | 'sign'
   hasCurrency: boolean
-  /** The file's own currency: the most common code on its rows, or '' without a currency column. */
+  /** The file's own currency: the most common code on its rows, else the one its amounts' symbols name, else ''. */
   fileCurrency: string
   /** YNAB's Plan.csv: this month's assigned amount per category. */
   plan: Record<string, number>
+}
+
+// Symbols that name one currency ("$", "€", "R$"), plus the "Rs" Indian banks print. Bare letters like ZAR's "R" are too vague.
+const SYMBOLS = new Map<string, string>([
+  ...CURRENCIES.filter((c) => c.symbol !== c.code && !/^[A-Za-z]+$/.test(c.symbol)).map((c) => [c.symbol, c.code] as [string, string]),
+  ['Rs', 'INR'], ['Rs.', 'INR'],
+])
+
+/** The one currency every marked amount shows ("$1,500.00", "12.50 GBP"), or '' when none do or they disagree. */
+function symbolCurrency(cells: string[]): string {
+  const found = new Set<string>()
+  for (const cell of cells.slice(0, 500)) {
+    const mark = cell.replace(/\s*(CR|DR)\.?$/i, '').match(/[^\d\s.,\-+()−]+/)?.[0]
+    if (!mark) continue
+    const upper = mark.toUpperCase()
+    found.add(SYMBOLS.get(mark) ?? (isCurrencyCode(upper) ? upper : '?'))
+  }
+  return found.size === 1 && !found.has('?') ? [...found][0] : ''
 }
 
 const lower = (cells: string[]) => cells.map((c) => c.trim().toLowerCase())
@@ -141,6 +160,7 @@ export function normalize(layout: Layout, today: string, roles: Record<number, R
 
   const headers = layout.headers
   const data = layout.table.rows.slice(layout.headerIndex + 1)
+  if (!data.some((r) => r.some((c) => c.trim()))) throw new ImportError('empty_file')
   const at = (row: string[], role: Role) => (mapping[role] === undefined ? '' : (row[mapping[role]!] ?? '').trim())
   const amountCells = data.flatMap((r) => (['amount', 'outflow', 'inflow'] as const).map((role) => at(r, role))).filter(Boolean)
   const decimalComma = detectDecimalComma(amountCells)
@@ -199,6 +219,8 @@ export function normalize(layout: Layout, today: string, roles: Record<number, R
   }
 
   if (!rows.length && !Object.keys(skipped).some((r) => r !== 'unparseable')) throw new ImportError('unreadable')
+  // Read fine, but every row was a transfer, a zero or in the future: a review of nothing helps no one.
+  if (!rows.length) throw new ImportError('empty')
   // Stable: rows sharing a date keep the file's order.
   rows.sort((a, b) => a.date.localeCompare(b.date))
   const kept = rows.slice(-MAX_ROWS)
@@ -213,7 +235,7 @@ export function normalize(layout: Layout, today: string, roles: Record<number, R
     defaultDirection: defaultDirection(signs, false),
     directionSource: signs.length ? 'sign' : 'column',
     hasCurrency: mapping.currency !== undefined,
-    fileCurrency: [...codes].sort((a, b) => b[1] - a[1])[0]?.[0] ?? '',
+    fileCurrency: [...codes].sort((a, b) => b[1] - a[1])[0]?.[0] ?? (mapping.currency === undefined ? symbolCurrency(amountCells) : ''),
     plan: readPlan(layout.plan, today),
   }
 }

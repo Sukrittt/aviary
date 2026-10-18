@@ -23,7 +23,7 @@ import { AmountTicker } from '../../src/components/onboarding/AmountTicker'
 import { Confetti } from '../../src/components/onboarding/Confetti'
 import { PickExtras } from '../../src/components/onboarding/PickExtras'
 import { HeardFrom } from '../../src/components/onboarding/HeardFrom'
-import { ImportFlow, type ImportDone } from '../../src/components/onboarding/ImportFlow'
+import { ImportFlow, ImportHistory, type ImportDone } from '../../src/components/onboarding/ImportFlow'
 import { LoadingCaption } from '../../src/components/LoadingCaption'
 import { Toast } from '../../src/components/Toast'
 import { CategoryIcon, CATEGORY_ICON_COMPONENTS } from '../../src/components/CategoryIcon'
@@ -151,7 +151,8 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
   // The first question, before any step: bring data from another app, or the
   // usual setup. 'fresh' runs the steps below exactly as they always were.
   const [entry, setEntry] = useState<'ask' | 'fresh'>('ask')
-  const [historyComing, setHistoryComing] = useState(false)
+  // Set by an import: where it came from, for the done screen's welcome and its live history line.
+  const [imported, setImported] = useState<{ app: string | null; total: number } | null>(null)
   // Whether the user chose to pick their own groups and categories. Without
   // it, setup finishes from the income step on the starter budget.
   const [custom, setCustom] = useState(false)
@@ -595,7 +596,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
   }
 
   // An import sets the account up on the server in one call, then lands on the same celebration.
-  const imported = ({ result: r, currency }: ImportDone) => {
+  const onImported = ({ result: r, currency, app }: ImportDone) => {
     onCurrencyChange(currency)
     track('onboarding_completed', {
       total_seconds: wizardTimer.current(),
@@ -607,14 +608,14 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
     })
     void qc.invalidateQueries()
     setResult({ income: r.income, groupCount: r.groupCount, categoryCount: r.categoryCount })
-    setHistoryComing(r.total > 0)
+    setImported({ app, total: r.total })
     setStep(5)
   }
 
   if (entry === 'ask' && step < 5) {
     return (
       <div className="expense-redesign setup-page">
-        <ImportFlow onFresh={() => setEntry('fresh')} onDone={imported} />
+        <ImportFlow onFresh={() => setEntry('fresh')} onDone={onImported} />
       </div>
     )
   }
@@ -622,7 +623,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
   if (step === 5 && result) {
     return (
       <div className="expense-redesign setup-page">
-        <SetupDone result={result} historyComing={historyComing} onFinish={() => setStep(6)} />
+        <SetupDone result={result} imported={imported} onFinish={() => setStep(6)} />
       </div>
     )
   }
@@ -1018,12 +1019,12 @@ function PickRow({
 
 function SetupDone({
   result,
-  historyComing = false,
+  imported = null,
   onFinish,
 }: {
   result: { income: number; groupCount: number; categoryCount: number }
-  /** An import's transactions are still being booked behind the celebration. */
-  historyComing?: boolean
+  /** Set after an import: its transactions are still being booked behind the celebration. */
+  imported?: { app: string | null; total: number } | null
   onFinish: () => void
 }) {
   const { formatMoney } = useCurrency()
@@ -1038,9 +1039,11 @@ function SetupDone({
     <div className="setup-done">
       <Confetti />
       <div className="setup-done-badge"><CheckIcon size={30} weight="bold" aria-hidden="true" /></div>
-      <h1 className="setup-done-title">Your budget is ready to go.</h1>
-      <p className="setup-done-blurb">Everything below can be changed later from Categories.</p>
-      {historyComing && <p className="setup-done-blurb">Your history is still coming in. Close the app if you like, we’ll let you know when it’s done.</p>}
+      <h1 className="setup-done-title">{imported?.app ? `Welcome over from ${imported.app}.` : imported ? 'Your history has moved in.' : 'Your budget is ready to go.'}</h1>
+      <p className="setup-done-blurb">
+        {imported ? 'Your envelopes, accounts and payday are set up from it. Change anything later from Categories.' : 'Everything below can be changed later from Categories.'}
+      </p>
+      {imported && imported.total > 0 && <ImportHistory total={imported.total} />}
       <p className="setup-done-promise">Your first-week recap lands in 7 days</p>
       <div className="setup-done-list">
         {summary.map((s) => (

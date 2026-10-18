@@ -8,7 +8,8 @@ export const dynamic = 'force-dynamic'
 /** `GET /api/import/status`: the account's committed import, for the backfill banner, or `{ status: 'none' }`. */
 export async function GET(req: Request) {
   const auth = await getAuth(req)
-  const gate = await requireAccess(auth)
+  // Setup too: onboarding's done screen polls and continues the import before the trial starts.
+  const gate = await requireAccess(auth, { setup: true })
   if (gate) return gate
   const doc = (await (await importsCollection(auth)).findOne(
     { status: { $in: ['importing', 'done', 'failed'] } },

@@ -24,6 +24,7 @@ const CHUNK = 50
 /** Outlives a 60 s `maxDuration`, so a pass killed at its ceiling frees the import within seconds of it. */
 const LEASE_MS = 70_000
 const FAILED_CHUNKS_TO_STOP = 3
+const PROGRESS_EVERY = 10
 
 export type PassResult = 'leased' | 'progress' | 'done' | 'failed'
 
@@ -76,6 +77,8 @@ export async function runImportPass(auth: Auth, importId: string, deadlineMs: nu
           chunkFailed++
           lastError = err
         }
+        // The done screen counts along: a nudge every few rows, not just per chunk. `done` only, so a resume still starts at `cursor`.
+        if ((i + 1) % PROGRESS_EVERY === 0 && i + 1 < chunk.length) await coll.updateOne({ _id, token }, { $max: { done: cursor + i + 1 } })
       }
       if (chunkFailed === chunk.length) {
         if (streak === 0) streakStart = cursor

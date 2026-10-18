@@ -15,6 +15,11 @@ const ERRORS: Record<string, string> = {
   too_big: 'That file’s too big. Export a shorter date range and try again.',
   unreadable: 'We couldn’t read that file. Check it’s the transactions export, not a report.',
   no_columns: 'We couldn’t find a date and an amount column. Check the file is the transactions export, not a report.',
+  empty: 'There’s nothing to bring in from that file. Its rows are all transfers, zeros or dated in the future.',
+  empty_file: 'That file’s empty. Export it again from your app and try once more.',
+  pdf: 'That’s a PDF. We need the spreadsheet, so export as csv or Excel instead.',
+  image: 'That’s a picture. We need the csv or Excel file your app exports.',
+  old_excel: 'That’s an old Excel file (.xls). Open it, save it as .xlsx or .csv, then drop that here.',
   already_importing: 'You’re already bringing in a file. Give it a few minutes and check Home.',
   already_onboarded: 'You’re already set up. Head to Home to keep going.',
   busy: 'We’re still setting you up. Give it a moment and try again.',
@@ -91,4 +96,41 @@ export function bannerDone(failed: number): string {
 
 export function bannerProgress(done: number, total: number): string {
   return `Bringing in your history · ${n(done)} of ${n(total)}`
+}
+
+/**
+ * What's wrong with a file we can tell from its name and size alone, before
+ * uploading it: an empty file, a PDF statement, a photo, an old .xls. Null
+ * when it's worth sending.
+ */
+export function precheckFile(file: { name: string; size: number; type: string }, maxBytes: number): string | null {
+  const ext = file.name.toLowerCase().split('.').pop() ?? ''
+  if (file.size === 0) return 'empty_file'
+  if (file.size > maxBytes) return 'too_big'
+  if (ext === 'pdf' || file.type === 'application/pdf') return 'pdf'
+  if (/^(png|jpe?g|heic|heif|webp|gif)$/.test(ext) || file.type.startsWith('image/')) return 'image'
+  if (ext === 'xls') return 'old_excel'
+  return null
+}
+
+/** Files and kilobytes the way a person reads them: "412 KB", "1.2 MB". */
+export function fileSize(bytes: number): string {
+  return bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`
+}
+
+/** "All 135 spends and paydays are in", honest about rows that didn't make it. */
+export function historyDone(total: number, failed: number): string {
+  return failed > 0
+    ? `${n(total - failed)} of ${plural(total, 'spend and payday', 'spends and paydays')} are in`
+    : total === 1 ? 'It’s all in' : `All ${plural(total, 'spend and payday', 'spends and paydays')} are in`
+}
+
+/** What the set-me-up button says while the import commits, one step at a time. */
+export function commitSteps(envelopes: number, accounts: number, salary: boolean): string[] {
+  return [
+    `Making your ${plural(envelopes, 'envelope', 'envelopes')}…`,
+    `Adding your ${plural(accounts, 'account', 'accounts')}…`,
+    ...(salary ? ['Setting up your payday…'] : []),
+    'Filling this month’s budget…',
+  ]
 }

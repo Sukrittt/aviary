@@ -112,7 +112,7 @@ describe('ImportFlow', () => {
       salary: { amount: 3000, day: 1 },
     }])
     expect(await screen.findByRole('img', { name: 'You’re set up' })).toBeTruthy()
-    await waitFor(() => expect(onDone).toHaveBeenCalledWith({ result: expect.objectContaining({ total: 9 }), currency: 'EUR' }), { timeout: 2000 })
+    await waitFor(() => expect(onDone).toHaveBeenCalledWith({ result: expect.objectContaining({ total: 9 }), currency: 'EUR', app: 'Monefy' }), { timeout: 2000 })
   })
 
   it('a flip that finds a salary fills it in', async () => {
@@ -149,6 +149,25 @@ describe('ImportFlow', () => {
     previewImport.mockRejectedValue(new ImportFailure('no_columns'))
     toReview()
     expect(await screen.findByRole('alert')).toHaveTextContent('We couldn’t find a date and an amount column. Check the file is the transactions export, not a report.')
+  })
+
+  it('names the app it recognised over the review', async () => {
+    toReview()
+    expect(await screen.findByText('Monefy export')).toBeTruthy()
+  })
+
+  it.each([
+    ['statement.pdf', 10, 'That’s a PDF. We need the spreadsheet, so export as csv or Excel instead.'],
+    ['IMG_0042.jpg', 10, 'That’s a picture. We need the csv or Excel file your app exports.'],
+    ['backup.xls', 10, 'That’s an old Excel file (.xls). Open it, save it as .xlsx or .csv, then drop that here.'],
+    ['export.csv', 0, 'That file’s empty. Export it again from your app and try once more.'],
+  ])('turns away %s before uploading it, saying why', async (name, bytes, copy) => {
+    render(<ImportFlow onFresh={vi.fn()} onDone={vi.fn()} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Bring it all over' }))
+    fireEvent.click(screen.getByRole('button', { name: /Wallet/ }))
+    fireEvent.change(screen.getByLabelText('Choose your export file'), { target: { files: [new File([new Uint8Array(bytes)], name)] } })
+    expect(await screen.findByRole('alert')).toHaveTextContent(copy)
+    expect(previewImport).not.toHaveBeenCalled()
   })
 
   it('stops a file over 4 MB before uploading it', async () => {

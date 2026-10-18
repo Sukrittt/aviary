@@ -84,6 +84,13 @@ describe('decodeText', () => {
     expect(decodeText(Buffer.from('﻿Date,Amount', 'utf8'))).toBe('Date,Amount')
   })
 
+  it('reads utf-16 with a byte order mark, as Excel saves "Unicode text"', () => {
+    const le = Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from('Date\tCafé', 'utf16le')])
+    const be = Buffer.from(Buffer.concat([Buffer.from([0xfe, 0xff]), Buffer.from('Date\tCafé', 'utf16le').swap16()]))
+    expect(decodeText(le)).toBe('Date\tCafé')
+    expect(decodeText(be)).toBe('Date\tCafé')
+  })
+
   it('falls back to windows-1252 when utf-8 decoding loses characters', () => {
     expect(decodeText(Buffer.from([0x43, 0x61, 0x66, 0xe9]))).toBe('Café')
   })

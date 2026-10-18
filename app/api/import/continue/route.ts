@@ -19,7 +19,8 @@ const PASS_BUDGET_MS = (maxDuration - 10) * 1000
 export async function POST(req: Request) {
   const startedAt = Date.now()
   const auth = await getAuth(req)
-  const gate = await requireAccess(auth)
+  // Setup too: onboarding's done screen polls and continues the import before the trial starts.
+  const gate = await requireAccess(auth, { setup: true })
   if (gate) return gate
   const guard = readOnlyGuard(auth, 'POST')
   if (guard) return guard

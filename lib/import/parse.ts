@@ -45,6 +45,13 @@ export function parseAmount(raw: string, decimalComma: boolean): number | null {
     sign = -sign
     s = s.slice(1, -1)
   }
+  // Excel writes big or tiny numbers as 1.5E+03. Stripping the letter would turn -1e308 into 1308.
+  const scientific = s.trim().match(/^(-?)\s*(\d+(?:\.\d+)?e[-+]?\d+)$/i)
+  if (scientific) {
+    const value = Number(scientific[2])
+    if (!(value <= MAX_AMOUNT)) return null
+    s = `${scientific[1]}${value.toFixed(2)}`
+  } else if (/\de[-+]?\d/i.test(s)) return null
   s = s.replace(/[^\d.,\-]/g, '')
   if (s.startsWith('-')) {
     sign = -sign

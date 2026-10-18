@@ -70,6 +70,7 @@ describe('presets', () => {
     expect(counts(out.rows)).toEqual({ expense: 4, income: 3 })
     expect(out.skipped).toEqual({ transfer: 2, opening_balance: 1, zero: 1, future: 1 })
     expect(out.hasCurrency).toBe(false)
+    expect(out.fileCurrency).toBe('USD')
     expect(out.rows.find((r) => r.notes === 'Split (1/2) food')).toMatchObject({
       kind: 'expense', date: '2026-09-14', amount: 80, item: 'Whole Foods', category: 'Groceries', subcategory: '', account: 'Visa', currency: '',
     })
@@ -98,10 +99,33 @@ describe('presets', () => {
 })
 
 describe('generic files', () => {
+  it.each([
+    [['€ 3,99', '€ 12,00'], 'EUR'],
+    [['₹1,250', '-₹40'], 'INR'],
+    [['Rs. 1,250', 'Rs 40'], 'INR'],
+    [['12.50 GBP', '-3.00 GBP'], 'GBP'],
+    [['10 DR', '5 CR'], ''],
+    [['$5', '€5'], ''],
+    [['5', '-7'], ''],
+  ])('names the currency its amounts show: %j', (amounts, code) => {
+    const out = normalize(inspect([{ name: 'x.csv', rows: [['Date', 'Item', 'Amount'], ...amounts.map((a, i) => [`2026-09-0${i + 1}`, 'Thing', a])] }]), TODAY)
+    expect(out.hasCurrency).toBe(false)
+    expect(out.fileCurrency).toBe(code)
+  })
+
   it('reads debit and credit columns as direction', () => {
     const out = normalize(inspect(csv(['Txn Date,Narration,Debit,Credit', '01/09/2026,SALARY,,85000', '02/09/2026,RENT,25000,'])), TODAY)
     expect(out.directionSource).toBe('column')
     expect(out.rows.map((r) => [r.kind, r.amount])).toEqual([['income', 85000], ['expense', 25000]])
+  })
+
+  it('calls a file with a header and no rows empty, not unreadable', () => {
+    expect(() => normalize(inspect(csv(['Date,Description,Amount'])), TODAY)).toThrow(new ImportError('empty_file'))
+  })
+
+  it('reads axio’s PLACE column as the item, not the category', () => {
+    const out = normalize(inspect(csv(['DATE,TIME,PLACE,AMOUNT,DR/CR,ACCOUNT,CATEGORY,NOTE', '01-06-2026,19:55,Taco Spot,1124.00,DR,ICICI Card,Eating out,'])), TODAY)
+    expect(out.rows[0]).toMatchObject({ kind: 'expense', item: 'Taco Spot', category: 'Eating out', amount: 1124 })
   })
 
   it('reads a Dr/Cr type column', () => {
@@ -171,6 +195,13 @@ describe('generic files', () => {
 
   it('refuses a file where nothing parses', () => {
     expect(() => normalize(inspect(csv(['Date,Item,Amount', 'soon,x,y'])), TODAY)).toThrow(new ImportError('unreadable'))
+  })
+
+  it.each([
+    ['dated in the future', ['Date,Item,Amount', '2031-01-01,x,-4', '2031-02-01,y,-5']],
+    ['zero', ['Date,Item,Amount', '2026-09-01,x,0', '2026-09-02,y,0.00']],
+  ])('refuses a file whose every row is %s: nothing to bring in', (_, lines) => {
+    expect(() => normalize(inspect(csv(lines)), TODAY)).toThrow(new ImportError('empty'))
   })
 })
 

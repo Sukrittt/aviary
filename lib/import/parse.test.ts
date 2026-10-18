@@ -50,6 +50,8 @@ describe('parseAmount', () => {
     ['10.555', 10.56],
     ['  42 ', 42],
     ['−5.00', -5],
+    ['12.50EUR', 12.5],
+    ['-3 eur', -3],
   ])('reads %s with a dot decimal', (raw, expected) => {
     expect(dot(raw)).toBe(expected)
   })
@@ -67,7 +69,14 @@ describe('parseAmount', () => {
     expect(comma(raw)).toBe(expected)
   })
 
-  it.each(['', 'abc', '1.2.3', '--5', '12-', '9'.repeat(400), '2000000000000'])('rejects %s', (raw) => {
+  it.each([
+    ['1.5E+03', 1500],
+    ['-2.5e2', -250],
+  ])('reads scientific notation %s as the number it is', (raw, expected) => {
+    expect(dot(raw)).toBe(expected)
+  })
+
+  it.each(['', 'abc', '1.2.3', '--5', '12-', '9'.repeat(400), '2000000000000', '-1e308', '1e3e4'])('rejects %s', (raw) => {
     expect(dot(raw)).toBeNull()
   })
 })

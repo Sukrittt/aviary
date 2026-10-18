@@ -1,7 +1,39 @@
 import { describe, it, expect } from 'vitest'
-import { bannerDone, bannerProgress, countsLine, directionCopy, importErrorCopy, listOf, ordinal, skippedCopy } from './importCopy'
+import { bannerDone, bannerProgress, countsLine, directionCopy, fileSize, historyDone, importErrorCopy, listOf, ordinal, precheckFile, skippedCopy } from './importCopy'
+
+describe('precheckFile', () => {
+  const f = (name: string, size = 10, type = '') => ({ name, size, type })
+  it.each([
+    [f('export.csv', 0), 'empty_file'],
+    [f('export.csv', 5_000_000), 'too_big'],
+    [f('Statement.PDF'), 'pdf'],
+    [f('IMG_2041.HEIC'), 'image'],
+    [f('scan', 10, 'image/png'), 'image'],
+    [f('MoneyManager.xls'), 'old_excel'],
+    [f('export.xlsx'), null],
+    [f('ynab.zip'), null],
+  ])('%j is %s', (file, code) => {
+    expect(precheckFile(file, 4 * 1024 * 1024)).toBe(code)
+  })
+})
 
 describe('import copy', () => {
+  it('sizes files the way people read them', () => {
+    expect(fileSize(300)).toBe('1 KB')
+    expect(fileSize(13_000)).toBe('13 KB')
+    expect(fileSize(2_400_000)).toBe('2.3 MB')
+  })
+
+  it('says the history is in, and how much of it when some rows failed', () => {
+    expect(historyDone(135, 0)).toBe('All 135 spends and paydays are in')
+    expect(historyDone(135, 3)).toBe('132 of 135 spends and paydays are in')
+    expect(historyDone(1, 0)).toBe('It’s all in')
+  })
+
+  it('has its own words for the new failure codes', () => {
+    for (const code of ['empty', 'empty_file', 'pdf', 'image', 'old_excel']) expect(importErrorCopy(code)).not.toBe(importErrorCopy('network'))
+  })
+
   it('counts spends, paydays and the date range', () => {
     expect(countsLine({ expense: 1240, income: 36, from: '2019-03-04', to: '2026-10-01' })).toBe('1,240 spends · 36 paydays · Mar 2019 to Oct 2026')
     expect(countsLine({ expense: 1, income: 1, from: '2026-10-01', to: '2026-10-09' })).toBe('1 spend · 1 payday · Oct 2026')

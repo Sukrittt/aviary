@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { XIcon } from '@/src/components/icons'
+import { CheckIcon, XIcon } from '@/src/components/icons'
 import { continueImport, getImportStatus, type ImportStatus } from '@/src/api/imports'
 import { readPref, writePref } from '@/src/lib/localPref'
 import { track } from '@/src/lib/analytics'
@@ -22,24 +22,20 @@ const CONTINUE_EVERY_MS = 20_000
 
 const dismissKey = (id: string) => `import-done-dismissed-${id}`
 
-export function ImportBanner() {
+/**
+ * The import's status, polled every `pollMs` while it's importing. Starts the
+ * next pass when none holds the import, and on arriving at done refreshes
+ * everything and reports it. Home's banner and the done screen share it.
+ */
+export function useImportStatus(pollMs = POLL_MS): ImportStatus | undefined {
   const qc = useQueryClient()
   const { data } = useQuery<ImportStatus>({
     queryKey: ['import-status'],
     queryFn: getImportStatus,
-    refetchInterval: (q) => (q.state.data?.status === 'importing' ? POLL_MS : false),
+    refetchInterval: (q) => (q.state.data?.status === 'importing' ? pollMs : false),
   })
-  const [dismissed, setDismissed] = useState<string | null>(null)
-  const [retrying, setRetrying] = useState(false)
   const lastContinue = useRef(0)
   const lastStatus = useRef<string | null>(null)
-
-  const importId = data && data.status !== 'none' ? data.importId : null
-
-  // Read after mount: a preference read during render desyncs server and client markup.
-  useEffect(() => {
-    if (importId && readPref(dismissKey(importId))) setDismissed(importId)
-  }, [importId])
 
   useEffect(() => {
     if (!data || data.status === 'none') return
@@ -59,6 +55,22 @@ export function ImportBanner() {
     }
     lastStatus.current = data.status
   }, [data, qc])
+
+  return data
+}
+
+export function ImportBanner() {
+  const qc = useQueryClient()
+  const data = useImportStatus()
+  const [dismissed, setDismissed] = useState<string | null>(null)
+  const [retrying, setRetrying] = useState(false)
+
+  const importId = data && data.status !== 'none' ? data.importId : null
+
+  // Read after mount: a preference read during render desyncs server and client markup.
+  useEffect(() => {
+    if (importId && readPref(dismissKey(importId))) setDismissed(importId)
+  }, [importId])
 
   if (!data || data.status === 'none') return null
 
@@ -100,6 +112,7 @@ export function ImportBanner() {
   if (dismissed === data.importId) return null
   return (
     <div className="import-banner is-done" role="status">
+      <CheckIcon size={14} weight="bold" aria-hidden="true" className="import-banner-check" />
       <span>{bannerDone(data.failed)}</span>
       <Link className="import-banner-action" href="/account/recurring" onClick={() => writePref(dismissKey(data.importId), '1')}>
         Find them

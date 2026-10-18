@@ -35,7 +35,7 @@ export const GENERIC_ALIASES: Record<Role, string[]> = {
   amount: ['amount', 'value', 'sum', 'amt', 'transaction amount'],
   outflow: ['debit', 'withdrawal', 'withdrawals', 'outflow', 'paid out', 'money out', 'spent', 'debit amount', 'withdrawal amt.', 'withdrawal amount'],
   inflow: ['credit', 'deposit', 'deposits', 'inflow', 'paid in', 'money in', 'received', 'credit amount', 'deposit amt.', 'deposit amount'],
-  text: ['description', 'narration', 'particulars', 'payee', 'merchant', 'name', 'details', 'item', 'title', 'transaction details'],
+  text: ['description', 'narration', 'particulars', 'payee', 'merchant', 'name', 'details', 'item', 'title', 'transaction details', 'place'],
   category: ['category', 'category name', 'envelope'],
   subcategory: ['subcategory', 'sub category', 'sub-category'],
   account: ['account', 'accounts', 'wallet', 'bank', 'account name'],

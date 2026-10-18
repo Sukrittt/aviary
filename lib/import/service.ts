@@ -2,7 +2,7 @@ import { ObjectId } from 'mongodb'
 import type { Auth } from '@/lib/access'
 import { getCollection, json } from '@/lib/http'
 import { getUserCurrency, nowForUser } from '@/lib/userCurrency'
-import { isCurrencyCode } from '@/src/lib/currencies'
+import { currencyInfo, isCurrencyCode } from '@/src/lib/currencies'
 import type { AccountType } from '@/lib/accounts'
 import { readTable, ZipTooLarge } from './read'
 import type { Direction } from './parse'
@@ -166,7 +166,10 @@ export async function previewFile(auth: Auth, buf: Buffer, filename: string): Pr
     ? await pickColumnRoles(unresolvedColumns(layout), auth.userId).catch(() => ({}))
     : {}
   const n = normalize(layout, today, roles)
-  const currency = n.hasCurrency && isCurrencyCode(n.fileCurrency) ? n.fileCurrency : await getUserCurrency(auth.userId)
+  const userCurrency = await getUserCurrency(auth.userId)
+  // A bare "$" could be any dollar: a user already on one keeps theirs.
+  const anyDollar = n.fileCurrency === 'USD' && !n.hasCurrency && currencyInfo(userCurrency).symbol.endsWith('$')
+  const currency = isCurrencyCode(n.fileCurrency) && !anyDollar ? n.fileCurrency : userCurrency
   const coll = await importsCollection(auth)
   // A preview is a throwaway copy of the file. A real delete, not the soft
   // one: `imports` isn't archivable, so a soft-deleted blob would never go.
@@ -224,7 +227,7 @@ export async function recomputePreview(auth: Auth, importId: string, change: { d
 }
 
 const ERROR_STATUS: Record<ImportError['code'], number> = {
-  too_big: 413, unreadable: 400, no_columns: 400, invalid: 400, not_found: 404, already_importing: 409, already_onboarded: 403, busy: 409,
+  too_big: 413, unreadable: 400, empty: 400, empty_file: 400, no_columns: 400, invalid: 400, not_found: 404, already_importing: 409, already_onboarded: 403, busy: 409,
 }
 
 /** `{ error: code }` for a known import failure, which the client turns into copy. Anything else rethrows. */

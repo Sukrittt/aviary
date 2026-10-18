@@ -70,7 +70,8 @@ function capped(plan: CategoryPlan): CategoryPlan {
 }
 
 export function guessAccountType(name: string): AccountType {
-  if (/credit|card/i.test(name)) return 'credit_card'
+  if (/debit/i.test(name)) return 'bank'
+  if (/credit|card|visa|master|amex|rupay/i.test(name)) return 'credit_card'
   if (/cash|wallet/i.test(name)) return 'cash'
   return 'bank'
 }
@@ -162,7 +163,8 @@ function shiftMonth(month: string, by: number): string {
  * This month's assignment per category: the average spend over the last
  * three complete months, rounded up to the step. A file that starts inside
  * that window divides by the months it covers, so a new tracker isn't
- * budgeted at a third of its spend. A YNAB plan amount for this month wins.
+ * budgeted at a third of its spend. A file that ends before the window
+ * uses its own last three complete months. A YNAB plan amount for this month wins.
  */
 export function proposeBudgets(
   rows: StoredRow[],
@@ -171,7 +173,10 @@ export function proposeBudgets(
   currency: string,
   plan: Record<string, number>,
 ): Record<string, number> {
-  const current = today.slice(0, 7)
+  // A file that stopped before the window is averaged over its own last
+  // complete months, so an old export doesn't open with every envelope at 0.
+  const lastSpend = rows.reduce((max, r) => (r.kind === 'expense' && r.date > max ? r.date : max), '').slice(0, 7)
+  const current = lastSpend && lastSpend < shiftMonth(today.slice(0, 7), -3) ? lastSpend : today.slice(0, 7)
   const window = [shiftMonth(current, -3), shiftMonth(current, -2), shiftMonth(current, -1)]
   const first = rows.reduce((min, r) => (r.date < min ? r.date : min), today).slice(0, 7)
   const covered = Math.max(1, window.filter((m) => m >= first).length)

@@ -11,6 +11,9 @@ import ExcelJS from 'exceljs'
 export type Table = { name: string; rows: string[][] }
 
 export function decodeText(buf: Buffer): string {
+  // Excel's "Unicode text" and some bank exports are utf-16, always with a BOM.
+  if (buf[0] === 0xff && buf[1] === 0xfe) return new TextDecoder('utf-16le').decode(buf.subarray(2))
+  if (buf[0] === 0xfe && buf[1] === 0xff) return new TextDecoder('utf-16be').decode(buf.subarray(2))
   const utf8 = new TextDecoder('utf-8').decode(buf)
   // Old Windows exports (Money Manager on a desktop, a bank's csv) are often
   // windows-1252; read as utf-8 their accents come out as U+FFFD.

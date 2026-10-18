@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import type { StoredRow } from './normalize'
-import { budgetStep, detectSalary, incomeCounted, proposeAccounts, proposeBudgets, proposeCategories } from './propose'
+import { budgetStep, detectSalary, guessAccountType, incomeCounted, proposeAccounts, proposeBudgets, proposeCategories } from './propose'
 
 const TODAY = '2026-10-17'
 
@@ -53,6 +53,20 @@ describe('proposeCategories', () => {
 
   it('clips long names to 60 characters', () => {
     expect(proposeCategories([row({ category: 'c'.repeat(80) })]).list[0].source).toHaveLength(60)
+  })
+})
+
+describe('guessAccountType', () => {
+  it.each([
+    ['Visa', 'credit_card'],
+    ['Chase Sapphire Mastercard', 'credit_card'],
+    ['Amex', 'credit_card'],
+    ['HDFC Debit Card', 'bank'],
+    ['Visa Debit', 'bank'],
+    ['Cash', 'cash'],
+    ['Checking', 'bank'],
+  ])('%s is %s', (name, type) => {
+    expect(guessAccountType(name)).toBe(type)
   })
 })
 
@@ -154,6 +168,19 @@ describe('proposeBudgets', () => {
   it('a YNAB plan for this month wins over the average', () => {
     const rows = [row({ date: '2026-09-02', category: 'Rent', amount: 1490 })]
     expect(proposeBudgets(rows, byCategory, TODAY, 'USD', { Rent: 1500, Coffee: 35.5 })).toEqual({ Rent: 1500, Coffee: 35.5 })
+  })
+
+  it('a file that stopped a while ago averages its own last three complete months, not empty ones', () => {
+    const rows = [
+      row({ date: '2025-06-10', category: 'Food', amount: 9999 }),
+      row({ date: '2025-07-10', category: 'Food', amount: 300 }),
+      row({ date: '2025-08-10', category: 'Food', amount: 300 }),
+      row({ date: '2025-09-10', category: 'Food', amount: 300 }),
+      row({ date: '2025-09-26', category: 'Fun', amount: 90 }),
+      // The file's last month is as partial as this one would be.
+      row({ date: '2025-10-05', category: 'Food', amount: 9999 }),
+    ]
+    expect(proposeBudgets(rows, byCategory, TODAY, 'INR', {})).toEqual({ Food: 300, Fun: 100 })
   })
 
   it('a file entirely inside this month proposes nothing', () => {
