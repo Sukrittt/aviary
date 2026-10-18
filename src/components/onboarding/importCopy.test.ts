@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { bannerDone, commitSteps, bannerProgress, countsLine, directionCopy, fileSize, historyDone, importErrorCopy, listOf, ordinal, precheckFile, skippedCopy } from './importCopy'
+import { bannerSub, commitSteps, bannerProgress, importEta, countsLine, directionCopy, fileSize, historyDone, importErrorCopy, listOf, ordinal, precheckFile, skippedCopy } from './importCopy'
 
 describe('precheckFile', () => {
   const f = (name: string, size = 10, type = '') => ({ name, size, type })
@@ -73,12 +73,28 @@ describe('import copy', () => {
     expect(all.join(' ')).not.toMatch(/—/)
   })
 
+  it('estimates the time left from the pace so far, once there is a pace', () => {
+    const start = '2026-10-19T10:00:00Z'
+    const at = (s: number) => Date.parse(start) + s * 1000
+    expect(importEta(0, 25000, start, at(60))).toBeNull()
+    expect(importEta(500, 25000, start, at(5))).toBeNull()
+    expect(importEta(500, 25000, null, at(60))).toBeNull()
+    expect(importEta(25000, 25000, start, at(60))).toBeNull()
+    // 1,000 rows a minute, 24,000 to go.
+    expect(importEta(1000, 25000, start, at(60))).toBe('About 24 min left')
+    expect(importEta(24500, 25000, start, at(60))).toBe('Almost there')
+    expect(importEta(100, 25000, start, at(60))).toBe('About 4 hr left')
+  })
+
+  it('reassures under the progress, with the estimate when there is one', () => {
+    expect(bannerSub('About 24 min left')).toBe('About 24 min left · Keep using Aviary. We’ll tell you when it’s in.')
+    expect(bannerSub(null)).toBe('Keep using Aviary. We’ll tell you when it’s in.')
+  })
+
   it('small helpers', () => {
     expect(listOf(['a', 'b', 'c'])).toBe('a, b and c')
     expect([1, 2, 3, 4, 11, 12, 13, 21, 22, 31].map(ordinal)).toEqual(['1st', '2nd', '3rd', '4th', '11th', '12th', '13th', '21st', '22nd', '31st'])
     expect(bannerProgress(4210, 11240)).toBe('Bringing in your history · 4,210 of 11,240')
-    expect(bannerDone(0)).toBe('All in. Want us to find your repeat payments?')
-    expect(bannerDone(12)).toBe('All in, apart from 12 rows we couldn’t add. Want us to find your repeat payments?')
   })
 })
 

@@ -86,11 +86,22 @@ export function ordinal(day: number): string {
   return `${day}${suffix}`
 }
 
-/** The banner once an import is in; honest about rows that didn't make it. */
-export function bannerDone(failed: number): string {
-  return failed > 0
-    ? `All in, apart from ${plural(failed, 'row', 'rows')} we couldn’t add. Want us to find your repeat payments?`
-    : 'All in. Want us to find your repeat payments?'
+/**
+ * Time left at the pace so far. Null until there's a pace worth trusting
+ * (15 s in, a row landed) and once it's all in.
+ */
+export function importEta(done: number, total: number, startedAt: string | null, now = Date.now()): string | null {
+  const elapsed = startedAt ? now - Date.parse(startedAt) : NaN
+  if (!(elapsed >= 15_000) || done <= 0 || done >= total) return null
+  const seconds = ((total - done) * elapsed) / done / 1000
+  if (seconds < 60) return 'Almost there'
+  const minutes = Math.ceil(seconds / 60)
+  return minutes < 60 ? `About ${minutes} min left` : `About ${Math.round(minutes / 60)} hr left`
+}
+
+/** The quiet line under the progress: how long, and that nothing waits on it. */
+export function bannerSub(eta: string | null): string {
+  return [eta, 'Keep using Aviary. We’ll tell you when it’s in.'].filter(Boolean).join(' · ')
 }
 
 export function bannerProgress(done: number, total: number): string {

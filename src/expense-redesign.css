@@ -13618,8 +13618,29 @@ button.account-feature-card {
   color: var(--erd-text);
   font-size: 13px;
 }
-.import-banner > span:first-of-type {
+.import-banner-text {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.import-banner-text strong {
+  font-weight: 600;
+}
+.import-banner-sub {
+  color: var(--erd-text2);
+  font-size: 12px;
+}
+.import-banner-text > span:first-child {
+  font-variant-numeric: tabular-nums;
+}
+/* Room for the arrival confetti to fall past the banner's clipped edge. */
+.import-banner-wrap {
+  position: relative;
+}
+.import-banner-wrap .setup-confetti {
+  z-index: 2;
 }
 .import-banner.is-failed {
   border-color: var(--coral);

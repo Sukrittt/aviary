@@ -16,7 +16,9 @@ const { ImportBanner } = await import('./ImportBanner')
 const base = { importId: 'imp1', done: 4210, total: 11240, failed: 0, startedAt: null, finishedAt: null, leased: true }
 const show = (status: ImportStatus) => {
   getImportStatus.mockResolvedValue(status)
-  render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><ImportBanner /></QueryClientProvider>)
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const { container } = render(<QueryClientProvider client={client}><ImportBanner /></QueryClientProvider>)
+  return { client, container }
 }
 
 beforeEach(() => {
@@ -34,6 +36,7 @@ describe('ImportBanner', () => {
   it('counts rows while the history comes in, leaving a leased pass alone', async () => {
     show({ ...base, status: 'importing' })
     expect(await screen.findByText('Bringing in your history · 4,210 of 11,240')).toBeTruthy()
+    expect(screen.getByText('Keep using Aviary. We’ll tell you when it’s in.')).toBeTruthy()
     expect(continueImport).not.toHaveBeenCalled()
   })
 
@@ -44,16 +47,31 @@ describe('ImportBanner', () => {
 
   it('nudges toward the recurring scan when done, and stays dismissed', async () => {
     show({ ...base, status: 'done', done: 11240 })
-    expect(await screen.findByText('All in. Want us to find your repeat payments?')).toBeTruthy()
+    expect(await screen.findByText('All 11,240 spends and paydays are in')).toBeTruthy()
+    expect(screen.getByText('Want us to find your repeat payments?')).toBeTruthy()
     expect(screen.getByRole('link', { name: 'Find them' }).getAttribute('href')).toBe('/account/recurring')
     fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }))
-    expect(screen.queryByText('All in. Want us to find your repeat payments?')).toBeNull()
+    expect(screen.queryByText('All 11,240 spends and paydays are in')).toBeNull()
     expect(window.localStorage.getItem('mc-import-done-dismissed-imp1')).toBe('1')
   })
 
   it('says when some rows didn’t make it in', async () => {
     show({ ...base, status: 'done', done: 11240, failed: 3 })
-    expect(await screen.findByText('All in, apart from 3 rows we couldn’t add. Want us to find your repeat payments?')).toBeTruthy()
+    expect(await screen.findByText('11,237 of 11,240 spends and paydays are in')).toBeTruthy()
+  })
+
+  it('throws confetti for an arrival they watched, not for a done banner they come back to', async () => {
+    const { client, container } = show({ ...base, status: 'done', done: 11240 })
+    await screen.findByText('All 11,240 spends and paydays are in')
+    expect(container.querySelector('.setup-confetti')).toBeNull()
+
+    getImportStatus.mockResolvedValue({ ...base, status: 'importing' })
+    await client.refetchQueries({ queryKey: ['import-status'] })
+    await screen.findByText(/^Bringing in your history/)
+    getImportStatus.mockResolvedValue({ ...base, status: 'done', done: 11240 })
+    await client.refetchQueries({ queryKey: ['import-status'] })
+    await screen.findByText('All 11,240 spends and paydays are in')
+    expect(container.querySelector('.setup-confetti')).toBeTruthy()
   })
 
   it('offers a retry when it failed', async () => {
