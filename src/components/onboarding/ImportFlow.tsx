@@ -87,7 +87,9 @@ export interface ImportDone {
   app: string | null
 }
 
-export function ImportFlow({ onFresh, onDone }: { onFresh: () => void; onDone: (done: ImportDone) => void }) {
+// onAlreadySetUp: the server refused because setup was finished on another
+// device. There's nothing to fix here, so the screen hands the user on.
+export function ImportFlow({ onFresh, onDone, onAlreadySetUp }: { onFresh: () => void; onDone: (done: ImportDone) => void; onAlreadySetUp: () => void }) {
   const [stage, setStage] = useState<Stage>('ask')
   const [app, setApp] = useState<AppChoice | null>(null)
   const [review, setReview] = useState<ImportReview | null>(null)
@@ -192,6 +194,7 @@ export function ImportFlow({ onFresh, onDone }: { onFresh: () => void; onDone: (
         <Upload
           key="upload"
           app={app}
+          onAlreadySetUp={onAlreadySetUp}
           onPreview={(r) => {
             setReview(r)
             setStage('review')
@@ -201,14 +204,14 @@ export function ImportFlow({ onFresh, onDone }: { onFresh: () => void; onDone: (
 
       {stage === 'review' && review && (
         <CurrencyScope code={review.currency}>
-          <Review key="review" review={review} picked={app} onReview={setReview} onDone={onDone} />
+          <Review key="review" review={review} picked={app} onReview={setReview} onDone={onDone} onAlreadySetUp={onAlreadySetUp} />
         </CurrencyScope>
       )}
     </>
   )
 }
 
-function Upload({ app, onPreview }: { app: AppChoice; onPreview: (review: ImportReview) => void }) {
+function Upload({ app, onPreview, onAlreadySetUp }: { app: AppChoice; onPreview: (review: ImportReview) => void; onAlreadySetUp: () => void }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   // Bumped per failure so the drop zone shakes again on a second bad file.
@@ -219,6 +222,7 @@ function Upload({ app, onPreview }: { app: AppChoice; onPreview: (review: Import
   const enter = useEnter()
 
   const fail = (code: string, stage: 'precheck' | 'preview') => {
+    if (code === 'already_onboarded') return onAlreadySetUp()
     setError(importErrorCopy(code))
     setFailures((n) => n + 1)
     track('import_failed', { stage, reason: code })
@@ -335,7 +339,7 @@ function Upload({ app, onPreview }: { app: AppChoice; onPreview: (review: Import
 type CategoryEdit = { source: string; name: string; group: string; monthly: number }
 type AccountEdit = ImportReview['accounts'][number]
 
-function Review({ review, picked, onReview, onDone }: { review: ImportReview; picked: AppChoice | null; onReview: (r: ImportReview) => void; onDone: (done: ImportDone) => void }) {
+function Review({ review, picked, onReview, onDone, onAlreadySetUp }: { review: ImportReview; picked: AppChoice | null; onReview: (r: ImportReview) => void; onDone: (done: ImportDone) => void; onAlreadySetUp: () => void }) {
   // What the server recognised, else what they said it was (axio has no preset of its own).
   const from = appName(review.app) ?? (picked && picked.id !== 'other' ? picked.name : null)
   const { formatMoney } = useCurrency()
@@ -418,6 +422,7 @@ function Review({ review, picked, onReview, onDone }: { review: ImportReview; pi
     } catch (err) {
       phase.fail()
       const code = err instanceof ImportFailure ? err.code : 'network'
+      if (code === 'already_onboarded') return onAlreadySetUp()
       setError(importErrorCopy(code))
       track('import_failed', { stage: 'commit', reason: code })
     }

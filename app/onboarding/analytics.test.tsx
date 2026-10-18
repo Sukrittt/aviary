@@ -81,7 +81,10 @@ describe('onboarding analytics', () => {
   })
   it('recovers a lost completion response after the server saved onboarding', async () => {
     vi.mocked(completeOnboarding).mockRejectedValueOnce(new Error('Response lost'))
-    vi.mocked(getUser).mockResolvedValueOnce({ email: 'test@example.com', emailVerified: true, onboardedAt: '2026-10-01', currencyCode: 'USD' })
+    // Not onboarded when the save starts; onboarded by the time it's re-checked.
+    vi.mocked(getUser)
+      .mockResolvedValueOnce({ email: 'test@example.com', emailVerified: true, onboardedAt: null })
+      .mockResolvedValueOnce({ email: 'test@example.com', emailVerified: true, onboardedAt: '2026-10-01', currencyCode: 'USD' })
     const client = walkToFinish()
     expect(await screen.findByRole('heading', { name: 'Your budget is ready to go.' }, { timeout: 3000 })).toBeInTheDocument()
     expect(eventsNamed('onboarding_failed')).toHaveLength(0)

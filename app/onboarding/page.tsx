@@ -177,6 +177,8 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
   // Why a row couldn't be checked (no name yet, or a name another checked row
   // already has); each bump of `n` shows it as a toast.
   const [rowToast, setRowToast] = useState({ n: 0, message: '' })
+  // Setup was finished on another device; this tab has nothing left to save.
+  const [alreadySetUp, setAlreadySetUp] = useState(false)
   const [result, setResult] = useState<{ income: number; groupCount: number; categoryCount: number } | null>(null)
 
   // Timing for the onboarding funnel, same as mobile's setup.tsx: the whole
@@ -509,6 +511,14 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
       stepShownAt = Date.now()
     }
     try {
+      // Setup may have been finished on another device while this tab sat in
+      // the wizard. Writing now would lay a second budget over it.
+      const me = await getUser()
+      if (me.onboardedAt) {
+        qc.setQueryData(['user'], me)
+        setAlreadySetUp(true)
+        return
+      }
       const month = currentMonthKey()
       const budgetVersions = new Map(
         (await getBudgets()).map((row) => [`${row.month}\u0000${row.category}`, row.version]),
@@ -612,10 +622,23 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
     setStep(5)
   }
 
+  if (alreadySetUp) {
+    return (
+      <div className="expense-redesign setup-page">
+        <div className="setup-done">
+          <div className="setup-done-badge"><CheckIcon size={30} weight="bold" aria-hidden="true" /></div>
+          <h1 className="setup-done-title">You’re already set up</h1>
+          <p className="setup-done-blurb">You finished setup on another device, so your budget is waiting.</p>
+          <button type="button" className="setup-cta" onClick={() => router.replace('/expense')}>Go to my budget</button>
+        </div>
+      </div>
+    )
+  }
+
   if (entry === 'ask' && step < 5) {
     return (
       <div className="expense-redesign setup-page">
-        <ImportFlow onFresh={() => setEntry('fresh')} onDone={onImported} />
+        <ImportFlow onFresh={() => setEntry('fresh')} onDone={onImported} onAlreadySetUp={() => setAlreadySetUp(true)} />
       </div>
     )
   }
