@@ -128,8 +128,9 @@ export function historyDone(total: number, failed: number): string {
 /** What the set-me-up button says while the import commits, one step at a time. */
 export function commitSteps(envelopes: number, accounts: number, salary: boolean): string[] {
   return [
-    `Making your ${plural(envelopes, 'envelope', 'envelopes')}…`,
-    `Adding your ${plural(accounts, 'account', 'accounts')}…`,
+    // Only the writes this import has: no "Making your 0 envelopes…".
+    ...(envelopes ? [`Making your ${plural(envelopes, 'envelope', 'envelopes')}…`] : []),
+    ...(accounts ? [`Adding your ${plural(accounts, 'account', 'accounts')}…`] : []),
     ...(salary ? ['Setting up your payday…'] : []),
     'Filling this month’s budget…',
   ]

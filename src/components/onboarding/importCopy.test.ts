@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { bannerDone, bannerProgress, countsLine, directionCopy, fileSize, historyDone, importErrorCopy, listOf, ordinal, precheckFile, skippedCopy } from './importCopy'
+import { bannerDone, commitSteps, bannerProgress, countsLine, directionCopy, fileSize, historyDone, importErrorCopy, listOf, ordinal, precheckFile, skippedCopy } from './importCopy'
 
 describe('precheckFile', () => {
   const f = (name: string, size = 10, type = '') => ({ name, size, type })
@@ -81,5 +81,12 @@ describe('import copy', () => {
     expect(bannerProgress(4210, 11240)).toBe('Bringing in your history · 4,210 of 11,240')
     expect(bannerDone(0)).toBe('All in. Want us to find your repeat payments?')
     expect(bannerDone(12)).toBe('All in, apart from 12 rows we couldn’t add. Want us to find your repeat payments?')
+  })
+})
+
+describe('commitSteps', () => {
+  it('names only the writes this import has', () => {
+    expect(commitSteps(6, 2, true)).toEqual(['Making your 6 envelopes…', 'Adding your 2 accounts…', 'Setting up your payday…', 'Filling this month’s budget…'])
+    expect(commitSteps(0, 0, true)).toEqual(['Setting up your payday…', 'Filling this month’s budget…'])
   })
 })
