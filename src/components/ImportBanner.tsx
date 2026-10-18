@@ -99,6 +99,12 @@ export function useImportStatus(pollMs = POLL_MS): ImportStatus | undefined {
   return data
 }
 
+/** Whether an import's history is still being booked, from the banner's own poll. */
+export function useImportInProgress(): boolean {
+  const { data } = useQuery<ImportStatus>({ queryKey: ['import-status'], queryFn: getImportStatus, staleTime: POLL_MS })
+  return data?.status === 'importing'
+}
+
 export function ImportBanner() {
   const qc = useQueryClient()
   const data = useImportStatus()

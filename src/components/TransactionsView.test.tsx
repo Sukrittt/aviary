@@ -12,6 +12,8 @@ const { remove, dismiss, duplicates, page, pageArgs } = vi.hoisted(() => ({
 }))
 const feedMocks = vi.hoisted(() => ({ user: {} as { activityFeed?: boolean } }))
 vi.mock('../hooks/useUser', () => ({ useUser: () => ({ data: feedMocks.user }) }))
+const importMocks = vi.hoisted(() => ({ importing: false }))
+vi.mock('./ImportBanner', () => ({ useImportInProgress: () => importMocks.importing }))
 vi.mock('../hooks/useAccounts', () => ({ useAccounts: () => ({ data: [] }), liveAccounts: () => [] }))
 vi.mock('../hooks/useIncomes', () => ({ useIncomes: () => ({ data: incomeMocks.rows }) }))
 const incomeMocks = vi.hoisted(() => ({ rows: [] as Record<string, unknown>[] }))
@@ -274,4 +276,12 @@ describe('feed view', () => {
     fireEvent.click(screen.getByText('Remove'))
     await waitFor(() => expect(remove).toHaveBeenCalledWith(expect.objectContaining({ id: 'one' })))
   })
+})
+
+it('shows no clock time on an imported row: it would be the import’s, not the spend’s', () => {
+  page.extra = [{ id: 'imp', version: 0, timestamp: '2026-09-18T04:20:00', date: '2026-09-18', item: 'FreshMart', amount_inr: '80', category: 'Groceries', source: 'import' }]
+  render(<TransactionsView />)
+  expect(screen.getByText('Groceries', { selector: '.txn-timeline-meta, .txn-timeline-meta *' })).toBeInTheDocument()
+  expect(screen.queryByText(/4:20/)).toBeNull()
+  page.extra = []
 })

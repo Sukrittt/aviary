@@ -19,3 +19,9 @@ it('shows the newest four expenses with date links and respects hidden amounts',
   expect(screen.queryByText('Expense 1')).not.toBeInTheDocument()
   expect(screen.queryByText(/₹/)).not.toBeInTheDocument()
 })
+
+it('says the history is on its way while an import is still booking, not to log a first expense', () => {
+  render(<RecentActivity expenses={[]} hideAmounts={false} historyComing />)
+  expect(screen.getByText('Your history is on its way')).toBeInTheDocument()
+  expect(screen.queryByText('Your story starts here')).not.toBeInTheDocument()
+})
