@@ -48,7 +48,25 @@ function categoriesAt(expenses: StoredRow[], joinSub: boolean): CategoryPlan {
 export function proposeCategories(rows: StoredRow[]): CategoryPlan {
   const expenses = rows.filter((r) => r.kind === 'expense')
   const withSub = categoriesAt(expenses, true)
-  return withSub.list.length > MAX_CATEGORIES ? categoriesAt(expenses, false) : withSub
+  return capped(withSub.list.length > MAX_CATEGORIES ? categoriesAt(expenses, false) : withSub)
+}
+
+/** The top categories by spend, the rest folded into Uncategorised, so a free-text column can't flood the review or the commit. */
+function capped(plan: CategoryPlan): CategoryPlan {
+  if (plan.list.length <= MAX_CATEGORIES) return plan
+  const other = normalizeItem(UNCATEGORISED)
+  const otherName = plan.list.find((c) => normalizeItem(c.source) === other)?.source ?? UNCATEGORISED
+  const kept = plan.list.filter((c) => c.source !== otherName).slice(0, MAX_CATEGORIES - 1)
+  const keep = new Set(kept.map((c) => c.source))
+  const folded = plan.list.filter((c) => !keep.has(c.source)).reduce((sum, c) => sum + c.spent, 0)
+  return {
+    joinSub: plan.joinSub,
+    list: [...kept, { source: otherName, spent: Math.round(folded * 100) / 100 }].sort((a, b) => b.spent - a.spent),
+    sourceOf: (r) => {
+      const source = plan.sourceOf(r)
+      return keep.has(source) ? source : otherName
+    },
+  }
 }
 
 export function guessAccountType(name: string): AccountType {
