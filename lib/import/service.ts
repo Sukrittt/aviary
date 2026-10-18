@@ -4,7 +4,7 @@ import { getCollection, json } from '@/lib/http'
 import { getUserCurrency, nowForUser } from '@/lib/userCurrency'
 import { isCurrencyCode } from '@/src/lib/currencies'
 import type { AccountType } from '@/lib/accounts'
-import { readTable } from './read'
+import { readTable, ZipTooLarge } from './read'
 import type { Direction } from './parse'
 import type { AppId, SkipReason } from './presets'
 import { ImportError, inspect, needsColumnHelp, normalize, resolveRows, unresolvedColumns, type StoredRow } from './normalize'
@@ -158,8 +158,8 @@ export async function buildReview(auth: Auth, doc: ImportDoc, today: string): Pr
 export async function previewFile(auth: Auth, buf: Buffer, filename: string): Promise<Review> {
   if (buf.length > MAX_UPLOAD_BYTES) throw new ImportError('too_big')
   const today = (await nowForUser(auth.userId)).date
-  const tables = await readTable(buf, filename).catch(() => {
-    throw new ImportError('unreadable')
+  const tables = await readTable(buf, filename).catch((e) => {
+    throw new ImportError(e instanceof ZipTooLarge ? 'too_big' : 'unreadable')
   })
   const layout = inspect(tables)
   const roles = needsColumnHelp(layout) && (await importAiAllowed(auth))

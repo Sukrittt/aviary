@@ -140,6 +140,19 @@ describe('generic files', () => {
     expect(out.rows[0].notes).toHaveLength(300)
   })
 
+  it('clips account, category and subcategory to 100', () => {
+    const long = 'c'.repeat(150)
+    const out = normalize(inspect(csv(['Date,Item,Amount,Account,Category,Subcategory', `2026-09-01,Bread,-1,${long},${long},${long}`])), TODAY)
+    expect([out.rows[0].account, out.rows[0].category, out.rows[0].subcategory].map((s) => s.length)).toEqual([100, 100, 100])
+  })
+
+  it('refuses rows too big to store in one import, rather than failing the write', () => {
+    const lines = ['Date,Description,Amount,Notes,Account,Category,Subcategory']
+    const [text, note, long] = ['a'.repeat(200), 'b'.repeat(300), 'c'.repeat(100)]
+    for (let i = 0; i < 20_000; i++) lines.push(`2026-09-01,${text}${i},-1,${note},${long},${long},${long}`)
+    expect(() => normalize(inspect(csv(lines)), TODAY)).toThrow(new ImportError('too_big'))
+  })
+
   it('asks for help with columns it cannot place, and only those', () => {
     const layout = inspect(csv(['Fecha,Concepto,Importe', '01/09/2026,Pan,-2']))
     expect(needsColumnHelp(layout)).toBe(true)
