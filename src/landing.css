@@ -58,9 +58,6 @@ html:has(.lp) { scroll-behavior: smooth; }
 @keyframes lp-draw { to { stroke-dashoffset: 0; } }
 /* 680px: the first line holds the longest rotating habit (takeout Saturdays, 654px) without wrapping mid-rotation. */
 .lp-hero > p { max-width: 680px; margin-top: 22px; font-size: 20px; line-height: 1.55; color: var(--muted); text-wrap: pretty; }
-.lp-rotor { display: inline-block; }
-.lp-rotor-word { display: inline-block; color: var(--ink); font-weight: 700; background: var(--tint); border-radius: 8px; padding: 0 5px; animation: lp-rotor-in 520ms cubic-bezier(.22, 1, .36, 1) both; }
-@keyframes lp-rotor-in { from { opacity: 0; filter: blur(4px); transform: translateY(.35em); } }
 .lp-hero-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 28px; }
 .lp-hero-note { display: block; margin-top: 18px; font-size: 14px; color: var(--muted); }
 .lp-hero-note a { text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; }

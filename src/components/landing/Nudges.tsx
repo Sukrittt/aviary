@@ -17,21 +17,9 @@ import { useCurrency } from '@/src/context/CurrencyContext'
  * each scene only shows what that feature actually does.
  */
 
-/** The hero's rotating habit. Screen readers get the first one as plain text. */
-export function RotatingHabit() {
-  const HABITS = useSample().habits
-  const reduced = useReducedMotion()
-  const { ref, visible } = useOnScreen<HTMLSpanElement>(0)
-  const [i, setI] = useState(0)
-  useEffect(() => {
-    if (reduced || !visible) return
-    const id = setInterval(() => setI((n) => (n + 1) % HABITS.length), 2600)
-    return () => clearInterval(id)
-  }, [reduced, visible, HABITS.length])
-  return <span className="lp-rotor" ref={ref}>
-    <span className="lp-sr-only">{HABITS[0]}</span>
-    <span className="lp-rotor-word" key={i} aria-hidden="true">{HABITS[i]}</span>
-  </span>
+/** The headline's habit, from the visitor's sample: chai in India, coffee elsewhere. */
+export function FirstHabit() {
+  return <>{useSample().habits[0]}</>
 }
 
 // ─── Hero: a chaptered film of the app at work ────────────────────────────────
