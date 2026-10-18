@@ -134,7 +134,7 @@ describe('readTable limits', () => {
   })
 
   it('reads a zip that inflates to 18 MB, what a fifteen-year workbook does', async () => {
-    const zip = makeZip([{ name: 'big.csv', data: Buffer.from('a,b\n'.repeat(18 * 1024 * 1024 / 4)), deflate: true }])
+    const zip = makeZip([{ name: 'big.csv', data: Buffer.from(`${'a'.repeat(1023)}\n`.repeat(18 * 1024)), deflate: true }])
     await expect(readTable(zip, 'big.zip')).resolves.toHaveLength(1)
   })
 

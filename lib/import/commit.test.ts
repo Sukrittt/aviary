@@ -256,6 +256,15 @@ describe('commit edge cases', () => {
     expect((await (await coll('incomes')).find({}).toArray()).map((i) => i.label)).not.toContain('Store refund')
   })
 
+  it('a refund on a card takes its amount back off the Credit Card envelope', async () => {
+    const review = await previewFile(auth, csv([
+      'Date,Item,Category,Amount,Account', '2026-09-02,Myntra,Shopping,-100,Visa Card', '2026-09-05,Myntra return,Shopping,30,Visa Card',
+    ]), 'x.csv')
+    await commitImport(auth, review.importId, editsFrom(review))
+    await runImportPass(auth, review.importId, Date.now() + 30_000)
+    expect(await budget('2026-09', '__credit_card__')).toMatchObject({ assigned: '70' })
+  })
+
   it('a salary typed in without a detected pattern isn’t counted twice this month', async () => {
     const review = await previewFile(auth, csv([
       'Date,Item,Amount', '2026-08-01,Salary Aug,1000', '2026-09-01,Salary Sep,1000', '2026-10-01,Salary Oct,1000', '2026-10-02,Bread,-3',

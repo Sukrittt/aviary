@@ -208,16 +208,18 @@ function Upload({ app, onPreview }: { app: AppChoice; onPreview: (review: Import
   const read = async (picked: File | undefined) => {
     if (!picked || busy) return
     setError('')
+    // Busy while gzipping too, so a second drop can't start a preview over this one.
+    setBusy(true)
     // An empty file, a PDF, a photo or an old .xls: say so now, not after an upload.
     const upload = await squeeze(picked).catch(() => picked)
     const bad = precheckFile(upload, MAX_BYTES)
     if (bad) {
+      setBusy(false)
       setFile(null)
       fail(bad, bad === 'too_big' ? 'preview' : 'precheck')
       return
     }
     setFile({ name: picked.name, size: picked.size })
-    setBusy(true)
     try {
       const review = await previewImport(upload)
       track('import_previewed', {
