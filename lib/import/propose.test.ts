@@ -37,6 +37,20 @@ describe('proposeCategories', () => {
     expect(plan.list).toHaveLength(5)
   })
 
+  it('keeps the top 40 by spend and folds the rest into Uncategorised', () => {
+    const rows = [
+      ...Array.from({ length: 250 }, (_, i) => row({ category: `Free text ${i}`, amount: 1000 - i })),
+      row({ category: '', amount: 1 }),
+    ]
+    const plan = proposeCategories(rows)
+    expect(plan.list).toHaveLength(40)
+    expect(plan.list).toContainEqual({ source: 'Free text 0', spent: 1000 })
+    const other = plan.list.find((c) => c.source === 'Uncategorised')
+    expect(other?.spent).toBe(rows.slice(39).reduce((s, r) => s + r.amount, 0))
+    expect(plan.sourceOf(row({ category: 'Free text 38' }))).toBe('Free text 38')
+    expect(plan.sourceOf(row({ category: 'Free text 39' }))).toBe('Uncategorised')
+  })
+
   it('clips long names to 60 characters', () => {
     expect(proposeCategories([row({ category: 'c'.repeat(80) })]).list[0].source).toHaveLength(60)
   })
