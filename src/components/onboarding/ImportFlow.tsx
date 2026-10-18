@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { ArrowLeftIcon, CardholderIcon, CaretRightIcon, CheckIcon, CircleNotchIcon, FileTextIcon, PlusIcon, SealCheckIcon, TagIcon, UploadSimpleIcon, WalletIcon, WarningIcon } from '@/src/components/icons'
+import { ArrowLeftIcon, ArrowsClockwiseIcon, CardholderIcon, CaretRightIcon, CheckIcon, CircleNotchIcon, FileTextIcon, PlusIcon, SealCheckIcon, SparkleIcon, TagIcon, UploadSimpleIcon, WalletIcon, WarningIcon } from '@/src/components/icons'
 import { Scrim, Sheet } from '@/src/components/MotionSheet'
 import { CurrencyPicker } from '@/src/components/CurrencyPicker'
 import { CurrencyScope, useCurrency } from '@/src/context/CurrencyContext'
@@ -16,7 +16,7 @@ import { useImportStatus } from '@/src/components/ImportBanner'
 import { commitSteps, countsLine, directionCopy, fileSize, historyDone, importErrorCopy, ordinal, precheckFile, shortDate, skippedCopy } from './importCopy'
 
 /**
- * "Switching apps?": the first onboarding step, and the import
+ * "How do you want to start?": the first onboarding step, and the import
  * that follows it. The review is the only screen with work on it; nothing
  * is written until its button is pressed.
  */
@@ -101,11 +101,35 @@ export function ImportFlow({ onFresh, onDone }: { onFresh: () => void; onDone: (
       </div>
 
       {stage === 'ask' && (
+        // Two equal ways in: starting fresh is as good a start as switching, so
+        // neither is the big button with the other as a small link under it.
         <motion.div key="ask" className="import-ask" {...enter}>
-          <h1 className="setup-title">Switching apps?</h1>
-          <p className="setup-blurb">Don’t start from zero. Export one file from your old app and we’ll rebuild it all here.</p>
-          <button type="button" className="setup-cta" onClick={() => setStage('pick')}>Bring it all over</button>
-          <button type="button" className="setup-pick-own" onClick={onFresh}>No, start fresh</button>
+          <h1 className="setup-title">How do you want to start?</h1>
+          <p className="setup-blurb">Both get you a budget in a few minutes.</p>
+          <div className="import-choices">
+            {[
+              { Icon: SparkleIcon, title: 'Start fresh', detail: 'Set up your budget in about a minute. We’ll guide you.', onClick: onFresh },
+              { Icon: ArrowsClockwiseIcon, title: 'Bring my budget over', detail: 'From YNAB, Money Manager, Wallet and more.', onClick: () => setStage('pick') },
+            ].map(({ Icon, title, detail, onClick }, i) => (
+              <motion.button
+                key={title}
+                type="button"
+                className="import-choice"
+                onClick={onClick}
+                initial={reduce ? false : { opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, ease: EASE, delay: 0.08 + i * 0.06 }}
+                whileTap={reduce ? undefined : { scale: 0.98 }}
+              >
+                <span className="import-choice-icon"><Icon size={20} weight="bold" aria-hidden="true" /></span>
+                <span className="import-choice-text">
+                  <span className="import-choice-title">{title}</span>
+                  <span className="import-choice-detail">{detail}</span>
+                </span>
+                <CaretRightIcon size={14} aria-hidden="true" className="import-app-caret" />
+              </motion.button>
+            ))}
+          </div>
         </motion.div>
       )}
 

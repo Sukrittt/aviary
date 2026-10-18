@@ -13282,6 +13282,57 @@ button.account-feature-card {
 .import-ask .setup-blurb {
   max-width: 600px;
 }
+.import-choices {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+  max-width: 520px;
+  margin-top: 32px;
+}
+.import-choice {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 16px;
+  border: 1px solid var(--erd-border);
+  border-radius: 18px;
+  background: var(--erd-card);
+  color: var(--erd-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+.import-choice:hover,
+.import-choice:focus-visible {
+  border-color: var(--gold);
+}
+.import-choice-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--gold-soft);
+  color: var(--gold-ink);
+}
+.import-choice-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+}
+.import-choice-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+.import-choice-detail {
+  color: var(--erd-text2);
+  font-size: 13px;
+  line-height: 1.4;
+}
 .import-pick,
 .import-upload {
   /* Same column as the ask step: a short list of names or one drop zone
