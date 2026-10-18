@@ -20,6 +20,12 @@ vi.mock('@/lib/push', () => ({ sendPushNotification: (arg: unknown) => sendPush(
 const sendEmail = vi.fn(async (_message: unknown, _key: unknown) => 'email-id')
 vi.mock('@/lib/email/resend', () => ({ sendEmail: (msg: unknown, key: unknown) => sendEmail(msg, key) }))
 // AI off: every category lands in Essentials, which the review copy expects.
+// Flipped on to kill a commit after its salary step, the way a timeout would.
+const budgetWrite = vi.hoisted(() => ({ fail: false }))
+vi.mock('@/lib/budgets', async (importOriginal) => {
+  const real = await importOriginal<typeof import('@/lib/budgets')>()
+  return { ...real, createBudgetRow: (...args: Parameters<typeof real.createBudgetRow>) => budgetWrite.fail ? Promise.reject(new Error('timed out')) : real.createBudgetRow(...args) }
+})
 vi.mock('@/lib/import/ai', () => ({ importAiAllowed: async () => false, pickCategoryGroups: vi.fn(), pickColumnRoles: vi.fn() }))
 
 import { getDb, getClient } from '@/lib/mongodb'
@@ -52,6 +58,7 @@ afterAll(async () => {
 })
 beforeEach(async () => {
   vi.clearAllMocks()
+  budgetWrite.fail = false
   const db = await getDb()
   for (const c of await db.collections()) await c.deleteMany({})
   await db.collection('users').insertOne({ _id: USER as never, email: 'sam@example.com', name: 'Sam Rao', currencyCode: 'USD' })
@@ -252,6 +259,23 @@ describe('commit edge cases', () => {
     const { insertedId } = await (await coll('imports')).insertOne({ ...(await (await coll('imports')).findOne({ _id: new ObjectId(a.importId) }))!, _id: new ObjectId(), claimedUntil: Date.now() + 60_000 })
     expect(insertedId).toBeTruthy()
     await expect(commitImport(auth, a.importId, editsFrom(a))).rejects.toMatchObject({ code: 'busy' })
+  })
+
+  it('a re-upload leaves a preview that’s mid-commit alone, so that commit still lands', async () => {
+    const a = await previewFile(auth, fixture('money-manager.csv'), 'a.csv')
+    await (await coll('imports')).updateOne({ _id: new ObjectId(a.importId) }, { $set: { claimedUntil: Date.now() + 60_000 } })
+    await previewFile(auth, fixture('monefy.csv'), 'b.csv')
+    expect(await count('imports', { _id: new ObjectId(a.importId) })).toBe(1)
+  })
+
+  it('a commit that died after the salary step, then a new file, still leaves one salary schedule', async () => {
+    const a = await previewFile(auth, fixture('money-manager.csv'), 'a.csv')
+    budgetWrite.fail = true
+    await expect(commitImport(auth, a.importId, editsFrom(a))).rejects.toThrow('timed out')
+    budgetWrite.fail = false
+    const b = await previewFile(auth, fixture('money-manager.csv'), 'b.csv')
+    await commitImport(auth, b.importId, editsFrom(b))
+    expect(await count('recurring_incomes', { status: 'active' })).toBe(1)
   })
 
   it('a flip that loses the race with a commit says so rather than show a stale review', async () => {
