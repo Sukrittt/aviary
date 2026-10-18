@@ -37,10 +37,10 @@ it('rejects dismissed suggestions, past dates, and already tracked subscriptions
   expect(mocks.insert).not.toHaveBeenCalled()
 })
 
-it('rejects a subscription-classified suggestion', async () => {
+it('sets a subscription-classified suggestion up as a recurring expense, for accounts without Subscriptions', async () => {
   mocks.suggestion.mockResolvedValue({ decision: { pattern: 'subscription', frequency: 'monthly' } })
-  expect((await POST(request())).status).toBe(409)
-  expect(mocks.insert).not.toHaveBeenCalled()
+  expect((await POST(request())).status).toBe(200)
+  expect(String(mocks.insert.mock.calls[0][0]._id)).toBe(id)
 })
 
 it('does not report a deleted schedule as newly created on an id collision', async () => {
