@@ -7,7 +7,7 @@ vi.mock('next/navigation', () => ({ useRouter: () => ({ replace: vi.fn() }) }))
 
 function toGroupsStep() {
   render(<QueryClientProvider client={new QueryClient()}><SetupWizardPage /></QueryClientProvider>)
-  fireEvent.click(screen.getByRole('button', { name: 'No, start fresh' }))
+  fireEvent.click(screen.getByRole('button', { name: /^Start fresh/ }))
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
   fireEvent.click(screen.getByRole('button', { name: /50,000/ }))
   fireEvent.click(screen.getByRole('button', { name: 'Pick my own groups and categories' }))

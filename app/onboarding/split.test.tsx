@@ -15,7 +15,7 @@ vi.mock('@/src/api/billing', () => ({ completeOnboarding: vi.fn() }))
 function walkToCategories() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   render(<QueryClientProvider client={client}><SetupWizardPage /></QueryClientProvider>)
-  fireEvent.click(screen.getByRole('button', { name: 'No, start fresh' }))
+  fireEvent.click(screen.getByRole('button', { name: /^Start fresh/ }))
   fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'USD' } })
   fireEvent.click(screen.getByRole('button', { name: /US Dollar/ }))
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
