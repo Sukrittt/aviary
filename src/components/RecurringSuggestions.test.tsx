@@ -102,3 +102,8 @@ it('sets a subscription up as a recurring expense when Subscriptions is switched
   fireEvent.click(await screen.findByRole('button', { name: 'Review and add' }))
   expect(screen.getByRole('dialog')).toHaveTextContent('Netflix starts 2026-10-05')
 })
+it('dates the last scan by the local day, not UTC', async () => {
+  mocks.load.mockResolvedValue({ ...found, scannedAt: '2026-10-18T22:30:00Z' })
+  mount()
+  expect(await screen.findByRole('time')).toHaveAttribute('dateTime', '2026-10-19')
+})

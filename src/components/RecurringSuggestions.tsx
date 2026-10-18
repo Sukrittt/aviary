@@ -13,6 +13,7 @@ import {
 import { useCurrency } from "../context/CurrencyContext";
 import { useHideAmounts } from "../hooks/useHideAmounts";
 import { formatDateShort } from "../lib/format";
+import { toLocalDateString } from "../lib/date";
 import type {
   RecurringSuggestion,
   RecurringScan,
@@ -72,7 +73,7 @@ export function RecurringSuggestions({ kind = "other_recurring" }: { kind?: Sugg
   return (
     <section
       className="account-card recurring-discovery"
-      aria-label={allMode ? "Find repeat payments" : allMode ? "Find repeat payments" : subscriptionMode ? "Find subscriptions" : "Find recurring expenses"}
+      aria-label={allMode ? "Find repeat payments" : subscriptionMode ? "Find subscriptions" : "Find recurring expenses"}
     >
       <div className="recurring-discovery-header">
         <div className="recurring-discovery-intro">
@@ -121,7 +122,7 @@ export function RecurringSuggestions({ kind = "other_recurring" }: { kind?: Sugg
               ? "Scanning expenses…"
               : data?.scannedAt && data.remaining > 0
                 ? "Scan remaining patterns"
-                : subscriptionMode ? "Find subscriptions" : "Find recurring expenses"}
+                : allMode ? "Find repeat payments" : subscriptionMode ? "Find subscriptions" : "Find recurring expenses"}
             {!scan.isPending && <ArrowRightIcon size={16} aria-hidden="true" />}
           </button>
         </div>
@@ -148,8 +149,9 @@ export function RecurringSuggestions({ kind = "other_recurring" }: { kind?: Sugg
             <div className="recurring-discovery-summary">
               <p className="recurring-discovery-timestamp">
                 Last scanned{" "}
-                <time dateTime={data.scannedAt.slice(0, 10)}>
-                  {formatDateShort(data.scannedAt.slice(0, 10))}
+                {/* The local day: a scan at 4 am IST is 22:30 UTC the day before. */}
+                <time dateTime={toLocalDateString(new Date(data.scannedAt))}>
+                  {formatDateShort(toLocalDateString(new Date(data.scannedAt)))}
                 </time>
               </p>
               <p className="recurring-discovery-range">
