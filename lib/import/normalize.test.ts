@@ -120,6 +120,11 @@ describe('generic files', () => {
     expect(out.rows.map((r) => r.amount)).toEqual([1250, 3.5])
   })
 
+  it('reads dot thousands without cents at full size', () => {
+    const out = normalize(inspect([{ name: 'x.csv', rows: [['Date', 'Description', 'Amount'], ['01.09.2026', 'Kopi', '-50.000'], ['02.09.2026', 'Sewa', '-1.250.000'], ['03.09.2026', 'Makan', '-125.000']] }]), TODAY)
+    expect(out.rows.map((r) => r.amount)).toEqual([50000, 1250000, 125000])
+  })
+
   it('keeps the newest 20,000 rows and says how many it dropped', () => {
     const lines = ['Date,Item,Amount']
     for (let i = 0; i < 20_001; i++) lines.push(`${i === 0 ? '2020-01-01' : '2026-01-01'},Row ${i},-1`)
