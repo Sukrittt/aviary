@@ -5,6 +5,9 @@ import { detectPreset, genericTell, headerScore, mapColumns, typeKind, type AppI
 export const MAX_ROWS = 20_000
 const MAX_ITEM = 200
 const MAX_NOTES = 300
+const MAX_LABEL = 100
+/** The stored rows' JSON, at most: encrypted it grows by about a third, and the doc must stay under Mongo's 16 MB. */
+const MAX_ROWS_BYTES = 10 * 1024 * 1024
 
 export type ImportErrorCode = 'too_big' | 'unreadable' | 'no_columns' | 'not_found' | 'already_importing' | 'already_onboarded' | 'busy' | 'invalid'
 
@@ -162,8 +165,8 @@ export function normalize(layout: Layout, today: string, roles: Record<number, R
     if (!date || date < '2000-01-01' || signed === null) { skip('unparseable'); continue }
     if (date > today) { skip('future'); continue }
 
-    const category = at(row, 'category')
-    const subcategory = at(row, 'subcategory')
+    const category = at(row, 'category').slice(0, MAX_LABEL)
+    const subcategory = at(row, 'subcategory').slice(0, MAX_LABEL)
     const text = at(row, 'text')
     const note = at(row, 'note')
     const item = (text || note || subcategory || category).slice(0, MAX_ITEM)
@@ -184,7 +187,7 @@ export function normalize(layout: Layout, today: string, roles: Record<number, R
       item,
       category,
       subcategory,
-      account: at(row, 'account'),
+      account: at(row, 'account').slice(0, MAX_LABEL),
       notes: (text ? note : '').slice(0, MAX_NOTES),
       currency: /^[A-Z]{3}$/.test(currency) ? currency : '',
     }
@@ -199,6 +202,7 @@ export function normalize(layout: Layout, today: string, roles: Record<number, R
   // Stable: rows sharing a date keep the file's order.
   rows.sort((a, b) => a.date.localeCompare(b.date))
   const kept = rows.slice(-MAX_ROWS)
+  if (Buffer.byteLength(JSON.stringify(kept)) > MAX_ROWS_BYTES) throw new ImportError('too_big')
   const codes = new Map<string, number>()
   for (const r of kept) if (r.currency) codes.set(r.currency, (codes.get(r.currency) ?? 0) + 1)
   return {

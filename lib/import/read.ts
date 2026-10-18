@@ -78,8 +78,15 @@ export function findHeaderRow(rows: string[][], score: (cells: string[]) => numb
   return best
 }
 
-/** Most a zip may inflate to, in total: a 4 MB export never needs more, and a zip bomb does. */
-const MAX_INFLATED = 50 * 1024 * 1024
+/**
+ * Most a zip may inflate to, in total. 15 MB of csv or sheet xml is well past
+ * the 20,000 rows an import keeps; more only costs the preview its memory and
+ * its 30 seconds.
+ */
+const MAX_INFLATED = 15 * 1024 * 1024
+
+/** A zip past MAX_INFLATED: too big, not unreadable, so the user hears to export less. */
+export class ZipTooLarge extends Error {}
 
 export function readZip(buf: Buffer): Map<string, Buffer> {
   let end = -1
@@ -97,7 +104,7 @@ export function readZip(buf: Buffer): Map<string, Buffer> {
     const method = buf.readUInt16LE(p + 10)
     const size = buf.readUInt32LE(p + 20)
     inflated += buf.readUInt32LE(p + 24)
-    if (inflated > MAX_INFLATED) throw new Error('zip too large')
+    if (inflated > MAX_INFLATED) throw new ZipTooLarge()
     const nameLen = buf.readUInt16LE(p + 28)
     const extraLen = buf.readUInt16LE(p + 30)
     const commentLen = buf.readUInt16LE(p + 32)
@@ -112,7 +119,9 @@ export function readZip(buf: Buffer): Map<string, Buffer> {
       }
       // The declared sizes above can lie; the bytes actually inflated can't.
       else if (method === 8) {
-        const out = inflateRawSync(body, { maxOutputLength: MAX_INFLATED - actual })
+        let out: Buffer
+        try { out = inflateRawSync(body, { maxOutputLength: MAX_INFLATED - actual }) }
+        catch (e) { throw (e as { code?: string }).code === 'ERR_BUFFER_TOO_LARGE' ? new ZipTooLarge() : e }
         actual += out.length
         files.set(name, out)
       }
@@ -155,7 +164,8 @@ export async function readTable(buf: Buffer, filename: string): Promise<Table[]>
   // A binary (pre-2007) .xls isn't a zip and exceljs can't read it; one renamed from .xlsx is.
   if (lower.endsWith('.xls') && !isZip(buf)) throw new Error('binary xls')
   if (lower.endsWith('.xlsx') || lower.endsWith('.xls')) {
-    // ponytail: exceljs inflates on its own, so only the declared sizes are checked here; a lying xlsx still gets through.
+    // Inflated here first so the cap holds on the bytes, not the declared sizes, before exceljs inflates it again.
+    // ponytail: exceljs loads the whole workbook; under MAX_INFLATED that's ~1.5s. A streaming WorkbookReader if the cap goes up.
     readZip(buf)
     return readXlsx(buf)
   }

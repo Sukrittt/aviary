@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { deflateRawSync } from 'node:zlib'
 import ExcelJS from 'exceljs'
-import { decodeText, findHeaderRow, parseCsv, readTable, readZip } from './read'
+import { decodeText, findHeaderRow, parseCsv, readTable, readZip, ZipTooLarge } from './read'
 
 /** A minimal zip: local headers, one central directory, end record. Enough for readZip. */
 function makeZip(entries: { name: string; data: Buffer; deflate: boolean; declared?: number }[]): Buffer {
@@ -113,7 +113,7 @@ describe('readTable limits', () => {
   it('caps what the entries actually inflate to, not only what they declare', async () => {
     const big = Buffer.alloc(30 * 1024 * 1024, 48)
     const zip = makeZip([{ name: 'a.csv', data: big, deflate: true, declared: 10 }, { name: 'b.csv', data: big, deflate: true, declared: 10 }])
-    await expect(readTable(zip, 'liar.zip')).rejects.toThrow()
+    await expect(readTable(zip, 'liar.zip')).rejects.toThrow(ZipTooLarge)
   })
 
   it('refuses a binary .xls, which exceljs can’t read', async () => {
@@ -123,7 +123,12 @@ describe('readTable limits', () => {
   it('refuses a zip that would inflate past the cap', async () => {
     const zip = makeZip([{ name: 'big.csv', data: Buffer.alloc(60 * 1024 * 1024, 48), deflate: true }])
     expect(zip.length).toBeLessThan(1024 * 1024)
-    await expect(readTable(zip, 'bomb.zip')).rejects.toThrow()
+    await expect(readTable(zip, 'bomb.zip')).rejects.toThrow(ZipTooLarge)
+  })
+
+  it('refuses a zip that inflates to 20 MB, more than a 4 MB export needs', async () => {
+    const zip = makeZip([{ name: 'big.csv', data: Buffer.alloc(20 * 1024 * 1024, 48), deflate: true }])
+    await expect(readTable(zip, 'big.zip')).rejects.toThrow(ZipTooLarge)
   })
 })
 
@@ -142,6 +147,20 @@ describe('readTable', () => {
     const buf = Buffer.from(await wb.xlsx.writeBuffer())
     expect(await readTable(buf, 'export.xlsx')).toEqual([
       { name: 'Sheet1', rows: [['Date', 'Amount', 'Note'], ['2026-10-01', '1250.5', 'Rent']] },
+    ])
+  })
+
+  it('reads every sheet of an xlsx by name, shared strings included, blank rows dropped', async () => {
+    const wb = new ExcelJS.Workbook()
+    const a = wb.addWorksheet('Expenses')
+    a.addRow(['Date', 'Item'])
+    a.addRow([])
+    a.addRow(['2026-10-01', 'Bread'])
+    wb.addWorksheet('Plan').addRow(['Month', 'Assigned'])
+    const buf = Buffer.from(await wb.xlsx.writeBuffer({ useSharedStrings: true }))
+    expect(await readTable(buf, 'export.xlsx')).toEqual([
+      { name: 'Expenses', rows: [['Date', 'Item'], ['2026-10-01', 'Bread']] },
+      { name: 'Plan', rows: [['Month', 'Assigned']] },
     ])
   })
 
