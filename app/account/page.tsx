@@ -74,7 +74,11 @@ export default function AccountPage() {
       }
       return
     }
-    await navigator.clipboard.writeText(`${text} ${url}`)
+    try {
+      await navigator.clipboard.writeText(`${text} ${url}`)
+    } catch {
+      return
+    }
     track('invite_shared', { method: 'copy' })
     setCopiedToast((n) => n + 1)
   }
