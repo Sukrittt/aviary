@@ -43,3 +43,19 @@ describe('searchCategoryIcons', () => {
     expect(searchCategoryIcons('')).toContain('Wallet')
   })
 })
+
+describe('expanded catalog', () => {
+  it('finds the newer icons by their tags', () => {
+    expect(searchCategoryIcons('cricket')).toContain('Cricket')
+    expect(searchCategoryIcons('upi')).toContain('ContactlessPayment')
+    expect(searchCategoryIcons('yoga')).toContain('PersonSimpleTaiChi')
+  })
+
+  it("keeps name-only categories on the icons they had before", () => {
+    expect(categoryIconKey('Laundry')).toBe('TShirt')
+    expect(categoryIconKey('Kitchen')).toBe('CookingPot')
+    expect(categoryIconKey('Fuel')).toBe('GasPump')
+    expect(categoryIconKey('Work')).toBe('Laptop')
+    expect(categoryIconKey('School')).toBe('GraduationCap')
+  })
+})
