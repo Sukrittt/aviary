@@ -2,6 +2,7 @@ import { beforeAll, afterAll, beforeEach, describe, it, expect, vi } from 'vites
 import { MongoMemoryReplSet } from 'mongodb-memory-server'
 import { ObjectId } from 'mongodb'
 import { randomBytes } from 'node:crypto'
+import { gzipSync } from 'node:zlib'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 
@@ -118,6 +119,16 @@ describe('preview', () => {
     expect(String(raw?.rows)).not.toContain('Acme payroll')
     expect(String(raw?.plan)).toMatch(/^enc:/)
   })
+
+  it('brings in fifteen years whole: 50,000 rows the browser gzipped, oldest first', async () => {
+    const lines = ['Date,Description,Amount,Account,Category,Subcategory,Notes']
+    for (let i = 0; i < 50_000; i++) {
+      const date = new Date(Date.UTC(2011, 9, 1) + Math.floor(i / 9.2) * 86_400_000).toISOString().slice(0, 10)
+      lines.push(`${date},Swiggy dinner ${i},-1250.50,HDFC Credit Card,Food,Eating out,${i % 5 ? '' : 'with friends'}`)
+    }
+    const review = await previewFile(auth, gzipSync(lines.join('\n')), 'History.csv')
+    expect(review.counts).toMatchObject({ expense: 50_000, from: '2011-10-01' })
+  })
 })
 
 describe('commit and backfill', () => {
@@ -232,6 +243,26 @@ describe('commit edge cases', () => {
     const categories = review.categories.map((c) => (c.source === 'Rent' || c.source === 'Groceries' ? { ...c, name: 'Home' } : c))
     await commitImport(auth, review.importId, editsFrom(review, { categories }))
     expect(await budget('2026-10', 'Home')).toMatchObject({ assigned: '1900' })
+  })
+
+  it('books a YNAB store refund back to its envelope, not as a payday', async () => {
+    const review = await previewFile(auth, fixture('ynab-register.csv'), 'Register.csv')
+    expect(review.counts).toMatchObject({ expense: 4, refund: 1, income: 2 })
+    expect(review.categories.find((c) => c.source === 'Groceries')).toMatchObject({ monthly: 70 })
+    await commitImport(auth, review.importId, editsFrom(review))
+    await runImportPass(auth, review.importId, Date.now() + 30_000)
+    const refund = (await (await coll('expenses')).find({}).toArray()).find((e) => e.item === 'Store refund')
+    expect(refund).toMatchObject({ amount_inr: '-15', category: 'Groceries' })
+    expect((await (await coll('incomes')).find({}).toArray()).map((i) => i.label)).not.toContain('Store refund')
+  })
+
+  it('a refund on a card takes its amount back off the Credit Card envelope', async () => {
+    const review = await previewFile(auth, csv([
+      'Date,Item,Category,Amount,Account', '2026-09-02,Myntra,Shopping,-100,Visa Card', '2026-09-05,Myntra return,Shopping,30,Visa Card',
+    ]), 'x.csv')
+    await commitImport(auth, review.importId, editsFrom(review))
+    await runImportPass(auth, review.importId, Date.now() + 30_000)
+    expect(await budget('2026-09', '__credit_card__')).toMatchObject({ assigned: '70' })
   })
 
   it('a salary typed in without a detected pattern isn’t counted twice this month', async () => {
@@ -351,7 +382,7 @@ describe('failing rows', () => {
   async function seedImport(rows: unknown[]) {
     const { insertedId } = await (await coll('imports')).insertOne({
       status: 'importing', app: 'generic', filename: 'x.csv', currency: 'INR', direction: 'negative_spend', directionSource: 'sign',
-      hasCurrency: false, rows: JSON.stringify(rows), skipped: {}, droppedOverCap: 0, plan: '{}', total: rows.length, done: 0, failed: 0,
+      hasCurrency: false, rows: JSON.stringify(rows), skipped: {}, plan: '{}', total: rows.length, done: 0, failed: 0,
       cursor: 0, streak: 0, streak_start: 0, lockedUntil: 0, created_at: new Date(),
     })
     return String(insertedId)

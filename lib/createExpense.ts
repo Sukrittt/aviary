@@ -114,7 +114,8 @@ export async function adjustCreditCardEnvelope(
 }
 
 export async function createExpense(auth: Auth, input: CreateExpenseInput): Promise<CreateExpenseResult> {
-  const invalid = expenseInputError({ ...input })
+  // Only the import books refunds; `source` is checked against CLIENT_SOURCES before a client's create gets here.
+  const invalid = expenseInputError({ ...input }, false, input.source === 'import')
   if (invalid) throw new Error(invalid)
   const ist = await nowForUser(auth.userId)
   const date = String(input.date || ist.date)
@@ -175,10 +176,10 @@ export async function createExpense(auth: Auth, input: CreateExpenseInput): Prom
       { session },
     )
 
-    // Auto-transfer to the Credit Card envelope for CC purchases.
+    // Auto-transfer to the Credit Card envelope for CC purchases; an imported refund takes it back.
     if (paymentMethod === 'credit_card') {
       const amountNum = Number(input.amount_inr)
-      if (!Number.isNaN(amountNum) && amountNum > 0) {
+      if (!Number.isNaN(amountNum) && amountNum !== 0) {
         await adjustCreditCardEnvelope(auth, date.slice(0, 7), amountNum, session)
       }
     }

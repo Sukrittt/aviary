@@ -188,7 +188,8 @@ export function proposeBudgets(
   }
   const step = budgetStep(currency)
   const out: Record<string, number> = {}
-  for (const [name, sum] of sums) out[name] = Math.ceil(Math.round((sum / covered) * 100) / 100 / step) * step
+  // Refunds are negative spends, so they net out; one that outweighs the spend leaves the envelope at 0.
+  for (const [name, sum] of sums) out[name] = Math.max(0, Math.ceil(Math.round((sum / covered) * 100) / 100 / step) * step)
   return { ...out, ...plan }
 }
 

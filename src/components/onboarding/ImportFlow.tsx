@@ -22,6 +22,14 @@ import { commitSteps, countsLine, directionCopy, fileSize, historyDone, importEr
  */
 
 const MAX_BYTES = 4 * 1024 * 1024
+
+/** An export past the upload cap, gzipped: text shrinks about tenfold, and the server reads either (lib/import/read.ts). */
+async function squeeze(file: File): Promise<File> {
+  if (file.size <= MAX_BYTES || typeof CompressionStream === 'undefined') return file
+  const body = new Response(await file.arrayBuffer()).body!
+  const gz = await new Response(body.pipeThrough(new CompressionStream('gzip'))).arrayBuffer()
+  return new File([gz], file.name, { type: file.type })
+}
 /** lib/accounts.ts's MAX_BANK_ACCOUNTS: the balance check asks about at most five. */
 const MAX_BANK_ACCOUNTS = 5
 
@@ -200,17 +208,20 @@ function Upload({ app, onPreview }: { app: AppChoice; onPreview: (review: Import
   const read = async (picked: File | undefined) => {
     if (!picked || busy) return
     setError('')
+    // Busy while gzipping too, so a second drop can't start a preview over this one.
+    setBusy(true)
     // An empty file, a PDF, a photo or an old .xls: say so now, not after an upload.
-    const bad = precheckFile(picked, MAX_BYTES)
+    const upload = await squeeze(picked).catch(() => picked)
+    const bad = precheckFile(upload, MAX_BYTES)
     if (bad) {
+      setBusy(false)
       setFile(null)
       fail(bad, bad === 'too_big' ? 'preview' : 'precheck')
       return
     }
     setFile({ name: picked.name, size: picked.size })
-    setBusy(true)
     try {
-      const review = await previewImport(picked)
+      const review = await previewImport(upload)
       track('import_previewed', {
         picked: app.id,
         detected: review.app,

@@ -3,12 +3,9 @@ import { defaultDirection, detectDateOrder, detectDecimalComma, parseAmount, par
 import { CURRENCIES, isCurrencyCode } from '@/src/lib/currencies'
 import { detectPreset, genericTell, headerScore, mapColumns, typeKind, type AppId, type Preset, type Role, type RowFields, type SkipReason } from './presets'
 
-export const MAX_ROWS = 20_000
 const MAX_ITEM = 200
 const MAX_NOTES = 300
 const MAX_LABEL = 100
-/** The stored rows' JSON, at most: encrypted it grows by about a third, and the doc must stay under Mongo's 16 MB. */
-const MAX_ROWS_BYTES = 10 * 1024 * 1024
 
 export type ImportErrorCode = 'too_big' | 'unreadable' | 'empty' | 'empty_file' | 'no_columns' | 'not_found' | 'already_importing' | 'already_onboarded' | 'busy' | 'invalid'
 
@@ -22,9 +19,11 @@ export class ImportError extends Error {
 /**
  * A row ready to book. `kind` is as read under `negative_spend`; `bySign`
  * marks the rows whose direction came only from the amount's sign, which are
- * the ones a flip on review turns around. Skipped rows aren't stored, only
- * counted, except `other_currency`, which depends on the currency the user
- * confirms and so is decided by `resolveRows`.
+ * the ones a flip on review turns around. `byAmount` marks every row whose
+ * direction came from the amount (its sign or its column) rather than a type
+ * column, the ones `resolveRows` may read as a refund. Skipped rows aren't
+ * stored, only counted, except `other_currency`, which depends on the
+ * currency the user confirms and so is decided by `resolveRows`.
  */
 export type StoredRow = {
   kind: 'expense' | 'income' | 'skipped'
@@ -37,6 +36,7 @@ export type StoredRow = {
   notes: string
   currency: string
   bySign?: true
+  byAmount?: true
   skipReason?: SkipReason
 }
 
@@ -55,7 +55,6 @@ export interface Normalized {
   app: AppId
   rows: StoredRow[]
   skipped: Partial<Record<SkipReason, number>>
-  droppedOverCap: number
   defaultDirection: Direction
   directionSource: 'column' | 'sign'
   hasCurrency: boolean
@@ -149,9 +148,8 @@ function readPlan(plan: Table | null, today: string): Record<string, number> {
 }
 
 /**
- * Every row of the file as a `StoredRow` or a counted skip, oldest first,
- * capped at `MAX_ROWS` (newest kept). `roles` are Jev's placements for
- * columns `needsColumnHelp` couldn't name.
+ * Every row of the file as a `StoredRow` or a counted skip, oldest first.
+ * `roles` are Jev's placements for columns `needsColumnHelp` couldn't name.
  */
 export function normalize(layout: Layout, today: string, roles: Record<number, Role> = {}): Normalized {
   const mapping: Mapping = { ...layout.mapping }
@@ -198,7 +196,8 @@ export function normalize(layout: Layout, today: string, roles: Record<number, R
     if (typed === 'transfer') { skip('transfer'); continue }
     if (signed === 0) { skip('zero'); continue }
 
-    const kind = tell?.kind ?? typed ?? (twoColumns ? (signed > 0 ? 'income' : 'expense') : null)
+    const decided = tell?.kind ?? typed
+    const kind = decided ?? (twoColumns ? (signed > 0 ? 'income' : 'expense') : null)
     const currency = at(row, 'currency').toUpperCase()
     const stored: StoredRow = {
       kind: kind ?? (signed < 0 ? 'expense' : 'income'),
@@ -211,6 +210,7 @@ export function normalize(layout: Layout, today: string, roles: Record<number, R
       notes: (text ? note : '').slice(0, MAX_NOTES),
       currency: /^[A-Z]{3}$/.test(currency) ? currency : '',
     }
+    if (!decided) stored.byAmount = true
     if (!kind) {
       stored.bySign = true
       signs.push(signed)
@@ -223,15 +223,12 @@ export function normalize(layout: Layout, today: string, roles: Record<number, R
   if (!rows.length) throw new ImportError('empty')
   // Stable: rows sharing a date keep the file's order.
   rows.sort((a, b) => a.date.localeCompare(b.date))
-  const kept = rows.slice(-MAX_ROWS)
-  if (Buffer.byteLength(JSON.stringify(kept)) > MAX_ROWS_BYTES) throw new ImportError('too_big')
   const codes = new Map<string, number>()
-  for (const r of kept) if (r.currency) codes.set(r.currency, (codes.get(r.currency) ?? 0) + 1)
+  for (const r of rows) if (r.currency) codes.set(r.currency, (codes.get(r.currency) ?? 0) + 1)
   return {
     app: layout.preset?.id ?? 'generic',
-    rows: kept,
+    rows,
     skipped,
-    droppedOverCap: rows.length - kept.length,
     defaultDirection: defaultDirection(signs, false),
     directionSource: signs.length ? 'sign' : 'column',
     hasCurrency: mapping.currency !== undefined,
@@ -240,11 +237,24 @@ export function normalize(layout: Layout, today: string, roles: Record<number, R
   }
 }
 
-/** The rows as the user confirmed them: sign-read rows turned for `positive_spend`, other currencies skipped. */
+const INCOME_CATEGORY = /salary|income|inflow|ready to assign|payroll|paycheck/i
+
+/**
+ * The rows as the user confirmed them: sign-read rows turned for
+ * `positive_spend`, other currencies skipped, and money in on a spending
+ * category (one the file spends from) a refund: a negative spend there, the
+ * way the app books one, not income.
+ */
 export function resolveRows(rows: StoredRow[], o: { direction: Direction; currency: string; hasCurrency: boolean }): StoredRow[] {
-  return rows.map((r) => {
+  const turned = rows.map((r): StoredRow => {
     if (o.hasCurrency && r.currency && r.currency !== o.currency) return { ...r, kind: 'skipped', skipReason: 'other_currency' }
     if (o.direction === 'positive_spend' && r.bySign && r.kind !== 'skipped') return { ...r, kind: r.kind === 'expense' ? 'income' : 'expense' }
     return r
   })
+  const spending = new Set(turned.filter((r) => r.kind === 'expense').map((r) => r.category.toLowerCase()))
+  return turned.map((r) =>
+    r.kind === 'income' && r.byAmount && r.category && spending.has(r.category.toLowerCase()) && !INCOME_CATEGORY.test(r.category)
+      ? { ...r, kind: 'expense', amount: -r.amount }
+      : r,
+  )
 }

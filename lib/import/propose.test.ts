@@ -160,6 +160,18 @@ describe('proposeBudgets', () => {
     expect(proposeBudgets(rows, byCategory, TODAY, 'INR', {})).toEqual({ Food: 1200, Rent: 8400 })
   })
 
+  it('nets refunds out of the average, and never proposes less than nothing', () => {
+    const rows = [
+      row({ date: '2026-07-10', category: 'Shopping', amount: 3000 }),
+      row({ date: '2026-08-10', category: 'Shopping', amount: 3000 }),
+      row({ date: '2026-09-10', category: 'Shopping', amount: 3000 }),
+      row({ date: '2026-09-15', category: 'Shopping', amount: -1200 }),
+      row({ date: '2026-09-10', category: 'Travel', amount: 900 }),
+      row({ date: '2026-09-12', category: 'Travel', amount: -1800 }),
+    ]
+    expect(proposeBudgets(rows, byCategory, TODAY, 'INR', {})).toEqual({ Shopping: 2600, Travel: 0 })
+  })
+
   it('divides by the months the file covers when it is shorter than three', () => {
     const rows = [row({ date: '2026-09-02', category: 'Food', amount: 455 }), row({ date: '2026-10-02', category: 'Food', amount: 10 })]
     expect(proposeBudgets(rows, byCategory, TODAY, 'USD', {})).toEqual({ Food: 460 })

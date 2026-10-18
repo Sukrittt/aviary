@@ -1,3 +1,4 @@
+import { gunzipSync, gzipSync } from 'node:zlib'
 import { ObjectId } from 'mongodb'
 import type { Auth } from '@/lib/access'
 import { getCollection, json } from '@/lib/http'
@@ -12,6 +13,13 @@ import { detectSalary, proposeAccounts, proposeBudgets, proposeCategories } from
 import { importAiAllowed, pickCategoryGroups, pickColumnRoles } from './ai'
 
 export const MAX_UPLOAD_BYTES = 4 * 1024 * 1024
+/**
+ * The packed rows, at most: encrypted they grow by about a third, and the doc
+ * must stay under Mongo's 16 MB. Gzipped, fifty thousand rows are about 1 MB,
+ * so the upload and inflate caps bite long before this does.
+ * ponytail: one document; a chunked rows collection if real files outgrow it.
+ */
+const MAX_ROWS_BYTES = 10 * 1024 * 1024
 export const STARTER_GROUPS = ['Essentials', 'Lifestyle', 'Savings']
 
 export type ImportStatus = 'previewed' | 'importing' | 'done' | 'failed' | 'cancelled'
@@ -39,10 +47,9 @@ export interface ImportDoc {
   direction: Direction
   directionSource: 'column' | 'sign'
   hasCurrency: boolean
-  /** JSON: `StoredRow[]` while previewed, `BookingRow[]` from commit on. Encrypted (lib/encryptedFields.ts). */
+  /** `packRows`: `StoredRow[]` while previewed, `BookingRow[]` from commit on. Encrypted (lib/encryptedFields.ts). */
   rows: string
   skipped: Partial<Record<SkipReason, number>>
-  droppedOverCap: number
   /** JSON `Record<string, number>`: a YNAB plan's assigned amounts. Encrypted, being money. */
   plan: string
   total: number
@@ -74,11 +81,11 @@ export interface Review {
   directionSource: 'column' | 'sign'
   currency: string
   hasCurrency: boolean
-  counts: { expense: number; income: number; from: string; to: string }
+  /** `refund`: money back on a spending category, booked as a negative spend. Not in `expense`. */
+  counts: { expense: number; refund: number; income: number; from: string; to: string }
   skipped: Partial<Record<SkipReason, number>>
   /** The codes behind `skipped.other_currency`, most rows first. */
   otherCurrencies: string[]
-  droppedOverCap: number
   samples: { date: string; item: string; amount: number; kind: 'expense' | 'income' }[]
   groups: string[]
   categories: { source: string; name: string; group: string; monthly: number }[]
@@ -96,15 +103,25 @@ export function planOf(doc: Pick<ImportDoc, 'plan'>): Record<string, number> {
   return doc.plan ? (JSON.parse(doc.plan) as Record<string, number>) : {}
 }
 
+/** Rows as stored: gzipped JSON in base64, so a long history fits one document. */
+export function packRows(rows: unknown[]): string {
+  return gzipSync(JSON.stringify(rows)).toString('base64')
+}
+
+/** `packRows` undone. A doc written before packing holds the plain JSON. */
+export function unpackRows<T>(rows: string): T[] {
+  return JSON.parse(rows.startsWith('[') ? rows : gunzipSync(Buffer.from(rows, 'base64')).toString('utf8')) as T[]
+}
+
 export function storedRows(doc: Pick<ImportDoc, 'rows'>): StoredRow[] {
-  return JSON.parse(doc.rows) as StoredRow[]
+  return unpackRows<StoredRow>(doc.rows)
 }
 
 /** Spends and the latest income: enough for the user to see the direction was read right. */
 function samplesOf(rows: StoredRow[]): Review['samples'] {
   const live = rows.filter((r) => r.kind !== 'skipped')
   const income = live.filter((r) => r.kind === 'income').slice(-1)
-  const spends = live.filter((r) => r.kind === 'expense').slice(-(3 - income.length))
+  const spends = live.filter((r) => r.kind === 'expense' && r.amount > 0).slice(-(3 - income.length))
   return [...spends, ...income]
     .sort((a, b) => b.date.localeCompare(a.date))
     .map((r) => ({ date: r.date, item: r.item, amount: r.amount, kind: r.kind as 'expense' | 'income' }))
@@ -136,14 +153,14 @@ export async function buildReview(auth: Auth, doc: ImportDoc, today: string): Pr
     currency: doc.currency,
     hasCurrency: doc.hasCurrency,
     counts: {
-      expense: live.filter((r) => r.kind === 'expense').length,
+      expense: live.filter((r) => r.kind === 'expense' && r.amount > 0).length,
+      refund: live.filter((r) => r.kind === 'expense' && r.amount < 0).length,
       income: live.filter((r) => r.kind === 'income').length,
       from: dates[0] ?? '',
       to: dates.at(-1) ?? '',
     },
     skipped: { ...doc.skipped, ...(otherCurrency ? { other_currency: otherCurrency } : {}) },
     otherCurrencies: [...others].sort((a, b) => b[1] - a[1]).map(([code]) => code),
-    droppedOverCap: doc.droppedOverCap,
     samples: samplesOf(rows),
     groups: STARTER_GROUPS,
     categories: categories.list.map((c) => ({ source: c.source, name: c.source, group: groupsBy[c.source] ?? 'Essentials', monthly: budgets[c.source] ?? 0 })),
@@ -166,6 +183,8 @@ export async function previewFile(auth: Auth, buf: Buffer, filename: string): Pr
     ? await pickColumnRoles(unresolvedColumns(layout), auth.userId).catch(() => ({}))
     : {}
   const n = normalize(layout, today, roles)
+  const rows = packRows(n.rows)
+  if (rows.length > MAX_ROWS_BYTES) throw new ImportError('too_big')
   const userCurrency = await getUserCurrency(auth.userId)
   // A bare "$" could be any dollar: a user already on one keeps theirs.
   const anyDollar = n.fileCurrency === 'USD' && !n.hasCurrency && currencyInfo(userCurrency).symbol.endsWith('$')
@@ -183,9 +202,8 @@ export async function previewFile(auth: Auth, buf: Buffer, filename: string): Pr
     direction: n.defaultDirection,
     directionSource: n.directionSource,
     hasCurrency: n.hasCurrency,
-    rows: JSON.stringify(n.rows),
+    rows,
     skipped: n.skipped,
-    droppedOverCap: n.droppedOverCap,
     plan: JSON.stringify(n.plan),
     total: 0,
     done: 0,
