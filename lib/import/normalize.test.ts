@@ -129,6 +129,12 @@ describe('generic files', () => {
     expect(out.rows[0]).toMatchObject({ kind: 'expense', item: 'Taco Spot', category: 'Eating out', amount: 1124 })
   })
 
+  it('a file of nothing but paydays reads them as money in', () => {
+    const out = normalize(inspect(csv(['Date,Item,Category,Amount', '2026-08-01,Payroll,Salary,2000', '2026-09-01,Payroll,Salary,2000'])), TODAY)
+    expect(out.defaultDirection).toBe('negative_spend')
+    expect(resolveRows(out.rows, { direction: out.defaultDirection, currency: 'INR', hasCurrency: false }).map((r) => r.kind)).toEqual(['income', 'income'])
+  })
+
   it('reads a Dr/Cr type column', () => {
     const out = normalize(inspect(csv(['Date,Particulars,Amount,Dr/Cr', '01/09/2026,Pay,500,Cr', '02/09/2026,Shop,20,Dr'])), TODAY)
     expect(out.rows.map((r) => r.kind)).toEqual(['income', 'expense'])

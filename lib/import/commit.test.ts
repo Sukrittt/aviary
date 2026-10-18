@@ -145,6 +145,9 @@ describe('commit and backfill', () => {
     ])
     expect(await count('accounts')).toBe(3)
     expect(await (await coll('recurring_incomes')).findOne({ frequency: 'monthly', status: 'active' })).toMatchObject({ label: 'Acme payroll', amount: '85000', start_date: '2026-10-01' })
+    // The schedule pays into the account the salary always came into.
+    const schedule = await (await coll('recurring_incomes')).findOne({ status: 'active' })
+    expect((await (await coll('accounts')).find({}).toArray()).map((a) => String(a._id))).toContain(schedule?.account_id)
     expect(await budget('2026-10', '__income__')).toMatchObject({ assigned: '85000' })
     expect(await budget('2026-10', 'Groceries')).toMatchObject({ assigned: '1600' })
     expect(completeOnboarding).toHaveBeenCalledTimes(1)

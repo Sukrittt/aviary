@@ -213,7 +213,9 @@ export function normalize(layout: Layout, today: string, roles: Record<number, R
     if (!decided) stored.byAmount = true
     if (!kind) {
       stored.bySign = true
-      signs.push(signed)
+      // A payday is money in whatever its sign, so it votes that its sign means
+      // income: a file of nothing but salary rows isn't read as spending.
+      signs.push(INCOME_CATEGORY.test(category) ? -signed : signed)
     }
     rows.push(stored)
   }

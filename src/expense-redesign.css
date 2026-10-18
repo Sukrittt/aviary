@@ -13548,6 +13548,11 @@ button.account-feature-card {
   align-items: center;
   gap: 10px;
 }
+
+/* A long envelope name shows it's cut off rather than ending mid-word. */
+.import-row .setup-pick-input {
+  text-overflow: ellipsis;
+}
 .import-line {
   justify-content: space-between;
 }

@@ -139,6 +139,13 @@ describe('createExpense', () => {
     expect(stores.budgets[0].assigned).toBe('1250')
   })
 
+  it('keeps the __credit_card__ envelope to the cent as float amounts add up', async () => {
+    for (const [i, amount] of ['0.1', '0.2', '1108.24'].entries()) {
+      await createExpense(auth, { ...base, amount_inr: amount, payment_method: 'credit_card', date: `2026-09-1${i}` })
+    }
+    expect(stores.budgets[0].assigned).toBe('1108.54')
+  })
+
   it('leaves the envelope alone for a bank expense', async () => {
     await createExpense(auth, base)
     expect(stores.budgets).toHaveLength(0)

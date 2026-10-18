@@ -31,7 +31,7 @@ export type CommitResult = { importId: string; total: number } & ImportSummary
 const MAX_GROUPS = 20
 const MAX_EDITS = 200
 
-const clip = (s: string, max: number) => s.trim().slice(0, max)
+const clip = (s: string, max: number) => s.trim().slice(0, max).trimEnd()
 
 /** Validates the client's edits. Anything malformed is `invalid`; nothing here is trusted to be what review showed. */
 export function parseEdits(raw: Record<string, unknown>): CommitEdits {
@@ -209,6 +209,8 @@ async function writeSetup(auth: Auth, doc: ImportDoc, edits: CommitEdits): Promi
     const startMonth = !salary && paidThisMonth ? nextMonth(month) : month
     // This month's salary already in the file isn't posted again by the schedule.
     const lastSalary = salary ? live.filter((r) => r.kind === 'income' && r.date.startsWith(month) && incomeKey(r) === salary.key).at(-1) : undefined
+    // Future paydays land where the salary always has.
+    const paidInto = salary ? accountIds.get(live.filter((r) => r.kind === 'income' && incomeKey(r) === salary.key).at(-1)?.account.toLowerCase() ?? '') : undefined
     await createRecurringIncome(auth, {
       label: salary?.label || 'Salary',
       amount: edits.salary.amount,
@@ -217,6 +219,7 @@ async function writeSetup(auth: Auth, doc: ImportDoc, edits: CommitEdits): Promi
       // Per account, not per import: a commit that died after this step and a
       // retry with a new file must land on the same schedule, not a second one.
       client_id: 'import-salary',
+      ...(paidInto ? { account_id: paidInto } : {}),
       ...(lastSalary ? { next_run_from: dayAfter(lastSalary.date) } : {}),
     })
   }

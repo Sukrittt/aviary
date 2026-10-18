@@ -94,7 +94,8 @@ export async function adjustCreditCardEnvelope(
       const current = Number(existing.assigned) || 0
       await budgetColl.updateOne(
         { _id: existing._id },
-        { $set: { assigned: String(Math.max(0, current + delta)) }, $inc: { version: 1 } } as never,
+        // To the cent: summing float deltas drifts (1108.5400000000002).
+        { $set: { assigned: String(Math.max(0, Math.round((current + delta) * 100) / 100)) }, $inc: { version: 1 } } as never,
         { session },
       )
       return 'done'
@@ -102,7 +103,7 @@ export async function adjustCreditCardEnvelope(
     if (delta <= 0) return 'done'
     try {
       await budgetColl.insertOne(
-        { month, category: '__credit_card__', assigned: String(delta), rolled_over: '0', version: 1 },
+        { month, category: '__credit_card__', assigned: String(Math.round(delta * 100) / 100), rolled_over: '0', version: 1 },
         { session },
       )
       return 'done'

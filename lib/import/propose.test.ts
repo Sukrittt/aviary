@@ -30,6 +30,16 @@ describe('proposeCategories', () => {
     expect(plan.sourceOf(row({ category: 'EATING OUT' }))).toBe('Eating Out')
   })
 
+  it('names a merged category by its best-looking spelling, not the first one seen', () => {
+    const plan = proposeCategories([row({ category: 'food', amount: 10 }), row({ category: 'FOOD', amount: 5 }), row({ category: 'Food', amount: 5 })])
+    expect(plan.list).toEqual([{ source: 'Food', spent: 20 }])
+  })
+
+  it('clips a long category name without leaving a trailing space', () => {
+    const plan = proposeCategories([row({ category: `${'a'.repeat(59)} tail`, amount: 1 })])
+    expect(plan.list[0].source).toBe('a'.repeat(59))
+  })
+
   it('drops the subcategory level above 40 categories', () => {
     const rows = Array.from({ length: 41 }, (_, i) => row({ category: `Group ${i % 5}`, subcategory: `Sub ${i}` }))
     const plan = proposeCategories(rows)
@@ -160,6 +170,15 @@ describe('proposeBudgets', () => {
     expect(proposeBudgets(rows, byCategory, TODAY, 'INR', {})).toEqual({ Food: 1200, Rent: 8400 })
   })
 
+  it('rounds a small envelope to its own size, not the currency step', () => {
+    const rows = ['07', '08', '09'].flatMap((m) => [
+      row({ date: `2026-${m}-05`, category: 'Gym', amount: 40 }),
+      row({ date: `2026-${m}-12`, category: 'Streaming', amount: 15.49 }),
+      row({ date: `2026-${m}-20`, category: 'Snacks', amount: 0.5 }),
+    ])
+    expect(proposeBudgets(rows, byCategory, TODAY, 'INR', {})).toEqual({ Gym: 40, Streaming: 20, Snacks: 1 })
+  })
+
   it('nets refunds out of the average, and never proposes less than nothing', () => {
     const rows = [
       row({ date: '2026-07-10', category: 'Shopping', amount: 3000 }),
@@ -192,7 +211,7 @@ describe('proposeBudgets', () => {
       // The file's last month is as partial as this one would be.
       row({ date: '2025-10-05', category: 'Food', amount: 9999 }),
     ]
-    expect(proposeBudgets(rows, byCategory, TODAY, 'INR', {})).toEqual({ Food: 300, Fun: 100 })
+    expect(proposeBudgets(rows, byCategory, TODAY, 'INR', {})).toEqual({ Food: 300, Fun: 30 })
   })
 
   it('a file entirely inside this month proposes nothing', () => {

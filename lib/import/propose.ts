@@ -14,7 +14,7 @@ const MAX_CATEGORIES = 40
 
 export function categoryKey(row: StoredRow, joinSub: boolean): string {
   const name = joinSub && row.subcategory ? `${row.category} · ${row.subcategory}` : row.category
-  return (name.trim() || UNCATEGORISED).slice(0, CATEGORY_NAME_MAX)
+  return (name.trim() || UNCATEGORISED).slice(0, CATEGORY_NAME_MAX).trimEnd()
 }
 
 export interface CategoryPlan {
@@ -26,13 +26,23 @@ export interface CategoryPlan {
 }
 
 function categoriesAt(expenses: StoredRow[], joinSub: boolean): CategoryPlan {
-  const names = new Map<string, string>()
-  const spent = new Map<string, number>()
+  // Spellings of one category, by how often each appears.
+  const spellings = new Map<string, Map<string, number>>()
   for (const r of expenses) {
     const key = categoryKey(r, joinSub)
     const norm = normalizeItem(key) || key
-    if (!names.has(norm)) names.set(norm, key)
-    const display = names.get(norm)!
+    const seen = spellings.get(norm) ?? new Map<string, number>()
+    seen.set(key, (seen.get(key) ?? 0) + 1)
+    spellings.set(norm, seen)
+  }
+  // The envelope takes the best-looking spelling: "Food" over "food" or "FOOD", then the commonest.
+  const looks = (s: string) => (/^\p{Lu}/u.test(s) && s !== s.toUpperCase() ? 1 : 0)
+  const names = new Map<string, string>()
+  for (const [norm, seen] of spellings) names.set(norm, [...seen].sort((a, b) => looks(b[0]) - looks(a[0]) || b[1] - a[1])[0][0])
+  const spent = new Map<string, number>()
+  for (const r of expenses) {
+    const key = categoryKey(r, joinSub)
+    const display = names.get(normalizeItem(key) || key)!
     spent.set(display, (spent.get(display) ?? 0) + r.amount)
   }
   return {
@@ -161,7 +171,8 @@ function shiftMonth(month: string, by: number): string {
 
 /**
  * This month's assignment per category: the average spend over the last
- * three complete months, rounded up to the step. A file that starts inside
+ * three complete months, rounded up to the step (or to the amount's own
+ * order of magnitude, when that's smaller). A file that starts inside
  * that window divides by the months it covers, so a new tracker isn't
  * budgeted at a third of its spend. A file that ends before the window
  * uses its own last three complete months. A YNAB plan amount for this month wins.
@@ -189,7 +200,12 @@ export function proposeBudgets(
   const step = budgetStep(currency)
   const out: Record<string, number> = {}
   // Refunds are negative spends, so they net out; one that outweighs the spend leaves the envelope at 0.
-  for (const [name, sum] of sums) out[name] = Math.max(0, Math.ceil(Math.round((sum / covered) * 100) / 100 / step) * step)
+  for (const [name, sum] of sums) {
+    const avg = Math.round((sum / covered) * 100) / 100
+    // Never a step bigger than the amount itself: ₹40 of gym stays ₹40, not ₹100.
+    const s = avg >= 1 ? Math.min(step, 10 ** Math.floor(Math.log10(avg))) : 1
+    out[name] = Math.max(0, Math.ceil(avg / s) * s)
+  }
   return { ...out, ...plan }
 }
 
