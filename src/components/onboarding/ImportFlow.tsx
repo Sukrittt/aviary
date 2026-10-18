@@ -91,7 +91,7 @@ export function ImportFlow({ onFresh, onDone }: { onFresh: () => void; onDone: (
   const [stage, setStage] = useState<Stage>('ask')
   const [app, setApp] = useState<AppChoice | null>(null)
   const [review, setReview] = useState<ImportReview | null>(null)
-  const [start, setStart] = useState<StartChoice | null>(null)
+  const [start, setStart] = useState<StartChoice>('fresh')
   const dots: Stage[] = ['ask', 'pick', 'upload', 'review']
   const reduce = useReducedMotion()
   const enter = useEnter()
@@ -116,8 +116,8 @@ export function ImportFlow({ onFresh, onDone }: { onFresh: () => void; onDone: (
       </div>
 
       {stage === 'ask' && (
-        // Two equal ways in, neither picked for you: starting fresh is as good a
-        // start as switching, so neither is the big button with the other a link.
+        // Two equal ways in, as radio cards: starting fresh is as good a start as
+        // switching. Fresh is picked to begin with, since most people won't have an export.
         <motion.div key="ask" className="import-ask" {...enter}>
           <h1 className="setup-title">How do you want to start?</h1>
           <p className="setup-blurb">Both get you a budget in a few minutes.</p>
@@ -153,7 +153,6 @@ export function ImportFlow({ onFresh, onDone }: { onFresh: () => void; onDone: (
           <button
             type="button"
             className="setup-cta import-ask-cta"
-            disabled={!start}
             onClick={() => (start === 'fresh' ? onFresh() : setStage('pick'))}
           >
             Continue

@@ -75,18 +75,16 @@ describe('ImportFlow', () => {
     expect(onFresh).toHaveBeenCalled()
   })
 
-  it('picks nothing for you: Continue waits for a choice, and the choice can change', () => {
+  it('starts on starting fresh, and the choice can change before Continue', () => {
     const onFresh = vi.fn()
     render(<ImportFlow onFresh={onFresh} onDone={vi.fn()} />)
     const fresh = screen.getByRole('radio', { name: /^I’m starting fresh/ })
     const switching = screen.getByRole('radio', { name: /^I’m switching apps/ })
-    expect(fresh.getAttribute('aria-checked')).toBe('false')
-    expect(switching.getAttribute('aria-checked')).toBe('false')
-    expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled()
-    fireEvent.click(switching)
-    fireEvent.click(fresh)
     expect(fresh.getAttribute('aria-checked')).toBe('true')
     expect(switching.getAttribute('aria-checked')).toBe('false')
+    fireEvent.click(switching)
+    expect(fresh.getAttribute('aria-checked')).toBe('false')
+    fireEvent.click(fresh)
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     expect(onFresh).toHaveBeenCalled()
   })
