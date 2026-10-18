@@ -47,7 +47,8 @@ const file = (bytes = 10) => new File([new Uint8Array(bytes)], 'monefy.csv', { t
 function toReview() {
   const onDone = vi.fn()
   render(<ImportFlow onFresh={vi.fn()} onDone={onDone} />)
-  fireEvent.click(screen.getByRole('button', { name: /^Bring my budget over/ }))
+  fireEvent.click(screen.getByRole('radio', { name: /^I’m switching apps/ }))
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
   fireEvent.click(screen.getByRole('button', { name: /Monefy/ }))
   fireEvent.change(screen.getByLabelText('Choose your export file'), { target: { files: [file()] } })
   return onDone
@@ -69,17 +70,25 @@ describe('ImportFlow', () => {
     const onFresh = vi.fn()
     render(<ImportFlow onFresh={onFresh} onDone={vi.fn()} />)
     expect(screen.getByRole('heading', { name: 'How do you want to start?' })).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: /^Start fresh/ }))
+    fireEvent.click(screen.getByRole('radio', { name: /^I’m starting fresh/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     expect(onFresh).toHaveBeenCalled()
   })
 
-  it('offers starting fresh and switching as equal choices, not a button and a link', () => {
-    render(<ImportFlow onFresh={vi.fn()} onDone={vi.fn()} />)
-    const fresh = screen.getByRole('button', { name: /^Start fresh/ })
-    const switching = screen.getByRole('button', { name: /^Bring my budget over/ })
-    expect(fresh.className).toBe(switching.className)
+  it('picks nothing for you: Continue waits for a choice, and the choice can change', () => {
+    const onFresh = vi.fn()
+    render(<ImportFlow onFresh={onFresh} onDone={vi.fn()} />)
+    const fresh = screen.getByRole('radio', { name: /^I’m starting fresh/ })
+    const switching = screen.getByRole('radio', { name: /^I’m switching apps/ })
+    expect(fresh.getAttribute('aria-checked')).toBe('false')
+    expect(switching.getAttribute('aria-checked')).toBe('false')
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled()
     fireEvent.click(switching)
-    expect(screen.getByRole('heading', { name: 'Where are you coming from?' })).toBeTruthy()
+    fireEvent.click(fresh)
+    expect(fresh.getAttribute('aria-checked')).toBe('true')
+    expect(switching.getAttribute('aria-checked')).toBe('false')
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+    expect(onFresh).toHaveBeenCalled()
   })
 
   it('shows how to export from the picked app, then what it read', async () => {
@@ -171,7 +180,8 @@ describe('ImportFlow', () => {
     ['export.csv', 0, 'That file’s empty. Export it again from your app and try once more.'],
   ])('turns away %s before uploading it, saying why', async (name, bytes, copy) => {
     render(<ImportFlow onFresh={vi.fn()} onDone={vi.fn()} />)
-    fireEvent.click(screen.getByRole('button', { name: /^Bring my budget over/ }))
+    fireEvent.click(screen.getByRole('radio', { name: /^I’m switching apps/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     fireEvent.click(screen.getByRole('button', { name: /Wallet/ }))
     fireEvent.change(screen.getByLabelText('Choose your export file'), { target: { files: [new File([new Uint8Array(bytes)], name)] } })
     expect(await screen.findByRole('alert')).toHaveTextContent(copy)
@@ -180,7 +190,8 @@ describe('ImportFlow', () => {
 
   it('gzips an export over 4 MB to fit the upload, under its own name', async () => {
     render(<ImportFlow onFresh={vi.fn()} onDone={vi.fn()} />)
-    fireEvent.click(screen.getByRole('button', { name: /^Bring my budget over/ }))
+    fireEvent.click(screen.getByRole('radio', { name: /^I’m switching apps/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     fireEvent.click(screen.getByRole('button', { name: /YNAB/ }))
     fireEvent.change(screen.getByLabelText('Choose your export file'), { target: { files: [file(4 * 1024 * 1024 + 1)] } })
     await waitFor(() => expect(previewImport).toHaveBeenCalled())
@@ -192,7 +203,8 @@ describe('ImportFlow', () => {
     const noise = new Uint8Array(4 * 1024 * 1024 + 1)
     for (let i = 0; i < noise.length; i += 65_536) crypto.getRandomValues(noise.subarray(i, i + 65_536))
     render(<ImportFlow onFresh={vi.fn()} onDone={vi.fn()} />)
-    fireEvent.click(screen.getByRole('button', { name: /^Bring my budget over/ }))
+    fireEvent.click(screen.getByRole('radio', { name: /^I’m switching apps/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     fireEvent.click(screen.getByRole('button', { name: /YNAB/ }))
     fireEvent.change(screen.getByLabelText('Choose your export file'), { target: { files: [new File([noise], 'monefy.csv', { type: 'text/csv' })] } })
     expect(await screen.findByRole('alert')).toHaveTextContent('That file’s too big. Export a shorter date range and try again.')

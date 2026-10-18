@@ -13291,32 +13291,52 @@ button.account-feature-card {
 }
 .import-choice {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 14px;
-  padding: 18px 16px;
-  border: 1px solid var(--erd-border);
+  padding: 16px;
+  border: 1.5px solid var(--erd-border);
   border-radius: 18px;
   background: var(--erd-card);
   color: var(--erd-text);
   font: inherit;
   text-align: left;
   cursor: pointer;
-  transition: border-color 0.15s ease;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 .import-choice:hover,
 .import-choice:focus-visible {
   border-color: var(--gold);
 }
-.import-choice-icon {
+.import-choice.is-on {
+  border-color: var(--gold);
+  background: var(--gold-soft);
+}
+.import-choice-radio {
   display: inline-flex;
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
+  width: 22px;
+  height: 22px;
+  margin-top: 1px;
+  border: 2px solid var(--erd-border-strong);
   border-radius: 50%;
-  background: var(--gold-soft);
-  color: var(--gold-ink);
+  box-sizing: border-box;
+  transition: border-color 0.15s ease;
+}
+.import-choice.is-on .import-choice-radio {
+  border-color: var(--gold);
+}
+.import-choice-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--gold);
+}
+.import-ask .import-ask-cta {
+  width: 100%;
+  max-width: 520px;
+  margin-top: 20px;
 }
 .import-choice-text {
   display: flex;

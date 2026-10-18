@@ -26,7 +26,8 @@ const eventsNamed = (name: string) => mockTrack.mock.calls.filter(([event]) => e
 function walkToFinish() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } })
   render(<QueryClientProvider client={client}><SetupWizardPage /></QueryClientProvider>)
-  fireEvent.click(screen.getByRole('button', { name: /^Start fresh/ }))
+  fireEvent.click(screen.getByRole('radio', { name: /^I’m starting fresh/ }))
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
   fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'USD' } })
   fireEvent.click(screen.getByRole('button', { name: /US Dollar/ }))
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
