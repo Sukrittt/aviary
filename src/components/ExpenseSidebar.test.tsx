@@ -18,6 +18,7 @@ vi.mock('./LogExpenseModal', () => ({ LogExpenseModal: () => <div>log-expense-di
 vi.mock('../features/scan-bill/ScanBillModal', () => ({ ScanBillModal: () => <div>scan-dialog</div> }))
 vi.mock('../features/fill-gap/StatementModal', () => ({ StatementModal: () => <div>statement-dialog</div> }))
 vi.mock('./ConfirmDialog', () => ({ SignOutDialog: () => null }))
+vi.mock('../hooks/useSpaces', () => ({ useSpaces: () => ({ multi: false, budgets: [] }) }))
 
 const { ExpenseSidebar } = await import('./ExpenseSidebar')
 
