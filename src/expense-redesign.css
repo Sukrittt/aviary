@@ -4484,9 +4484,9 @@
 }
 
 .is-ok > .auth-code-box {
-  border-color: var(--mint);
-  background: var(--erd-input-bg);
-  color: var(--mint);
+  border-color: var(--tk-success-bg);
+  background: var(--tk-success-bg);
+  color: var(--tk-on-success);
   animation: auth-box-lock-in 0.38s cubic-bezier(0.34, 1.56, 0.64, 1)
     calc(var(--i) * 55ms) both;
 }
@@ -4508,12 +4508,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--mint);
+  background: var(--tk-success-bg);
   animation: auth-check-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
 .auth-verified-badge path {
-  stroke: var(--erd-on-accent);
+  stroke: var(--tk-on-success);
   stroke-width: 3.4;
   stroke-linecap: round;
   stroke-linejoin: round;
