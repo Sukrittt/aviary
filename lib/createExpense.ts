@@ -140,18 +140,18 @@ export async function createExpense(auth: Auth, input: CreateExpenseInput): Prom
   // a second row or double the Credit Card envelope bump below. The recurring
   // cron leans on the same guarantee, minting `recur:<id>:<date>` per
   // occurrence so a backfill can never log the same date twice.
+  // Replay acknowledges the original create, not a newer edit the caller
+  // has never seen. In particular, Undo must still check creation version 0.
+  const replayed = (existing: Record<string, unknown>): CreateExpenseResult =>
+    ({ id: String(existing._id), timestamp: String(existing.timestamp), version: 0, duplicate: true, category: String(existing.category ?? input.category), paymentMethod: String(existing.payment_method ?? paymentMethod) })
   if (clientId) {
     const existing = await coll.findOne({ client_id: clientId })
-    if (existing) {
-      // Replay acknowledges the original create, not a newer edit the caller
-      // has never seen. In particular, Undo must still check creation version 0.
-      return { id: String(existing._id), timestamp: String(existing.timestamp), version: 0, duplicate: true, category: String(existing.category ?? input.category), paymentMethod: String(existing.payment_method ?? paymentMethod) }
-    }
+    if (existing) return replayed(existing)
   }
 
   // The expense insert and its Credit Card envelope bump must land together —
   // a partial write here leaves an expense with no matching envelope bump.
-  const { insertedId, category } = await withTx(async (session) => {
+  const created = await withTx(async (session) => {
     // A caller can be working from a category list loaded before a rename (a
     // stale mobile screen, an offline queue flushed later, the recurring cron);
     // resolve it here so the row lands in the renamed category rather than
@@ -186,7 +186,14 @@ export async function createExpense(auth: Auth, input: CreateExpenseInput): Prom
     }
 
     return { insertedId: inserted.insertedId, category }
+  }).catch(async (err) => {
+    // Two racing replays both missed the lookup above: the loser finds the winner's row.
+    const existing = clientId && isDuplicateKeyError(err) ? await coll.findOne({ client_id: clientId }, undefined, { includeDeleted: true }) : null
+    if (!existing) throw err
+    return replayed(existing)
   })
+  if ('duplicate' in created) return created
+  const { insertedId, category } = created
 
   invalidate('expenses', auth.userId)
   invalidate('wrapped', auth.userId)

@@ -32,6 +32,8 @@ vi.mock('@/lib/mongodb', () => ({
 type Doc = Record<string, unknown> & { _id: ObjectId }
 
 const stores: Record<string, Doc[]> = { expenses: [], budgets: [] }
+// Makes the next lookup miss, as if a racing request inserted just after it.
+let missNextFindOne = false
 
 function matches(doc: Doc, filter: Record<string, unknown>): boolean {
   return Object.entries(filter).every(([k, v]) =>
@@ -47,8 +49,13 @@ function fakeCollection(base: string) {
     find: (filter: Record<string, unknown> = {}) => ({
       toArray: async () => store.filter((d) => matches(d, filter)),
     }),
-    findOne: async (filter: Record<string, unknown>) => store.find((d) => matches(d, filter)) ?? null,
+    findOne: async (filter: Record<string, unknown>) => {
+      if (missNextFindOne) { missNextFindOne = false; return null }
+      return store.find((d) => matches(d, filter)) ?? null
+    },
     insertOne: async (doc: Record<string, unknown>) => {
+      // The unique index on client_id.
+      if (doc.client_id && store.some((d) => d.client_id === doc.client_id)) throw Object.assign(new Error('E11000'), { code: 11000 })
       const withId = { ...doc, _id: new ObjectId() } as Doc
       store.push(withId)
       return { insertedId: withId._id }
@@ -117,6 +124,15 @@ describe('createExpense', () => {
     expect(first.duplicate).toBe(false)
     expect(second.duplicate).toBe(true)
     expect(second.id).toBe(first.id)
+    expect(stores.expenses).toHaveLength(1)
+  })
+
+  it('a replay that loses the insert race gets the winner back as a duplicate, not a 500', async () => {
+    const first = await createExpense(auth, { ...base, client_id: 'c1' })
+    missNextFindOne = true
+    const second = await createExpense(auth, { ...base, client_id: 'c1' })
+
+    expect(second).toMatchObject({ id: first.id, version: 0, duplicate: true })
     expect(stores.expenses).toHaveLength(1)
   })
 
