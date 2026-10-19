@@ -147,8 +147,8 @@ export function incomeInputError(input: { date?: unknown; amount?: unknown; labe
 }
 
 function invalidateIncome(auth: Auth) {
-  invalidate('incomes', auth.userId)
-  invalidate('budgets', auth.userId)
+  invalidate('incomes', auth.spaceId)
+  invalidate('budgets', auth.spaceId)
 }
 
 /** The one way an income row is created. A one-off moves the month's `extra` with it. */
@@ -340,7 +340,7 @@ export async function ensureIncomeMigrated(auth: Auth): Promise<void> {
     return
   }
   if (amount <= 0) await rec.deleteOne({ client_id: MIGRATED_CLIENT_ID })
-  invalidate('recurring_incomes', auth.userId)
+  invalidate('recurring_incomes', auth.spaceId)
 }
 
 /**
@@ -401,7 +401,7 @@ export async function runRecurringIncomes(auth: Auth, today: string): Promise<nu
     const ended = Boolean(schedule.end_date) && nextRun > schedule.end_date
     await rec.updateOne({ _id: s._id }, { $set: { next_run_date: nextRun, ...(ended ? { status: 'ended' } : {}) } })
   }
-  if (posted > 0) invalidate('recurring_incomes', auth.userId)
+  if (posted > 0) invalidate('recurring_incomes', auth.spaceId)
   return posted
 }
 
@@ -413,7 +413,7 @@ export async function runRecurringIncomes(auth: Auth, today: string): Promise<nu
  * the next schedule write or the nightly pass catches up.
  */
 export async function settleRecurringIncomes(auth: Auth): Promise<void> {
-  invalidate('recurring_incomes', auth.userId)
+  invalidate('recurring_incomes', auth.spaceId)
   try {
     const { date } = await nowForUser(auth.userId)
     await syncMonthlyIncome(auth, date.slice(0, 7))

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 
 vi.mock('@/lib/access', () => ({
-  getAuth: vi.fn(async () => ({ userId: 'user_a', readOnly: false, sessionId: null })),
+  getAuth: vi.fn(async () => ({ userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const })),
   readOnlyGuard: vi.fn(() => null),
 }))
 
@@ -37,5 +37,12 @@ describe('POST /api/data/clear-transactions (C5)', () => {
     expect(invalidateMock).toHaveBeenCalledWith('wrapped', 'user_a')
     expect(invalidateMock).toHaveBeenCalledWith('budgets', 'user_a')
     expect(invalidateCategoryMapMock).toHaveBeenCalledWith('user_a')
+  })
+
+  it('leaves a shared budget alone when a member, not the owner, asks', async () => {
+    const { getAuth } = await import('@/lib/access')
+    vi.mocked(getAuth).mockResolvedValueOnce({ userId: 'user_b', readOnly: false, sessionId: null, spaceId: 'sp_home', spaceOwnerId: 'user_a', spaceRole: 'member' })
+    const res = await POST(new Request('https://example.com/api/data/clear-transactions', { method: 'POST', body: JSON.stringify({ confirm: true }) }))
+    expect(res.status).toBe(403)
   })
 })

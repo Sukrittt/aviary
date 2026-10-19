@@ -66,7 +66,8 @@ export async function exportAllowance(auth: Auth): Promise<ExportAllowance> {
   const readyThisMonth = await countReadyExportsThisMonth(auth)
   const usedThisMonth = Math.min(readyThisMonth, EXPORT_LIMIT)
   const base = { usedThisMonth, limit: EXPORT_LIMIT }
-  const access = await getAccess(auth.userId)
+  // The budget's own access, which its owner's plan decides.
+  const access = await getAccess(auth.spaceOwnerId)
   if (access.mode !== 'expired') {
     return {
       ...base,
@@ -110,9 +111,11 @@ export async function getExportDownloadUrl(userId: string, exportId: string): Pr
  * this must never throw: any failure is recorded on the doc and still
  * notifies, matching the never-throw pattern in lib/notifications/instant.ts.
  */
-export async function buildAndStoreExport(userId: string, exportId: string): Promise<void> {
+export async function buildAndStoreExport(auth: Pick<Auth, 'userId' | 'spaceId'>, exportId: string): Promise<void> {
+  // The workbook is the active budget's; the "ready" push goes to whoever asked.
+  const { userId, spaceId } = auth
   const db = await getDb()
-  const exportsColl = scoped(db.collection(COLLECTIONS.exports), userId)
+  const exportsColl = scoped(db.collection(COLLECTIONS.exports), spaceId)
 
   let directory: string | undefined
   let output: ReturnType<typeof createReadStream> | undefined
@@ -126,7 +129,7 @@ export async function buildAndStoreExport(userId: string, exportId: string): Pro
       const columns = columnsByCollection[key]
       if (!columns) continue
 
-      const coll = scoped(db.collection(name), userId)
+      const coll = scoped(db.collection(name), spaceId)
       const headerRow = columns.map(c => c.label)
       let tab = 1
       let sheet = wb.addWorksheet(readableSheetName(name).slice(0, 27))
@@ -148,7 +151,7 @@ export async function buildAndStoreExport(userId: string, exportId: string): Pro
     }
     await wb.commit()
     output = createReadStream(filename)
-    const blob = await put(`exports/${userId}/${exportId}.xlsx`, output, {
+    const blob = await put(`exports/${spaceId}/${exportId}.xlsx`, output, {
       access: 'private',
       contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       addRandomSuffix: false,

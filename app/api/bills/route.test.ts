@@ -10,7 +10,7 @@ vi.mock('@/lib/billScan', () => ({
     storeBillScanImage(...(args as Parameters<typeof storeBillScanImage>)),
 }))
 
-let auth = { userId: 'user_a', readOnly: false, sessionId: null as string | null }
+let auth = { userId: 'user_a', readOnly: false, sessionId: null as string | null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const }
 vi.mock('@/lib/access', () => ({
   getAuth: vi.fn(async () => auth),
   readOnlyGuard: vi.fn((a: { readOnly: boolean }, method: string) =>
@@ -80,7 +80,7 @@ beforeEach(() => {
   store.length = 0
   queuedAfter.length = 0
   storeBillScanImage.mockClear()
-  auth = { userId: 'user_a', readOnly: false, sessionId: null }
+  auth = { userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const }
 })
 
 describe('POST /api/bills', () => {
@@ -107,7 +107,7 @@ describe('POST /api/bills', () => {
   })
 
   it('blocks the read-only demo user', async () => {
-    auth = { userId: 'demo', readOnly: true, sessionId: null }
+    auth = { userId: 'demo', readOnly: true, sessionId: null, spaceId: 'demo', spaceOwnerId: 'demo', spaceRole: 'owner' as const }
     const res = await POST(req(validBody))
     expect(res.status).toBe(403)
     expect(store).toHaveLength(0)

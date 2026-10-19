@@ -6,12 +6,18 @@ interface FakeAuth {
   userId: string
   readOnly: boolean
   sessionId: string | null
+  spaceId?: string
+  spaceOwnerId?: string
+  spaceRole?: 'owner'
 }
 
 const getAuthMock = vi.fn<() => Promise<FakeAuth>>(async () => ({
   userId: 'demo',
   readOnly: true,
   sessionId: null,
+  spaceId: 'demo',
+  spaceOwnerId: 'demo',
+  spaceRole: 'owner',
 }))
 vi.mock('@/lib/access', () => ({
   getAuth: getAuthMock,
@@ -97,7 +103,7 @@ function jsonRequest(body: unknown, headers: Record<string, string> = {}): Reque
 beforeEach(() => {
   streamTextMock.mockClear()
   getAuthMock.mockReset()
-  getAuthMock.mockResolvedValue({ userId: 'demo', readOnly: true, sessionId: null })
+  getAuthMock.mockResolvedValue({ userId: 'demo', readOnly: true, sessionId: null, spaceId: 'demo', spaceOwnerId: 'demo', spaceRole: 'owner' as const })
   sessionUpdateOneMock.mockClear()
   sessionInsertOneMock.mockClear()
   sessionFindOneMock.mockClear()
@@ -178,7 +184,7 @@ describe('POST /api/ai/chat (demo path)', () => {
 
 describe('POST /api/ai/chat (persisted path) — session message cap (C6)', () => {
   beforeEach(() => {
-    getAuthMock.mockResolvedValue({ userId: 'user_a', readOnly: false, sessionId: 'sess_1' })
+    getAuthMock.mockResolvedValue({ userId: 'user_a', readOnly: false, sessionId: 'sess_1', spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const })
   })
 
   it('caps the persisted messages array via $push + $slice instead of letting it grow unbounded', async () => {
@@ -264,7 +270,7 @@ describe('POST /api/ai/chat (Jev routing)', () => {
   })
 
   it('tells a client that can log spends that it can, so the model can offer it', async () => {
-    getAuthMock.mockResolvedValue({ userId: 'user_a', readOnly: false, sessionId: 'sess_1' })
+    getAuthMock.mockResolvedValue({ userId: 'user_a', readOnly: false, sessionId: 'sess_1', spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const })
     routeChatMock.mockResolvedValue({ onTopic: true, sections: [], decision: false, capture: false })
     await (await POST(jsonRequest({ messages: [{ role: 'user', text: 'can i log an expense here?' }] }, { 'x-aviary-capture': '1' }))).text()
     expect(streamTextMock.mock.calls[0][0]).toContain('LOGGING:')
@@ -319,7 +325,7 @@ describe('POST /api/ai/chat (capture)', () => {
     new Response(JSON.stringify({ error: "You've used this month's AI allowance. It resets on the 1st.", code: 'AI_ALLOWANCE_EXCEEDED' }), { status: 429 })
 
   beforeEach(() => {
-    getAuthMock.mockResolvedValue({ userId: 'user_a', readOnly: false, sessionId: 'sess_1' })
+    getAuthMock.mockResolvedValue({ userId: 'user_a', readOnly: false, sessionId: 'sess_1', spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const })
     routeChatMock.mockResolvedValue(captureRoute)
     buildCaptureProposalMock.mockResolvedValue(proposal)
   })
@@ -354,7 +360,7 @@ describe('POST /api/ai/chat (capture)', () => {
   })
 
   it('keeps logging off for the demo account', async () => {
-    getAuthMock.mockResolvedValue({ userId: 'demo', readOnly: true, sessionId: null })
+    getAuthMock.mockResolvedValue({ userId: 'demo', readOnly: true, sessionId: null, spaceId: 'demo', spaceOwnerId: 'demo', spaceRole: 'owner' as const })
     const body = await (await POST(jsonRequest({ messages: [{ role: 'user', text: 'auto 240' }] }, CAPTURE))).text()
 
     expect(body).toContain('Sign in to log your own spends.')

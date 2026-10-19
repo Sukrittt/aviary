@@ -7,10 +7,10 @@ vi.mock('../systemSettings', () => ({ getSystemSettings: getSystemSettingsMock }
 const getAccessMock = vi.fn()
 vi.mock('./service', () => ({ getAccess: getAccessMock }))
 
-const { requireAccess, SUBSCRIPTION_REQUIRED } = await import('./guard')
+const { requireAccess, SUBSCRIPTION_REQUIRED, NOT_A_MEMBER } = await import('./guard')
 
-const user: Auth = { userId: 'user_a', readOnly: false, sessionId: 'sess_1' }
-const demo: Auth = { userId: 'demo', readOnly: true, sessionId: null }
+const user: Auth = { userId: 'user_a', readOnly: false, sessionId: 'sess_1', spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const }
+const demo: Auth = { userId: 'demo', readOnly: true, sessionId: null, spaceId: 'demo', spaceOwnerId: 'demo', spaceRole: 'owner' as const }
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -61,5 +61,28 @@ describe('requireAccess', () => {
   it('never blocks the read-only demo user', async () => {
     expect(await requireAccess(demo)).toBeNull()
     expect(getSystemSettingsMock).not.toHaveBeenCalled()
+  })
+
+  describe('in a shared budget', () => {
+    const member: Auth = { userId: 'user_b', readOnly: false, sessionId: 's', spaceId: 'sp_home', spaceOwnerId: 'user_a', spaceRole: 'member' }
+
+    it("checks the owner's plan, not the member's", async () => {
+      getAccessMock.mockImplementation(async (id: string) => (id === 'user_a' ? { allowed: true, mode: 'paid' } : { allowed: false, mode: 'expired' }))
+      expect(await requireAccess(member)).toBeNull()
+      expect(getAccessMock).toHaveBeenCalledWith('user_a')
+      expect(getAccessMock).not.toHaveBeenCalledWith('user_b')
+    })
+
+    it("blocks a member when the owner's plan has lapsed, even if their own is paid", async () => {
+      getAccessMock.mockImplementation(async (id: string) => (id === 'user_a' ? { allowed: false, mode: 'expired' } : { allowed: true, mode: 'paid' }))
+      expect((await requireAccess(member))?.status).toBe(402)
+    })
+
+    it('answers 403 to a non-member, even with billing switched off', async () => {
+      getSystemSettingsMock.mockResolvedValue({ billing: { enforced: false, purchaseEnabled: false, audience: 'everyone' } })
+      const res = await requireAccess({ ...member, spaceDenied: true })
+      expect(res?.status).toBe(403)
+      expect(await res!.json()).toMatchObject({ error: NOT_A_MEMBER })
+    })
   })
 })

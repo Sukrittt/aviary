@@ -12,7 +12,7 @@ vi.mock('@/lib/http', () => ({
 }))
 
 const { createCategory } = await import('./categories')
-const auth = { userId: 'user_a', readOnly: false, sessionId: null }
+const auth = { userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const }
 
 beforeEach(() => {
   vi.clearAllMocks()

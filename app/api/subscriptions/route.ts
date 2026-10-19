@@ -74,7 +74,7 @@ export async function POST(req: Request) {
         notes: String(body.notes ?? ''),
         category: String(body.category ?? ''),
       } })
-      invalidate('subscriptions', auth.userId)
+      invalidate('subscriptions', auth.spaceId)
       return json({ ok: true, id: suggestionId, reactivated: true })
     }
     return error('subscription already exists', 409)
@@ -101,7 +101,7 @@ export async function POST(req: Request) {
     }
     throw err
   }
-  invalidate('subscriptions', auth.userId)
+  invalidate('subscriptions', auth.spaceId)
   return json({ ok: true, ...(suggestionId ? { id: suggestionId } : {}) })
 }
 
@@ -142,7 +142,7 @@ export async function PUT(req: Request) {
   }
 
   await coll.updateOne({ _id: existing._id }, { $set: update })
-  invalidate('subscriptions', auth.userId)
+  invalidate('subscriptions', auth.spaceId)
   return json({ ok: true })
 }
 
@@ -162,6 +162,6 @@ export async function DELETE(req: Request) {
     service: { $regex: new RegExp(`^${escapeRegExp(String(body.service))}$`, 'i') },
   })
   if (result.deletedCount === 0) return error('subscription not found', 404)
-  invalidate('subscriptions', auth.userId)
+  invalidate('subscriptions', auth.spaceId)
   return json({ ok: true })
 }

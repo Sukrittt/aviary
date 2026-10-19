@@ -6,7 +6,7 @@ const passAndChain = vi.fn(async (..._args: unknown[]) => {})
 const afterCallbacks: (() => unknown)[] = []
 
 vi.mock('next/server', async (original) => ({ ...(await original<typeof import('next/server')>()), after: (fn: () => unknown) => afterCallbacks.push(fn) }))
-vi.mock('@/lib/access', () => ({ getAuth: async () => ({ userId: 'user_a', readOnly: false, sessionId: null }), readOnlyGuard: () => null }))
+vi.mock('@/lib/access', () => ({ getAuth: async () => ({ userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const }), readOnlyGuard: () => null }))
 vi.mock('@/lib/billing/guard', () => ({ requireAccess: vi.fn(async () => null) }))
 vi.mock('@/lib/import/commit', async (original) => ({
   ...(await original<typeof import('@/lib/import/commit')>()),

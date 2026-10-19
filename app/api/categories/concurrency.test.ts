@@ -10,7 +10,7 @@ const controls = vi.hoisted(() => ({
   failBulkHalfway: false,
 }))
 vi.mock('@/lib/access', () => ({
-  getAuth: async () => ({ userId: 'category-concurrency-test', readOnly: false, sessionId: null }),
+  getAuth: async () => ({ userId: 'category-concurrency-test', readOnly: false, sessionId: null, spaceId: 'category-concurrency-test', spaceOwnerId: 'category-concurrency-test', spaceRole: 'owner' as const }),
   readOnlyGuard: () => null,
 }))
 vi.mock('@/lib/billing/guard', () => ({ requireAccess: async () => null }))

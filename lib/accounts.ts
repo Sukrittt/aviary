@@ -86,7 +86,7 @@ export async function createAccount(auth: Auth, input: { name: string; type: Acc
   if (limit) throw new AccountWriteError(409, limit)
   const { timestamp } = await nowForUser(auth.userId)
   const inserted = await coll.insertOne({ name: input.name, type: input.type, archived: false, created_at: timestamp })
-  invalidate('accounts', auth.userId)
+  invalidate('accounts', auth.spaceId)
   return String(inserted.insertedId)
 }
 

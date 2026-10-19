@@ -54,6 +54,6 @@ export async function POST(req: Request) {
     throw err
   }
 
-  invalidate('categories', auth.userId)
+  invalidate('categories', auth.spaceId)
   return json({ ok: true })
 }

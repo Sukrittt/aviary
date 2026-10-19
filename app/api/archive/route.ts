@@ -144,15 +144,15 @@ export async function POST(req: Request) {
       const archivedGroup = await groups.findOne({ name: archived.group }, {}, { includeDeleted: true })
       if (archivedGroup) await groups.restore({ _id: archivedGroup._id })
       else await coll.updateMany({ _id: new ObjectId(id) }, { $set: { group: '' } }, {}, { includeDeleted: true })
-      invalidate('groups', auth.userId)
+      invalidate('groups', auth.spaceId)
     }
   }
 
   await coll.restore({ _id: new ObjectId(id) })
 
-  invalidate(collection, auth.userId)
-  for (const tag of extraInvalidations(collection)) invalidate(tag, auth.userId)
-  if (collection === 'expenses') invalidateCategoryMap(auth.userId)
+  invalidate(collection, auth.spaceId)
+  for (const tag of extraInvalidations(collection)) invalidate(tag, auth.spaceId)
+  if (collection === 'expenses') invalidateCategoryMap(auth.spaceId)
 
   return json({ ok: true })
 }

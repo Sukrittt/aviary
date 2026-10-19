@@ -259,7 +259,7 @@ export async function buildCaptureProposal(auth: Auth, message: string): Promise
   ])
   const [categoryDocs, map] = await Promise.all([
     categoriesColl.find({}, { projection: { name: 1 } }).toArray(),
-    getCachedCategoryMap(auth.userId, expensesColl, overridesColl),
+    getCachedCategoryMap(auth.spaceId, expensesColl, overridesColl),
   ])
   const categories = [...new Set(categoryDocs.map((d) => String(d.name ?? '')).filter(Boolean))]
   return extractCapture(message, { today: now.date, currencyCode, categories, words: map.words }, { userId: auth.userId, feature: 'capture' })

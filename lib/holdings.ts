@@ -76,8 +76,8 @@ export async function applyHoldingAction(
   })
 
   if (result.ok) {
-    invalidate('holdings', auth.userId)
-    invalidate('holdingEvents', auth.userId)
+    invalidate('holdings', auth.spaceId)
+    invalidate('holdingEvents', auth.spaceId)
   }
 
   return result

@@ -22,6 +22,9 @@ import { getAccess } from './service'
  */
 export const SUBSCRIPTION_REQUIRED = 'SUBSCRIPTION_REQUIRED'
 
+/** The request named a budget the user isn't (or is no longer) a member of. */
+export const NOT_A_MEMBER = 'NOT_A_MEMBER'
+
 /**
  * 402 when the account may not use normal app features, else null. Call at
  * the top of a handler, after `getAuth`.
@@ -34,14 +37,18 @@ export const SUBSCRIPTION_REQUIRED = 'SUBSCRIPTION_REQUIRED'
  */
 export async function requireAccess(auth: Auth, opts: { setup?: boolean } = {}): Promise<NextResponse | null> {
   if (auth.readOnly) return null
+  if (auth.spaceDenied) return NextResponse.json({ error: NOT_A_MEMBER, spaceId: auth.spaceId }, { status: 403 })
+
+  // The budget's owner pays for everyone in it, so it's their plan that decides.
+  const payer = auth.spaceOwnerId
 
   // Checked first so the guard costs nothing while enforcement is off: this
   // sits on 51 handlers, and settings are cached in-process for 30s, so the
   // flag being off means no extra database round trip per request rather than
   // one on every call in the app. Scoped per user (testers-only audience).
-  if (!(await billingFlagsFor(auth.userId)).enforced) return null
+  if (!(await billingFlagsFor(payer)).enforced) return null
 
-  const access = await getAccess(auth.userId)
+  const access = await getAccess(payer)
   if (access.allowed || (opts.setup && access.mode === 'setup_incomplete')) return null
   return NextResponse.json(
     { error: SUBSCRIPTION_REQUIRED, mode: access.mode, trialEndsAt: access.trialEndsAt },

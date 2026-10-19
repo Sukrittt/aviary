@@ -14,9 +14,10 @@ vi.mock('@/lib/exports', () => ({
   exportAllowance: (...args: unknown[]) => exportAllowance(...(args as Parameters<typeof exportAllowance>)),
 }))
 
-let auth = { userId: 'user_a', readOnly: false, sessionId: null as string | null }
+let auth = { userId: 'user_a', readOnly: false, sessionId: null as string | null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const }
 vi.mock('@/lib/access', () => ({
   getAuth: vi.fn(async () => auth),
+  spaceGuard: () => null,
 }))
 
 type Doc = Record<string, unknown> & { _id: ObjectId }
@@ -53,7 +54,7 @@ beforeEach(() => {
     exitExport: false,
     accessExpired: false,
   })
-  auth = { userId: 'user_a', readOnly: false, sessionId: null }
+  auth = { userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const }
 })
 
 describe('GET /api/data/exports', () => {
@@ -132,7 +133,7 @@ describe('GET /api/data/exports', () => {
   })
 
   it('blocks the read-only demo user', async () => {
-    auth = { userId: 'demo', readOnly: true, sessionId: null }
+    auth = { userId: 'demo', readOnly: true, sessionId: null, spaceId: 'demo', spaceOwnerId: 'demo', spaceRole: 'owner' as const }
     const res = await GET(req())
     expect(res.status).toBe(401)
   })

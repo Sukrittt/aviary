@@ -64,6 +64,6 @@ export async function PUT(req: Request) {
   }
 
   await coll.updateOne({ _id: existing._id }, { $set: { name, type, archived } })
-  invalidate('accounts', auth.userId)
+  invalidate('accounts', auth.spaceId)
   return json({ ok: true })
 }

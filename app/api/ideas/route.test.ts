@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('server-only', () => ({}))
 
-const getAuthMock = vi.fn(async () => ({ userId: 'user_a', readOnly: false, sessionId: null }))
+const getAuthMock = vi.fn(async () => ({ userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const }))
 vi.mock('@/lib/access', () => ({ getAuth: getAuthMock }))
 
 const isRateLimitedMock = vi.fn(async () => false)
@@ -27,7 +27,7 @@ const voteParams = { params: Promise.resolve({ id: 'idea_1' }) }
 
 beforeEach(() => {
   vi.clearAllMocks()
-  getAuthMock.mockResolvedValue({ userId: 'user_a', readOnly: false, sessionId: null })
+  getAuthMock.mockResolvedValue({ userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const })
   isRateLimitedMock.mockResolvedValue(false)
 })
 
@@ -44,7 +44,7 @@ describe('GET /api/ideas', () => {
   })
 
   it('keeps the board from the signed-out demo user', async () => {
-    getAuthMock.mockResolvedValue({ userId: 'demo', readOnly: true, sessionId: null })
+    getAuthMock.mockResolvedValue({ userId: 'demo', readOnly: true, sessionId: null, spaceId: 'demo', spaceOwnerId: 'demo', spaceRole: 'owner' as const })
     expect((await GET(new Request('https://x.test/api/ideas'))).status).toBe(401)
     expect(listIdeasMock).not.toHaveBeenCalled()
   })
@@ -69,7 +69,7 @@ describe('POST /api/ideas', () => {
   })
 
   it('rejects the demo user', async () => {
-    getAuthMock.mockResolvedValue({ userId: 'demo', readOnly: true, sessionId: null })
+    getAuthMock.mockResolvedValue({ userId: 'demo', readOnly: true, sessionId: null, spaceId: 'demo', spaceOwnerId: 'demo', spaceRole: 'owner' as const })
     expect((await POST(post('https://x.test/api/ideas', { title: 'Split bills' }))).status).toBe(401)
   })
 })

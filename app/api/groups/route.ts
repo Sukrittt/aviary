@@ -62,13 +62,13 @@ export async function PUT(req: Request) {
     const catColl = await getCollection('categories', auth)
     // Archived categories too, so restoring one later still finds its group.
     await catColl.updateMany({ group: String(body.name) }, { $set: { group: newName } }, {}, { includeDeleted: true })
-    invalidate('categories', auth.userId)
+    invalidate('categories', auth.spaceId)
   }
   if (body.icon !== undefined)
     await coll.updateOne({ name: String(body.newName || body.name) }, { $set: { icon: body.icon } })
   if (body.color !== undefined)
     await coll.updateOne({ name: String(body.newName || body.name) }, { $set: { color: body.color } })
-  invalidate('groups', auth.userId)
+  invalidate('groups', auth.spaceId)
   return json({ ok: true })
 }
 
@@ -92,7 +92,7 @@ export async function DELETE(req: Request) {
   const catColl = await getCollection('categories', auth)
   await catColl.deleteMany({ group: String(body.name) })
   await coll.deleteOne({ name: String(body.name) })
-  invalidate('categories', auth.userId)
-  invalidate('groups', auth.userId)
+  invalidate('categories', auth.spaceId)
+  invalidate('groups', auth.spaceId)
   return json({ ok: true })
 }
