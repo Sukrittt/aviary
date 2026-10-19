@@ -222,7 +222,7 @@ describe('EnvelopesPage', () => {
     renderPage()
     await user.click(await screen.findByLabelText('Edit Rent'))
     const dialog = screen.getByRole('dialog', { name: 'Edit category' })
-    await user.click(within(dialog).getByRole('button', { name: 'Blue' }))
+    await user.click(within(dialog).getByRole('button', { name: 'Teal' }))
     await user.click(within(dialog).getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(updateCategory).toHaveBeenCalledWith('🏠 Rent', { color: 'blue' }))
   })

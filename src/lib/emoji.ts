@@ -1,4 +1,4 @@
-import { CATEGORY_COLORS, isCategoryColor, type CategoryColor } from './categoryColors'
+import { HASH_COLORS, isCategoryColor, type CategoryColor } from './categoryColors'
 
 // Older category/group names embed an emoji as the leading character (e.g.
 // "🏠 Rent", see productivity/categories.csv). splitEmoji() pulls it off for
@@ -25,6 +25,10 @@ const TINTS: Record<CategoryColor, { background: string; color: string }> = {
   accent: { background: 'var(--gold-soft)', color: 'var(--gold-ink)' },
   warn: { background: 'var(--warn-soft)', color: 'var(--warn-ink)' },
   coral: { background: 'var(--coral-soft)', color: 'var(--coral)' },
+  pink: { background: 'var(--tk-pink-soft)', color: 'var(--tk-pink)' },
+  indigo: { background: 'var(--tk-indigo-soft)', color: 'var(--tk-indigo)' },
+  brown: { background: 'var(--tk-brown-soft)', color: 'var(--tk-brown)' },
+  slate: { background: 'var(--tk-slate-soft)', color: 'var(--tk-slate)' },
 }
 
 /** Background and icon colour for a colour key, for a tile's `style`. */
@@ -35,7 +39,7 @@ export function colorStyle(color: CategoryColor): { background: string; color: s
 /** A category's colour: the one the user picked, else one cycled by a hash of
  *  the name, shared by every surface so one category is never two colours. */
 export function categoryColor(category: string, color?: string): CategoryColor {
-  return isCategoryColor(color) ? color : CATEGORY_COLORS[avatarHash(category) % CATEGORY_COLORS.length]
+  return isCategoryColor(color) ? color : HASH_COLORS[avatarHash(category) % HASH_COLORS.length]
 }
 
 /** A group's colour: the one the user picked, else the accent. */

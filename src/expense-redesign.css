@@ -12842,28 +12842,32 @@ button.account-feature-card {
 /* The edit sheets' colour row: the six tints, the picked one ringed in its ink. */
 .color-swatches {
   display: flex;
-  gap: 10px;
+  justify-content: space-between;
+  gap: 8px;
+  padding-inline: 4px;
   margin-top: 14px;
 }
 .color-swatch {
   position: relative;
-  width: 36px;
-  height: 36px;
-  display: grid;
-  place-items: center;
+  width: 20px;
+  height: 20px;
   padding: 0;
   border-radius: 50%;
-  border: 2px solid transparent;
+  border: 0;
   cursor: pointer;
-  transition: transform 120ms ease, border-color 200ms ease;
+  transition: transform 120ms ease, box-shadow 200ms ease;
 }
 .color-swatch:hover:not(:disabled) {
-  transform: scale(1.06);
+  transform: scale(1.08);
 }
 .color-swatch:active:not(:disabled) {
   transform: scale(0.9);
 }
-/* A fresh pick: the swatch springs back, one ring ripples out, the tick pops in.
+/* Selected: a ring in the swatch's own colour, set off by a gap of card. */
+.color-swatch[aria-pressed="true"] {
+  box-shadow: 0 0 0 2px var(--tk-card-solid), 0 0 0 4px currentColor;
+}
+/* A fresh pick: the swatch springs back and one ring ripples out.
    Once, not a loop: a pulse that keeps going reads as "look at me". */
 .color-swatches--live .color-swatch[aria-pressed="true"] {
   animation: swatch-pick 420ms cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -12871,14 +12875,11 @@ button.account-feature-card {
 .color-swatches--live .color-swatch[aria-pressed="true"]::after {
   content: "";
   position: absolute;
-  inset: -2px;
+  inset: -4px;
   border-radius: 50%;
   border: 2px solid currentColor;
   pointer-events: none;
   animation: swatch-ripple 600ms ease-out forwards;
-}
-.color-swatches--live .color-swatch[aria-pressed="true"] svg {
-  animation: swatch-tick 320ms cubic-bezier(0.34, 1.56, 0.64, 1) 60ms both;
 }
 @keyframes swatch-pick {
   0% { transform: scale(0.85); }
@@ -12887,28 +12888,15 @@ button.account-feature-card {
 }
 @keyframes swatch-ripple {
   0% { transform: scale(1); opacity: 0.6; }
-  100% { transform: scale(1.6); opacity: 0; }
-}
-@keyframes swatch-tick {
-  0% { transform: scale(0) rotate(-30deg); }
-  100% { transform: scale(1) rotate(0); }
+  100% { transform: scale(1.5); opacity: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .color-swatches--live .color-swatch[aria-pressed="true"],
-  .color-swatches--live .color-swatch[aria-pressed="true"] svg { animation: none; }
+  .color-swatches--live .color-swatch[aria-pressed="true"] { animation: none; }
   .color-swatches--live .color-swatch[aria-pressed="true"]::after { content: none; }
 }
 .color-swatch:focus-visible {
   outline: 2px solid var(--erd-text);
-  outline-offset: 2px;
-}
-.color-swatch-dot {
-  width: 22px;
-  height: 22px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  color: var(--tk-card-solid);
+  outline-offset: 5px;
 }
 
 /* A group's icon on the Categories list wears its colour, like a category's tile. */
