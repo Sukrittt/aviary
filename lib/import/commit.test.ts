@@ -280,6 +280,18 @@ describe('commit edge cases', () => {
     expect(await (await coll('recurring_incomes')).findOne({ status: 'active' })).toMatchObject({ start_date: '2026-11-01' })
   })
 
+  it('a payday of the 31st starting in a 30-day month still lands on the 31st after it', async () => {
+    const review = await previewFile(auth, csv([
+      'Date,Item,Amount', '2026-08-01,Salary Aug,1000', '2026-09-01,Salary Sep,1000', '2026-10-01,Salary Oct,1000', '2026-10-02,Bread,-3',
+    ]), 'x.csv')
+    await commitImport(auth, review.importId, editsFrom(review, { salary: { amount: 1000, day: 31 } }))
+    // November has no 31st, so its payday is the 30th; December's is the 31st again.
+    expect(await (await coll('recurring_incomes')).findOne({ status: 'active' })).toMatchObject({ next_run_date: '2026-11-30' })
+    const { runRecurringIncomes } = await import('@/lib/income')
+    await runRecurringIncomes(auth, '2026-11-30')
+    expect(await (await coll('recurring_incomes')).findOne({ status: 'active' })).toMatchObject({ next_run_date: '2026-12-31' })
+  })
+
   it('won’t import into an account that finished setting up another way', async () => {
     const review = await previewFile(auth, fixture('money-manager.csv'), 'mm.csv')
     await (await getDb()).collection('users').updateOne({ _id: USER as never }, { $set: { onboardedAt: '2026-10-17T09:00:00.000Z' } })
