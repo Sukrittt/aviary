@@ -61,12 +61,22 @@ export type SpaceAccess =
 // and never reaches a query.
 const SPACE_ID_RE = /^[A-Za-z0-9_-]{1,64}$/
 
-/** The budget a request asks for, or null when it names none (every app version before budgets). */
+/**
+ * The budget a request asks for, or null when it names none (every app
+ * version before budgets). Returned as sent: a malformed value must be
+ * denied, never read as "no budget", or a write meant for a shared budget
+ * would land in the caller's personal one.
+ */
 export function requestedSpaceId(req: Request): string | null {
   const header = req.headers.get(BUDGET_HEADER)?.trim()
+  if (header) return header
   const cookie = /(?:^|;\s*)aviary-budget=([^;]*)/.exec(req.headers.get('cookie') ?? '')?.[1]
-  const raw = header || (cookie ? decodeURIComponent(cookie) : '')
-  return raw && SPACE_ID_RE.test(raw) ? raw : null
+  if (!cookie) return null
+  try {
+    return decodeURIComponent(cookie) || null
+  } catch {
+    return cookie
+  }
 }
 
 export type SpaceLookup = (userId: string, spaceId: string) => Promise<{ space: SpaceDoc | null; role: SpaceRole | null }>
@@ -78,12 +88,14 @@ export type SpaceLookup = (userId: string, spaceId: string) => Promise<{ space: 
  */
 export async function resolveSpaceAccess(userId: string, requested: string | null, lookup: SpaceLookup): Promise<SpaceAccess> {
   if (!requested || requested === userId) return { spaceId: userId, ownerId: userId, role: 'owner' }
+  if (!SPACE_ID_RE.test(requested)) return { spaceId: 'invalid', denied: true }
   const { space, role } = await lookup(userId, requested)
   if (!space || space.deleted_at || !role) return { spaceId: requested, denied: true }
   return { spaceId: space._id, ownerId: space.owner_id, role }
 }
 
 const MEMBERSHIP_TTL_MS = 30_000
+const MEMBERSHIP_CACHE_MAX = 10_000
 const membershipCache = new Map<string, { at: number; value: Awaited<ReturnType<SpaceLookup>> }>()
 
 /**
@@ -101,6 +113,9 @@ export const lookupMembership: SpaceLookup = async (userId, spaceId) => {
     db.collection<SpaceMemberDoc>(SPACE_MEMBERS).findOne({ space_id: spaceId, user_id: userId }),
   ])
   const value = { space, role: member?.role ?? null }
+  // ponytail: the key is client-chosen, so bound it. Dropping everything at
+  // the cap only costs a re-read; an LRU would keep the hot ones.
+  if (membershipCache.size >= MEMBERSHIP_CACHE_MAX) membershipCache.clear()
   membershipCache.set(key, { at: Date.now(), value })
   return value
 }

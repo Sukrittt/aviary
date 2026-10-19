@@ -45,6 +45,13 @@ describe('resolveSpaceAccess', () => {
     expect(await resolveSpaceAccess('user_c', 'sp_gone', lookup)).toEqual({ spaceId: 'sp_gone', denied: true })
   })
 
+  it('denies junk without a lookup, never falling back to the personal budget', async () => {
+    const lookup = vi.fn()
+    expect(await resolveSpaceAccess('user_a', '{"$ne":null}', lookup)).toEqual({ spaceId: 'invalid', denied: true })
+    expect(await resolveSpaceAccess('user_a', 'x'.repeat(200), lookup)).toEqual({ spaceId: 'invalid', denied: true })
+    expect(lookup).not.toHaveBeenCalled()
+  })
+
   it('denies a deleted budget, even to its members', async () => {
     const lookup = vi.fn(async () => ({ space: space({ deleted_at: '2026-10-18T00:00:00.000Z' }), role: 'member' as const }))
     expect(await resolveSpaceAccess('user_b', 'sp_home', lookup)).toEqual({ spaceId: 'sp_home', denied: true })
@@ -70,9 +77,9 @@ describe('requestedSpaceId', () => {
     expect(requestedSpaceId(req({}))).toBeNull()
   })
 
-  it('ignores junk rather than looking it up', () => {
-    expect(requestedSpaceId(req({ 'x-aviary-budget': '{"$ne":null}' }))).toBeNull()
-    expect(requestedSpaceId(req({ 'x-aviary-budget': 'x'.repeat(200) }))).toBeNull()
+  it('passes junk through, so it is denied rather than read as "no budget"', () => {
+    expect(requestedSpaceId(req({ 'x-aviary-budget': '{"$ne":null}' }))).toBe('{"$ne":null}')
+    expect(requestedSpaceId(req({ cookie: 'aviary-budget=%E0%A4%A' }))).toBe('%E0%A4%A')
   })
 })
 

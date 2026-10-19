@@ -1,6 +1,6 @@
 import { ObjectId } from 'mongodb'
 import type { Auth } from '@/lib/access'
-import { jobAuth } from '@/lib/spaces'
+import { jobAuth, lookupMembership } from '@/lib/spaces'
 import { getDb } from '@/lib/mongodb'
 import { createExpense } from '@/lib/createExpense'
 import { addIncome } from '@/lib/income'
@@ -196,9 +196,17 @@ export async function chainPass(auth: Auth, importId: string): Promise<void> {
   }
 }
 
+/** Whoever started an import into a shared budget must still be in it for it to keep writing there. */
+async function stillMember(auth: Auth): Promise<boolean> {
+  if (auth.spaceId === auth.userId) return true
+  const { space, role } = await lookupMembership(auth.userId, auth.spaceId)
+  return !!space && !space.deleted_at && !!role
+}
+
 /** One pass, then the next one queued if this one ran out of time. For `after()` callbacks. */
 export async function passAndChain(auth: Auth, importId: string, deadlineMs: number): Promise<void> {
   try {
+    if (!(await stillMember(auth))) return
     if ((await runImportPass(auth, importId, deadlineMs)) === 'progress') await chainPass(auth, importId)
   } catch (err) {
     console.error('import: pass failed for', auth.userId, importId, err)
@@ -223,6 +231,7 @@ export async function sweepImports(deadlineMs: number): Promise<number> {
     // `user_id` is the budget; whoever started it gets the "import done" push.
     const auth = jobAuth(String(doc.created_by ?? doc.user_id), String(doc.user_id))
     try {
+      if (!(await stillMember(auth))) continue
       if (process.env.CRON_SECRET && selfOrigin()) {
         await chainPass(auth, String(doc._id))
         passes++

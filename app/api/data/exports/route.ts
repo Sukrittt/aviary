@@ -1,11 +1,13 @@
 import { json, error, getCollection } from '@/lib/http'
-import { getAuth } from '@/lib/access'
+import { getAuth, spaceGuard } from '@/lib/access'
 import { exportAllowance } from '@/lib/exports'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: Request) {
   const auth = await getAuth(req)
+  const denied = spaceGuard(auth)
+  if (denied) return denied
   if (auth.readOnly) return error('unauthorized', 401)
 
   const exports = await getCollection('exports', auth)

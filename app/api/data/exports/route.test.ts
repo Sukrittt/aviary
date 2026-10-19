@@ -17,6 +17,7 @@ vi.mock('@/lib/exports', () => ({
 let auth = { userId: 'user_a', readOnly: false, sessionId: null as string | null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const }
 vi.mock('@/lib/access', () => ({
   getAuth: vi.fn(async () => auth),
+  spaceGuard: () => null,
 }))
 
 type Doc = Record<string, unknown> & { _id: ObjectId }

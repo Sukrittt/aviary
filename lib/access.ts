@@ -79,15 +79,19 @@ export async function getAuth(req: Request): Promise<Auth> {
     }
   }
 
+  let session: { userId: string; sessionId: string | null } | null = null
   try {
     const { user, sessionId } = await withAuth()
     if (user) {
       await touchLastSeen(user.id)
-      return withSpace(req, { userId: user.id, readOnly: false, sessionId: sessionId ?? null })
+      session = { userId: user.id, sessionId: sessionId ?? null }
     }
   } catch {
     // No session cookie, or called outside a request scope — fall through.
   }
+  // Outside the try: a failed membership lookup must surface, not quietly
+  // turn a signed-in person into the demo user.
+  if (session) return withSpace(req, { ...session, readOnly: false })
 
   const demo = demoUserId()
   return { userId: demo, readOnly: true, sessionId: null, spaceId: demo, spaceOwnerId: demo, spaceRole: 'owner' }
@@ -104,7 +108,15 @@ export function readOnlyResponse(): NextResponse {
  */
 export function readOnlyGuard(auth: Auth, method: string): NextResponse | null {
   if (auth.readOnly && method !== 'GET') return readOnlyResponse()
-  // A write to a budget this person isn't in, for the routes requireAccess doesn't guard.
+  return spaceGuard(auth)
+}
+
+/**
+ * 403 when the request named a budget this person isn't in, for the exit
+ * routes requireAccess doesn't guard (export, privacy proof). Without it they
+ * still couldn't reach the budget (getCollection throws), but would 500.
+ */
+export function spaceGuard(auth: Auth): NextResponse | null {
   if (auth.spaceDenied) return NextResponse.json({ error: 'NOT_A_MEMBER', spaceId: auth.spaceId }, { status: 403 })
   return null
 }

@@ -1,5 +1,5 @@
 import { json, getCollection } from '@/lib/http'
-import { getAuth } from '@/lib/access'
+import { getAuth, spaceGuard } from '@/lib/access'
 import { ENCRYPTED_FIELDS } from '@/lib/encryptedFields'
 
 export const dynamic = 'force-dynamic'
@@ -21,6 +21,8 @@ function truncate(value: unknown): string {
  */
 export async function GET(req: Request) {
   const auth = await getAuth(req)
+  const denied = spaceGuard(auth)
+  if (denied) return denied
   const coll = await getCollection('expenses', auth)
   const doc = await coll.findOneRaw({}, { sort: { _id: -1 } })
 

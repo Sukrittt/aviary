@@ -13,6 +13,9 @@ export async function POST(req: Request) {
   const guard = readOnlyGuard(auth, 'POST')
   if (guard) return guard
 
+  // Wiping every expense is the owner's call in a shared budget, like deleting it.
+  if (auth.spaceRole !== 'owner') return error('only the owner can clear this budget', 403)
+
   const body = await readBody(req)
   if (body.confirm !== true) return error('confirm required', 400)
 
