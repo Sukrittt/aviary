@@ -169,7 +169,7 @@ export async function PUT(req: Request) {
       { status: err.status },
     )
   }
-  invalidate('budgets', auth.userId)
+  invalidate('budgets', auth.spaceId)
   await reconcileThresholdLevels(
     auth,
     [category, ...(update.category ? [update.category] : [])],
@@ -193,7 +193,7 @@ export async function DELETE(req: Request) {
   const coll = await getCollection('budgets', auth)
   const result = await coll.deleteOne({ month: String(body.month), category: String(body.category) })
   if (result.deletedCount === 0) return error('budget row not found', 404)
-  invalidate('budgets', auth.userId)
+  invalidate('budgets', auth.spaceId)
   await reconcileThresholdLevels(auth, [String(body.category)], String(body.month))
   return json({ ok: true })
 }

@@ -163,10 +163,10 @@ export async function PUT(req: Request) {
   // Cache invalidation goes after the transaction resolves — withTx can rerun
   // its callback, so nothing with an outside effect belongs inside it.
   if (renamed) {
-    invalidate('budgets', auth.userId)
-    invalidate('expenses', auth.userId)
+    invalidate('budgets', auth.spaceId)
+    invalidate('expenses', auth.spaceId)
   }
-  invalidate('categories', auth.userId)
+  invalidate('categories', auth.spaceId)
   return json({ ok: true })
 }
 
@@ -183,6 +183,6 @@ export async function DELETE(req: Request) {
   const coll = await getCollection('categories', auth)
   const result = await coll.deleteOne({ name: String(body.name) })
   if (result.deletedCount === 0) return error('category not found', 404)
-  invalidate('categories', auth.userId)
+  invalidate('categories', auth.spaceId)
   return json({ ok: true })
 }

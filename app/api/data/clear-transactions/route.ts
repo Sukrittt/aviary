@@ -18,12 +18,12 @@ export async function POST(req: Request) {
 
   const expenses = await getCollection('expenses', auth)
   const result = await expenses.deleteMany({})
-  invalidate('expenses', auth.userId)
-  invalidate('wrapped', auth.userId)
+  invalidate('expenses', auth.spaceId)
+  invalidate('wrapped', auth.spaceId)
   // Every envelope's `spent` figure is derived from expenses, so clearing
   // them all changes every envelope's numbers even though budgets itself
   // wasn't written to.
-  invalidate('budgets', auth.userId)
-  invalidateCategoryMap(auth.userId)
+  invalidate('budgets', auth.spaceId)
+  invalidateCategoryMap(auth.spaceId)
   return json({ ok: true, deleted: result.deletedCount })
 }

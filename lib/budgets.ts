@@ -20,7 +20,7 @@ export async function createBudgetRow(
     if ((err as { code?: number }).code === 11000) return 'exists'
     throw err
   }
-  invalidate('budgets', auth.userId)
+  invalidate('budgets', auth.spaceId)
   await reconcileThresholdLevels(auth, [row.category], row.month)
   return 'created'
 }

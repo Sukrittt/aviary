@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-vi.mock('@/lib/access', () => ({ getAuth: vi.fn(async () => ({ userId: 'user_a', readOnly: false, sessionId: null })) }))
+vi.mock('@/lib/access', () => ({ getAuth: vi.fn(async () => ({ userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const })) }))
 vi.mock('@/lib/billing/guard', () => ({ requireAccess: vi.fn(async () => null) }))
 vi.mock('@/lib/userCurrency', () => ({ nowForUser: vi.fn(async () => ({ date: '2026-09-24' })) }))
 vi.mock('@/lib/wrapped', async (importOriginal) => ({

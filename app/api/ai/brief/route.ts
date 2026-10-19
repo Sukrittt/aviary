@@ -90,7 +90,7 @@ export async function GET(req: Request) {
   try {
     const [currencyCode, { date }] = await Promise.all([getUserCurrency(auth.userId), nowForUser(auth.userId)])
     const cache = await getCollection(BRIEF_CACHE_COLLECTION, auth)
-    const _id = briefCacheId(auth.userId, `${currencyCode}|${date}`)
+    const _id = briefCacheId(auth.spaceId, `${currencyCode}|${date}`)
 
     const cached = await cache.findOne({ _id })
     if (cached?.builtAt instanceof Date && Date.now() - cached.builtAt.getTime() < CACHE_TTL_MS) {

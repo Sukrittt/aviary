@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { withAuth } from '@workos-inc/authkit-nextjs'
 import { touchLastSeen } from './lastSeen'
 import { bearerToken, verifyBearerToken } from './bearer'
+import { lookupMembership, requestedSpaceId, resolveSpaceAccess, type SpaceRole } from './spaces'
 
 export { bearerToken, verifyBearerToken }
 
@@ -15,6 +16,24 @@ export interface Auth {
   readOnly: boolean
   /** The WorkOS session id (`sid`), when resolved from a real session. Null for the demo user. */
   sessionId: string | null
+  /**
+   * The budget this request reads and writes (lib/spaces.ts). Equal to
+   * `userId` for the personal budget, which is what every request without an
+   * `x-aviary-budget` header gets, so old app versions are unchanged.
+   */
+  spaceId: string
+  /** Who pays for `spaceId`. Billing is checked against them, not the requester. */
+  spaceOwnerId: string
+  spaceRole: SpaceRole
+  /** Set when the request named a budget the user isn't a member of. requireAccess 403s it. */
+  spaceDenied?: true
+}
+
+/** Adds the budget the request names to a resolved identity. */
+async function withSpace(req: Request, base: Pick<Auth, 'userId' | 'readOnly' | 'sessionId'>): Promise<Auth> {
+  const access = await resolveSpaceAccess(base.userId, base.readOnly ? null : requestedSpaceId(req), lookupMembership)
+  if (access.denied) return { ...base, spaceId: access.spaceId, spaceOwnerId: base.userId, spaceRole: 'member', spaceDenied: true }
+  return { ...base, spaceId: access.spaceId, spaceOwnerId: access.ownerId, spaceRole: access.role }
 }
 
 /**
@@ -56,7 +75,7 @@ export async function getAuth(req: Request): Promise<Auth> {
     const resolved = await verifyBearerToken(token)
     if (resolved) {
       await touchLastSeen(resolved.userId)
-      return { userId: resolved.userId, readOnly: false, sessionId: resolved.sessionId }
+      return withSpace(req, { userId: resolved.userId, readOnly: false, sessionId: resolved.sessionId })
     }
   }
 
@@ -64,13 +83,14 @@ export async function getAuth(req: Request): Promise<Auth> {
     const { user, sessionId } = await withAuth()
     if (user) {
       await touchLastSeen(user.id)
-      return { userId: user.id, readOnly: false, sessionId: sessionId ?? null }
+      return withSpace(req, { userId: user.id, readOnly: false, sessionId: sessionId ?? null })
     }
   } catch {
     // No session cookie, or called outside a request scope — fall through.
   }
 
-  return { userId: demoUserId(), readOnly: true, sessionId: null }
+  const demo = demoUserId()
+  return { userId: demo, readOnly: true, sessionId: null, spaceId: demo, spaceOwnerId: demo, spaceRole: 'owner' }
 }
 
 /** 403 response used for any write attempt by the read-only demo user. */
@@ -84,5 +104,7 @@ export function readOnlyResponse(): NextResponse {
  */
 export function readOnlyGuard(auth: Auth, method: string): NextResponse | null {
   if (auth.readOnly && method !== 'GET') return readOnlyResponse()
+  // A write to a budget this person isn't in, for the routes requireAccess doesn't guard.
+  if (auth.spaceDenied) return NextResponse.json({ error: 'NOT_A_MEMBER', spaceId: auth.spaceId }, { status: 403 })
   return null
 }

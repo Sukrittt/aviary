@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('@/lib/access', () => ({
-  getAuth: vi.fn(async () => ({ userId: 'user_a', readOnly: false, sessionId: null })),
+  getAuth: vi.fn(async () => ({ userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const })),
 }))
 
 const softDeleteMock = vi.fn(async () => '2026-09-26T00:00:00+05:30')

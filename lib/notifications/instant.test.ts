@@ -59,31 +59,31 @@ describe('notifyThresholdCrossed', () => {
     // Food is at 90% with no alertPcts of its own, so it falls back to the
     // default set [50, 90, 100]; 50 and 90 are both crossed, but only the
     // highest sends.
-    await notifyThresholdCrossed({ userId: 'user_a', readOnly: false, sessionId: null }, 'Food')
+    await notifyThresholdCrossed({ userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const }, 'Food')
     expect(sendPushNotificationMock).toHaveBeenCalledTimes(1)
     expect(sendPushNotificationMock.mock.calls[0][0]).toMatchObject({ userId: 'user_a' })
   })
 
   it('loads only the current month of expenses, not the full AI context window', async () => {
-    await notifyThresholdCrossed({ userId: 'user_a', readOnly: false, sessionId: null }, 'Food')
+    await notifyThresholdCrossed({ userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const }, 'Food')
     expect(buildExpenseContextMock).toHaveBeenCalledWith(expect.anything(), { monthOnly: true })
   })
 
   it('does not fire for a category that did not cross, even if another did', async () => {
-    await notifyThresholdCrossed({ userId: 'user_a', readOnly: false, sessionId: null }, 'Travel')
+    await notifyThresholdCrossed({ userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const }, 'Travel')
     expect(sendPushNotificationMock).not.toHaveBeenCalled()
   })
 
   it('does nothing when category limit alerts are off', async () => {
     usersFindOneMock.mockResolvedValue({ _id: 'user_a', notifyThresholds: false })
-    await notifyThresholdCrossed({ userId: 'user_a', readOnly: false, sessionId: null }, 'Food')
+    await notifyThresholdCrossed({ userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const }, 'Food')
     expect(buildExpenseContextMock).not.toHaveBeenCalled()
     expect(sendPushNotificationMock).not.toHaveBeenCalled()
   })
 
   it('still fires when the digest cadence is off, since thresholds are independent', async () => {
     usersFindOneMock.mockResolvedValue({ _id: 'user_a', notifyCadence: 'off' })
-    await notifyThresholdCrossed({ userId: 'user_a', readOnly: false, sessionId: null }, 'Food')
+    await notifyThresholdCrossed({ userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const }, 'Food')
     expect(sendPushNotificationMock).toHaveBeenCalled()
   })
 
@@ -97,22 +97,22 @@ describe('notifyThresholdCrossed', () => {
       subscriptions: [],
       categories: [{ name: 'Food', alertPcts: [50, 90, 100] }],
     })
-    await notifyThresholdCrossed({ userId: 'user_a', readOnly: false, sessionId: null }, 'Food')
+    await notifyThresholdCrossed({ userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const }, 'Food')
     expect(sendPushNotificationMock).toHaveBeenCalledTimes(1)
   })
 
   it('does not re-send once the level has already been recorded at that height', async () => {
-    await notifyThresholdCrossed({ userId: 'user_a', readOnly: false, sessionId: null }, 'Food')
+    await notifyThresholdCrossed({ userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const }, 'Food')
     expect(sendPushNotificationMock).toHaveBeenCalledTimes(1)
 
     // Same 90% envelope again — level hasn't risen, so it shouldn't re-fire.
-    await notifyThresholdCrossed({ userId: 'user_a', readOnly: false, sessionId: null }, 'Food')
+    await notifyThresholdCrossed({ userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const }, 'Food')
     expect(sendPushNotificationMock).toHaveBeenCalledTimes(1)
   })
 
   it('fires again after the category drops back below the threshold and re-crosses it', async () => {
     // First crossing: Food at 90% (default alertPcts [50, 90, 100]) fires once.
-    await notifyThresholdCrossed({ userId: 'user_a', readOnly: false, sessionId: null }, 'Food')
+    await notifyThresholdCrossed({ userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const }, 'Food')
     expect(sendPushNotificationMock).toHaveBeenCalledTimes(1)
 
     // Edited down below every threshold — no send, but the level syncs down to 0.
@@ -125,16 +125,16 @@ describe('notifyThresholdCrossed', () => {
       subscriptions: [],
       categories: [] as { name: string; alertPcts?: number[] }[],
     })
-    await notifyThresholdCrossed({ userId: 'user_a', readOnly: false, sessionId: null }, 'Food')
+    await notifyThresholdCrossed({ userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const }, 'Food')
     expect(sendPushNotificationMock).toHaveBeenCalledTimes(1)
 
     // Back up past 90% — the same threshold fires again since it dropped first.
-    await notifyThresholdCrossed({ userId: 'user_a', readOnly: false, sessionId: null }, 'Food')
+    await notifyThresholdCrossed({ userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const }, 'Food')
     expect(sendPushNotificationMock).toHaveBeenCalledTimes(2)
   })
 
   it('re-arms every later threshold after a budget change lowers the percentage', async () => {
-    const auth = { userId: 'user_a', readOnly: false, sessionId: null }
+    const auth = { userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const }
 
     // Food first reaches 95%, recording the highest crossed level (90).
     buildExpenseContextMock.mockResolvedValueOnce({
@@ -181,7 +181,7 @@ describe('notifyThresholdCrossed', () => {
   })
 
   it('silently syncs every donor envelope raised by a budget transfer', async () => {
-    const auth = { userId: 'user_a', readOnly: false, sessionId: null }
+    const auth = { userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const }
 
     // Pulling assigned money out of Food raises its spent percentage from 40%
     // to 95%, and pulling too much from Laundry makes it appear overspent, but
@@ -210,7 +210,7 @@ describe('notifyThresholdCrossed', () => {
   it('swallows errors rather than throwing, since it must never break the expense write', async () => {
     usersFindOneMock.mockRejectedValue(new Error('mongo down'))
     await expect(
-      notifyThresholdCrossed({ userId: 'user_a', readOnly: false, sessionId: null }, 'Food'),
+      notifyThresholdCrossed({ userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const }, 'Food'),
     ).resolves.toBeUndefined()
   })
 })

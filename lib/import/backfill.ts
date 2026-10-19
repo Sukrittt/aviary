@@ -1,5 +1,6 @@
 import { ObjectId } from 'mongodb'
 import type { Auth } from '@/lib/access'
+import { jobAuth } from '@/lib/spaces'
 import { getDb } from '@/lib/mongodb'
 import { createExpense } from '@/lib/createExpense'
 import { addIncome } from '@/lib/income'
@@ -178,7 +179,8 @@ function selfOrigin(): string | null {
  * import keeps going with no tab open instead of waiting for the hourly
  * sweep. Never throws: a broken chain just leaves the sweep to pick it up.
  */
-export async function chainPass(userId: string, importId: string): Promise<void> {
+export async function chainPass(auth: Auth, importId: string): Promise<void> {
+  const { userId, spaceId } = auth
   const secret = process.env.CRON_SECRET
   const origin = selfOrigin()
   if (!secret || !origin) return
@@ -186,7 +188,7 @@ export async function chainPass(userId: string, importId: string): Promise<void>
     await fetch(`${origin}/api/cron/import-pass`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${secret}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, importId }),
+      body: JSON.stringify({ userId, spaceId, importId }),
       signal: AbortSignal.timeout(5_000),
     })
   } catch (err) {
@@ -197,7 +199,7 @@ export async function chainPass(userId: string, importId: string): Promise<void>
 /** One pass, then the next one queued if this one ran out of time. For `after()` callbacks. */
 export async function passAndChain(auth: Auth, importId: string, deadlineMs: number): Promise<void> {
   try {
-    if ((await runImportPass(auth, importId, deadlineMs)) === 'progress') await chainPass(auth.userId, importId)
+    if ((await runImportPass(auth, importId, deadlineMs)) === 'progress') await chainPass(auth, importId)
   } catch (err) {
     console.error('import: pass failed for', auth.userId, importId, err)
   }
@@ -212,16 +214,17 @@ export async function passAndChain(auth: Auth, importId: string, deadlineMs: num
  */
 export async function sweepImports(deadlineMs: number): Promise<number> {
   const stale = await (await getDb()).collection('imports')
-    .find({ status: 'importing', lockedUntil: { $lte: Date.now() }, deleted_at: null }, { projection: { _id: 1, user_id: 1 } })
+    .find({ status: 'importing', lockedUntil: { $lte: Date.now() }, deleted_at: null }, { projection: { _id: 1, user_id: 1, created_by: 1 } })
     .limit(20)
     .toArray()
   let passes = 0
   for (const doc of stale) {
     if (Date.now() >= deadlineMs) break
-    const auth = { userId: String(doc.user_id), readOnly: false, sessionId: null }
+    // `user_id` is the budget; whoever started it gets the "import done" push.
+    const auth = jobAuth(String(doc.created_by ?? doc.user_id), String(doc.user_id))
     try {
       if (process.env.CRON_SECRET && selfOrigin()) {
-        await chainPass(auth.userId, String(doc._id))
+        await chainPass(auth, String(doc._id))
         passes++
       } else if ((await runImportPass(auth, String(doc._id), deadlineMs)) !== 'leased') passes++
     } catch (err) {

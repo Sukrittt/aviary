@@ -9,7 +9,7 @@ const { GET } = await import('./route')
 beforeEach(() => vi.clearAllMocks())
 
 it('schedules welcome delivery after Mobile’s first authenticated user creation', async () => {
-  vi.mocked(getAuth).mockResolvedValue({ userId: 'user_mobile', readOnly: false, sessionId: null })
+  vi.mocked(getAuth).mockResolvedValue({ userId: 'user_mobile', readOnly: false, sessionId: null, spaceId: 'user_mobile', spaceOwnerId: 'user_mobile', spaceRole: 'owner' as const })
   const response = await GET(new Request('https://example.com/api/auth/verify'))
   expect(await response.json()).toEqual({ ok: true, userId: 'user_mobile' })
   expect(ensureUserById).toHaveBeenCalledWith('user_mobile')
@@ -17,7 +17,7 @@ it('schedules welcome delivery after Mobile’s first authenticated user creatio
 })
 
 it('does not create a user or email the read-only demo account', async () => {
-  vi.mocked(getAuth).mockResolvedValue({ userId: 'demo', readOnly: true, sessionId: null })
+  vi.mocked(getAuth).mockResolvedValue({ userId: 'demo', readOnly: true, sessionId: null, spaceId: 'demo', spaceOwnerId: 'demo', spaceRole: 'owner' as const })
   expect((await GET(new Request('https://example.com/api/auth/verify'))).status).toBe(401)
   expect(ensureUserById).not.toHaveBeenCalled()
   expect(scheduleWelcomeEmail).not.toHaveBeenCalled()

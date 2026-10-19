@@ -202,10 +202,10 @@ export async function createExpense(auth: Auth, input: CreateExpenseInput): Prom
   if ('duplicate' in tx) return tx
   const { insertedId, category } = tx
 
-  invalidate('expenses', auth.userId)
-  invalidate('wrapped', auth.userId)
-  if (paymentMethod === 'credit_card') invalidate('budgets', auth.userId)
-  invalidateCategoryMap(auth.userId)
+  invalidate('expenses', auth.spaceId)
+  invalidate('wrapped', auth.spaceId)
+  if (paymentMethod === 'credit_card') invalidate('budgets', auth.spaceId)
+  invalidateCategoryMap(auth.spaceId)
   // Awaited (not fire-and-forget): a serverless function can be frozen the
   // instant the response is sent, so a background call here could just never
   // run. notifyThresholdCrossed never throws, so this only adds latency, not

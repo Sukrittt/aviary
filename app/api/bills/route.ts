@@ -127,7 +127,7 @@ export async function POST(req: Request) {
   if (!detectedMime) return error('image content is not a JPEG, PNG, or WebP')
   const expenses = await getCollection('expenses', auth)
   if (!(await expenses.findOne({ _id: new ObjectId(expenseId) }, { projection: { _id: 1 } }))) return error('expense not found', 404)
-  const release = await acquireLease(`bills:${auth.userId}`)
+  const release = await acquireLease(`bills:${auth.spaceId}`)
   if (!release) return error('A bill is being saved. Please retry.', 409)
   try {
     const coll = await getCollection('bill_scans', auth)
@@ -138,14 +138,14 @@ export async function POST(req: Request) {
     if (!existing && await coll.countDocuments({}, {}, { includeDeleted: true }) >= 500) return error('Receipt storage limit reached (500 bills).', 429)
     if (existing) {
       await coll.updateOne({ _id: existing._id }, { $set: { image_status: 'pending' } })
-      after(() => storeBillScanImage(auth.userId, String(existing._id), image, detectedMime))
+      after(() => storeBillScanImage(auth.spaceId, String(existing._id), image, detectedMime))
       return json({ id: String(existing._id) }, { status: 202 })
     }
     const { insertedId } = await coll.insertOne({
       merchant, category, date, total: String(total), my_share: String(myShare), people_count: peopleCount,
       items, expense_id: expenseId, image_url: null, image_status: 'pending', image_bytes: bytes.length, created_at: nowIST().timestamp,
     })
-    after(() => storeBillScanImage(auth.userId, insertedId.toString(), image, detectedMime))
+    after(() => storeBillScanImage(auth.spaceId, insertedId.toString(), image, detectedMime))
     return json({ id: insertedId.toString() }, { status: 202 })
   } finally { await release() }
 }

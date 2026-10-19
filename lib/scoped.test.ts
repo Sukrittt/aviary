@@ -198,6 +198,35 @@ describe('scoped()', () => {
   })
 })
 
+describe('scoped() created_by', () => {
+  it('stamps who logged an expense or income, in a shared budget', () => {
+    for (const name of ['expenses', 'incomes']) {
+      const s = spy(name)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      scoped(s as any, 'sp_home', { actorId: 'user_b' }).insertOne({ category: 'Food' })
+      expect(s.calls[0].args[0]).toMatchObject({ user_id: 'sp_home', created_by: 'user_b' })
+    }
+  })
+
+  it('keeps an explicit created_by and leaves other collections alone', () => {
+    const e = spy('expenses')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    scoped(e as any, 'sp_home', { actorId: 'user_b' }).insertMany([{ created_by: 'user_a' }])
+    expect((e.calls[0].args[0] as Record<string, unknown>[])[0].created_by).toBe('user_a')
+    const b = spy('budgets')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    scoped(b as any, 'sp_home', { actorId: 'user_b' }).insertOne({ month: '2026-10' })
+    expect(b.calls[0].args[0]).not.toHaveProperty('created_by')
+  })
+
+  it('stamps nothing without an actor, as every caller before budgets', () => {
+    const s = spy('expenses')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    scoped(s as any, 'user_alice').insertOne({ category: 'Food' })
+    expect(s.calls[0].args[0]).not.toHaveProperty('created_by')
+  })
+})
+
 describe('scoped() soft delete', () => {
   it('deleteOne stamps deleted_at instead of removing the document, and deletedCount reflects the match', async () => {
     const coll = fakeMongoCollection('categories')

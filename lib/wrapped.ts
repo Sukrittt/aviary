@@ -53,7 +53,7 @@ export function readRecap(auth: Auth, month: string): Promise<WrappedData> {
   const { start, end } = monthRange(month)
   return cachedRead(
     'wrapped',
-    auth.userId,
+    auth.spaceId,
     async () => {
       const coll = await getCollection('expenses', auth)
       const docs = await coll.find({ date: { $gte: start, $lte: end } }).toArray()

@@ -16,7 +16,7 @@ vi.mock('../mongodb', () => ({
 }))
 
 const NOW = new Date('2026-10-15T12:00:00Z')
-const user = { userId: 'user_a', readOnly: false, sessionId: null }
+const user = { userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const }
 
 beforeEach(() => {
   vi.resetModules()

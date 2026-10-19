@@ -28,7 +28,7 @@ vi.mock('@/lib/http', async (importOriginal) => {
 
 const { applyHoldingAction } = await import('./holdings')
 
-const auth = { userId: 'user_a', readOnly: false, sessionId: null }
+const auth = { userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const }
 
 describe('applyHoldingAction', () => {
   beforeEach(() => {

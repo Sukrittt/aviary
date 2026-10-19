@@ -37,7 +37,7 @@ import { chainPass, passAndChain, retryImport, runImportPass } from './backfill'
 import type { Review } from './service'
 
 const USER = 'import-test'
-const auth = { userId: USER, readOnly: false, sessionId: null }
+const auth = { userId: USER, readOnly: false, sessionId: null, spaceId: USER, spaceOwnerId: USER, spaceRole: 'owner' as const }
 const fixture = (name: string) => readFileSync(path.join(import.meta.dirname, 'fixtures', name))
 
 let server: MongoMemoryReplSet
@@ -380,10 +380,10 @@ describe('chaining passes', () => {
     const fetchMock = vi.fn(async () => new Response('{}'))
     vi.stubGlobal('fetch', fetchMock)
     try {
-      await chainPass(USER, '6710e6f0a1b2c3d4e5f60718')
+      await chainPass(auth, '6710e6f0a1b2c3d4e5f60718')
       expect(fetchMock).not.toHaveBeenCalled()
       vi.stubEnv('VERCEL_URL', 'aviary-git-x.vercel.app')
-      await chainPass(USER, '6710e6f0a1b2c3d4e5f60718')
+      await chainPass(auth, '6710e6f0a1b2c3d4e5f60718')
       expect((fetchMock.mock.calls[0] as unknown as [string])[0]).toBe('https://aviary-git-x.vercel.app/api/cron/import-pass')
     } finally {
       vi.unstubAllGlobals()

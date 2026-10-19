@@ -4,7 +4,7 @@ import { randomBytes } from 'node:crypto'
 
 const USER = 'accounts-income-test'
 vi.mock('@/lib/access', () => ({
-  getAuth: async () => ({ userId: USER, readOnly: false, sessionId: null }),
+  getAuth: async () => ({ userId: USER, readOnly: false, sessionId: null, spaceId: USER, spaceOwnerId: USER, spaceRole: 'owner' as const }),
   readOnlyGuard: () => null,
 }))
 vi.mock('@/lib/billing/guard', () => ({ requireAccess: async () => null }))

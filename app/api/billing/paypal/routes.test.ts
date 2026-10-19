@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
-const authMock = vi.fn(async () => ({ userId: 'user_a', readOnly: false, sessionId: 's' }))
+const authMock = vi.fn(async () => ({ userId: 'user_a', readOnly: false, sessionId: 's', spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const }))
 vi.mock('@/lib/access', () => ({ getAuth: () => authMock() }))
 vi.mock('@/lib/rateLimit', () => ({ isRateLimited: vi.fn(async () => false) }))
 

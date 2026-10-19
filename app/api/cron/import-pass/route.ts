@@ -3,6 +3,7 @@ import { after } from 'next/server'
 import { ObjectId } from 'mongodb'
 import { json, readBody } from '@/lib/http'
 import { passAndChain } from '@/lib/import/backfill'
+import { jobAuth } from '@/lib/spaces'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -32,7 +33,8 @@ export async function POST(req: Request) {
   if (typeof body.userId !== 'string' || !body.userId || typeof body.importId !== 'string' || !ObjectId.isValid(body.importId)) {
     return json({ error: 'invalid' }, { status: 400 })
   }
-  const auth = { userId: body.userId, readOnly: false, sessionId: null }
+  // Passes queued before budgets carry no spaceId: those imports are personal.
+  const auth = jobAuth(body.userId, typeof body.spaceId === 'string' && body.spaceId ? body.spaceId : body.userId)
   after(() => passAndChain(auth, body.importId as string, startedAt + PASS_BUDGET_MS))
   return json({ ok: true })
 }

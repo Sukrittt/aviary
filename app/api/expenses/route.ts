@@ -25,7 +25,7 @@ async function mapBeforeWrite(auth: Auth): Promise<CategoryMap | null> {
   try {
     const expenses = await getCollection('expenses', auth)
     const overrides = await getCollection('category_map_overrides', auth)
-    return await getCachedCategoryMap(auth.userId, expenses, overrides)
+    return await getCachedCategoryMap(auth.spaceId, expenses, overrides)
   } catch {
     return null
   }
@@ -35,7 +35,7 @@ async function learnFromSave(auth: Auth, map: CategoryMap | null, item: string, 
   if (!map) return
   try {
     const overrides = await getCollection('category_map_overrides', auth)
-    if (await learnCategoryCorrection(map, item, category, overrides)) invalidateCategoryMap(auth.userId)
+    if (await learnCategoryCorrection(map, item, category, overrides)) invalidateCategoryMap(auth.spaceId)
   } catch {
     // Learning is a nicety; the expense is already saved.
   }
@@ -166,7 +166,7 @@ export async function GET(req: Request) {
   // `photos=1` (Activity's feed view) adds a signed `photo_url` per photo row,
   // so the feed doesn't make one request per card.
   const rows = url.searchParams.get('photos') === '1'
-    ? await Promise.all(pageDocs.map((d) => expenseRowWithPhotoUrl(auth.userId, d)))
+    ? await Promise.all(pageDocs.map((d) => expenseRowWithPhotoUrl(auth.spaceId, d)))
     : pageDocs.map((d) => expenseRow(d))
 
   return json({
@@ -377,10 +377,10 @@ export async function PUT(req: Request) {
     return writeError(err)
   }
 
-  invalidate('expenses', auth.userId)
-  invalidate('wrapped', auth.userId)
-  if (outcome.affectsCC) invalidate('budgets', auth.userId)
-  invalidateCategoryMap(auth.userId)
+  invalidate('expenses', auth.spaceId)
+  invalidate('wrapped', auth.spaceId)
+  if (outcome.affectsCC) invalidate('budgets', auth.spaceId)
+  invalidateCategoryMap(auth.spaceId)
   if (outcome.recategorized) await learnFromSave(auth, mapBefore, outcome.item, outcome.category)
   // The category that could newly be over its threshold: wherever the edit
   // landed the expense, not where it used to be.
@@ -423,12 +423,12 @@ export async function DELETE(req: Request) {
     return writeError(err)
   }
 
-  if (outcome.photoFile) await deleteExpensePhotoQuietly(auth.userId, String(body.id), outcome.photoFile)
+  if (outcome.photoFile) await deleteExpensePhotoQuietly(auth.spaceId, String(body.id), outcome.photoFile)
 
-  invalidate('expenses', auth.userId)
-  invalidate('wrapped', auth.userId)
-  if (outcome.affectsCC) invalidate('budgets', auth.userId)
-  invalidateCategoryMap(auth.userId)
+  invalidate('expenses', auth.spaceId)
+  invalidate('wrapped', auth.spaceId)
+  if (outcome.affectsCC) invalidate('budgets', auth.spaceId)
+  invalidateCategoryMap(auth.spaceId)
 
   // Deleting can drop a category back below a threshold it had crossed —
   // sync that the same way an edit-down does, so a later re-cross fires again.

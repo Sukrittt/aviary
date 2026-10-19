@@ -7,7 +7,7 @@ const controls = vi.hoisted(() => ({
 }))
 
 vi.mock('@/lib/access', () => ({
-  getAuth: async () => ({ userId: 'holding-concurrency-test', readOnly: false, sessionId: null }),
+  getAuth: async () => ({ userId: 'holding-concurrency-test', readOnly: false, sessionId: null, spaceId: 'holding-concurrency-test', spaceOwnerId: 'holding-concurrency-test', spaceRole: 'owner' as const }),
   readOnlyGuard: () => null,
 }))
 vi.mock('@/lib/billing/guard', () => ({ requireAccess: async () => null }))
@@ -137,7 +137,7 @@ describe('holding concurrency on a real replica set', () => {
     await seed({ version: 0 })
 
     const action = await applyHoldingAction(
-      { userId: 'holding-concurrency-test', readOnly: false, sessionId: null },
+      { userId: 'holding-concurrency-test', readOnly: false, sessionId: null, spaceId: 'holding-concurrency-test', spaceOwnerId: 'holding-concurrency-test', spaceRole: 'owner' as const },
       { name: 'Stocks', action: 'contribution', amount: 250 },
     )
     expect(action).toMatchObject({ ok: true, previousValue: 1000, newValue: 1250 })

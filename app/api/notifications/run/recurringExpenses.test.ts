@@ -20,13 +20,18 @@ vi.mock('@/lib/userCurrency', async (importOriginal) => ({
  */
 
 const USER = { _id: 'user_a', notifyCadence: 'off', notifyWrapped: false }
+let users: Doc[] = [USER]
+let spaces: Doc[] = []
+// Which budget the recurrences live in. The personal one unless a test shares.
+let recurringSpace = 'user_a'
 
 const logInsertOneMock = vi.fn(async () => ({ insertedId: 'x' }))
 
 vi.mock('@/lib/mongodb', () => ({
   getDb: vi.fn(async () => ({
     collection: (name: string) => {
-      if (name === 'users') return { find: () => ({ toArray: async () => [USER] }) }
+      if (name === 'users') return { find: () => ({ toArray: async () => users }) }
+      if (name === 'spaces') return { find: () => ({ toArray: async () => spaces }) }
       if (name === 'notification_log') return { insertOne: logInsertOneMock }
       throw new Error(`unexpected collection: ${name}`)
     },
@@ -58,8 +63,8 @@ vi.mock('@/lib/http', async (importOriginal) => {
   return {
     ...actual,
     nowIST: () => ({ date: '2026-09-07', timestamp: '2026-09-07T10:00:00' }),
-    getCollection: vi.fn(async (base: string) => ({
-      find: () => ({ toArray: async () => (base === 'recurring_expenses' ? recurrences : []) }),
+    getCollection: vi.fn(async (base: string, auth: { spaceId: string }) => ({
+      find: () => ({ toArray: async () => (base === 'recurring_expenses' && auth.spaceId === recurringSpace ? recurrences : []) }),
       updateOne: updateOneMock,
     })),
   }
@@ -94,6 +99,9 @@ beforeEach(() => {
   vi.setSystemTime(new Date('2026-09-07T03:00:00Z')) // 08:30 IST
   process.env.CRON_SECRET = 'test-secret'
   recurrences = []
+  users = [USER]
+  spaces = []
+  recurringSpace = 'user_a'
   createExpenseMock.mockReset().mockResolvedValue({ id: 'e1', timestamp: '', duplicate: false })
   sendPushNotificationMock.mockReset().mockResolvedValue(undefined)
   logInsertOneMock.mockReset().mockResolvedValue({ insertedId: 'x' })
@@ -224,5 +232,18 @@ describe('recurring expenses in the nightly cron', () => {
 
     expect(createExpenseMock).toHaveBeenCalledTimes(2)
     expect(sendPushNotificationMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('logs a shared budget’s recurrence once, not once per member', async () => {
+    users = [USER, { _id: 'user_b', notifyCadence: 'off', notifyWrapped: false }]
+    spaces = [{ _id: 'sp_home', name: 'Home', emoji: '🏠', owner_id: 'user_a', deleted_at: null, created_at: '' }]
+    recurringSpace = 'sp_home'
+    recurrences = [{ ...base }]
+    await run()
+
+    expect(createExpenseMock).toHaveBeenCalledTimes(1)
+    expect(createExpenseMock.mock.calls[0][0]).toMatchObject({ userId: 'user_a', spaceId: 'sp_home' })
+    // Its claim key is namespaced by budget, so the owner's personal "Rent" can't swallow it.
+    expect(logInsertOneMock.mock.calls[0]).toEqual([expect.objectContaining({ key: 'sp_home:recur-expense:rec_1:2026-09-07' })])
   })
 })

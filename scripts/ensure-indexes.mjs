@@ -191,6 +191,21 @@ const INDEXES = {
     // dedupe guarantee above still covers every delivery that can arrive.
     [{ receivedAt: 1 }, { expireAfterSeconds: 60 * 60 * 24 * 90 }],
   ],
+  // Budgets (lib/spaces.ts). The money crons list live shared budgets; the
+  // switcher lists a person's own.
+  spaces: [
+    [{ owner_id: 1 }, {}],
+    [{ deleted_at: 1 }, {}],
+  ],
+  space_members: [
+    // One membership per person per budget, which also makes a double-tapped join a no-op.
+    [{ space_id: 1, user_id: 1 }, { unique: true }],
+    [{ user_id: 1 }, {}],
+  ],
+  space_invites: [
+    [{ code: 1 }, { unique: true }],
+    [{ space_id: 1, status: 1 }, {}],
+  ],
 }
 
 async function main() {
@@ -201,6 +216,7 @@ async function main() {
   await client.connect()
   try {
     const db = client.db()
+    console.log(`database: ${db.databaseName}`)
     for (const [name, specs] of Object.entries(INDEXES)) {
       for (const [keys, options] of specs) {
         try {

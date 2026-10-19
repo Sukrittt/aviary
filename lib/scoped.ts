@@ -177,8 +177,21 @@ interface ScopeOpts {
   includeDeleted?: boolean
 }
 
-export function scoped(coll: Collection<Doc>, userId: string) {
+/**
+ * Collections whose rows record who added them, for "Added by" in a shared
+ * budget. Imports carry it so the background sweep knows whom to tell. A row
+ * without one predates sharing and counts as the budget owner's.
+ */
+const CREATED_BY = new Set(['expenses', 'incomes', 'imports'])
+
+/**
+ * `userId` is the budget key (lib/spaces.ts): the active budget for budget
+ * data, the person for person data. `actorId` is the person making the
+ * request, stamped as `created_by` where that's recorded.
+ */
+export function scoped(coll: Collection<Doc>, userId: string, { actorId }: { actorId?: string } = {}) {
   const collectionName = coll.collectionName
+  const createdBy = actorId && CREATED_BY.has(collectionName) ? actorId : null
   const fields = fieldsFor(collectionName)
   const nowIso = () => new Date(Date.now() + 5.5 * 60 * 60 * 1000).toISOString()
 
@@ -186,7 +199,12 @@ export function scoped(coll: Collection<Doc>, userId: string) {
     assertFilterSafe(filter as Doc, fields)
     return { ...filter, user_id: userId, ...(opts.includeDeleted ? {} : { deleted_at: null }) }
   }
-  const stamp = (doc: Doc): Doc => ({ ...encDoc(doc, fields, userId, collectionName), user_id: userId, deleted_at: null })
+  const stamp = (doc: Doc): Doc => ({
+    ...(createdBy ? { created_by: createdBy } : {}),
+    ...encDoc(doc, fields, userId, collectionName),
+    user_id: userId,
+    deleted_at: null,
+  })
   const decode = (doc: Doc): Doc => decDoc(doc, fields, userId, collectionName)
 
   // Every write to a brief source invalidates that user's cached money brief.

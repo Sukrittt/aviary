@@ -17,6 +17,6 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const doc = await exports.findOne({ _id: new ObjectId(id) })
   if (!doc || doc.status !== 'ready') return error('export not ready', 404)
 
-  const url = await getExportDownloadUrl(auth.userId, id)
+  const url = await getExportDownloadUrl(auth.spaceId, id)
   return json({ url })
 }

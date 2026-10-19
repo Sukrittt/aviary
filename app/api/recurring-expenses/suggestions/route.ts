@@ -18,7 +18,7 @@ const CONCURRENCY = 3
 const MAX_ROWS = 10000
 const EXPENSE_PROJECTION = { _id: 1, version: 1, date: 1, item: 1, description: 1, amount_inr: 1, amount: 1, category: 1, payment_method: 1, notes: 1, source: 1 }
 // Built-in _id uniqueness provides a per-user, cross-instance lock without a migration.
-const documentId = (auth: Auth, key: string) => new ObjectId(fingerprint([auth.userId, key]).slice(0, 24))
+const documentId = (auth: Auth, key: string) => new ObjectId(fingerprint([auth.spaceId, key]).slice(0, 24))
 const snapshotId = (auth: Auth, months: ScanMonths) => documentId(auth, `snapshot:${DETECTION_VERSION}:${months}`)
 const parseMonths = (value: unknown): ScanMonths | null => value === undefined || value === null ? 6 : value === 1 || value === 3 || value === 6 || value === 12 ? value : null
 const isTrackedSubscription = (row: Record<string, unknown>) => !/^cancel/i.test(String(row.status ?? 'active'))

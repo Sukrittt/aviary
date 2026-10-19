@@ -90,7 +90,7 @@ export async function POST(req: Request) {
     recurring_last_run: isRecurring ? today.slice(0, 7) : '',
     version: 1,
   })
-  invalidate('holdings', auth.userId)
+  invalidate('holdings', auth.spaceId)
   return json({ ok: true, version: 1 })
 }
 
@@ -193,7 +193,7 @@ export async function PUT(req: Request) {
       { status: err.status },
     )
   }
-  invalidate('holdings', auth.userId)
+  invalidate('holdings', auth.spaceId)
   return json({ ok: true, version })
 }
 
@@ -210,6 +210,6 @@ export async function DELETE(req: Request) {
   const coll = await getCollection('holdings', auth)
   const result = await coll.deleteOne({ name: String(body.name) })
   if (result.deletedCount === 0) return error('holding not found', 404)
-  invalidate('holdings', auth.userId)
+  invalidate('holdings', auth.spaceId)
   return json({ ok: true })
 }

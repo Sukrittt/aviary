@@ -7,7 +7,7 @@ const controls = vi.hoisted(() => ({
 }))
 
 vi.mock('@/lib/access', () => ({
-  getAuth: async () => ({ userId: 'budget-concurrency-test', readOnly: false, sessionId: null }),
+  getAuth: async () => ({ userId: 'budget-concurrency-test', readOnly: false, sessionId: null, spaceId: 'budget-concurrency-test', spaceOwnerId: 'budget-concurrency-test', spaceRole: 'owner' as const }),
   readOnlyGuard: () => null,
 }))
 vi.mock('@/lib/billing/guard', () => ({ requireAccess: async () => null }))
@@ -143,7 +143,7 @@ describe('budget concurrency on a real replica set', () => {
     })
 
     await withTx((session) => adjustCreditCardEnvelope(
-      { userId: 'budget-concurrency-test', readOnly: false, sessionId: null },
+      { userId: 'budget-concurrency-test', readOnly: false, sessionId: null, spaceId: 'budget-concurrency-test', spaceOwnerId: 'budget-concurrency-test', spaceRole: 'owner' as const },
       '2026-09',
       50,
       session,

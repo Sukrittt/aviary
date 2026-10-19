@@ -18,6 +18,6 @@ export async function createCategory(auth: Auth, input: { name: string; group: s
     if ((err as { code?: number }).code === 11000) return 'exists'
     throw err
   }
-  invalidate('categories', auth.userId)
+  invalidate('categories', auth.spaceId)
   return 'created'
 }

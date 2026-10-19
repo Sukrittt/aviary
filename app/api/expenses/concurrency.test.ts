@@ -8,7 +8,7 @@ const controls = vi.hoisted(() => ({
   missWrite: false,
 }))
 vi.mock('@/lib/access', () => ({
-  getAuth: async () => ({ userId: 'concurrency-test', readOnly: false, sessionId: null }),
+  getAuth: async () => ({ userId: 'concurrency-test', readOnly: false, sessionId: null, spaceId: 'concurrency-test', spaceOwnerId: 'concurrency-test', spaceRole: 'owner' as const }),
   readOnlyGuard: () => null,
 }))
 vi.mock('@/lib/billing/guard', () => ({ requireAccess: async () => null }))

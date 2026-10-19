@@ -1,7 +1,7 @@
 import { beforeEach, describe, it, expect, vi } from 'vitest'
 
 vi.mock('@/lib/access', () => ({
-  getAuth: vi.fn(async () => ({ userId: 'user_a', readOnly: false, sessionId: null })),
+  getAuth: vi.fn(async () => ({ userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const })),
   readOnlyGuard: vi.fn(() => null),
 }))
 
@@ -83,7 +83,7 @@ describe('POST /api/budgets (C4)', () => {
     const res = await POST(req({ month: '2026-01', category: 'Groceries', assigned: '5000' }))
     expect(res.status).toBe(200)
     expect(reconcileThresholdLevelsMock).toHaveBeenCalledWith(
-      { userId: 'user_a', readOnly: false, sessionId: null },
+      { userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const },
       ['Groceries'],
       '2026-01',
     )
@@ -98,7 +98,7 @@ describe('POST /api/budgets (C4)', () => {
     const res = await PUT(req({ month: '2026-01', category: 'Groceries', assigned: '8000', version: 0 }, 'PUT'))
     expect(res.status).toBe(200)
     expect(reconcileThresholdLevelsMock).toHaveBeenCalledWith(
-      { userId: 'user_a', readOnly: false, sessionId: null },
+      { userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const },
       ['Groceries'],
       '2026-01',
     )
@@ -137,7 +137,7 @@ describe('POST /api/budgets (C4)', () => {
     const res = await DELETE(req({ month: '2026-01', category: 'Groceries' }, 'DELETE'))
     expect(res.status).toBe(200)
     expect(reconcileThresholdLevelsMock).toHaveBeenCalledWith(
-      { userId: 'user_a', readOnly: false, sessionId: null },
+      { userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const },
       ['Groceries'],
       '2026-01',
     )

@@ -31,7 +31,7 @@ export async function GET(req: Request) {
   const orphans = flagged.filter((d) => !originals.has(String(d.duplicate_of))).map((d) => d._id)
   if (orphans.length > 0) {
     await coll.updateMany({ _id: { $in: orphans } }, { $unset: { duplicate_of: '' } })
-    invalidate('expenses', auth.userId)
+    invalidate('expenses', auth.spaceId)
   }
 
   return json({
@@ -53,6 +53,6 @@ export async function POST(req: Request) {
   if (typeof body.id !== 'string' || !ObjectId.isValid(body.id)) return error('a valid expense id is required')
   const coll = await getCollection('expenses', auth)
   await coll.updateOne({ _id: new ObjectId(body.id) }, { $unset: { duplicate_of: '' } })
-  invalidate('expenses', auth.userId)
+  invalidate('expenses', auth.spaceId)
   return json({ ok: true })
 }

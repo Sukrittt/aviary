@@ -110,7 +110,7 @@ export async function POST(req: Request) {
     throw err
   }
 
-  invalidate('recurring_expenses', auth.userId)
+  invalidate('recurring_expenses', auth.spaceId)
   return json({ ok: true, id: String(inserted.insertedId) })
 }
 
@@ -185,7 +185,7 @@ export async function PUT(req: Request) {
   }
 
   await coll.updateOne({ _id: existing._id }, { $set: update })
-  invalidate('recurring_expenses', auth.userId)
+  invalidate('recurring_expenses', auth.spaceId)
   return json({ ok: true })
 }
 
@@ -204,6 +204,6 @@ export async function DELETE(req: Request) {
   const result = await coll.deleteOne({ _id: new ObjectId(id) })
   if (result.deletedCount === 0) return error('recurring expense not found', 404)
 
-  invalidate('recurring_expenses', auth.userId)
+  invalidate('recurring_expenses', auth.spaceId)
   return json({ ok: true })
 }

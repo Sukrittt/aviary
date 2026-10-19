@@ -7,7 +7,7 @@ vi.mock('@/lib/billScan', () => ({
     getBillScanImageUrl(...(args as Parameters<typeof getBillScanImageUrl>)),
 }))
 
-let auth = { userId: 'user_a', readOnly: false, sessionId: null as string | null }
+let auth = { userId: 'user_a', readOnly: false, sessionId: null as string | null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const }
 vi.mock('@/lib/access', () => ({
   getAuth: vi.fn(async () => auth),
 }))
@@ -34,7 +34,7 @@ function req(): Request {
 beforeEach(() => {
   doc = null
   getBillScanImageUrl.mockClear().mockResolvedValue('https://blob.example/signed')
-  auth = { userId: 'user_a', readOnly: false, sessionId: null }
+  auth = { userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const }
 })
 
 describe('GET /api/bills/[id]', () => {

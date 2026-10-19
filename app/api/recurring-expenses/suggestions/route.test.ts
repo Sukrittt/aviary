@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ObjectId } from 'mongodb'
 const mocks = vi.hoisted(() => ({ evaluate: vi.fn(), guard: vi.fn(), ai: vi.fn(), allowance: vi.fn(), rate: vi.fn(), reads: vi.fn(), user: 'user_a' }))
-vi.mock('@/lib/access', () => ({ getAuth: async () => ({ userId: mocks.user, readOnly: false }), readOnlyGuard: mocks.guard }))
+vi.mock('@/lib/access', () => ({ getAuth: async () => ({ userId: mocks.user, spaceId: mocks.user, readOnly: false }), readOnlyGuard: mocks.guard }))
 vi.mock('@/lib/billing/guard', () => ({ requireAccess: async () => null }))
 vi.mock('@/lib/ai/recurringDetection', () => ({ evaluateRecurring: mocks.evaluate }))
 vi.mock('@/lib/systemSettings', () => ({ aiDisabledResponse: mocks.ai }))

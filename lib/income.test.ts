@@ -22,7 +22,7 @@ import {
 } from './income'
 
 const USER = 'income-test'
-const auth = { userId: USER, readOnly: false, sessionId: null }
+const auth = { userId: USER, readOnly: false, sessionId: null, spaceId: USER, spaceOwnerId: USER, spaceRole: 'owner' as const }
 
 let server: MongoMemoryReplSet
 beforeAll(async () => {

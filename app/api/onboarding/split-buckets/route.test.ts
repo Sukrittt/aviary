@@ -37,7 +37,7 @@ const status = (s: number) => new Response('{}', { status: s })
 
 beforeEach(() => {
   vi.clearAllMocks()
-  mockGetAuth.mockResolvedValue({ userId: 'user_a', readOnly: false, sessionId: null })
+  mockGetAuth.mockResolvedValue({ userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const })
   mockReadOnlyGuard.mockReturnValue(null)
   mockRequireAccess.mockResolvedValue(null)
   mockIsRateLimited.mockResolvedValue(false)
