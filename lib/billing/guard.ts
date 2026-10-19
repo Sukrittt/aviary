@@ -26,6 +26,13 @@ export const SUBSCRIPTION_REQUIRED = 'SUBSCRIPTION_REQUIRED'
 export const NOT_A_MEMBER = 'NOT_A_MEMBER'
 
 /**
+ * A member's write to a shared budget whose owner's plan has lapsed. The
+ * budget stays readable (and exportable) for everyone; only the owner can
+ * reopen it, so members get a banner, not the subscribe screen.
+ */
+export const BUDGET_READ_ONLY = 'BUDGET_READ_ONLY'
+
+/**
  * 402 when the account may not use normal app features, else null. Call at
  * the top of a handler, after `getAuth`.
  *
@@ -50,6 +57,10 @@ export async function requireAccess(auth: Auth, opts: { setup?: boolean } = {}):
 
   const access = await getAccess(payer)
   if (access.allowed || (opts.setup && access.mode === 'setup_incomplete')) return null
+  if (payer !== auth.userId) {
+    if (auth.method === 'GET' || auth.method === 'HEAD') return null
+    return NextResponse.json({ error: BUDGET_READ_ONLY, mode: access.mode }, { status: 402 })
+  }
   return NextResponse.json(
     { error: SUBSCRIPTION_REQUIRED, mode: access.mode, trialEndsAt: access.trialEndsAt },
     { status: 402 },
@@ -61,6 +72,12 @@ export async function requireAccess(auth: Auth, opts: { setup?: boolean } = {}):
  * checked against the caller's own plan, since a new budget is billed to its
  * creator, whichever budget they happen to be in.
  */
-export function requireOwnPlan(auth: Auth): Promise<NextResponse | null> {
-  return requireAccess({ ...auth, spaceOwnerId: auth.userId, spaceDenied: undefined })
+export function requireOwnPlan(auth: Auth, opts: { setup?: boolean } = {}): Promise<NextResponse | null> {
+  return requireAccess({ ...auth, spaceOwnerId: auth.userId, spaceDenied: undefined }, opts)
+}
+
+/** Whether a budget owned by `ownerId` is read-only for its members right now: the owner's plan has lapsed. */
+export async function ownerLapsed(ownerId: string): Promise<boolean> {
+  if (!(await billingFlagsFor(ownerId)).enforced) return false
+  return !(await getAccess(ownerId)).allowed
 }

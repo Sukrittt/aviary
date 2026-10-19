@@ -1,7 +1,7 @@
 import { isCurrencyCode } from '@/src/lib/currencies'
 import { json, error, readBody } from '@/lib/http'
 import { getAuth, readOnlyGuard } from '@/lib/access'
-import { requireOwnPlan } from '@/lib/billing/guard'
+import { ownerLapsed, requireOwnPlan } from '@/lib/billing/guard'
 import { BudgetError, budgetNameError, createBudget, isBudgetEmoji, listBudgets } from '@/lib/spaces'
 
 export const dynamic = 'force-dynamic'
@@ -14,7 +14,12 @@ export const dynamic = 'force-dynamic'
 export async function GET(req: Request) {
   const auth = await getAuth(req)
   if (auth.readOnly) return error('unauthorized', 401)
-  return json({ ...(await listBudgets(auth.userId)), activeId: auth.spaceDenied ? null : auth.spaceId }, { headers: { 'Cache-Control': 'private, no-store' } })
+  const list = await listBudgets(auth.userId)
+  // A shared budget whose owner's plan lapsed: readable and exportable, nothing else. The app shows a banner.
+  const budgets = await Promise.all(list.budgets.map(async (b) => ({ ...b, readOnly: b.ownerId !== auth.userId && (await ownerLapsed(b.ownerId)) })))
+  // Someone with no personal budget (they only joined) asking without one named gets their first budget.
+  const activeId = auth.spaceDenied ? null : budgets.some((b) => b.id === auth.spaceId) ? auth.spaceId : budgets[0]?.id ?? null
+  return json({ ...list, budgets, activeId }, { headers: { 'Cache-Control': 'private, no-store' } })
 }
 
 /** `POST /api/spaces` `{ name, emoji, currencyCode, copyCategories }`: a new budget, owned (and paid for) by the caller. */
@@ -22,7 +27,8 @@ export async function POST(req: Request) {
   const auth = await getAuth(req)
   const guard = readOnlyGuard({ ...auth, spaceDenied: undefined }, 'POST')
   if (guard) return guard
-  const gate = await requireOwnPlan(auth)
+  // `setup`: someone who only joined has no trial yet, and their first own budget is what starts one.
+  const gate = await requireOwnPlan(auth, { setup: true })
   if (gate) return gate
 
   const body = await readBody(req)

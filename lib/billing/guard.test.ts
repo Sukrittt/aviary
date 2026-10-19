@@ -7,7 +7,7 @@ vi.mock('../systemSettings', () => ({ getSystemSettings: getSystemSettingsMock }
 const getAccessMock = vi.fn()
 vi.mock('./service', () => ({ getAccess: getAccessMock }))
 
-const { requireAccess, requireOwnPlan, SUBSCRIPTION_REQUIRED, NOT_A_MEMBER } = await import('./guard')
+const { requireAccess, requireOwnPlan, SUBSCRIPTION_REQUIRED, NOT_A_MEMBER, BUDGET_READ_ONLY } = await import('./guard')
 
 const user: Auth = { userId: 'user_a', readOnly: false, sessionId: 'sess_1', spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const }
 const demo: Auth = { userId: 'demo', readOnly: true, sessionId: null, spaceId: 'demo', spaceOwnerId: 'demo', spaceRole: 'owner' as const }
@@ -73,9 +73,24 @@ describe('requireAccess', () => {
       expect(getAccessMock).not.toHaveBeenCalledWith('user_b')
     })
 
-    it("blocks a member when the owner's plan has lapsed, even if their own is paid", async () => {
+    it("blocks a member's writes when the owner's plan has lapsed, even if their own is paid", async () => {
       getAccessMock.mockImplementation(async (id: string) => (id === 'user_a' ? { allowed: false, mode: 'expired' } : { allowed: true, mode: 'paid' }))
+      const res = await requireAccess({ ...member, method: 'POST' })
+      expect(res?.status).toBe(402)
+      expect(await res!.json()).toMatchObject({ error: BUDGET_READ_ONLY })
       expect((await requireAccess(member))?.status).toBe(402)
+    })
+
+    it("keeps a lapsed shared budget readable for its members", async () => {
+      getAccessMock.mockResolvedValue({ allowed: false, mode: 'expired' })
+      expect(await requireAccess({ ...member, method: 'GET' })).toBeNull()
+      expect(await requireAccess({ ...member, method: 'HEAD' })).toBeNull()
+    })
+
+    it("still sends the lapsed owner to the subscribe screen", async () => {
+      getAccessMock.mockResolvedValue({ allowed: false, mode: 'expired' })
+      const res = await requireAccess({ ...user, spaceId: 'sp_home', method: 'GET' })
+      expect(await res!.json()).toMatchObject({ error: SUBSCRIPTION_REQUIRED })
     })
 
     it('answers 403 to a non-member, even with billing switched off', async () => {

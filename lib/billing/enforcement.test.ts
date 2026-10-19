@@ -77,7 +77,13 @@ const OPEN: Record<string, string> = {
   'notifications/register': 'a device must be able to register to receive the "your trial ended" push',
   // Writes here use requireOwnPlan: the caller's own plan, not the active budget's.
   spaces: 'budget switcher: listing must work from a lapsed budget, so you can switch out of it',
-  'spaces/[id]': 'owner budget settings, gated against the owner’s own plan',
+  'spaces/[id]': 'owner budget settings, gated against the owner’s own plan; delete is an exit',
+  'spaces/[id]/members': 'who is in a budget: readable from a lapsed one',
+  'spaces/[id]/members/[userId]': 'leaving and removing are exits, never paywalled',
+  'spaces/[id]/invites': 'gated against the owner’s own plan',
+  'spaces/[id]/invites/[code]': 'cancelling an invite is an exit',
+  'spaces/[id]/restore': 'owner undoing a delete within 30 days',
+  'join/[code]': 'joining is covered by the owner’s plan; a brand-new person has no trial yet',
 }
 
 function routeDirs(dir: string, prefix = ''): string[] {

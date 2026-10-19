@@ -27,14 +27,16 @@ export interface Auth {
   spaceRole: SpaceRole
   /** Set when the request named a budget the user isn't a member of. requireAccess 403s it. */
   spaceDenied?: true
+  /** The request's method, so a lapsed shared budget can stay readable. Unset for jobs. */
+  method?: string
 }
 
 /** Adds the budget the request names to a resolved identity. */
 async function withSpace(req: Request, base: Pick<Auth, 'userId' | 'readOnly' | 'sessionId'>, cookieFallback = false): Promise<Auth> {
   const requested = requestedSpaceId(req) ?? (cookieFallback ? await pageBudgetCookie() : null)
   const access = await resolveSpaceAccess(base.userId, base.readOnly ? null : requested, lookupMembership)
-  if (access.denied) return { ...base, spaceId: access.spaceId, spaceOwnerId: base.userId, spaceRole: 'member', spaceDenied: true }
-  return { ...base, spaceId: access.spaceId, spaceOwnerId: access.ownerId, spaceRole: access.role }
+  if (access.denied) return { ...base, method: req.method, spaceId: access.spaceId, spaceOwnerId: base.userId, spaceRole: 'member', spaceDenied: true }
+  return { ...base, method: req.method, spaceId: access.spaceId, spaceOwnerId: access.ownerId, spaceRole: access.role }
 }
 
 /**

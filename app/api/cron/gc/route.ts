@@ -2,6 +2,7 @@ import { timingSafeEqual, createHash } from 'node:crypto'
 import { json } from '@/lib/http'
 import { getDb } from '@/lib/mongodb'
 import { purgeAccountNow } from '@/lib/accountLifecycle'
+import { purgeDeletedSpaces } from '@/lib/spaceMembers'
 import { ARCHIVABLE_COLLECTIONS, GRACE_DAYS } from '@/lib/archive'
 import type { UserDoc } from '@/lib/users'
 import { recordCronRun, triggerOf } from '@/lib/cronRuns'
@@ -46,7 +47,7 @@ export async function GET(req: Request) {
 /** A previewed import nobody committed: its rows are a copy of a file, so it goes after a day. */
 const PREVIEW_TTL_MS = 24 * 60 * 60 * 1000
 
-async function purgeExpired(): Promise<{ purged: number; accountsPurged: number; previewsPurged: number }> {
+async function purgeExpired(): Promise<{ purged: number; accountsPurged: number; previewsPurged: number; budgetsPurged: number }> {
   const db = await getDb()
   const cutoff = cutoffIso()
   // Never one a commit is setting up right now (lib/import/commit.ts's claim).
@@ -79,5 +80,13 @@ async function purgeExpired(): Promise<{ purged: number; accountsPurged: number;
     }
   }
 
-  return { purged, accountsPurged, previewsPurged: previews.deletedCount }
+  // Budgets an owner deleted more than 30 days ago (lib/spaceMembers.ts).
+  let budgetsPurged = 0
+  try {
+    budgetsPurged = await purgeDeletedSpaces(db)
+  } catch (err) {
+    console.error('cron/gc: budget purge failed', err)
+  }
+
+  return { purged, accountsPurged, previewsPurged: previews.deletedCount, budgetsPurged }
 }
