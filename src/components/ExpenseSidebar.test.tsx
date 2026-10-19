@@ -69,6 +69,19 @@ describe('ExpenseSidebar', () => {
     expect(screen.getByRole('navigation', { name: 'Primary' })).toBeTruthy()
   })
 
+  it('moves one hover pill to whichever row is under the pointer', () => {
+    render(<ExpenseSidebar />)
+    const nav = screen.getByRole('navigation', { name: 'Primary' })
+    const pills = () => [...nav.querySelectorAll('li > span.absolute')].map((pill) => pill.parentElement?.textContent)
+
+    fireEvent.mouseEnter(screen.getByText('Activity').closest('li')!)
+    expect(pills()).toEqual(['Activity'])
+    fireEvent.mouseEnter(screen.getByText('Categories').closest('li')!)
+    expect(pills()).toEqual(['Categories'])
+    fireEvent.mouseLeave(nav)
+    expect(pills()).toEqual([])
+  })
+
   it('remembers the collapsed rail between visits', () => {
     render(<ExpenseSidebar />)
     fireEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }))
