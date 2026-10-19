@@ -199,3 +199,12 @@ describe('readSource for a csv', () => {
     spy.mockRestore()
   })
 })
+
+describe('statementPrompt', () => {
+  it('leaves out rows in another currency rather than reading them as the account currency', async () => {
+    const { statementPrompt } = await import('./statement')
+    const prompt = statementPrompt(TODAY, 'INR')
+    expect(prompt).toContain('Amounts are in INR.')
+    expect(prompt).toContain('Leave out any transaction shown in a currency other than INR.')
+  })
+})

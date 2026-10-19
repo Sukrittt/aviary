@@ -74,6 +74,7 @@ export function statementPrompt(today: string, currencyCode: string): string {
     '- amount: a positive plain number, exactly as shown. Don\'t convert currencies.',
     '- payee: who the money went to or came from, as shown ("Paid to Swiggy" is Swiggy). For a bank narration, the merchant or person in it.',
     '- direction: debit for money out ("Paid to", "Sent", a minus sign, Dr). credit for money in ("Received from", a refund, cashback, a plus sign, Cr).',
+    `- Leave out any transaction shown in a currency other than ${currencyCode}.`,
     '- Leave out failed, pending or declined transactions, balances, totals and ads.',
     '- Never invent a row. If you can\'t read an amount or date, leave that row out.',
   ].join('\n')
