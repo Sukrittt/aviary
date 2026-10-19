@@ -55,3 +55,12 @@ export async function requireAccess(auth: Auth, opts: { setup?: boolean } = {}):
     { status: 402 },
   )
 }
+
+/**
+ * The gate for acting on budgets themselves (making one, renaming one):
+ * checked against the caller's own plan, since a new budget is billed to its
+ * creator, whichever budget they happen to be in.
+ */
+export function requireOwnPlan(auth: Auth): Promise<NextResponse | null> {
+  return requireAccess({ ...auth, spaceOwnerId: auth.userId, spaceDenied: undefined })
+}

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { withAuth } from '@workos-inc/authkit-nextjs'
 import { touchLastSeen } from './lastSeen'
 import { bearerToken, verifyBearerToken } from './bearer'
-import { lookupMembership, requestedSpaceId, resolveSpaceAccess, type SpaceRole } from './spaces'
+import { BUDGET_COOKIE, lookupMembership, requestedSpaceId, resolveSpaceAccess, type SpaceRole } from './spaces'
 
 export { bearerToken, verifyBearerToken }
 
@@ -30,10 +30,25 @@ export interface Auth {
 }
 
 /** Adds the budget the request names to a resolved identity. */
-async function withSpace(req: Request, base: Pick<Auth, 'userId' | 'readOnly' | 'sessionId'>): Promise<Auth> {
-  const access = await resolveSpaceAccess(base.userId, base.readOnly ? null : requestedSpaceId(req), lookupMembership)
+async function withSpace(req: Request, base: Pick<Auth, 'userId' | 'readOnly' | 'sessionId'>, cookieFallback = false): Promise<Auth> {
+  const requested = requestedSpaceId(req) ?? (cookieFallback ? await pageBudgetCookie() : null)
+  const access = await resolveSpaceAccess(base.userId, base.readOnly ? null : requested, lookupMembership)
   if (access.denied) return { ...base, spaceId: access.spaceId, spaceOwnerId: base.userId, spaceRole: 'member', spaceDenied: true }
   return { ...base, spaceId: access.spaceId, spaceOwnerId: access.ownerId, spaceRole: access.role }
+}
+
+/**
+ * The budget cookie of the page request itself. A server component's prefetch
+ * builds a bare `Request` with no cookie header, so without this it would
+ * read the personal budget while the page shows another.
+ */
+async function pageBudgetCookie(): Promise<string | null> {
+  try {
+    const { cookies } = await import('next/headers')
+    return (await cookies()).get(BUDGET_COOKIE)?.value || null
+  } catch {
+    return null
+  }
 }
 
 /**
@@ -91,7 +106,7 @@ export async function getAuth(req: Request): Promise<Auth> {
   }
   // Outside the try: a failed membership lookup must surface, not quietly
   // turn a signed-in person into the demo user.
-  if (session) return withSpace(req, { ...session, readOnly: false })
+  if (session) return withSpace(req, { ...session, readOnly: false }, true)
 
   const demo = demoUserId()
   return { userId: demo, readOnly: true, sessionId: null, spaceId: demo, spaceOwnerId: demo, spaceRole: 'owner' }

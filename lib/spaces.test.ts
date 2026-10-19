@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { resolveSpaceAccess, spacesToRun, requestedSpaceId, type SpaceDoc } from './spaces'
+import { resolveSpaceAccess, spacesToRun, requestedSpaceId, budgetLimitFor, budgetsOpen, DEFAULT_BUDGET_LIMIT, MAX_MEMBERS, type SpaceDoc } from './spaces'
 
 const space = (over: Partial<SpaceDoc> = {}): SpaceDoc => ({
   _id: 'sp_home',
@@ -104,5 +104,36 @@ describe('spacesToRun (money crons)', () => {
   it('skips deleted budgets and budgets whose owner is gone', () => {
     const runs = spacesToRun(users, [space({ deleted_at: '2026-10-18T00:00:00.000Z' }), space({ _id: 'sp_orphan', owner_id: 'user_gone' })])
     expect(runs.map((s) => s.spaceId)).toEqual(['user_a', 'user_b'])
+  })
+})
+
+describe('budget limit', () => {
+  it('is 5 for everyone, trial or paid, unless an admin set more', () => {
+    expect(DEFAULT_BUDGET_LIMIT).toBe(5)
+    expect(budgetLimitFor({})).toBe(5)
+    expect(budgetLimitFor({ budgetLimit: 8 })).toBe(8)
+  })
+
+  it('ignores a nonsense override', () => {
+    expect(budgetLimitFor({ budgetLimit: 0 })).toBe(5)
+    expect(budgetLimitFor({ budgetLimit: -2 })).toBe(5)
+    expect(budgetLimitFor({ budgetLimit: 2.5 })).toBe(5)
+  })
+
+  it('counts owned and joined budgets together, the personal one included', () => {
+    expect(budgetsOpen('user_a', true, [])).toBe(1)
+    expect(budgetsOpen('user_a', true, ['sp_1', 'sp_2', 'user_b'])).toBe(4)
+  })
+
+  it('does not count the personal budget twice once it has members', () => {
+    expect(budgetsOpen('user_a', true, ['user_a', 'sp_1'])).toBe(2)
+  })
+
+  it('does not count a personal budget someone who only joined never made', () => {
+    expect(budgetsOpen('user_c', false, ['sp_home'])).toBe(1)
+  })
+
+  it('caps a budget at 6 people, the owner plus 5', () => {
+    expect(MAX_MEMBERS).toBe(6)
   })
 })

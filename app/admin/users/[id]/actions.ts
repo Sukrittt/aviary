@@ -36,12 +36,16 @@ export async function updateUserAction(userId: string, _prev: ActionResult, form
   const currencyCode = form.get('currencyCode')
   const cadence = form.get('notifyCadence')
   const leadDays = Number(form.get('notifyBillLeadDays'))
+  // Budgets they may open (lib/spaces.ts). Blank = the default 5.
+  const rawLimit = String(form.get('budgetLimit') ?? '').trim()
+  const budgetLimit = rawLimit ? Number(rawLimit) : null
 
   if (!isCurrencyCode(currencyCode)) return { ok: false, message: 'Invalid currency' }
   if (cadence !== 'off' && cadence !== 'weekly' && cadence !== 'daily') return { ok: false, message: 'Invalid digest cadence' }
   if (!Number.isInteger(leadDays) || leadDays < 0 || leadDays > 30) return { ok: false, message: 'Bill lead days must be 0–30' }
+  if (budgetLimit !== null && (!Number.isInteger(budgetLimit) || budgetLimit < 1 || budgetLimit > 50)) return { ok: false, message: 'Budget limit must be 1–50, or blank for the default' }
 
-  const next: Partial<UserDoc> = { name: name || null, currencyCode, notifyCadence: cadence, notifyBillLeadDays: leadDays }
+  const next: Partial<UserDoc> = { name: name || null, currencyCode, notifyCadence: cadence, notifyBillLeadDays: leadDays, budgetLimit }
   for (const flag of NOTIFY_FLAGS) next[flag] = form.get(flag) === 'on'
 
   // Compare against effective values (defaults applied), so saving an untouched form records no changes.
@@ -55,6 +59,7 @@ export async function updateUserAction(userId: string, _prev: ActionResult, form
     notifyBills: prefs.bills,
     notifyCoach: prefs.coach,
     notifyWrapped: prefs.wrapped,
+    budgetLimit: user.budgetLimit ?? null,
   }
   const changes = Object.fromEntries(
     Object.entries(next)

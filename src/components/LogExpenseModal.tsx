@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { CalendarBlankIcon, ChatTextIcon, PlusIcon, TagIcon, WarningIcon, WalletIcon, XIcon } from '@/src/components/icons'
 import { useOptionalMoneyBrain } from '@/components/moneyBrainContext'
 import { useHiddenFeatures } from '../hooks/useUser'
+import { BudgetLine } from './BudgetSwitcher'
 import { Scrim, Sheet } from './MotionSheet'
 import { DatePicker, formatShort } from './DatePicker'
 import { getCategoryMap } from '../api/categoryMap'
@@ -439,6 +440,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
                 <XIcon size={18} aria-hidden="true" />
               </button>
             </div>
+            <BudgetLine />
 
             <div className="erd-log-body">
               <section className="erd-log-section">

@@ -194,7 +194,7 @@ export default async function AdminUserDetail({ params }: { params: Promise<{ id
 
       <section className="erd-card">
         <h2>Edit</h2>
-        <ActionForm action={updateUserAction.bind(null, userId)} className="adm-form" key={JSON.stringify(prefs) + user.name}>
+        <ActionForm action={updateUserAction.bind(null, userId)} className="adm-form" key={JSON.stringify(prefs) + user.name + user.budgetLimit}>
           <input className="adm-input" name="name" defaultValue={user.name ?? ''} placeholder="Name" />
           <select className="adm-select" name="currencyCode" defaultValue={resolveCurrency(user.currencyCode)}>
             {CURRENCIES.map((c) => (
@@ -213,6 +213,9 @@ export default async function AdminUserDetail({ params }: { params: Promise<{ id
           </label>
           <label className="adm-sub">
             Bill lead days <input className="adm-input" name="notifyBillLeadDays" type="number" min={0} max={30} defaultValue={prefs.billLeadDays} style={{ width: 70 }} />
+          </label>
+          <label className="adm-sub">
+            Budget limit <input className="adm-input" name="budgetLimit" type="number" min={1} max={50} defaultValue={user.budgetLimit ?? ''} placeholder="5" style={{ width: 70 }} />
           </label>
           {(
             [

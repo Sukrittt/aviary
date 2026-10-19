@@ -14,6 +14,9 @@ import { SuccessButton, useButtonPhase } from './SuccessButton'
 import { DatePicker } from './DatePicker'
 import { CategoryPicker } from './CategoryPicker'
 import { SplitExpenseEditor, makeSplitLine, type SplitLine } from './SplitExpenseEditor'
+import { MoveExpenseDialog } from './MoveExpenseDialog'
+import { useSpaces } from '../hooks/useSpaces'
+import { AnimatePresence } from 'motion/react'
 
 interface Props {
   id?: string
@@ -71,6 +74,8 @@ export function TransactionEditModal({
   const [photoUrl, setPhotoUrl] = useState<string | null>(null)
   const [photoBusy, setPhotoBusy] = useState(false)
   const [photoError, setPhotoError] = useState('')
+  const { multi } = useSpaces()
+  const [moving, setMoving] = useState(false)
 
   const amt = parseFloat(amount)
   const canSave = isSplit
@@ -321,6 +326,12 @@ export function TransactionEditModal({
           </div>
         </div>
 
+        {multi && id && !isSplit && !deleted && (
+          <button type="button" className="action-button is-ghost" onClick={() => setMoving(true)} disabled={saving || success}>
+            Move to another budget
+          </button>
+        )}
+
         <div className="subscription-modal-actions">
           <button type="button" className="action-button is-ghost" onClick={onClose} disabled={success}>
             Cancel
@@ -337,6 +348,17 @@ export function TransactionEditModal({
         </div>
         </>}
       </Sheet>
+      <AnimatePresence>
+        {moving && id && (
+          <MoveExpenseDialog
+            id={id}
+            version={expectedVersion ?? 0}
+            category={category}
+            onClose={() => setMoving(false)}
+            onMoved={() => { onSaved(); onClose() }}
+          />
+        )}
+      </AnimatePresence>
     </Scrim>
   )
 }

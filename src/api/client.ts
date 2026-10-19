@@ -26,7 +26,42 @@ export async function apiFetch(path: string, init?: RequestInit): Promise<Respon
   // for as long as the model is talking). `init?.signal ?? timeout` would hand
   // that caller the 15s timeout it was trying to avoid.
   const signal = init && 'signal' in init ? init.signal : AbortSignal.timeout(REQUEST_TIMEOUT_MS)
-  return fetch(path, { ...init, signal })
+  const resp = await fetch(path, { ...init, signal })
+  if (resp.status === 403) await leaveLostBudget(resp)
+  return resp
+}
+
+/**
+ * The budget cookie names one this person was removed from (or that's gone):
+ * every data route answers 403 NOT_A_MEMBER for it. Drop the cookie and
+ * reload into the personal budget. Only when the denied id is the cookie's,
+ * so a move into a lost budget doesn't throw you out of this one.
+ */
+async function leaveLostBudget(resp: Response) {
+  const cookie = budgetCookie()
+  if (!cookie) return
+  const body = await resp.clone().json().catch(() => null)
+  if (body?.error !== 'NOT_A_MEMBER' || body.spaceId !== cookie) return
+  setBudgetCookie(null)
+  window.location.reload()
+}
+
+/** The budget the `aviary-budget` cookie picks, or null for the personal one. */
+export function budgetCookie(): string | null {
+  if (typeof document === 'undefined') return null
+  const raw = /(?:^|;\s*)aviary-budget=([^;]*)/.exec(document.cookie)?.[1]
+  try {
+    return raw ? decodeURIComponent(raw) : null
+  } catch {
+    return raw ?? null
+  }
+}
+
+/** Remembers the active budget on this device; the server reads it on every request. null = personal. */
+export function setBudgetCookie(id: string | null): void {
+  document.cookie = id
+    ? `aviary-budget=${encodeURIComponent(id)}; path=/; max-age=31536000; SameSite=Lax`
+    : 'aviary-budget=; path=/; max-age=0; SameSite=Lax'
 }
 
 /**

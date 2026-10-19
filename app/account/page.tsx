@@ -21,6 +21,7 @@ import { useHiddenFeatures } from '../../src/hooks/useUser'
 import type { HideableFeature } from '../../src/lib/features'
 import { FEEDBACK_BOARD_PATH } from '../../lib/links'
 import { Toast } from '../../src/components/Toast'
+import { NewBudgetEntry } from '../../src/components/BudgetSwitcher'
 import { track } from '../../src/lib/analytics'
 
 const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.sukrit04.envelope'
@@ -244,6 +245,7 @@ export default function AccountPage() {
         <div className="account-card">
           <AccountRow icon={LockIcon} label="Account & security" href="/account/security" />
           <AccountRow icon={DatabaseIcon} label="Your data" href="/account/data" />
+          <NewBudgetEntry render={(open) => <AccountRow icon={WalletIcon} label="New budget" hint="Keep a trip or a household apart" onClick={open} />} />
           {shown('billScan') && <AccountRow icon={ClockCounterClockwiseIcon} label="Bills Scanned" href="/account/bill-scans" />}
           {/* Twin of Mobile's Plan & billing row: tapping it shows the plan once
               billing is live, or the trial notice before then. The badge is a

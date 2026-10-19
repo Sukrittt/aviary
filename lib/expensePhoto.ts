@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto'
-import { put, del, issueSignedToken, presignUrl } from '@vercel/blob'
+import { put, del, rename, issueSignedToken, presignUrl } from '@vercel/blob'
 
 /** The formats a client may upload, and the extension each is stored under. */
 export const PHOTO_EXT_BY_MIME: Record<string, string> = {
@@ -91,6 +91,11 @@ export async function deleteExpensePhotoQuietly(userId: string, expenseId: strin
   } catch (err) {
     console.error('expense photo: blob delete failed for', userId, expenseId, err)
   }
+}
+
+/** Carries a photo to another budget along with its expense ("Move to another budget"). */
+export async function moveExpensePhoto(fromSpaceId: string, toSpaceId: string, expenseId: string, file: string): Promise<void> {
+  await rename(pathnameOf(fromSpaceId, expenseId, file), pathnameOf(toSpaceId, expenseId, file), { access: 'private' })
 }
 
 /** Short-lived signed GET URL, same reasoning as `getBillScanImageUrl`: the store is private. */

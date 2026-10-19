@@ -11,6 +11,8 @@ import { useAccessAllowed } from "../hooks/useBillingStatus";
 import { useHiddenFeatures } from "../hooks/useUser";
 import { BirdMark } from "./BirdMark";
 import { LogExpenseModal } from "./LogExpenseModal";
+import { BudgetSwitcher } from "./BudgetSwitcher";
+import { useSpaces } from "../hooks/useSpaces";
 import { ScanBillModal } from "../features/scan-bill/ScanBillModal";
 import { StatementModal } from "../features/fill-gap/StatementModal";
 import {
@@ -95,6 +97,7 @@ function ExpenseSidebarNav({ onBulkReturn }: Props) {
   const { theme, setTheme } = useAppearance();
   const { open, toggleSidebar, isMobile, openMobile, setOpenMobile } = useSidebar();
   const hidden = useHiddenFeatures();
+  const { multi } = useSpaces();
   const [showLog, setShowLog] = useState(false);
   const [showScan, setShowScan] = useState(false);
   const [showStatement, setShowStatement] = useState(false);
@@ -138,7 +141,8 @@ function ExpenseSidebarNav({ onBulkReturn }: Props) {
           <BirdMark size={29} />
           <span>Aviary</span>
         </Link>
-        <span className="erd-mobile-page">{currentPage}</span>
+        {/* With two budgets, which one you're in matters more than which page. */}
+        {multi ? <BudgetSwitcher className="is-topbar" /> : <span className="erd-mobile-page">{currentPage}</span>}
       </header>
 
       <Sidebar
@@ -162,6 +166,8 @@ function ExpenseSidebarNav({ onBulkReturn }: Props) {
               </button>
             )}
           </div>
+
+          {!isMobile && <BudgetSwitcher className="is-rail" labelClassName={LABEL} />}
 
           <div className="erd-side-actions">
             <button type="button" className={CTA} onClick={() => { closeMobile(); runGated(() => setShowLog(true)); }} title={open ? undefined : "Log expense"}>

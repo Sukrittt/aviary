@@ -75,6 +75,9 @@ const OPEN: Record<string, string> = {
   'email/unsubscribe': 'signed email link; an expired account must still be able to stop emails',
   'email/confirm': 'signed email link for salary-planner leads; no session, no budgeting content',
   'notifications/register': 'a device must be able to register to receive the "your trial ended" push',
+  // Writes here use requireOwnPlan: the caller's own plan, not the active budget's.
+  spaces: 'budget switcher: listing must work from a lapsed budget, so you can switch out of it',
+  'spaces/[id]': 'owner budget settings, gated against the owner’s own plan',
 }
 
 function routeDirs(dir: string, prefix = ''): string[] {
