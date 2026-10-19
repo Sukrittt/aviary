@@ -6,7 +6,7 @@ import { isCurrencyCode } from '@/src/lib/currencies'
 import { validText } from '@/lib/inputValidation'
 import { normalizeItem } from '@/lib/recurringDetection'
 import { completeOnboarding } from '@/lib/billing/service'
-import type { UserDoc } from '@/lib/users'
+import { SPACES, budgetSetUp, setBudgetCurrency, type SpaceDoc } from '@/lib/spaces'
 import { createGroup } from '@/lib/groups'
 import { createCategory } from '@/lib/categories'
 import { createBudgetRow } from '@/lib/budgets'
@@ -102,6 +102,12 @@ export async function commitImport(auth: Auth, importId: string, edits: CommitEd
   // 7. Start the trial, on every path: a retry after a failure here must still
   // onboard. Idempotent, and its setup check needs the income row and a
   // category, which steps 2 and 4 wrote.
+  // A budget other than the personal one is just marked set up: the person's
+  // own onboarding and trial don't hang on it.
+  if (auth.spaceId !== auth.userId) {
+    await (await getDb()).collection<SpaceDoc>(SPACES).updateOne({ _id: auth.spaceId, onboardedAt: null }, { $set: { onboardedAt: new Date().toISOString() } })
+    return result
+  }
   const onboarded = await completeOnboarding(await getDb(), auth.userId)
   if (!onboarded.ok) throw new Error(`import ${importId}: onboarding refused after setup`)
   return result
@@ -119,8 +125,7 @@ async function setUp(auth: Auth, importId: string, edits: CommitEdits): Promise<
   if (await coll.findOne({ _id: { $ne: doc._id }, status: 'previewed', claimedUntil: { $gt: Date.now() } })) throw new ImportError('busy')
   // A preview can outlive the manual setup finishing in another tab; history
   // never lands in an account that's already set up.
-  const user = await (await getDb()).collection<UserDoc>('users').findOne({ _id: auth.userId }, { projection: { onboardedAt: 1 } })
-  if (user?.onboardedAt) throw new ImportError('already_onboarded')
+  if (await budgetSetUp(auth)) throw new ImportError('already_onboarded')
 
   // One commit writes at a time. Accounts have no unique index (their name is
   // encrypted), so two racing commits would otherwise make every account twice.
@@ -175,7 +180,7 @@ async function writeSetup(auth: Auth, doc: ImportDoc, edits: CommitEdits): Promi
   const categoryOf = (r: (typeof live)[number]) => finalNames.get(plan.sourceOf(r)) ?? plan.sourceOf(r)
 
   // 1. Currency: the file's wins, since it describes the money. The user confirmed it on review.
-  await (await getDb()).collection<UserDoc>('users').updateOne({ _id: auth.userId }, { $set: { currencyCode: edits.currency } })
+  await setBudgetCurrency(auth, edits.currency)
 
   // 2. Groups, then categories.
   const usedGroups = groups.filter((g) => [...categories.values()].some((c) => c.group === g))

@@ -249,3 +249,88 @@ export async function notifyOthersOfLog(auth: Auth, entry: { item: string; amoun
     }
   }
 }
+
+/** Make `toUserId`, already a member, the owner (and payer) of a budget. The old owner stays as a member. */
+async function handOver(db: Db, space: SpaceDoc, toUserId: string, opts: { keepOldOwner: boolean }): Promise<void> {
+  await withTx(async (session) => {
+    await db.collection<SpaceDoc>(SPACES).updateOne({ _id: space._id }, { $set: { owner_id: toUserId } }, { session })
+    await db.collection(SPACE_MEMBERS).updateOne({ space_id: space._id, user_id: toUserId }, { $set: { role: 'owner' } }, { session })
+    if (opts.keepOldOwner) await db.collection(SPACE_MEMBERS).updateOne({ space_id: space._id, user_id: space.owner_id }, { $set: { role: 'member' } }, { session })
+    else await db.collection(SPACE_MEMBERS).deleteOne({ space_id: space._id, user_id: space.owner_id }, { session })
+  })
+  forgetMembership(space._id)
+  try {
+    await sendPushNotification({ userId: toUserId, title: `You own ${space.name} budget now`, body: 'You can invite people, and its plan is yours now.', data: { route: '/budget-members', spaceId: space._id } })
+  } catch (err) {
+    console.error('transfer: push failed for', space._id, err)
+  }
+}
+
+/**
+ * Hand a budget to another member. Owner only. Not the personal budget: its
+ * id is the owner's own user id, which always opens as theirs. It changes
+ * hands only when they delete their account (`handOffSharedBudgets`).
+ */
+export async function transferOwnership(auth: Auth, spaceId: string, toUserId: string): Promise<void> {
+  if (spaceId === auth.userId) throw new BudgetError('INVALID', "your personal budget can't change hands")
+  const space = await ownedSpace(auth, spaceId)
+  const db = await getDb()
+  if (toUserId === auth.userId || !(await db.collection(SPACE_MEMBERS).findOne({ space_id: spaceId, user_id: toUserId }))) {
+    throw new BudgetError('INVALID', 'they need to be in the budget first')
+  }
+  await handOver(db, space, toUserId, { keepOldOwner: true })
+}
+
+export interface OwnedSharedBudget { id: string; name: string; emoji: string; personal: boolean; members: { userId: string; name: string | null }[] }
+
+/** Budgets this person owns that someone else is in: what account deletion offers to hand over. */
+export async function sharedBudgetsOwnedBy(userId: string): Promise<OwnedSharedBudget[]> {
+  const { budgets } = await listBudgets(userId)
+  return budgets
+    .filter((b) => b.role === 'owner' && b.members.length > 1)
+    .map((b) => ({ id: b.id, name: b.name, emoji: b.emoji, personal: b.personal, members: b.members.filter((m) => m.userId !== userId).map((m) => ({ userId: m.userId, name: m.name })) }))
+}
+
+/**
+ * Before an account is deleted: each shared budget they own goes to the
+ * member they picked in `transfers`, or else closes (restorable with the
+ * account) and its members are told. Picks naming a non-member are ignored.
+ */
+export async function handOffSharedBudgets(db: Db, userId: string, transfers: Record<string, string>): Promise<void> {
+  const owned = await sharedBudgetsOwnedBy(userId)
+  const user = await db.collection<PersonDoc>('users').findOne({ _id: userId })
+  const who = firstName(personName(user ?? undefined)) ?? 'The owner'
+  for (const b of owned) {
+    const space = await db.collection<SpaceDoc>(SPACES).findOne({ _id: b.id })
+    if (!space) continue
+    const to = transfers[b.id]
+    if (to && b.members.some((m) => m.userId === to)) {
+      await handOver(db, space, to, { keepOldOwner: false })
+      continue
+    }
+    await db.collection<SpaceDoc>(SPACES).updateOne({ _id: b.id }, { $set: { deleted_at: new Date().toISOString(), deleted_by: userId, deleted_reason: 'account' } as never })
+    await db.collection(SPACE_INVITES).updateMany({ space_id: b.id, status: 'pending' }, { $set: { status: 'cancelled' } })
+    forgetMembership(b.id)
+    for (const m of b.members) {
+      try {
+        await sendPushNotification({ userId: m.userId, title: `${b.name} budget closed`, body: `${who} deleted their account, so ${b.name} closed. It can come back if they restore it.` })
+      } catch (err) {
+        console.error('account deletion: member push failed for', m.userId, err)
+      }
+    }
+  }
+}
+
+/** Their personal budget now belongs to someone else: its data must outlive their account. */
+export async function personalBudgetHandedOff(db: Db, userId: string): Promise<boolean> {
+  const space = await db.collection<SpaceDoc>(SPACES).findOne({ _id: userId })
+  return !!space && space.owner_id !== userId
+}
+
+/** Account restored: reopen the budgets its deletion closed. */
+export async function restoreAccountSpaces(db: Db, userId: string): Promise<void> {
+  const closed = await db.collection<SpaceDoc>(SPACES).find({ owner_id: userId, deleted_by: userId, deleted_reason: 'account' } as never).toArray()
+  if (!closed.length) return
+  await db.collection<SpaceDoc>(SPACES).updateMany({ _id: { $in: closed.map((s) => s._id) } }, { $set: { deleted_at: null }, $unset: { deleted_by: '', deleted_reason: '' } as never })
+  for (const s of closed) forgetMembership(s._id)
+}

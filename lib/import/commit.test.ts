@@ -429,3 +429,30 @@ describe('failing rows', () => {
     expect(await (await coll('imports')).findOne({ _id: new ObjectId(id) })).toMatchObject({ status: 'importing', cursor: 50, failed: 0, streak: 0 })
   })
 })
+
+describe('into a new budget', () => {
+  const trip = { ...auth, spaceId: 'sp_trip' }
+  beforeEach(async () => {
+    const db = await getDb()
+    await db.collection('users').updateOne({ _id: USER as never }, { $set: { onboardedAt: '2026-01-01T00:00:00.000Z' } })
+    await db.collection('spaces').insertOne({ _id: 'sp_trip' as never, name: 'Trip', emoji: '✈️', owner_id: USER, currencyCode: 'USD', onboardedAt: null, deleted_at: null, created_at: '' })
+  })
+
+  it("sets up that budget from the file, leaving the person's own account, currency and trial alone", async () => {
+    const review = await previewFile(trip, fixture('money-manager.csv'), 'mm.csv')
+    await commitImport(trip, review.importId, editsFrom(review))
+    const db = await getDb()
+    expect(await scoped(db.collection('categories'), 'sp_trip').countDocuments({})).toBe(4)
+    expect(await count('categories')).toBe(0)
+    const space = await db.collection('spaces').findOne({ _id: 'sp_trip' as never })
+    expect(space).toMatchObject({ currencyCode: 'INR', onboardedAt: expect.any(String) })
+    expect((await db.collection('users').findOne({ _id: USER as never }))?.currencyCode).toBe('USD')
+    expect(completeOnboarding).not.toHaveBeenCalled()
+  })
+
+  it('refuses a budget that is already set up', async () => {
+    await (await getDb()).collection('spaces').updateOne({ _id: 'sp_trip' as never }, { $set: { onboardedAt: '2026-10-01T00:00:00.000Z' } })
+    const review = await previewFile(trip, fixture('money-manager.csv'), 'mm.csv')
+    await expect(commitImport(trip, review.importId, editsFrom(review))).rejects.toMatchObject({ code: 'already_onboarded' })
+  })
+})

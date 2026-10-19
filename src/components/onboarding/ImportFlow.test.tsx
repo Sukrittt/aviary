@@ -87,6 +87,14 @@ describe('ImportFlow', () => {
     expect(onFresh).toHaveBeenCalled()
   })
 
+  it('skipAsk starts at the app list, with nothing to go back to', () => {
+    render(<ImportFlow skipAsk onFresh={vi.fn()} onDone={vi.fn()} onAlreadySetUp={vi.fn()} />)
+    expect(screen.queryByRole('heading', { name: 'How do you want to start?' })).toBeNull()
+    expect(screen.getByRole('heading', { name: 'Where are you coming from?' })).toBeTruthy()
+    expect(screen.getByRole('img', { name: 'Step 1 of 3' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Back' })).toHaveProperty('disabled', true)
+  })
+
   it('starts on starting fresh, and the choice can change before Continue', () => {
     const onFresh = vi.fn()
     render(<ImportFlow onFresh={onFresh} onDone={vi.fn()} onAlreadySetUp={vi.fn()} />)

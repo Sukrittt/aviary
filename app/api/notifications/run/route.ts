@@ -431,7 +431,11 @@ async function runAll(): Promise<{ sent: number }> {
   // or a recurrence's own due date isn't a digest preference. Money jobs run
   // per budget, never per member, or a shared rent would log once per person.
   const allUsers = await db.collection<UserDoc>('users').find({ deleted_at: null }).toArray()
-  for (const { owner: user, spaceId } of spacesToRun(allUsers, await liveSpaces(db))) {
+  const spaces = await liveSpaces(db)
+  const spaceCurrency = new Map(spaces.map((s) => [s._id, s.currencyCode]))
+  for (const { owner, spaceId } of spacesToRun(allUsers, spaces)) {
+    // A shared budget's pushes speak its own currency, not its owner's.
+    const user = spaceId === owner._id ? owner : { ...owner, currencyCode: spaceCurrency.get(spaceId) ?? owner.currencyCode }
     const today = nowIn(user.timezone).date
     try {
       sent += await runRecurringInvestmentsForSpace(db, user, spaceId, today)

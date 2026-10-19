@@ -4,9 +4,9 @@ import { useState } from 'react'
 import Image from 'next/image'
 import { AnimatePresence } from 'motion/react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { UserPlusIcon } from '@/src/components/icons'
+import { CaretRightIcon, UserPlusIcon } from '@/src/components/icons'
 import {
-  cancelInvite, createInvite, deleteBudget, getMembers, removeMember, renameBudget, setNotifyOthers, switchBudget,
+  cancelInvite, createInvite, deleteBudget, getMembers, removeMember, renameBudget, setNotifyOthers, switchBudget, transferBudget,
   type BudgetMember, type BudgetSummary, type Invite,
 } from '../api/spaces'
 import { HttpError } from '../api/client'
@@ -15,6 +15,7 @@ import { firstName } from '../hooks/useAuthors'
 import { useUser } from '../hooks/useUser'
 import { Scrim, Sheet } from './MotionSheet'
 import { ConfirmDialog } from './ConfirmDialog'
+import { SuccessButton, useButtonPhase } from './SuccessButton'
 
 const GENERIC = 'Check your connection and try again.'
 
@@ -64,7 +65,7 @@ function actionError(err: unknown, budgetName: string): string {
   return GENERIC
 }
 
-type Confirm = { kind: 'leave' } | { kind: 'remove'; member: BudgetMember } | { kind: 'delete' }
+type Confirm = { kind: 'leave' } | { kind: 'remove'; member: BudgetMember } | { kind: 'delete' } | { kind: 'pick-owner' } | { kind: 'transfer'; member: BudgetMember }
 
 /**
  * A budget's settings: who's in it, invites, rename, leave or delete. Opened
@@ -202,6 +203,17 @@ export function BudgetMembersDialog({ budget, onClose }: { budget: BudgetSummary
 
         {error && <p className="erd-log-error" role="alert">{error}</p>}
 
+        {owner && !budget.personal && members.length > 1 && (
+          <button type="button" className="account-row budget-copy" disabled={busy} onClick={() => setConfirm({ kind: 'pick-owner' })}>
+            <span className="account-row-label">
+              Make someone else the owner
+              <span className="account-row-hint">They take over the plan. You stay in it.</span>
+            </span>
+            <CaretRightIcon size={14} aria-hidden="true" />
+          </button>
+        )}
+        {owner && budget.personal && members.length > 1 && <p className="account-row-hint budget-copy">Your personal budget stays yours.</p>}
+
         <div className="budget-members-danger">
           {!owner && <button type="button" className="account-danger-btn" disabled={busy} onClick={() => setConfirm({ kind: 'leave' })}>Leave budget</button>}
           {owner && !budget.personal && <button type="button" className="account-danger-btn" disabled={busy} onClick={() => setConfirm({ kind: 'delete' })}>Delete budget</button>}
@@ -236,6 +248,10 @@ export function BudgetMembersDialog({ budget, onClose }: { budget: BudgetSummary
             </button>
           </ConfirmDialog>
         )}
+        {confirm?.kind === 'pick-owner' && (
+          <PickOwnerDialog members={members.filter((m) => m.role !== 'owner')} onPick={(member) => setConfirm({ kind: 'transfer', member })} onClose={() => setConfirm(null)} />
+        )}
+        {confirm?.kind === 'transfer' && <TransferDialog budget={budget} member={confirm.member} onCancel={() => setConfirm(null)} onDone={() => { refresh(); setConfirm(null); onClose() }} />}
         {confirm?.kind === 'delete' && <DeleteBudgetDialog budget={budget} onCancel={() => setConfirm(null)} onDeleted={() => { refresh(); setConfirm(null); leftBudget() }} />}
       </AnimatePresence>
     </Scrim>
@@ -264,6 +280,73 @@ function InviteDialog({ budgetName, invite, onClose }: { budgetName: string; inv
         </div>
       </Sheet>
     </Scrim>
+  )
+}
+
+function PickOwnerDialog({ members, onPick, onClose }: { members: BudgetMember[]; onPick: (m: BudgetMember) => void; onClose: () => void }) {
+  return (
+    <Scrim className="erd-modal-overlay" style={{ zIndex: 210 }} onClick={onClose}>
+      <Sheet className="erd-modal-card budget-sheet" role="dialog" aria-modal="true" aria-label="Who's the new owner?" onClick={(e) => e.stopPropagation()}>
+        <div className="erd-modal-head">
+          <h3>Who&apos;s the new owner?</h3>
+          <button type="button" className="erd-modal-close" onClick={onClose} aria-label="Close">✕</button>
+        </div>
+        <ul className="budget-list">
+          {members.map((m) => (
+            <li key={m.userId}>
+              <button type="button" className="budget-row" onClick={() => onPick(m)}>
+                <MemberAvatar member={m} />
+                <span className="budget-row-name">{m.name ?? 'Someone'}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </Sheet>
+    </Scrim>
+  )
+}
+
+function TransferDialog({ budget, member, onCancel, onDone }: { budget: BudgetSummary; member: BudgetMember; onCancel: () => void; onDone: () => void }) {
+  const button = useButtonPhase()
+  const busy = button.saving || button.success
+  const [error, setError] = useState('')
+  const who = firstName(member.name) ?? 'They'
+
+  async function submit() {
+    if (busy) return
+    setError('')
+    button.start()
+    try {
+      await transferBudget(budget.id, member.userId)
+      button.succeed(onDone)
+    } catch (err) {
+      button.fail()
+      setError(err instanceof HttpError && err.message === 'INVALID' ? `${who} needs to be in ${budget.name} first.` : actionError(err, budget.name))
+    }
+  }
+
+  return (
+    <ConfirmDialog
+      title={`Make ${who} the owner of ${budget.name}?`}
+      body={`${who}'s plan covers ${budget.name} from now on, and only they can invite, remove or delete. You stay in it.`}
+      cancelLabel="Keep it"
+      busy={busy}
+      onCancel={onCancel}
+    >
+      <SuccessButton
+        type="button"
+        className="is-active erd-accent-action"
+        saving={button.saving}
+        success={button.success}
+        savingLabel="Handing over…"
+        successLabel="Done"
+        disabled={busy}
+        onClick={() => void submit()}
+      >
+        {`Make ${who} owner`}
+      </SuccessButton>
+      {error && <p className="erd-log-error" role="alert">{error}</p>}
+    </ConfirmDialog>
   )
 }
 

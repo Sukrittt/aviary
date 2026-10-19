@@ -83,6 +83,8 @@ const OPEN: Record<string, string> = {
   'spaces/[id]/invites': 'gated against the owner’s own plan',
   'spaces/[id]/invites/[code]': 'cancelling an invite is an exit',
   'spaces/[id]/restore': 'owner undoing a delete within 30 days',
+  'spaces/[id]/transfer': 'handing a budget on is an exit, never paywalled',
+  'user/shared-budgets': 'account deletion step, an exit route',
   'join/[code]': 'joining is covered by the owner’s plan; a brand-new person has no trial yet',
 }
 

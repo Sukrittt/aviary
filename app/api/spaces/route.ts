@@ -22,7 +22,7 @@ export async function GET(req: Request) {
   return json({ ...list, budgets, activeId }, { headers: { 'Cache-Control': 'private, no-store' } })
 }
 
-/** `POST /api/spaces` `{ name, emoji, currencyCode, copyCategories }`: a new budget, owned (and paid for) by the caller. */
+/** `POST /api/spaces` `{ name, emoji, currencyCode, copyCategories, import? }` (`import`: start empty and set it up from a file): a new budget, owned (and paid for) by the caller. */
 export async function POST(req: Request) {
   const auth = await getAuth(req)
   const guard = readOnlyGuard({ ...auth, spaceDenied: undefined }, 'POST')
@@ -42,6 +42,7 @@ export async function POST(req: Request) {
       emoji: body.emoji,
       currencyCode: body.currencyCode,
       copyCategories: body.copyCategories !== false,
+      importing: body.import === true,
     })
     return json(budget, { status: 201 })
   } catch (err) {

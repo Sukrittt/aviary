@@ -139,16 +139,18 @@ export interface ImportDone {
 
 // onAlreadySetUp: the server refused because setup was finished on another
 // device. There's nothing to fix here, so the screen hands the user on.
-export function ImportFlow({ onFresh, onDone, onAlreadySetUp }: { onFresh: () => void; onDone: (done: ImportDone) => void; onAlreadySetUp: () => void }) {
-  const [stage, setStage] = useState<Stage>('ask')
+// skipAsk: the caller already asked (a new budget's "Bring in history"), so start at the app list.
+export function ImportFlow({ onFresh, onDone, onAlreadySetUp, skipAsk = false }: { onFresh: () => void; onDone: (done: ImportDone) => void; onAlreadySetUp: () => void; skipAsk?: boolean }) {
+  const first: Stage = skipAsk ? 'pick' : 'ask'
+  const [stage, setStage] = useState<Stage>(first)
   const [app, setApp] = useState<AppChoice | null>(null)
   const [review, setReview] = useState<ImportReview | null>(null)
   const [start, setStart] = useState<StartChoice>('fresh')
-  const dots: Stage[] = ['ask', 'pick', 'upload', 'review']
+  const dots: Stage[] = skipAsk ? ['pick', 'upload', 'review'] : ['ask', 'pick', 'upload', 'review']
   const reduce = useReducedMotion()
   const enter = useEnter()
 
-  const back = () => setStage((s) => (s === 'review' ? 'upload' : s === 'upload' ? 'pick' : 'ask'))
+  const back = () => setStage((s) => (s === 'review' ? 'upload' : s === 'upload' ? 'pick' : first))
 
   const pick = (a: AppChoice) => {
     setApp(a)
@@ -159,7 +161,7 @@ export function ImportFlow({ onFresh, onDone, onAlreadySetUp }: { onFresh: () =>
   return (
     <>
       <div className="setup-top">
-        <button type="button" className="setup-back" onClick={back} disabled={stage === 'ask'} aria-label="Back">
+        <button type="button" className="setup-back" onClick={back} disabled={stage === first} aria-label="Back">
           <ArrowLeftIcon size={16} aria-hidden="true" />
         </button>
         <div className="setup-dots" role="img" aria-label={`Step ${dots.indexOf(stage) + 1} of ${dots.length}`}>
