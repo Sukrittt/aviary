@@ -1,8 +1,8 @@
-import type { Metadata } from 'next'
+import { pageMetadata } from '@/lib/seo'
 import { JoinPage } from '@/src/views/JoinPage'
 
 // Public: someone opening an invite may not have an account yet. Not in middleware's APP_PATHS.
-export const metadata: Metadata = { title: 'Join a budget · Aviary', robots: { index: false, follow: false } }
+export const metadata = pageMetadata('/join/[code]')
 
 export default async function JoinRoute({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params

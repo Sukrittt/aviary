@@ -31,6 +31,7 @@ describe('toTransactions', () => {
         accountId: '',
         hasPhoto: false,
         photoUrl: null,
+        createdBy: null,
       },
     ])
   })
