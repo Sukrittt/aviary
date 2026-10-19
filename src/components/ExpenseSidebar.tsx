@@ -58,7 +58,7 @@ const ITEM =
   "group-data-[collapsible=icon]:h-10! group-data-[collapsible=icon]:w-full! group-data-[collapsible=icon]:px-[13px]!";
 const CTA = "erd-side-cta group-data-[collapsible=icon]:gap-0! group-data-[collapsible=icon]:px-0!";
 
-// Label of the hovered row. One pill shares a layoutId across rows, so it
+// Hover key of the hovered row. One pill shares a layoutId across rows, so it
 // slides from the row you left to the one you're on instead of blinking.
 const HoverContext = createContext<[string | null, (label: string | null) => void]>([null, () => {}]);
 
@@ -78,11 +78,12 @@ export function ExpenseSidebar(props: Props) {
   );
 }
 
-function NavItem({ label, icon: Icon, active, href, onClick }: { label: string; icon: PhosphorIcon; active?: boolean; href?: string; onClick?: () => void }) {
+// `hoverKey` is for rows whose label changes on click, so the pill stays put.
+function NavItem({ label, icon: Icon, active, href, onClick, hoverKey = label }: { label: string; icon: PhosphorIcon; active?: boolean; href?: string; onClick?: () => void; hoverKey?: string }) {
   const [hovered, setHovered] = useContext(HoverContext);
   return (
-    <SidebarMenuItem onMouseEnter={() => setHovered(label)}>
-      {hovered === label && (
+    <SidebarMenuItem onMouseEnter={() => setHovered(hoverKey)}>
+      {hovered === hoverKey && (
         <motion.span
           layoutId="erd-nav-hover"
           className="absolute inset-0 rounded-xl bg-(--erd-border)"
@@ -231,6 +232,7 @@ function ExpenseSidebarNav({ onBulkReturn }: Props) {
           <SidebarMenu className="gap-0.5">
             <NavItem href="/account" label="Account" icon={GearIcon} active={pathname.startsWith("/account")} onClick={closeMobile} />
             <NavItem
+              hoverKey="theme"
               label={theme === "light" ? "Dark mode" : "Light mode"}
               icon={theme === "light" ? MoonIcon : SunIcon}
               onClick={() => setTheme(theme === "light" ? "dark" : "light")}
