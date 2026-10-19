@@ -10,6 +10,8 @@ export interface BillingStatus {
   mode: 'setup_incomplete' | 'trial' | 'paid' | 'expired'
   /** May the account use normal budgeting, reports, AI and writes? */
   allowed: boolean
+  /** The open budget is someone else's, and their plan covers it. */
+  covered?: boolean
   /** False while the server's enforcement flag is off — `allowed` is then true regardless of mode. */
   enforced: boolean
   trialStartedAt: string | null

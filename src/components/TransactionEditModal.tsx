@@ -16,6 +16,8 @@ import { CategoryPicker } from './CategoryPicker'
 import { SplitExpenseEditor, makeSplitLine, type SplitLine } from './SplitExpenseEditor'
 import { MoveExpenseDialog } from './MoveExpenseDialog'
 import { useSpaces } from '../hooks/useSpaces'
+import { useAuthors } from '../hooks/useAuthors'
+import { useReadOnlyError } from './BudgetNotices'
 import { AnimatePresence } from 'motion/react'
 
 interface Props {
@@ -29,6 +31,8 @@ interface Props {
   /** The row's account, '' for none. */
   accountId?: string
   hasPhoto?: boolean
+  /** Who logged it; shown as "Added by" in a shared budget. */
+  createdBy?: string | null
   onClose: () => void
   onSaved: () => void
 }
@@ -43,6 +47,7 @@ export function TransactionEditModal({
   category: initialCategory,
   accountId: initialAccountId = '',
   hasPhoto: initialHasPhoto = false,
+  createdBy = null,
   onClose,
   onSaved,
 }: Props) {
@@ -67,6 +72,7 @@ export function TransactionEditModal({
     makeSplitLine(initialCategory, String(amountInr)),
   ])
   const { saving, success, start, succeed, fail } = useButtonPhase()
+  const readOnlyError = useReadOnlyError()
   const [error, setError] = useState('')
   // Photo edits save on their own, right away: they don't touch the row's
   // fields or version, so they can't conflict with the form above.
@@ -75,6 +81,7 @@ export function TransactionEditModal({
   const [photoBusy, setPhotoBusy] = useState(false)
   const [photoError, setPhotoError] = useState('')
   const { multi } = useSpaces()
+  const authors = useAuthors()
   const [moving, setMoving] = useState(false)
 
   const amt = parseFloat(amount)
@@ -106,7 +113,7 @@ export function TransactionEditModal({
         setDeleted(true); setShowDeletedNotice(true); setError(''); refresh(); fail(); return
       }
     }
-    setError(err instanceof Error ? err.message : 'Failed to update transaction')
+    setError(readOnlyError(err) ?? "Couldn't save your changes. Check your connection and try again.")
     refresh()
     fail()
   }
@@ -229,7 +236,10 @@ export function TransactionEditModal({
       {showDeletedNotice && <ExpenseNoticeDialog status={404} action="edit" onBack={() => setShowDeletedNotice(false)} />}
       <Sheet className="category-manager subscription-modal">
         <div className="category-manager-header">
-          <h3>Edit transaction</h3>
+          <div>
+            <h3>Edit transaction</h3>
+            {authors && id && <p className="budget-line">{`Added by ${authors.name(createdBy)}`}</p>}
+          </div>
           <button type="button" className="action-button is-ghost" onClick={onClose} aria-label="Close" disabled={success}>
             ✕
           </button>

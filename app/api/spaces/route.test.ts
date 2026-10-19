@@ -7,7 +7,7 @@ vi.mock('@/lib/access', () => ({
   getAuth: async () => ({ userId: who.userId, readOnly: false, sessionId: null, spaceId: who.spaceId, spaceOwnerId: who.userId, spaceRole: 'owner' as const }),
   readOnlyGuard: () => null,
 }))
-vi.mock('@/lib/billing/guard', () => ({ requireAccess: async () => null, requireOwnPlan: async () => null }))
+vi.mock('@/lib/billing/guard', () => ({ requireAccess: async () => null, requireOwnPlan: async () => null, ownerLapsed: async (id: string) => id === 'user_lapsed' }))
 
 import { getDb, getClient } from '@/lib/mongodb'
 import { scoped } from '@/lib/scoped'
@@ -62,6 +62,33 @@ describe('/api/spaces', () => {
     expect(await scoped(db.collection('groups'), budget.id).countDocuments({})).toBe(1)
     expect(await scoped(db.collection('budgets'), budget.id).countDocuments({})).toBe(0)
     expect((await list()).budgets.map((b: { name: string }) => b.name)).toEqual(['Personal', 'Trip'])
+  })
+
+  it("makes the first own budget of someone who only joined their personal one, set up from scratch", async () => {
+    const db = await getDb()
+    await db.collection('users').updateOne({ _id: 'user_b' as never }, { $set: { noPersonalBudget: true } })
+    who.userId = 'user_b'
+    who.spaceId = 'user_b'
+    const budget = await (await create({})).json()
+    expect(budget).toMatchObject({ id: 'user_b', name: 'Trip', personal: true, currencyCode: 'EUR' })
+    expect(await db.collection('categories').countDocuments({ user_id: 'user_b' })).toBe(0)
+    expect((await db.collection('users').findOne({ _id: 'user_b' as never }))?.noPersonalBudget).toBeUndefined()
+  })
+
+  it("opens the first budget it has for someone with no personal one, and flags a lapsed owner's as read-only", async () => {
+    const db = await getDb()
+    const now = new Date().toISOString()
+    await db.collection('users').updateOne({ _id: 'user_b' as never }, { $set: { noPersonalBudget: true } })
+    await db.collection('spaces').insertOne({ _id: 'sp_x' as never, name: 'Flat', emoji: '🏠', owner_id: 'user_lapsed', deleted_at: null, created_at: now })
+    await db.collection('space_members').insertMany([
+      { space_id: 'sp_x', user_id: 'user_lapsed', role: 'owner', joined_at: now },
+      { space_id: 'sp_x', user_id: 'user_b', role: 'member', joined_at: now },
+    ])
+    who.userId = 'user_b'
+    who.spaceId = 'user_b'
+    const body = await list()
+    expect(body.activeId).toBe('sp_x')
+    expect(body.budgets).toEqual([expect.objectContaining({ id: 'sp_x', readOnly: true })])
   })
 
   it('starts empty when asked not to copy', async () => {

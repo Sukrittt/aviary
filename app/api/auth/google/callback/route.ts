@@ -6,6 +6,7 @@ import { scheduleWelcomeEmail } from '@/lib/email/welcome'
 import { getAuth } from '@/lib/access'
 import { verifyState, clearStateCookie } from '@/lib/oauthState'
 import { SIGN_IN_OUTCOME_COOKIE } from '@/src/lib/analytics'
+import { RETURN_COOKIE, safeReturnTo } from '@/src/lib/returnTo'
 
 /** Readable by the page, unlike the session: AnalyticsProvider reports it, then clears it. */
 function setSignInOutcome(res: NextResponse, outcome: string): void {
@@ -63,7 +64,10 @@ export async function GET(req: Request) {
   await ensureUser(user)
   await saveSession({ accessToken, refreshToken, user }, req.url)
   scheduleWelcomeEmail(user.id)
-  const res = NextResponse.redirect(new URL(isLink ? '/account/security?linked=1' : '/', req.url))
+  // A page that sent you to sign in (the join page) gets you back.
+  const back = isLink ? null : safeReturnTo(/(?:^|;\s*)aviary-return=([^;]*)/.exec(req.headers.get('cookie') ?? '')?.[1])
+  const res = NextResponse.redirect(new URL(isLink ? '/account/security?linked=1' : back ?? '/', req.url))
+  if (back) res.cookies.set(RETURN_COOKIE, '', { path: '/', maxAge: 0 })
   clearStateCookie(res)
   if (!isLink) setSignInOutcome(res, 'completed')
   return res

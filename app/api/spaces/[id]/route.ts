@@ -3,6 +3,8 @@ import { json, error, readBody } from '@/lib/http'
 import { getAuth, readOnlyGuard } from '@/lib/access'
 import { requireOwnPlan } from '@/lib/billing/guard'
 import { BudgetError, budgetNameError, isBudgetEmoji, updateBudget } from '@/lib/spaces'
+import { deleteBudget } from '@/lib/spaceMembers'
+import { budgetAction } from '@/lib/spaceRoutes'
 
 export const dynamic = 'force-dynamic'
 
@@ -31,4 +33,15 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if (err instanceof BudgetError) return json({ error: err.code }, { status: STATUS[err.code] })
     throw err
   }
+}
+
+/** `DELETE /api/spaces/:id` `{ confirmName }`: delete a budget, restorable for 30 days. Owner only, never the personal one. */
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const auth = await getAuth(req)
+  const guard = readOnlyGuard({ ...auth, spaceDenied: undefined }, 'DELETE')
+  if (guard) return guard
+  const body = await readBody(req)
+  if (typeof body.confirmName !== 'string') return error('type the budget name to confirm')
+  return budgetAction(() => deleteBudget(auth, id, body.confirmName as string))
 }

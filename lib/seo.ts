@@ -42,6 +42,7 @@ export const pages = {
   '/legal/contact': { title: 'Contact Aviary Support', description: 'Reach the person who builds Aviary for help with your account, billing, refunds or privacy. You’ll hear back within 3 working days.', index: true },
   '/legal/delete-account': { title: 'Delete Your Aviary Account', description: 'How to delete your Aviary account and personal data from the app, or ask support to do it for you.', index: true },
   '/emails': { title: 'Email preferences', description: 'Turn Aviary’s money tips by email on or off.' },
+  '/join/[code]': { title: 'Join a budget', description: 'Someone invited you to share a budget on Aviary. Join it in the app or on the web.' },
   '/sign-in': { title: 'Sign In', description: 'Sign in to Aviary with Google or a one-time email code to access your budget across Android and the web.' },
   '/email': { title: 'Sign In with Email', description: 'Enter your email to receive a one-time sign-in code for your Aviary account.' },
   '/code': { title: 'Verify Your Sign-In Code', description: 'Verify your one-time email code to securely sign in to Aviary.' },
@@ -114,8 +115,9 @@ export function pageMetadata(path: PagePath): Metadata {
   const index = 'index' in page && page.index
   // Public pages carry their own keyword titles; private ones are just labelled in the tab.
   const title = index ? page.title : `Aviary | ${page.title}`
-  // Dynamic admin IDs never enter public canonical or social URLs.
-  return seoMetadata({ path: path.includes('[') ? '/admin/users' : path, title, description: page.description, index })
+  // Dynamic IDs (an admin's user id, an invite code) never enter public canonical or social URLs.
+  const canonical = path.startsWith('/admin') && path.includes('[') ? '/admin/users' : path.replace(/\/\[[^\]]+\]/g, '')
+  return seoMetadata({ path: canonical, title, description: page.description, index })
 }
 
 /** Title, description, canonical, robots and social cards for any URL, including ones not in `pages` (blog posts). */

@@ -36,6 +36,8 @@ export interface ExpenseRow {
   has_photo?: boolean
   /** Signed, ~1h. Only on Activity feed pages (`photos: true`). */
   photo_url?: string
+  /** Who logged it, in a shared budget. null = the budget's owner (rows from before sharing). */
+  created_by?: string | null
 }
 
 /** One payment that came in. `counted: 'extra'` rows are part of their month's Ready to Assign; 'monthly' rows are a payday of the monthly income, already counted from day 1. */

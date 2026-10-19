@@ -4,6 +4,7 @@ import { json, error, readBody, getCollection, parsePageParams, pageMeta } from 
 import { getAuth, readOnlyGuard, type Auth } from '@/lib/access'
 import { requireAccess } from '@/lib/billing/guard'
 import { EXPENSE_HEADERS, toRow } from '@/lib/models'
+import { notifyOthersOfLog } from '@/lib/spaceMembers'
 import { invalidate } from '@/lib/cache'
 import { getCachedCategoryMap, invalidateCategoryMap, learnCategoryCorrection, type CategoryMap } from '@/lib/categoryMap'
 import { notifyThresholdCrossed } from '@/lib/notifications/instant'
@@ -184,7 +185,8 @@ export async function GET(req: Request) {
 // `has_photo` rides alongside like `id`/`version`, outside the CSV columns.
 function expenseRow(doc: Record<string, unknown>) {
   // `account_id` rides outside EXPENSE_HEADERS like `id`: that array is also the CSV export's columns.
-  return { ...toRow(EXPENSE_HEADERS, doc), id: String(doc._id), version: Number(doc.version ?? 0), account_id: String(doc.account_id ?? ''), has_photo: typeof doc.photo_file === 'string' }
+  // `created_by` is null on rows from before budgets were shared: those count as the owner's.
+  return { ...toRow(EXPENSE_HEADERS, doc), id: String(doc._id), version: Number(doc.version ?? 0), account_id: String(doc.account_id ?? ''), has_photo: typeof doc.photo_file === 'string', created_by: typeof doc.created_by === 'string' ? doc.created_by : null }
 }
 
 // A signing failure drops just that row's `photo_url`; the feed falls back to
@@ -263,6 +265,10 @@ export async function POST(req: Request) {
   // accidentally complete the step. Idempotent replays keep the first instant.
   if (body.source === 'manual') await markManualTransactionComplete(auth.userId)
   if (!result.duplicate) await learnFromSave(auth, mapBefore, String(body.item), result.category)
+  if (!result.duplicate) {
+    await notifyOthersOfLog(auth, { item: String(body.item), amount: Number(body.amount_inr), category: result.category })
+      .catch((err) => console.error('expenses: notify others failed', err))
+  }
 
   // Replays were checked on their first attempt. Mobile's offline queue lands
   // here too, which is where accidental double entries mostly come from.

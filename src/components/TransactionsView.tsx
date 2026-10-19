@@ -39,6 +39,9 @@ import { incomesForPage, periodEnd } from "../lib/incomeActivity";
 import { AccountIcon, accountLabel, accountName } from "./AccountChips";
 import type { IncomeRow } from "../types";
 import { useImportInProgress } from "./ImportBanner";
+import { useSpaces } from "../hooks/useSpaces";
+import { useAuthors } from "../hooks/useAuthors";
+import { MemberAvatar } from "./BudgetMembers";
 
 type PeriodKey = "week" | "month" | "custom";
 
@@ -99,6 +102,11 @@ export function TransactionsView({
   const accountOptions = liveAccounts(accountsQuery.data);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  // "Mine / Everyone", only in a budget 2+ people share. Client side on created_by.
+  const authors = useAuthors();
+  const { readOnly } = useSpaces();
+  const [mineOnly, setMineOnly] = useState(false);
+  const showMine = !!authors && mineOnly;
 
   // A cheap 1-row fetch to anchor "this week"/"this month" off the newest
   // logged transaction, the same way the old full-fetch version did — not
@@ -290,16 +298,19 @@ export function TransactionsView({
       return group;
     };
 
+    // ponytail: filters the loaded page, so counts, totals and paging stay everyone's. Server-side `mine` if pages get sparse.
+    const mine = (t: Transaction) => !authors || authors.authorId(t.createdBy) === authors.me;
     for (const transaction of pageTransactions) {
       if (removedKeys.has(txnKey(transaction))) continue;
+      if (showMine && !mine(transaction)) continue;
       const group = groupFor(transaction.date);
       group.total += transaction.amountInr;
       group.transactions.push(transaction);
     }
-    for (const income of visibleIncomes) groupFor(income.date).incomes.push(income);
+    if (!showMine) for (const income of visibleIncomes) groupFor(income.date).incomes.push(income);
 
     return groups.sort((a, b) => b.date.localeCompare(a.date));
-  }, [pageTransactions, removedKeys, visibleIncomes]);
+  }, [pageTransactions, removedKeys, visibleIncomes, showMine, authors]);
 
   useEffect(() => {
     // Reset pagination whenever any filter changes.
@@ -349,6 +360,7 @@ export function TransactionsView({
     setSelectedCategory("");
     setSelectedAccount("");
     setSearch("");
+    setMineOnly(false);
     setPage(1);
     router.replace("/expense/transactions");
   }
@@ -446,15 +458,15 @@ export function TransactionsView({
   }
 
   const hasActiveFilters =
-    period !== "week" || Boolean(selectedCategory) || Boolean(selectedAccount) || Boolean(search.trim());
+    period !== "week" || Boolean(selectedCategory) || Boolean(selectedAccount) || Boolean(search.trim()) || showMine;
 
-  const filtered = Boolean(search || selectedCategory || selectedAccount);
+  const filtered = Boolean(search || selectedCategory || selectedAccount || showMine);
   // An import books oldest first, so this week's rows are the last to land.
   const historyComing = importing && !filtered;
   const emptyState = (
     <BirdEmptyState
       className="txn-timeline-empty"
-      mood={search || selectedCategory || selectedAccount ? 'searching' : 'snoozing'}
+      mood={filtered ? 'searching' : 'snoozing'}
       subject="expenses"
       title={filtered ? 'Nothing turned up' : historyComing ? 'Your history is on its way' : 'Your story starts here'}
       description={filtered
@@ -514,14 +526,16 @@ export function TransactionsView({
               Review {duplicates.length} possible duplicate{duplicates.length === 1 ? "" : "s"}
             </button>
           )}
-          <button
-            type="button"
-            className="erd-log-btn txn-page-log-btn"
-            onClick={() => setShowLogModal(true)}
-          >
-            <PlusIcon size={17} weight="bold" aria-hidden="true" />
-            Log expense
-          </button>
+          {!readOnly && (
+            <button
+              type="button"
+              className="erd-log-btn txn-page-log-btn"
+              onClick={() => setShowLogModal(true)}
+            >
+              <PlusIcon size={17} weight="bold" aria-hidden="true" />
+              Log expense
+            </button>
+          )}
         </div>
       </header>
 
@@ -599,6 +613,23 @@ export function TransactionsView({
             </div>
           )}
 
+          {authors && !feedView && (
+            <div className="mc-filter-chips" role="tablist" aria-label="Who logged it">
+              {[false, true].map((mine) => (
+                <button
+                  key={String(mine)}
+                  type="button"
+                  role="tab"
+                  aria-selected={mineOnly === mine}
+                  className={`action-button ${mineOnly === mine ? "is-active" : ""}`}
+                  onClick={() => setMineOnly(mine)}
+                >
+                  {mine ? "Mine" : "Everyone"}
+                </button>
+              ))}
+            </div>
+          )}
+
           <label className="txn-search-field">
             <MagnifyingGlassIcon size={16} aria-hidden="true" />
             <span className="sr-only">Search transactions</span>
@@ -655,7 +686,7 @@ export function TransactionsView({
         <div className="txn-timeline-empty">
           Couldn&apos;t load transactions. {error}
         </div>
-      ) : totalCount === 0 && visibleIncomes.length === 0 ? (
+      ) : (totalCount === 0 && visibleIncomes.length === 0) || (showMine && transactionGroups.length === 0) ? (
         emptyState
       ) : (
         <motion.div
@@ -773,6 +804,11 @@ export function TransactionsView({
                         style={styleOf(categoryName)}
                       >
                         <CategoryIcon name={t.category} icon={categoryIcons.get(t.category)} />
+                        {authors && (
+                          <span className="txn-author" role="img" aria-label={`Added by ${authors.name(t.createdBy)}`} title={`Added by ${authors.name(t.createdBy)}`}>
+                            <MemberAvatar member={authors.member(t.createdBy)} size={20} />
+                          </span>
+                        )}
                       </span>
                       <span className="txn-timeline-body">
                         <span className="txn-timeline-item">{t.item}</span>
@@ -937,6 +973,7 @@ export function TransactionsView({
             category={editingTxn.category}
             accountId={editingTxn.accountId}
             hasPhoto={editingTxn.hasPhoto}
+            createdBy={editingTxn.createdBy}
             onClose={() => setEditingTxn(null)}
             onSaved={refreshTransactions}
           />

@@ -22,8 +22,12 @@ export const dynamic = 'force-dynamic'
  */
 async function forActiveBudget(auth: Auth, user: UserDoc | null) {
   const out = serializeUser(user)
-  if (!out || auth.spaceId === auth.userId || auth.spaceDenied) return out
-  return { ...out, currencyCode: await getBudgetCurrency(auth) }
+  if (!out || auth.spaceDenied) return out
+  // Someone who only joined has no setup of their own to do: the budget they
+  // joined is already set up, so they skip onboarding.
+  const joinedOnly = user?.noPersonalBudget ? { onboardedAt: out.onboardedAt ?? new Date(user.createdAt ?? Date.now()).toISOString() } : {}
+  if (auth.spaceId === auth.userId) return { ...out, ...joinedOnly }
+  return { ...out, onboardedAt: out.onboardedAt ?? new Date(0).toISOString(), currencyCode: await getBudgetCurrency(auth) }
 }
 
 

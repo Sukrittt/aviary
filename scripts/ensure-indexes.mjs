@@ -34,6 +34,8 @@ const INDEXES = {
     // user_id, so a sparse compound index would still index every legacy row
     // as client_id: null and the second one would violate uniqueness.
     [{ user_id: 1, client_id: 1 }, { unique: true, partialFilterExpression: { client_id: { $type: 'string' } } }],
+    // The evening check: did this person log today, in any budget they're in.
+    [{ created_by: 1, date: -1 }, {}],
   ],
   budgets: [[{ user_id: 1, month: 1, category: 1 }, { unique: true, ...LIVE_ONLY }]],
   categories: [

@@ -35,6 +35,8 @@ export interface SpaceDoc {
   currencyCode?: string
   onboardedAt?: string | null
   deleted_at: string | null
+  /** Who deleted it, for the members' "deleted by Priya" note. */
+  deleted_by?: string
   created_at: string
 }
 
@@ -197,27 +199,34 @@ export interface BudgetSummary {
 export const PERSONAL_NAME = 'Personal'
 export const PERSONAL_EMOJI = '🐦'
 
-type PersonDoc = { _id: string; name?: string | null; firstName?: string | null; lastName?: string | null; avatarUrl?: string | null; currencyCode?: string; budgetLimit?: number | null; noPersonalBudget?: boolean }
+export type PersonDoc = { _id: string; name?: string | null; firstName?: string | null; lastName?: string | null; avatarUrl?: string | null; currencyCode?: string; budgetLimit?: number | null; noPersonalBudget?: boolean }
 
-const personName = (u: PersonDoc | undefined) => u?.name || [u?.firstName, u?.lastName].filter(Boolean).join(' ').trim() || null
+export const personName = (u: PersonDoc | undefined) => u?.name || [u?.firstName, u?.lastName].filter(Boolean).join(' ').trim() || null
 
 /**
  * Every budget this person can open, the personal one first, plus the limit
  * the switcher counts against. The personal budget needs no `spaces` doc:
  * until it's renamed or shared it's described from the user doc alone.
  */
-export async function listBudgets(userId: string): Promise<{ budgets: BudgetSummary[]; count: number; limit: number }> {
+/** A budget this person was in that its owner deleted lately: members see who, the owner can restore it. */
+export interface DeletedBudget { id: string; name: string; emoji: string; deletedAt: string; deletedBy: string | null; canRestore: boolean }
+
+const RESTORE_WINDOW_MS = 30 * 86_400_000
+
+export async function listBudgets(userId: string): Promise<{ budgets: BudgetSummary[]; deleted: DeletedBudget[]; count: number; limit: number }> {
   const db = await getDb()
   const user = await db.collection<PersonDoc>('users').findOne({ _id: userId })
   const hasPersonal = !user?.noPersonalBudget
   const mine = await db.collection<SpaceMemberDoc>(SPACE_MEMBERS).find({ user_id: userId }).sort({ joined_at: 1 }).toArray()
   const ids = [...new Set([...(hasPersonal ? [userId] : []), ...mine.map((m) => m.space_id)])]
-  const [spaces, members] = await Promise.all([
-    db.collection<SpaceDoc>(SPACES).find({ _id: { $in: ids }, deleted_at: null }).toArray(),
+  const [allSpaces, members] = await Promise.all([
+    db.collection<SpaceDoc>(SPACES).find({ _id: { $in: ids } }).toArray(),
     db.collection<SpaceMemberDoc>(SPACE_MEMBERS).find({ space_id: { $in: ids } }).sort({ joined_at: 1 }).toArray(),
   ])
+  const spaces = allSpaces.filter((s) => !s.deleted_at)
+  const gone = allSpaces.filter((s) => s.deleted_at && Date.parse(s.deleted_at) > Date.now() - RESTORE_WINDOW_MS)
   const people = await db.collection<PersonDoc>('users')
-    .find({ _id: { $in: [...new Set([userId, ...members.map((m) => m.user_id)])] } }, { projection: { name: 1, firstName: 1, lastName: 1, avatarUrl: 1, currencyCode: 1 } })
+    .find({ _id: { $in: [...new Set([userId, ...members.map((m) => m.user_id), ...gone.map((s) => s.deleted_by ?? s.owner_id)])] } }, { projection: { name: 1, firstName: 1, lastName: 1, avatarUrl: 1, currencyCode: 1 } })
     .toArray()
   const personById = new Map(people.map((p) => [p._id, p]))
   const spaceById = new Map(spaces.map((s) => [s._id, s]))
@@ -249,7 +258,12 @@ export async function listBudgets(userId: string): Promise<{ budgets: BudgetSumm
       })),
     })
   }
-  return { budgets, count: budgetsOpen(userId, hasPersonal, budgets.map((b) => b.id)), limit: budgetLimitFor(user ?? {}) }
+  const deleted = gone.map((s) => ({
+    id: s._id, name: s.name, emoji: s.emoji, deletedAt: s.deleted_at!,
+    deletedBy: personName(personById.get(s.deleted_by ?? s.owner_id))?.split(/\s+/)[0] ?? null,
+    canRestore: s.owner_id === userId,
+  }))
+  return { budgets, deleted, count: budgetsOpen(userId, hasPersonal, budgets.map((b) => b.id)), limit: budgetLimitFor(user ?? {}) }
 }
 
 /** Gives the personal budget a `spaces` doc and an owner membership, so it can be renamed or shared. Idempotent. */
@@ -305,6 +319,16 @@ export async function createBudget(
   const { count, limit } = await listBudgets(auth.userId)
   if (count >= limit) throw new BudgetError('LIMIT_REACHED', 'budget limit reached')
   const db = await getDb()
+  const user = await db.collection<PersonDoc>('users').findOne({ _id: auth.userId }, { projection: { noPersonalBudget: 1 } })
+  if (user?.noPersonalBudget) {
+    // Someone who only ever joined: their first own budget is the personal
+    // one (id = their user id), and it runs the full setup, which is what
+    // starts their trial. So no categories are copied in.
+    await db.collection('users').updateOne({ _id: auth.userId as never }, { $unset: { noPersonalBudget: '' }, $set: { currencyCode: input.currencyCode } })
+    await ensurePersonalSpace(auth.userId)
+    await db.collection<SpaceDoc>(SPACES).updateOne({ _id: auth.userId }, { $set: { name: input.name.trim(), emoji: input.emoji } })
+    return (await listBudgets(auth.userId)).budgets.find((b) => b.id === auth.userId)!
+  }
   const id = new ObjectId().toHexString()
   const now = new Date().toISOString()
   await db.collection<SpaceDoc>(SPACES).insertOne({

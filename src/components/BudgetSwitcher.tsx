@@ -1,13 +1,15 @@
 'use client'
 
 import { useState } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
 import { AnimatePresence } from 'motion/react'
-import { CaretDownIcon, CaretRightIcon, CheckIcon, PlusIcon } from '@/src/components/icons'
-import { createBudget, switchBudget, type BudgetSummary } from '../api/spaces'
+import { useQueryClient } from '@tanstack/react-query'
+import { CaretDownIcon, CaretRightIcon, CheckIcon, GearIcon, PlusIcon, TicketIcon } from '@/src/components/icons'
+import { createBudget, restoreBudget, switchBudget, type BudgetSummary } from '../api/spaces'
+import { BudgetMembersDialog, MemberAvatar } from './BudgetMembers'
+import { JoinCodeDialog } from './JoinBudget'
 import { HttpError } from '../api/client'
-import { useSpaces } from '../hooks/useSpaces'
+import { spacesKey, useSpaces } from '../hooks/useSpaces'
 import { useCurrency } from '@/src/context/CurrencyContext'
 import { currencyInfo } from '../lib/currencies'
 import { Scrim, Sheet } from './MotionSheet'
@@ -47,9 +49,26 @@ export function BudgetSwitcher({ className = '', labelClassName = '', onOpen }: 
 }
 
 function BudgetSheet({ onClose }: { onClose: () => void }) {
-  const { budgets, active, count, limit, atLimit } = useSpaces()
-  const [creating, setCreating] = useState(false)
-  if (creating) return <CreateBudgetDialog onClose={onClose} />
+  const { budgets, deleted, active, count, limit, atLimit } = useSpaces()
+  const qc = useQueryClient()
+  const [view, setView] = useState<'list' | 'create' | 'join'>('list')
+  const [settings, setSettings] = useState<BudgetSummary | null>(null)
+  const [restoreError, setRestoreError] = useState('')
+  if (view === 'create') return <CreateBudgetDialog onClose={onClose} />
+  if (view === 'join') return <JoinCodeDialog memberOf={(id) => budgets.some((b) => b.id === id)} limit={limit} onClose={onClose} />
+  if (settings) return <BudgetMembersDialog budget={settings} onClose={() => setSettings(null)} />
+
+  async function restore(id: string) {
+    setRestoreError('')
+    try {
+      await restoreBudget(id)
+      await qc.invalidateQueries({ queryKey: spacesKey })
+    } catch {
+      setRestoreError('Check your connection and try again.')
+    }
+  }
+
+  const restorable = deleted.filter((d) => d.canRestore)
   return (
     <Scrim className="erd-modal-overlay" onClick={onClose}>
       <Sheet className="erd-modal-card budget-sheet" role="dialog" aria-modal="true" aria-label="Your budgets" onClick={(e) => e.stopPropagation()}>
@@ -61,7 +80,7 @@ function BudgetSheet({ onClose }: { onClose: () => void }) {
           {budgets.map((b) => {
             const current = b.id === active?.id
             return (
-              <li key={b.id}>
+              <li key={b.id} className="budget-row-wrap">
                 <button
                   type="button"
                   className={`budget-row${current ? ' is-active' : ''}`}
@@ -74,10 +93,31 @@ function BudgetSheet({ onClose }: { onClose: () => void }) {
                   <Avatars members={b.members} />
                   <span className="budget-row-check">{current && <CheckIcon size={16} weight="bold" aria-label="Current budget" />}</span>
                 </button>
+                <button type="button" className="budget-row-settings" aria-label={`Settings for ${b.name}`} onClick={() => setSettings(b)}>
+                  <GearIcon size={16} aria-hidden="true" />
+                </button>
               </li>
             )
           })}
         </ul>
+        {restorable.length > 0 && (
+          <>
+            <div className="erd-log-label">Recently deleted</div>
+            <ul className="budget-list">
+              {restorable.map((d) => (
+                <li key={d.id} className="budget-member">
+                  <span className="budget-row-emoji" aria-hidden="true">{d.emoji}</span>
+                  <span className="budget-member-body">
+                    <span className="budget-row-name">{d.name}</span>
+                    <span className="account-row-hint">{`Restorable until ${new Date(Date.parse(d.deletedAt) + 30 * 86_400_000).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`}</span>
+                  </span>
+                  <button type="button" className="account-pill-btn" onClick={() => void restore(d.id)}>Restore</button>
+                </li>
+              ))}
+            </ul>
+            {restoreError && <p className="erd-log-error" role="alert">{restoreError}</p>}
+          </>
+        )}
         <p className="budget-count">{`${count} of ${limit} budgets`}</p>
         {atLimit ? (
           <p className="budget-limit">
@@ -85,11 +125,15 @@ function BudgetSheet({ onClose }: { onClose: () => void }) {
             <Link href={SUPPORT_PATH} onClick={onClose}>Contact us</Link>
           </p>
         ) : (
-          <button type="button" className="budget-row budget-new" onClick={() => setCreating(true)}>
+          <button type="button" className="budget-row budget-new" onClick={() => setView('create')}>
             <span className="budget-row-emoji" aria-hidden="true"><PlusIcon size={16} weight="bold" /></span>
             <span className="budget-row-name">New budget</span>
           </button>
         )}
+        <button type="button" className="budget-row budget-new" onClick={() => setView('join')}>
+          <span className="budget-row-emoji" aria-hidden="true"><TicketIcon size={16} /></span>
+          <span className="budget-row-name">Join with a code</span>
+        </button>
       </Sheet>
     </Scrim>
   )
@@ -98,13 +142,7 @@ function BudgetSheet({ onClose }: { onClose: () => void }) {
 function Avatars({ members }: { members: BudgetSummary['members'] }) {
   return (
     <span className="budget-avatars" aria-hidden="true">
-      {members.slice(0, 3).map((m) =>
-        m.avatarUrl ? (
-          <Image key={m.userId} className="budget-avatar" src={m.avatarUrl} alt="" width={20} height={20} unoptimized />
-        ) : (
-          <span key={m.userId} className="budget-avatar">{(m.name ?? '?').charAt(0).toUpperCase()}</span>
-        ),
-      )}
+      {members.slice(0, 3).map((m) => <MemberAvatar key={m.userId} member={m} />)}
     </span>
   )
 }

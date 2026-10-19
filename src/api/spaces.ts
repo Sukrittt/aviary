@@ -15,11 +15,19 @@ export interface BudgetSummary {
   ownerId: string
   currencyCode: string
   personal: boolean
-  members: { userId: string; name: string | null; avatarUrl: string | null; role: BudgetRole; joinedAt: string | null }[]
+  members: BudgetMember[]
+  /** A shared budget whose owner's plan lapsed: readable and exportable, no writes. */
+  readOnly?: boolean
 }
+
+export interface BudgetMember { userId: string; name: string | null; avatarUrl: string | null; role: BudgetRole; joinedAt: string | null }
+
+/** A budget its owner deleted in the last 30 days. Only the owner can restore it. */
+export interface DeletedBudget { id: string; name: string; emoji: string; deletedAt: string; deletedBy: string | null; canRestore: boolean }
 
 export interface BudgetList {
   budgets: BudgetSummary[]
+  deleted?: DeletedBudget[]
   count: number
   limit: number
   /** null when the cookie names a budget this person can't open. */
@@ -70,3 +78,48 @@ export async function moveExpense(body: { id: string; version: number; to: strin
   if (!resp.ok) throw new HttpError(resp.status, `Failed to move expense: ${resp.status}`)
   return resp.json()
 }
+
+/** Throws an HttpError whose message is the server's `{error}` code (FULL, EXPIRED…), for callers to map to copy. */
+async function fail(resp: Response): Promise<never> {
+  const body = await resp.json().catch(() => null)
+  throw new HttpError(resp.status, typeof body?.error === 'string' ? body.error : String(resp.status))
+}
+
+const send = (method: string, body?: unknown): RequestInit =>
+  body === undefined ? { method } : { method, headers: JSON_HEADERS, body: JSON.stringify(body) }
+
+async function call<T>(path: string, init?: RequestInit): Promise<T> {
+  const resp = await apiFetch(path, init)
+  if (!resp.ok) return fail(resp)
+  return resp.json()
+}
+
+export interface Invite { code: string; url: string; expiresAt: string }
+export interface MembersInfo { members: BudgetMember[]; role: BudgetRole; notifyOthers: boolean; invites: Invite[] }
+
+export const getMembers = (id: string) => call<MembersInfo>(`/api/spaces/${id}/members`)
+/** 409 FULL at 6 people. */
+export const createInvite = (id: string) => call<Invite>(`/api/spaces/${id}/invites`, send('POST'))
+export const cancelInvite = (id: string, code: string) => call<unknown>(`/api/spaces/${id}/invites/${code}`, send('DELETE'))
+/** `'me'` leaves; the owner passes someone else's id to remove them. */
+export const removeMember = (id: string, userId: string) => call<unknown>(`/api/spaces/${id}/members/${userId}`, send('DELETE'))
+export const setNotifyOthers = (id: string, notifyOthers: boolean) => call<unknown>(`/api/spaces/${id}/members/me`, send('PATCH', { notifyOthers }))
+export const renameBudget = (id: string, name: string) => call<BudgetSummary>(`/api/spaces/${id}`, send('PATCH', { name }))
+/** 400 INVALID when the typed name doesn't match. */
+export const deleteBudget = (id: string, confirmName: string) => call<unknown>(`/api/spaces/${id}`, send('DELETE', { confirmName }))
+export const restoreBudget = (id: string) => call<unknown>(`/api/spaces/${id}/restore`, send('POST'))
+
+export type InvitePreview =
+  | { status: 'ok' | 'expired' | 'cancelled' | 'accepted'; budget: { id: string; name: string; emoji: string }; inviter: string | null; members: number }
+  | { status: 'not_found' }
+
+/** Public. A 404 is just `not_found`. */
+export async function previewInvite(code: string): Promise<InvitePreview> {
+  const resp = await apiFetch(`/api/join/${encodeURIComponent(code)}`)
+  if (resp.status === 404) return { status: 'not_found' }
+  if (!resp.ok) return fail(resp)
+  return resp.json()
+}
+
+/** Errors: 409 LIMIT_REACHED or FULL, 410 EXPIRED, 404 NOT_FOUND, 401 signed out. */
+export const joinBudget = (code: string) => call<{ spaceId: string; already: boolean }>(`/api/join/${encodeURIComponent(code)}`, send('POST'))

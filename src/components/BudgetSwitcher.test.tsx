@@ -44,8 +44,8 @@ describe('BudgetSwitcher', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Budget: Home. Switch budget' }))
     expect(screen.getByText('2 of 5 budgets')).toBeTruthy()
     expect(screen.getAllByText('Owner')).toHaveLength(2)
-    expect(screen.getByRole('button', { name: /Home/, current: true })).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: /Personal/ }))
+    expect(screen.getByRole('button', { name: /^Home/, current: true })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: /^Personal/ }))
     expect(switchBudget).toHaveBeenCalledWith(personal)
   })
 
