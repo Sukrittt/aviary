@@ -14101,38 +14101,114 @@ button.account-feature-card {
 .gap-review {
   margin-top: 14px;
 }
-.gap-rows {
-  max-height: min(56vh, 520px);
-  overflow-y: auto;
-  margin: 0;
-  padding: 0;
-  list-style: none;
+.gap-review-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--erd-text2);
+  font-size: 13px;
+  font-weight: 600;
 }
+.gap-tick-all {
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--gold-ink);
+  font: 600 13px var(--font-body);
+  cursor: pointer;
+}
+.gap-tick-all:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.gap-days {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: min(56vh, 520px);
+  margin-top: 12px;
+  overflow-y: auto;
+}
+/* Same day header as Activity's .txn-timeline-header, a size down for a dialog. */
+.gap-day-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+  padding: 0 8px 8px;
+  border-bottom: 1px solid var(--erd-border-strong);
+  color: var(--erd-text);
+  font: 600 13px var(--font-display);
+}
+.gap-day-head span:last-child {
+  color: var(--erd-text2);
+  font-family: var(--font-body);
+  font-variant-numeric: tabular-nums;
+}
+/* A row reads like the Activity row it's about to become: Activity's select
+   tick (.txn-check), the category's tinted icon, name, amount. A transparent
+   button covers the row to tick it, as in Archive; the category pill sits
+   above it. */
 .gap-row {
+  position: relative;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) minmax(120px, 180px) auto;
+  grid-template-columns: auto 36px minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
-  padding: 10px 2px;
-  border-top: 1px solid var(--erd-border);
+  padding: 10px 8px;
+  border-radius: 14px;
+  transition: background-color 140ms, transform 140ms;
 }
-.gap-row:first-child {
-  border-top: none;
+.gap-row.is-selected {
+  background: color-mix(in oklab, var(--gold) 7%, transparent);
 }
-.gap-row.is-off .gap-row-name,
-.gap-row.is-off .gap-row-amount {
+.gap-row:has(.gap-row-pick:active:enabled) {
+  transform: scale(0.985);
+}
+.gap-row-pick {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border: 0;
+  border-radius: 14px;
+  background: none;
+  cursor: pointer;
+}
+.gap-row-pick:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: -2px;
+}
+.gap-row-pick:disabled {
+  cursor: default;
+}
+.gap-row .txn-check-slot {
+  width: 22px;
+  margin-right: 0;
+}
+.gap-row .txn-check {
+  opacity: 1;
+  transform: scale(1);
+}
+.gap-row-icon {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: var(--erd-input-bg);
   color: var(--erd-text3);
-}
-.gap-row input[type='checkbox'] {
-  width: 18px;
-  height: 18px;
-  accent-color: var(--gold-ink);
+  font-size: 16px;
+  transition: opacity 140ms;
 }
 .gap-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   min-width: 0;
 }
 .gap-row-name {
-  display: block;
   overflow: hidden;
   font-size: 14px;
   font-weight: 600;
@@ -14140,28 +14216,65 @@ button.account-feature-card {
   text-overflow: ellipsis;
 }
 .gap-row-meta {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--erd-text2);
   font-size: 12px;
   font-weight: 500;
-  color: var(--erd-text2);
 }
 .gap-row-category {
-  min-width: 0;
-  padding: 6px 8px;
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  max-width: 100%;
+  padding: 3px 8px 3px 10px;
   border: 1px solid var(--erd-border-strong);
-  border-radius: 10px;
+  border-radius: 999px;
   background: var(--erd-input-bg);
   color: var(--erd-text);
-  font-size: 12px;
-  font-weight: 500;
+  font: 600 12px var(--font-body);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color 140ms;
+}
+.gap-row-category:hover:enabled,
+.gap-row-category[aria-expanded='true'] {
+  border-color: var(--gold);
 }
 .gap-row-category.is-missing {
   border-color: var(--warn-ink);
+  background: var(--warn-soft);
+  color: var(--warn-ink);
+}
+.gap-row-category:disabled {
+  cursor: default;
+}
+.gap-row-hint {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 .gap-row-amount {
   font-size: 14px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.gap-row.is-off .gap-row-name,
+.gap-row.is-off .gap-row-amount {
+  color: var(--erd-text3);
+}
+.gap-row.is-off .gap-row-icon {
+  opacity: 0.55;
+}
+.gap-row-picker {
+  padding: 6px 8px 10px 90px;
+  animation: setup-fade-in 200ms ease both;
 }
 .gap-note {
   margin: 12px 0 0;
@@ -14192,12 +14305,134 @@ button.account-feature-card {
   font: inherit;
   outline: none;
 }
+/* The end of the flow: setup's done screen, a size down for a dialog. */
+.gap-done-card {
+  position: relative;
+  overflow-x: hidden;
+}
+.gap-done {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding-top: 12px;
+}
+.gap-done > :not(.setup-confetti) {
+  animation: setup-fade-in 350ms ease both;
+}
+.gap-done-badge {
+  width: 56px;
+  height: 56px;
+  border-radius: 20px;
+  display: grid;
+  place-items: center;
+  background: var(--mint-soft);
+  color: var(--mint);
+}
+.expense-redesign .gap-done .gap-done-title {
+  margin: 14px 0 0;
+  font: 600 26px/1.15 var(--font-display);
+  letter-spacing: -0.02em;
+  animation-delay: 80ms;
+}
+.gap-done-copy {
+  max-width: 340px;
+  margin: 8px 0 0;
+  color: var(--erd-text2);
+  font-size: 14px;
+  line-height: 1.5;
+  animation-delay: 140ms;
+}
+.gap-done-summary {
+  width: 100%;
+  margin-top: 20px;
+  padding: 16px;
+  border: 1px solid var(--erd-border);
+  border-radius: 18px;
+  background: var(--erd-input-bg);
+  text-align: left;
+  animation-delay: 200ms;
+}
+.gap-done-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--erd-border);
+  color: var(--erd-text2);
+  font-size: 13px;
+  font-weight: 600;
+}
+.gap-done-total strong {
+  color: var(--erd-text);
+  font: 600 22px var(--font-display);
+  font-variant-numeric: tabular-nums;
+}
+.gap-done-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.gap-done-list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.gap-done-list .gap-row-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 11px;
+  font-size: 15px;
+}
+.gap-done-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 550;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.gap-done-more {
+  margin: 10px 0 0 44px;
+  color: var(--erd-text3);
+  font-size: 12px;
+  font-weight: 500;
+}
+.gap-done .gap-note {
+  animation-delay: 240ms;
+}
+.gap-done-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  margin-top: 20px;
+  animation-delay: 260ms;
+}
+.gap-done-actions .account-pill-btn {
+  flex: 1;
+  justify-content: center;
+  text-decoration: none;
+}
 @media (max-width: 640px) {
   .gap-row {
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: auto 32px minmax(0, 1fr) auto;
+    gap: 10px;
   }
-  .gap-row-category {
-    grid-column: 2 / 4;
+  .gap-row-icon {
+    width: 32px;
+    height: 32px;
+  }
+  .gap-row-hint {
+    display: none;
+  }
+  .gap-row-picker {
+    padding-left: 8px;
   }
 }
 /* ── Budgets: the switcher chip, its sheet, the create dialog ── */

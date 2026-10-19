@@ -1,4 +1,5 @@
 import type { NewExpenseRow } from '../../api/expenses'
+import { formatDateShort } from '../../lib/format'
 
 /**
  * "Pick up where you left off": when someone's been away from logging for a
@@ -52,4 +53,39 @@ export function statementExpense(row: { id: string; item: string; amount: number
 export function creditsLine(n: number): string | null {
   if (n <= 0) return null
   return `${n} ${n === 1 ? 'credit' : 'credits'} skipped. Log refunds as income if you want them counted.`
+}
+
+/** The days a review covers: "16 Oct", "16 to 19 Oct", "28 Sept to 3 Oct". */
+export function daySpan(from: string, to: string): string {
+  if (from === to) return formatDateShort(from)
+  const sameMonth = from.slice(0, 7) === to.slice(0, 7)
+  return `${sameMonth ? Number(from.slice(8, 10)) : formatDateShort(from)} to ${formatDateShort(to)}`
+}
+
+export type CaughtUp = { count: number; total: number; from: string; to: string; categories: { name: string; total: number }[] }
+
+/** What the "You're caught up" screen says about the rows just logged. Summed in paise, so ₹0.10 + ₹0.20 is ₹0.30. */
+export function caughtUp(kept: { amount: number; date: string; category: string }[]): CaughtUp {
+  const paise = new Map<string, number>()
+  let total = 0
+  for (const row of kept) {
+    const p = Math.round(row.amount * 100)
+    total += p
+    paise.set(row.category, (paise.get(row.category) ?? 0) + p)
+  }
+  const dates = kept.map((r) => r.date).sort()
+  return {
+    count: kept.length,
+    total: total / 100,
+    from: dates[0] ?? '',
+    to: dates.at(-1) ?? '',
+    categories: [...paise].sort((a, b) => b[1] - a[1]).map(([name, p]) => ({ name, total: p / 100 })),
+  }
+}
+
+/** Review rows under their day, oldest day first, each day in the order it came. */
+export function byDay<T extends { date: string }>(rows: T[]): { date: string; rows: T[] }[] {
+  const days = new Map<string, T[]>()
+  for (const row of rows) days.set(row.date, [...(days.get(row.date) ?? []), row])
+  return [...days].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([date, rows]) => ({ date, rows }))
 }
