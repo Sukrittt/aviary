@@ -248,6 +248,42 @@ export function MoreInside() {
   </div>
 }
 
+// ─── Nothing to lose: switching in, and the phone going missing ──────────────
+
+const IMPORT_APPS = ['YNAB', 'Goodbudget', 'Wallet', 'Monefy', 'Money Manager', 'Spendee', 'axio', 'any csv']
+
+/** The two fears that keep people on an app they've outgrown: starting over, and a lost phone taking the budget with it. */
+export function KeepEverything() {
+  const { ask } = useSample()
+  return <div className="lp-keep">
+    <figure className="lp-shot">
+      <div className="lp-keep-art" aria-hidden="true">
+        <div className="lp-stage-card">
+          <div className="lp-keep-apps">{IMPORT_APPS.map(a => <span key={a}>{a}</span>)}</div>
+          <div className="lp-envelope-line"><span>Groceries</span><strong>3 yrs<small> of history</small></strong></div>
+          <div className="lp-envelope-bar"><i style={{ transform: `scaleX(${ask.bar})` }} /></div>
+          <p className="lp-stage-note">Categories, balances and every transaction, as they were.</p>
+        </div>
+      </div>
+      <figcaption><strong>Bring everything with you.</strong><span>Upload the export from your old app when you set up Aviary. Your categories and years of history come along, in about two minutes. <a href="/onboarding">Start with your old app</a></span></figcaption>
+    </figure>
+    <figure className="lp-shot">
+      <div className="lp-keep-art" aria-hidden="true">
+        <div className="lp-stage-card">
+          <ul className="lp-keep-devices">
+            <li className="is-gone"><span>Old phone</span><span>Lost in March</span></li>
+            <li><span>New phone</span><b>Signed in today</b></li>
+            <li><span>Chrome on your laptop</span><b>Signed in</b></li>
+          </ul>
+          <div className="lp-envelope-line"><span>Left to spend</span><strong>{ask.left}<small> this month</small></strong></div>
+          <div className="lp-envelope-bar"><i style={{ transform: `scaleX(${ask.bar})` }} /></div>
+        </div>
+      </div>
+      <figcaption><strong>Lose the phone, not the budget.</strong><span>Your budget lives in your account, not on the handset. Sign in on the next phone, or in a browser, and it’s all there. Export to CSV any time, even after you stop paying.</span></figcaption>
+    </figure>
+  </div>
+}
+
 // ─── How it learns: three logs in, one habit, three nudges out ────────────────
 
 const LEARNED: [string, string][] = [['11 Sep', '7:38pm'], ['18 Sep', '7:52pm'], ['25 Sep', '7:41pm']]

@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { pageMetadata } from '@/lib/seo'
 import { COMPARE_CHECKED } from '@/lib/content'
 import { CompareTable, ContentPage, SoftCta, Sources } from '@/src/components/content/ContentPage'
@@ -51,6 +52,8 @@ export default function GoodbudgetPage() {
       ['https://goodbudget.com/what-you-get/', 'What you get with Goodbudget'],
       ['https://play.google.com/store/apps/details?id=com.dayspringtech.envelopes', 'Goodbudget on Google Play'],
     ]} />
+    <h2>Bringing your Goodbudget history</h2>
+    <p>You don’t start over. On the Goodbudget website, go to Account › Export data and download your transactions as a csv. When you set up Aviary, pick “I’m switching apps”, choose Goodbudget and upload that file. Your envelopes and history come along. <Link href="/onboarding">Start the import</Link>.</p>
     <SoftCta title="Envelope budgeting, faster logging" placement="compare_goodbudget">Try Aviary free for 30 days. Set up your categories in a few minutes, no card needed.</SoftCta>
   </ContentPage>
 }

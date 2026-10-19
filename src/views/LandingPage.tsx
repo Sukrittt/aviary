@@ -11,7 +11,7 @@ import { IosWaitlist } from '../components/landing/IosWaitlist'
 // Parked while the page leads with habit nudges; see the commented section below.
 // import { MoneyLesson } from '../components/landing/MoneyLesson'
 import { BirdLanding, BirdMark } from '../components/BirdMark'
-import { HeroStage, LearnDiagram, MoreInside, FirstHabit, NoticeSplit, ShotClip } from '../components/landing/Nudges'
+import { HeroStage, LearnDiagram, MoreInside, FirstHabit, NoticeSplit, ShotClip, KeepEverything } from '../components/landing/Nudges'
 import { FEEDBACK_BOARD_PATH } from '@/lib/links'
 import { GITHUB, LandingFooter, LandingHeader } from '../components/landing/Chrome'
 import { SampleScope } from '../components/landing/sample'
@@ -187,6 +187,12 @@ export function LandingPage({ monthlyPrice, ios = false, android = false, intl =
       <MoreInside />
     </section>
 
+    <section id="keep" className="lp-section lp-center" aria-labelledby="keep-title">
+      <h2 id="keep-title" className="lp-h2">Nothing to lose.</h2>
+      <p className="lp-lede">Switching apps usually means starting over, and a lost phone usually means a lost budget. Neither is true here.</p>
+      <KeepEverything />
+    </section>
+
     <section className="lp-section" aria-labelledby="founder-title">
       <div className="lp-founder">
         <div className="lp-founder-copy">
@@ -204,7 +210,7 @@ export function LandingPage({ monthlyPrice, ios = false, android = false, intl =
             <span className="lp-road-tile lp-road-ynab" aria-hidden="true">$$$</span>
             <TrackedLink className="lp-road-tile lp-road-aviary" href={PLAY_STORE} event="store_cta_clicked" properties={{ placement: 'founder_icon' }}><BirdMark size={64} perched /><span className="lp-sr-only">Get Aviary on Google Play</span></TrackedLink>
           </div>
-          <figcaption>Homemade apps, spreadsheets, bank sync, YNAB, and now Aviary.</figcaption>
+          <figcaption>Homemade apps, spreadsheets, bank sync, YNAB, and now Aviary. The YNAB plan came along.</figcaption>
         </figure>
       </div>
     </section>
