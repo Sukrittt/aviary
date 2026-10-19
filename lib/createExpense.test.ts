@@ -50,12 +50,13 @@ function fakeCollection(base: string) {
     find: (filter: Record<string, unknown> = {}) => ({
       toArray: async () => store.filter((d) => matches(d, filter)),
     }),
-    findOne: async (filter: Record<string, unknown>) => {
+    // Live-only by default, like lib/scoped.ts.
+    findOne: async (filter: Record<string, unknown>, _options?: unknown, scope?: { includeDeleted?: boolean }) => {
       if (missNextClientIdLookup && 'client_id' in filter) {
         missNextClientIdLookup = false
         return null
       }
-      return store.find((d) => matches(d, filter)) ?? null
+      return store.find((d) => matches(d, filter) && (scope?.includeDeleted || !d.deleted_at)) ?? null
     },
     insertOne: async (doc: Record<string, unknown>) => {
       if (insertError) throw insertError
@@ -139,6 +140,15 @@ describe('createExpense', () => {
     const first = await createExpense(auth, { ...base, payment_method: 'credit_card', date: '2026-09-07', client_id: 'c1' })
     missNextClientIdLookup = true
     const second = await createExpense(auth, { ...base, payment_method: 'credit_card', date: '2026-09-07', client_id: 'c1' })
+
+    expect(second).toEqual({ ...first, duplicate: true })
+    expect(stores.expenses).toHaveLength(1)
+  })
+
+  it('answers a replay of a since-deleted expense as a duplicate, without bringing it back', async () => {
+    const first = await createExpense(auth, { ...base, client_id: 'c3' })
+    stores.expenses[0].deleted_at = '2026-10-19T08:00:00Z'
+    const second = await createExpense(auth, { ...base, client_id: 'c3' })
 
     expect(second).toEqual({ ...first, duplicate: true })
     expect(stores.expenses).toHaveLength(1)
