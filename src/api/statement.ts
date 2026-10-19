@@ -54,6 +54,8 @@ export async function readStatement(input: { images: { data: string; mimeType: s
   if (resp.ok) return resp.json()
   if (await allowanceHit(resp, 'statement')) throw new StatementFailure(ALLOWANCE)
   if (resp.status === 429) throw new StatementFailure(RATE_LIMITED)
+  // The platform turns away a body past 4.5MB before the route sees it, with no JSON code.
+  if (resp.status === 413) throw new StatementFailure(COPY.too_big)
   const code = ((await resp.json().catch(() => null)) as { error?: unknown } | null)?.error
   throw new StatementFailure((typeof code === 'string' && COPY[code]) || GENERIC)
 }

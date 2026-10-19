@@ -8,7 +8,7 @@ vi.mock('@/src/hooks/useBillingStatus', () => ({ useAccessAllowed: () => true })
 vi.mock('@/src/lib/date', () => ({ todayLocal: () => '2026-10-19' }))
 vi.mock('@/src/context/CurrencyContext', () => ({ useCurrency: () => ({ currencySymbol: '₹' }) }))
 vi.mock('@/src/components/LogExpenseModal', () => ({ LogExpenseModal: () => <div>log-expense-dialog</div> }))
-vi.mock('./StatementModal', () => ({ StatementModal: () => <div>statement-dialog</div> }))
+vi.mock('./StatementModal', () => ({ StatementModal: ({ onClose }: { onClose: () => void }) => <button type="button" onClick={onClose}>statement-dialog</button> }))
 vi.mock('@/src/components/CategoryPicker', () => ({
   CategoryPicker: ({ onChange }: { onChange: (c: string) => void }) => <button type="button" onClick={() => onChange('Food')}>Food</button>,
 }))
@@ -44,6 +44,16 @@ describe('FillGap', () => {
     unmount()
     render(<FillGap />)
     expect(screen.queryByText('Pick up where you left off')).toBeNull()
+  })
+
+  it('comes back for a newer gap without a reload, even after an option was used', async () => {
+    const { rerender } = render(<FillGap />)
+    fireEvent.click(screen.getByText('Upload a statement or screenshot'))
+    fireEvent.click(await screen.findByText('statement-dialog'))
+    await waitFor(() => expect(screen.queryByText('Pick up where you left off')).toBeNull())
+    lastSpent = { Food: '2026-10-17' }
+    rerender(<FillGap />)
+    expect(await screen.findByText('Pick up where you left off')).toBeTruthy()
   })
 
   it('opens the upload from the sheet', async () => {

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import {
   normalizeStatement,
   payeeLabel,
@@ -180,5 +180,22 @@ describe('a bank csv end to end', () => {
       credits: 1,
       dropped: 0,
     })
+  })
+})
+
+describe('readSource for a csv', () => {
+  it('leaves out rows in another currency instead of logging them as the account currency', async () => {
+    const { readStatementTable } = await import('./statement')
+    const csv = ['Date,Description,Amount,Currency', '17/10/26,Swiggy,-349,INR', '18/10/26,Amazon US,-20,USD'].join('\n')
+    const raw = await readStatementTable(Buffer.from(csv), 'card.csv', TODAY, 'INR', async () => ({}))
+    expect(normalizeStatement(raw, TODAY).rows).toEqual([{ date: '2026-10-17', amount: 349, payee: 'Swiggy' }])
+  })
+
+  it('calls an xlsx that inflates past the cap too big, not unreadable', async () => {
+    const read = await import('./import/read')
+    const { readStatementTable, StatementError } = await import('./statement')
+    const spy = vi.spyOn(read, 'readTable').mockRejectedValueOnce(new read.ZipTooLarge())
+    await expect(readStatementTable(Buffer.from('x'), 'big.xlsx', TODAY, 'INR', async () => ({}))).rejects.toEqual(new StatementError('too_big'))
+    spy.mockRestore()
   })
 })

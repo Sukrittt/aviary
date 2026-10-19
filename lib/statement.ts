@@ -8,8 +8,9 @@ import { validDate } from '@/lib/inputValidation'
 import { generateJSONFromImage, type ImagePart } from '@/lib/ai/gemini'
 import { assignCategories, matchFromHistory, MAX_CAPTURE_AGE_DAYS, MAX_CAPTURE_AMOUNT, type CaptureItem } from '@/lib/ai/capture'
 import { pickColumnRoles } from '@/lib/import/ai'
-import { readTable } from '@/lib/import/read'
-import { ImportError, inspect, needsColumnHelp, normalize, resolveRows, unresolvedColumns, type StoredRow } from '@/lib/import/normalize'
+import { readTable, ZipTooLarge } from '@/lib/import/read'
+import { ImportError, inspect, needsColumnHelp, normalize, resolveRows, unresolvedColumns, type Layout, type StoredRow } from '@/lib/import/normalize'
+import type { Role } from '@/lib/import/presets'
 
 /**
  * "Fill the gap": the days someone didn't log, read back from a UPI or bank
@@ -224,17 +225,33 @@ export type StatementSource =
   | { kind: 'pdf'; data: Buffer }
   | { kind: 'table'; data: Buffer; filename: string }
 
+/**
+ * A csv or xlsx through the import's reader and column mapping. Rows in a
+ * currency other than the user's are left out, not logged as theirs.
+ * `pickRoles` names the columns alias matching couldn't (Jev in production).
+ */
+export async function readStatementTable(
+  data: Buffer,
+  filename: string,
+  today: string,
+  currencyCode: string,
+  pickRoles: (layout: Layout) => Promise<Record<number, Role>>,
+): Promise<ReturnType<typeof rowsFromTable>> {
+  try {
+    const layout = inspect(await readTable(data, filename))
+    const roles = needsColumnHelp(layout) ? await pickRoles(layout).catch(() => ({})) : {}
+    const n = normalize(layout, today, roles, currencyCode)
+    return rowsFromTable(resolveRows(n.rows, { direction: n.defaultDirection, currency: currencyCode, hasCurrency: n.hasCurrency }))
+  } catch (err) {
+    if (err instanceof ZipTooLarge) throw new StatementError('too_big')
+    if (err instanceof ImportError) throw new StatementError(err.code === 'empty' ? 'empty' : 'unreadable')
+    throw new StatementError('unreadable')
+  }
+}
+
 async function readSource(auth: Auth, source: StatementSource, today: string, currencyCode: string): Promise<unknown> {
   if (source.kind === 'table') {
-    try {
-      const layout = inspect(await readTable(source.data, source.filename))
-      const roles = needsColumnHelp(layout) ? await pickColumnRoles(unresolvedColumns(layout), auth.userId).catch(() => ({})) : {}
-      const n = normalize(layout, today, roles, currencyCode)
-      return rowsFromTable(resolveRows(n.rows, { direction: n.defaultDirection, currency: currencyCode, hasCurrency: false }))
-    } catch (err) {
-      if (err instanceof ImportError) throw new StatementError(err.code === 'empty' ? 'empty' : 'unreadable')
-      throw new StatementError('unreadable')
-    }
+    return readStatementTable(source.data, source.filename, today, currencyCode, (layout) => pickColumnRoles(unresolvedColumns(layout), auth.userId))
   }
   if (source.kind === 'pdf' && isLockedPdf(source.data)) throw new StatementError('pdf_locked')
   const parts = source.kind === 'pdf' ? [{ data: source.data.toString('base64'), mimeType: 'application/pdf' }] : source.images

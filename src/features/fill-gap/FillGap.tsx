@@ -18,7 +18,7 @@ import { StatementModal } from './StatementModal'
 import { freshStartExpense, gapToFill, GAP_SEEN_KEY } from './gap'
 
 const asString = (raw: string) => raw
-type Step = 'sheet' | 'type' | 'upload' | 'fresh' | null
+type Step = 'type' | 'upload' | 'fresh' | null
 
 /**
  * The dashboard's "Pick up where you left off". Shows once per gap, when the
@@ -29,7 +29,8 @@ export function FillGap() {
   const lastSpent = useLastSpent().data
   const allowed = useAccessAllowed()
   const [seen, setSeen] = usePersistentState(GAP_SEEN_KEY, '', asString, asString)
-  const [step, setStep] = useState<Step>('sheet')
+  // The option opened from the sheet. The sheet itself shows for any gap not yet seen while none is open.
+  const [step, setStep] = useState<Step>(null)
   const today = todayLocal()
   const since = lastSpent ? gapToFill(lastSpent, today, seen || null) : null
   // Remembered once the sheet's been answered; the step it led to stays open after.
@@ -48,7 +49,7 @@ export function FillGap() {
   return (
     <>
       <AnimatePresence>
-        {step === 'sheet' && since && <GapSheet since={since} onChoose={choose} />}
+        {step === null && since && <GapSheet since={since} onChoose={choose} />}
       </AnimatePresence>
       <AnimatePresence>
         {step === 'type' && <LogExpenseModal onClose={() => setStep(null)} onSaved={() => {}} />}

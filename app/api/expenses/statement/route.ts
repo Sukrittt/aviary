@@ -11,7 +11,8 @@ export const maxDuration = 60
 
 /** Under the platform's 4.5MB body cap, for all screenshots together or one file. */
 const MAX_UPLOAD_BYTES = 4 * 1024 * 1024
-const MAX_BODY_LEN = 6_000_000
+/** The images' base64, kept under the platform's 4.5MB request cap so an oversized upload gets this route's 413, not a bare one. */
+const MAX_BODY_LEN = 4_400_000
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const TABLE_FILE = /\.(csv|tsv|txt|xlsx)$/i
 
