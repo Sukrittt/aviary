@@ -108,4 +108,10 @@ describe('PUT /api/groups (rename)', () => {
     expect(res.status).toBe(400)
     expect(stores.groups.find((g) => g.name === 'Home')?.icon).toBeUndefined()
   })
+
+  it('saves a picked color and rejects one outside the set', async () => {
+    expect((await PUT(req('PUT', { name: 'Home', color: 'red' }))).status).toBe(400)
+    expect((await PUT(req('PUT', { name: 'Home', color: 'coral' }))).status).toBe(200)
+    expect(stores.groups.find((g) => g.name === 'Home')?.color).toBe('coral')
+  })
 })
