@@ -7,9 +7,9 @@ import { CategoryIcon } from './CategoryIcon'
 import { DeletingRow } from './DeletingRow'
 import { Scrim } from './MotionSheet'
 import { useExpensesFeed } from '../hooks/useExpenses'
-import { useCategoryIcons } from '../hooks/useCategories'
+import { useCategoryIcons, useCategoryStyle } from '../hooks/useCategories'
 import { useCurrency } from '../context/CurrencyContext'
-import { avatarStyleFor, splitEmoji } from '../lib/emoji'
+import { splitEmoji } from '../lib/emoji'
 import { toTransactions, type Transaction } from '../lib/expenseTransactions'
 import { stablePhotoUrl } from '../lib/activityFeed'
 import { EMPTY } from '../lib/constants'
@@ -55,6 +55,8 @@ export function TransactionsFeed({ params, hideAmounts, accountNameOf, removedKe
 }) {
   const feed = useExpensesFeed({ limit: FEED_PAGE_SIZE, ...params })
   const categoryIcons = useCategoryIcons()
+  // Once here rather than per card: the feed isn't virtualized.
+  const styleOf = useCategoryStyle()
   const groups = useMemo(() => {
     const rows = toTransactions(feed.data?.pages.flatMap((p) => p.rows) ?? EMPTY).filter((t) => !removedKeys.has(txnKey(t)))
     const out: { date: string; txns: Transaction[] }[] = []
@@ -103,6 +105,7 @@ export function TransactionsFeed({ params, hideAmounts, accountNameOf, removedKe
                   layoutKey={txnKey(t)}
                   hideAmounts={hideAmounts}
                   icon={categoryIcons.get(t.category)}
+                  tint={styleOf(splitEmoji(t.category).text)}
                   onOpen={() => setOpen(t)}
                 />
               </DeletingRow>
@@ -130,6 +133,7 @@ export function TransactionsFeed({ params, hideAmounts, accountNameOf, removedKe
             layoutKey={txnKey(open)}
             hideAmounts={hideAmounts}
             icon={categoryIcons.get(open.category)}
+            tint={styleOf(splitEmoji(open.category).text)}
             account={accountNameOf(open.accountId)}
             onClose={() => setOpen(null)}
             onEdit={() => {
@@ -148,11 +152,13 @@ export function TransactionsFeed({ params, hideAmounts, accountNameOf, removedKe
   )
 }
 
-function FeedCard({ txn, layoutKey, hideAmounts, icon, onOpen }: {
+function FeedCard({ txn, layoutKey, hideAmounts, icon, tint, onOpen }: {
   txn: Transaction
   layoutKey: string
   hideAmounts: boolean
   icon?: string
+  /** The category tile's background and icon colour, from useCategoryStyle. */
+  tint: { background: string; color: string }
   onOpen: () => void
 }) {
   const { formatCurrency } = useCurrency()
@@ -164,7 +170,7 @@ function FeedCard({ txn, layoutKey, hideAmounts, icon, onOpen }: {
       {/* One button over the whole card, like the list rows' txn-row-trigger. */}
       <button type="button" className="feed-card-open" aria-label={`${txn.item}, ${name}. View details`} onClick={onOpen} />
       <header className="feed-card-head">
-        <span className="txn-timeline-icon" style={avatarStyleFor(name)} aria-hidden="true">
+        <span className="txn-timeline-icon" style={tint} aria-hidden="true">
           <CategoryIcon name={txn.category} icon={icon} />
         </span>
         <span className="feed-card-title">
@@ -186,11 +192,12 @@ function FeedCard({ txn, layoutKey, hideAmounts, icon, onOpen }: {
   )
 }
 
-function TransactionDetailDialog({ txn, layoutKey, hideAmounts, icon, account, onClose, onEdit, onDelete }: {
+function TransactionDetailDialog({ txn, layoutKey, hideAmounts, icon, tint, account, onClose, onEdit, onDelete }: {
   txn: Transaction
   layoutKey: string
   hideAmounts: boolean
   icon?: string
+  tint: { background: string; color: string }
   /** The account's name, '' when the expense has none. */
   account: string
   onClose: () => void
@@ -238,7 +245,7 @@ function TransactionDetailDialog({ txn, layoutKey, hideAmounts, icon, account, o
         onClick={(e) => e.stopPropagation()}
       >
         <header className="feed-card-head">
-          <span className="txn-timeline-icon" style={avatarStyleFor(name)} aria-hidden="true">
+          <span className="txn-timeline-icon" style={tint} aria-hidden="true">
             <CategoryIcon name={txn.category} icon={icon} />
           </span>
           <span className="feed-card-title">
@@ -256,7 +263,7 @@ function TransactionDetailDialog({ txn, layoutKey, hideAmounts, icon, account, o
               <img src={photo} alt={`Photo of ${txn.item}`} className="feed-card-photo" />
             </a>
           ) : (
-            <div className="feed-card-placeholder" style={avatarStyleFor(name)}>
+            <div className="feed-card-placeholder" style={tint}>
               <CategoryIcon name={txn.category} icon={icon} size={48} />
             </div>
           )}

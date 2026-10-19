@@ -8,6 +8,8 @@ import { AnimatePresence, motion } from 'motion/react'
 import { CheckIcon, FunnelSimpleIcon, TrendDownIcon, TrendUpIcon, XIcon } from '@/src/components/icons'
 import type { BreakdownRow, MonthComparison } from '@/src/lib/monthly'
 import { avatarInkFor, avatarStyleFor, chartInk } from '@/src/lib/emoji'
+import { useCategoryColors } from '@/src/hooks/useCategories'
+import { useGroupColors } from '@/src/hooks/useGroups'
 import { DonutChart, type DonutSegment } from './DonutChart'
 import { AutoHeight, PopIn, ease } from '@/src/components/landing/mobile/kit'
 import { BirdEmptyState } from '../BirdEmptyState'
@@ -107,6 +109,8 @@ function buildSegments(rows: BreakdownRow[], colors: Map<string, string>): Donut
 
 export function CategoryBreakdown({ rows, categoryRows, groupRows, categoryGroupMap, mode, onModeChange, selectedKey, onSelectKey, comparison, leftover, monthLabel, hideAmounts = false, loading = false }: Props) {
   const { currencySymbol, formatCurrency } = useCurrency()
+  const categoryColors = useCategoryColors()
+  const groupColors = useGroupColors()
 
   const [expanded, setExpanded] = useState(false)
   const [sortBy, setSortBy] = useState<'spend' | 'budget'>('spend')
@@ -174,13 +178,18 @@ export function CategoryBreakdown({ rows, categoryRows, groupRows, categoryGroup
     return () => clearTimeout(id)
   }, [filterOpen, pendingFilters, selectedKey, mode, categoryRows, categoryGroupMap, onSelectKey])
 
-  // Same name-hashed ink as the category's tile on the Categories card, so a
-  // category is one colour everywhere instead of whatever its rank here is.
+  // Same ink as the category's tile on the Categories card (picked colour,
+  // else the name hash), so a category is one colour everywhere instead of
+  // whatever its rank here is. A group without a picked colour keeps the hash:
+  // a single accent default would paint the whole donut one colour.
+  const pickedColor = (row: BreakdownRow) => (mode === 'group' ? groupColors : categoryColors).get(row.key)
   const colors = useMemo(() => {
     const map = new Map<string, string>()
-    rows.forEach((row) => map.set(row.key, chartInk(avatarInkFor(row.label))))
+    rows.forEach((row) =>
+      map.set(row.key, chartInk(avatarInkFor(row.label, (mode === 'group' ? groupColors : categoryColors).get(row.key)))),
+    )
     return map
-  }, [rows])
+  }, [rows, mode, groupColors, categoryColors])
 
   const segments = useMemo(() => buildSegments(displayRows, colors), [displayRows, colors])
   const sortedRows = useMemo(() => {
@@ -328,7 +337,7 @@ export function CategoryBreakdown({ rows, categoryRows, groupRows, categoryGroup
                       <PopIn key={`${revealKey}:${row.key}`} play={play} delay={rowDelay}>
                         <button type="button" key={row.key} className={selected ? 'ins-breakdown-row is-selected' : 'ins-breakdown-row'} onClick={() => onSelectKey(selected ? null : row.key)} aria-pressed={selected}>
                           <span className="ins-row-top">
-                            <RowMark row={row} color={colors.get(row.key)} />
+                            <RowMark row={row} color={colors.get(row.key)} picked={pickedColor(row)} />
                             <span className="ins-row-name">{row.label}</span>
                             <strong>{formatCurrency(row.spent, hideAmounts)}</strong>
                             {row.deltaPct != null && Math.round(row.deltaPct) !== 0 && (
@@ -423,7 +432,7 @@ export function CategoryBreakdown({ rows, categoryRows, groupRows, categoryGroup
                 return (
                   <motion.label key={`${filterTab}:${row.key}`} layout="position" transition={LIST_SPRING} initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { duration: 0.15 } }} exit={{ opacity: 0, transition: { duration: 0.12 } }}>
                     <input type="checkbox" checked={checked} onChange={() => toggleDraftKey(row.key)} />
-                    <RowMark row={row} color={colors.get(row.key)} />
+                    <RowMark row={row} color={colors.get(row.key)} picked={pickedColor(row)} />
                     <span className="ins-filter-label">{row.label}</span>
                     <span className={checked ? 'ins-check is-checked' : 'ins-check'}>{checked && <CheckIcon size={14} weight="bold" />}</span>
                   </motion.label>
@@ -451,10 +460,10 @@ export function CategoryBreakdown({ rows, categoryRows, groupRows, categoryGroup
 
 /** Ties a row to its donut wedge: the category's tinted icon tile (as on the
  *  Categories card), or a plain dot in the wedge colour when there's no icon. */
-function RowMark({ row, color }: { row: BreakdownRow; color: string | undefined }) {
+function RowMark({ row, color, picked }: { row: BreakdownRow; color: string | undefined; picked: string | undefined }) {
   if (!row.icon) return <i style={{ background: color ?? OTHER_FILL }} />
   return (
-    <span className="ins-row-icon" style={avatarStyleFor(row.label)} aria-hidden="true">
+    <span className="ins-row-icon" style={avatarStyleFor(row.label, picked)} aria-hidden="true">
       <CategoryIcon name="" icon={row.icon} />
     </span>
   )

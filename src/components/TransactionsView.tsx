@@ -12,7 +12,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { toTransactions, type Transaction } from "../lib/expenseTransactions";
 import { useBudgets } from "../hooks/useBudgets";
-import { useCategories, useCategoryIcons } from "../hooks/useCategories";
+import { useCategories, useCategoryIcons, useCategoryStyle } from "../hooks/useCategories";
 import { useExpensesPage, useDeleteExpense, useDuplicates } from "../hooks/useExpenses";
 import { DuplicateReviewDialog } from "./DuplicateReviewDialog";
 import { ConfirmDialog } from "./ConfirmDialog";
@@ -28,7 +28,7 @@ import { DatePicker } from "./DatePicker";
 import { Select } from "./Select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MENU_ITEM, MENU_POPUP } from "./menuStyles";
-import { avatarStyleFor, splitEmoji } from "../lib/emoji";
+import { splitEmoji } from "../lib/emoji";
 import { CategoryIcon } from "./CategoryIcon";
 import { formatShortDate } from "../lib/format";
 import { parseLocalDate, toLocalDateString } from "../lib/date";
@@ -73,6 +73,7 @@ export function TransactionsView({
 }: {
   hideAmounts?: boolean;
 }) {
+  const styleOf = useCategoryStyle();
   const { formatCurrency } = useCurrency();
   const importing = useImportInProgress();
 
@@ -769,7 +770,7 @@ export function TransactionsView({
                       <span
                         className="txn-timeline-icon"
                         title={categoryName}
-                        style={avatarStyleFor(categoryName)}
+                        style={styleOf(categoryName)}
                       >
                         <CategoryIcon name={t.category} icon={categoryIcons.get(t.category)} />
                       </span>

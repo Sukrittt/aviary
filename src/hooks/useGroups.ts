@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { addGroup, deleteGroup, getGroupIcons, getGroups, moveGroup, updateGroup } from '@/src/api/groups'
+import { addGroup, deleteGroup, getGroupRows, getGroups, moveGroup, updateGroup, type GroupRow } from '@/src/api/groups'
 
 const key = ['groups'] as const
 export const groupsKey = key
@@ -11,10 +11,19 @@ export function useGroups() {
 
 /** Picked group icons by name; a group missing here falls back to its emoji or name. */
 export function useGroupIcons(): Map<string, string> {
-  const { data } = useQuery({ queryKey: [...key, 'icons'], queryFn: getGroupIcons, staleTime: 30_000 })
-  return data ?? EMPTY_ICONS
+  const { data } = useQuery({ queryKey: [...key, 'rows'], queryFn: getGroupRows, select: toIcons, staleTime: 30_000 })
+  return data ?? EMPTY
 }
-const EMPTY_ICONS = new Map<string, string>()
+
+/** Picked group colours by name; a group missing here wears groupColor's default. */
+export function useGroupColors(): Map<string, string> {
+  const { data } = useQuery({ queryKey: [...key, 'rows'], queryFn: getGroupRows, select: toColors, staleTime: 30_000 })
+  return data ?? EMPTY
+}
+// Module-level so select only reruns when the rows change.
+const toIcons = (rows: GroupRow[]) => new Map(rows.flatMap((r) => (r.icon ? [[r.name, r.icon] as const] : [])))
+const toColors = (rows: GroupRow[]) => new Map(rows.flatMap((r) => (r.color ? [[r.name, r.color] as const] : [])))
+const EMPTY = new Map<string, string>()
 
 export function useAddGroup() {
   const qc = useQueryClient()
@@ -30,8 +39,8 @@ export function useAddGroup() {
 export function useUpdateGroup() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (params: { name: string; newName?: string; icon?: string }) =>
-      updateGroup(params.name, { newName: params.newName, icon: params.icon }),
+    mutationFn: (params: { name: string; newName?: string; icon?: string; color?: string }) =>
+      updateGroup(params.name, { newName: params.newName, icon: params.icon, color: params.color }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: key })
       qc.invalidateQueries({ queryKey: categoriesKey })
