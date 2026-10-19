@@ -13572,6 +13572,11 @@ button.account-feature-card {
 .import-dialog-body .import-rows {
   max-height: 50vh;
 }
+/* The dialog is too narrow for two columns, and an inline calendar grows the dialog instead of hanging off it. */
+.import-income-grid {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
 .import-dialog-done {
   width: 100%;
   max-width: none;

@@ -695,7 +695,7 @@ function Review({ review, picked, onReview, onDone, onAlreadySetUp }: { review: 
                 ? `We think your salary is ${formatMoney(review.salary.amount)} on about the ${ordinal(review.salary.day)}.`
                 : 'We didn’t spot a regular payday. Add your monthly income if you like, or leave it for later.'}
             </p>
-            <div className="erd-recurring-grid">
+            <div className="erd-recurring-grid import-income-grid">
               <section className="erd-recurring-section">
                 <label className="erd-log-label" htmlFor="import-income-amount">Amount ({currencyInfo(review.currency).symbol})</label>
                 <input
@@ -724,7 +724,6 @@ function Review({ review, picked, onReview, onDone, onAlreadySetUp }: { review: 
                     setPayday(d)
                   }}
                   disableFuture={false}
-                  popoverOnDesktop
                 />
               </section>
               <section className="erd-recurring-section erd-recurring-span">
