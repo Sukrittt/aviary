@@ -14,7 +14,7 @@ export const forecastKey = ['forecast'] as const
 export function useForecast() {
   const hidden = useHiddenFeatures().includes('insights')
   const budgetsAt = useBudgets().dataUpdatedAt
-  const { data } = useQuery({
+  const { data, isPending } = useQuery({
     queryKey: [...forecastKey, budgetsAt],
     queryFn: getForecast,
     enabled: !hidden,
@@ -22,5 +22,6 @@ export function useForecast() {
     placeholderData: keepPreviousData,
   })
   // A disabled query keeps its cache, so hiding Insights must hide what it already loaded.
-  return { data: hidden ? undefined : data }
+  // A disabled query counts as pending, so `isPending` checks hidden too.
+  return { data: hidden ? undefined : data, isPending: !hidden && isPending }
 }

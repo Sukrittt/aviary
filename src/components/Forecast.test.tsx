@@ -3,8 +3,8 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import type { Forecast } from '@/lib/forecast'
 import { ForecastCard } from './Forecast'
 
-const mocks = vi.hoisted(() => ({ forecast: null as unknown as Forecast }))
-vi.mock('@/src/hooks/useForecast', () => ({ useForecast: () => ({ data: mocks.forecast }) }))
+const mocks = vi.hoisted(() => ({ forecast: null as unknown as Forecast | undefined, isPending: false }))
+vi.mock('@/src/hooks/useForecast', () => ({ useForecast: () => ({ data: mocks.forecast, isPending: mocks.isPending }) }))
 vi.mock('@/src/context/CurrencyContext', () => ({ useCurrency: () => ({ formatCurrency: (n: number) => `₹${n.toLocaleString('en-IN')}` }) }))
 
 const env = (category: string, projected: number, extra: Partial<Forecast['envelopes'][number]> = {}) => (
@@ -18,7 +18,7 @@ const base: Forecast = {
   nextMonth: { month: '2026-11', income: 0, spokenFor: 0, free: 0 },
 }
 
-beforeEach(() => { mocks.forecast = base })
+beforeEach(() => { mocks.forecast = base; mocks.isPending = false })
 
 function renderCard(onTopUp = vi.fn()) {
   render(<ForecastCard hideAmounts={false} icon={() => null} onTopUp={onTopUp} />)
@@ -48,4 +48,15 @@ it('shows the most urgent rows first and the rest on tap', () => {
   expect(screen.getByText('E')).toBeTruthy()
   fireEvent.click(screen.getByText('Show fewer'))
   expect(screen.queryByText('E')).toBeNull()
+})
+
+it('holds its place with a skeleton while loading, and steps aside if it fails', () => {
+  mocks.forecast = undefined
+  mocks.isPending = true
+  const { unmount } = render(<ForecastCard hideAmounts={false} icon={() => null} onTopUp={vi.fn()} />)
+  expect(screen.getByRole('status', { name: 'Loading' })).toBeTruthy()
+  unmount()
+  mocks.isPending = false
+  const { container } = render(<ForecastCard hideAmounts={false} icon={() => null} onTopUp={vi.fn()} />)
+  expect(container.innerHTML).toBe('')
 })

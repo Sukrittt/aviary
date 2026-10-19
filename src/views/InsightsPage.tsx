@@ -565,60 +565,6 @@ export function InsightsPage() {
                     )}
                   />
                 )}
-                <article className="erd-card ins-card ins-top-card">
-                  <div className="ins-card-heading">
-                    <div>
-                      <h2>Biggest spends</h2>
-                      <p>
-                        {selectedRow
-                          ? selectedRow.label
-                          : monthLabel(insightMonth)}
-                      </p>
-                    </div>
-                    <Link href="/expense/transactions" className="erd-manage-btn ins-view-all">
-                      View all
-                    </Link>
-                  </div>
-                  {topSpends.length === 0 ? (
-                    <BirdEmptyState
-                      compact
-                      subject="expenses"
-                      title="Nothing logged yet"
-                      description="Your biggest spends will line up here once you start logging."
-                    />
-                  ) : (
-                    <div className="ins-top-list">
-                      {topSpends.map((spend, index) => (
-                        <button
-                          key={spend.id}
-                          type="button"
-                          className="ins-top-row"
-                          style={{ animationDelay: `${220 + index * 55}ms` }}
-                          onClick={() =>
-                            router.push(`/expense/transactions?date=${spend.date}`)
-                          }
-                        >
-                          <span
-                            className="ins-top-icon"
-                            title={spend.category}
-                            style={styleOf(spend.category)}
-                          >
-                            <CategoryIcon name={spend.fullCategory} icon={spend.icon} group={spend.group} />
-                          </span>
-                          <span className="ins-top-body">
-                            <span className="ins-top-item">{spend.item}</span>
-                            <span className="ins-top-meta">
-                              {formatShortDate(spend.date)} · {spend.category}
-                            </span>
-                          </span>
-                          <span className="ins-top-amount">
-                            {formatCurrency(spend.amount, hideAmounts)}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </article>
 
                 <article className="erd-card ins-card ins-heatmap-card">
                   <div className="ins-card-heading ins-heatmap-heading">
@@ -673,6 +619,61 @@ export function InsightsPage() {
                   monthLabel={monthLabel(insightMonth)}
                   hideAmounts={hideAmounts}
                 />
+              </article>
+
+              <article className="erd-card ins-card ins-top-card ins-biggest-card">
+                <div className="ins-card-heading">
+                  <div>
+                    <h2>Biggest spends</h2>
+                    <p>
+                      {selectedRow
+                        ? selectedRow.label
+                        : monthLabel(insightMonth)}
+                    </p>
+                  </div>
+                  <Link href="/expense/transactions" className="erd-manage-btn ins-view-all">
+                    View all
+                  </Link>
+                </div>
+                {topSpends.length === 0 ? (
+                  <BirdEmptyState
+                    compact
+                    subject="expenses"
+                    title="Nothing logged yet"
+                    description="Your biggest spends will line up here once you start logging."
+                  />
+                ) : (
+                  <div className="ins-top-list">
+                    {topSpends.map((spend, index) => (
+                      <button
+                        key={spend.id}
+                        type="button"
+                        className="ins-top-row"
+                        style={{ animationDelay: `${220 + index * 55}ms` }}
+                        onClick={() =>
+                          router.push(`/expense/transactions?date=${spend.date}`)
+                        }
+                      >
+                        <span
+                          className="ins-top-icon"
+                          title={spend.category}
+                          style={styleOf(spend.category)}
+                        >
+                          <CategoryIcon name={spend.fullCategory} icon={spend.icon} group={spend.group} />
+                        </span>
+                        <span className="ins-top-body">
+                          <span className="ins-top-item">{spend.item}</span>
+                          <span className="ins-top-meta">
+                            {formatShortDate(spend.date)} · {spend.category}
+                          </span>
+                        </span>
+                        <span className="ins-top-amount">
+                          {formatCurrency(spend.amount, hideAmounts)}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </article>
             </div>
           )}

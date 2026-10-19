@@ -8,6 +8,7 @@ import { forecastHeadline, nextMonthLine } from '@/src/lib/forecastCopy'
 import { splitEmoji } from '@/src/lib/emoji'
 import { formatDateShort } from '@/src/lib/format'
 import { BirdEmptyState } from '@/src/components/BirdEmptyState'
+import { ForecastSkeleton } from '@/src/components/TabSkeleton'
 import { CaretRightIcon, ChartLineIcon } from '@/src/components/icons'
 import type { ForecastEnvelope } from '@/lib/forecast'
 
@@ -52,9 +53,9 @@ export function ForecastCard({ hideAmounts, icon, onTopUp }: {
   onTopUp: (category: string, amount: number) => void
 }) {
   const { formatCurrency } = useCurrency()
-  const { data } = useForecast()
+  const { data, isPending } = useForecast()
   const [expanded, setExpanded] = useState(false)
-  if (!data) return null
+  if (!data) return isPending ? <ForecastSkeleton /> : null
   // Estimates, so whole rupees: paisa would read as false precision.
   const money = (n: number) => formatCurrency(Math.round(n), hideAmounts)
   const next = nextMonthLine(data.nextMonth, money)

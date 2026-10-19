@@ -151,3 +151,21 @@ export function EnvelopesSkeleton() {
     </Pulse>
   )
 }
+
+/** Insights' month-end forecast: heading, total, then four envelope rows. */
+export function ForecastSkeleton() {
+  return (
+    <article className="erd-card ins-card ins-top-card">
+      <Pulse>
+        <div className="sk-inline" style={{ justifyContent: 'space-between', marginBottom: 12 }}>
+          <span className="sk-row-text">
+            <Bone w={170} h={18} />
+            <Bone w={130} h={11} />
+          </span>
+          <Bone w={64} h={18} />
+        </div>
+        {Array.from({ length: 4 }, (_, i) => <Row key={i} icon={44} r={22} />)}
+      </Pulse>
+    </article>
+  )
+}
