@@ -9,7 +9,7 @@ const AI_ALLOWANCE_EXCEEDED = 'AI_ALLOWANCE_EXCEEDED'
  * does: how often the cap bites, and on what, is the input to pricing it.
  * Reads a clone, so the caller can still read the body for its own error.
  */
-export async function allowanceHit(resp: Response, feature: 'brief' | 'chat' | 'scan'): Promise<boolean> {
+export async function allowanceHit(resp: Response, feature: 'brief' | 'chat' | 'scan' | 'statement'): Promise<boolean> {
   if (resp.status !== 429) return false
   const body = await resp.clone().json().catch(() => null)
   if (body?.code !== AI_ALLOWANCE_EXCEEDED) return false

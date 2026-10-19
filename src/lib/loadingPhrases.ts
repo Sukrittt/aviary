@@ -98,6 +98,7 @@ export const LOADING_PHRASES = {
     'Almost there…',
   ],
   billScanDetail: ['Pulling up this scan…', 'Almost there…'],
+  readStatement: ['Reading your payments…', 'Matching payees to categories…', 'Checking what you already logged…', 'Almost done…'],
   scanBill: ['Reading the bill…', 'Finding the total…', 'Spotting line items…', 'Almost done…'],
   archive: ['Checking the vault…', 'Dusting off the archive…', 'Almost there…'],
   chatThinking: [

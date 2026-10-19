@@ -16,6 +16,7 @@ let hidden: string[] = []
 vi.mock('../hooks/useUser', () => ({ useHiddenFeatures: () => hidden }))
 vi.mock('./LogExpenseModal', () => ({ LogExpenseModal: () => <div>log-expense-dialog</div> }))
 vi.mock('../features/scan-bill/ScanBillModal', () => ({ ScanBillModal: () => <div>scan-dialog</div> }))
+vi.mock('../features/fill-gap/StatementModal', () => ({ StatementModal: () => <div>statement-dialog</div> }))
 vi.mock('./ConfirmDialog', () => ({ SignOutDialog: () => null }))
 
 const { ExpenseSidebar } = await import('./ExpenseSidebar')
@@ -34,6 +35,13 @@ describe('ExpenseSidebar', () => {
     expect(screen.queryByText('Ask Aviary')).toBeNull()
     expect(screen.queryByText('Scan a bill')).toBeNull()
     expect(screen.getByText('Categories')).toBeTruthy()
+  })
+
+  it('keeps statement upload when bill scan is hidden, since catching up is core logging', () => {
+    hidden = ['billScan']
+    render(<ExpenseSidebar />)
+    fireEvent.click(screen.getByText('Add from statement'))
+    expect(screen.getByText('statement-dialog')).toBeTruthy()
   })
 
   it('opens and closes the mobile navigation accessibly', async () => {

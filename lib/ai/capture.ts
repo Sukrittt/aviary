@@ -85,7 +85,7 @@ export function capturePrompt(message: string, today: string, currencyCode: stri
     'Rules:',
     '- One row per thing they paid for. "auto 240, lunch 150" is two rows.',
     '- item: a tidy label for what they paid for, 1 to 4 words, first letter capitalized, the way it would read in an expense list. Keep their key words but drop pronouns, verbs and filler ("I", "so", "then", "paid for"): "I ordered food, so 50" is "Food order", "bike to home 50" is "Bike home", "paid the maid 2000" is "Maid". Leave amounts, dates and split words out of it.',
-    '- amount: the total they paid, as a plain number. 5k = 5000, 1.2L or 1.2 lakh = 120000, "dedh sau" = 150, "dhai sau" = 250, "saadhe teen sau" = 350, "do hazaar" = 2000. If they give a per-person amount for a shared cost, multiply it back to the total.',
+    '- amount: the total they paid, as a plain number. 5k = 5000, 1.2L or 1.2 lakh = 120000, "dedh sau" = 150, "dhai sau" = 250, "saadhe teen sau" = 350, "do sau" = 200, "pachas" = 50, "do hazaar" = 2000. Dictated messages say numbers as words: "two fifty" = 250, "one twenty" = 120, "fifteen hundred" = 1500, "two fifty auto" is an auto for 250. If they give a per-person amount for a shared cost, multiply it back to the total.',
     '- splitWays: how many people shared the cost, them included. "split 6" and "split 6 ways" are 6, "between 4 of us" is 4, "with 3 friends" is 4. 1 when not shared.',
     '- date: YYYY-MM-DD, today unless they say otherwise. "yesterday", "last night" and "on Monday" are relative to today. Never a future date.',
     '- skipped: things they say they did not buy ("skipped lunch", "no coffee today"). No row for these.',

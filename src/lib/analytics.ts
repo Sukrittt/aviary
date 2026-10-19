@@ -31,6 +31,12 @@ const IS_PRODUCTION = process.env.NEXT_PUBLIC_VERCEL_ENV === 'production'
  * app can send it (restore_* is Play only).
  */
 export type AppEvent =
+  // Fill the gap: the catch-up sheet after two or more days without a log.
+  // `option` is the step picked (or dismiss/later); counts only, never payees or amounts.
+  | 'gap_sheet_choice'
+  | 'statement_read'
+  | 'statement_logged'
+  | 'fresh_start_logged'
   // Sign-in. `method` is 'google' or 'email'; `reason` is a fixed slug, never
   // the raw error text.
   | 'sign_in_started'
