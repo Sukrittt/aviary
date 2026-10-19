@@ -173,14 +173,16 @@ export async function generateJSON<T>(
   return JSON.parse(text) as T
 }
 
+export type ImagePart = { data: string; mimeType: string }
+
 /**
- * Same structured-output call as generateJSON, but with an image part attached
- * ahead of the prompt text — used by the bill-scan route. `image.data` is raw
- * base64 (no `data:` prefix).
+ * Same structured-output call as generateJSON, but with image (or pdf) parts
+ * after the prompt text: one for the bill-scan route, up to five screenshots
+ * for a statement upload. `data` is raw base64 (no `data:` prefix).
  */
 export async function generateJSONFromImage<T>(
   prompt: string,
-  image: { data: string; mimeType: string },
+  image: ImagePart | ImagePart[],
   responseSchema: Schema,
   caller: AiCaller,
   { timeoutMs = TIMEOUT_MS }: { timeoutMs?: number } = {},
@@ -190,7 +192,7 @@ export async function generateJSONFromImage<T>(
   const response = await tracked(caller, (model) =>
     ai.models.generateContent({
       model,
-      contents: [{ text: prompt }, { inlineData: { data: image.data, mimeType: image.mimeType } }],
+      contents: [{ text: prompt }, ...[image].flat().map((i) => ({ inlineData: { data: i.data, mimeType: i.mimeType } }))],
       config: {
         responseMimeType: 'application/json',
         responseSchema,

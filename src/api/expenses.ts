@@ -73,7 +73,7 @@ export type NewExpenseRow = {
    * milestone; 'text' is a row confirmed from the money brain and
    * 'balance_gap' an estimate confirmed after a balance check.
    */
-  source?: 'manual' | 'scan' | 'text' | 'balance_gap'
+  source?: 'manual' | 'scan' | 'text' | 'balance_gap' | 'statement' | 'fresh_start'
   /**
    * Set only when the caller already has a stable name for this create, like
    * a money-brain row (`capture:<proposalId>:<rowId>`), so logging the same

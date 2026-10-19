@@ -49,6 +49,7 @@ import { FeatureNudge } from "../components/home/FeatureNudge";
 import { WeekRecapGate } from "../components/wrapped/WeekRecap";
 import { usePersistentState } from "../hooks/usePersistentState";
 import { LogExpenseModal } from "../components/LogExpenseModal";
+import { FillGap } from "../features/fill-gap/FillGap";
 import { RecurringIncomeModal } from "../components/RecurringIncomeModal";
 import { useRecurringIncomes } from "../hooks/useIncomes";
 import { useAccounts } from "../hooks/useAccounts";
@@ -389,6 +390,7 @@ export function ExpensePage() {
   return (
     <section className="expense-redesign">
       <WeekRecapGate />
+      <FillGap />
       {actionError && (
         <div className="erd-action-error" role="alert">
           {actionError}

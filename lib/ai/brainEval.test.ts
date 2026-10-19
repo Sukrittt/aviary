@@ -189,6 +189,8 @@ const CAPTURE_SCENARIOS: Array<{ id: string; message: string; capture?: boolean;
   { id: 'split-between', message: 'birthday dinner 3400 between 4 of us', capture: true, amounts: [3400], splits: [4] },
   { id: 'hinglish', message: 'chai 20, dedh sau ka auto', capture: true, amounts: [20, 150] },
   { id: 'hinglish-words', message: 'dhai sau ki sabzi aur do hazaar ka jacket', capture: true, amounts: [250, 2000] },
+  { id: 'dictated-hinglish', message: 'do sau ka petrol aur pachas ki chai', capture: true, amounts: [200, 50] },
+  { id: 'dictated-words', message: 'two fifty auto and one twenty for coffee', capture: true, amounts: [250, 120] },
   { id: 'skipped', message: 'skipped lunch, coffee 180', capture: true, amounts: [180] },
   { id: 'yesterday', message: 'yesterday dinner 800', capture: true, amounts: [800], dates: ['2026-09-24'] },
   { id: 'sentence', message: 'went to dmart and spent 1340 on groceries then took an uber home for 210', capture: true, amounts: [1340, 210] },

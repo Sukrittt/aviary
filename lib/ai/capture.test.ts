@@ -172,6 +172,31 @@ describe('capturePrompt', () => {
   })
 })
 
+// Voice typing hands over words, not digits. The model does the reading; the
+// prompt has to teach it, and whatever comes back is normalized like any row.
+describe('dictated amounts', () => {
+  const prompt = capturePrompt('do sau ka petrol, two fifty auto', TODAY, 'INR')
+
+  it('teaches the Hinglish and spoken English number words', () => {
+    expect(prompt).toContain('"do sau" = 200')
+    expect(prompt).toContain('"two fifty" = 250')
+    expect(prompt).toContain('"one twenty" = 120')
+  })
+
+  it('logs what the model read from a dictated message', async () => {
+    generateJSON.mockResolvedValue({
+      items: [
+        { item: 'petrol', amount: 200, splitWays: 1, date: TODAY },
+        { item: 'auto', amount: 250, splitWays: 1, date: TODAY },
+      ],
+      skipped: [],
+      unparsed: [],
+    })
+    const out = await extractCapture('do sau ka petrol, two fifty auto', { today: TODAY, currencyCode: 'INR', categories: [], words: {} }, caller)
+    expect(out.items.map((i) => [i.item, i.amount])).toEqual([['Petrol', 200], ['Auto', 250]])
+  })
+})
+
 describe('captureReplyText', () => {
   const item = { id: 'r1', item: 'Auto', amount: 240, splitWays: 1, date: TODAY, category: 'Travel', categoryConfidence: 1 }
 

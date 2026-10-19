@@ -2,7 +2,7 @@ import { useEffect, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence } from "motion/react";
-import { HouseIcon, ChartLineIcon, SignOutIcon, SquaresFourIcon, ListIcon, MoonIcon, SidebarSimpleIcon, PlusIcon, InvoiceIcon, ScanIcon, GearIcon, SparkleIcon, SunIcon, ArrowUUpLeftIcon, XIcon, type PhosphorIcon } from "@/src/components/icons";
+import { HouseIcon, ChartLineIcon, SignOutIcon, SquaresFourIcon, ListIcon, MoonIcon, SidebarSimpleIcon, PlusIcon, InvoiceIcon, ScanIcon, UploadSimpleIcon, GearIcon, SparkleIcon, SunIcon, ArrowUUpLeftIcon, XIcon, type PhosphorIcon } from "@/src/components/icons";
 import { SignOutDialog } from "./ConfirmDialog";
 import { useMoneyBrain } from "@/components/MoneyBrainProvider";
 import { useAppearance } from "@/components/AppearanceProvider";
@@ -12,6 +12,7 @@ import { useHiddenFeatures } from "../hooks/useUser";
 import { BirdMark } from "./BirdMark";
 import { LogExpenseModal } from "./LogExpenseModal";
 import { ScanBillModal } from "../features/scan-bill/ScanBillModal";
+import { StatementModal } from "../features/fill-gap/StatementModal";
 import {
   Sidebar,
   SidebarContent,
@@ -96,6 +97,7 @@ function ExpenseSidebarNav({ onBulkReturn }: Props) {
   const hidden = useHiddenFeatures();
   const [showLog, setShowLog] = useState(false);
   const [showScan, setShowScan] = useState(false);
+  const [showStatement, setShowStatement] = useState(false);
   const [confirmSignOut, setConfirmSignOut] = useState(false);
 
   const router = useRouter();
@@ -172,6 +174,11 @@ function ExpenseSidebarNav({ onBulkReturn }: Props) {
                 <span className={LABEL}>Scan a bill</span>
               </button>
             )}
+            {/* Not behind billScan: catching up on missed days is core logging, and new accounts start with bill scan off. */}
+            <button type="button" className={`${CTA} is-secondary`} onClick={() => { closeMobile(); runGated(() => setShowStatement(true)); }} title={open ? undefined : "Add from statement or screenshot"}>
+              <UploadSimpleIcon size={18} />
+              <span className={LABEL}>Add from statement</span>
+            </button>
           </div>
         </SidebarHeader>
 
@@ -229,6 +236,9 @@ function ExpenseSidebarNav({ onBulkReturn }: Props) {
       </AnimatePresence>
       <AnimatePresence>
         {showLog && <LogExpenseModal onClose={() => setShowLog(false)} onSaved={() => {}} />}
+      </AnimatePresence>
+      <AnimatePresence>
+        {showStatement && <StatementModal onClose={() => setShowStatement(false)} />}
       </AnimatePresence>
       <AnimatePresence>
         {showScan && (
