@@ -38,17 +38,61 @@ async function squeeze(file: File): Promise<File> {
 /** lib/accounts.ts's MAX_BANK_ACCOUNTS: the balance check asks about at most five. */
 const MAX_BANK_ACCOUNTS = 5
 
-type AppChoice = { id: string; name: string; by?: string; file: string; how: [string, string] }
+type AppChoice = {
+  id: string
+  name: string
+  by?: string
+  file: string
+  /** Numbered steps to the export, in the app's own menu names, `›` between taps. */
+  how: string[]
+  /** What trips people up: a paid-only export, a missing platform, a file sent by email. */
+  note?: string
+  /** The app's own help article for exporting; it keeps the screenshots current so we don't have to. */
+  help?: string
+}
 
-// how[0] is the path to the export, as a breadcrumb where the app has one.
+// Checked against each app's help pages in Oct 2026.
 const APPS: AppChoice[] = [
-  { id: 'moneymanager', name: 'Money Manager', by: 'Realbyte', file: 'xlsx', how: ['More › Backup › Export to Excel file.', 'Send the file to yourself and upload it here.'] },
-  { id: 'monefy', name: 'Monefy', file: 'csv', how: ['Settings › Export to file.', 'Share the csv to yourself and upload it here.'] },
-  { id: 'wallet', name: 'Wallet', by: 'BudgetBakers', file: 'csv', how: ['On the web, Records › Export.', 'Pick csv as the format.'] },
-  { id: 'spendee', name: 'Spendee', file: 'csv', how: ['Wallet settings › Export to CSV.', 'It lands in your email.'] },
-  { id: 'ynab', name: 'YNAB', file: 'zip', how: ['On the web, plan menu › Export plan.', 'Upload the zip as it is. No need to unzip it.'] },
-  { id: 'goodbudget', name: 'Goodbudget', file: 'csv', how: ['On the website, Account › Export data.', 'Upload the csv of your transactions.'] },
-  { id: 'axio', name: 'axio', by: 'formerly Walnut', file: 'csv', how: ['Ask axio for your data from its settings.', 'Use the CSV from the email, not the PDF.'] },
+  {
+    id: 'moneymanager', name: 'Money Manager', by: 'Realbyte', file: 'xlsx',
+    how: ['On the Trans. tab, switch to Total.', 'Tap Export data to Excel and send it to your email.', 'Upload the file from that email here.'],
+    help: 'https://help.realbyteapps.com/hc/en-us/articles/360046150874-Home-tab',
+  },
+  {
+    id: 'monefy', name: 'Monefy', file: 'csv',
+    how: ['In Monefy, open ⋮ › Settings.', 'Tap Export to file.', 'Share the csv to yourself and upload it here.'],
+    help: 'https://www.monefy.com/help-center',
+  },
+  {
+    id: 'wallet', name: 'Wallet', by: 'BudgetBakers', file: 'csv',
+    how: ['In Wallet on the web, open Records.', 'Click Select all, then Export.', 'Pick Export to CSV and upload the file here.'],
+    note: 'Exporting needs Wallet Premium. On Android it’s ≡ › Others › Export. The iPhone app can’t export.',
+    help: 'https://support.budgetbakers.com/hc/en-us/articles/7151606064018-How-to-export-transactions-from-Wallet',
+  },
+  {
+    id: 'spendee', name: 'Spendee', file: 'csv',
+    how: ['In the Spendee app, open More › Export.', 'Pick all accounts and the whole period.', 'Choose CSV, send it to yourself and upload it here.'],
+    note: 'Only the phone app exports. On the free plan you get your last 365 days.',
+    help: 'https://help.spendee.com/article/137-export-transactions',
+  },
+  {
+    id: 'ynab', name: 'YNAB', file: 'zip',
+    how: ['On app.ynab.com, click your plan’s name at the top left.', 'Pick Export Plan.', 'Upload the zip as it is. No need to unzip it.'],
+    note: 'The phone apps can’t export, so use the web.',
+    help: 'https://support.ynab.com/en_us/how-to-export-plan-data-Sy_CouWA9',
+  },
+  {
+    id: 'goodbudget', name: 'Goodbudget', file: 'csv',
+    how: ['Log in on goodbudget.com and open Transactions.', 'Click Export CSV above the list.', 'Upload the csv here.'],
+    note: 'Goodbudget exports your spending, not your envelope amounts. We work those out from what you spent.',
+    help: 'https://goodbudget.com/help/customize-your-goodbudget/export-transactions/',
+  },
+  {
+    id: 'axio', name: 'axio', by: 'formerly Walnut', file: 'csv',
+    how: ['In axio’s Money Manager tab, tap your profile at the top right.', 'Under Expense Tracking, tap Email Statements.', 'Upload the CSV from that email, not the PDF.'],
+    note: 'It comes by email. Check Spam or Promotions if you can’t see it.',
+    help: 'https://www.axio.co.in/faq',
+  },
 ]
 // The catch-all sits under the list as a text link, not as a ninth "app".
 const OTHER: AppChoice = { id: 'other', name: 'Another app or a spreadsheet', file: 'csv or xlsx', how: ['Any file with a date, an amount and a description works.', 'One row per transaction.'] }
@@ -271,7 +315,21 @@ function Upload({ app, onPreview, onAlreadySetUp }: { app: AppChoice; onPreview:
   return (
     <motion.div className="import-upload" {...enter}>
       <h1 className="setup-title">{app.id === 'other' ? 'Drop your file here' : `Drop your ${app.name} export`}</h1>
-      <p className="setup-blurb">{app.how[0]} {app.how[1]}</p>
+      {app.id === 'other' ? (
+        <p className="setup-blurb">{app.how.join(' ')}</p>
+      ) : (
+        <div className="import-how">
+          <ol className="import-steps">
+            {app.how.map((step) => <li key={step}>{step}</li>)}
+          </ol>
+          {app.note && <p className="import-how-note">{app.note}</p>}
+          {app.help && (
+            <a className="import-how-help" href={app.help} target="_blank" rel="noreferrer">
+              {`Still stuck? See ${app.name}’s own guide`}
+            </a>
+          )}
+        </div>
+      )}
       <div className="setup-body">
         <motion.label
           key={failures}

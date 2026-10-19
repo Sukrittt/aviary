@@ -101,6 +101,19 @@ describe('ImportFlow', () => {
     expect(onFresh).toHaveBeenCalled()
   })
 
+  it('walks through the export in numbered steps, with the catch and the app’s own guide', () => {
+    render(<ImportFlow onFresh={vi.fn()} onDone={vi.fn()} onAlreadySetUp={onAlreadySetUp} />)
+    fireEvent.click(screen.getByRole('radio', { name: /^I’m switching apps/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+    fireEvent.click(screen.getByRole('button', { name: /Wallet/ }))
+    const steps = screen.getAllByRole('listitem').map((li) => li.textContent)
+    expect(steps).toEqual(['In Wallet on the web, open Records.', 'Click Select all, then Export.', 'Pick Export to CSV and upload the file here.'])
+    expect(screen.getByText(/needs Wallet Premium/)).toBeTruthy()
+    const guide = screen.getByRole('link', { name: 'Still stuck? See Wallet’s own guide' })
+    expect(guide.getAttribute('href')).toMatch(/^https:\/\/support\.budgetbakers\.com\//)
+    expect(guide.getAttribute('target')).toBe('_blank')
+  })
+
   it('shows how to export from the picked app, then what it read', async () => {
     toReview()
     expect(await screen.findByRole('heading', { name: 'Here’s what we found' })).toBeTruthy()

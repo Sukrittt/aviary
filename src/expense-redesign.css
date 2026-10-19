@@ -13385,6 +13385,59 @@ button.account-feature-card {
 .import-upload .setup-body {
   flex: 0 0 auto;
 }
+/* Export steps: numbered like the phone app's, left-aligned so each tap reads
+   as its own line, in the same column as the drop zone. */
+.import-how {
+  max-width: 420px;
+  margin: 16px auto 0;
+  text-align: left;
+}
+.import-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: import-step;
+}
+.import-steps li {
+  display: flex;
+  gap: 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--erd-text2);
+  counter-increment: import-step;
+}
+.import-steps li::before {
+  content: counter(import-step);
+  flex: none;
+  width: 22px;
+  height: 22px;
+  margin-top: 1px;
+  border-radius: 50%;
+  background: var(--tk-accent-soft);
+  color: var(--tk-accent-ink);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 22px;
+  text-align: center;
+}
+.import-how-note {
+  margin: 12px 0 0 34px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--erd-text3);
+}
+.import-how-help {
+  display: inline-block;
+  margin: 8px 0 0 34px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tk-accent-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
 .import-apps {
   display: flex;
   flex-direction: column;
