@@ -13,6 +13,7 @@ vi.mock('@/lib/notifications/instant', () => ({ notifyThresholdCrossed: vi.fn(),
 vi.mock('@/lib/userCurrency', () => ({
   nowForUser: async () => ({ date: '2026-10-17', timestamp: '2026-10-17T10:00:00.000Z' }),
   getUserCurrency: async () => 'INR',
+  getBudgetCurrency: async () => 'INR',
 }))
 const completeOnboarding = vi.fn(async () => ({ ok: true }))
 vi.mock('@/lib/billing/service', () => ({ completeOnboarding: () => completeOnboarding() }))

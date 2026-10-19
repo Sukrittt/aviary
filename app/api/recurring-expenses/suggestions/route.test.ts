@@ -7,7 +7,7 @@ vi.mock('@/lib/ai/recurringDetection', () => ({ evaluateRecurring: mocks.evaluat
 vi.mock('@/lib/systemSettings', () => ({ aiDisabledResponse: mocks.ai }))
 vi.mock('@/lib/ai/allowance', () => ({ aiAllowanceResponse: mocks.allowance }))
 vi.mock('@/lib/rateLimit', () => ({ isRateLimited: mocks.rate }))
-vi.mock('@/lib/userCurrency', () => ({ nowForUser: async () => ({ date: '2026-09-22' }), getUserCurrency: async () => 'INR' }))
+vi.mock('@/lib/userCurrency', () => ({ nowForUser: async () => ({ date: '2026-09-22' }), getUserCurrency: async () => 'INR', getBudgetCurrency: async () => 'INR' }))
 type Doc = Record<string, any> // eslint-disable-line @typescript-eslint/no-explicit-any
 let ledger: Doc[]
 let schedules: Doc[]

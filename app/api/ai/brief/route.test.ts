@@ -10,6 +10,7 @@ vi.mock('@/lib/ai/allowance', () => ({ aiAllowanceResponse: vi.fn(async () => nu
 vi.mock('@/lib/rateLimit', () => ({ isRateLimited: vi.fn(async () => false) }))
 vi.mock('@/lib/userCurrency', () => ({
   getUserCurrency: vi.fn(async () => 'INR'),
+  getBudgetCurrency: vi.fn(async () => 'INR'),
   nowForUser: vi.fn(async () => ({ date: '2026-09-23', timestamp: '2026-09-23T10:00:00+05:30' })),
 }))
 

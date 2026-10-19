@@ -17,9 +17,10 @@ vi.mock('@/lib/accountLifecycle', () => ({
   softDeleteAccount: (...args: unknown[]) => softDeleteMock(...(args as [])),
   restoreAccount: vi.fn(),
 }))
-vi.mock('@/lib/mongodb', () => ({ getDb: vi.fn(async () => ({ collection: () => ({ findOne: findOneMock }) })) }))
+const updateOneMock = vi.fn(async () => ({}))
+vi.mock('@/lib/mongodb', () => ({ getDb: vi.fn(async () => ({ collection: () => ({ findOne: findOneMock, updateOne: updateOneMock }) })) }))
 
-const { hardDeleteAction, softDeleteAction } = await import('./actions')
+const { hardDeleteAction, softDeleteAction, updateUserAction } = await import('./actions')
 
 const form = (email: string) => {
   const f = new FormData()
@@ -62,5 +63,25 @@ describe('softDeleteAction', () => {
     findOneMock.mockResolvedValue({ _id: 'user_2', email: 'v@e.com', deleted_at: '2026-01-01' })
     expect((await softDeleteAction('user_2'))?.ok).toBe(false)
     expect(softDeleteMock).not.toHaveBeenCalled()
+  })
+})
+
+describe('updateUserAction budget limit', () => {
+  const edit = (budgetLimit: string) => {
+    const f = new FormData()
+    for (const [k, v] of Object.entries({ name: '', currencyCode: 'INR', notifyCadence: 'weekly', notifyBillLeadDays: '3', budgetLimit })) f.set(k, v)
+    return f
+  }
+
+  it('raises one person’s budget limit and audits it', async () => {
+    findOneMock.mockResolvedValue({ _id: 'user_2', name: null, currencyCode: 'INR', notifyCadence: 'weekly', notifyBillLeadDays: 3, notifyThresholds: false, notifyBills: false, notifyCoach: false, notifyWrapped: false })
+    expect((await updateUserAction('user_2', null, edit('8')))?.ok).toBe(true)
+    expect(updateOneMock).toHaveBeenCalledWith({ _id: 'user_2' }, { $set: expect.objectContaining({ budgetLimit: 8 }) })
+    expect(auditMock).toHaveBeenCalledWith('admin_1', 'user.update', 'user_2', { changes: expect.objectContaining({ budgetLimit: { from: null, to: 8 } }) })
+  })
+
+  it('refuses a nonsense limit', async () => {
+    expect((await updateUserAction('user_2', null, edit('0')))?.ok).toBe(false)
+    expect(updateOneMock).not.toHaveBeenCalled()
   })
 })

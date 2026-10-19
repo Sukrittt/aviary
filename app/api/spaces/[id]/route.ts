@@ -1,7 +1,7 @@
 import { isCurrencyCode } from '@/src/lib/currencies'
 import { json, error, readBody } from '@/lib/http'
 import { getAuth, readOnlyGuard } from '@/lib/access'
-import { requireAccess } from '@/lib/billing/guard'
+import { requireOwnPlan } from '@/lib/billing/guard'
 import { BudgetError, budgetNameError, isBudgetEmoji, updateBudget } from '@/lib/spaces'
 
 export const dynamic = 'force-dynamic'
@@ -14,7 +14,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const auth = await getAuth(req)
   const guard = readOnlyGuard({ ...auth, spaceDenied: undefined }, 'PATCH')
   if (guard) return guard
-  const gate = await requireAccess({ ...auth, spaceOwnerId: auth.userId, spaceDenied: undefined })
+  const gate = await requireOwnPlan(auth)
   if (gate) return gate
 
   const body = await readBody(req)

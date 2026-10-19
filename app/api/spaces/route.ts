@@ -1,7 +1,7 @@
 import { isCurrencyCode } from '@/src/lib/currencies'
 import { json, error, readBody } from '@/lib/http'
 import { getAuth, readOnlyGuard } from '@/lib/access'
-import { requireAccess } from '@/lib/billing/guard'
+import { requireOwnPlan } from '@/lib/billing/guard'
 import { BudgetError, budgetNameError, createBudget, isBudgetEmoji, listBudgets } from '@/lib/spaces'
 
 export const dynamic = 'force-dynamic'
@@ -22,8 +22,7 @@ export async function POST(req: Request) {
   const auth = await getAuth(req)
   const guard = readOnlyGuard({ ...auth, spaceDenied: undefined }, 'POST')
   if (guard) return guard
-  // The new budget is billed to its creator, whichever budget they're in now.
-  const gate = await requireAccess({ ...auth, spaceOwnerId: auth.userId, spaceDenied: undefined })
+  const gate = await requireOwnPlan(auth)
   if (gate) return gate
 
   const body = await readBody(req)

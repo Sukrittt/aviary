@@ -7,7 +7,7 @@ vi.mock('../systemSettings', () => ({ getSystemSettings: getSystemSettingsMock }
 const getAccessMock = vi.fn()
 vi.mock('./service', () => ({ getAccess: getAccessMock }))
 
-const { requireAccess, SUBSCRIPTION_REQUIRED, NOT_A_MEMBER } = await import('./guard')
+const { requireAccess, requireOwnPlan, SUBSCRIPTION_REQUIRED, NOT_A_MEMBER } = await import('./guard')
 
 const user: Auth = { userId: 'user_a', readOnly: false, sessionId: 'sess_1', spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const }
 const demo: Auth = { userId: 'demo', readOnly: true, sessionId: null, spaceId: 'demo', spaceOwnerId: 'demo', spaceRole: 'owner' as const }
@@ -83,6 +83,15 @@ describe('requireAccess', () => {
       const res = await requireAccess({ ...member, spaceDenied: true })
       expect(res?.status).toBe(403)
       expect(await res!.json()).toMatchObject({ error: NOT_A_MEMBER })
+    })
+  })
+
+  describe('requireOwnPlan', () => {
+    it("checks the caller's plan, even from inside someone else's lapsed budget", async () => {
+      getAccessMock.mockImplementation(async (id: string) => (id === 'user_b' ? { allowed: true, mode: 'paid' } : { allowed: false, mode: 'expired' }))
+      const member: Auth = { userId: 'user_b', readOnly: false, sessionId: 's', spaceId: 'sp_home', spaceOwnerId: 'user_a', spaceRole: 'member' }
+      expect(await requireOwnPlan(member)).toBeNull()
+      expect(getAccessMock).toHaveBeenCalledWith('user_b')
     })
   })
 })

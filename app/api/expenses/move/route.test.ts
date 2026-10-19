@@ -13,11 +13,12 @@ vi.mock('@/lib/cache', () => ({ invalidate: vi.fn() }))
 vi.mock('@/lib/workosClient', () => ({ getWorkOSClient: vi.fn() }))
 vi.mock('@/lib/categoryMap', () => ({ invalidateCategoryMap: vi.fn() }))
 vi.mock('@/lib/notifications/instant', () => ({ notifyThresholdCrossed: vi.fn() }))
-const moveExpensePhoto = vi.fn(async () => {})
+const { moveExpensePhoto } = vi.hoisted(() => ({ moveExpensePhoto: vi.fn(async (..._args: unknown[]) => {}) }))
 vi.mock('@/lib/expensePhoto', () => ({ moveExpensePhoto }))
 
 import { getDb, getClient } from '@/lib/mongodb'
 import { scoped } from '@/lib/scoped'
+import { forgetMembership } from '@/lib/spaces'
 import { POST } from './route'
 
 let server: MongoMemoryReplSet
@@ -53,6 +54,7 @@ beforeEach(async () => {
   })
   id = insertedId.toString()
   moveExpensePhoto.mockClear()
+  forgetMembership('sp_home')
 })
 
 const move = (body: object) => POST(new Request('http://localhost/api/expenses/move', { method: 'POST', body: JSON.stringify({ id, version: 2, to: 'sp_home', category: 'Groceries', ...body }) }))
@@ -83,7 +85,6 @@ describe('POST /api/expenses/move', () => {
 
   it('refuses a budget the person is not in', async () => {
     await (await getDb()).collection('space_members').deleteOne({ space_id: 'sp_home', user_id: ME })
-    const { forgetMembership } = await import('@/lib/spaces')
     forgetMembership('sp_home')
     expect((await move({})).status).toBe(403)
     expect(await (await coll('expenses', ME)).findOne({ _id: new ObjectId(id) })).not.toBeNull()
