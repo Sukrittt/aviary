@@ -28,7 +28,20 @@ export async function apiFetch(path: string, init?: RequestInit): Promise<Respon
   const signal = init && 'signal' in init ? init.signal : AbortSignal.timeout(REQUEST_TIMEOUT_MS)
   const resp = await fetch(path, { ...init, signal })
   if (resp.status === 403) await leaveLostBudget(resp)
+  if (resp.status === 402) await flagReadOnly(resp)
   return resp
+}
+
+/** Fired when a write comes back 402 BUDGET_READ_ONLY: the owner's plan lapsed. BudgetNotices shows the banner. */
+export const BUDGET_READ_ONLY_EVENT = 'aviary:budget-read-only'
+/** `{id, name}` of the open budget, kept fresh by useSpaces so a lost one can still be named after the reload. */
+export const ACTIVE_BUDGET_KEY = 'aviary-active-budget'
+/** sessionStorage: the budget we were just thrown out of, for the "You're no longer in…" notice. */
+export const LOST_BUDGET_KEY = 'aviary-lost-budget'
+
+async function flagReadOnly(resp: Response) {
+  const body = await resp.clone().json().catch(() => null)
+  if (body?.error === 'BUDGET_READ_ONLY') window.dispatchEvent(new Event(BUDGET_READ_ONLY_EVENT))
 }
 
 /**
@@ -42,6 +55,12 @@ async function leaveLostBudget(resp: Response) {
   if (!cookie) return
   const body = await resp.clone().json().catch(() => null)
   if (body?.error !== 'NOT_A_MEMBER' || body.spaceId !== cookie) return
+  try {
+    const last = JSON.parse(localStorage.getItem(ACTIVE_BUDGET_KEY) ?? 'null')
+    if (last?.id === cookie) sessionStorage.setItem(LOST_BUDGET_KEY, JSON.stringify(last))
+  } catch {
+    // storage blocked: reload without the notice
+  }
   setBudgetCookie(null)
   window.location.reload()
 }
