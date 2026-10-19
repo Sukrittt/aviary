@@ -5,7 +5,7 @@ const collection = vi.fn(() => ({ updateOne }))
 vi.mock('@/lib/mongodb', () => ({ getDb: async () => ({ collection }) }))
 const { signLink } = await import('@/lib/email/links')
 const { POST } = await import('./route')
-const { GET: confirm } = await import('../confirm/route')
+const { POST: confirm } = await import('../confirm/route')
 
 beforeEach(() => { vi.clearAllMocks(); vi.stubEnv('CRON_SECRET', 'test-secret') })
 afterEach(() => vi.unstubAllEnvs())
@@ -35,9 +35,10 @@ it('changes nothing for a forged token', async () => {
   expect(updateOne).not.toHaveBeenCalled()
 })
 
-it('confirms only lead tokens, never a user one', async () => {
-  expect((await confirm(new Request(`https://useaviary.com/api/email/confirm?t=${encodeURIComponent(signLink('l:abc123'))}`))).headers.get('location')).toBe('https://useaviary.com/emails?done=subscribed')
+it('confirms only lead tokens, never a user one, and only by POST', async () => {
+  const press = (t: string) => confirm(new Request('https://useaviary.com/api/email/confirm', { method: 'POST', body: new URLSearchParams({ t }) }))
+  expect((await press(signLink('l:abc123'))).headers.get('location')).toBe('https://useaviary.com/emails?done=subscribed')
   expect(updateOne).toHaveBeenCalledOnce()
-  expect((await confirm(new Request(`https://useaviary.com/api/email/confirm?t=${encodeURIComponent(signLink('u:user_1'))}`))).headers.get('location')).toBe('https://useaviary.com/emails?done=invalid')
+  expect((await press(signLink('u:user_1'))).headers.get('location')).toBe('https://useaviary.com/emails?done=invalid')
   expect(updateOne).toHaveBeenCalledOnce()
 })

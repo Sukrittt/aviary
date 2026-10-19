@@ -112,11 +112,10 @@ from `CRON_SECRET`, so rotating it breaks unsubscribe links in sent emails;
 **Leads.** `POST /api/leads` (the salary planner's "Email me this plan")
 rebuilds the plan from salary and rent, stores a `leads` row keyed by a hash
 of the address, and sends the plan right away. At most one plan per address
-per day, plus an IP rate limit. Follow-ups need the "Send me the tips" click
-(`/api/email/confirm`), so a typed-in stranger's address gets one email at
-most. Mail scanners that open links can confirm on someone's behalf; the
-unsubscribe link covers that. A lead whose address later signs up gets the
-account emails instead.
+per day, plus an IP rate limit. Follow-ups need "Send me the tips": the link
+opens `/emails`, whose button posts to `/api/email/confirm`, so neither a
+typed-in stranger's address nor a mail scanner opening links can sign anyone
+up. A lead whose address later signs up gets the account emails instead.
 
 The iOS waitlist isn't emailed: that form promises one email, when the iPhone
 app is out.

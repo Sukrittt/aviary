@@ -128,7 +128,7 @@ describe('salary planner leads', () => {
     const [message] = vi.mocked(sendEmail).mock.calls[0]
     expect(message.subject).toBe('Your ₹50,000 salary split')
     expect(message.text).toContain('Groceries: ₹5,000')
-    expect(message.text).toContain('https://useaviary.com/api/email/confirm?t=l%3A')
+    expect(message.text).toContain('https://useaviary.com/emails?ask=tips&t=l%3A')
     await db.collection(LEADS).updateOne({ _id: leadId('lead@example.com') as never }, { $set: { createdAt: ago(3) } })
     await outbox().updateMany({}, { $set: { 'delivery.queuedAt': ago(3) } })
     expect(await prepareLifecycleEmails(db, now, 15)).toBe(0)

@@ -43,7 +43,8 @@ const q = (subject: LinkSubject) => `t=${encodeURIComponent(signLink(subject))}`
 export const preferencesUrl = (subject: LinkSubject) => `${SITE}/emails?${q(subject)}`
 /** RFC 8058 one-click target for the List-Unsubscribe header. */
 export const oneClickUrl = (subject: LinkSubject) => `${SITE}/api/email/unsubscribe?${q(subject)}`
-export const confirmUrl = (leadId: string) => `${SITE}/api/email/confirm?${q(`l:${leadId}`)}`
+/** The lead's opt-in page. Like unsubscribe, only its button (a POST) confirms, so a scanner can't sign anyone up. */
+export const confirmUrl = (leadId: string) => `${SITE}/emails?ask=tips&${q(`l:${leadId}`)}`
 
 /** Headers that give Gmail and others a native unsubscribe button. */
 export function unsubscribeHeaders(subject: LinkSubject): Record<string, string> {
