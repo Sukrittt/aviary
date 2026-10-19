@@ -156,3 +156,25 @@ export async function liveSpaces(db?: Db): Promise<SpaceDoc[]> {
 export function jobAuth(userId: string, spaceId: string = userId): Auth {
   return { userId, readOnly: false, sessionId: null, spaceId, spaceOwnerId: userId, spaceRole: spaceId === userId ? 'owner' : 'member' }
 }
+
+/** Budgets a person can open, owned and joined together. The same on trial and paid. */
+export const DEFAULT_BUDGET_LIMIT = 5
+/** People in one budget, the owner plus 5. */
+export const MAX_MEMBERS = 6
+
+/** An admin can raise one person's limit (`users.budgetLimit`); anything but a positive whole number is ignored. */
+export function budgetLimitFor(user: { budgetLimit?: number | null }): number {
+  const n = user.budgetLimit
+  return typeof n === 'number' && Number.isInteger(n) && n > 0 ? n : DEFAULT_BUDGET_LIMIT
+}
+
+/**
+ * How many budgets count toward the limit: the personal one, if this person
+ * has one (someone who only ever joined doesn't), plus every budget they're a
+ * member of. A shared personal budget is the same budget, counted once.
+ */
+export function budgetsOpen(userId: string, hasPersonal: boolean, memberSpaceIds: string[]): number {
+  const ids = new Set(memberSpaceIds)
+  if (hasPersonal) ids.add(userId)
+  return ids.size
+}
