@@ -202,6 +202,18 @@ export function formatMoney(value: number, code: string = DEFAULT_CURRENCY): str
   const sign = value < 0 && !(whole === '0' && fraction === '00') ? '-' : ''
   return `${sign}${currencyPrefix(code)}${groupDigits(whole, code)}${fraction === '00' ? '' : `.${fraction}`}`
 }
+/** Chart labels: 1.5k, 12.5L, 1.2Cr (INR) or 1.3M, 2.1B, with the sign ahead of the symbol like formatMoney. */
+function formatCompact(value: number, code: string): string {
+  const abs = Math.abs(value)
+  if (Math.round(abs) < 1000) return formatMoney(Math.sign(value) * Math.round(abs), code)
+  const units: [number, string][] = resolveCurrency(code) === 'INR' ? [[1e3, 'k'], [1e5, 'L'], [1e7, 'Cr']] : [[1e3, 'k'], [1e6, 'M'], [1e9, 'B']]
+  // Scale before dividing: toFixed(1) on 1.15 gives 1.1 because 1.15 isn't exact in floating point.
+  const rounded = (i: number) => { const d = i === 0 && abs >= 1e4 ? 1 : 10; return Math.round(abs * d / units[i][0]) / d }
+  // Pick the unit after rounding so 999,950 reads 10L, not 1000k, and 99,99,500 reads 1Cr, not 100L.
+  let i = 0
+  while (i < units.length - 1 && rounded(i) * units[i][0] >= units[i + 1][0]) i++
+  return `${value < 0 ? '-' : ''}${currencyPrefix(code)}${rounded(i)}${units[i][1]}`
+}
 export function formatMoneyInput(raw: string, code: string = DEFAULT_CURRENCY): string {
   const [whole, fraction] = raw.split('.')
   return `${currencyPrefix(code)}${groupDigits(whole || '0', code)}${fraction === undefined ? '' : `.${fraction}`}`
@@ -214,7 +226,7 @@ export function createCurrencyFormat(code: string = DEFAULT_CURRENCY) {
     formatMoney: (value: number) => formatMoney(value, currencyCode),
     formatCurrency: (value: number, hide = false) => hide ? `${currencyPrefix(currencyCode)}••••` : formatMoney(value, currencyCode),
     formatAmountInput: (raw: string) => formatMoneyInput(raw, currencyCode),
-    formatCompact: (value: number, hide = false) => hide ? `${currencyPrefix(currencyCode)}••` : Math.abs(value) >= 1000 ? `${currencyPrefix(currencyCode)}${(value / 1000).toFixed(Math.abs(value) >= 10000 ? 0 : 1)}k` : formatMoney(Math.round(value), currencyCode),
+    formatCompact: (value: number, hide = false) => hide ? `${currencyPrefix(currencyCode)}••` : formatCompact(value, currencyCode),
     // Static tour examples use Indian grouping in source. Format their numeric values as-is.
     currencyText: (text: string) => text.replace(/₹([\d,]+(?:\.\d+)?)/g, (_, n: string) => formatMoney(Number(n.replace(/,/g, '')), currencyCode)).replace(/₹/g, currencyPrefix(currencyCode)),
   }
