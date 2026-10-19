@@ -209,6 +209,7 @@ export function ImportFlow({ onFresh, onDone, onAlreadySetUp }: { onFresh: () =>
           >
             Continue
           </button>
+          <p className="import-ask-trust">Change phones, lose nothing. Export free, always.</p>
         </motion.div>
       )}
 

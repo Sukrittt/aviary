@@ -13346,6 +13346,12 @@ button.account-feature-card {
   max-width: 520px;
   margin-top: 20px;
 }
+.import-ask-trust {
+  margin: 16px 0 0;
+  color: var(--erd-text3);
+  font-size: 13px;
+  font-weight: 500;
+}
 .import-choice-text {
   display: flex;
   flex: 1;
