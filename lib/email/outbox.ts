@@ -54,7 +54,8 @@ export async function sendOutbox(db: Db, filter: Filter<OutboxEmail>, limit: num
   const result: SendResult = { sent: 0, skipped: 0, failed: 0, needs_review: 0 }
   const outbox = db.collection<OutboxEmail>(EMAIL_OUTBOX)
   const due = (now: Date): Filter<OutboxEmail> => ({ ...filter, $or: [ { 'delivery.state': 'pending', 'delivery.nextAttemptAt': { $lte: now } }, { 'delivery.state': 'sending', 'delivery.leaseUntil': { $lte: now } } ] })
-  const candidates = await outbox.find(due(new Date())).sort({ 'delivery.queuedAt': 1 }).limit(limit).toArray()
+  // Mongo reads limit(0) as "no limit"; a spent budget still reports what needs review.
+  const candidates = limit > 0 ? await outbox.find(due(new Date())).sort({ 'delivery.queuedAt': 1 }).limit(limit).toArray() : []
   for (const candidate of candidates) {
     if (!(await recipient(db, candidate))) {
       await outbox.deleteOne({ _id: candidate._id })

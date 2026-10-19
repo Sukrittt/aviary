@@ -86,6 +86,17 @@ describe('lifecycle queue', () => {
     expect(await outbox().findOne()).toMatchObject({ user_id: 'ending', step: 'trial-end' })
   })
 
+  it('sends a trial-end notice ahead of an older backlog', async () => {
+    for (const id of ['a', 'b']) await user(id)
+    await prepareLifecycleEmails(db, ago(1), 15)
+    await user('ending', { createdAt: ago(26) })
+    trialDay('ending', 26, 4)
+    settings.lifecycleEmails = true
+    await prepareLifecycleEmails(db, now, 15)
+    expect(await retryLifecycleEmails(1)).toMatchObject({ sent: 1 })
+    expect(sentTo()[0].to).toBe('ending@example.com')
+  })
+
   it('sends the trial-end notice with real prices and no unsubscribe, even to someone who opted out', async () => {
     await user('ending', { createdAt: ago(26), emailOptOutAt: ago(5), timezone: 'Asia/Kolkata' })
     trialDay('ending', 26, 4)

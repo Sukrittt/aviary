@@ -168,5 +168,8 @@ export async function retryLifecycleEmails(limit = 15) {
   if (!configured) return { sent: 0, skipped: 0, failed: 0, needs_review: 0, queued: 0, configured }
   const db = await getDb()
   const queued = (await getSystemSettings()).lifecycleEmails ? await prepareLifecycleEmails(db, new Date(), limit) : 0
-  return { ...await sendOutbox(db, { kind: 'lifecycle' }, limit), queued, configured }
+  // Deadline notices go first, so a backlog of retried tips can't push one to tomorrow.
+  const notices = await sendOutbox(db, { kind: 'lifecycle', step: 'trial-end' }, limit)
+  const rest = await sendOutbox(db, { kind: 'lifecycle', step: { $ne: 'trial-end' } }, Math.max(0, limit - notices.sent - notices.failed - notices.skipped))
+  return { sent: notices.sent + rest.sent, skipped: notices.skipped + rest.skipped, failed: notices.failed + rest.failed, needs_review: notices.needs_review + rest.needs_review, queued, configured }
 }

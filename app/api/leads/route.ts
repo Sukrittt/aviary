@@ -31,7 +31,7 @@ export async function POST(req: Request) {
   if (limited) return error('rate limited', 429)
 
   const rows = salaryPlan(salary, rent === undefined ? {} : { rent }).map((c): [string, number] => [c.name, c.amount])
-  const rowId = await queueLeadPlan(await getDb(), email, { salary: Math.round(salary), rows })
+  const rowId = await queueLeadPlan(await getDb(), email, { salary: Math.floor(salary), rows })
   scheduleOutboxSend(rowId)
   return json({ ok: true })
 }
