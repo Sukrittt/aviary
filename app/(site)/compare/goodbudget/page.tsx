@@ -53,7 +53,7 @@ export default function GoodbudgetPage() {
       ['https://play.google.com/store/apps/details?id=com.dayspringtech.envelopes', 'Goodbudget on Google Play'],
     ]} />
     <h2>Bringing your Goodbudget history</h2>
-    <p>You don’t start over. On the Goodbudget website, go to Account › Export data and download your transactions as a csv. When you set up Aviary, pick “I’m switching apps”, choose Goodbudget and upload that file. Your envelopes and history come along. <Link href="/onboarding">Start the import</Link>.</p>
+    <p>You don’t start over. On the Goodbudget website, go to Account › Export data and download your transactions as a csv. When you set up Aviary, pick “I’m switching apps”, choose Goodbudget and upload that file. Your envelopes and history come along. <Link href="/sign-in">Sign in to start the import</Link>.</p>
     <SoftCta title="Envelope budgeting, faster logging" placement="compare_goodbudget">Try Aviary free for 30 days. Set up your categories in a few minutes, no card needed.</SoftCta>
   </ContentPage>
 }

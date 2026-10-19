@@ -265,7 +265,7 @@ export function KeepEverything() {
           <p className="lp-stage-note">Categories, balances and every transaction, as they were.</p>
         </div>
       </div>
-      <figcaption><strong>Bring everything with you.</strong><span>Upload the export from your old app when you set up Aviary. Your categories and years of history come along, in about two minutes. <a href="/onboarding">Start with your old app</a></span></figcaption>
+      <figcaption><strong>Bring everything with you.</strong><span>Upload the export from your old app when you set up Aviary. Your categories and years of history come along, in about two minutes. <a href="/sign-in">Sign in and bring it over</a></span></figcaption>
     </figure>
     <figure className="lp-shot">
       <div className="lp-keep-art" aria-hidden="true">
