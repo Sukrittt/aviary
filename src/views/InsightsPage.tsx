@@ -10,7 +10,7 @@ import { CategoryIcon } from "@/src/components/CategoryIcon";
 import { useAppearance } from "@/components/AppearanceProvider";
 import { ExpenseSidebar } from "@/src/components/ExpenseSidebar";
 import { LoadingCaption } from "@/src/components/LoadingCaption";
-import { EditMonthIncomeScreen } from "@/src/components/MoneyScreens";
+import { EditMonthIncomeScreen, MoveMoneyScreen } from "@/src/components/MoneyScreens";
 import { CategoryBreakdown } from "@/src/components/charts/CategoryBreakdown";
 import { Heatmap, type HeatmapCell } from "@/src/components/charts/Heatmap";
 import {
@@ -101,6 +101,7 @@ export function InsightsPage() {
   const [heatmapView, setHeatmapView] = useState<"month" | "weeks">("month");
   const [trendView, setTrendView] = useState<"spending" | "saved">("spending");
   const [incomeMonth, setIncomeMonth] = useState<string | null>(null);
+  const [topUp, setTopUp] = useState<{ category: string; amount: number } | null>(null);
 
   const scopeRef = useRef(`${insightMonth}|${breakdownMode}`);
   const scope = `${insightMonth}|${breakdownMode}`;
@@ -556,6 +557,7 @@ export function InsightsPage() {
                 {isCurrent && (
                   <ForecastCard
                     hideAmounts={hideAmounts}
+                    onTopUp={(category, amount) => setTopUp({ category, amount })}
                     icon={(category) => (
                       <span className="ins-top-icon" title={category} style={avatarStyleFor(splitEmoji(category).text)}>
                         <CategoryIcon name={category} icon={categoryIcons.get(category)} group={categoryGroupMap.get(category)} />
@@ -697,6 +699,15 @@ export function InsightsPage() {
           <EditMonthIncomeScreen
             month={incomeMonth}
             onClose={() => setIncomeMonth(null)}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {topUp && (
+          <MoveMoneyScreen
+            targetCategory={topUp.category}
+            amount={topUp.amount}
+            onClose={() => setTopUp(null)}
           />
         )}
       </AnimatePresence>

@@ -56,6 +56,11 @@ describe('money screens', () => {
     expect(screen.getByRole('textbox', { name: 'Amount' })).toHaveValue('123.45')
   })
 
+  it("opens on the amount the forecast's top-up asked for", () => {
+    render(<MoveMoneyScreen targetCategory="Food" amount={750} onClose={vi.fn()} />)
+    expect((screen.getByRole('textbox', { name: 'Amount' }) as HTMLInputElement).value).toContain('750')
+  })
+
   it('submits a decimal transfer from multiple sources exactly', async () => {
     openSources('1500.25')
     fireEvent.click(screen.getByRole('button', { name: 'Auto-fill' }))

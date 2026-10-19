@@ -336,18 +336,25 @@ interface SourceItem {
   score: number
 }
 
-export function MoveMoneyScreen({ targetCategory, onClose }: { targetCategory: string; onClose: () => void }) {
+export function MoveMoneyScreen({ targetCategory, amount, onClose }: {
+  targetCategory: string
+  /** Opening amount, e.g. the shortfall Insights' forecast offered to top up. */
+  amount?: number
+  onClose: () => void
+}) {
   const data = useMoneyData()
   if (data.isLoading) return <FormSheet title="Pull money" onClose={onClose} busy={false}><LoadingCaption /></FormSheet>
-  return <MoveMoneyBody targetCategoryName={targetCategory} onClose={onClose} data={data} />
+  return <MoveMoneyBody targetCategoryName={targetCategory} initialAmount={amount} onClose={onClose} data={data} />
 }
 
 function MoveMoneyBody({
   targetCategoryName,
+  initialAmount,
   onClose,
   data,
 }: {
   targetCategoryName: string
+  initialAmount?: number
   onClose: () => void
   data: ReturnType<typeof useMoneyData>
 }) {
@@ -375,7 +382,9 @@ function MoveMoneyBody({
 
   const [step, setStep] = useState<'amount' | 'sources'>('amount')
   const [allocs, setAllocs] = useState<Record<string, number>>({})
-  const [amountStr, setAmountStr] = useState(isOverspent ? String(cents(shortfall)) : '')
+  const [amountStr, setAmountStr] = useState(
+    initialAmount && initialAmount > 0 ? String(cents(initialAmount)) : isOverspent ? String(cents(shortfall)) : '',
+  )
   const [query, setQuery] = useState('')
   const [error, setError] = useState('')
 
