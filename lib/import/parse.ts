@@ -11,16 +11,19 @@ export type Direction = 'negative_spend' | 'positive_spend'
 /**
  * Comma is the decimal separator when no amount ends in a dot plus cents and at
  * least one ends in a comma plus cents or groups its thousands with dots (50.000).
+ * `threeDecimals` is for dinars (KWD, BHD, OMR, JOD), where 12.500 is twelve and a half.
  */
-export function detectDecimalComma(samples: string[]): boolean {
+export function detectDecimalComma(samples: string[], threeDecimals = false): boolean {
   let evidence = false
   for (const raw of samples) {
+    // 1.5E+03 says nothing about separators, and stripped it reads like 1.503.
+    if (/\de[-+]?\d/i.test(raw)) continue
     const t = raw.replace(/[^\d.,]/g, '')
     const i = Math.max(t.lastIndexOf(','), t.lastIndexOf('.'))
     if (i < 0) continue
     if (t[i] === '.') {
-      // Same rule as 1,250 below: no money has three decimals, so 50.000 is thousands.
-      if (!/^\d{1,3}(?:\.\d{3})+$/.test(t)) return false
+      // Same rule as 1,250 below: outside dinars no money has three decimals, so 50.000 is thousands.
+      if (threeDecimals || !/^[1-9]\d{0,2}(?:\.\d{3})+$/.test(t)) return false
       evidence = true
       continue
     }
@@ -58,8 +61,9 @@ export function parseAmount(raw: string, decimalComma: boolean): number | null {
     s = s.slice(1)
   }
   // In a comma-decimal file, 1,250 is still thousands: no money has three decimals.
+  // A scientific cell was already rewritten as a dot decimal above.
   const thousands = decimalComma && /^\d{1,3}(?:,\d{3})+$/.test(s)
-  s = decimalComma && !thousands ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, '')
+  s = decimalComma && !scientific && !thousands ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, '')
   if (!/^\d+(?:\.\d+)?$/.test(s)) return null
   // Rounding through the exponent keeps 10.555 at 10.56, which `* 100` can't.
   const cents = Number(`${Math.round(Number(`${s}e2`))}e-2`)

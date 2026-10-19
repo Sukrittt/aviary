@@ -156,6 +156,13 @@ describe('generic files', () => {
     expect(out.rows.map((r) => r.amount)).toEqual([50000, 1250000, 125000])
   })
 
+  it('reads three decimals as decimals for a dinar user or file', () => {
+    const rows = [['Date', 'Description', 'Amount'], ['01.09.2026', 'Rent', '-12.500'], ['02.09.2026', 'Lunch', '-3.250']]
+    expect(normalize(inspect([{ name: 'x.csv', rows }]), TODAY, {}, 'KWD').rows.map((r) => r.amount)).toEqual([12.5, 3.25])
+    const coded = [['Date', 'Description', 'Amount', 'Currency'], ['01.09.2026', 'Rent', '-12.500', 'BHD']]
+    expect(normalize(inspect([{ name: 'x.csv', rows: coded }]), TODAY, {}, 'USD').rows.map((r) => r.amount)).toEqual([12.5])
+  })
+
   it('keeps every row of fifteen years of history, the oldest included', () => {
     const lines = ['Date,Description,Amount,Account,Category,Subcategory,Notes']
     for (let i = 0; i < 50_000; i++) {
