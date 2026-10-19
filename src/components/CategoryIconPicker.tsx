@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { CATEGORY_ICON_COMPONENTS } from './CategoryIcon'
-import { MagnifyingGlassIcon, PencilSimpleIcon } from './icons'
+import { CheckIcon, MagnifyingGlassIcon, PencilSimpleIcon } from './icons'
 import { searchCategoryIcons, type CategoryIconKey } from '@/src/lib/categoryIcons'
+import { CATEGORY_COLORS, type CategoryColor } from '@/src/lib/categoryColors'
+import { colorStyle } from '@/src/lib/emoji'
 
 const POPOVER_WIDTH = 320
 // Search row plus four rows of icons, for deciding whether it fits below.
@@ -187,6 +189,44 @@ export function CategoryIconPicker({ value, onChange, tint, disabled, className,
         </div>,
         document.body,
       )}
+    </div>
+  )
+}
+
+const COLOR_LABELS: Record<CategoryColor, string> = {
+  mint: 'Green', violet: 'Purple', blue: 'Blue', accent: 'Orange', warn: 'Yellow', coral: 'Red',
+}
+
+/** A row of the six tints, for picking a category's or group's colour. */
+export function ColorSwatches({ value, onChange, disabled }: {
+  value: CategoryColor
+  onChange: (color: CategoryColor) => void
+  disabled?: boolean
+}) {
+  return (
+    <div className="color-swatches" role="radiogroup" aria-label="Color">
+      {CATEGORY_COLORS.map((color) => {
+        const { background, color: ink } = colorStyle(color)
+        const on = color === value
+        return (
+          <button
+            key={color}
+            type="button"
+            role="radio"
+            aria-checked={on}
+            aria-label={COLOR_LABELS[color]}
+            title={COLOR_LABELS[color]}
+            className="color-swatch"
+            style={{ background, borderColor: on ? ink : 'transparent' }}
+            onClick={() => onChange(color)}
+            disabled={disabled}
+          >
+            <span className="color-swatch-dot" style={{ background: ink }}>
+              {on && <CheckIcon size={13} weight="bold" aria-hidden="true" />}
+            </span>
+          </button>
+        )
+      })}
     </div>
   )
 }

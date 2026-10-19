@@ -18,7 +18,7 @@ import {
   type TrendPoint,
 } from "@/src/components/charts/TrendChart";
 import { useBudgets } from "@/src/hooks/useBudgets";
-import { useCategories, useCategoryIcons } from "@/src/hooks/useCategories";
+import { useCategories, useCategoryIcons, useCategoryStyle } from "@/src/hooks/useCategories";
 import { useExpenses } from "@/src/hooks/useExpenses";
 import { useGroups } from "@/src/hooks/useGroups";
 import { useHideAmounts } from "@/src/hooks/useHideAmounts";
@@ -31,7 +31,7 @@ import {
   prevMonthKey,
   shiftMonthKey,
 } from "@/src/lib/envelope";
-import { avatarStyleFor, splitEmoji } from "@/src/lib/emoji";
+import { splitEmoji } from "@/src/lib/emoji";
 import { todayLocal } from "@/src/lib/date";
 import { formatDateShort, formatShortDate } from "@/src/lib/format";
 import {
@@ -71,6 +71,7 @@ function missingIncomeNote(months: string[]) {
 }
 
 export function InsightsPage() {
+  const styleOf = useCategoryStyle();
   const { formatCurrency } = useCurrency();
 
   const router = useRouter();
@@ -587,7 +588,7 @@ export function InsightsPage() {
                           <span
                             className="ins-top-icon"
                             title={spend.category}
-                            style={avatarStyleFor(spend.category)}
+                            style={styleOf(spend.category)}
                           >
                             <CategoryIcon name={spend.fullCategory} icon={spend.icon} group={spend.group} />
                           </span>

@@ -12835,6 +12835,50 @@ button.account-feature-card {
   cursor: pointer;
   transition: transform 120ms ease;
 }
+/* The edit sheets' colour row: the six tints, the picked one ringed in its ink. */
+.color-swatches {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+.color-swatch {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 120ms ease;
+}
+.color-swatch:hover:not(:disabled) {
+  transform: scale(1.06);
+}
+.color-swatch:focus-visible {
+  outline: 2px solid var(--erd-text);
+  outline-offset: 2px;
+}
+.color-swatch-dot {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--tk-card-solid);
+}
+
+/* A group's icon on the Categories list wears its colour, like a category's tile. */
+.env-group-icon {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  font-size: 15px;
+}
+
 /* The rename sheets' header tile doubles as the picker. */
 .cat-icon-picker-trigger.env-sheet-rename-icon {
   width: 52px;

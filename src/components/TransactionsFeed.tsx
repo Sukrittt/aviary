@@ -7,9 +7,9 @@ import { CategoryIcon } from './CategoryIcon'
 import { DeletingRow } from './DeletingRow'
 import { Scrim } from './MotionSheet'
 import { useExpensesFeed } from '../hooks/useExpenses'
-import { useCategoryIcons } from '../hooks/useCategories'
+import { useCategoryIcons, useCategoryStyle } from '../hooks/useCategories'
 import { useCurrency } from '../context/CurrencyContext'
-import { avatarStyleFor, splitEmoji } from '../lib/emoji'
+import { splitEmoji } from '../lib/emoji'
 import { toTransactions, type Transaction } from '../lib/expenseTransactions'
 import { stablePhotoUrl } from '../lib/activityFeed'
 import { EMPTY } from '../lib/constants'
@@ -155,6 +155,7 @@ function FeedCard({ txn, layoutKey, hideAmounts, icon, onOpen }: {
   icon?: string
   onOpen: () => void
 }) {
+  const styleOf = useCategoryStyle()
   const { formatCurrency } = useCurrency()
   const name = splitEmoji(txn.category).text
   const uri = useMemo(() => (txn.photoUrl ? stablePhotoUrl(txn.photoUrl) : null), [txn.photoUrl])
@@ -164,7 +165,7 @@ function FeedCard({ txn, layoutKey, hideAmounts, icon, onOpen }: {
       {/* One button over the whole card, like the list rows' txn-row-trigger. */}
       <button type="button" className="feed-card-open" aria-label={`${txn.item}, ${name}. View details`} onClick={onOpen} />
       <header className="feed-card-head">
-        <span className="txn-timeline-icon" style={avatarStyleFor(name)} aria-hidden="true">
+        <span className="txn-timeline-icon" style={styleOf(name)} aria-hidden="true">
           <CategoryIcon name={txn.category} icon={icon} />
         </span>
         <span className="feed-card-title">
@@ -197,6 +198,7 @@ function TransactionDetailDialog({ txn, layoutKey, hideAmounts, icon, account, o
   onEdit: () => void
   onDelete: () => void
 }) {
+  const styleOf = useCategoryStyle()
   const { formatCurrency } = useCurrency()
   const name = splitEmoji(txn.category).text
   const photo = txn.photoUrl ? stablePhotoUrl(txn.photoUrl) : null
@@ -238,7 +240,7 @@ function TransactionDetailDialog({ txn, layoutKey, hideAmounts, icon, account, o
         onClick={(e) => e.stopPropagation()}
       >
         <header className="feed-card-head">
-          <span className="txn-timeline-icon" style={avatarStyleFor(name)} aria-hidden="true">
+          <span className="txn-timeline-icon" style={styleOf(name)} aria-hidden="true">
             <CategoryIcon name={txn.category} icon={icon} />
           </span>
           <span className="feed-card-title">
@@ -256,7 +258,7 @@ function TransactionDetailDialog({ txn, layoutKey, hideAmounts, icon, account, o
               <img src={photo} alt={`Photo of ${txn.item}`} className="feed-card-photo" />
             </a>
           ) : (
-            <div className="feed-card-placeholder" style={avatarStyleFor(name)}>
+            <div className="feed-card-placeholder" style={styleOf(name)}>
               <CategoryIcon name={txn.category} icon={icon} size={48} />
             </div>
           )}

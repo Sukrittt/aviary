@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import { useCurrency } from '@/src/context/CurrencyContext'
 import type { ExpenseRow } from '../types'
-import { avatarStyleFor, splitEmoji } from '../lib/emoji'
+import { splitEmoji } from '../lib/emoji'
+import { useCategoryStyle } from '../hooks/useCategories'
 import { CategoryIcon } from './CategoryIcon'
 import { formatShortDate } from '../lib/format'
 import { CREDIT_CARD_CATEGORY, INCOME_CATEGORY } from '../lib/envelope'
@@ -15,6 +16,7 @@ export function RecentActivity({ expenses, hideAmounts, categoryIcons, historyCo
   /** Stored icons by category name, from `useCategoryIcons()`. */
   categoryIcons?: Map<string, string>
 }) {
+  const styleOf = useCategoryStyle()
   const { formatCurrency } = useCurrency()
   const recent = expenses
     .filter((expense) => expense.category !== INCOME_CATEGORY && expense.category !== CREDIT_CARD_CATEGORY)
@@ -46,7 +48,7 @@ export function RecentActivity({ expenses, hideAmounts, categoryIcons, historyCo
               <Link key={expense.id ?? `${expense.timestamp}-${index}`}
                 href={`/expense/transactions?date=${encodeURIComponent(expense.date)}`}
                 className="ins-top-row">
-                <span className="ins-top-icon" style={avatarStyleFor(category)} aria-hidden="true">
+                <span className="ins-top-icon" style={styleOf(category)} aria-hidden="true">
                   <CategoryIcon name={expense.category} icon={categoryIcons?.get(expense.category)} />
                 </span>
                 <span className="ins-top-body">

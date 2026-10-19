@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { TransactionsFeed } from './TransactionsFeed'
 import type { Transaction } from '../lib/expenseTransactions'
+import { avatarStyleFor } from '../lib/emoji'
 
 const m = vi.hoisted(() => ({
   rows: [] as Record<string, unknown>[],
@@ -18,7 +19,7 @@ vi.mock('../hooks/useExpenses', () => ({
     fetchNextPage: m.fetchNextPage,
   }),
 }))
-vi.mock('../hooks/useCategories', () => ({ useCategoryIcons: () => new Map() }))
+vi.mock('../hooks/useCategories', () => ({ useCategoryIcons: () => new Map(), useCategoryStyle: () => (name: string) => avatarStyleFor(name) }))
 
 const row = (over: Record<string, unknown> = {}) => ({
   id: 'e1', version: 1, timestamp: '2026-10-12T10:00:00', date: '2026-10-12', item: 'Plant', amount_inr: '300',
