@@ -45,6 +45,7 @@ import {
 import { EMPTY } from "@/src/lib/constants";
 import { BirdEmptyState } from "@/src/components/BirdEmptyState";
 import { InsightsTab } from "@/src/components/InsightsTab";
+import { ForecastCard } from "@/src/components/Forecast";
 
 const TREND_MONTHS = 12;
 const HEATMAP_WEEKS = 12;
@@ -552,6 +553,16 @@ export function InsightsPage() {
               </article>
 
               <div className="ins-left-col">
+                {isCurrent && (
+                  <ForecastCard
+                    hideAmounts={hideAmounts}
+                    icon={(category) => (
+                      <span className="ins-top-icon" title={category} style={avatarStyleFor(splitEmoji(category).text)}>
+                        <CategoryIcon name={category} icon={categoryIcons.get(category)} group={categoryGroupMap.get(category)} />
+                      </span>
+                    )}
+                  />
+                )}
                 <article className="erd-card ins-card ins-top-card">
                   <div className="ins-card-heading">
                     <div>

@@ -992,3 +992,20 @@
 }
 .ins-breakdown-empty strong { margin-top: 8px; font-family: var(--font-display); font-size: 18px; font-weight: 600; }
 .ins-breakdown-empty p { margin: 4px 0 0; color: var(--erd-text2); font-size: 13px; }
+
+/* Forecast (components/Forecast.tsx): rows aren't buttons, and next month sits under the list. */
+.expense-redesign div.ins-top-row { cursor: default; }
+.expense-redesign div.ins-top-row:hover { background: transparent; }
+.ins-forecast-next {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 14px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--erd-border);
+  font-size: 14px;
+}
+.ins-forecast-next strong { color: var(--erd-text); font-weight: 500; }
+.ins-forecast-next span { color: var(--erd-text3); font-size: 12px; font-weight: 500; }
+/* Home's forecast line is a link styled as the slim Ready to Assign row. */
+.expense-redesign a.erd-home-rta-slim { text-decoration: none; }
