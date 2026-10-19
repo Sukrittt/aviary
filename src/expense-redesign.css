@@ -12833,7 +12833,7 @@ button.account-feature-card {
   border: 1px solid color-mix(in oklab, currentColor 25%, transparent);
   font-size: 20px;
   cursor: pointer;
-  transition: transform 120ms ease;
+  transition: transform 120ms ease, background-color 300ms ease, color 300ms ease;
 }
 /* The edit sheets' colour row: the six tints, the picked one ringed in its ink. */
 .color-swatches {
@@ -12842,6 +12842,7 @@ button.account-feature-card {
   margin-top: 14px;
 }
 .color-swatch {
+  position: relative;
   width: 36px;
   height: 36px;
   display: grid;
@@ -12850,10 +12851,48 @@ button.account-feature-card {
   border-radius: 50%;
   border: 2px solid transparent;
   cursor: pointer;
-  transition: transform 120ms ease;
+  transition: transform 120ms ease, border-color 200ms ease;
 }
 .color-swatch:hover:not(:disabled) {
   transform: scale(1.06);
+}
+.color-swatch:active:not(:disabled) {
+  transform: scale(0.9);
+}
+/* A fresh pick: the swatch springs back, one ring ripples out, the tick pops in.
+   Once, not a loop: a pulse that keeps going reads as "look at me". */
+.color-swatches--live .color-swatch[aria-pressed="true"] {
+  animation: swatch-pick 420ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.color-swatches--live .color-swatch[aria-pressed="true"]::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  pointer-events: none;
+  animation: swatch-ripple 600ms ease-out forwards;
+}
+.color-swatches--live .color-swatch[aria-pressed="true"] svg {
+  animation: swatch-tick 320ms cubic-bezier(0.34, 1.56, 0.64, 1) 60ms both;
+}
+@keyframes swatch-pick {
+  0% { transform: scale(0.85); }
+  60% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+@keyframes swatch-ripple {
+  0% { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+@keyframes swatch-tick {
+  0% { transform: scale(0) rotate(-30deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .color-swatches--live .color-swatch[aria-pressed="true"],
+  .color-swatches--live .color-swatch[aria-pressed="true"] svg { animation: none; }
+  .color-swatches--live .color-swatch[aria-pressed="true"]::after { content: none; }
 }
 .color-swatch:focus-visible {
   outline: 2px solid var(--erd-text);

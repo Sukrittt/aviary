@@ -7,6 +7,7 @@ import { CheckIcon, MagnifyingGlassIcon, PencilSimpleIcon } from './icons'
 import { searchCategoryIcons, type CategoryIconKey } from '@/src/lib/categoryIcons'
 import { CATEGORY_COLORS, type CategoryColor } from '@/src/lib/categoryColors'
 import { colorStyle } from '@/src/lib/emoji'
+import { usePopOnChange } from './Pop'
 
 const POPOVER_WIDTH = 320
 // Search row plus four rows of icons, for deciding whether it fits below.
@@ -45,6 +46,7 @@ export function CategoryIconPicker({ value, onChange, tint, disabled, className,
   const panelId = useId()
   const Current = CATEGORY_ICON_COMPONENTS[value]
   const matches = searchCategoryIcons(query)
+  usePopOnChange(trigger, tint.color)
 
   // Below the tile, or above it when there isn't room; kept inside the viewport.
   const measure = useCallback(() => {
@@ -203,8 +205,10 @@ export function ColorSwatches({ value, onChange, disabled }: {
   onChange: (color: CategoryColor) => void
   disabled?: boolean
 }) {
+  // Animate the pick only once the user has made one, not on the sheet's open.
+  const [live, setLive] = useState(false)
   return (
-    <div className="color-swatches" role="group" aria-label="Color">
+    <div className={`color-swatches${live ? ' color-swatches--live' : ''}`} role="group" aria-label="Color">
       {CATEGORY_COLORS.map((color) => {
         const { background, color: ink } = colorStyle(color)
         const on = color === value
@@ -216,8 +220,11 @@ export function ColorSwatches({ value, onChange, disabled }: {
             aria-label={COLOR_LABELS[color]}
             title={COLOR_LABELS[color]}
             className="color-swatch"
-            style={{ background, borderColor: on ? ink : 'transparent' }}
-            onClick={() => onChange(color)}
+            style={{ background, color: ink, borderColor: on ? ink : 'transparent' }}
+            onClick={() => {
+              setLive(true)
+              onChange(color)
+            }}
             disabled={disabled}
           >
             <span className="color-swatch-dot" style={{ background: ink }}>

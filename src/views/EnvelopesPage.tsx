@@ -7,6 +7,7 @@ import { ReceiptIcon, BellIcon, ArrowsInLineVerticalIcon, SquaresFourIcon, MoonI
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { CategoryIcon } from "../components/CategoryIcon";
 import { CategoryIconPicker, ColorSwatches } from "../components/CategoryIconPicker";
+import { Pop } from "../components/Pop";
 import { categoryIconKey, groupIconKey, type CategoryIconKey } from "../lib/categoryIcons";
 import { useAppearance } from "../../components/AppearanceProvider";
 import { ExpenseSidebar } from "../components/ExpenseSidebar";
@@ -439,13 +440,14 @@ export function EnvelopesPage() {
                         size={14}
                         className="env-group-chevron"
                       />
-                      <span
+                      <Pop
+                        value={`${groupColors.get(group.name)}|${groupIcons.get(group.name)}`}
                         className="env-group-icon"
                         style={colorStyle(groupColor(groupColors.get(group.name)))}
                         aria-hidden="true"
                       >
                         <CategoryIcon kind="group" name={group.name} icon={groupIcons.get(group.name)} />
-                      </span>
+                      </Pop>
                       <span className="env-group-name">{text}</span>
                       <span className="env-group-count">
                         {group.items.length}
@@ -522,7 +524,8 @@ export function EnvelopesPage() {
                           return (
                             <>
                               {catGrip}
-                              <span
+                              <Pop
+                                value={`${category.color}|${category.icon}`}
                                 className="env-cat-icon"
                                 style={avatarStyleFor(parts.text, category.color)}
                                 aria-hidden="true"
@@ -532,7 +535,7 @@ export function EnvelopesPage() {
                                   icon={category.icon}
                                   group={group.name}
                                 />
-                              </span>
+                              </Pop>
                               <span className="env-cat-name">{parts.text}</span>
                               <button
                                 type="button"
