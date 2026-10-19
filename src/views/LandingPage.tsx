@@ -223,6 +223,8 @@ export function LandingPage({ monthlyPrice, ios = false, android = false, intl =
       <h2 id="get-title" className="lp-h2">Your money, noticed.</h2>
       <div className="lp-hero-actions">{!ios && <StoreLink placement="footer_cta" />}<Link href="/expense" className="lp-button lp-button--ghost"><MonitorIcon size={18} aria-hidden="true" />Open web app</Link></div>
       <span className="lp-hero-note">Free for 30 days{afterTrial} · No card needed · <a href={GITHUB} target="_blank" rel="noreferrer">Open source</a></span>
+      {/* The planner is in rupees, so the India page only. */}
+      {!intl && <span className="lp-hero-note lp-hero-note--tight">Not ready yet? <Link href="/tools/salary-budget-planner">Get your salary split by email</Link></span>}
       {!android && <IosWaitlist />}
     </section>
     <LandingFooter />

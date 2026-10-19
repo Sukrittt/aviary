@@ -131,6 +131,8 @@ export type AppEvent =
   // Web only: the landing page's iPhone waitlist form. `waitlist_platform` is
   // 'ios'. Not `platform`: that's the registered app split and stays 'web'.
   | 'waitlist_joined'
+  // Web only: the salary planner's "Email me this plan" form was sent.
+  | 'plan_emailed'
 
 export type EventProperties = Record<string, string | number | boolean>
 
