@@ -83,6 +83,8 @@ export interface CategoryRow {
   group: string
   /** A Phosphor icon name from src/lib/categoryIcons.ts, once the user picks one. */
   icon?: string
+  /** A tint key from src/lib/categoryColors.ts, once the user picks one on Mobile. */
+  color?: string
   alertPcts?: number[]
 }
 
