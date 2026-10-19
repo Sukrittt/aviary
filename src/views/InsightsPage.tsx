@@ -31,7 +31,7 @@ import {
   prevMonthKey,
   shiftMonthKey,
 } from "@/src/lib/envelope";
-import { splitEmoji } from "@/src/lib/emoji";
+import { avatarStyleFor, splitEmoji } from "@/src/lib/emoji";
 import { todayLocal } from "@/src/lib/date";
 import { formatDateShort, formatShortDate } from "@/src/lib/format";
 import {
