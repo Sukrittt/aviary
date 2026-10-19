@@ -3,6 +3,7 @@
 import { Suspense, useState, type CSSProperties, type FormEvent } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { track } from '@/src/lib/analytics'
+import { takeReturnTo } from '@/src/lib/returnTo'
 
 function CodeForm() {
   const router = useRouter()
@@ -38,7 +39,7 @@ function CodeForm() {
     // session cookie fresh, same as the old AuthGate's post-verify reload.
     // Delay lets the success animation play, matching mobile's 1100ms.
     setTimeout(() => {
-      window.location.href = '/expense'
+      window.location.href = takeReturnTo() ?? '/expense'
     }, 1100)
   }
 
