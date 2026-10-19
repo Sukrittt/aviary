@@ -62,6 +62,10 @@ describe('display currency', () => {
     expect(inr.formatCompact(2_00_00_000)).toBe('₹2Cr')
     expect(inr.formatCompact(25_00_00_000)).toBe('₹25Cr')
     expect(inr.formatCompact(1000_00_00_000)).toBe('₹1000Cr')
+    // Halves whose scaled value is inexact in floating point still round up.
+    expect(inr.formatCompact(1150)).toBe('₹1.2k')
+    expect(inr.formatCompact(1_15_000)).toBe('₹1.2L')
+    expect(inr.formatCompact(1_15_00_000)).toBe('₹1.2Cr')
   })
   it('puts the sign before the symbol on chart labels', () => {
     const inr = createCurrencyFormat('INR')
@@ -86,6 +90,7 @@ describe('display currency', () => {
     expect(usd.formatCompact(999_400)).toBe('$999k')
     expect(usd.formatCompact(999_950)).toBe('$1M')
     expect(usd.formatCompact(1_250_000)).toBe('$1.3M')
+    expect(usd.formatCompact(1_150_000)).toBe('$1.2M')
     expect(usd.formatCompact(1_20_00_000)).toBe('$12M')
     expect(usd.formatCompact(999_940_000)).toBe('$999.9M')
     expect(usd.formatCompact(999_960_000)).toBe('$1B')
