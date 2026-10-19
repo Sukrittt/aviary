@@ -12,7 +12,7 @@ vi.mock('@/src/api/budgets', () => ({
 }))
 vi.mock('@/src/api/groups', () => ({ addGroup: vi.fn(async () => ({})) }))
 vi.mock('@/src/api/categories', () => ({ addCategory: vi.fn(async () => ({})) }))
-vi.mock('@/src/api/account', () => ({ updateUser: vi.fn(async patch => patch) }))
+vi.mock('@/src/api/account', () => ({ updateUser: vi.fn(async patch => patch), getUser: vi.fn(async () => ({ onboardedAt: null })) }))
 vi.mock('@/src/api/billing', () => ({
   completeOnboarding: vi.fn(async () => ({ onboardedAt: '2026-09-18T12:00:00.000Z', user: { currencyCode: 'USD' }, access: {} })),
 }))
@@ -20,6 +20,8 @@ vi.mock('@/src/api/billing', () => ({
 function setup() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } })
   render(<QueryClientProvider client={client}><SetupWizardPage /></QueryClientProvider>)
+  fireEvent.click(screen.getByRole('radio', { name: /^I’m starting fresh/ }))
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
   return client
 }
 

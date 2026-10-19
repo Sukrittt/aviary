@@ -8,7 +8,7 @@ vi.stubGlobal('IntersectionObserver', class { observe() {} unobserve() {} discon
 describe('LandingPage', () => {
   it('opens with the day 3 arc, then the fixes', () => {
     render(<LandingPage />)
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('The budgeting app you’ll still open on day 4.')
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('It notices your 4pm chai and nudges you to log it.')
     const h2s = screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)
     expect(h2s.indexOf('You know how it goes.')).toBeLessThan(h2s.indexOf('It already knows your Friday cab.'))
   })
@@ -30,6 +30,7 @@ describe('LandingPage', () => {
     expect(screen.queryByRole('link', { name: /Get it on Android|Get the app/ })).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Join waitlist' })).toHaveAttribute('href', '#top')
     expect(screen.getAllByLabelText('Email for the iPhone waitlist')).toHaveLength(2)
+    expect(screen.getByRole('link', { name: 'Use it on the web today' })).toHaveClass('lp-button--dark')
   })
 
   it.each([{}, { ios: true }, { android: true }])('puts a web app button in the hero for %o', (props) => {

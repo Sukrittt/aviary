@@ -32,6 +32,9 @@ vi.mock('@/lib/mongodb', () => ({
 type Doc = Record<string, unknown> & { _id: ObjectId }
 
 const stores: Record<string, Doc[]> = { expenses: [], budgets: [] }
+// Two requests racing on one client_id: the second's pre-check runs before the first commits.
+let missNextClientIdLookup = false
+let insertError: Error | null = null
 
 function matches(doc: Doc, filter: Record<string, unknown>): boolean {
   return Object.entries(filter).every(([k, v]) =>
@@ -47,8 +50,20 @@ function fakeCollection(base: string) {
     find: (filter: Record<string, unknown> = {}) => ({
       toArray: async () => store.filter((d) => matches(d, filter)),
     }),
-    findOne: async (filter: Record<string, unknown>) => store.find((d) => matches(d, filter)) ?? null,
+    // Live-only by default, like lib/scoped.ts.
+    findOne: async (filter: Record<string, unknown>, _options?: unknown, scope?: { includeDeleted?: boolean }) => {
+      if (missNextClientIdLookup && 'client_id' in filter) {
+        missNextClientIdLookup = false
+        return null
+      }
+      return store.find((d) => matches(d, filter) && (scope?.includeDeleted || !d.deleted_at)) ?? null
+    },
     insertOne: async (doc: Record<string, unknown>) => {
+      if (insertError) throw insertError
+      // The unique {user_id, client_id} index.
+      if (base === 'expenses' && doc.client_id && store.some((d) => d.client_id === doc.client_id)) {
+        throw Object.assign(new Error('E11000 duplicate key error index: user_id_1_client_id_1'), { code: 11000 })
+      }
       const withId = { ...doc, _id: new ObjectId() } as Doc
       store.push(withId)
       return { insertedId: withId._id }
@@ -74,10 +89,19 @@ const base = { item: 'Rent', amount_inr: '1000', category: 'Housing' }
 beforeEach(() => {
   stores.expenses = []
   stores.budgets = []
+  insertError = null
   notifyThresholdCrossed.mockClear()
 })
 
 describe('createExpense', () => {
+  it('keeps an import id on the row, and only when one is given', async () => {
+    await createExpense(auth, { ...base, source: 'import', import_id: 'imp1', notify: false })
+    await createExpense(auth, base)
+    expect(stores.expenses[0]).toMatchObject({ source: 'import', import_id: 'imp1' })
+    expect(stores.expenses[1]).not.toHaveProperty('import_id')
+    expect(notifyThresholdCrossed).toHaveBeenCalledTimes(1)
+  })
+
   it('inserts one expense with the defaults the POST route used to apply inline', async () => {
     const result = await createExpense(auth, base)
 
@@ -112,6 +136,29 @@ describe('createExpense', () => {
     expect(stores.expenses).toHaveLength(1)
   })
 
+  it('answers a client_id race that slips past the pre-check as a replay, not an error', async () => {
+    const first = await createExpense(auth, { ...base, payment_method: 'credit_card', date: '2026-09-07', client_id: 'c1' })
+    missNextClientIdLookup = true
+    const second = await createExpense(auth, { ...base, payment_method: 'credit_card', date: '2026-09-07', client_id: 'c1' })
+
+    expect(second).toEqual({ ...first, duplicate: true })
+    expect(stores.expenses).toHaveLength(1)
+  })
+
+  it('answers a replay of a since-deleted expense as a duplicate, without bringing it back', async () => {
+    const first = await createExpense(auth, { ...base, client_id: 'c3' })
+    stores.expenses[0].deleted_at = '2026-10-19T08:00:00Z'
+    const second = await createExpense(auth, { ...base, client_id: 'c3' })
+
+    expect(second).toEqual({ ...first, duplicate: true })
+    expect(stores.expenses).toHaveLength(1)
+  })
+
+  it('still throws a duplicate key error when no row holds the client_id', async () => {
+    insertError = Object.assign(new Error('E11000 duplicate key error index: other_1'), { code: 11000 })
+    await expect(createExpense(auth, { ...base, client_id: 'c2' })).rejects.toThrow('other_1')
+  })
+
   it('bumps the __credit_card__ envelope for a credit_card expense', async () => {
     await createExpense(auth, { ...base, payment_method: 'credit_card', date: '2026-09-07' })
 
@@ -129,6 +176,13 @@ describe('createExpense', () => {
 
     expect(stores.budgets).toHaveLength(1)
     expect(stores.budgets[0].assigned).toBe('1250')
+  })
+
+  it('keeps the __credit_card__ envelope to the cent as float amounts add up', async () => {
+    for (const [i, amount] of ['0.1', '0.2', '1108.24'].entries()) {
+      await createExpense(auth, { ...base, amount_inr: amount, payment_method: 'credit_card', date: `2026-09-1${i}` })
+    }
+    expect(stores.budgets[0].assigned).toBe('1108.54')
   })
 
   it('leaves the envelope alone for a bank expense', async () => {

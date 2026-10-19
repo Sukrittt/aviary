@@ -1,6 +1,8 @@
 import { ObjectId, type ClientSession } from 'mongodb'
 import type { Auth } from '@/lib/access'
 import { getCollection } from '@/lib/http'
+import { invalidate } from '@/lib/cache'
+import { nowForUser } from '@/lib/userCurrency'
 import { MAX_ACCOUNTS as MAX_BALANCE_ACCOUNTS } from '@/lib/balanceCheck'
 
 /**
@@ -64,6 +66,29 @@ export function accountRow(doc: Record<string, unknown>) {
 }
 
 export class AccountError extends Error {}
+
+/** Why an account can't be created: a name already taken, or a cap reached. The message is user copy. */
+export class AccountWriteError extends Error {
+  constructor(readonly status: number, message: string) {
+    super(message)
+  }
+}
+
+export const sameAccountName = (a: unknown, b: string) => String(a ?? '').trim().toLowerCase() === b.toLowerCase()
+
+/** The one way an account is created. Lifted out of `POST /api/accounts` so the import commit shares it. Returns its id. */
+export async function createAccount(auth: Auth, input: { name: string; type: AccountType }): Promise<string> {
+  const coll = await getCollection('accounts', auth)
+  const live = await coll.find({ archived: { $ne: true } }).toArray()
+  // `name` is encrypted, so uniqueness is checked here rather than by an index.
+  if (live.some((a) => sameAccountName(a.name, input.name))) throw new AccountWriteError(409, 'An account with this name already exists.')
+  const limit = accountLimitError(live, input.type)
+  if (limit) throw new AccountWriteError(409, limit)
+  const { timestamp } = await nowForUser(auth.userId)
+  const inserted = await coll.insertOne({ name: input.name, type: input.type, archived: false, created_at: timestamp })
+  invalidate('accounts', auth.userId)
+  return String(inserted.insertedId)
+}
 
 /**
  * The live account an expense or income points at. Throws `AccountError` for

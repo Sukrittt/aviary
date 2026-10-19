@@ -47,6 +47,14 @@ export type AppEvent =
   | 'onboarding_completed'
   | 'onboarding_extras_chosen'
   | 'onboarding_heard_from'
+  // Switching from another app (onboarding's first step). Counts, presets and
+  // reason codes only; never a file name, a row or an amount.
+  | 'import_started'
+  | 'import_previewed'
+  | 'import_direction_flipped'
+  | 'import_committed'
+  | 'import_done'
+  | 'import_failed'
   | 'tour_started'
   | 'tour_step_viewed'
   | 'tour_skipped'
@@ -116,6 +124,8 @@ export type AppEvent =
   | 'feedback_sent'
   | 'idea_posted'
   | 'idea_voted'
+  // "Invite a friend": the link was shared or copied (`method`).
+  | 'invite_shared'
   // Web only: the landing page's way into the app store
   | 'store_cta_clicked'
   // Web only: the landing page's iPhone waitlist form. `waitlist_platform` is
@@ -187,6 +197,10 @@ export function initAnalytics(): Promise<void> {
         },
       })
       posthog.register({ platform: 'web' })
+      // before_send strips query strings, so keep the invite link's ?ref= as a
+      // property on this browser's events instead.
+      const ref = new URLSearchParams(window.location.search).get('ref')
+      if (ref) posthog.register_once({ ref: ref.slice(0, 32) })
       client = posthog
       for (const fn of queued.splice(0)) send(fn)
     })

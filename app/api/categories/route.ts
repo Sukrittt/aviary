@@ -4,6 +4,7 @@ import { requireAccess } from '@/lib/billing/guard'
 import { invalidate } from '@/lib/cache'
 import { withTx } from '@/lib/mongodb'
 import { isCategoryIconKey } from '@/src/lib/categoryIcons'
+import { createCategory } from '@/lib/categories'
 
 export const dynamic = 'force-dynamic'
 
@@ -48,25 +49,12 @@ export async function POST(req: Request) {
   if (!body.name) return error('name required')
   if (body.icon !== undefined && !isCategoryIconKey(body.icon)) return error('unknown icon')
 
-  const coll = await getCollection('categories', auth)
-  const exists = await coll.findOne({ name: String(body.name) })
-  if (exists) return error('category already exists', 409)
-  const maxDoc = await coll.find({}).sort({ order: -1 }).limit(1).next()
-  const order = (maxDoc && typeof maxDoc.order === 'number' ? maxDoc.order : 0) + 1
-  // The pre-check above loses to a concurrent create of the same name; the
-  // unique index is what actually decides, so report its verdict the same way.
-  try {
-    await coll.insertOne({
-      name: String(body.name),
-      group: String(body.group ?? ''),
-      order,
-      ...(body.icon !== undefined ? { icon: body.icon } : {}),
-    })
-  } catch (err) {
-    if (isDuplicateName(err)) return error('category already exists', 409)
-    throw err
-  }
-  invalidate('categories', auth.userId)
+  const created = await createCategory(auth, {
+    name: String(body.name),
+    group: String(body.group ?? ''),
+    ...(body.icon !== undefined ? { icon: body.icon } : {}),
+  })
+  if (created === 'exists') return error('category already exists', 409)
   return json({ ok: true })
 }
 

@@ -13,6 +13,7 @@ import {
 import { useCurrency } from "../context/CurrencyContext";
 import { useHideAmounts } from "../hooks/useHideAmounts";
 import { formatDateShort } from "../lib/format";
+import { toLocalDateString } from "../lib/date";
 import type {
   RecurringSuggestion,
   RecurringScan,
@@ -23,13 +24,19 @@ import { track } from "../lib/analytics";
 import { Select } from "./Select";
 import { RecurringExpenseModal } from "./RecurringExpenseModal";
 import { SubscriptionModal } from "./SubscriptionModal";
+import { useHiddenFeatures } from "../hooks/useUser";
 
 const baseKey = ["recurring-suggestions"] as const;
 type SuggestionKind = RecurringSuggestion["kind"];
 
-export function RecurringSuggestions({ kind = "other_recurring" }: { kind?: SuggestionKind }) {
+/** `all`: both kinds at once, for the import banner's "find your repeat payments". */
+export function RecurringSuggestions({ kind = "other_recurring" }: { kind?: SuggestionKind | "all" }) {
   const qc = useQueryClient();
   const subscriptionMode = kind === "subscription";
+  const allMode = kind === "all";
+  // With Subscriptions switched off, a subscription is set up as a recurring expense, so it lands somewhere they can see.
+  const hidden = useHiddenFeatures();
+  const asSubscription = !(allMode && hidden.includes("subscriptions"));
   const [months, setMonths] = useState<ScanMonths>(subscriptionMode ? 12 : 6);
   const key = [...baseKey, months] as const;
   const { formatCurrency } = useCurrency();
@@ -60,13 +67,13 @@ export function RecurringSuggestions({ kind = "other_recurring" }: { kind?: Sugg
   });
   const data = query.data;
   const suggestions =
-    data?.suggestions.filter((s) => s.kind === kind && !accepted.includes(s.id)) ?? [];
+    data?.suggestions.filter((s) => (allMode || s.kind === kind) && !accepted.includes(s.id)) ?? [];
   const busy = scan.isPending || dismiss.isPending;
   const failure = scan.error ?? dismiss.error ?? query.error;
   return (
     <section
       className="account-card recurring-discovery"
-      aria-label={subscriptionMode ? "Find subscriptions" : "Find recurring expenses"}
+      aria-label={allMode ? "Find repeat payments" : subscriptionMode ? "Find subscriptions" : "Find recurring expenses"}
     >
       <div className="recurring-discovery-header">
         <div className="recurring-discovery-intro">
@@ -74,8 +81,8 @@ export function RecurringSuggestions({ kind = "other_recurring" }: { kind?: Sugg
             <ArrowsClockwiseIcon size={22} />
           </span>
           <div>
-            <h2>{subscriptionMode ? "Find subscriptions" : "Find recurring expenses"}</h2>
-            <p>{subscriptionMode ? "Spot services you already pay for and start tracking them." : "Spot repeated payments. Choose which ones to automate."}</p>
+            <h2>{allMode ? "Find repeat payments" : subscriptionMode ? "Find subscriptions" : "Find recurring expenses"}</h2>
+            <p>{allMode ? "Spot subscriptions and bills that repeat. Choose which ones to keep track of." : subscriptionMode ? "Spot services you already pay for and start tracking them." : "Spot repeated payments. Choose which ones to automate."}</p>
           </div>
         </div>
         <div className="recurring-discovery-controls">
@@ -115,7 +122,7 @@ export function RecurringSuggestions({ kind = "other_recurring" }: { kind?: Sugg
               ? "Scanning expenses…"
               : data?.scannedAt && data.remaining > 0
                 ? "Scan remaining patterns"
-                : subscriptionMode ? "Find subscriptions" : "Find recurring expenses"}
+                : allMode ? "Find repeat payments" : subscriptionMode ? "Find subscriptions" : "Find recurring expenses"}
             {!scan.isPending && <ArrowRightIcon size={16} aria-hidden="true" />}
           </button>
         </div>
@@ -142,8 +149,9 @@ export function RecurringSuggestions({ kind = "other_recurring" }: { kind?: Sugg
             <div className="recurring-discovery-summary">
               <p className="recurring-discovery-timestamp">
                 Last scanned{" "}
-                <time dateTime={data.scannedAt.slice(0, 10)}>
-                  {formatDateShort(data.scannedAt.slice(0, 10))}
+                {/* The local day: a scan at 4 am IST is 22:30 UTC the day before. */}
+                <time dateTime={toLocalDateString(new Date(data.scannedAt))}>
+                  {formatDateShort(toLocalDateString(new Date(data.scannedAt)))}
                 </time>
               </p>
               <p className="recurring-discovery-range">
@@ -184,7 +192,7 @@ export function RecurringSuggestions({ kind = "other_recurring" }: { kind?: Sugg
                   <CheckIcon size={19} />
                 </span>
                 <div>
-                  <h3>{subscriptionMode ? "No new subscriptions" : "No new recurring payments"}</h3>
+                  <h3>{allMode ? "No new repeat payments" : subscriptionMode ? "No new subscriptions" : "No new recurring payments"}</h3>
                   <p>
                     Nothing new to add for this period. Tracked and dismissed payments are hidden.
                   </p>
@@ -260,7 +268,7 @@ export function RecurringSuggestions({ kind = "other_recurring" }: { kind?: Sugg
           </AnimatePresence>
         </ul>
       )}
-      {reviewing && reviewing.kind === "other_recurring" && (
+      {reviewing && (reviewing.kind === "other_recurring" || !asSubscription) && (
         <RecurringExpenseModal
           key={reviewing.id}
           initialValues={reviewing.input}
@@ -273,7 +281,7 @@ export function RecurringSuggestions({ kind = "other_recurring" }: { kind?: Sugg
           }}
         />
       )}
-      {reviewing && reviewing.kind === "subscription" && (
+      {reviewing && reviewing.kind === "subscription" && asSubscription && (
         <SubscriptionModal
           key={reviewing.id}
           initialValues={{

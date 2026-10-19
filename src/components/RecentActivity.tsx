@@ -7,9 +7,11 @@ import { formatShortDate } from '../lib/format'
 import { CREDIT_CARD_CATEGORY, INCOME_CATEGORY } from '../lib/envelope'
 import { BirdEmptyState } from './BirdEmptyState'
 
-export function RecentActivity({ expenses, hideAmounts, categoryIcons }: {
+export function RecentActivity({ expenses, hideAmounts, categoryIcons, historyComing = false }: {
   expenses: ExpenseRow[]
   hideAmounts: boolean
+  /** An import is still booking rows, oldest first: the newest land last. */
+  historyComing?: boolean
   /** Stored icons by category name, from `useCategoryIcons()`. */
   categoryIcons?: Map<string, string>
 }) {
@@ -31,8 +33,10 @@ export function RecentActivity({ expenses, hideAmounts, categoryIcons }: {
           compact
           mood="snoozing"
           subject="expenses"
-          title="Your story starts here"
-          description="Log your first expense and the little details will gather here."
+          title={historyComing ? 'Your history is on its way' : 'Your story starts here'}
+          description={historyComing
+            ? 'It comes in oldest first, so your latest spends land here last.'
+            : 'Log your first expense and the little details will gather here.'}
         />
       ) : (
         <div className="ins-top-list">

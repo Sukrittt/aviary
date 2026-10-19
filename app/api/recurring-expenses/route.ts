@@ -70,7 +70,8 @@ export async function POST(req: Request) {
     const suggestions = await getCollection('recurring_detection', auth)
     const suggestion = await suggestions.findOne({ _id: new ObjectId(suggestionId) })
     if (!suggestion?.decision || suggestion.dismissed) return error('Suggestion is no longer available. Scan again.', 409)
-    if ((suggestion.decision as { pattern?: string }).pattern !== 'other_recurring') return error('This suggestion belongs in subscriptions.', 409)
+    // A subscription may be set up as a recurring expense too: it's how one is logged
+    // when the Subscriptions extra is switched off (the import's "find your repeat payments").
     if (startDate <= today) return error('Choose a future start date so past payments are not logged twice.')
     const subs = await getCollection('subscriptions', auth)
     const [schedules, services] = await Promise.all([coll.find({}).toArray(), subs.find({}).toArray()])

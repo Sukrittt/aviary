@@ -1,0 +1,15 @@
+Period,Accounts,Category,Subcategory,Note,Amount,Income/Expense,Description,Currency
+01/09/2026 09:00:00,HDFC Bank,Salary,,Acme payroll,85000,Income,,INR
+02/09/2026 12:30:00,Cash,Food,Groceries,"Big Bazaar, weekly",1250.50,Expense,,INR
+05/09/2026 20:15:00,HDFC Credit Card,Food,Eating out,Dinner,900,Expense,with friends,INR
+10/09/2026 10:00:00,HDFC Bank,Rent,,September rent,25000,Expense,,INR
+12/09/2026 11:00:00,HDFC Bank,Transfer,,To cash,2000,Transfer-Out,,INR
+12/09/2026 11:00:00,Cash,Transfer,,From bank,2000,Transfer-In,,INR
+15/09/2026 08:00:00,Cash,Modified bal.,,,500,Income,,INR
+18/09/2026 19:00:00,HDFC Bank,Travel,,Hotel in Bali,120,Expense,,USD
+22/09/2026 18:00:00,Cash,Food,Groceries,Pharmacy split (1/2),300,Expense,,INR
+22/09/2026 18:00:00,Cash,Health,,Pharmacy split (2/2),150,Expense,,INR
+01/10/2026 09:00:00,HDFC Bank,Salary,,Acme payroll,85000,Income,,INR
+03/10/2026 13:00:00,Cash,Food,Groceries,Vegetables,0,Expense,,INR
+04/10/2026 13:00:00,Cash,Food,Groceries,Vegetables,340,Expense,,INR
+20/12/2026 10:00:00,HDFC Bank,Rent,,Scheduled rent,25000,Expense,,INR

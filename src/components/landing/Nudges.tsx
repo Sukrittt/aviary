@@ -17,21 +17,9 @@ import { useCurrency } from '@/src/context/CurrencyContext'
  * each scene only shows what that feature actually does.
  */
 
-/** The hero's rotating habit. Screen readers get the first one as plain text. */
-export function RotatingHabit() {
-  const HABITS = useSample().habits
-  const reduced = useReducedMotion()
-  const { ref, visible } = useOnScreen<HTMLSpanElement>(0)
-  const [i, setI] = useState(0)
-  useEffect(() => {
-    if (reduced || !visible) return
-    const id = setInterval(() => setI((n) => (n + 1) % HABITS.length), 2600)
-    return () => clearInterval(id)
-  }, [reduced, visible, HABITS.length])
-  return <span className="lp-rotor" ref={ref}>
-    <span className="lp-sr-only">{HABITS[0]}</span>
-    <span className="lp-rotor-word" key={i} aria-hidden="true">{HABITS[i]}</span>
-  </span>
+/** The headline's habit, from the visitor's sample: chai in India, coffee elsewhere. */
+export function FirstHabit() {
+  return <>{useSample().habits[0]}</>
 }
 
 // ─── Hero: a chaptered film of the app at work ────────────────────────────────
@@ -256,6 +244,42 @@ export function MoreInside() {
     <figure className="lp-shot">
       <div className="lp-shot-art" aria-hidden="true"><ShotClip name="invest" /></div>
       <figcaption><strong>Investments</strong><span>{investments}, with your net worth charted since day one.</span></figcaption>
+    </figure>
+  </div>
+}
+
+// ─── Nothing to lose: switching in, and the phone going missing ──────────────
+
+const IMPORT_APPS = ['YNAB', 'Goodbudget', 'Wallet', 'Monefy', 'Money Manager', 'Spendee', 'axio', 'any csv']
+
+/** The two fears that keep people on an app they've outgrown: starting over, and a lost phone taking the budget with it. */
+export function KeepEverything() {
+  const { ask } = useSample()
+  return <div className="lp-keep">
+    <figure className="lp-shot">
+      <div className="lp-keep-art" aria-hidden="true">
+        <div className="lp-stage-card">
+          <div className="lp-keep-apps">{IMPORT_APPS.map(a => <span key={a}>{a}</span>)}</div>
+          <div className="lp-envelope-line"><span>Groceries</span><strong>3 yrs<small> of history</small></strong></div>
+          <div className="lp-envelope-bar"><i style={{ transform: `scaleX(${ask.bar})` }} /></div>
+          <p className="lp-stage-note">Categories, balances and every transaction, as they were.</p>
+        </div>
+      </div>
+      <figcaption><strong>Bring everything with you.</strong><span>Upload the export from your old app when you set up Aviary. Your categories and years of history come along, in about two minutes. <a href="/sign-in">Sign in and bring it over</a></span></figcaption>
+    </figure>
+    <figure className="lp-shot">
+      <div className="lp-keep-art" aria-hidden="true">
+        <div className="lp-stage-card">
+          <ul className="lp-keep-devices">
+            <li className="is-gone"><span>Old phone</span><span>Lost in March</span></li>
+            <li><span>New phone</span><b>Signed in today</b></li>
+            <li><span>Chrome on your laptop</span><b>Signed in</b></li>
+          </ul>
+          <div className="lp-envelope-line"><span>Left to spend</span><strong>{ask.left}<small> this month</small></strong></div>
+          <div className="lp-envelope-bar"><i style={{ transform: `scaleX(${ask.bar})` }} /></div>
+        </div>
+      </div>
+      <figcaption><strong>Lose the phone, not the budget.</strong><span>Your budget lives in your account, not on the handset. Sign in on the next phone, or in a browser, and it’s all there. Export to CSV any time, even after you stop paying.</span></figcaption>
     </figure>
   </div>
 }

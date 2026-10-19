@@ -38,6 +38,7 @@ import { liveAccounts, useAccounts } from "../hooks/useAccounts";
 import { incomesForPage, periodEnd } from "../lib/incomeActivity";
 import { AccountIcon, accountLabel, accountName } from "./AccountChips";
 import type { IncomeRow } from "../types";
+import { useImportInProgress } from "./ImportBanner";
 
 type PeriodKey = "week" | "month" | "custom";
 
@@ -73,6 +74,7 @@ export function TransactionsView({
   hideAmounts?: boolean;
 }) {
   const { formatCurrency } = useCurrency();
+  const importing = useImportInProgress();
 
   const budgetsQuery = useBudgets();
   const categoriesQuery = useCategories();
@@ -445,16 +447,21 @@ export function TransactionsView({
   const hasActiveFilters =
     period !== "week" || Boolean(selectedCategory) || Boolean(selectedAccount) || Boolean(search.trim());
 
+  const filtered = Boolean(search || selectedCategory || selectedAccount);
+  // An import books oldest first, so this week's rows are the last to land.
+  const historyComing = importing && !filtered;
   const emptyState = (
     <BirdEmptyState
       className="txn-timeline-empty"
       mood={search || selectedCategory || selectedAccount ? 'searching' : 'snoozing'}
       subject="expenses"
-      title={search || selectedCategory || selectedAccount ? 'Nothing turned up' : 'Your story starts here'}
-      description={search || selectedCategory || selectedAccount ? 'No transactions for this filter.' : 'Log your first expense and we’ll keep the little details here.'}
-      action={search || selectedCategory || selectedAccount
+      title={filtered ? 'Nothing turned up' : historyComing ? 'Your history is on its way' : 'Your story starts here'}
+      description={filtered
+        ? 'No transactions for this filter.'
+        : historyComing ? 'It comes in oldest first, so your latest spends land here last.' : 'Log your first expense and we’ll keep the little details here.'}
+      action={filtered
         ? { label: 'Reset filters', onClick: resetFilters }
-        : { label: 'Log your first expense', onClick: () => setShowLogModal(true) }}
+        : historyComing ? undefined : { label: 'Log your first expense', onClick: () => setShowLogModal(true) }}
     />
   );
 
@@ -705,7 +712,9 @@ export function TransactionsView({
                 {group.transactions.map((t, i) => {
                   const rowKey = `${t.timestamp}-${t.item}-${t.amountInr}`;
                   const categoryName = splitEmoji(t.category).text;
-                  const time = formatTransactionTime(t.timestamp);
+                  // An imported row's clock is the import's, not the spend's: no time beats a made-up one.
+                  const imported = t.source === "import";
+                  const time = imported ? "" : formatTransactionTime(t.timestamp);
                   const isSelected = selecting && selectedKeys.has(txnKey(t));
                   return (
                     <DeletingRow
@@ -767,7 +776,7 @@ export function TransactionsView({
                       <span className="txn-timeline-body">
                         <span className="txn-timeline-item">{t.item}</span>
                         <span className="txn-timeline-meta">
-                          {categoryName}{time ? ` · ${time}` : ` · ${formatShortDate(t.date)}`}
+                          {categoryName}{imported ? "" : time ? ` · ${time}` : ` · ${formatShortDate(t.date)}`}
                         </span>
                       </span>
                       <span

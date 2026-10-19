@@ -18,6 +18,7 @@ import {
   ensureIncomeMigrated,
   runRecurringIncomes,
   IncomeWriteError,
+  createRecurringIncome,
 } from './income'
 
 const USER = 'income-test'
@@ -95,6 +96,27 @@ describe('addIncome', () => {
 
   it('rejects a non-positive amount', async () => {
     await expect(addIncome(auth, { date: '2026-10-08', amount: 0, label: 'x', source: 'manual', counted: 'extra' })).rejects.toThrow()
+  })
+
+  it('rejects a source it does not know, since source is a stored filter key', async () => {
+    await expect(addIncome(auth, { date: '2026-10-08', amount: 5, label: 'x', source: 'bank_feed' as never, counted: 'extra' })).rejects.toMatchObject({ status: 400 })
+  })
+
+  it('stores an imported row with its import id', async () => {
+    const { id } = await addIncome(auth, { date: '2026-09-01', amount: 85000, label: 'Acme payroll', source: 'import', counted: 'extra', import_id: 'imp1', client_id: 'import:imp1:0' })
+    expect(await (await coll('incomes')).findOne({ _id: new ObjectId(id) })).toMatchObject({ source: 'import', import_id: 'imp1' })
+    expect(await incomeRow('2026-09')).toEqual({ assigned: 0, extra: 85000, version: 1 })
+  })
+})
+
+describe('createRecurringIncome', () => {
+  it('creates the schedule once per client_id and counts it into this month', async () => {
+    const input = { label: 'Acme payroll', amount: 85000, frequency: 'monthly' as const, start_date: '2026-10-01', client_id: 'import-salary:imp1' }
+    const first = await createRecurringIncome(auth, input)
+    const again = await createRecurringIncome(auth, input)
+    expect(again).toBe(first)
+    expect(await (await coll('recurring_incomes')).countDocuments({ frequency: 'monthly' })).toBe(1)
+    expect(await incomeRow('2026-10')).toMatchObject({ assigned: 85000 })
   })
 })
 

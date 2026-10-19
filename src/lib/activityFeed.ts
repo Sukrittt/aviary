@@ -2,9 +2,11 @@
 
 // Every feed refetch re-signs every photo, and a new URL is a cache miss, so
 // each image would reload on any write. Keep the first URL seen for a blob
-// until shortly before it expires (the server signs feed URLs for an hour).
+// while it's sure to still be valid. The server signs feed URLs for an hour
+// but keeps handing out a cached one until half that is gone, so a URL may
+// arrive with only 30 minutes left; stay under that (lib/expensePhoto.ts).
 // Keyed by the path, which changes when a photo is replaced.
-const REUSE_MS = 50 * 60 * 1000
+const REUSE_MS = 25 * 60 * 1000
 // Far more photos than one session scrolls past; past it, the oldest go.
 const MAX_SEEN = 500
 const seen = new Map<string, { url: string; at: number }>()

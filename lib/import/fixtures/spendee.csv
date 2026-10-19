@@ -1,0 +1,13 @@
+Date,Wallet,Type,Category name,Amount,Currency,Note,Labels,Author
+2026-09-01T09:00:00+02:00,Main,Income,Salary,42000,CZK,Payroll,,Jana
+2026-09-02T12:30:00+02:00,Main,Expense,Food & Drink,-350,CZK,Lunch,,Jana
+2026-09-04T18:00:00+02:00,Main,Expense,Groceries,-1200,CZK,Albert,,Jana
+2026-09-05T10:00:00+02:00,Main,Transfer,Transfer,-5000,CZK,To savings,,Jana
+2026-09-05T10:00:00+02:00,Savings,Transfer,Transfer,5000,CZK,From main,,Jana
+2026-09-08T09:00:00+02:00,Main,Expense,Transport,-24,CZK,Tram,,Jana
+2026-09-09T20:00:00+02:00,Main,Expense,Food & Drink,-15,EUR,Vienna,,Jana
+2026-09-10T08:00:00+02:00,Main,Income,Initial balance,10000,CZK,,,Jana
+2026-09-12T11:00:00+02:00,Main,Expense,Shopping,-800,CZK,"Split, shoes",,Jana
+2026-09-12T11:00:00+02:00,Main,Expense,Shopping,-200,CZK,"Split, socks",,Jana
+2026-10-01T09:00:00+02:00,Main,Income,Salary,42000,CZK,Payroll,,Jana
+2026-10-03T18:00:00+02:00,Main,Expense,Groceries,-0,CZK,,,Jana

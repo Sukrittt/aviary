@@ -1,6 +1,6 @@
 # Aviary
 
-**The budgeting app you'll still open on day 4.** It notices your habits and nudges you while a spend is still fresh. Miss a day? Type what you remember and you're caught up. No bank link, no loans, no offers.
+**It notices your 4pm chai and nudges you to log it.** The budgeting app you'll still open on day 4. Miss a day? Type what you remember and you're caught up. No bank link, no loans, no offers.
 
 [Get it on Google Play](https://play.google.com/store/apps/details?id=com.sukrit04.envelope) · [Web app](https://useaviary.com) · [Mobile repo](https://github.com/Sukrittt/aviary-mobile)
 

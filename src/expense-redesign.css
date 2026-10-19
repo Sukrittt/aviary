@@ -3254,11 +3254,13 @@
 /* Success-tick state for action buttons */
 .expense-redesign .action-button,
 .erd-log-submit,
+.setup-cta,
 .expense-redesign .txn-review-primary {
   position: relative;
 }
 .expense-redesign .action-button.is-success,
 .erd-log-submit.is-success,
+.setup-cta.is-success,
 .expense-redesign .txn-review-primary.is-success {
   background: var(--tk-success-bg);
   border-color: var(--tk-success-bg);
@@ -3272,17 +3274,20 @@
 }
 .expense-redesign .action-button.is-success:disabled,
 .erd-log-submit.is-success:disabled,
+.setup-cta.is-success:disabled,
 .expense-redesign .txn-review-primary.is-success:disabled {
   opacity: 1;
   cursor: default;
 }
 .expense-redesign .action-button.is-success .sb-label,
 .erd-log-submit.is-success .sb-label,
+.setup-cta.is-success .sb-label,
 .expense-redesign .txn-review-primary.is-success .sb-label {
   visibility: hidden;
 }
 .expense-redesign .action-button .sb-tick,
 .erd-log-submit .sb-tick,
+.setup-cta .sb-tick,
 .expense-redesign .txn-review-primary .sb-tick {
   position: absolute;
   inset: 0;
@@ -3294,12 +3299,14 @@
 }
 .expense-redesign .action-button .sb-tick svg,
 .erd-log-submit .sb-tick svg,
+.setup-cta .sb-tick svg,
 .expense-redesign .txn-review-primary .sb-tick svg {
   width: 18px;
   height: 18px;
 }
 .expense-redesign .action-button .sb-tick path,
 .erd-log-submit .sb-tick path,
+.setup-cta .sb-tick path,
 .expense-redesign .txn-review-primary .sb-tick path {
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
@@ -5026,6 +5033,7 @@
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease;
 }
 
 .setup-selection-action:enabled:hover {
@@ -5512,6 +5520,10 @@
   margin: 8px 0 0;
 }
 
+/* A CTA straight after the blurb (no .setup-body between) needs its own
+   section gap, or it reads as glued to the text. */
+.setup-blurb + .setup-cta { margin-top: 32px; }
+
 .setup-cta {
   align-self: center;
   width: 100%;
@@ -5531,6 +5543,13 @@
   background: var(--erd-input-bg);
   color: var(--erd-text3);
   cursor: default;
+}
+
+/* The button stays disabled through its success beat, so beat .setup-cta:disabled here. */
+.setup-cta.is-success,
+.setup-cta.is-success:disabled {
+  background: var(--tk-success-bg);
+  color: var(--tk-on-success);
 }
 
 .setup-cta.is-saving {
@@ -13139,6 +13158,10 @@ button.account-feature-card {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+/* No photo between them: the notes sit right under the header. */
+.expense-redesign .feed-card-head + .feed-card-notes {
+  padding-top: 0;
+}
 .expense-redesign .feed-more,
 .expense-redesign .feed-status {
   display: flex;
@@ -13250,4 +13273,685 @@ button.account-feature-card {
 @keyframes plan-step-now {
   0% { box-shadow: 0 0 0 0 var(--tk-accent-soft); }
   70%, 100% { box-shadow: 0 0 0 8px transparent; }
+}
+
+/* Switching from another app: onboarding's import screens and Home's banner. */
+.import-ask {
+  /* A lone yes/no question: sit it at the optical centre (a touch above the
+     true middle) of the free space under the step dots. */
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 10vh;
+  text-align: center;
+}
+.import-ask .setup-blurb {
+  max-width: 600px;
+}
+.import-choices {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+  max-width: 520px;
+  margin-top: 32px;
+}
+.import-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px;
+  border: 1.5px solid var(--erd-border);
+  border-radius: 18px;
+  background: var(--erd-card);
+  color: var(--erd-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.import-choice:hover,
+.import-choice:focus-visible {
+  border-color: var(--gold);
+}
+.import-choice.is-on {
+  border-color: var(--gold);
+  background: var(--gold-soft);
+}
+.import-choice-radio {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin-top: 1px;
+  border: 2px solid var(--erd-border-strong);
+  border-radius: 50%;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease;
+}
+.import-choice.is-on .import-choice-radio {
+  border-color: var(--gold);
+}
+.import-choice-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--gold);
+}
+.import-ask .import-ask-cta {
+  width: 100%;
+  max-width: 520px;
+  margin-top: 20px;
+}
+.import-choice-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+}
+.import-choice-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+.import-choice-detail {
+  color: var(--erd-text2);
+  font-size: 13px;
+  line-height: 1.4;
+}
+.import-pick,
+.import-upload {
+  /* Same column as the ask step: a short list of names or one drop zone
+     shouldn't span the page. */
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  text-align: center;
+}
+.import-pick .setup-blurb,
+.import-upload .setup-blurb {
+  margin-inline: auto;
+}
+.import-upload {
+  /* One drop zone: same optical centre as the ask step. */
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-bottom: 10vh;
+}
+.import-upload .setup-body {
+  flex: 0 0 auto;
+}
+/* Export steps: numbered like the phone app's, left-aligned so each tap reads
+   as its own line, in the same column as the drop zone. */
+.import-how {
+  max-width: 420px;
+  margin: 16px auto 0;
+  text-align: left;
+}
+.import-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: import-step;
+}
+.import-steps li {
+  display: flex;
+  gap: 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--erd-text2);
+  counter-increment: import-step;
+}
+.import-steps li::before {
+  content: counter(import-step);
+  flex: none;
+  width: 22px;
+  height: 22px;
+  margin-top: 1px;
+  border-radius: 50%;
+  background: var(--tk-accent-soft);
+  color: var(--tk-accent-ink);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 22px;
+  text-align: center;
+}
+.import-how-note {
+  margin: 12px 0 0 34px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--erd-text3);
+}
+.import-how-help {
+  display: inline-block;
+  margin: 8px 0 0 34px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tk-accent-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.import-apps {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.import-app {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 52px;
+  padding: 12px 16px;
+  border: 1px solid var(--erd-border);
+  border-radius: 14px;
+  background: var(--erd-card);
+  color: var(--erd-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.import-app:hover {
+  border-color: var(--gold);
+}
+.import-app-name {
+  font-weight: 600;
+}
+.import-app-by,
+.import-drop-hint,
+.import-note,
+.import-row-amount {
+  color: var(--erd-text3);
+  font-size: 13px;
+}
+.import-drop {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 180px;
+  padding: 24px;
+  border: 1.5px dashed var(--erd-border-strong);
+  border-radius: 18px;
+  text-align: center;
+  cursor: pointer;
+}
+.import-drop.is-dragging,
+.import-drop:focus-within {
+  border-color: var(--gold);
+  background: var(--gold-soft);
+}
+.import-drop.is-busy {
+  cursor: progress;
+}
+.import-drop-input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  /* Chrome ignores an inherited cursor on file inputs; set it on both parts. */
+  cursor: pointer;
+}
+.import-drop-input::file-selector-button {
+  cursor: pointer;
+}
+.import-drop-input:disabled,
+.import-drop-input:disabled::file-selector-button {
+  cursor: progress;
+}
+.import-drop-title {
+  font-weight: 600;
+}
+/* The review: same column as the other import steps, header centred, the
+   summary rows borrowed from the done screen, and the editors behind a toggle. */
+.import-review-shell {
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+.import-review-shell .setup-title,
+.import-review-shell .setup-blurb {
+  text-align: center;
+  margin-inline: auto;
+}
+.import-review {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.import-summary {
+  margin-top: 0;
+}
+.import-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--erd-border);
+  border-radius: 18px;
+  background: var(--erd-card);
+  font-size: 14px;
+}
+.import-summary-row {
+  width: 100%;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.import-summary-row:hover:not(:disabled) {
+  border-color: var(--gold);
+}
+.import-summary-row:disabled {
+  cursor: default;
+}
+.import-summary-caret {
+  color: var(--erd-text3);
+  flex-shrink: 0;
+}
+.import-sample-date {
+  min-width: 88px;
+  color: var(--erd-text3);
+  font-variant-numeric: tabular-nums;
+}
+.import-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+}
+.import-dialog-body .import-rows {
+  max-height: 50vh;
+}
+/* The dialog is too narrow for two columns, and an inline calendar grows the dialog instead of hanging off it. */
+.import-income-grid {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+.import-dialog-done {
+  width: 100%;
+  max-width: none;
+  margin-top: 20px;
+}
+.import-review[aria-busy='true'] {
+  opacity: 0.6;
+}
+.import-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.import-heading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+}
+.import-note {
+  margin: 0;
+  line-height: 1.5;
+}
+.import-line,
+.import-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* A long envelope name shows it's cut off rather than ending mid-word. */
+.import-row .setup-pick-input {
+  text-overflow: ellipsis;
+}
+.import-line {
+  justify-content: space-between;
+}
+.import-row > .setup-pick-input,
+.import-row > .txn-entry-input {
+  flex: 1;
+  min-width: 0;
+}
+.import-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 340px;
+  overflow-y: auto;
+}
+.ui-select.import-select {
+  flex: none;
+  width: 148px;
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: 10px;
+  font-size: 13px;
+}
+.import-row-amount {
+  min-width: 72px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.import-samples {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+.import-samples li {
+  display: flex;
+  gap: 10px;
+}
+.import-sample-item {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.import-sample-amount {
+  font-variant-numeric: tabular-nums;
+}
+.import-sample-amount.is-income {
+  color: var(--mint);
+}
+.import-banner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  overflow: hidden;
+  border: 1px solid var(--erd-border);
+  border-radius: 14px;
+  background: var(--erd-card);
+  color: var(--erd-text);
+  font-size: 13px;
+}
+.import-banner-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.import-banner-text strong {
+  font-weight: 600;
+}
+.import-banner-sub {
+  color: var(--erd-text2);
+  font-size: 12px;
+}
+.import-banner-text > span:first-child {
+  font-variant-numeric: tabular-nums;
+}
+/* Room for the arrival confetti to fall past the banner's clipped edge. */
+.import-banner-wrap {
+  position: relative;
+}
+.import-banner-wrap .setup-confetti {
+  z-index: 2;
+}
+.import-banner.is-failed {
+  border-color: var(--coral);
+}
+.import-banner-bar {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 3px;
+  background: var(--gold);
+  transform-origin: left;
+  transform: scaleX(var(--import-progress, 0));
+  transition: transform 400ms ease;
+}
+.import-banner-action {
+  border: 0;
+  background: transparent;
+  color: var(--gold-ink);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+.import-banner-close {
+  display: inline-flex;
+  border: 0;
+  background: transparent;
+  color: var(--erd-text3);
+  cursor: pointer;
+}
+/* The app list's rows lead somewhere: a caret that leans in on hover. */
+.import-app-caret {
+  color: var(--erd-text3);
+  flex-shrink: 0;
+  transition: transform 160ms ease, color 160ms ease;
+}
+.import-app-name {
+  flex: 1;
+}
+.import-app:hover .import-app-caret {
+  color: var(--gold-ink);
+  transform: translateX(2px);
+}
+/* The drop zone answers a drag: the icon lifts and the zone leans in. */
+.import-drop {
+  transition: border-color 160ms ease, background-color 160ms ease, transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.import-drop.is-dragging {
+  transform: scale(1.015);
+}
+.import-drop.is-error {
+  border-color: var(--coral);
+}
+.import-drop-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-bottom: 4px;
+  border-radius: 14px;
+  background: var(--gold-soft);
+  color: var(--gold-ink);
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.import-drop:hover .import-drop-icon,
+.import-drop.is-dragging .import-drop-icon {
+  transform: translateY(-3px);
+}
+.import-drop.is-error .import-drop-icon {
+  background: color-mix(in srgb, var(--coral) 14%, transparent);
+  color: var(--coral);
+}
+.import-drop-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--erd-card);
+  border: 1px solid var(--erd-border);
+  font-size: 13px;
+}
+.import-drop-file-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+/* While the file is read: a light sweeping along the bottom edge. */
+.import-drop-scan {
+  position: absolute;
+  inset: auto 18px 0 18px;
+  height: 3px;
+  overflow: hidden;
+  border-radius: 3px;
+}
+.import-drop-scan::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  animation: import-scan 1.1s ease-in-out infinite;
+}
+@keyframes import-scan {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(250%); }
+}
+/* "Money Manager export" over the review: it knew the file. */
+.import-found {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 10px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--mint-soft);
+  color: var(--mint);
+  font-size: 13px;
+  font-weight: 600;
+}
+.import-upload .setup-error {
+  margin-top: 12px;
+}
+.import-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+/* The done screen's live line: the history counting in, then a check. */
+.import-history {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  margin-top: 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  overflow: hidden;
+  border: 1px solid var(--erd-border);
+  border-radius: 18px;
+  background: var(--erd-card);
+  text-align: left;
+  transition: border-color 300ms ease;
+}
+.import-history.is-done {
+  border-color: color-mix(in srgb, var(--mint) 45%, var(--erd-border));
+}
+.import-history-icon {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: var(--gold-soft);
+  color: var(--gold-ink);
+  transition: background-color 300ms ease, color 300ms ease;
+}
+.import-history-icon > span {
+  display: inline-flex;
+}
+.import-history.is-done .import-history-icon {
+  background: var(--mint-soft);
+  color: var(--mint);
+}
+.import-history.is-failed .import-history-icon {
+  background: color-mix(in srgb, var(--coral) 14%, transparent);
+  color: var(--coral);
+}
+.import-history-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.import-history-text strong {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+}
+.import-history-text span {
+  color: var(--erd-text2);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.import-history-bar {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 3px;
+  background: var(--gold);
+  transform-origin: left;
+  transform: scaleX(var(--import-progress, 0));
+  transition: transform 500ms ease, background-color 300ms ease;
+}
+.import-history.is-done .import-history-bar {
+  background: var(--mint);
+}
+.import-banner {
+  animation: import-banner-in 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes import-banner-in {
+  from { opacity: 0; transform: translateY(-6px); }
+}
+.import-banner-check {
+  flex-shrink: 0;
+  color: var(--mint);
+  animation: import-check-pop 420ms 120ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@keyframes import-check-pop {
+  from { transform: scale(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .import-banner-bar,
+  .import-history-bar,
+  .import-drop,
+  .import-drop-icon,
+  .import-app-caret {
+    transition: none;
+  }
+  .import-drop-scan::after,
+  .import-banner,
+  .import-banner-check {
+    animation: none;
+  }
+}
+
+/* Categories handles and group counts sit at text3, too dim on the dark surface. Light text3 already passes. */
+.theme-dark .expense-redesign .env-group-count,
+.theme-dark .expense-redesign .env-drag-handle { color: var(--erd-text2); }
+
+/* The review's currency "Change": the one fix most files need, so it reads as a link. */
+.import-change:enabled {
+  color: var(--gold-ink);
+}
+.import-change:enabled:hover {
+  color: var(--gold-ink);
+  background: var(--gold-soft);
+}
+
+/* Review-line actions sit inside a text row, so they stay compact instead of the 44px setup size. */
+.import-line .setup-selection-action {
+  min-height: 0;
+  padding: 4px 10px;
+  border-radius: 8px;
 }

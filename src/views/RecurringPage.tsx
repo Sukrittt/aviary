@@ -3,7 +3,8 @@
 import { PlusIcon } from '@/src/components/icons'
 import { useCurrency } from '@/src/context/CurrencyContext'
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { AnimatePresence, motion } from 'motion/react'
 import { AmountText, popIn, staggerDelay } from '../components/landing/mobile/kit'
 import { AllocationBar, type AllocationSegment } from '../components/charts/AllocationBar'
@@ -141,7 +142,9 @@ export function RecurringPage() {
         </div>
       </header>
 
-      <RecurringSuggestions />
+      <Suspense fallback={<RecurringSuggestions />}>
+        <LinkedSuggestions />
+      </Suspense>
 
       {loading ? (
         <LoadingCaption feature="recurring" placement="page" />
@@ -177,4 +180,9 @@ export function RecurringPage() {
       </AnimatePresence>
     </>
   )
+}
+
+/** `?find=all`, from the import banner: subscriptions and recurring payments together. */
+function LinkedSuggestions() {
+  return <RecurringSuggestions kind={useSearchParams()?.get('find') === 'all' ? 'all' : undefined} />
 }

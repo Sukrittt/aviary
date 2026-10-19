@@ -55,6 +55,8 @@ export default function YnabAlternativePage() {
       ['https://apps.apple.com/in/app/ynab/id1010865877', 'YNAB on the App Store, India (rupee prices, trial)'],
       ['https://play.google.com/store/apps/details?id=com.youneedabudget.evergreen.app', 'YNAB on Google Play'],
     ]} />
+    <h2>Bringing your YNAB plan</h2>
+    <p>Years of YNAB history don’t have to stay behind. In the YNAB web app, open the plan menu and choose Export plan. When you set up Aviary, pick “I’m switching apps”, choose YNAB and upload the zip as it is. Your categories, balances and transactions come along. <Link href="/sign-in">Sign in to start the import</Link>.</p>
     <SoftCta title="Try the method in rupees" placement="compare_ynab">Aviary’s free for 30 days with no card. Set up your categories, log a week, and see if it clicks.</SoftCta>
   </ContentPage>
 }

@@ -92,7 +92,7 @@ export const publicPagePaths = (Object.keys(pages) as PagePath[]).filter(
 const MARKET_ALTERNATES = { 'en-IN': '/', en: '/intl', 'x-default': '/' }
 export const marketAlternates = (path: string) => (path === '/' || path === '/intl' ? MARKET_ALTERNATES : undefined)
 
-/** 1200×630 share card, rendered by app/og.png/route.tsx. */
+/** 1200×630 share card, rendered by app/og.png/route.tsx; /intl has its own at app/intl/og.png. */
 export const OG_IMAGE = { url: '/og.png', width: 1200, height: 630, alt: 'Aviary: the budget app that learns your spending' }
 
 /** Indexed pages with a card of their own (app/og/[...path]); the home pages keep the brand card. Blog posts are added from lib/blog.ts. */
@@ -103,7 +103,8 @@ export const ogTitle = (title: string) => title.replace(/ \| Aviary$/, '')
 
 /** The share card for a public page: its own card when it has one, else the brand card. */
 export function ogImage(path: string, index: boolean, alt: string) {
-  const own = index && path !== '/' && path !== '/intl'
+  if (path === '/intl') return { ...OG_IMAGE, url: '/intl/og.png' }
+  const own = index && path !== '/'
   return own ? { ...OG_IMAGE, url: `/og${path}`, alt } : OG_IMAGE
 }
 

@@ -87,6 +87,8 @@ export function TrendChart({
     <div className="ins-trend-wrap" ref={wrapRef}>
       <div className="ins-axis-row">
         <span>{formatCompact(max, hideAmounts)}</span>
+        {/* A legend, not a label on the line: on the line it sat on top of the first bar. */}
+        {baseline != null && <span className="ins-axis-avg">avg {formatCompact(baseline, hideAmounts)}</span>}
       </div>
       <svg className="ins-trend-svg" viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" aria-label={ariaLabel}>
         {min < 0 && <line x1={PAD_X} x2={WIDTH - PAD_X} y1={zeroY} y2={zeroY} className="ins-trend-zero" />}
@@ -125,8 +127,8 @@ export function TrendChart({
                 width={barWidth}
                 height={height}
                 rx="7"
-                className={point.missing ? 'ins-trend-bar is-missing' : negative ? 'ins-trend-bar is-negative' : 'ins-trend-bar'}
-                style={{ opacity: dimmed ? 0.42 : 1, animationDelay: `${index * 30}ms` }}
+                className={`ins-trend-bar${point.missing ? ' is-missing' : negative ? ' is-negative' : ''}${dimmed ? ' is-dimmed' : ''}`}
+                style={{ animationDelay: `${index * 30}ms` }}
               />
               {selected && (
                 <text
@@ -154,9 +156,6 @@ export function TrendChart({
             style={{ '--ins-baseline-delay': `${(data.length - 1) * 30 + 350}ms` } as CSSProperties}
           >
             <line x1={PAD_X} x2={WIDTH - PAD_X} y1={baselineY} y2={baselineY} className="ins-trend-baseline" />
-            <text x={PAD_X + 4} y={baselineY - 6} className="ins-trend-baseline-label">
-              avg {formatCompact(baseline!, hideAmounts)}
-            </text>
           </g>
         )}
       </svg>

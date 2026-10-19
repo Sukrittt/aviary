@@ -53,6 +53,7 @@ import { RecurringIncomeModal } from "../components/RecurringIncomeModal";
 import { useRecurringIncomes } from "../hooks/useIncomes";
 import { useAccounts } from "../hooks/useAccounts";
 import { SuccessButton, useButtonPhase } from "../components/SuccessButton";
+import { ImportBanner, useImportInProgress } from "../components/ImportBanner";
 import type { EnvelopeState } from "../types/expense";
 import { computeEnvelopeState, currentMonthKey, daysLeftInMonth, monthLabel, prevMonthKey } from "../lib/envelope";
 import { InsightsTab } from "@/src/components/InsightsTab";
@@ -131,6 +132,7 @@ export function ExpensePage() {
   );
   // Read-only here: the toggle lives on /account, next to the theme control.
   const [hideAmounts] = useHideAmounts();
+  const importing = useImportInProgress();
   // Derived during render, not copied in by an effect: the page is
   // server-rendered (app/expense/page.tsx), and an effect-filled value left
   // the hero and envelopes out of the HTML, then pushed the rail ~2,300px
@@ -416,6 +418,7 @@ export function ExpensePage() {
           <LayoutGroup id="home-onboarding">
           <div className="erd-home" data-get-started={showGetStarted ? "true" : undefined}>
             <div className="erd-home-main">
+              <ImportBanner />
               {/* Income is entered from the menu top-right; RTA is often ₹0,
                   so the hero alone doesn't say where money comes in. */}
               {envelopeState && !rtaSettled && (
@@ -626,7 +629,7 @@ export function ExpensePage() {
                   homeRail
                 />
               )}
-              <RecentActivity expenses={expenseRows} hideAmounts={hideAmounts} categoryIcons={categoryIcons} />
+              <RecentActivity expenses={expenseRows} hideAmounts={hideAmounts} categoryIcons={categoryIcons} historyComing={importing} />
             </aside>
           </div>
           </LayoutGroup>

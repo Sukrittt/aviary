@@ -3,11 +3,10 @@ import { json, error, readBody, getCollection } from '@/lib/http'
 import { getAuth, readOnlyGuard, type Auth } from '@/lib/access'
 import { requireAccess } from '@/lib/billing/guard'
 import { nowForUser } from '@/lib/userCurrency'
-import { invalidate } from '@/lib/cache'
 import { validDate, validText } from '@/lib/inputValidation'
 import { FREQUENCIES, firstRunOnOrAfter, type Frequency } from '@/lib/recurringExpense'
 import { AccountError, liveAccount } from '@/lib/accounts'
-import { validIncomeAmount, ensureIncomeMigrated, RECURRING_INCOME_HEADERS, runRecurringIncomes, syncMonthlyIncome } from '@/lib/income'
+import { createRecurringIncome, validIncomeAmount, ensureIncomeMigrated, RECURRING_INCOME_HEADERS, settleRecurringIncomes } from '@/lib/income'
 import { toRow } from '@/lib/models'
 
 export const dynamic = 'force-dynamic'
@@ -20,24 +19,6 @@ function isFrequency(value: unknown): value is Frequency {
 
 function row(doc: Record<string, unknown>) {
   return { id: String(doc._id), ...toRow(RECURRING_INCOME_HEADERS, doc) }
-}
-
-/**
- * After any schedule change: Ready to Assign counts the monthly ones from day
- * 1 of this month, and anything due today posts now rather than tomorrow.
- */
-async function settle(auth: Auth) {
-  invalidate('recurring_incomes', auth.userId)
-  // The schedule is already saved. Failing the request here would make the
-  // client retry and save it twice, so a failed follow-up is logged instead:
-  // the next schedule write or the nightly pass catches up.
-  try {
-    const { date } = await nowForUser(auth.userId)
-    await syncMonthlyIncome(auth, date.slice(0, 7))
-    await runRecurringIncomes(auth, date)
-  } catch (err) {
-    console.error('recurring-incomes: settle failed for', auth.userId, err)
-  }
 }
 
 /** `GET /api/recurring-incomes`: the schedules, after turning an older account's monthly income into one. */
@@ -90,24 +71,15 @@ export async function POST(req: Request) {
     throw err
   }
 
-  await ensureIncomeMigrated(auth)
-  const { date: today, timestamp } = await nowForUser(auth.userId)
-  const coll = await getCollection('recurring_incomes', auth)
-  const inserted = await coll.insertOne({
-    label: String(body.label).trim(),
-    amount: String(Math.round(Number(body.amount) * 100) / 100),
-    frequency: String(body.frequency),
+  const id = await createRecurringIncome(auth, {
+    label: String(body.label),
+    amount: Number(body.amount),
+    frequency: body.frequency as Frequency,
     start_date: startDate,
     end_date: endDate,
-    // Same rule as recurring expenses: a backdated first payday schedules
-    // forward rather than backfilling paydays nobody asked to record.
-    next_run_date: firstRunOnOrAfter(startDate, String(body.frequency), today),
-    account_id: account ?? '',
-    status: 'active',
-    created_at: timestamp,
+    account_id: account,
   })
-  await settle(auth)
-  return json({ ok: true, id: String(inserted.insertedId) })
+  return json({ ok: true, id })
 }
 
 /** `PUT /api/recurring-incomes` `{ id, ...fields }`. */
@@ -160,7 +132,7 @@ export async function PUT(req: Request) {
   if (resuming) update.stops_after = ''
 
   await coll.updateOne({ _id: existing._id }, { $set: update })
-  await settle(auth)
+  await settleRecurringIncomes(auth)
   return json({ ok: true })
 }
 
@@ -185,6 +157,6 @@ export async function DELETE(req: Request) {
   }
   const result = await coll.deleteOne({ _id: existing._id })
   if (result.deletedCount === 0) return error('recurring income not found', 404)
-  await settle(auth)
+  await settleRecurringIncomes(auth)
   return json({ ok: true })
 }

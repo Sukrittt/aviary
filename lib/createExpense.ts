@@ -39,6 +39,8 @@ export interface CreateExpenseInput {
   /** Names the intent, so a retry is recognized before it can insert a second row. */
   client_id?: string
   source?: string
+  /** The import a backfilled row came from, so a later "remove this import" can find it. Not in EXPENSE_HEADERS, like `client_id`. */
+  import_id?: string
   /**
    * Whether to run the post-insert threshold check. Defaults true. A backfill
    * writing several occurrences at once passes `false` and calls
@@ -92,7 +94,8 @@ export async function adjustCreditCardEnvelope(
       const current = Number(existing.assigned) || 0
       await budgetColl.updateOne(
         { _id: existing._id },
-        { $set: { assigned: String(Math.max(0, current + delta)) }, $inc: { version: 1 } } as never,
+        // To the cent: summing float deltas drifts (1108.5400000000002).
+        { $set: { assigned: String(Math.max(0, Math.round((current + delta) * 100) / 100)) }, $inc: { version: 1 } } as never,
         { session },
       )
       return 'done'
@@ -100,7 +103,7 @@ export async function adjustCreditCardEnvelope(
     if (delta <= 0) return 'done'
     try {
       await budgetColl.insertOne(
-        { month, category: '__credit_card__', assigned: String(delta), rolled_over: '0', version: 1 },
+        { month, category: '__credit_card__', assigned: String(Math.round(delta * 100) / 100), rolled_over: '0', version: 1 },
         { session },
       )
       return 'done'
@@ -112,7 +115,8 @@ export async function adjustCreditCardEnvelope(
 }
 
 export async function createExpense(auth: Auth, input: CreateExpenseInput): Promise<CreateExpenseResult> {
-  const invalid = expenseInputError({ ...input })
+  // Only the import books refunds; `source` is checked against CLIENT_SOURCES before a client's create gets here.
+  const invalid = expenseInputError({ ...input }, false, input.source === 'import')
   if (invalid) throw new Error(invalid)
   const ist = await nowForUser(auth.userId)
   const date = String(input.date || ist.date)
@@ -136,18 +140,24 @@ export async function createExpense(auth: Auth, input: CreateExpenseInput): Prom
   // a second row or double the Credit Card envelope bump below. The recurring
   // cron leans on the same guarantee, minting `recur:<id>:<date>` per
   // occurrence so a backfill can never log the same date twice.
-  if (clientId) {
-    const existing = await coll.findOne({ client_id: clientId })
-    if (existing) {
-      // Replay acknowledges the original create, not a newer edit the caller
-      // has never seen. In particular, Undo must still check creation version 0.
-      return { id: String(existing._id), timestamp: String(existing.timestamp), version: 0, duplicate: true, category: String(existing.category ?? input.category), paymentMethod: String(existing.payment_method ?? paymentMethod) }
-    }
+  const replay = async (): Promise<CreateExpenseResult | null> => {
+    // Deleted rows too: the unique index still holds their client_id, so a
+    // replay after the user deleted the expense must not try to insert again.
+    const existing = clientId ? await coll.findOne({ client_id: clientId }, undefined, { includeDeleted: true }) : null
+    // Replay acknowledges the original create, not a newer edit the caller
+    // has never seen. In particular, Undo must still check creation version 0.
+    return existing && { id: String(existing._id), timestamp: String(existing.timestamp), version: 0, duplicate: true, category: String(existing.category ?? input.category), paymentMethod: String(existing.payment_method ?? paymentMethod) }
   }
+  const replayed = await replay()
+  if (replayed) return replayed
 
   // The expense insert and its Credit Card envelope bump must land together —
   // a partial write here leaves an expense with no matching envelope bump.
-  const { insertedId, category } = await withTx(async (session) => {
+  // Two requests with one client_id at once (a POST and its queued replay) can
+  // both pass the check above; the unique {user_id, client_id} index stops the
+  // second insert, and the rolled-back transaction leaves the first row as the
+  // answer. Any other duplicate key error has no such row and still throws.
+  const tx = await withTx(async (session) => {
     // A caller can be working from a category list loaded before a rename (a
     // stale mobile screen, an offline queue flushed later, the recurring cron);
     // resolve it here so the row lands in the renamed category rather than
@@ -168,20 +178,29 @@ export async function createExpense(auth: Auth, input: CreateExpenseInput): Prom
         payment_method: paymentMethod,
         ...(account ? { account_id: account.id } : {}),
         ...(clientId ? { client_id: clientId } : {}),
+        ...(input.import_id ? { import_id: input.import_id } : {}),
       },
       { session },
     )
 
-    // Auto-transfer to the Credit Card envelope for CC purchases.
+    // Auto-transfer to the Credit Card envelope for CC purchases; an imported refund takes it back.
     if (paymentMethod === 'credit_card') {
       const amountNum = Number(input.amount_inr)
-      if (!Number.isNaN(amountNum) && amountNum > 0) {
+      if (!Number.isNaN(amountNum) && amountNum !== 0) {
         await adjustCreditCardEnvelope(auth, date.slice(0, 7), amountNum, session)
       }
     }
 
     return { insertedId: inserted.insertedId, category }
+  }).catch(async (err) => {
+    if (isDuplicateKeyError(err)) {
+      const replayed = await replay()
+      if (replayed) return replayed
+    }
+    throw err
   })
+  if ('duplicate' in tx) return tx
+  const { insertedId, category } = tx
 
   invalidate('expenses', auth.userId)
   invalidate('wrapped', auth.userId)
