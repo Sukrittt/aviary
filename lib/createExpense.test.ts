@@ -32,6 +32,9 @@ vi.mock('@/lib/mongodb', () => ({
 type Doc = Record<string, unknown> & { _id: ObjectId }
 
 const stores: Record<string, Doc[]> = { expenses: [], budgets: [] }
+// Two requests racing on one client_id: the second's pre-check runs before the first commits.
+let missNextClientIdLookup = false
+let insertError: Error | null = null
 
 function matches(doc: Doc, filter: Record<string, unknown>): boolean {
   return Object.entries(filter).every(([k, v]) =>
@@ -47,8 +50,19 @@ function fakeCollection(base: string) {
     find: (filter: Record<string, unknown> = {}) => ({
       toArray: async () => store.filter((d) => matches(d, filter)),
     }),
-    findOne: async (filter: Record<string, unknown>) => store.find((d) => matches(d, filter)) ?? null,
+    findOne: async (filter: Record<string, unknown>) => {
+      if (missNextClientIdLookup && 'client_id' in filter) {
+        missNextClientIdLookup = false
+        return null
+      }
+      return store.find((d) => matches(d, filter)) ?? null
+    },
     insertOne: async (doc: Record<string, unknown>) => {
+      if (insertError) throw insertError
+      // The unique {user_id, client_id} index.
+      if (base === 'expenses' && doc.client_id && store.some((d) => d.client_id === doc.client_id)) {
+        throw Object.assign(new Error('E11000 duplicate key error index: user_id_1_client_id_1'), { code: 11000 })
+      }
       const withId = { ...doc, _id: new ObjectId() } as Doc
       store.push(withId)
       return { insertedId: withId._id }
@@ -74,6 +88,7 @@ const base = { item: 'Rent', amount_inr: '1000', category: 'Housing' }
 beforeEach(() => {
   stores.expenses = []
   stores.budgets = []
+  insertError = null
   notifyThresholdCrossed.mockClear()
 })
 
@@ -118,6 +133,20 @@ describe('createExpense', () => {
     expect(second.duplicate).toBe(true)
     expect(second.id).toBe(first.id)
     expect(stores.expenses).toHaveLength(1)
+  })
+
+  it('answers a client_id race that slips past the pre-check as a replay, not an error', async () => {
+    const first = await createExpense(auth, { ...base, payment_method: 'credit_card', date: '2026-09-07', client_id: 'c1' })
+    missNextClientIdLookup = true
+    const second = await createExpense(auth, { ...base, payment_method: 'credit_card', date: '2026-09-07', client_id: 'c1' })
+
+    expect(second).toEqual({ ...first, duplicate: true })
+    expect(stores.expenses).toHaveLength(1)
+  })
+
+  it('still throws a duplicate key error when no row holds the client_id', async () => {
+    insertError = Object.assign(new Error('E11000 duplicate key error index: other_1'), { code: 11000 })
+    await expect(createExpense(auth, { ...base, client_id: 'c2' })).rejects.toThrow('other_1')
   })
 
   it('bumps the __credit_card__ envelope for a credit_card expense', async () => {
