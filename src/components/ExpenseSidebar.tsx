@@ -1,7 +1,7 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import { createContext, useContext, useEffect, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { AnimatePresence } from "motion/react";
+import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import { HouseIcon, ChartLineIcon, SignOutIcon, SquaresFourIcon, ListIcon, MoonIcon, SidebarSimpleIcon, PlusIcon, InvoiceIcon, ScanIcon, UploadSimpleIcon, GearIcon, SparkleIcon, SunIcon, ArrowUUpLeftIcon, XIcon, type PhosphorIcon } from "@/src/components/icons";
 import { SignOutDialog } from "./ConfirmDialog";
 import { useMoneyBrain } from "@/components/MoneyBrainProvider";
@@ -53,10 +53,14 @@ const LABEL =
 // unlayered app CSS or shadcn's own `!` sizing would otherwise win.
 const ITEM =
   "h-10 gap-3 rounded-xl px-[13px] text-sm font-medium text-(--erd-text2) [&_svg]:size-[18px]! " +
-  "hover:bg-(--erd-border) hover:text-(--erd-text) [&:not([data-active]):not(:hover)_svg]:text-(--erd-text3) " +
+  "relative not-data-active:hover:bg-transparent hover:text-(--erd-text) [&:not([data-active]):not(:hover)_svg]:text-(--erd-text3) " +
   "data-active:bg-(--gold-soft) data-active:font-semibold data-active:text-(--gold-ink) " +
   "group-data-[collapsible=icon]:h-10! group-data-[collapsible=icon]:w-full! group-data-[collapsible=icon]:px-[13px]!";
 const CTA = "erd-side-cta group-data-[collapsible=icon]:gap-0! group-data-[collapsible=icon]:px-0!";
+
+// Hover key of the hovered row. One pill shares a layoutId across rows, so it
+// slides from the row you left to the one you're on instead of blinking.
+const HoverContext = createContext<[string | null, (label: string | null) => void]>([null, () => {}]);
 
 export function ExpenseSidebar(props: Props) {
   const [collapsed, setCollapsed] = usePersistentState("erd-sidebar-collapsed", false, parseBool, serializeBool);
@@ -74,9 +78,18 @@ export function ExpenseSidebar(props: Props) {
   );
 }
 
-function NavItem({ label, icon: Icon, active, href, onClick }: { label: string; icon: PhosphorIcon; active?: boolean; href?: string; onClick?: () => void }) {
+// `hoverKey` is for rows whose label changes on click, so the pill stays put.
+function NavItem({ label, icon: Icon, active, href, onClick, hoverKey = label }: { label: string; icon: PhosphorIcon; active?: boolean; href?: string; onClick?: () => void; hoverKey?: string }) {
+  const [hovered, setHovered] = useContext(HoverContext);
   return (
-    <SidebarMenuItem>
+    <SidebarMenuItem onMouseEnter={() => setHovered(hoverKey)}>
+      {hovered === hoverKey && (
+        <motion.span
+          layoutId="erd-nav-hover"
+          className="absolute inset-0 rounded-xl bg-(--erd-border)"
+          transition={{ type: "spring", stiffness: 500, damping: 40 }}
+        />
+      )}
       <SidebarMenuButton
         className={ITEM}
         isActive={active}
@@ -103,6 +116,7 @@ function ExpenseSidebarNav({ onBulkReturn }: Props) {
   const [showScan, setShowScan] = useState(false);
   const [showStatement, setShowStatement] = useState(false);
   const [confirmSignOut, setConfirmSignOut] = useState(false);
+  const hover = useState<string | null>(null);
 
   const router = useRouter();
   const allowed = useAccessAllowed();
@@ -154,7 +168,9 @@ function ExpenseSidebarNav({ onBulkReturn }: Props) {
       >
         {/* Sidebar renders a plain div (or a dialog on mobile); this keeps the
             primary navigation landmark the old <nav> provided. */}
-        <nav aria-label="Primary" className="flex min-h-0 flex-1 flex-col">
+        <MotionConfig reducedMotion="user">
+        <HoverContext.Provider value={hover}>
+        <nav aria-label="Primary" className="flex min-h-0 flex-1 flex-col" onMouseLeave={() => hover[1](null)}>
         <SidebarHeader className="gap-[22px] px-3.5 pt-[22px] pb-0">
           <div className="erd-brand">
             <Link href="/expense" className="erd-brand-link group-data-[collapsible=icon]:gap-0!" aria-label="Aviary home" onClick={closeMobile}>
@@ -216,6 +232,7 @@ function ExpenseSidebarNav({ onBulkReturn }: Props) {
           <SidebarMenu className="gap-0.5">
             <NavItem href="/account" label="Account" icon={GearIcon} active={pathname.startsWith("/account")} onClick={closeMobile} />
             <NavItem
+              hoverKey="theme"
               label={theme === "light" ? "Dark mode" : "Light mode"}
               icon={theme === "light" ? MoonIcon : SunIcon}
               onClick={() => setTheme(theme === "light" ? "dark" : "light")}
@@ -224,6 +241,8 @@ function ExpenseSidebarNav({ onBulkReturn }: Props) {
           </SidebarMenu>
         </SidebarFooter>
         </nav>
+        </HoverContext.Provider>
+        </MotionConfig>
       </Sidebar>
 
       {/* Straddles the rail's edge so it never lands on page content. */}
