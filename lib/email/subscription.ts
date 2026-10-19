@@ -1,16 +1,14 @@
-import { createHash, randomUUID } from 'node:crypto'
+import { createHash } from 'node:crypto'
 import { after } from 'next/server'
 import type { Db } from 'mongodb'
 import { getDb } from '@/lib/mongodb'
 import type { UserDoc } from '@/lib/users'
 import { BILLING_EVENTS, BILLING_SUBSCRIPTIONS, type BillingEventDoc, type BillingSubscriptionDoc } from '@/lib/billing/records'
-import { deliverClaimedEmail } from './delivery'
-import type { WelcomeDelivery } from './welcome'
+import { EMAIL_OUTBOX, sendOutbox, type OutboxEmail } from './outbox'
 import { SUPPORT_EMAIL } from './transactionalTemplate'
 import { subscriptionTemplate } from './subscriptionTemplate'
 
-export const EMAIL_OUTBOX = 'email_outbox'
-interface SubscriptionEmail { _id: string; user_id: string; delivery: WelcomeDelivery }
+export { EMAIL_OUTBOX }
 
 export function scheduleSubscriptionEmails(): void {
   try {
@@ -59,7 +57,7 @@ export async function prepareSubscriptionEmails(db: Db): Promise<void> {
     const now = new Date()
     const eventExpiry = event.provider !== 'revenuecat' ? typeof event.summary.currentEnd === 'number' ? event.summary.currentEnd * 1000 : null : typeof event.summary.expirationAtMs === 'number' ? event.summary.expirationAtMs : null
     const expiresAt = eventExpiry ? new Date(eventExpiry) : row.expiresAt
-    await db.collection<SubscriptionEmail>(EMAIL_OUTBOX).updateOne({ _id: id }, { $setOnInsert: {
+    await db.collection<OutboxEmail>(EMAIL_OUTBOX).updateOne({ _id: id }, { $setOnInsert: {
       user_id: event.userId,
       delivery: { state: 'pending', queuedAt: now, nextAttemptAt: now, attempts: 0, message: {
         from: process.env.RESEND_FROM_EMAIL?.trim() || 'Aviary <hello@useaviary.com>', to: [user.email],
@@ -72,38 +70,9 @@ export async function prepareSubscriptionEmails(db: Db): Promise<void> {
 }
 
 export async function retrySubscriptionEmails(limit = 4) {
-  const result = { sent: 0, skipped: 0, failed: 0, needs_review: 0, configured: Boolean(process.env.RESEND_API_KEY) }
-  if (!result.configured) return result
+  const configured = Boolean(process.env.RESEND_API_KEY)
+  if (!configured) return { sent: 0, skipped: 0, failed: 0, needs_review: 0, configured }
   const db = await getDb()
   await prepareSubscriptionEmails(db)
-  const outbox = db.collection<SubscriptionEmail>(EMAIL_OUTBOX)
-  const due = (now: Date) => ({ $or: [ { 'delivery.state': 'pending', 'delivery.nextAttemptAt': { $lte: now } }, { 'delivery.state': 'sending', 'delivery.leaseUntil': { $lte: now } } ] })
-  const candidates = await outbox.find(due(new Date())).sort({ 'delivery.queuedAt': 1 }).limit(limit).toArray()
-  for (const candidate of candidates) {
-    const user = await db.collection<UserDoc>('users').findOne({ _id: candidate.user_id, deleted_at: null, emailVerified: { $ne: false } }, { projection: { _id: 1 } })
-    if (!user) {
-      await outbox.deleteOne({ _id: candidate._id })
-      result.skipped++
-      continue
-    }
-    const now = new Date(), claim = randomUUID()
-    const email = await outbox.findOneAndUpdate({ _id: candidate._id, ...due(now) }, [{ $set: {
-      'delivery.state': 'sending', 'delivery.claim': claim, 'delivery.leaseUntil': new Date(now.getTime() + 120_000),
-      'delivery.firstAttemptAt': { $ifNull: ['$delivery.firstAttemptAt', now] }, 'delivery.attempts': { $add: ['$delivery.attempts', 1] },
-    } }], { returnDocument: 'after' })
-    if (!email) { result.skipped++; continue }
-    const recipient = await db.collection<UserDoc>('users').findOne({ _id: email.user_id, deleted_at: null, emailVerified: { $ne: false } }, { projection: { email: 1 } })
-    if (!recipient || email.delivery.message.to.length !== 1 || email.delivery.message.to[0] !== recipient.email) {
-      await outbox.updateOne({ _id: email._id, 'delivery.claim': claim }, { $set: { 'delivery.state': 'needs_review', 'delivery.error': 'Account email changed before delivery' }, $unset: { 'delivery.claim': '', 'delivery.leaseUntil': '' } })
-      result.needs_review++
-      continue
-    }
-    result[await deliverClaimedEmail(email.delivery, `subscription/${email._id}`, now, change => outbox.updateOne({ _id: email._id, 'delivery.claim': claim }, {
-      $set: Object.fromEntries(Object.entries(change.$set).map(([key, value]) => [`delivery.${key}`, value])),
-      $unset: Object.fromEntries(Object.keys(change.$unset).map(key => [`delivery.${key}`, ''])),
-    }))]++
-    await new Promise(resolve => setTimeout(resolve, 600))
-  }
-  result.needs_review = await outbox.countDocuments({ 'delivery.state': 'needs_review' })
-  return result
+  return { ...await sendOutbox(db, { kind: { $exists: false } }, limit), configured }
 }

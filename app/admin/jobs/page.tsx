@@ -23,9 +23,9 @@ const JOBS: Array<{ job: CronJob; label: string; schedule: string; confirm: stri
   },
   {
     job: 'emails',
-    label: 'Transactional email delivery',
-    schedule: 'Daily 06:00 UTC',
-    confirm: 'Retry pending welcome and subscription emails now? Sends real service emails to eligible accounts.',
+    label: 'Email delivery',
+    schedule: '06:00, 09:00, 12:00, 15:00 UTC',
+    confirm: 'Retry pending welcome and subscription emails now, and queue due lifecycle emails if they’re switched on? Sends real email to eligible accounts.',
   },
   {
     job: 'eveningCheck',

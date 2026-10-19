@@ -71,6 +71,9 @@ const OPEN: Record<string, string> = {
   'changelog/latest': 'signed-in release notes; no budgeting content',
   'changelog/[id]/seen': 'account-level release announcement tracking, available while expired',
   waitlist: 'public landing-page signup; no session, no budgeting content',
+  leads: 'public salary-planner email capture; no session, no budgeting content',
+  'email/unsubscribe': 'signed email link; an expired account must still be able to stop emails',
+  'email/confirm': 'signed email link for salary-planner leads; no session, no budgeting content',
   'notifications/register': 'a device must be able to register to receive the "your trial ended" push',
 }
 

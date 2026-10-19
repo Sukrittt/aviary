@@ -41,6 +41,7 @@ export const pages = {
   '/legal/refunds': { title: 'Refunds and Cancellation | Aviary', description: 'How to cancel your Aviary subscription, what happens to your access, and which charges can be refunded.', index: true },
   '/legal/contact': { title: 'Contact Aviary Support', description: 'Reach the person who builds Aviary for help with your account, billing, refunds or privacy. You’ll hear back within 3 working days.', index: true },
   '/legal/delete-account': { title: 'Delete Your Aviary Account', description: 'How to delete your Aviary account and personal data from the app, or ask support to do it for you.', index: true },
+  '/emails': { title: 'Email preferences', description: 'Turn Aviary’s money tips by email on or off.' },
   '/sign-in': { title: 'Sign In', description: 'Sign in to Aviary with Google or a one-time email code to access your budget across Android and the web.' },
   '/email': { title: 'Sign In with Email', description: 'Enter your email to receive a one-time sign-in code for your Aviary account.' },
   '/code': { title: 'Verify Your Sign-In Code', description: 'Verify your one-time email code to securely sign in to Aviary.' },

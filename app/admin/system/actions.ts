@@ -21,6 +21,7 @@ export async function saveSettingsAction(_prev: ActionResult, form: FormData): P
   const next: SystemSettings = {
     aiDisabled: form.get('aiDisabled') === 'on',
     aiMonthlyCostUsd: cap,
+    lifecycleEmails: form.get('lifecycleEmails') === 'on',
     maintenance: { on: form.get('maintenanceOn') === 'on', message },
     appUpdate: { android: { latestVersion, minVersion, storeUrl } },
     // Two independent switches, on purpose: purchase entry can go live for a

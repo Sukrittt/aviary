@@ -1,6 +1,7 @@
 vi.mock('@/lib/email/subscription', () => ({ retrySubscriptionEmails: vi.fn(async () => ({ sent: 2, failed: 0, skipped: 0, needs_review: 0, configured: true })) }))
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 vi.mock('@/lib/email/welcome', () => ({ retryWelcomeEmails: vi.fn(async () => ({ sent: 1, failed: 0, skipped: 0, needs_review: 0, configured: true })) }))
+vi.mock('@/lib/email/lifecycle', () => ({ retryLifecycleEmails: vi.fn(async () => ({ sent: 1, failed: 0, skipped: 0, needs_review: 0, queued: 1, configured: true })) }))
 vi.mock('@/lib/cronRuns', () => ({ recordCronRun: vi.fn(async (_job, _trigger, fn) => fn()), triggerOf: () => 'cron' }))
 const { retryWelcomeEmails } = await import('@/lib/email/welcome')
 const { GET } = await import('./route')
@@ -15,7 +16,8 @@ it.each([undefined, 'Bearer wrong'])('rejects an unauthorized retry request (%s)
 
 it('retries pending email only for an authorized cron request', async () => {
   const response = await GET(new Request('https://example.com/api/cron/emails', { headers: { authorization: 'Bearer test-secret' } }))
-  expect(await response.json()).toMatchObject({ ok: true, sent: 3 })
+  expect(await response.json()).toMatchObject({ ok: true, sent: 4 })
   expect(retryWelcomeEmails).toHaveBeenCalledExactlyOnceWith(4)
   expect((await import('@/lib/email/subscription')).retrySubscriptionEmails).toHaveBeenCalledExactlyOnceWith(4)
+  expect((await import('@/lib/email/lifecycle')).retryLifecycleEmails).toHaveBeenCalledExactlyOnceWith(15)
 })
