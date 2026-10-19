@@ -5,7 +5,7 @@ import { error, getCollection, json, readBody } from '@/lib/http'
 import { aiDisabledResponse } from '@/lib/systemSettings'
 import { aiAllowanceResponse } from '@/lib/ai/allowance'
 import { isRateLimited } from '@/lib/rateLimit'
-import { getUserCurrency, nowForUser } from '@/lib/userCurrency'
+import { getBudgetCurrency, nowForUser } from '@/lib/userCurrency'
 import { buildCandidates, DETECTION_VERSION, fingerprint, nextSuggestedDate, normalizeItem, scanWindow, type DetectionDecision, type DetectionFrequency, type RecurringCandidate } from '@/lib/recurringDetection'
 import { evaluateRecurring } from '@/lib/ai/recurringDetection'
 import type { RecurringScan, RecurringSuggestion, ScanMonths } from '@/src/types/recurringSuggestions'
@@ -29,7 +29,7 @@ type Cache = Awaited<ReturnType<typeof getCollection>>
 
 async function loadHistory(auth: Auth, months: ScanMonths, cache: Cache) {
   const [{ date: today }, currency, expenses, recurring, subscriptions] = await Promise.all([
-    nowForUser(auth.userId), getUserCurrency(auth.userId), getCollection('expenses', auth),
+    nowForUser(auth.userId), getBudgetCurrency(auth), getCollection('expenses', auth),
     getCollection('recurring_expenses', auth), getCollection('subscriptions', auth),
   ])
   const windowStart = scanWindow(today, months)
@@ -106,7 +106,7 @@ export async function GET(req: Request) {
     const snapshot: Snapshot = JSON.parse(doc.snapshot)
     if (!snapshot.scan.suggestions.length) return json(snapshot.scan)
     const [currency, expenses, recurring, subscriptions] = await Promise.all([
-      getUserCurrency(auth.userId), getCollection('expenses', auth), getCollection('recurring_expenses', auth), getCollection('subscriptions', auth),
+      getBudgetCurrency(auth), getCollection('expenses', auth), getCollection('recurring_expenses', auth), getCollection('subscriptions', auth),
     ])
     if (currency !== snapshot.currency) return json({ ...snapshot.scan, suggestions: [], stale: true })
     const ids = Object.values(snapshot.evidence).flat().map(e => new ObjectId(e.id))

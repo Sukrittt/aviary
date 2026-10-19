@@ -1,4 +1,4 @@
-import { getUserCurrency } from '@/lib/userCurrency'
+import { getBudgetCurrency } from '@/lib/userCurrency'
 import { ObjectId } from 'mongodb'
 import { put, issueSignedToken, presignUrl } from '@vercel/blob'
 import ExcelJS from 'exceljs'
@@ -124,7 +124,7 @@ export async function buildAndStoreExport(auth: Pick<Auth, 'userId' | 'spaceId'>
     const filename = join(directory, 'export.xlsx')
     const wb = new ExcelJS.stream.xlsx.WorkbookWriter({ filename, useStyles: false, useSharedStrings: false })
 
-    const columnsByCollection = exportColumns(await getUserCurrency(userId))
+    const columnsByCollection = exportColumns(await getBudgetCurrency(auth))
     for (const [key, name] of Object.entries(COLLECTIONS) as [keyof typeof COLLECTIONS, string][]) {
       const columns = columnsByCollection[key]
       if (!columns) continue

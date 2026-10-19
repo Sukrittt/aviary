@@ -67,6 +67,13 @@ export interface UserDoc {
   lastSeenAt?: Date
   /** Furthest come-back nudge sent for the current quiet spell, keyed by its last-seen date. Server-owned, see lib/notifications/reengage.ts. */
   lastReengage?: { lapse: string; step: number }
+  /** How many budgets this person may open. Absent = 5. Set only by an admin, from /admin/users. */
+  budgetLimit?: number | null
+  /**
+   * True for someone who only ever joined other people's budgets: they have
+   * no personal budget (and no trial) until they make one of their own.
+   */
+  noPersonalBudget?: boolean
   /** Set when the account is soft-deleted; the GC cron purges the account (and its WorkOS user) `GRACE_DAYS` after this. Null/absent = active. */
   deleted_at?: string | null
   account_deletion_version?: 1

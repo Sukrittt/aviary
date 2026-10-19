@@ -10,8 +10,10 @@
  * A new budget gets its own id, which `scoped()` writes into the same
  * `user_id` field. That field now means "budget key".
  */
-import type { Db } from 'mongodb'
+import { ObjectId, type Db } from 'mongodb'
 import { getDb } from './mongodb'
+import { scoped } from './scoped'
+import { resolveCurrency } from '@/src/lib/currencies'
 import type { Auth } from './access'
 
 export const SPACES = 'spaces'
@@ -177,4 +179,173 @@ export function budgetsOpen(userId: string, hasPersonal: boolean, memberSpaceIds
   const ids = new Set(memberSpaceIds)
   if (hasPersonal) ids.add(userId)
   return ids.size
+}
+
+/** What the switcher shows for one budget. */
+export interface BudgetSummary {
+  id: string
+  name: string
+  emoji: string
+  role: SpaceRole
+  ownerId: string
+  currencyCode: string
+  /** True for the budget whose id is the person's own: it can't be left, only renamed. */
+  personal: boolean
+  members: { userId: string; name: string | null; avatarUrl: string | null; role: SpaceRole; joinedAt: string | null }[]
+}
+
+export const PERSONAL_NAME = 'Personal'
+export const PERSONAL_EMOJI = '🐦'
+
+type PersonDoc = { _id: string; name?: string | null; firstName?: string | null; lastName?: string | null; avatarUrl?: string | null; currencyCode?: string; budgetLimit?: number | null; noPersonalBudget?: boolean }
+
+const personName = (u: PersonDoc | undefined) => u?.name || [u?.firstName, u?.lastName].filter(Boolean).join(' ').trim() || null
+
+/**
+ * Every budget this person can open, the personal one first, plus the limit
+ * the switcher counts against. The personal budget needs no `spaces` doc:
+ * until it's renamed or shared it's described from the user doc alone.
+ */
+export async function listBudgets(userId: string): Promise<{ budgets: BudgetSummary[]; count: number; limit: number }> {
+  const db = await getDb()
+  const user = await db.collection<PersonDoc>('users').findOne({ _id: userId })
+  const hasPersonal = !user?.noPersonalBudget
+  const mine = await db.collection<SpaceMemberDoc>(SPACE_MEMBERS).find({ user_id: userId }).sort({ joined_at: 1 }).toArray()
+  const ids = [...new Set([...(hasPersonal ? [userId] : []), ...mine.map((m) => m.space_id)])]
+  const [spaces, members] = await Promise.all([
+    db.collection<SpaceDoc>(SPACES).find({ _id: { $in: ids }, deleted_at: null }).toArray(),
+    db.collection<SpaceMemberDoc>(SPACE_MEMBERS).find({ space_id: { $in: ids } }).sort({ joined_at: 1 }).toArray(),
+  ])
+  const people = await db.collection<PersonDoc>('users')
+    .find({ _id: { $in: [...new Set([userId, ...members.map((m) => m.user_id)])] } }, { projection: { name: 1, firstName: 1, lastName: 1, avatarUrl: 1, currencyCode: 1 } })
+    .toArray()
+  const personById = new Map(people.map((p) => [p._id, p]))
+  const spaceById = new Map(spaces.map((s) => [s._id, s]))
+
+  const budgets: BudgetSummary[] = []
+  for (const id of ids) {
+    const space = spaceById.get(id)
+    const personal = id === userId
+    if (!space && !personal) continue // deleted
+    const ownerId = space?.owner_id ?? userId
+    const role: SpaceRole = ownerId === userId ? 'owner' : 'member'
+    const rows = members.filter((m) => m.space_id === id)
+    const list = rows.length ? rows : [{ space_id: id, user_id: userId, role: 'owner' as const, joined_at: '', notify_others: false }]
+    budgets.push({
+      id,
+      name: space?.name ?? PERSONAL_NAME,
+      emoji: space?.emoji ?? PERSONAL_EMOJI,
+      role,
+      ownerId,
+      // The personal budget's currency is the user's own setting.
+      currencyCode: resolveCurrency(personal ? personById.get(ownerId)?.currencyCode : space?.currencyCode),
+      personal,
+      members: list.map((m) => ({
+        userId: m.user_id,
+        name: personName(personById.get(m.user_id)),
+        avatarUrl: personById.get(m.user_id)?.avatarUrl ?? null,
+        role: m.role,
+        joinedAt: m.joined_at || null,
+      })),
+    })
+  }
+  return { budgets, count: budgetsOpen(userId, hasPersonal, budgets.map((b) => b.id)), limit: budgetLimitFor(user ?? {}) }
+}
+
+/** Gives the personal budget a `spaces` doc and an owner membership, so it can be renamed or shared. Idempotent. */
+export async function ensurePersonalSpace(userId: string): Promise<void> {
+  const db = await getDb()
+  const now = new Date().toISOString()
+  await db.collection<SpaceDoc>(SPACES).updateOne(
+    { _id: userId },
+    { $setOnInsert: { name: PERSONAL_NAME, emoji: PERSONAL_EMOJI, owner_id: userId, deleted_at: null, created_at: now } },
+    { upsert: true },
+  )
+  await db.collection<SpaceMemberDoc>(SPACE_MEMBERS).updateOne(
+    { space_id: userId, user_id: userId },
+    { $setOnInsert: { role: 'owner', joined_at: now, notify_others: false } },
+    { upsert: true },
+  )
+}
+
+export class BudgetError extends Error {
+  constructor(public code: 'LIMIT_REACHED' | 'INVALID' | 'NOT_OWNER' | 'NOT_FOUND' | 'FULL' | 'EXPIRED', message: string) {
+    super(message)
+  }
+}
+
+const NAME_MAX = 40
+
+export function budgetNameError(name: unknown): string | null {
+  if (typeof name !== 'string' || !name.trim()) return 'name required'
+  if (name.trim().length > NAME_MAX) return 'name too long'
+  return null
+}
+
+/** One emoji (a single grapheme, possibly several code points). */
+export function isBudgetEmoji(value: unknown): value is string {
+  if (typeof value !== 'string' || !value || value.length > 16) return false
+  const graphemes = [...new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(value)]
+  return graphemes.length === 1 && /\p{Extended_Pictographic}|\p{Regional_Indicator}/u.test(value)
+}
+
+/**
+ * A new budget, owned by `auth.userId`. Optionally starts with a copy of the
+ * active budget's groups and categories (names, order, icons, colours, alert
+ * thresholds), never its money.
+ *
+ * ponytail: the limit check and the insert aren't atomic, so two creates
+ * racing from two devices could land one over the limit. A per-user lease
+ * would close it if that ever matters.
+ */
+export async function createBudget(
+  auth: Auth,
+  input: { name: string; emoji: string; currencyCode: string; copyCategories: boolean },
+): Promise<BudgetSummary> {
+  const { count, limit } = await listBudgets(auth.userId)
+  if (count >= limit) throw new BudgetError('LIMIT_REACHED', 'budget limit reached')
+  const db = await getDb()
+  const id = new ObjectId().toHexString()
+  const now = new Date().toISOString()
+  await db.collection<SpaceDoc>(SPACES).insertOne({
+    _id: id, name: input.name.trim(), emoji: input.emoji, owner_id: auth.userId,
+    currencyCode: input.currencyCode, onboardedAt: now, deleted_at: null, created_at: now,
+  })
+  await db.collection<SpaceMemberDoc>(SPACE_MEMBERS).insertOne({ space_id: id, user_id: auth.userId, role: 'owner', joined_at: now, notify_others: false })
+  if (input.copyCategories && !auth.spaceDenied) await copyCategories(auth.spaceId, id)
+  forgetMembership(id, auth.userId)
+  const { budgets } = await listBudgets(auth.userId)
+  return budgets.find((b) => b.id === id)!
+}
+
+const CATEGORY_FIELDS = ['name', 'group', 'order', 'icon', 'color', 'alertPcts'] as const
+
+async function copyCategories(fromSpaceId: string, toSpaceId: string): Promise<void> {
+  const db = await getDb()
+  for (const name of ['groups', 'categories'] as const) {
+    const docs = await scoped(db.collection(name), fromSpaceId).find({}).toArray()
+    if (docs.length === 0) continue
+    const copies = docs.map((d) => Object.fromEntries(Object.entries(d).filter(([k]) => (CATEGORY_FIELDS as readonly string[]).includes(k))))
+    await scoped(db.collection(name), toSpaceId).insertMany(copies)
+  }
+}
+
+/** Rename, re-emoji or re-currency a budget. Owner only. The personal budget's currency stays on the user doc. */
+export async function updateBudget(auth: Auth, spaceId: string, patch: { name?: string; emoji?: string; currencyCode?: string }): Promise<BudgetSummary> {
+  const { budgets } = await listBudgets(auth.userId)
+  const budget = budgets.find((b) => b.id === spaceId)
+  if (!budget) throw new BudgetError('NOT_FOUND', 'budget not found')
+  if (budget.role !== 'owner') throw new BudgetError('NOT_OWNER', 'only the owner can change this budget')
+  const db = await getDb()
+  if (budget.personal) {
+    if (patch.name !== undefined || patch.emoji !== undefined) await ensurePersonalSpace(auth.userId)
+    if (patch.currencyCode !== undefined) await db.collection('users').updateOne({ _id: auth.userId as never }, { $set: { currencyCode: patch.currencyCode } })
+  }
+  const set = {
+    ...(patch.name !== undefined ? { name: patch.name.trim() } : {}),
+    ...(patch.emoji !== undefined ? { emoji: patch.emoji } : {}),
+    ...(patch.currencyCode !== undefined && !budget.personal ? { currencyCode: patch.currencyCode } : {}),
+  }
+  if (Object.keys(set).length) await db.collection<SpaceDoc>(SPACES).updateOne({ _id: spaceId }, { $set: set })
+  return (await listBudgets(auth.userId)).budgets.find((b) => b.id === spaceId)!
 }

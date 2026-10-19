@@ -3,7 +3,7 @@ import { Type, type Schema } from '@google/genai'
 import type { Auth } from '@/lib/access'
 import { getCollection } from '@/lib/http'
 import { getCachedCategoryMap } from '@/lib/categoryMap'
-import { getUserCurrency, nowForUser } from '@/lib/userCurrency'
+import { getBudgetCurrency, nowForUser } from '@/lib/userCurrency'
 import { validDate } from '@/lib/inputValidation'
 import { generateJSON } from './gemini'
 import { scoreCategory } from './jev'
@@ -252,7 +252,7 @@ export async function extractCapture(message: string, ctx: CaptureContext, calle
 export async function buildCaptureProposal(auth: Auth, message: string): Promise<CaptureProposal> {
   const [now, currencyCode, categoriesColl, expensesColl, overridesColl] = await Promise.all([
     nowForUser(auth.userId),
-    getUserCurrency(auth.userId),
+    getBudgetCurrency(auth),
     getCollection('categories', auth),
     getCollection('expenses', auth),
     getCollection('category_map_overrides', auth),
