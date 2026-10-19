@@ -4,7 +4,17 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 const mutateAsync = vi.fn()
 const readStatement = vi.fn()
 vi.mock('@/src/hooks/useExpenses', () => ({ useAddExpense: () => ({ mutateAsync }) }))
-vi.mock('@/src/hooks/useCategories', () => ({ useCategories: () => ({ data: [{ name: 'Food' }, { name: 'Travel' }] }) }))
+vi.mock('@/src/hooks/useCategories', () => ({
+  useCategories: () => ({ data: [{ name: 'Food' }, { name: 'Travel' }] }),
+  useCategoryStyle: () => () => ({ background: 'gold', color: 'black' }),
+}))
+vi.mock('@/src/components/CategoryPicker', () => ({
+  CategoryPicker: ({ onChange }: { onChange: (c: string) => void }) => (
+    <button type="button" onClick={() => onChange('Food')}>
+      Food chip
+    </button>
+  ),
+}))
 vi.mock('@/src/context/CurrencyContext', () => ({ useCurrency: () => ({ formatMoney: (n: number) => `₹${n}` }) }))
 vi.mock('@/src/api/statement', async (orig) => ({ ...(await orig<object>()), readStatement: (...a: unknown[]) => readStatement(...a) }))
 
@@ -37,9 +47,10 @@ describe('StatementModal', () => {
   it('sends a csv as a file and leaves likely-logged and older rows unticked', async () => {
     await upload()
     expect(readStatement).toHaveBeenCalledWith({ file: expect.any(File) })
-    expect((screen.getByLabelText('Add Swiggy, ₹349') as HTMLInputElement).checked).toBe(true)
-    expect((screen.getByLabelText('Add Rapido, ₹120') as HTMLInputElement).checked).toBe(false)
-    expect((screen.getByLabelText('Add Chai, ₹20') as HTMLInputElement).checked).toBe(false)
+    expect(screen.getByLabelText('Add Swiggy, ₹349').getAttribute('aria-checked')).toBe('true')
+    expect(screen.getByLabelText('Add Rapido, ₹120').getAttribute('aria-checked')).toBe('false')
+    expect(screen.getByLabelText('Add Chai, ₹20').getAttribute('aria-checked')).toBe('false')
+    expect(screen.getByText('3 payments · 12 to 17 Oct')).toBeTruthy()
     expect(screen.getByText(/Looks logged already/)).toBeTruthy()
     expect(screen.getByText(/Before your last log/)).toBeTruthy()
     expect(screen.getByText('2 credits skipped. Log refunds as income if you want them counted.')).toBeTruthy()
@@ -49,11 +60,78 @@ describe('StatementModal', () => {
     await upload()
     fireEvent.click(screen.getByLabelText('Add Chai, ₹20'))
     expect(screen.getByText('Pick a category for the ticked rows to log them.')).toBeTruthy()
-    fireEvent.change(screen.getByLabelText('Category for Chai'), { target: { value: 'Food' } })
+    fireEvent.click(screen.getByLabelText('Pick a category for Chai'))
+    fireEvent.click(screen.getByText('Food chip'))
     fireEvent.click(screen.getByText('Log 2 · ₹369'))
     await waitFor(() => expect(mutateAsync).toHaveBeenCalledTimes(2))
     expect(mutateAsync.mock.calls.map((c) => c[0].client_id)).toEqual(['statement:a', 'statement:c'])
     expect(mutateAsync.mock.calls[1][0]).toMatchObject({ source: 'statement', category: 'Food', date: '2026-10-12' })
+  })
+
+  it('ticks every row at once, and unticks them again', async () => {
+    await upload()
+    fireEvent.click(screen.getByText('Tick all'))
+    expect(screen.getByLabelText('Add Rapido, ₹120').getAttribute('aria-checked')).toBe('true')
+    expect(screen.getByText('Pick a category for the ticked rows to log them.')).toBeTruthy()
+    fireEvent.click(screen.getByText('Untick all'))
+    expect(screen.getByText('Tick what to add')).toBeTruthy()
+  })
+
+  it('picking a category ticks the row it belongs to', async () => {
+    await upload()
+    fireEvent.click(screen.getByLabelText('Pick a category for Chai'))
+    fireEvent.click(screen.getByText('Food chip'))
+    expect(screen.getByLabelText('Add Chai, ₹20').getAttribute('aria-checked')).toBe('true')
+    expect(screen.getByText('Log 2 · ₹369')).toBeTruthy()
+  })
+
+  it("ends on what got filled in: the days, the total and where it went", async () => {
+    const onClose = vi.fn()
+    render(<StatementModal onClose={onClose} />)
+    fireEvent.change(screen.getByLabelText('Statement or screenshots'), { target: { files: [new File(['Date,Amount'], 'hdfc.csv', { type: 'text/csv' })] } })
+    await screen.findByText('Check these, then log')
+    fireEvent.click(screen.getByLabelText('Add Rapido, ₹120'))
+    fireEvent.click(screen.getByText('Log 2 · ₹469'))
+    expect(await screen.findByText("You're caught up.", {}, { timeout: 3000 })).toBeTruthy()
+    expect(screen.getByText(/17 Oct is filled in/)).toBeTruthy()
+    expect(screen.getByText('2 payments added')).toBeTruthy()
+    expect(screen.getByText('₹469')).toBeTruthy()
+    expect(screen.getByText('₹349')).toBeTruthy()
+    expect(screen.getByText('₹120')).toBeTruthy()
+    expect(onClose).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByText('Done'))
+    expect(onClose).toHaveBeenCalled()
+  })
+
+  it('counts a row an earlier failed try already saved, even once it is unticked', async () => {
+    await upload()
+    fireEvent.click(screen.getByLabelText('Add Rapido, ₹120'))
+    mutateAsync.mockResolvedValueOnce({}).mockRejectedValueOnce(new Error('503'))
+    fireEvent.click(screen.getByText('Log 2 · ₹469'))
+    expect(await screen.findByText("Couldn't log 1. Check your connection and try again.")).toBeTruthy()
+    fireEvent.click(screen.getByLabelText('Add Swiggy, ₹349'))
+    fireEvent.click(screen.getByText('Log 1 · ₹120'))
+    expect(await screen.findByText("You're caught up.", {}, { timeout: 3000 })).toBeTruthy()
+    expect(screen.getByText('2 payments added')).toBeTruthy()
+    expect(screen.getByText('₹469')).toBeTruthy()
+    expect(mutateAsync.mock.calls[2][0].client_id).toBe('statement:b')
+  })
+
+  it("doesn't count a row the server already had as added", async () => {
+    await upload()
+    fireEvent.click(screen.getByLabelText('Add Rapido, ₹120'))
+    mutateAsync.mockResolvedValueOnce({}).mockResolvedValueOnce({ duplicate: true })
+    fireEvent.click(screen.getByText('Log 2 · ₹469'))
+    expect(await screen.findByText("You're caught up.", {}, { timeout: 3000 })).toBeTruthy()
+    expect(screen.getByText('1 payment added')).toBeTruthy()
+  })
+
+  it('says so when everything ticked was already there', async () => {
+    await upload()
+    mutateAsync.mockResolvedValueOnce({ duplicate: true })
+    fireEvent.click(screen.getByText('Log 1 · ₹349'))
+    expect(await screen.findByText('Those were already in your budget, so nothing doubled up.', {}, { timeout: 3000 })).toBeTruthy()
+    expect(screen.queryByText(/added/)).toBeNull()
   })
 
   it('turns away a sixth screenshot before uploading', async () => {

@@ -101,15 +101,16 @@ export function mintExpensePayload(row: NewExpenseRow): ExpensePayload {
 }
 
 /** Resolves with the created (or, on a client_id replay, already-existing) row's identity. */
-export async function postExpensePayload(payload: ExpensePayload): Promise<{ id?: string; timestamp?: string; version?: number }> {
+export async function postExpensePayload(payload: ExpensePayload): Promise<{ id?: string; timestamp?: string; version?: number; duplicate?: boolean }> {
   const resp = await apiFetch('/api/expenses', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   })
   if (!resp.ok) throw new HttpError(resp.status, `Failed to add expense: ${resp.status}`)
-  const data: { id?: string; timestamp?: string; version?: number } = await resp.json().catch(() => ({}))
-  return { id: data.id, timestamp: data.timestamp, version: data.version }
+  const data: { id?: string; timestamp?: string; version?: number; duplicate?: boolean } = await resp.json().catch(() => ({}))
+  // `duplicate`: the server already had this client_id and added nothing.
+  return { id: data.id, timestamp: data.timestamp, version: data.version, duplicate: data.duplicate === true }
 }
 
 /**
@@ -118,7 +119,7 @@ export async function postExpensePayload(payload: ExpensePayload): Promise<{ id?
  * its own payload via `mintExpensePayload` up front so it has something to
  * enqueue if the POST itself never happens.
  */
-export async function addExpense(row: NewExpenseRow): Promise<{ id?: string; timestamp?: string; version?: number }> {
+export async function addExpense(row: NewExpenseRow): Promise<{ id?: string; timestamp?: string; version?: number; duplicate?: boolean }> {
   return postExpensePayload(mintExpensePayload(row))
 }
 
