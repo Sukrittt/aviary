@@ -51,7 +51,7 @@ export function StatementModal({ onClose }: { onClose: () => void }) {
   const button = useButtonPhase()
   const addExpense = useAddExpense()
   // Rows a partly failed attempt already logged; a retry skips them (their client_ids would dedupe anyway).
-  const logged = useRef(new Map<string, string>())
+  const logged = useRef(new Map<string, string | null>())
 
   function fail(message: string) {
     setError(message)
@@ -91,8 +91,9 @@ export function StatementModal({ onClose }: { onClose: () => void }) {
       setProgress(n + 1)
       if (logged.current.has(item.id)) continue
       try {
-        await addExpense.mutateAsync(statementExpense(item, rows[item.id].category))
-        logged.current.set(item.id, rows[item.id].category)
+        const saved = await addExpense.mutateAsync(statementExpense(item, rows[item.id].category))
+        // null: the server already had it, so it's handled but not new.
+        logged.current.set(item.id, saved?.duplicate ? null : rows[item.id].category)
       } catch {
         failed++
       }
@@ -103,8 +104,8 @@ export function StatementModal({ onClose }: { onClose: () => void }) {
       return
     }
     track('statement_logged', { rows: toLog.length, unchecked: proposal.items.length - toLog.length })
-    // Everything saved here, with the category it was saved under, including rows an earlier failed try saved and you've since unticked.
-    setDone(caughtUp(proposal.items.filter((i) => logged.current.has(i.id)).map((i) => ({ amount: i.amount, date: i.date, category: logged.current.get(i.id) ?? '' }))))
+    // Everything newly saved here, with the category it was saved under, including rows an earlier failed try saved and you've since unticked.
+    setDone(caughtUp(proposal.items.filter((i) => logged.current.get(i.id) != null).map((i) => ({ amount: i.amount, date: i.date, category: logged.current.get(i.id) ?? '' }))))
     button.succeed(() => setPhase('done'))
   }
 
@@ -354,8 +355,11 @@ function StatementDone({ done, onClose }: { done: CaughtUp; onClose: () => void 
       </span>
       <h3 className="gap-done-title">You&apos;re caught up.</h3>
       <p className="gap-done-copy">
-        {daySpan(done.from, done.to)} is filled in. Your categories now match what you actually spent.
+        {done.count > 0
+          ? `${daySpan(done.from, done.to)} is filled in. Your categories now match what you actually spent.`
+          : 'Those were already in your budget, so nothing doubled up.'}
       </p>
+      {done.count > 0 && (
       <div className="gap-done-summary">
         <div className="gap-done-total">
           <span>{done.count} {done.count === 1 ? 'payment' : 'payments'} added</span>
@@ -377,7 +381,8 @@ function StatementDone({ done, onClose }: { done: CaughtUp; onClose: () => void 
         </ul>
         {more > 0 && <p className="gap-done-more">and {more} more {more === 1 ? 'category' : 'categories'}</p>}
       </div>
-      <p className="gap-note">Upload the same file again and nothing doubles up.</p>
+      )}
+      {done.count > 0 && <p className="gap-note">Upload the same file again and nothing doubles up.</p>}
       <div className="gap-done-actions">
         <Link href="/expense/transactions" className="account-pill-btn" onClick={onClose}>
           See them in Activity

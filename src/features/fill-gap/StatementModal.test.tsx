@@ -117,6 +117,23 @@ describe('StatementModal', () => {
     expect(mutateAsync.mock.calls[2][0].client_id).toBe('statement:b')
   })
 
+  it("doesn't count a row the server already had as added", async () => {
+    await upload()
+    fireEvent.click(screen.getByLabelText('Add Rapido, ₹120'))
+    mutateAsync.mockResolvedValueOnce({}).mockResolvedValueOnce({ duplicate: true })
+    fireEvent.click(screen.getByText('Log 2 · ₹469'))
+    expect(await screen.findByText("You're caught up.", {}, { timeout: 3000 })).toBeTruthy()
+    expect(screen.getByText('1 payment added')).toBeTruthy()
+  })
+
+  it('says so when everything ticked was already there', async () => {
+    await upload()
+    mutateAsync.mockResolvedValueOnce({ duplicate: true })
+    fireEvent.click(screen.getByText('Log 1 · ₹349'))
+    expect(await screen.findByText('Those were already in your budget, so nothing doubled up.', {}, { timeout: 3000 })).toBeTruthy()
+    expect(screen.queryByText(/added/)).toBeNull()
+  })
+
   it('turns away a sixth screenshot before uploading', async () => {
     render(<StatementModal onClose={() => {}} />)
     const shots = Array.from({ length: 6 }, (_, i) => new File(['x'], `s${i}.png`, { type: 'image/png' }))
