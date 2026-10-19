@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState } from 'react'
 import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
 import { clearLocalPrefs } from '../../../src/lib/localPref'
-import { useBillingStatus } from '@/src/hooks/useBillingStatus'
+import { DeleteAccount } from './DeleteAccount'
 
 interface UserDoc {
   email: string
@@ -61,16 +61,6 @@ function SecurityContent() {
   const [revokingId, setRevokingId] = useState<string | null>(null)
   const [confirmingSignOutAll, setConfirmingSignOutAll] = useState(false)
   const [signingOutAll, setSigningOutAll] = useState(false)
-
-  const [confirmingDelete, setConfirmingDelete] = useState(false)
-  const { data: billing } = useBillingStatus()
-  // Deleting the account cannot cancel a Google Play subscription — only the Play Store can.
-  // A web one is cancelled by the delete itself (DELETE /api/user), so it only needs a heads-up.
-  const renewingSubscription = billing?.mode === 'paid' && billing.autoRenew
-  const renewingOnWeb = renewingSubscription && billing?.store === 'web'
-  const [deleteEmailDraft, setDeleteEmailDraft] = useState('')
-  const [deleting, setDeleting] = useState(false)
-  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const [restoring, setRestoring] = useState(false)
   const [restoreError, setRestoreError] = useState(false)
@@ -164,28 +154,6 @@ function SecurityContent() {
       return
     }
     setRestoreError(true)
-  }
-
-  async function deleteAccount() {
-    setDeleting(true)
-    setDeleteError(null)
-    const res = await fetch('/api/user', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: deleteEmailDraft.trim() }),
-    })
-    if (res.ok) {
-      window.location.href = '/sign-in'
-      return
-    }
-    // 503: the web subscription couldn't be cancelled, so the server refused
-    // the delete rather than keep billing a gone account.
-    setDeleteError(
-      res.status === 503
-        ? "We couldn't cancel your subscription just now, so your account wasn't deleted. Try again in a bit."
-        : "Your account wasn't deleted. Check your connection and try again.",
-    )
-    setDeleting(false)
   }
 
   const initial = (doc?.name || doc?.email || '?').trim().charAt(0).toUpperCase()
@@ -433,71 +401,7 @@ function SecurityContent() {
         )}
       </div>
 
-      <div className="account-danger-card">
-        <div className="account-danger-title">Delete account</div>
-        <div className="account-danger-copy">
-          Removes categories, transactions and recaps. You have 7 days to sign back in and restore before it&apos;s
-          gone for good.
-        </div>
-        {confirmingDelete ? (
-          <div className="account-confirm-panel">
-            <div className="account-confirm-copy">
-              You&apos;ll have 7 days to restore before this is permanent. Type <strong>{doc?.email}</strong> to
-              confirm.
-            </div>
-            {renewingOnWeb ? (
-              <div className="account-confirm-copy">
-                <strong>Your subscription is still active.</strong> Deleting your account cancels it, so you won&apos;t be
-                charged again.
-              </div>
-            ) : renewingSubscription ? (
-              <div className="account-confirm-copy">
-                <strong>Your subscription is still active.</strong> Deleting your account doesn&apos;t cancel it. Cancel in
-                the Google Play Store first, or you&apos;ll keep being billed.
-              </div>
-            ) : null}
-            <input
-              type="email"
-              className="account-inline-input"
-              value={deleteEmailDraft}
-              onChange={(e) => setDeleteEmailDraft(e.target.value)}
-              placeholder={doc?.email ?? ''}
-              disabled={deleting}
-              autoComplete="off"
-            />
-            <div className="account-confirm-actions">
-              <button
-                type="button"
-                className="account-confirm-cancel"
-                onClick={() => {
-                  setConfirmingDelete(false)
-                  setDeleteEmailDraft('')
-                }}
-                disabled={deleting}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="account-danger-btn"
-                onClick={deleteAccount}
-                disabled={deleting || !doc?.email || deleteEmailDraft.trim().toLowerCase() !== doc.email.toLowerCase()}
-              >
-                {deleting ? 'Deleting…' : 'Delete permanently'}
-              </button>
-            </div>
-            {deleteError ? (
-              <div className="account-confirm-copy" role="alert">
-                {deleteError}
-              </div>
-            ) : null}
-          </div>
-        ) : (
-          <button type="button" className="account-danger-btn" onClick={() => setConfirmingDelete(true)}>
-            Delete account
-          </button>
-        )}
-      </div>
+      <DeleteAccount email={doc?.email} />
     </>
   )
 }

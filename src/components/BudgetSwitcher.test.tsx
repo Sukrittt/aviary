@@ -11,6 +11,14 @@ const { getBudgets, createBudget, switchBudget } = vi.hoisted(() => ({
 }))
 vi.mock('../api/spaces', () => ({ getBudgets, createBudget, switchBudget }))
 
+const importFlow = vi.hoisted(() => vi.fn())
+vi.mock('./onboarding/ImportFlow', () => ({
+  ImportFlow: (props: { skipAsk?: boolean; onFresh: () => void }) => {
+    importFlow(props)
+    return <button type="button" onClick={props.onFresh}>Start fresh instead</button>
+  },
+}))
+
 const { BudgetSwitcher, BudgetLine, NewBudgetEntry } = await import('./BudgetSwitcher')
 
 const budget = (id: string, name: string, emoji: string, extra: Partial<BudgetSummary> = {}): BudgetSummary => ({
@@ -77,6 +85,27 @@ describe('CreateBudgetDialog', () => {
 
     await waitFor(() => expect(createBudget).toHaveBeenCalledWith({ name: 'Goa trip', emoji: '✈️', currencyCode: 'EUR', copyCategories: false }))
     await waitFor(() => expect(switchBudget).toHaveBeenCalledWith(created), { timeout: 2000 })
+  })
+
+  it('bringing in history makes an empty budget, switches to it, then opens the import', async () => {
+    getBudgets.mockResolvedValue(list([personal]))
+    const created = budget('s9', 'Home', '🏠')
+    createBudget.mockResolvedValue(created)
+    renderIt(<NewBudgetEntry render={(open) => <button type="button" onClick={open}>New budget</button>} />)
+    fireEvent.click(await screen.findByRole('button', { name: 'New budget' }))
+    expect(screen.getByRole('radio', { name: /^Start fresh/ }).getAttribute('aria-checked')).toBe('true')
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Home' } })
+    fireEvent.click(screen.getByRole('radio', { name: /^Bring in history from another app/ }))
+    expect(screen.queryByRole('switch', { name: /Copy categories/ })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Create and import' }))
+
+    await waitFor(() => expect(createBudget).toHaveBeenCalledWith({ name: 'Home', emoji: '🏠', currencyCode: 'EUR', copyCategories: false, import: true }))
+    expect(document.cookie).toContain('aviary-budget=s9')
+    expect(await screen.findByRole('dialog', { name: 'Bring your history into Home' }, { timeout: 2000 })).toBeTruthy()
+    expect(importFlow).toHaveBeenCalledWith(expect.objectContaining({ skipAsk: true }))
+    expect(switchBudget).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Start fresh instead' }))
+    expect(switchBudget).toHaveBeenCalledWith(created)
   })
 
   it('explains the limit instead of the raw error', async () => {

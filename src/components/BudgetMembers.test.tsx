@@ -13,6 +13,7 @@ const api = vi.hoisted(() => ({
   renameBudget: vi.fn(),
   deleteBudget: vi.fn(),
   switchBudget: vi.fn(),
+  transferBudget: vi.fn(),
 }))
 vi.mock('../api/spaces', () => api)
 const me = vi.hoisted(() => ({ id: 'u1' }))
@@ -128,5 +129,32 @@ describe('BudgetMembersDialog', () => {
     expect(await screen.findByRole('button', { name: /Invite/ })).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Delete budget' })).toBeNull()
     expect(screen.queryByRole('switch')).toBeNull()
+  })
+
+  it('owner hands the budget over: pick, confirm, then it closes', async () => {
+    api.getMembers.mockResolvedValue(info())
+    api.transferBudget.mockResolvedValue({ ok: true })
+    const onClose = vi.fn()
+    render(<BudgetMembersDialog budget={home} onClose={onClose} />, { wrapper: queryWrapper() })
+    fireEvent.click(await screen.findByRole('button', { name: /Make someone else the owner/ }))
+    fireEvent.click(within(screen.getByRole('dialog', { name: "Who's the new owner?" })).getByRole('button', { name: /Rahul Rao/ }))
+    const dialog = screen.getByRole('alertdialog', { name: 'Make Rahul the owner of Home?' })
+    expect(within(dialog).getByText("Rahul's plan covers Home from now on, and only they can invite, remove or delete. You stay in it.")).toBeTruthy()
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Make Rahul owner' }))
+    await waitFor(() => expect(api.transferBudget).toHaveBeenCalledWith('s1', 'u2'))
+    await waitFor(() => expect(onClose).toHaveBeenCalled(), { timeout: 2000 })
+  })
+
+  it('no hand-over for a member, or on the personal budget', async () => {
+    me.id = 'u2'
+    api.getMembers.mockResolvedValue(info({ role: 'member' }))
+    const { unmount } = renderIt({ ...home, role: 'member' })
+    await screen.findByRole('button', { name: 'Leave budget' })
+    expect(screen.queryByRole('button', { name: /Make someone else the owner/ })).toBeNull()
+    unmount()
+    me.id = 'u1'
+    renderIt({ ...personal, members: people })
+    expect(await screen.findByText('Your personal budget stays yours.')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /Make someone else the owner/ })).toBeNull()
   })
 })

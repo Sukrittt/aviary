@@ -8,7 +8,8 @@ import { CaretDownIcon, CaretRightIcon, CheckIcon, GearIcon, PlusIcon, TicketIco
 import { createBudget, restoreBudget, switchBudget, type BudgetSummary } from '../api/spaces'
 import { BudgetMembersDialog, MemberAvatar } from './BudgetMembers'
 import { JoinCodeDialog } from './JoinBudget'
-import { HttpError } from '../api/client'
+import { HttpError, setBudgetCookie } from '../api/client'
+import { ImportFlow } from './onboarding/ImportFlow'
 import { spacesKey, useSpaces } from '../hooks/useSpaces'
 import { useCurrency } from '@/src/context/CurrencyContext'
 import { currencyInfo } from '../lib/currencies'
@@ -176,6 +177,26 @@ function createError(err: unknown): string {
   return 'Check your connection and try again.'
 }
 
+const START_CHOICES = [
+  { id: 'fresh', title: 'Start fresh', detail: 'Set it up as you go.' },
+  { id: 'import', title: 'Bring in history from another app', detail: 'Your categories and spending from YNAB, Wallet and more.' },
+] as const
+
+/**
+ * The history import, full screen, for a just-made budget that's already the
+ * active one (by cookie). Done lands on Home in it; closing reloads into it, empty.
+ */
+function ImportIntoBudget({ budget }: { budget: BudgetSummary }) {
+  const toHome = () => { window.location.href = '/expense' }
+  const close = () => switchBudget(budget)
+  return (
+    <div className="expense-redesign setup-page budget-import" role="dialog" aria-modal="true" aria-label={`Bring your history into ${budget.name}`}>
+      <button type="button" className="erd-modal-close budget-import-close" onClick={close} aria-label="Close">✕</button>
+      <ImportFlow skipAsk onFresh={close} onDone={toHome} onAlreadySetUp={toHome} />
+    </div>
+  )
+}
+
 export function CreateBudgetDialog({ onClose }: { onClose: () => void }) {
   const { active } = useSpaces()
   const { currencyCode: current } = useCurrency()
@@ -184,6 +205,8 @@ export function CreateBudgetDialog({ onClose }: { onClose: () => void }) {
   const [currencyCode, setCurrencyCode] = useState<string>(current)
   const [pickCurrency, setPickCurrency] = useState(false)
   const [copyCategories, setCopyCategories] = useState(true)
+  const [start, setStart] = useState<'fresh' | 'import'>('fresh')
+  const [importing, setImporting] = useState<BudgetSummary | null>(null)
   const [error, setError] = useState('')
   const button = useButtonPhase()
   const busy = button.saving || button.success
@@ -196,6 +219,13 @@ export function CreateBudgetDialog({ onClose }: { onClose: () => void }) {
     setError('')
     button.start()
     try {
+      if (start === 'import') {
+        const budget = await createBudget({ name: name.trim(), emoji, currencyCode, copyCategories: false, import: true })
+        // The import endpoints work on the active budget, so make it this one before the flow opens.
+        setBudgetCookie(budget.id)
+        button.succeed(() => setImporting(budget))
+        return
+      }
       const budget = await createBudget({ name: name.trim(), emoji, currencyCode, copyCategories })
       button.succeed(() => switchBudget(budget))
     } catch (err) {
@@ -203,6 +233,8 @@ export function CreateBudgetDialog({ onClose }: { onClose: () => void }) {
       button.fail()
     }
   }
+
+  if (importing) return <ImportIntoBudget budget={importing} />
 
   return (
     <Scrim className="erd-modal-overlay" onClick={busy ? undefined : onClose}>
@@ -235,26 +267,42 @@ export function CreateBudgetDialog({ onClose }: { onClose: () => void }) {
             ))}
           </div>
 
-          <div className="erd-log-label">Currency</div>
-          {pickCurrency ? (
-            <CurrencyPicker value={currencyCode} onChange={(code) => { setCurrencyCode(code); setPickCurrency(false) }} />
-          ) : (
-            <button type="button" className="account-row budget-currency" onClick={() => setPickCurrency(true)}>
-              <span className="account-row-label">{currency.name}</span>
-              <span className="account-chip">
-                {currency.code}{currency.symbol !== currency.code ? ` · ${currency.symbol}` : ''}
-                <CaretRightIcon size={14} aria-hidden="true" />
-              </span>
-            </button>
-          )}
+          <div className="import-choices" role="radiogroup" aria-label="How do you want to start?">
+            {START_CHOICES.map((c) => (
+              <button key={c.id} type="button" role="radio" aria-checked={start === c.id} className={`import-choice${start === c.id ? ' is-on' : ''}`} onClick={() => setStart(c.id)}>
+                <span className="import-choice-radio" aria-hidden="true">{start === c.id && <span className="import-choice-dot" />}</span>
+                <span className="import-choice-text">
+                  <span className="import-choice-title">{c.title}</span>
+                  <span className="import-choice-detail">{c.detail}</span>
+                </span>
+              </button>
+            ))}
+          </div>
 
-          <label className="account-row budget-copy">
-            <span className="account-row-label">
-              {`Copy categories from ${from}`}
-              <span className="account-row-hint">Just the categories. None of the money comes along.</span>
-            </span>
-            <input type="checkbox" role="switch" className="account-switch" checked={copyCategories} onChange={(e) => setCopyCategories(e.target.checked)} />
-          </label>
+          {start === 'fresh' && (
+            <>
+              <div className="erd-log-label">Currency</div>
+              {pickCurrency ? (
+                <CurrencyPicker value={currencyCode} onChange={(code) => { setCurrencyCode(code); setPickCurrency(false) }} />
+              ) : (
+                <button type="button" className="account-row budget-currency" onClick={() => setPickCurrency(true)}>
+                  <span className="account-row-label">{currency.name}</span>
+                  <span className="account-chip">
+                    {currency.code}{currency.symbol !== currency.code ? ` · ${currency.symbol}` : ''}
+                    <CaretRightIcon size={14} aria-hidden="true" />
+                  </span>
+                </button>
+              )}
+
+              <label className="account-row budget-copy">
+                <span className="account-row-label">
+                  {`Copy categories from ${from}`}
+                  <span className="account-row-hint">Just the categories. None of the money comes along.</span>
+                </span>
+                <input type="checkbox" role="switch" className="account-switch" checked={copyCategories} onChange={(e) => setCopyCategories(e.target.checked)} />
+              </label>
+            </>
+          )}
 
           {error && <p className="erd-log-error" role="alert">{error}</p>}
 
@@ -269,7 +317,7 @@ export function CreateBudgetDialog({ onClose }: { onClose: () => void }) {
               successLabel="Created"
               disabled={!name.trim() || busy}
             >
-              Create budget
+              {start === 'import' ? 'Create and import' : 'Create budget'}
             </SuccessButton>
           </div>
         </form>

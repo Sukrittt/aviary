@@ -56,6 +56,8 @@ export interface NewBudget {
   emoji: string
   currencyCode: string
   copyCategories: boolean
+  /** Start empty, to be set up by the history import (ImportFlow) once it's the active budget. */
+  import?: boolean
 }
 
 /** Throws HttpError; 409 means the limit's reached. */
@@ -108,6 +110,12 @@ export const renameBudget = (id: string, name: string) => call<BudgetSummary>(`/
 /** 400 INVALID when the typed name doesn't match. */
 export const deleteBudget = (id: string, confirmName: string) => call<unknown>(`/api/spaces/${id}`, send('DELETE', { confirmName }))
 export const restoreBudget = (id: string) => call<unknown>(`/api/spaces/${id}/restore`, send('POST'))
+/** Owner only: `to` becomes the owner (and payer); you stay as a member. 400 INVALID for the personal budget or a non-member. */
+export const transferBudget = (id: string, to: string) => call<unknown>(`/api/spaces/${id}/transfer`, send('POST', { to }))
+
+/** A shared budget you own, with the others in it: account deletion asks who gets each one. */
+export interface OwnedSharedBudget { id: string; name: string; emoji: string; personal: boolean; members: { userId: string; name: string | null }[] }
+export const getSharedBudgets = () => call<{ budgets: OwnedSharedBudget[] }>('/api/user/shared-budgets')
 
 export type InvitePreview =
   | { status: 'ok' | 'expired' | 'cancelled' | 'accepted'; budget: { id: string; name: string; emoji: string }; inviter: string | null; members: number }

@@ -6330,6 +6330,10 @@ button.account-feature-card {
   gap: 8px;
 }
 
+.delete-shared-budget { margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 6px; }
+.delete-shared-option { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: var(--erd-text); cursor: pointer; }
+.delete-shared-option input { accent-color: var(--gold); margin: 0; }
+
 .account-confirm-actions button {
   flex: 1;
   min-height: 40px;
@@ -14290,6 +14294,10 @@ button.account-feature-card {
   background: var(--erd-input-bg);
 }
 .budget-copy { margin-top: 14px; }
+.budget-create .import-choices { margin-top: 14px; gap: 8px; max-width: none; }
+.budget-create .import-choice { padding: 12px; border-radius: 14px; }
+.budget-import { position: fixed; inset: 0; z-index: 220; overflow-y: auto; background: var(--erd-bg); }
+.budget-import-close { position: absolute; top: 16px; right: 16px; }
 
 .budget-line { margin: 4px 0 0; color: var(--erd-text2); font-size: 12px; font-weight: 600; }
 
