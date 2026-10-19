@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import type { ImportReview } from '@/src/api/imports'
 
 const previewImport = vi.fn()
@@ -14,6 +15,13 @@ vi.mock('@/src/api/imports', async (original) => ({
 vi.mock('@/src/lib/analytics', () => ({ track: vi.fn() }))
 
 const { ImportFlow } = await import('./ImportFlow')
+
+/** The group and account-type pickers are the app's shadcn Select: open it, pick the row. */
+async function pick(label: string, option: string) {
+  const user = userEvent.setup()
+  await user.click(screen.getByRole('combobox', { name: label }))
+  await user.click(await screen.findByRole('option', { name: option }))
+}
 const { ImportFailure } = await import('@/src/api/imports')
 
 const review: ImportReview = {
@@ -118,7 +126,7 @@ describe('ImportFlow', () => {
     const onDone = toReview()
     await open(/^Envelopes/)
     fireEvent.change(screen.getByLabelText('Name for Bills'), { target: { value: 'Utilities' } })
-    fireEvent.change(screen.getByLabelText('Group for Gifts'), { target: { value: 'Savings' } })
+    await pick('Group for Gifts', 'Savings')
     done()
     fireEvent.click(screen.getByRole('button', { name: 'Looks right, set me up' }))
     await waitFor(() => expect(commitImport).toHaveBeenCalled())
@@ -147,12 +155,23 @@ describe('ImportFlow', () => {
     await waitFor(() => expect(commitImport.mock.calls[0][1]).toMatchObject({ salary: { amount: 3100, day: 2 } }))
   })
 
+  it('Escape closes an open group menu, not the whole envelopes sheet', async () => {
+    toReview()
+    await open(/^Envelopes/)
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('combobox', { name: 'Group for Gifts' }))
+    await screen.findByRole('option', { name: 'Savings' })
+    await user.keyboard('{Escape}')
+    await waitFor(() => expect(screen.queryByRole('option', { name: 'Savings' })).toBeNull())
+    expect(screen.getByRole('dialog', { name: 'Your envelopes' })).toBeTruthy()
+  })
+
   it('stops at more bank accounts than the app holds, rather than dropping one quietly', async () => {
     const accounts: ImportReview['accounts'] = [...Array.from({ length: 5 }, (_, i) => ({ source: `B${i}`, name: `B${i}`, type: 'bank' as const })), { source: 'Cash', name: 'Cash', type: 'cash' }]
     previewImport.mockResolvedValue({ ...review, accounts })
     toReview()
     await open(/^Accounts/)
-    fireEvent.change(screen.getByLabelText('Type for Cash'), { target: { value: 'bank' } })
+    await pick('Type for Cash', 'Bank')
     expect(screen.getAllByRole('alert')[0]).toHaveTextContent('You can have up to 5 bank accounts. Make one of these cash or a credit card.')
     expect(screen.getByRole('button', { name: 'Looks right, set me up' })).toBeDisabled()
   })

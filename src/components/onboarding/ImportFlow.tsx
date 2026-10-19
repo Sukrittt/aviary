@@ -12,6 +12,7 @@ import { SuccessButton, useButtonPhase } from '@/src/components/SuccessButton'
 import { currencyInfo } from '@/src/lib/currencies'
 import { nextOnDay } from '@/src/lib/date'
 import { DatePicker } from '@/src/components/DatePicker'
+import { Select } from '@/src/components/Select'
 import { track } from '@/src/lib/analytics'
 import { commitImport, ImportFailure, previewImport, recomputeImport, type CommitResult, type ImportReview } from '@/src/api/imports'
 import { useImportStatus } from '@/src/components/ImportBanner'
@@ -565,14 +566,13 @@ function Review({ review, picked, onReview, onDone, onAlreadySetUp }: { review: 
                     maxLength={60}
                     onChange={(e) => setCats((all) => all.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))}
                   />
-                  <select
+                  <Select
                     className="import-select"
                     aria-label={`Group for ${c.source}`}
                     value={c.group}
-                    onChange={(e) => setCats((all) => all.map((x, j) => (j === i ? { ...x, group: e.target.value } : x)))}
-                  >
-                    {groups.map((g) => <option key={g} value={g}>{g}</option>)}
-                  </select>
+                    options={groups.map((g) => ({ value: g, label: g }))}
+                    onChange={(group) => setCats((all) => all.map((x, j) => (j === i ? { ...x, group } : x)))}
+                  />
                   <span className="import-row-amount">{formatMoney(c.monthly)}</span>
                 </div>
               ))}
@@ -608,14 +608,13 @@ function Review({ review, picked, onReview, onDone, onAlreadySetUp }: { review: 
                     maxLength={30}
                     onChange={(e) => setAccounts((all) => all.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))}
                   />
-                  <select
+                  <Select
                     className="import-select"
                     aria-label={`Type for ${a.source}`}
                     value={a.type}
-                    onChange={(e) => setAccounts((all) => all.map((x, j) => (j === i ? { ...x, type: e.target.value as AccountEdit['type'] } : x)))}
-                  >
-                    {ACCOUNT_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-                  </select>
+                    options={[...ACCOUNT_TYPES]}
+                    onChange={(type) => setAccounts((all) => all.map((x, j) => (j === i ? { ...x, type: type as AccountEdit['type'] } : x)))}
+                  />
                 </div>
               ))}
             </div>

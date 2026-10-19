@@ -13568,14 +13568,12 @@ button.account-feature-card {
   max-height: 340px;
   overflow-y: auto;
 }
-.import-select {
+.ui-select.import-select {
+  flex: none;
+  width: 148px;
   min-height: 40px;
-  padding: 0 10px;
-  border: 1px solid var(--erd-border);
+  padding: 0 12px;
   border-radius: 10px;
-  background: var(--erd-input-bg);
-  color: var(--erd-text);
-  font: inherit;
   font-size: 13px;
 }
 .import-row-amount {
