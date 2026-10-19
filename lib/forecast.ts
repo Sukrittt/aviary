@@ -8,15 +8,19 @@
  *             − recurring expenses and subscription charges still due this month
  *             − usual daily spend × days left
  *
- * Usual daily spend is the category's spend over the last three months
- * divided by the days in them, on the same basis as `notifications/pace.ts`:
- * the same three prior months, positive amounts only, sentinels out, and only
- * months the account actually has. Entries the recurring and subscription
- * crons logged are left out, since those are already counted as scheduled.
+ * Usual spend for the rest of the month is pace.ts's `usualRest`: what the
+ * category spent from tomorrow's day of the month to month end, averaged over
+ * the last three months, so a bill paid on the 10th isn't counted again on the
+ * 20th. Same basis as `notifications/pace.ts` otherwise too: positive amounts
+ * only, sentinels out, and only months the account actually has. Entries the
+ * recurring and subscription crons logged are left out, since those are
+ * already counted as scheduled. Usual daily spend is that over the days left.
  *
  * Short history: a prior month counts once the account's first expense is in
- * its first week. With none, the forecast uses this month's own pace from day
- * 7 (pace.ts's MIN_DAY) and is hidden (`basis: null`) before that.
+ * its first week. With none, usual daily spend is this month's own pace
+ * (spent so far over the days since the first expense, if that's this month)
+ * once there's a week of it (pace.ts's MIN_DAY), and the forecast is hidden
+ * (`basis: null`) before that.
  *
  * Dates are 'YYYY-MM-DD' strings compared at UTC midnight, like
  * `recurringExpense.ts`. Days left counts the days after today, like
@@ -132,6 +136,8 @@ function nextDay(date: string): string {
   return d.toISOString().slice(0, 10)
 }
 
+const daysLeft = (today: string) => Math.max(0, daysIn(today.slice(0, 7)) - Number(today.slice(8, 10)))
+
 const isAuto = (e: ForecastExpense) => e.source === 'recurring' || e.source === 'subscription' || AUTO_NOTE.test(e.notes ?? '')
 
 /** Each scheduled charge from today through `until`, as [date, category, amount]. Overdue recurrences land on today. */
@@ -196,32 +202,29 @@ function usualDaily(input: ForecastInput): { basis: Forecast['basis']; perDay: M
   const totals = new Map<string, number>()
   const add = (e: ForecastExpense) => totals.set(e.category, (totals.get(e.category) ?? 0) + Number(e.amount_inr))
 
-  let days: number
-  let basis: Forecast['basis']
   if (counted.length > 0) {
+    // pace.ts's `usualRest`: what those months spent from tomorrow's day to their end, averaged.
     const months = new Set(counted)
-    spend.filter((e) => months.has(e.date.slice(0, 7))).forEach(add)
-    days = counted.reduce((n, m) => n + daysIn(m), 0)
-    basis = 'history'
-  } else {
-    const soFar = spend.filter((e) => e.date.startsWith(month) && e.date <= today)
-    if (day < MIN_DAY || soFar.length === 0) return { basis: null, perDay: totals }
-    soFar.forEach(add)
-    days = day
-    basis = 'thisMonth'
+    spend.filter((e) => months.has(e.date.slice(0, 7)) && Number(e.date.slice(8, 10)) > day).forEach(add)
+    const rest = daysLeft(today)
+    return { basis: 'history', perDay: new Map([...totals].map(([c, t]) => [c, rest ? t / counted.length / rest : 0])) }
   }
-  return { basis, perDay: new Map([...totals].map(([c, t]) => [c, t / days])) }
+  // This month's own pace, over the days the account has data for: someone who joined on the 17th has 3 days, not 19.
+  const tracked = first && first.slice(0, 7) === month ? day - Number(first.slice(8, 10)) + 1 : day
+  const soFar = spend.filter((e) => e.date.startsWith(month) && e.date <= today)
+  if (tracked < MIN_DAY || soFar.length === 0) return { basis: null, perDay: totals }
+  soFar.forEach(add)
+  return { basis: 'thisMonth', perDay: new Map([...totals].map(([c, t]) => [c, t / tracked])) }
 }
 
 export function forecast(input: ForecastInput): Forecast {
   const { today } = input
-  const month = today.slice(0, 7)
-  const end = monthEnd(month)
-  const daysLeft = Math.max(0, daysIn(month) - Number(today.slice(8, 10)))
+  const end = monthEnd(today.slice(0, 7))
+  const left = daysLeft(today)
   const nextMonth = nextMonthLine(input)
 
   const { basis, perDay } = usualDaily(input)
-  if (!basis) return { basis, daysLeft, totalLeft: null, envelopes: [], nextMonth }
+  if (!basis) return { basis, daysLeft: left, totalLeft: null, envelopes: [], nextMonth }
 
   const due = charges(input, end, { requireCategory: true })
 
@@ -249,12 +252,12 @@ export function forecast(input: ForecastInput): Forecast {
         available: round2(e.available),
         scheduled: round2(scheduled),
         usualDaily: round2(daily),
-        projected: round2(e.available - scheduled - daily * daysLeft),
+        projected: round2(e.available - scheduled - daily * left),
         runsOutOn,
         overspent,
       }
     })
 
   const totalLeft = round2(envelopes.reduce((sum, e) => sum + e.projected, 0))
-  return { basis, daysLeft, totalLeft, envelopes, nextMonth }
+  return { basis, daysLeft: left, totalLeft, envelopes, nextMonth }
 }

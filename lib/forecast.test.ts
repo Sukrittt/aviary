@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { forecast, type ForecastInput, type ForecastExpense } from './forecast'
 
+const round2 = (n: number) => Math.round(n * 100) / 100
 const env = (category: string, available: number, isCreditCardPayment = false) => ({ category, available, isCreditCardPayment })
 
 /** `perDay` spent in `category` on every day of `month` ('YYYY-MM'). */
@@ -35,23 +36,27 @@ function input(over: Partial<ForecastInput>): ForecastInput {
 }
 
 describe('forecast', () => {
-  it('subtracts usual daily spend times days left (Oct 19: 12 days left)', () => {
+  // After the 19th, Jul has 12 days, Aug 12, Sep 11: at 100/day that's 1200, 1200, 1100,
+  // so the usual rest of the month is 3500 / 3 and usual daily is that over Oct's 12 days left.
+  const REST = 3500 / 3
+
+  it('subtracts what prior months usually spent from tomorrow to month end (Oct 19: 12 days left)', () => {
     const f = forecast(input({ envelopes: [env('Food', 5000)], expenses: threeMonths('Food', 100) }))
     expect(f.basis).toBe('history')
-    expect(f.envelopes[0]).toMatchObject({ category: 'Food', available: 5000, usualDaily: 100, scheduled: 0, projected: 3800, runsOutOn: null })
-    expect(f.totalLeft).toBe(3800)
+    expect(f.daysLeft).toBe(12)
+    expect(f.envelopes[0]).toMatchObject({ category: 'Food', available: 5000, usualDaily: 97.22, scheduled: 0, projected: 3833.33, runsOutOn: null })
+    expect(f.totalLeft).toBe(round2(5000 - REST))
   })
 
-  it('averages over the days of the months that count, not 3 × 30', () => {
-    // 9200 over 92 days is 100/day; spent unevenly.
+  it('compares by the same day of the month, like pace.ts, so a bill already paid this month isn’t counted again', () => {
     const expenses: ForecastExpense[] = [
-      { date: '2026-07-05', amount_inr: 4000, category: 'Food' },
-      { date: '2026-08-05', amount_inr: 2000, category: 'Food' },
-      { date: '2026-09-05', amount_inr: 3200, category: 'Food' },
-      { date: '2026-06-05', amount_inr: 99999, category: 'Food' }, // four months back: outside the window
+      ...['07', '08', '09'].map((m) => ({ date: `2026-${m}-10`, amount_inr: 1800, category: 'Power' })),
+      ...['07', '08', '09'].map((m) => ({ date: `2026-${m}-25`, amount_inr: 1200, category: 'Fun' })),
+      { date: '2026-06-25', amount_inr: 99999, category: 'Fun' }, // four months back: outside the window
     ]
-    const f = forecast(input({ envelopes: [env('Food', 5000)], expenses }))
-    expect(f.envelopes[0].usualDaily).toBe(100)
+    const f = forecast(input({ envelopes: [env('Power', 700), env('Fun', 3000)], expenses }))
+    expect(f.envelopes.find((e) => e.category === 'Power')).toMatchObject({ usualDaily: 0, projected: 700 })
+    expect(f.envelopes.find((e) => e.category === 'Fun')).toMatchObject({ usualDaily: 100, projected: 1800 })
   })
 
   it('leaves auto-added recurring and subscription entries out of usual spend', () => {
@@ -64,17 +69,18 @@ describe('forecast', () => {
       { date: '2026-09-11', amount_inr: 9000, category: 'Food', notes: 'Auto-added from subscription' },
     ]
     const f = forecast(input({ envelopes: [env('Food', 5000)], expenses }))
-    expect(f.envelopes[0].usualDaily).toBe(100)
+    expect(f.envelopes[0].usualDaily).toBe(97.22)
   })
 
   it('ignores refunds and income/credit-card sentinel rows in usual spend, like pace.ts', () => {
     const expenses = [
       ...threeMonths('Food', 100),
       { date: '2026-09-12', amount_inr: -5000, category: 'Food' },
-      { date: '2026-09-12', amount_inr: 5000, category: '__income__' },
+      { date: '2026-09-22', amount_inr: -5000, category: 'Food' },
+      { date: '2026-09-22', amount_inr: 5000, category: '__income__' },
     ]
     const f = forecast(input({ envelopes: [env('Food', 5000)], expenses }))
-    expect(f.envelopes[0].usualDaily).toBe(100)
+    expect(f.envelopes[0].usualDaily).toBe(97.22)
   })
 
   it('subtracts recurring expenses still to run this month, including a missed past date', () => {
@@ -142,9 +148,9 @@ describe('forecast', () => {
   })
 
   it('gives the date an envelope crosses zero before month end', () => {
-    // 1000 at 100/day: 900 on the 20th … 0 on the 29th, below zero on the 30th.
+    // 1000 at 97.22/day: 27.8 left on the 29th, below zero on the 30th.
     const f = forecast(input({ envelopes: [env('Food', 1000)], expenses: threeMonths('Food', 100) }))
-    expect(f.envelopes[0]).toMatchObject({ projected: -200, runsOutOn: '2026-10-30' })
+    expect(f.envelopes[0]).toMatchObject({ projected: round2(1000 - REST), runsOutOn: '2026-10-30' })
   })
 
   it('counts a scheduled charge on its own day when finding the run-out date', () => {
@@ -162,7 +168,7 @@ describe('forecast', () => {
 
   it('marks an already overspent envelope as over, with no run-out date', () => {
     const f = forecast(input({ envelopes: [env('Food', -300)], expenses: threeMonths('Food', 100) }))
-    expect(f.envelopes[0]).toMatchObject({ overspent: true, runsOutOn: null, projected: -1500 })
+    expect(f.envelopes[0]).toMatchObject({ overspent: true, runsOutOn: null, projected: round2(-300 - REST) })
   })
 
   it('treats rollover as already inside available', () => {
@@ -178,7 +184,7 @@ describe('forecast', () => {
   it('leaves credit-card payment envelopes out, like the widget', () => {
     const f = forecast(input({ envelopes: [env('Food', 5000), env('HDFC card', 9000, true)], expenses: threeMonths('Food', 100) }))
     expect(f.envelopes.map((e) => e.category)).toEqual(['Food'])
-    expect(f.totalLeft).toBe(3800)
+    expect(f.totalLeft).toBe(round2(5000 - REST))
   })
 
   it('on the last day of the month only subtracts what is still due today', () => {
@@ -198,7 +204,7 @@ describe('forecast', () => {
 
   it('sums every envelope into the total, overspent ones included', () => {
     const f = forecast(input({ envelopes: [env('Food', 5000), env('Fun', -100)], expenses: threeMonths('Food', 100) }))
-    expect(f.totalLeft).toBe(3700)
+    expect(f.totalLeft).toBe(round2(4900 - REST))
   })
 
   describe('short history', () => {
@@ -211,10 +217,10 @@ describe('forecast', () => {
     })
 
     it('counts a first month that starts in its first week', () => {
-      const expenses = [...dailySpend('Food', '2026-09', 100).slice(6)] // from Sep 7: 2400 over 30 days = 80/day
+      const expenses = [...dailySpend('Food', '2026-09', 100).slice(6)] // from Sep 7; Sep 20–30 is 1100
       const f = forecast(input({ envelopes: [env('Food', 2000)], expenses }))
       expect(f.basis).toBe('history')
-      expect(f.envelopes[0].usualDaily).toBe(80)
+      expect(f.envelopes[0]).toMatchObject({ usualDaily: 91.67, projected: 900 })
     })
 
     it('hides the forecast before a week of this month’s own spending', () => {
@@ -222,6 +228,18 @@ describe('forecast', () => {
       expect(f.basis).toBeNull()
       expect(f.envelopes).toEqual([])
       expect(f.totalLeft).toBeNull()
+    })
+
+    it('paces a mid-month newcomer over the days since their first expense, not since the 1st', () => {
+      // Joined Oct 5 and spends 100 a day: 15 days of data.
+      const f = forecast(input({ envelopes: [env('Food', 2000)], expenses: dailySpend('Food', '2026-10', 100).slice(4, 19) }))
+      expect(f.basis).toBe('thisMonth')
+      expect(f.envelopes[0]).toMatchObject({ usualDaily: 100, projected: 800 })
+    })
+
+    it('hides the forecast for a newcomer with under a week of spending, even late in the month', () => {
+      const f = forecast(input({ envelopes: [env('Food', 2000)], expenses: dailySpend('Food', '2026-10', 100).slice(16, 19) }))
+      expect(f.basis).toBeNull()
     })
 
     it('hides the forecast with no spending at all', () => {

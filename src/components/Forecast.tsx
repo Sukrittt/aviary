@@ -45,7 +45,8 @@ export function ForecastCard({ hideAmounts, icon }: { hideAmounts: boolean; icon
   const { formatCurrency } = useCurrency()
   const { data } = useForecast()
   if (!data) return null
-  const money = (n: number) => formatCurrency(n, hideAmounts)
+  // Estimates, so whole rupees: paisa would read as false precision.
+  const money = (n: number) => formatCurrency(Math.round(n), hideAmounts)
   const next = nextMonthLine(data.nextMonth, money)
   const rows = data.envelopes.filter((e) => e.available !== 0 || e.projected !== 0).sort(byUrgency)
 

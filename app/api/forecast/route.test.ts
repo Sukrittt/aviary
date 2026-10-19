@@ -15,7 +15,9 @@ vi.mock('@/lib/ai/expenseContext', () => ({
 // Mongo hands back strings for encrypted numbers; the route has to coerce them.
 const docs: Record<string, Record<string, unknown>[]> = {
   expenses: [
-    { date: '2026-07-01', amount_inr: '9200', category: 'Food' },
+    { date: '2026-07-25', amount_inr: '1200', category: 'Food' },
+    { date: '2026-08-25', amount_inr: '1200', category: 'Food' },
+    { date: '2026-09-25', amount_inr: '1200', category: 'Food' },
     { date: '2026-09-01', amount_inr: '25000', category: 'Food', source: 'recurring' },
   ],
   recurring_expenses: [
@@ -38,7 +40,7 @@ describe('GET /api/forecast', () => {
   it('forecasts from the stored rows, card envelopes left out', async () => {
     const body = await (await GET(new Request('https://example.com/api/forecast'))).json()
     expect(body.basis).toBe('history')
-    // 9200 over Jul–Sep's 92 days = 100/day; 5000 − 300 − 100 − 100 × 12.
+    // Usually 1200 after the 19th = 100/day over 12 days; 5000 − 300 − 100 − 1200.
     expect(body.envelopes).toEqual([
       { category: 'Food', available: 5000, scheduled: 400, usualDaily: 100, projected: 3400, runsOutOn: null, overspent: false },
     ])

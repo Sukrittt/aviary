@@ -1007,3 +1007,5 @@
 }
 .ins-forecast-next strong { color: var(--erd-text); font-weight: 500; }
 .ins-forecast-next span { color: var(--erd-text3); font-size: 12px; font-weight: 500; }
+/* Home's forecast line is a link styled as the slim Ready to Assign row. */
+.expense-redesign a.erd-home-rta-slim { text-decoration: none; }
