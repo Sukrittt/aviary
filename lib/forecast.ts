@@ -47,6 +47,8 @@ export interface ForecastExpense {
 }
 
 export interface ForecastRecurringExpense extends RecurringExpenseSchedule {
+  /** The row's `_id`: the cron keys each logged occurrence `recur:<id>:<date>`. */
+  id?: string
   category: string
   amount_inr: number
 }
@@ -145,13 +147,18 @@ function charges(input: ForecastInput, until: string, { requireCategory }: { req
   const { today } = input
   const out: [string, string, number][] = []
 
+  // The crons key what they log: `recur:<id>:<date>` and `sub:<service>:<date>`. A logged one isn't still due.
+  const logged = new Set(input.expenses.map((e) => e.client_id))
+
   for (const r of input.recurringExpenses) {
     if (requireCategory && !r.category) continue
-    for (const d of occurrencesDue(r, until)) out.push([d < today ? today : d, r.category, Number(r.amount_inr) || 0])
+    for (const d of occurrencesDue(r, until)) {
+      // The cron inserts before advancing `next_run_date`, so a logged occurrence can still look due for a moment.
+      if (r.id && logged.has(`recur:${r.id}:${d}`)) continue
+      out.push([d < today ? today : d, r.category, Number(r.amount_inr) || 0])
+    }
   }
 
-  // The subscription cron logs on the due date itself, keyed `sub:<service>:<date>`; one already logged today isn't still due.
-  const logged = new Set(input.expenses.map((e) => e.client_id))
   for (const s of input.subscriptions) {
     if (requireCategory && !s.category) continue
     if (s.status && INACTIVE_STATUSES.has(s.status.toLowerCase())) continue
@@ -195,8 +202,15 @@ function usualDaily(input: ForecastInput): { basis: Forecast['basis']; perDay: M
 
   const first = input.firstExpenseDate || input.expenses.reduce((min, e) => (!min || e.date < min ? e.date : min), '')
   // A month counts once history covers it; a first month counts if it starts in its first week.
+  const active = new Set(
+    input.expenses.filter((e) => (Number(e.amount_inr) || 0) > 0 && !SENTINELS.has(e.category)).map((e) => e.date.slice(0, 7)),
+  )
   const counted = Array.from({ length: HISTORY_MONTHS }, (_, i) => addMonths(month, -1 - i)).filter(
-    (m) => first && (first.slice(0, 7) < m || (first.slice(0, 7) === m && Number(first.slice(8, 10)) <= MIN_DAY)),
+    (m) =>
+      first &&
+      (first.slice(0, 7) < m || (first.slice(0, 7) === m && Number(first.slice(8, 10)) <= MIN_DAY)) &&
+      // Like pace.ts's activeMonths: a month away from the app isn't a month of spending nothing.
+      active.has(m),
   )
 
   const totals = new Map<string, number>()

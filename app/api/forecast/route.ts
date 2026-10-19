@@ -29,7 +29,7 @@ export async function GET(req: Request) {
     buildExpenseContext(auth, { monthOnly: true }),
     // Indexed by { user_id: 1, date: -1 } (scripts/ensure-indexes.mjs).
     expensesColl.find({ date: { $gte: historyStart } }, { projection: { date: 1, amount_inr: 1, amount: 1, category: 1, notes: 1, source: 1, client_id: 1 } }).toArray(),
-    expensesColl.findOne({}, { sort: { date: 1 }, projection: { date: 1 } }),
+    expensesColl.findOne({ category: { $nin: ['__income__', '__credit_card__'] } }, { sort: { date: 1 }, projection: { date: 1 } }),
     recurringColl.find({ status: 'active' }).toArray(),
     incomesColl.find({ status: 'active' }).toArray(),
     subsColl.find({}).toArray(),
@@ -57,7 +57,7 @@ export async function GET(req: Request) {
         source: str(d.source),
         client_id: str(d.client_id),
       })),
-      recurringExpenses: recurringDocs.map((d) => ({ ...schedule(d), category: str(d.category), amount_inr: Number(d.amount_inr) || 0 })),
+      recurringExpenses: recurringDocs.map((d) => ({ ...schedule(d), id: str(d._id), category: str(d.category), amount_inr: Number(d.amount_inr) || 0 })),
       recurringIncomes: incomeDocs.map((d) => ({ ...schedule(d), amount: Number(d.amount) || 0 })),
       subscriptions: subDocs.map((d) => ({
         service: str(d.service),

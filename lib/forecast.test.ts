@@ -100,6 +100,20 @@ describe('forecast', () => {
     expect(f.envelopes.find((e) => e.category === 'Gym')).toMatchObject({ scheduled: 1500, projected: 1500 })
   })
 
+  it('doesn’t count a recurring charge the cron already logged but hasn’t advanced past yet', () => {
+    const f = forecast(
+      input({
+        envelopes: [env('Gym', 3000)],
+        expenses: [...threeMonths('Food', 1), { date: '2026-10-15', amount_inr: 500, category: 'Gym', source: 'recurring', client_id: 'recur:gym1:2026-10-15' }],
+        recurringExpenses: [
+          { id: 'gym1', category: 'Gym', amount_inr: 500, frequency: 'weekly', start_date: '2026-10-01', end_date: '', next_run_date: '2026-10-15', status: 'active' },
+        ],
+      }),
+    )
+    // 22nd and 29th only.
+    expect(f.envelopes[0].scheduled).toBe(1000)
+  })
+
   it('stops a recurring expense at its end date', () => {
     const f = forecast(
       input({
@@ -240,6 +254,13 @@ describe('forecast', () => {
     it('hides the forecast for a newcomer with under a week of spending, even late in the month', () => {
       const f = forecast(input({ envelopes: [env('Food', 2000)], expenses: dailySpend('Food', '2026-10', 100).slice(16, 19) }))
       expect(f.basis).toBeNull()
+    })
+
+    it('leaves out a prior month with no spending at all, like pace.ts', () => {
+      // Away all of August: Jul and Sep count, so the usual rest is (1200 + 1100) / 2.
+      const expenses = [...dailySpend('Food', '2026-07', 100), ...dailySpend('Food', '2026-09', 100)]
+      const f = forecast(input({ envelopes: [env('Food', 5000)], expenses }))
+      expect(f.envelopes[0].projected).toBe(5000 - 1150)
     })
 
     it('hides the forecast with no spending at all', () => {
