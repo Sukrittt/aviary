@@ -7,6 +7,7 @@ import { CalendarBlankIcon, ChatTextIcon, PlusIcon, TagIcon, WarningIcon, Wallet
 import { useOptionalMoneyBrain } from '@/components/moneyBrainContext'
 import { useHiddenFeatures } from '../hooks/useUser'
 import { BudgetLine } from './BudgetSwitcher'
+import { useReadOnlyError } from './BudgetNotices'
 import { Scrim, Sheet } from './MotionSheet'
 import { DatePicker, formatShort } from './DatePicker'
 import { getCategoryMap } from '../api/categoryMap'
@@ -89,6 +90,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
   const pickDateChipRef = useRef<HTMLButtonElement>(null)
   const [error, setError] = useState('')
   const { saving, success, start, fail, reset } = useButtonPhase()
+  const readOnlyError = useReadOnlyError()
   const uploadPhotoM = useUploadExpensePhoto()
   const photoSeq = useRef(0)
   // Set by a successful add: the dialog swaps the form for Mobile's expense-added beats.
@@ -364,9 +366,9 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
       })
       setPhotoNotice('')
       if (pickedPhoto) void uploadPhoto(result.id, pickedPhoto)
-    } catch {
+    } catch (err) {
       // The form keeps every field, so nothing the user typed is lost.
-      setError("Couldn't save. Your entry's safe. Fix anything and try again.")
+      setError(readOnlyError(err) ?? "Couldn't save. Your entry's safe. Fix anything and try again.")
       fail()
     }
   }

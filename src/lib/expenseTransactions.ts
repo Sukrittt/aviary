@@ -16,6 +16,8 @@ export interface Transaction {
   hasPhoto: boolean
   /** Signed photo URL, only on feed rows. */
   photoUrl: string | null
+  /** Who logged it; null = the budget's owner. */
+  createdBy: string | null
 }
 
 /**
@@ -37,5 +39,6 @@ export function toTransactions(rows: ExpenseRow[]): Transaction[] {
     accountId: r.account_id ?? '',
     hasPhoto: r.has_photo === true,
     photoUrl: r.photo_url ?? null,
+    createdBy: r.created_by ?? null,
   }))
 }

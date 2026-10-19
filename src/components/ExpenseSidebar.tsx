@@ -12,6 +12,7 @@ import { useHiddenFeatures } from "../hooks/useUser";
 import { BirdMark } from "./BirdMark";
 import { LogExpenseModal } from "./LogExpenseModal";
 import { BudgetSwitcher } from "./BudgetSwitcher";
+import { BudgetNotices } from "./BudgetNotices";
 import { useSpaces } from "../hooks/useSpaces";
 import { ScanBillModal } from "../features/scan-bill/ScanBillModal";
 import { StatementModal } from "../features/fill-gap/StatementModal";
@@ -97,7 +98,7 @@ function ExpenseSidebarNav({ onBulkReturn }: Props) {
   const { theme, setTheme } = useAppearance();
   const { open, toggleSidebar, isMobile, openMobile, setOpenMobile } = useSidebar();
   const hidden = useHiddenFeatures();
-  const { multi } = useSpaces();
+  const { multi, readOnly } = useSpaces();
   const [showLog, setShowLog] = useState(false);
   const [showScan, setShowScan] = useState(false);
   const [showStatement, setShowStatement] = useState(false);
@@ -169,7 +170,8 @@ function ExpenseSidebarNav({ onBulkReturn }: Props) {
 
           {!isMobile && <BudgetSwitcher className="is-rail" labelClassName={LABEL} />}
 
-          <div className="erd-side-actions">
+          {/* A read-only budget takes no new expenses; the banner says why. */}
+          {!readOnly && <div className="erd-side-actions">
             <button type="button" className={CTA} onClick={() => { closeMobile(); runGated(() => setShowLog(true)); }} title={open ? undefined : "Log expense"}>
               <PlusIcon size={18} weight="bold" />
               <span className={LABEL}>Log expense</span>
@@ -185,7 +187,7 @@ function ExpenseSidebarNav({ onBulkReturn }: Props) {
               <UploadSimpleIcon size={18} />
               <span className={LABEL}>Add from statement</span>
             </button>
-          </div>
+          </div>}
         </SidebarHeader>
 
         <SidebarContent className="gap-[22px] px-3.5 pt-[22px]">
@@ -237,6 +239,7 @@ function ExpenseSidebarNav({ onBulkReturn }: Props) {
 
       {/* Outside the sidebar: its fixed, transformed container would trap
           these position:fixed overlays inside it. */}
+      <BudgetNotices />
       <AnimatePresence>
         {confirmSignOut && <SignOutDialog onCancel={() => setConfirmSignOut(false)} />}
       </AnimatePresence>
