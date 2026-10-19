@@ -5,11 +5,16 @@ import { randomBytes } from 'node:crypto'
 const pushes = vi.hoisted(() => [] as { userId: string; title: string; body: string }[])
 vi.mock('@/lib/push', () => ({ sendPushNotification: vi.fn(async (m: { userId: string; title: string; body: string }) => { pushes.push(m); return 1 }) }))
 
+vi.mock('@/lib/cache', async (original) => ({ ...(await original<typeof import('@/lib/cache')>()), invalidate: () => {} }))
+vi.mock('@/lib/ai/briefCache', async (original) => ({ ...(await original<typeof import('@/lib/ai/briefCache')>()), invalidateBrief: async () => {} }))
+vi.mock('@/lib/workosClient', () => ({ getWorkOSClient: () => ({ userManagement: { deleteUser: async () => {} } }) }))
+
 import { getDb, getClient } from '@/lib/mongodb'
+import { softDeleteAccount, restoreAccount, purgeAccountNow } from '@/lib/accountLifecycle'
 import { scoped } from '@/lib/scoped'
 import { jobAuth, listBudgets, lookupMembership, resolveSpaceAccess, forgetMembership, type SpaceDoc } from '@/lib/spaces'
 import {
-  INVITE_CODE_RE, notifyOthersOfLog, createInvite, cancelInvite, invitePreview, joinBudget, removeMember, deleteBudget, restoreBudget, purgeDeletedSpaces,
+  INVITE_CODE_RE, notifyOthersOfLog, transferOwnership, sharedBudgetsOwnedBy, handOffSharedBudgets, personalBudgetHandedOff, restoreAccountSpaces, createInvite, cancelInvite, invitePreview, joinBudget, removeMember, deleteBudget, restoreBudget, purgeDeletedSpaces,
 } from '@/lib/spaceMembers'
 import { BudgetError } from '@/lib/spaces'
 
@@ -209,5 +214,83 @@ describe('notifyOthersOfLog', () => {
   it('does nothing in a budget nobody shares', async () => {
     await notifyOthersOfLog(jobAuth('user_b'), { item: 'Tea', amount: 20, category: 'Food' })
     expect(pushes).toEqual([])
+  })
+})
+
+describe('transferOwnership', () => {
+  beforeEach(async () => {
+    await joinBudget('user_b', (await createInvite(owner, HOME)).code)
+  })
+
+  it('hands the budget to a member: they own it and pay for it, the old owner stays as a member', async () => {
+    pushes.length = 0
+    await transferOwnership(owner, HOME, 'user_b')
+    expect(await resolveSpaceAccess('user_b', HOME, lookupMembership)).toMatchObject({ ownerId: 'user_b', role: 'owner' })
+    expect(await resolveSpaceAccess('user_a', HOME, lookupMembership)).toMatchObject({ ownerId: 'user_b', role: 'member' })
+    expect(pushes).toEqual([expect.objectContaining({ userId: 'user_b', title: 'You own Home budget now' })])
+  })
+
+  it('only the owner, only to a member, and never the personal budget', async () => {
+    await expect(transferOwnership(jobAuth('user_b', HOME), HOME, 'user_b')).rejects.toSatisfy((e) => code(e) === 'NOT_OWNER')
+    await expect(transferOwnership(owner, HOME, 'user_c')).rejects.toSatisfy((e) => code(e) === 'INVALID')
+    await joinBudget('user_b', (await createInvite(owner, 'user_a')).code)
+    await expect(transferOwnership(owner, 'user_a', 'user_b')).rejects.toSatisfy((e) => code(e) === 'INVALID')
+  })
+})
+
+describe('account deletion with shared budgets', () => {
+  beforeEach(async () => {
+    await joinBudget('user_b', (await createInvite(owner, HOME)).code)
+    await joinBudget('user_b', (await createInvite(owner, 'user_a')).code)
+    pushes.length = 0
+  })
+
+  it('lists the shared budgets the person owns, with who could take each one', async () => {
+    const list = await sharedBudgetsOwnedBy('user_a')
+    expect(list.map((b) => b.id).sort()).toEqual([HOME, 'user_a'].sort())
+    expect(list[0].members).toEqual([expect.objectContaining({ userId: 'user_b', name: 'Rahul' })])
+  })
+
+  it('transfers the ones they pick, personal budget included, and keeps that data out of the account purge', async () => {
+    const db = await getDb()
+    await scoped(db.collection('expenses'), 'user_a').insertOne({ item: 'Rent', amount_inr: 100, date: '2026-10-01' })
+    await handOffSharedBudgets(db, 'user_a', { [HOME]: 'user_b', user_a: 'user_b' })
+    expect(await resolveSpaceAccess('user_b', HOME, lookupMembership)).toMatchObject({ ownerId: 'user_b', role: 'owner' })
+    expect(await resolveSpaceAccess('user_b', 'user_a', lookupMembership)).toMatchObject({ ownerId: 'user_b', role: 'owner' })
+    expect(await personalBudgetHandedOff(db, 'user_a')).toBe(true)
+  })
+
+  it('a handed-off personal budget survives the account deletion and its purge', async () => {
+    const db = await getDb()
+    await scoped(db.collection('expenses'), 'user_a').insertOne({ item: 'Rent', amount_inr: 100, date: '2026-10-01' })
+    await handOffSharedBudgets(db, 'user_a', { user_a: 'user_b' })
+    await softDeleteAccount(db, 'user_a')
+    expect(await scoped(db.collection('expenses'), 'user_a').countDocuments({})).toBe(1)
+    await purgeAccountNow(db, 'user_a')
+    expect(await db.collection('expenses').countDocuments({ user_id: 'user_a', deleted_at: null })).toBe(1)
+    expect(await db.collection('space_members').countDocuments({ user_id: 'user_a' })).toBe(0)
+    expect(await resolveSpaceAccess('user_b', 'user_a', lookupMembership)).toMatchObject({ ownerId: 'user_b', role: 'owner' })
+  })
+
+  it('restoring the account reopens the budgets its deletion closed', async () => {
+    const db = await getDb()
+    await handOffSharedBudgets(db, 'user_a', {})
+    await softDeleteAccount(db, 'user_a')
+    await restoreAccount(db, 'user_a')
+    expect(await resolveSpaceAccess('user_b', HOME, lookupMembership)).toMatchObject({ spaceId: HOME })
+  })
+
+  it("closes the ones they don't, restorable, and tells each member", async () => {
+    await handOffSharedBudgets(await getDb(), 'user_a', {})
+    expect(await resolveSpaceAccess('user_b', HOME, lookupMembership)).toMatchObject({ denied: true })
+    expect(pushes.map((p) => p.userId)).toEqual(['user_b', 'user_b'])
+    expect(pushes[0].title).toMatch(/closed/)
+    await restoreAccountSpaces(await getDb(), 'user_a')
+    expect(await resolveSpaceAccess('user_b', HOME, lookupMembership)).toMatchObject({ spaceId: HOME, role: 'member' })
+  })
+
+  it('ignores a pick that is not a member of that budget', async () => {
+    await handOffSharedBudgets(await getDb(), 'user_a', { [HOME]: 'user_c' })
+    expect(await resolveSpaceAccess('user_b', HOME, lookupMembership)).toMatchObject({ denied: true })
   })
 })

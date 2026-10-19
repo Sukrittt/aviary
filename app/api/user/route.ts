@@ -5,6 +5,7 @@ import { getDb } from '@/lib/mongodb'
 import { getWorkOSClient } from '@/lib/workosClient'
 import { ensureUserById, serializeUser, HIDEABLE_FEATURES, HEARD_FROM_SOURCES, type HideableFeature, type UserDoc } from '@/lib/users'
 import { purgesAt } from '@/lib/archive'
+import { handOffSharedBudgets } from '@/lib/spaceMembers'
 import { softDeleteAccount } from '@/lib/accountLifecycle'
 import { cancelWebSubscriptions, completeOnboarding } from '@/lib/billing/service'
 import { BillingProviderError } from '@/lib/billing/providerError'
@@ -186,6 +187,13 @@ export async function DELETE(req: Request) {
     if (err instanceof BillingProviderError) return error('could not cancel your web subscription, try again shortly', 503)
     throw err
   }
+
+  // Shared budgets they own go to the member they picked, or close (and come
+  // back if the account is restored). Members are told either way.
+  const transfers = body.transfers && typeof body.transfers === 'object' && !Array.isArray(body.transfers)
+    ? Object.fromEntries(Object.entries(body.transfers as Record<string, unknown>).filter((e): e is [string, string] => typeof e[1] === 'string'))
+    : {}
+  await handOffSharedBudgets(db, auth.userId, transfers)
 
   // Soft delete, same as every other DELETE route (lib/scoped.ts) — a
   // recoverable grace window, not an immediate wipe. See lib/accountLifecycle.ts.

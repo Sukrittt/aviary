@@ -91,6 +91,13 @@ describe('/api/spaces', () => {
     expect(body.budgets).toEqual([expect.objectContaining({ id: 'sp_x', readOnly: true })])
   })
 
+  it('starts a budget to import into empty and not yet set up', async () => {
+    const budget = await (await create({ import: true })).json()
+    const db = await getDb()
+    expect(await db.collection('categories').countDocuments({ user_id: budget.id })).toBe(0)
+    expect((await db.collection('spaces').findOne({ _id: budget.id }))?.onboardedAt).toBeNull()
+  })
+
   it('starts empty when asked not to copy', async () => {
     const budget = await (await create({ copyCategories: false })).json()
     expect(await scoped((await getDb()).collection('categories'), budget.id).countDocuments({})).toBe(0)

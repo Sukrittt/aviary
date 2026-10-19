@@ -6,6 +6,8 @@ vi.mock('@/lib/access', () => ({
 
 const softDeleteMock = vi.fn(async () => '2026-09-26T00:00:00+05:30')
 vi.mock('@/lib/accountLifecycle', () => ({ softDeleteAccount: softDeleteMock }))
+const handOffMock = vi.hoisted(() => vi.fn(async () => {}))
+vi.mock('@/lib/spaceMembers', () => ({ handOffSharedBudgets: handOffMock }))
 
 const deleteUserMock = vi.fn(async () => undefined)
 const updateUserMock = vi.fn(async () => undefined)
@@ -83,6 +85,13 @@ describe('DELETE /api/user', () => {
     expect(deleteUserMock).not.toHaveBeenCalled()
     expect(usersDeleteOneMock).not.toHaveBeenCalled()
     expect(softDeleteMock).toHaveBeenCalledWith(expect.anything(), 'user_a')
+  })
+
+  it('hands off the shared budgets they own, as picked, before the account goes', async () => {
+    const res = await DELETE(deleteRequest({ email: 'real-owner@example.com', transfers: { sp_home: 'user_b', junk: 5 } }))
+    expect(res.status).toBe(200)
+    expect(handOffMock).toHaveBeenCalledWith(expect.anything(), 'user_a', { sp_home: 'user_b' })
+    expect(handOffMock.mock.invocationCallOrder[0]).toBeLessThan(softDeleteMock.mock.invocationCallOrder.at(-1)!)
   })
 
   it('cancels any web subscription before scheduling the deletion', async () => {

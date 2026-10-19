@@ -314,7 +314,7 @@ export function isBudgetEmoji(value: unknown): value is string {
  */
 export async function createBudget(
   auth: Auth,
-  input: { name: string; emoji: string; currencyCode: string; copyCategories: boolean },
+  input: { name: string; emoji: string; currencyCode: string; copyCategories: boolean; importing?: boolean },
 ): Promise<BudgetSummary> {
   const { count, limit } = await listBudgets(auth.userId)
   if (count >= limit) throw new BudgetError('LIMIT_REACHED', 'budget limit reached')
@@ -333,10 +333,11 @@ export async function createBudget(
   const now = new Date().toISOString()
   await db.collection<SpaceDoc>(SPACES).insertOne({
     _id: id, name: input.name.trim(), emoji: input.emoji, owner_id: auth.userId,
-    currencyCode: input.currencyCode, onboardedAt: now, deleted_at: null, created_at: now,
+    // One made to import into is set up by the import (lib/import/commit.ts).
+    currencyCode: input.currencyCode, onboardedAt: input.importing ? null : now, deleted_at: null, created_at: now,
   })
   await db.collection<SpaceMemberDoc>(SPACE_MEMBERS).insertOne({ space_id: id, user_id: auth.userId, role: 'owner', joined_at: now, notify_others: false })
-  if (input.copyCategories && !auth.spaceDenied) await copyCategories(auth.spaceId, id)
+  if (input.copyCategories && !input.importing && !auth.spaceDenied) await copyCategories(auth.spaceId, id)
   forgetMembership(id, auth.userId)
   const { budgets } = await listBudgets(auth.userId)
   return budgets.find((b) => b.id === id)!
@@ -372,4 +373,26 @@ export async function updateBudget(auth: Auth, spaceId: string, patch: { name?: 
   }
   if (Object.keys(set).length) await db.collection<SpaceDoc>(SPACES).updateOne({ _id: spaceId }, { $set: set })
   return (await listBudgets(auth.userId)).budgets.find((b) => b.id === spaceId)!
+}
+
+/**
+ * Whether the active budget is set up yet. The personal budget's mark is the
+ * person's own `onboardedAt`; any other budget's is on its doc (one made to
+ * import into starts without one).
+ */
+export async function budgetSetUp(auth: Auth): Promise<boolean> {
+  const db = await getDb()
+  if (auth.spaceId === auth.userId) {
+    const user = await db.collection<{ _id: string; onboardedAt?: string | null }>('users').findOne({ _id: auth.userId }, { projection: { onboardedAt: 1 } })
+    return !!user?.onboardedAt
+  }
+  const space = await db.collection<SpaceDoc>(SPACES).findOne({ _id: auth.spaceId }, { projection: { onboardedAt: 1 } })
+  return !space || !!space.onboardedAt
+}
+
+/** Sets the active budget's currency: the user's own for the personal budget, else the budget doc's. */
+export async function setBudgetCurrency(auth: Auth, currencyCode: string): Promise<void> {
+  const db = await getDb()
+  if (auth.spaceId === auth.userId) await db.collection('users').updateOne({ _id: auth.userId as never }, { $set: { currencyCode } })
+  else await db.collection<SpaceDoc>(SPACES).updateOne({ _id: auth.spaceId }, { $set: { currencyCode } })
 }
