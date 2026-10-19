@@ -29,7 +29,9 @@ export function gapToFill(lastSpent: Record<string, string>, today: string, seen
  * money left stays honest. Keyed by the gap, so a double tap logs it once.
  */
 export function freshStartExpense(amountText: string, category: string, since: string, today: string): NewExpenseRow | null {
-  const text = amountText.replace(/,/g, '').trim()
+  const raw = amountText.trim()
+  // "12,50" is twelve and a half; "1,250" and "1,25,000" are grouped thousands.
+  const text = /^\d+,\d{1,2}$/.test(raw) ? raw.replace(',', '.') : raw.replace(/,/g, '')
   if (!category || !AMOUNT_RE.test(text) || Number(text) <= 0) return null
   return {
     item: FRESH_START_ITEM,

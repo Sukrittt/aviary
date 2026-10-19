@@ -39,6 +39,10 @@ describe('freshStartExpense', () => {
 
   it('takes paise and commas, and turns down anything that isn\'t a positive amount', () => {
     expect(freshStartExpense('1,250.50', 'Food', '2026-10-12', TODAY)?.amount_inr).toBe('1250.5')
+    expect(freshStartExpense('1,25,000', 'Food', '2026-10-12', TODAY)?.amount_inr).toBe('125000')
+    // A decimal comma, the way much of the world types cents, is not a thousands separator.
+    expect(freshStartExpense('12,50', 'Food', '2026-10-12', TODAY)?.amount_inr).toBe('12.5')
+    expect(freshStartExpense('1.250,5', 'Food', '2026-10-12', TODAY)).toBeNull()
     for (const bad of ['', '0', 'abc', '-5', '12.345']) expect(freshStartExpense(bad, 'Food', '2026-10-12', TODAY)).toBeNull()
     expect(freshStartExpense('500', '', '2026-10-12', TODAY)).toBeNull()
   })
