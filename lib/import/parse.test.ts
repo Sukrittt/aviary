@@ -31,6 +31,20 @@ describe('detectDecimalComma', () => {
     expect(detectDecimalComma(['50.000', '12.50'])).toBe(false)
     expect(detectDecimalComma(['1,250.000'])).toBe(false)
   })
+
+  it('a leading 0. is never a thousands group', () => {
+    expect(detectDecimalComma(['0.125', '0.500'])).toBe(false)
+  })
+
+  it('in a three-decimal currency, dot plus three digits is the decimal', () => {
+    expect(detectDecimalComma(['12.500', '3.250', '-7.125'], true)).toBe(false)
+    expect(detectDecimalComma(['12.500', '3.250', '-7.125'])).toBe(true)
+  })
+
+  it('scientific cells are no evidence either way', () => {
+    expect(detectDecimalComma(['1.5E+03'])).toBe(false)
+    expect(detectDecimalComma(['12,50', '2.5E+03'])).toBe(true)
+  })
 })
 
 describe('parseAmount', () => {
@@ -74,6 +88,7 @@ describe('parseAmount', () => {
     ['-2.5e2', -250],
   ])('reads scientific notation %s as the number it is', (raw, expected) => {
     expect(dot(raw)).toBe(expected)
+    expect(comma(raw)).toBe(expected)
   })
 
   it.each(['', 'abc', '1.2.3', '--5', '12-', '9'.repeat(400), '2000000000000', '-1e308', '1e3e4'])('rejects %s', (raw) => {

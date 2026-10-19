@@ -182,10 +182,10 @@ export async function previewFile(auth: Auth, buf: Buffer, filename: string): Pr
   const roles = needsColumnHelp(layout) && (await importAiAllowed(auth))
     ? await pickColumnRoles(unresolvedColumns(layout), auth.userId).catch(() => ({}))
     : {}
-  const n = normalize(layout, today, roles)
+  const userCurrency = await getUserCurrency(auth.userId)
+  const n = normalize(layout, today, roles, userCurrency)
   const rows = packRows(n.rows)
   if (rows.length > MAX_ROWS_BYTES) throw new ImportError('too_big')
-  const userCurrency = await getUserCurrency(auth.userId)
   // A bare "$" could be any dollar: a user already on one keeps theirs.
   const anyDollar = n.fileCurrency === 'USD' && !n.hasCurrency && currencyInfo(userCurrency).symbol.endsWith('$')
   const currency = isCurrencyCode(n.fileCurrency) && !anyDollar ? n.fileCurrency : userCurrency

@@ -130,14 +130,14 @@ export function unresolvedColumns(layout: Layout): { index: number; name: string
     .filter((c) => !claimed.has(c.index) && c.name)
 }
 
-function readPlan(plan: Table | null, today: string): Record<string, number> {
+function readPlan(plan: Table | null, today: string, threeDecimals: boolean): Record<string, number> {
   if (!plan) return {}
   const headers = lower(plan.rows[0] ?? [])
   const col = (name: string) => headers.indexOf(name)
   const [month, category, assigned] = [col('month'), col('category'), col('assigned')]
   if (month < 0 || category < 0 || assigned < 0) return {}
   const out: Record<string, number> = {}
-  const decimalComma = detectDecimalComma(plan.rows.slice(1).map((r) => r[assigned] ?? ''))
+  const decimalComma = detectDecimalComma(plan.rows.slice(1).map((r) => r[assigned] ?? ''), threeDecimals)
   for (const row of plan.rows.slice(1)) {
     const date = parseDate(`1 ${row[month] ?? ''}`, 'dmy') ?? parseDate(row[month] ?? '', 'dmy')
     const amount = parseAmount(row[assigned] ?? '', decimalComma)
@@ -150,8 +150,9 @@ function readPlan(plan: Table | null, today: string): Record<string, number> {
 /**
  * Every row of the file as a `StoredRow` or a counted skip, oldest first.
  * `roles` are Jev's placements for columns `needsColumnHelp` couldn't name.
+ * `userCurrency` stands in when the file doesn't say which currency it's in.
  */
-export function normalize(layout: Layout, today: string, roles: Record<number, Role> = {}): Normalized {
+export function normalize(layout: Layout, today: string, roles: Record<number, Role> = {}, userCurrency = ''): Normalized {
   const mapping: Mapping = { ...layout.mapping }
   for (const [index, role] of Object.entries(roles)) if (mapping[role] === undefined) mapping[role] = Number(index)
   if (mapping.date === undefined || !hasAmount(mapping)) throw new ImportError('no_columns')
@@ -161,7 +162,9 @@ export function normalize(layout: Layout, today: string, roles: Record<number, R
   if (!data.some((r) => r.some((c) => c.trim()))) throw new ImportError('empty_file')
   const at = (row: string[], role: Role) => (mapping[role] === undefined ? '' : (row[mapping[role]!] ?? '').trim())
   const amountCells = data.flatMap((r) => (['amount', 'outflow', 'inflow'] as const).map((role) => at(r, role))).filter(Boolean)
-  const decimalComma = detectDecimalComma(amountCells)
+  const likely = data.map((r) => at(r, 'currency').toUpperCase()).find(isCurrencyCode) || symbolCurrency(amountCells) || userCurrency
+  const threeDecimals = isCurrencyCode(likely) && new Intl.NumberFormat('en', { style: 'currency', currency: likely }).resolvedOptions().maximumFractionDigits === 3
+  const decimalComma = detectDecimalComma(amountCells, threeDecimals)
   const dateOrder = detectDateOrder(data.map((r) => at(r, 'date')))
   const twoColumns = mapping.amount === undefined
 
@@ -235,7 +238,7 @@ export function normalize(layout: Layout, today: string, roles: Record<number, R
     directionSource: signs.length ? 'sign' : 'column',
     hasCurrency: mapping.currency !== undefined,
     fileCurrency: [...codes].sort((a, b) => b[1] - a[1])[0]?.[0] ?? (mapping.currency === undefined ? symbolCurrency(amountCells) : ''),
-    plan: readPlan(layout.plan, today),
+    plan: readPlan(layout.plan, today, threeDecimals),
   }
 }
 
