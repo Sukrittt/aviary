@@ -57,6 +57,7 @@ import { ImportBanner, useImportInProgress } from "../components/ImportBanner";
 import type { EnvelopeState } from "../types/expense";
 import { computeEnvelopeState, currentMonthKey, daysLeftInMonth, monthLabel, prevMonthKey } from "../lib/envelope";
 import { InsightsTab } from "@/src/components/InsightsTab";
+import { ForecastLine } from "@/src/components/Forecast";
 
 const parseDismissed = (raw: string) => raw === "1";
 const serializeDismissed = (value: boolean) => value ? "1" : "0";
@@ -518,6 +519,8 @@ export function ExpensePage() {
                   </div>
                 </>
               )}
+
+              {envelopeState && <ForecastLine hideAmounts={hideAmounts} />}
               {/* One banner at a time, same as Mobile: the leftover notice goes first,
                   and the next one waits for it to fade out. */}
               <AnimatePresence mode="wait">
