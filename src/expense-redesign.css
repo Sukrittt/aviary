@@ -13873,12 +13873,6 @@ button.account-feature-card {
   background: color-mix(in srgb, var(--coral) 14%, transparent);
   color: var(--coral);
 }
-.import-history-spin {
-  animation: import-spin 900ms linear infinite;
-}
-@keyframes import-spin {
-  to { transform: rotate(360deg); }
-}
 .import-history-text {
   flex: 1;
   min-width: 0;
@@ -13931,7 +13925,6 @@ button.account-feature-card {
     transition: none;
   }
   .import-drop-scan::after,
-  .import-history-spin,
   .import-banner,
   .import-banner-check {
     animation: none;

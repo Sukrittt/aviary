@@ -2,11 +2,12 @@
 
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { ArrowLeftIcon, CardholderIcon, CaretRightIcon, CheckIcon, CircleNotchIcon, FileTextIcon, PlusIcon, SealCheckIcon, TagIcon, UploadSimpleIcon, WalletIcon, WarningIcon } from '@/src/components/icons'
+import { ArrowLeftIcon, CardholderIcon, CaretRightIcon, CheckIcon, FileTextIcon, PlusIcon, SealCheckIcon, TagIcon, UploadSimpleIcon, WalletIcon, WarningIcon } from '@/src/components/icons'
 import { Scrim, Sheet } from '@/src/components/MotionSheet'
 import { CurrencyPicker } from '@/src/components/CurrencyPicker'
 import { CurrencyScope, useCurrency } from '@/src/context/CurrencyContext'
 import { LoadingCaption } from '@/src/components/LoadingCaption'
+import { BirdThinking } from '@/src/components/BirdMark'
 import { useCountUp } from '@/src/components/wrapped/WeekRecapVisuals'
 import { SuccessButton, useButtonPhase } from '@/src/components/SuccessButton'
 import { currencyInfo } from '@/src/lib/currencies'
@@ -853,8 +854,8 @@ export function ImportHistory({ total: committed }: { total: number }) {
               <WarningIcon size={16} />
             </motion.span>
           ) : (
-            <motion.span key="busy" className="import-history-spin" exit={{ scale: 0 }}>
-              <CircleNotchIcon size={16} />
+            <motion.span key="busy" exit={{ scale: 0 }}>
+              <BirdThinking size={22} />
             </motion.span>
           )}
         </AnimatePresence>
