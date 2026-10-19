@@ -5,6 +5,8 @@ export interface EmailMessage {
   html: string
   text: string
   reply_to?: string
+  /** Extra MIME headers, e.g. List-Unsubscribe. */
+  headers?: Record<string, string>
 }
 
 /** Ambiguous failures may have been accepted by Resend; only retry inside its 24-hour dedupe window. */

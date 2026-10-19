@@ -34,6 +34,14 @@ export default async function AdminSystem() {
             />
 
             <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+              <input type="checkbox" name="lifecycleEmails" defaultChecked={settings.lifecycleEmails} style={{ marginTop: 4 }} />
+              <span>
+                <strong>Send lifecycle emails</strong>
+                <div className="adm-sub">Trial nudges, the trial-end notice, salary plan follow-ups and one evergreen tip every 6 days, from Sukrit at hello@. Existing accounts join the evergreen emails gradually, at most 15 per cron run. Off = nothing new is queued.</div>
+              </span>
+            </label>
+
+            <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
               <input type="checkbox" name="maintenanceOn" defaultChecked={settings.maintenance.on} style={{ marginTop: 4 }} />
               <span>
                 <strong>Show maintenance banner</strong>

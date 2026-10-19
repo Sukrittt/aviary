@@ -30,6 +30,8 @@ export interface UserDoc {
   createdAt: Date
   /** Server-only welcome delivery, seeded on insert so existing accounts are never emailed retroactively. */
   welcomeEmail?: WelcomeDelivery
+  /** Turned off lifecycle and evergreen emails via the signed unsubscribe link. Welcome, billing and the trial-end notice still send. */
+  emailOptOutAt?: Date
   onboardedAt?: string | null
   /** When the first-week recap was opened, on any device. Server-set, once. */
   weekRecapSeenAt?: string | null

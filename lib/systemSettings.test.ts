@@ -16,6 +16,7 @@ describe('system settings', () => {
     expect(await getSystemSettings()).toEqual({
       aiDisabled: false,
       aiMonthlyCostUsd: null,
+      lifecycleEmails: false,
       maintenance: { on: false, message: '' },
       appUpdate: {
         android: {
