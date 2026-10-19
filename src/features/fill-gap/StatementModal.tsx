@@ -51,7 +51,7 @@ export function StatementModal({ onClose }: { onClose: () => void }) {
   const button = useButtonPhase()
   const addExpense = useAddExpense()
   // Rows a partly failed attempt already logged; a retry skips them (their client_ids would dedupe anyway).
-  const logged = useRef(new Set<string>())
+  const logged = useRef(new Map<string, string>())
 
   function fail(message: string) {
     setError(message)
@@ -92,7 +92,7 @@ export function StatementModal({ onClose }: { onClose: () => void }) {
       if (logged.current.has(item.id)) continue
       try {
         await addExpense.mutateAsync(statementExpense(item, rows[item.id].category))
-        logged.current.add(item.id)
+        logged.current.set(item.id, rows[item.id].category)
       } catch {
         failed++
       }
@@ -103,7 +103,8 @@ export function StatementModal({ onClose }: { onClose: () => void }) {
       return
     }
     track('statement_logged', { rows: toLog.length, unchecked: proposal.items.length - toLog.length })
-    setDone(caughtUp(toLog.map((i) => ({ amount: i.amount, date: i.date, category: rows[i.id].category }))))
+    // Everything saved here, with the category it was saved under, including rows an earlier failed try saved and you've since unticked.
+    setDone(caughtUp(proposal.items.filter((i) => logged.current.has(i.id)).map((i) => ({ amount: i.amount, date: i.date, category: logged.current.get(i.id) ?? '' }))))
     button.succeed(() => setPhase('done'))
   }
 

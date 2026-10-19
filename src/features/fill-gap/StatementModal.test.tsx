@@ -103,6 +103,20 @@ describe('StatementModal', () => {
     expect(onClose).toHaveBeenCalled()
   })
 
+  it('counts a row an earlier failed try already saved, even once it is unticked', async () => {
+    await upload()
+    fireEvent.click(screen.getByLabelText('Add Rapido, ₹120'))
+    mutateAsync.mockResolvedValueOnce({}).mockRejectedValueOnce(new Error('503'))
+    fireEvent.click(screen.getByText('Log 2 · ₹469'))
+    expect(await screen.findByText("Couldn't log 1. Check your connection and try again.")).toBeTruthy()
+    fireEvent.click(screen.getByLabelText('Add Swiggy, ₹349'))
+    fireEvent.click(screen.getByText('Log 1 · ₹120'))
+    expect(await screen.findByText("You're caught up.", {}, { timeout: 3000 })).toBeTruthy()
+    expect(screen.getByText('2 payments added')).toBeTruthy()
+    expect(screen.getByText('₹469')).toBeTruthy()
+    expect(mutateAsync.mock.calls[2][0].client_id).toBe('statement:b')
+  })
+
   it('turns away a sixth screenshot before uploading', async () => {
     render(<StatementModal onClose={() => {}} />)
     const shots = Array.from({ length: 6 }, (_, i) => new File(['x'], `s${i}.png`, { type: 'image/png' }))
