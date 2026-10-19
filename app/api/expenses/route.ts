@@ -414,7 +414,7 @@ export async function DELETE(req: Request) {
       if (result.deletedCount !== 1) throw new ExpenseWriteError(409, 'This transaction changed. Refresh and review it before deleting.')
       const affectsCC = found.payment_method === 'credit_card'
       const amount = Number(found.amount_inr)
-      if (affectsCC && amount > 0) {
+      if (affectsCC && amount !== 0 && Number.isFinite(amount)) {
         await adjustCreditCardEnvelope(auth, String(found.date ?? '').slice(0, 7), -amount, session)
       }
       return { category: String(found.category ?? ''), affectsCC, photoFile }
