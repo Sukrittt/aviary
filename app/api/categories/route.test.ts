@@ -21,6 +21,7 @@ interface Doc {
   order?: number
   alertPcts?: number[]
   icon?: string
+  color?: string
 }
 
 let docs: Doc[]
@@ -143,5 +144,26 @@ describe('/api/categories — icon', () => {
     const res = await putBody({ name: 'Food', icon: '<script>' })
     expect(res.status).toBe(400)
     expect(docs[0].icon).toBeUndefined()
+  })
+})
+
+describe('/api/categories — color', () => {
+  it('returns a known color and drops an unknown one', async () => {
+    docs = [
+      { name: 'Rent', color: 'blue' },
+      { name: 'Food', color: 'red' },
+    ]
+    const res = await GET(new Request('https://example.com/api/categories'))
+    expect(await res.json()).toEqual([
+      { name: 'Rent', group: '', color: 'blue' },
+      { name: 'Food', group: '' },
+    ])
+  })
+
+  it('stores a picked color and rejects one outside the set', async () => {
+    expect((await putBody({ name: 'Food', color: '#ff0000' })).status).toBe(400)
+    expect(docs[0].color).toBeUndefined()
+    expect((await putBody({ name: 'Food', color: 'mint' })).status).toBe(200)
+    expect(docs[0].color).toBe('mint')
   })
 })
