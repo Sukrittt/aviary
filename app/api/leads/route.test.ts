@@ -34,6 +34,10 @@ describe('POST /api/leads', () => {
     expect(queueLeadPlan).not.toHaveBeenCalled()
   })
 
+  it('accepts anything the planner field can hold', async () => {
+    expect((await post({ email: 'a@b.co', salary: 9_999_999_999, rent: 2_00_00_000 })).status).toBe(200)
+  })
+
   it('rate limits by IP', async () => {
     isRateLimited.mockResolvedValue(true)
     expect((await post({ email: 'a@b.co', salary: 50000 })).status).toBe(429)

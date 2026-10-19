@@ -6,7 +6,8 @@ import { queueLeadPlan, scheduleOutboxSend } from '@/lib/email/lifecycle'
 
 export const dynamic = 'force-dynamic'
 
-const MAX_SALARY = 1_00_00_000
+// The planner's money fields keep 10 digits, so anything they accept is accepted here.
+const MAX_SALARY = 9_999_999_999
 
 /**
  * Public, unauthenticated: the salary planner's "Email me this plan". The plan
