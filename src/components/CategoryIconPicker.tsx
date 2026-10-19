@@ -204,7 +204,7 @@ export function ColorSwatches({ value, onChange, disabled }: {
   disabled?: boolean
 }) {
   return (
-    <div className="color-swatches" role="radiogroup" aria-label="Color">
+    <div className="color-swatches" role="group" aria-label="Color">
       {CATEGORY_COLORS.map((color) => {
         const { background, color: ink } = colorStyle(color)
         const on = color === value
@@ -212,8 +212,7 @@ export function ColorSwatches({ value, onChange, disabled }: {
           <button
             key={color}
             type="button"
-            role="radio"
-            aria-checked={on}
+            aria-pressed={on}
             aria-label={COLOR_LABELS[color]}
             title={COLOR_LABELS[color]}
             className="color-swatch"
