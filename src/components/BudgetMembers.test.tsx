@@ -52,6 +52,21 @@ describe('BudgetMembersDialog', () => {
     expect(screen.queryByRole('button', { name: 'Leave budget' })).toBeNull()
   })
 
+  it('cancelling an invite drops it at once, and puts it back if the delete fails', async () => {
+    const invites = [{ code: 'ABC234', url: 'https://useaviary.com/join/ABC234', expiresAt: '2026-10-27T00:00:00Z' }]
+    api.getMembers.mockResolvedValue(info({ invites }))
+    let fail!: (err: unknown) => void
+    api.cancelInvite.mockReturnValue(new Promise((_, reject) => { fail = reject }))
+    renderIt(home)
+    expect(await screen.findByText('ABC234')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(screen.queryByText('ABC234')).toBeNull()
+    expect(api.cancelInvite).toHaveBeenCalledWith('s1', 'ABC234')
+    fail(new Error('offline'))
+    expect(await screen.findByText('ABC234')).toBeTruthy()
+    expect(screen.getByRole('alert')).toBeTruthy()
+  })
+
   it('calls you "You" when your account has no name, not "You (you)"', async () => {
     const unnamed = people.map((m) => ({ ...m, name: null }))
     api.getMembers.mockResolvedValue(info({ members: unnamed }))

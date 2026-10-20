@@ -2473,6 +2473,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  align-self: flex-start;
   margin: -4px 0 10px -6px;
   padding: 4px 8px;
   border: none;
@@ -2749,6 +2750,9 @@
   margin-bottom: 24px;
   flex: 0 0 auto;
 }
+.erd-log-head-end { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.erd-log-head-end .budget-line { margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (min-width: 901px) { .expense-redesign .erd-modal-card.erd-log-card { width: 560px; } }
 .erd-log-card .erd-log-body {
   overflow-y: auto;
   min-height: 0;
@@ -3230,6 +3234,8 @@
 .expense-redesign .action-button.is-ghost:hover {
   background: var(--erd-border);
 }
+.expense-redesign .action-button.is-ghost.txn-edit-move { display: inline-flex; align-items: center; gap: 6px; width: auto; padding-left: 0; }
+.expense-redesign .action-button.is-ghost.txn-edit-move:hover { background: none; color: var(--erd-text); }
 
 /* ── Transactions page ──────────────────────────────────────── */
 
@@ -14715,15 +14721,39 @@ button.account-feature-card {
 }
 .budget-chip:hover { border-color: var(--erd-border-strong); }
 .budget-chip svg { flex-shrink: 0; color: var(--erd-text3); }
+.budget-chip-current { display: inline-flex; align-items: center; gap: 6px; min-width: 0; flex: 1; }
+.budget-chip-tile { display: inline-grid; place-items: center; flex-shrink: 0; }
+.budget-chip-text { display: inline-flex; flex-direction: column; min-width: 0; text-align: left; }
 .budget-chip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.budget-chip.is-rail { align-self: stretch; gap: 8px; min-height: 40px; padding: 8px 14px; }
-.budget-chip.is-rail .budget-chip-name { flex: 1; text-align: left; }
-[data-collapsible="icon"] .budget-chip.is-rail { align-self: flex-start; }
-[data-collapsible="icon"] .budget-chip.is-rail { padding: 6px 10px; gap: 0; }
-[data-collapsible="icon"] .budget-chip.is-rail svg { display: none; }
+.budget-chip-eyebrow { display: none; }
+
+/* The sidebar's workspace card: icon on an accent tile, "BUDGET" eyebrow, name. */
+.budget-chip.is-card {
+  align-self: stretch;
+  gap: 10px;
+  min-height: 54px;
+  padding: 10px 12px 10px 10px;
+  border-radius: 14px;
+  background: var(--erd-card);
+  box-shadow: 0 1px 2px oklch(0% 0 0 / 0.04);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.budget-chip.is-card:hover { box-shadow: 0 2px 6px oklch(0% 0 0 / 0.06); }
+.budget-chip.is-card .budget-chip-current { gap: 10px; animation: budget-chip-swap 0.28s ease-out; }
+.budget-chip.is-card .budget-chip-tile { width: 34px; height: 34px; border-radius: 10px; background: var(--gold-soft); color: var(--gold-ink); transition: width 0.2s linear, height 0.2s linear; }
+.budget-chip.is-card .budget-chip-icon { color: inherit; }
+.budget-chip.is-card .budget-chip-eyebrow { display: block; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--erd-text2); line-height: 1.2; }
+.budget-chip.is-card .budget-chip-name { font-size: 14px; line-height: 1.2; margin-top: 2px; }
+@keyframes budget-chip-swap { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .budget-chip.is-card .budget-chip-current { animation: none; } }
+
+/* Collapsed rail: just the tile. */
+[data-collapsible="icon"] .budget-chip.is-rail { align-self: flex-start; min-height: 0; padding: 6px; gap: 0; border-radius: 12px; }
+[data-collapsible="icon"] .budget-chip.is-rail > svg { display: none; }
+[data-collapsible="icon"] .budget-chip.is-card .budget-chip-tile { width: 30px; height: 30px; }
 .budget-chip.is-topbar { max-width: 150px; }
 
-.budget-list { list-style: none; margin: 14px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.budget-list { list-style: none; margin: 14px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .budget-row {
   display: flex;
   align-items: center;
@@ -14731,15 +14761,15 @@ button.account-feature-card {
   width: 100%;
   min-height: 48px;
   padding: 10px 12px;
-  border: 1px solid transparent;
+  border: 1px solid var(--erd-border);
   border-radius: 14px;
-  background: none;
+  background: var(--erd-card);
   color: var(--erd-text);
   font: 600 14px/1.2 var(--font-body);
   text-align: left;
   cursor: pointer;
 }
-.budget-row:hover { background: var(--erd-input-bg); }
+.budget-row:hover { border-color: var(--erd-border-strong); background: var(--erd-input-bg); }
 .budget-row.is-active { border-color: var(--gold); background: var(--gold-soft); }
 .budget-row-emoji { display: grid; place-items: center; width: 24px; font-size: 18px; flex-shrink: 0; }
 .budget-row-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -14768,7 +14798,16 @@ button.account-feature-card {
 }
 .budget-avatar + .budget-avatar { margin-left: -6px; }
 .budget-avatar--more { width: auto; min-width: 20px; padding: 0 4px; border-radius: 10px; }
-.budget-new { margin-top: 4px; color: var(--erd-text2); }
+/* The switcher sheet: one grouped card of budgets, the gear inside each row. */
+.budget-group { gap: 0; border: 1px solid var(--erd-border); border-radius: 16px; background: var(--erd-card); overflow: hidden; }
+.budget-group .budget-row-wrap { gap: 0; padding-right: 6px; }
+.budget-group .budget-row-wrap + .budget-row-wrap { border-top: 1px solid var(--erd-border); }
+.budget-group .budget-row { border: 0; border-radius: 0; background: none; min-height: 52px; padding: 12px 10px 12px 14px; }
+.budget-group .budget-row:hover { background: var(--erd-input-bg); }
+.budget-group .budget-row.is-active, .budget-group .budget-row.is-active:hover { background: none; }
+.budget-group .budget-row-wrap:has(.is-active) { background: var(--gold-soft); box-shadow: inset 3px 0 0 var(--gold); }
+.budget-sheet-actions { display: flex; gap: 8px; margin-top: 12px; }
+.budget-sheet-actions .budget-new { display: inline-flex; flex: 1; align-items: center; justify-content: center; gap: 6px; min-height: 42px; font-size: 13px; }
 .budget-count { margin: 14px 0 0; color: var(--erd-text2); font-size: 12px; font-weight: 600; }
 .budget-limit { margin: 6px 0 0; color: var(--erd-text2); font-size: 13px; }
 .budget-limit a { color: var(--gold-ink); font-weight: 600; }
@@ -14909,5 +14948,4 @@ button.account-feature-card {
 
 /* Budget icons: our category glyphs, inline with the budget's name. */
 .budget-chip .budget-chip-icon { color: inherit; }
-[data-collapsible="icon"] .budget-chip.is-rail .budget-chip-icon { display: block; }
 .budget-line-icon, .budget-title svg, .join-budget-icon { vertical-align: -0.125em; }

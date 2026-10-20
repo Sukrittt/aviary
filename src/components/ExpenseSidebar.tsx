@@ -182,7 +182,7 @@ function ExpenseSidebarNav({ onBulkReturn }: Props) {
             )}
           </div>
 
-          {!isMobile && <BudgetSwitcher className="is-rail" labelClassName={LABEL} />}
+          {!isMobile && <BudgetSwitcher card className="is-rail" labelClassName={LABEL} />}
 
           {/* A read-only budget takes no new expenses; the banner says why. */}
           {!readOnly && <div className="erd-side-actions">

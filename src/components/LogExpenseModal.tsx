@@ -439,13 +439,15 @@ export function LogExpenseModal({ onClose, onBack, onSaved }: Props) {
             )}
             <div className="erd-modal-head">
               <h3>Log expense</h3>
-              {!onBack && (
-                <button type="button" className="erd-modal-close" onClick={onClose} aria-label="Close" disabled={success}>
-                  <XIcon size={18} aria-hidden="true" />
-                </button>
-              )}
+              <div className="erd-log-head-end">
+                <BudgetLine />
+                {!onBack && (
+                  <button type="button" className="erd-modal-close" onClick={onClose} aria-label="Close" disabled={success}>
+                    <XIcon size={18} aria-hidden="true" />
+                  </button>
+                )}
+              </div>
             </div>
-            <BudgetLine />
 
             <div className="erd-log-body">
               <section className="erd-log-section">

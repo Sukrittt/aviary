@@ -7,7 +7,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { CaretRightIcon, UserPlusIcon } from '@/src/components/icons'
 import {
   cancelInvite, createInvite, deleteBudget, getMembers, removeMember, renameBudget, setNotifyOthers, switchBudget, transferBudget,
-  type BudgetMember, type BudgetSummary, type Invite,
+  type BudgetMember, type BudgetSummary, type Invite, type MembersInfo,
 } from '../api/spaces'
 import { HttpError } from '../api/client'
 import { spacesKey, useSpaces } from '../hooks/useSpaces'
@@ -109,6 +109,20 @@ export function BudgetMembersDialog({ budget, onClose }: { budget: BudgetSummary
     }
   }
 
+  /** Drops the invite from the list at once; a failed delete puts it back with an error. */
+  async function cancelInviteNow(code: string) {
+    const before = qc.getQueryData<MembersInfo>(key)
+    if (before) qc.setQueryData<MembersInfo>(key, { ...before, invites: before.invites.filter((i) => i.code !== code) })
+    setError('')
+    try {
+      await cancelInvite(budget.id, code)
+      refresh()
+    } catch (err) {
+      if (before) qc.setQueryData(key, before)
+      setError(actionError(err, budget.name))
+    }
+  }
+
   /** Out of this budget: if it was the open one, land in your own (or the first one left). */
   function leftBudget() {
     if (active?.id !== budget.id) return onClose()
@@ -174,7 +188,7 @@ export function BudgetMembersDialog({ budget, onClose }: { budget: BudgetSummary
                     <span className="account-row-hint">{`Expires ${joinedOn(inv.expiresAt)}`}</span>
                   </span>
                   <CopyButton text={inviteMessage(budget.name, inv)} label="Copy again" />
-                  <button type="button" className="account-pill-btn" disabled={busy} onClick={() => void run(() => cancelInvite(budget.id, inv.code))}>Cancel</button>
+                  <button type="button" className="account-pill-btn" disabled={busy} onClick={() => void cancelInviteNow(inv.code)}>Cancel</button>
                 </li>
               ))}
             </ul>

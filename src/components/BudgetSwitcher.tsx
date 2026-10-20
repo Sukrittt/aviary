@@ -28,7 +28,7 @@ const SUPPORT_PATH = '/account/help'
  * budgets, so a one-budget account looks exactly as before. `labelClassName`
  * lets the sidebar fold the name away in its collapsed rail.
  */
-export function BudgetSwitcher({ className = '', labelClassName = '', onOpen }: { className?: string; labelClassName?: string; onOpen?: () => void }) {
+export function BudgetSwitcher({ className = '', labelClassName = '', card = false, onOpen }: { className?: string; labelClassName?: string; card?: boolean; onOpen?: () => void }) {
   const { multi, active } = useSpaces()
   const [open, setOpen] = useState(false)
   if (!multi || !active) return null
@@ -36,13 +36,19 @@ export function BudgetSwitcher({ className = '', labelClassName = '', onOpen }: 
     <>
       <button
         type="button"
-        className={`budget-chip ${className}`.trim()}
+        className={`budget-chip ${card ? 'is-card' : ''} ${className}`.trim()}
         aria-haspopup="dialog"
         aria-label={`Budget: ${active.name}. Switch budget`}
         onClick={() => { onOpen?.(); setOpen(true) }}
       >
-        <BudgetIcon budget={active} size={16} className="budget-chip-icon" />
-        <span className={`budget-chip-name ${labelClassName}`.trim()}>{active.name}</span>
+        {/* Keyed on the budget so a switch remounts icon and name, which the card cross-fades in. */}
+        <span key={active.id} className="budget-chip-current">
+          <span className="budget-chip-tile"><BudgetIcon budget={active} size={card ? 18 : 16} className="budget-chip-icon" /></span>
+          <span className={`budget-chip-text ${labelClassName}`.trim()}>
+            {card && <span className="budget-chip-eyebrow">Budget</span>}
+            <span className="budget-chip-name">{active.name}</span>
+          </span>
+        </span>
         <CaretDownIcon size={12} weight="bold" aria-hidden="true" />
       </button>
       <AnimatePresence>{open && <BudgetSheet onClose={() => setOpen(false)} />}</AnimatePresence>
@@ -78,7 +84,7 @@ function BudgetSheet({ onClose }: { onClose: () => void }) {
           <h3>Your budgets</h3>
           <button type="button" className="erd-modal-close" onClick={onClose} aria-label="Close">✕</button>
         </div>
-        <ul className="budget-list">
+        <ul className="budget-list budget-group">
           {budgets.map((b) => {
             const current = b.id === active?.id
             return (
@@ -121,21 +127,22 @@ function BudgetSheet({ onClose }: { onClose: () => void }) {
           </>
         )}
         <p className="budget-count">{`${count} of ${limit} budgets`}</p>
-        {atLimit ? (
+        {atLimit && (
           <p className="budget-limit">
             {"That's the most you can have. Need more? "}
             <Link href={SUPPORT_PATH} onClick={onClose}>Contact us</Link>
           </p>
-        ) : (
-          <button type="button" className="budget-row budget-new" onClick={() => setView('create')}>
-            <span className="budget-row-emoji" aria-hidden="true"><PlusIcon size={16} weight="bold" /></span>
-            <span className="budget-row-name">New budget</span>
-          </button>
         )}
-        <button type="button" className="budget-row budget-new" onClick={() => setView('join')}>
-          <span className="budget-row-emoji" aria-hidden="true"><TicketIcon size={16} /></span>
-          <span className="budget-row-name">Join with a code</span>
-        </button>
+        <div className="budget-sheet-actions">
+          {!atLimit && (
+            <button type="button" className="account-pill-btn account-pill-btn--primary budget-new" onClick={() => setView('create')}>
+              <PlusIcon size={14} weight="bold" aria-hidden="true" /> New budget
+            </button>
+          )}
+          <button type="button" className="account-pill-btn budget-new" onClick={() => setView('join')}>
+            <TicketIcon size={14} aria-hidden="true" /> Join with a code
+          </button>
+        </div>
       </Sheet>
     </Scrim>
   )

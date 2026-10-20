@@ -18,6 +18,7 @@ import { MoveExpenseDialog } from './MoveExpenseDialog'
 import { useSpaces } from '../hooks/useSpaces'
 import { useAuthors } from '../hooks/useAuthors'
 import { useReadOnlyError } from './BudgetNotices'
+import { ArrowsLeftRightIcon } from '@/src/components/icons'
 import { AnimatePresence } from 'motion/react'
 
 interface Props {
@@ -337,8 +338,8 @@ export function TransactionEditModal({
         </div>
 
         {multi && id && !isSplit && !deleted && (
-          <button type="button" className="action-button is-ghost" onClick={() => setMoving(true)} disabled={saving || success}>
-            Move to another budget
+          <button type="button" className="action-button is-ghost txn-edit-move" onClick={() => setMoving(true)} disabled={saving || success}>
+            <ArrowsLeftRightIcon size={14} aria-hidden="true" /> Logged in the wrong budget? Move it
           </button>
         )}
 
@@ -348,6 +349,7 @@ export function TransactionEditModal({
           </button>
           <SuccessButton
             type="button"
+            className="is-active erd-accent-action"
             disabled={!canSave || saving || success || !!conflict || deleted}
             saving={saving}
             success={success}
