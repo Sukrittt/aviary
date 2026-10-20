@@ -228,8 +228,10 @@ export function ExpenseAdded({
 
       {askForBudget && (
         <FadeInDown delay={at(STAGGER.card)} duration={at(460)} className="erd-added-card erd-added-nudge">
-          <strong>{`Give ${categoryName} a budget?`}</strong>
-          <p>Nothing&apos;s assigned to it this month.</p>
+          <div>
+            <strong>{`Give ${categoryName} a budget?`}</strong>
+            <p>Nothing&apos;s assigned to it this month.</p>
+          </div>
           <button type="button" className="account-pill-btn" onClick={onSetBudget}>Set a budget</button>
         </FadeInDown>
       )}
