@@ -1,5 +1,6 @@
 import { beforeAll, afterAll, beforeEach, describe, it, expect, vi } from 'vitest'
-import { MongoMemoryReplSet } from 'mongodb-memory-server'
+import type { MongoMemoryReplSet } from 'mongodb-memory-server'
+import { startMongoReplSet } from '@/src/test-utils/mongo'
 import { randomBytes } from 'node:crypto'
 
 const who = vi.hoisted(() => ({ userId: 'user_a', spaceId: 'user_a' }))
@@ -16,7 +17,7 @@ import { PATCH } from './[id]/route'
 
 let server: MongoMemoryReplSet
 beforeAll(async () => {
-  server = await MongoMemoryReplSet.create({ binary: { version: '8.2.6' }, replSet: { count: 1 } })
+  server = await startMongoReplSet()
   vi.stubEnv('MONGODB_URI', server.getUri('spaces'))
   vi.stubEnv('FIELD_KEY_V1', randomBytes(32).toString('base64'))
 }, 120_000)

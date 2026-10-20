@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import { MongoMemoryReplSet } from 'mongodb-memory-server'
+import type { MongoMemoryReplSet } from 'mongodb-memory-server'
+import { startMongoReplSet } from '@/src/test-utils/mongo'
 vi.mock('server-only', () => ({}))
 
 import { getClient, getDb } from './mongodb'
@@ -8,7 +9,7 @@ import { castVote, createIdea, deleteIdea, IDEA_VOTES, IDEAS, listIdeas, purgeUs
 let server: MongoMemoryReplSet
 
 beforeAll(async () => {
-  server = await MongoMemoryReplSet.create({ binary: { version: '8.2.6' }, replSet: { count: 1 } })
+  server = await startMongoReplSet()
   process.env.MONGODB_URI = server.getUri('ideas-test')
   const db = await getDb()
   await db.collection(IDEA_VOTES).createIndex({ ideaId: 1, user_id: 1 }, { unique: true })
