@@ -11,6 +11,11 @@ vi.mock('@/src/hooks/useBillingStatus', () => ({
   useSyncBilling: () => ({ mutate: vi.fn(), isPending: false, isSuccess: false, data: undefined }),
 }))
 
+const spaces = { budgets: [] as unknown[] }
+vi.mock('@/src/hooks/useSpaces', () => ({ useSpaces: () => spaces }))
+const switchBudget = vi.fn()
+vi.mock('@/src/api/spaces', () => ({ switchBudget: (b: unknown) => switchBudget(b) }))
+
 const { SubscriptionGate } = await import('./SubscriptionGate')
 
 const app = <div>budgeting app</div>
@@ -90,5 +95,21 @@ describe('SubscriptionGate', () => {
     renderAt('/expense', { data: { ...expired.data, ...status, covered: true } })
     expect(screen.getByText('budgeting app')).toBeTruthy()
     expect(replaceMock).not.toHaveBeenCalled()
+  })
+
+  it('offers a budget someone else pays for from the lock screen', () => {
+    // A member whose own trial lapsed lands here with their personal budget
+    // open. Without a way through, the budget the owner paid for is unreachable.
+    const studio = { id: 'sp_studio', name: 'Studio', emoji: '✈️', role: 'member', ownerId: 'user_a', personal: false, members: [{ userId: 'user_a', name: 'Sukrit Saha', avatarUrl: null, role: 'owner', joinedAt: null }] }
+    spaces.budgets = [
+      { id: 'me', name: 'Personal', emoji: '🐦', role: 'owner', ownerId: 'me', personal: true, members: [] },
+      studio,
+      { ...studio, id: 'sp_lapsed', name: 'Lapsed', readOnly: true },
+    ]
+    renderAt('/expense', expired)
+    expect(screen.getByText('Budgets shared with you')).toBeTruthy()
+    expect(screen.queryByText('Lapsed')).toBeNull()
+    screen.getByRole('button', { name: /Studio/ }).click()
+    expect(switchBudget).toHaveBeenCalledWith(studio)
   })
 })
