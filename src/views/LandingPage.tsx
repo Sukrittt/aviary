@@ -62,7 +62,7 @@ export function LandingPage({ monthlyPrice, ios = false, android = false, intl =
     {/* THESIS: Budgeting apps get dropped by day 3 because logging costs more than it gives back. Aviary makes logging cheap (nudges, one-line catch-up, recurring) and never touches your bank. Refuses the bank-sync pitch of "we'll do it for you".
         OWN-WORLD: Warm near-white page, ink pill buttons, Geist display and body, Aviary orange for the learned moment, pastel envelope tones for the ways to log.
         STORY: Name the day-3 arc everyone knows, then the three fixes (a habit learned and a nudge answered; a missed day typed back in one line; every other way to log), understand why noticing beats syncing, try the app, meet the maker, get it.
-        FIRST VIEWPORT: Centered headline naming the habit it learns over a wide stage: noticed logs, a phone taking the nudge, the envelope updating. Android CTA and the web app button under the headline.
+        FIRST VIEWPORT: Centered headline saying what it is (a budget app that learns your habits), the sub-line naming the habit, over a wide stage: noticed logs, a phone taking the nudge, the envelope updating. Android CTA and the web app button under the headline.
         FORM: User-pinned moonjar.ai structure: centered statements, one framed demo per section, founder card, quiet close.
         FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md */}
     <a href="#learns" className="lp-skip">Skip to how Aviary learns</a>
@@ -73,8 +73,8 @@ export function LandingPage({ monthlyPrice, ios = false, android = false, intl =
         ? <p className="lp-market">In India? <Link href="/">See the India page</Link></p>
         : <p className="lp-market">Outside India? <Link href="/intl">See the page for your region</Link></p>)}
       <Link className="lp-early" href={FEEDBACK_BOARD_PATH}><b>Early access</b><span className="lp-early-desktop">Your feedback shapes what we build next</span><span className="lp-early-mobile">Help shape Aviary</span><ArrowRightIcon size={14} aria-hidden="true" /></Link>
-      <h1 id="landing-title">It notices your <span className="lp-learns"><FirstHabit /><svg viewBox="0 0 200 14" preserveAspectRatio="none" aria-hidden="true"><path d="M3 10 C 40 3, 70 3, 100 8 S 160 13, 197 5" /></svg></span> and nudges you to log it.</h1>
-      <p>The budgeting app you’ll still open on day 4.<br className="lp-desktop-break" /> Miss a day? Type what you remember and you’re caught up.<br className="lp-desktop-break" /> No bank link, no loans, no offers.</p>
+      <h1 id="landing-title">The budget app that <span className="lp-learns">learns your habits<svg viewBox="0 0 200 14" preserveAspectRatio="none" aria-hidden="true"><path d="M3 10 C 40 3, 70 3, 100 8 S 160 13, 197 5" /></svg></span>.</h1>
+      <p>It notices your <FirstHabit /> and nudges you to log it in one tap, so you’re still logging on day 4.<br className="lp-desktop-break" /> Miss a day? Type what you remember and you’re caught up.<br className="lp-desktop-break" /> No bank link, no loans, no offers.</p>
       {/* On iPhone the web app is the one thing they can use today, so it takes the ink pill and sits above the waitlist. */}
       <div className="lp-hero-actions">
         {!ios && <StoreLink placement="hero" />}
