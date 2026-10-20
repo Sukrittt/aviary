@@ -8,7 +8,7 @@ vi.stubGlobal('IntersectionObserver', class { observe() {} unobserve() {} discon
 describe('LandingPage', () => {
   it('opens with the day 3 arc, then the fixes', () => {
     render(<LandingPage />)
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('It notices your 4pm chai and nudges you to log it.')
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('The budget app that learns your habits.')
     const h2s = screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)
     expect(h2s.indexOf('You know how it goes.')).toBeLessThan(h2s.indexOf('It already knows your Friday cab.'))
   })
