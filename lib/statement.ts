@@ -103,7 +103,10 @@ export const STATEMENT_SCHEMA: Schema = {
 // ponytail: the big UPI banks' short codes; a bank missing here can show up as the payee. Add codes as they're seen.
 const BANK_CODES = new Set(['YESB', 'AXIS', 'UTIB', 'HDFC', 'ICIC', 'ICICI', 'SBIN', 'SBI', 'KKBK', 'PUNB', 'BARB', 'IDFB', 'INDB', 'PYTM', 'AIRP', 'FDRL', 'CNRB', 'UBIN', 'IBKL', 'YES'])
 const IFSC = /^[A-Z]{4}0[A-Z0-9]{6}$/i
-const NARRATION_NOISE = /^(upi|imps|neft|rtgs|dr|cr|pos|ecom|payment|paid|pay|sent|collect|txn|ref|mob|p2a|p2m)\b/i
+// DR and CR only on their own, so "DR REDDYS LAB" stays a payee.
+const NARRATION_NOISE = /^(?:(?:upi|imps|neft|rtgs|pos|ecom|bil|onl|payment|paid|pay|sent|collect|txn|ref|mob|p2a|p2m)\b|(?:dr|cr)$)/i
+// SBI's "TO TRANSFER-UPI/…" and an auto-debit's "ACH D- NETFLIX…" lead in front of the narration.
+const LEAD_IN = /^(?:(?:to|by) transfer\s*-\s*|n?ach\s*(?:d|dr|debit)?\s*-\s*)/i
 
 function titleCase(text: string): string {
   return text.toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase())
@@ -115,14 +118,18 @@ function titleCase(text: string): string {
  */
 export function payeeLabel(raw: unknown): string {
   if (typeof raw !== 'string') return ''
-  const text = raw.replace(/\s+/g, ' ').trim()
+  const spaced = raw.replace(/\s+/g, ' ').trim()
+  if (/^atm\b/i.test(spaced)) return 'Cash withdrawal'
+  const text = spaced.replace(LEAD_IN, '') || spaced
   let label: string
-  if (/^(upi|imps|neft)[-/]/i.test(text)) {
+  if (/^(upi|imps|neft|bil)[-/]/i.test(text)) {
     const parts = text.split(/[-/]/).map((p) => p.trim()).filter(Boolean)
     const named = parts.find((p) => p.length > 2 && !p.includes('@') && !/^\d+$/.test(p) && !IFSC.test(p) && !BANK_CODES.has(p.toUpperCase()) && !NARRATION_NOISE.test(p))
     label = named ?? parts.find((p) => p.includes('@'))?.split('@')[0] ?? text
   } else {
-    label = text.split(' ').filter((w) => !/^\d{4,}$/.test(w) && !/^(pos|ecom)$/i.test(w)).join(' ') || text
+    // Drops reference numbers, masked cards ("4321XXXXXXXX9012") and a trailing "-NFLX99812".
+    const words = text.replace(/-\S*\d{3,}\S*$/, '').split(' ')
+    label = words.filter((w) => !/^(?=.*\d)[\dx*]{4,}$/i.test(w) && !/^(pos|ecom)$/i.test(w)).join(' ') || text
   }
   if (!/[a-z]/.test(label)) label = titleCase(label)
   label = label.slice(0, MAX_PAYEE_LEN).trim()

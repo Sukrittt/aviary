@@ -35,7 +35,7 @@ export const GENERIC_ALIASES: Record<Role, string[]> = {
   amount: ['amount', 'value', 'sum', 'amt', 'transaction amount'],
   outflow: ['debit', 'withdrawal', 'withdrawals', 'outflow', 'paid out', 'money out', 'spent', 'debit amount', 'withdrawal amt.', 'withdrawal amount'],
   inflow: ['credit', 'deposit', 'deposits', 'inflow', 'paid in', 'money in', 'received', 'credit amount', 'deposit amt.', 'deposit amount'],
-  text: ['description', 'narration', 'particulars', 'payee', 'merchant', 'name', 'details', 'item', 'title', 'transaction details', 'place'],
+  text: ['description', 'narration', 'particulars', 'payee', 'merchant', 'name', 'details', 'item', 'title', 'transaction details', 'transaction remarks', 'place'],
   category: ['category', 'category name', 'envelope'],
   subcategory: ['subcategory', 'sub category', 'sub-category'],
   account: ['account', 'accounts', 'wallet', 'bank', 'account name'],
@@ -124,9 +124,12 @@ export function detectPreset(headers: string[]): Preset | null {
 
 const KNOWN = new Set([...Object.values(GENERIC_ALIASES).flat(), ...PRESETS.flatMap((p) => Object.values(p.aliases).flat()), 'converted amount', 'details'])
 
+/** A header as the aliases spell it: "Withdrawal Amount (INR )" is "withdrawal amount". */
+export const headerName = (cell: string) => cell.trim().toLowerCase().replace(/\s*\(\s*(?:[a-z]{3}|[₹$€£])\s*\)$/, '')
+
 /** How header-like a line is: the number of its cells that any table knows. */
 export function headerScore(cells: string[]): number {
-  return cells.filter((c) => KNOWN.has(c.trim().toLowerCase())).length
+  return cells.filter((c) => KNOWN.has(headerName(c))).length
 }
 
 /** Column index per role: the preset's aliases first, then the generic ones, one role per column. */
