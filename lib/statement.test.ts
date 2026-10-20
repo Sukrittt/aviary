@@ -222,6 +222,8 @@ describe('readSource for a csv', () => {
     await expect(read(['Date,Description,Amount', '17/10/26,Starbucks,-$5.00', '18/10/26,Uber,-$12.40'])).rejects.toEqual(other)
     await expect(read(['Date,Description,Amount (USD)', '17/10/26,Starbucks,-5.00'])).rejects.toEqual(other)
     await expect(read(['Date,Description,Amount,Currency', '17/10/26,Starbucks,-5,USD', '18/10/26,Uber,-12,USD'])).rejects.toEqual(other)
+    // A Currency column left blank doesn't hide what the header says.
+    await expect(read(['Date,Description,Amount (USD),Currency', '17/10/26,Starbucks,-5.00,'])).rejects.toEqual(other)
     // The budget's own currency, or a file that names none, reads as before.
     await expect(read(['Date,Description,Amount (USD)', '17/10/26,Starbucks,-5.00'], 'USD')).resolves.toMatchObject({ transactions: [{ payee: 'Starbucks', amount: 5 }] })
     await expect(read(['Date,Description,Amount', '17/10/26,Swiggy,-349'])).resolves.toMatchObject({ transactions: [{ payee: 'Swiggy', amount: 349 }] })

@@ -240,7 +240,7 @@ export function normalize(layout: Layout, today: string, roles: Record<number, R
     defaultDirection: defaultDirection(signs, false),
     directionSource: signs.length ? 'sign' : 'column',
     hasCurrency: mapping.currency !== undefined,
-    fileCurrency: [...codes].sort((a, b) => b[1] - a[1])[0]?.[0] ?? (mapping.currency === undefined ? symbolCurrency(amountCells) || headerCurrency : ''),
+    fileCurrency: [...codes].sort((a, b) => b[1] - a[1])[0]?.[0] ?? (symbolCurrency(amountCells) || headerCurrency),
     plan: readPlan(layout.plan, today, threeDecimals),
   }
 }

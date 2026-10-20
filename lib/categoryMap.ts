@@ -2,7 +2,7 @@ import type { ScopedCollection } from './scoped'
 
 export interface CategoryMap {
   words: Record<string, string>
-  /** Whole item (itemKey) → the category it was mostly saved under. Server-only: GET /api/category-map sends `words`. */
+  /** Whole item (itemKey) → the category it was last saved under. Server-only: GET /api/category-map sends `words`. */
   items: Record<string, string>
   updatedAt: string
 }
@@ -40,11 +40,12 @@ export async function buildCategoryMap(
   overridesCollection?: ScopedCollection,
 ): Promise<CategoryMap> {
   const rows = await collection
-    .find({}, { projection: { item: 1, category: 1, _id: 0 } })
+    .find({}, { projection: { item: 1, category: 1, timestamp: 1, _id: 0 } })
     .toArray()
 
   const wordCategories = new Map<string, Map<string, number>>()
-  const itemCategories = new Map<string, Map<string, number>>()
+  // An exact item keeps the category it was last saved under, so a correction beats older votes.
+  const itemLatest = new Map<string, { at: string; category: string }>()
   const vote = (votes: Map<string, Map<string, number>>, key: string, category: string) => {
     let catCount = votes.get(key)
     if (!catCount) {
@@ -59,7 +60,10 @@ export async function buildCategoryMap(
     const category = String(row.category ?? '')
     if (!item || !category) continue
     for (const word of itemWords(item)) vote(wordCategories, word, category)
-    vote(itemCategories, itemKey(item), category)
+    const key = itemKey(item)
+    const at = String(row.timestamp ?? '')
+    const seen = itemLatest.get(key)
+    if (!seen || at >= seen.at) itemLatest.set(key, { at, category })
   }
 
   const words = majority(wordCategories)
@@ -76,12 +80,12 @@ export async function buildCategoryMap(
     }
   }
 
-  return { words, items: majority(itemCategories), updatedAt: new Date().toISOString() }
+  return { words, items: Object.fromEntries([...itemLatest].map(([key, { category }]) => [key, category])), updatedAt: new Date().toISOString() }
 }
 
 function majority(votes: Map<string, Map<string, number>>): Record<string, string> {
-  const out: Record<string, string> = {}
-  for (const [key, cats] of votes) {
+  // fromEntries, not assignment: a key like "__proto__" stays a plain entry.
+  return Object.fromEntries([...votes].flatMap(([key, cats]) => {
     let bestCat = ''
     let bestCount = 0
     for (const [cat, count] of cats) {
@@ -90,9 +94,8 @@ function majority(votes: Map<string, Map<string, number>>): Record<string, strin
         bestCount = count
       }
     }
-    if (bestCat) out[key] = bestCat
-  }
-  return out
+    return bestCat ? [[key, bestCat]] : []
+  }))
 }
 
 // ponytail: unbounded Map on a personal app with a handful of users; swap for
