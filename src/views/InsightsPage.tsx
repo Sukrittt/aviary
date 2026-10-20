@@ -9,7 +9,7 @@ import { ArrowLeftIcon, CaretLeftIcon, CaretRightIcon, GearIcon, HouseIcon, Invo
 import { CategoryIcon } from "@/src/components/CategoryIcon";
 import { useAppearance } from "@/components/AppearanceProvider";
 import { ExpenseSidebar } from "@/src/components/ExpenseSidebar";
-import { LoadingCaption } from "@/src/components/LoadingCaption";
+import { InsightsSkeleton } from "@/src/components/TabSkeleton";
 import { EditMonthIncomeScreen, MoveMoneyScreen } from "@/src/components/MoneyScreens";
 import { CategoryBreakdown } from "@/src/components/charts/CategoryBreakdown";
 import { Heatmap, type HeatmapCell } from "@/src/components/charts/Heatmap";
@@ -463,9 +463,7 @@ export function InsightsPage() {
           </header>
 
           {loading ? (
-            <div className="ins-loading">
-              <LoadingCaption placement="page" feature="insights" />
-            </div>
+            <InsightsSkeleton forecast={isCurrent} />
           ) : (
             <div className="insights-grid">
               <article
