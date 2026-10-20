@@ -10,6 +10,8 @@
  * A new budget gets its own id, which `scoped()` writes into the same
  * `user_id` field. That field now means "budget key".
  */
+import { budgetEmoji, budgetIconKey } from '@/src/lib/budgetIcons'
+import { isCategoryIconKey, type CategoryIconKey } from '@/src/lib/categoryIcons'
 import { ObjectId, type Db } from 'mongodb'
 import { getDb } from './mongodb'
 import { scoped } from './scoped'
@@ -30,7 +32,9 @@ export interface SpaceDoc {
   /** The owner's user id for their first budget, otherwise a fresh ObjectId hex. */
   _id: string
   name: string
+  /** Kept for app builds from before icons. */
   emoji: string
+  icon?: string
   owner_id: string
   currencyCode?: string
   onboardedAt?: string | null
@@ -188,6 +192,7 @@ export interface BudgetSummary {
   id: string
   name: string
   emoji: string
+  icon: CategoryIconKey
   role: SpaceRole
   ownerId: string
   currencyCode: string
@@ -209,7 +214,7 @@ export const personName = (u: PersonDoc | undefined) => u?.name || [u?.firstName
  * until it's renamed or shared it's described from the user doc alone.
  */
 /** A budget this person was in that its owner deleted lately: members see who, the owner can restore it. */
-export interface DeletedBudget { id: string; name: string; emoji: string; deletedAt: string; deletedBy: string | null; canRestore: boolean }
+export interface DeletedBudget { id: string; name: string; emoji: string; icon: CategoryIconKey; deletedAt: string; deletedBy: string | null; canRestore: boolean }
 
 const RESTORE_WINDOW_MS = 30 * 86_400_000
 
@@ -244,6 +249,7 @@ export async function listBudgets(userId: string): Promise<{ budgets: BudgetSumm
       id,
       name: space?.name ?? PERSONAL_NAME,
       emoji: space?.emoji ?? PERSONAL_EMOJI,
+      icon: budgetIconKey({ icon: space?.icon, emoji: space?.emoji ?? PERSONAL_EMOJI }),
       role,
       ownerId,
       // The personal budget's currency is the user's own setting.
@@ -259,7 +265,7 @@ export async function listBudgets(userId: string): Promise<{ budgets: BudgetSumm
     })
   }
   const deleted = gone.map((s) => ({
-    id: s._id, name: s.name, emoji: s.emoji, deletedAt: s.deleted_at!,
+    id: s._id, name: s.name, emoji: s.emoji, icon: budgetIconKey(s), deletedAt: s.deleted_at!,
     deletedBy: personName(personById.get(s.deleted_by ?? s.owner_id))?.split(/\s+/)[0] ?? null,
     canRestore: s.owner_id === userId,
   }))
@@ -303,6 +309,12 @@ export function isBudgetEmoji(value: unknown): value is string {
   return graphemes.length === 1 && /\p{Extended_Pictographic}|\p{Regional_Indicator}/u.test(value)
 }
 
+/** The icon a create or edit asks for: `icon` from the catalog, or an older app's emoji, matched. Null if neither. */
+export function requestedBudgetIcon(body: { icon?: unknown; emoji?: unknown }): CategoryIconKey | null {
+  if (isCategoryIconKey(body.icon)) return body.icon
+  return isBudgetEmoji(body.emoji) ? budgetIconKey({ emoji: body.emoji }) : null
+}
+
 /**
  * A new budget, owned by `auth.userId`. Optionally starts with a copy of the
  * active budget's groups and categories (names, order, icons, colours, alert
@@ -314,7 +326,7 @@ export function isBudgetEmoji(value: unknown): value is string {
  */
 export async function createBudget(
   auth: Auth,
-  input: { name: string; emoji: string; currencyCode: string; copyCategories: boolean; importing?: boolean },
+  input: { name: string; icon: CategoryIconKey; currencyCode: string; copyCategories: boolean; importing?: boolean },
 ): Promise<BudgetSummary> {
   const { count, limit } = await listBudgets(auth.userId)
   if (count >= limit) throw new BudgetError('LIMIT_REACHED', 'budget limit reached')
@@ -326,13 +338,13 @@ export async function createBudget(
     // starts their trial. So no categories are copied in.
     await db.collection('users').updateOne({ _id: auth.userId as never }, { $unset: { noPersonalBudget: '' }, $set: { currencyCode: input.currencyCode } })
     await ensurePersonalSpace(auth.userId)
-    await db.collection<SpaceDoc>(SPACES).updateOne({ _id: auth.userId }, { $set: { name: input.name.trim(), emoji: input.emoji } })
+    await db.collection<SpaceDoc>(SPACES).updateOne({ _id: auth.userId }, { $set: { name: input.name.trim(), icon: input.icon, emoji: budgetEmoji(input.icon) } })
     return (await listBudgets(auth.userId)).budgets.find((b) => b.id === auth.userId)!
   }
   const id = new ObjectId().toHexString()
   const now = new Date().toISOString()
   await db.collection<SpaceDoc>(SPACES).insertOne({
-    _id: id, name: input.name.trim(), emoji: input.emoji, owner_id: auth.userId,
+    _id: id, name: input.name.trim(), icon: input.icon, emoji: budgetEmoji(input.icon), owner_id: auth.userId,
     // One made to import into is set up by the import (lib/import/commit.ts).
     currencyCode: input.currencyCode, onboardedAt: input.importing ? null : now, deleted_at: null, created_at: now,
   })
@@ -355,20 +367,20 @@ async function copyCategories(fromSpaceId: string, toSpaceId: string): Promise<v
   }
 }
 
-/** Rename, re-emoji or re-currency a budget. Owner only. The personal budget's currency stays on the user doc. */
-export async function updateBudget(auth: Auth, spaceId: string, patch: { name?: string; emoji?: string; currencyCode?: string }): Promise<BudgetSummary> {
+/** Rename, re-icon or re-currency a budget. Owner only. The personal budget's currency stays on the user doc. */
+export async function updateBudget(auth: Auth, spaceId: string, patch: { name?: string; icon?: CategoryIconKey; currencyCode?: string }): Promise<BudgetSummary> {
   const { budgets } = await listBudgets(auth.userId)
   const budget = budgets.find((b) => b.id === spaceId)
   if (!budget) throw new BudgetError('NOT_FOUND', 'budget not found')
   if (budget.role !== 'owner') throw new BudgetError('NOT_OWNER', 'only the owner can change this budget')
   const db = await getDb()
   if (budget.personal) {
-    if (patch.name !== undefined || patch.emoji !== undefined) await ensurePersonalSpace(auth.userId)
+    if (patch.name !== undefined || patch.icon !== undefined) await ensurePersonalSpace(auth.userId)
     if (patch.currencyCode !== undefined) await db.collection('users').updateOne({ _id: auth.userId as never }, { $set: { currencyCode: patch.currencyCode } })
   }
   const set = {
     ...(patch.name !== undefined ? { name: patch.name.trim() } : {}),
-    ...(patch.emoji !== undefined ? { emoji: patch.emoji } : {}),
+    ...(patch.icon !== undefined ? { icon: patch.icon, emoji: budgetEmoji(patch.icon) } : {}),
     ...(patch.currencyCode !== undefined && !budget.personal ? { currencyCode: patch.currencyCode } : {}),
   }
   if (Object.keys(set).length) await db.collection<SpaceDoc>(SPACES).updateOne({ _id: spaceId }, { $set: set })

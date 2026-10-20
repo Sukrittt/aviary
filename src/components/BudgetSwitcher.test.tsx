@@ -22,7 +22,7 @@ vi.mock('./onboarding/ImportFlow', () => ({
 const { BudgetSwitcher, BudgetLine, NewBudgetEntry } = await import('./BudgetSwitcher')
 
 const budget = (id: string, name: string, emoji: string, extra: Partial<BudgetSummary> = {}): BudgetSummary => ({
-  id, name, emoji, role: 'owner', ownerId: 'u1', currencyCode: 'INR', personal: id === 'u1',
+  id, name, emoji, icon: emoji === '🐦' ? 'Bird' : emoji === '🏠' ? 'House' : 'Airplane', role: 'owner', ownerId: 'u1', currencyCode: 'INR', personal: id === 'u1',
   members: [{ userId: 'u1', name: 'Sukrit', avatarUrl: null, role: 'owner', joinedAt: null }],
   ...extra,
 })
@@ -53,6 +53,9 @@ describe('BudgetSwitcher', () => {
     expect(screen.getByText('2 of 5 budgets')).toBeTruthy()
     expect(screen.getAllByText('Owner')).toHaveLength(2)
     expect(screen.getByRole('button', { name: /^Home/, current: true })).toBeTruthy()
+    // Our icons, never the emoji.
+    expect(screen.queryByText('🏠')).toBeNull()
+    expect(screen.queryByText('🐦')).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: /^Personal/ }))
     expect(switchBudget).toHaveBeenCalledWith(personal)
   })
@@ -77,21 +80,21 @@ describe('BudgetSwitcher', () => {
 })
 
 describe('CreateBudgetDialog', () => {
-  it('sends the name, emoji, currency and copy choice, then switches to the new budget', async () => {
+  it('sends the name, icon, currency and copy choice, then switches to the new budget', async () => {
     getBudgets.mockResolvedValue(list([personal]))
     const created = budget('s9', 'Goa trip', '✈️')
     createBudget.mockResolvedValue(created)
     renderIt(<NewBudgetEntry render={(open) => <button type="button" onClick={open}>New budget</button>} />)
     fireEvent.click(await screen.findByRole('button', { name: 'New budget' }))
 
-    expect(screen.getByRole('radio', { name: '🏠' }).getAttribute('aria-checked')).toBe('true')
+    expect(screen.getByRole('radio', { name: 'Home' }).getAttribute('aria-checked')).toBe('true')
     expect(screen.getByRole('switch', { name: /Copy categories from Personal/ })).toHaveProperty('checked', true)
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: '  Goa trip ' } })
-    fireEvent.click(screen.getByRole('radio', { name: '✈️' }))
+    fireEvent.click(screen.getByRole('radio', { name: 'Trip' }))
     fireEvent.click(screen.getByRole('switch'))
     fireEvent.click(screen.getByRole('button', { name: 'Create budget' }))
 
-    await waitFor(() => expect(createBudget).toHaveBeenCalledWith({ name: 'Goa trip', emoji: '✈️', currencyCode: 'EUR', copyCategories: false }))
+    await waitFor(() => expect(createBudget).toHaveBeenCalledWith({ name: 'Goa trip', icon: 'Airplane', currencyCode: 'EUR', copyCategories: false }))
     await waitFor(() => expect(switchBudget).toHaveBeenCalledWith(created), { timeout: 2000 })
   })
 
@@ -107,7 +110,7 @@ describe('CreateBudgetDialog', () => {
     expect(screen.queryByRole('switch', { name: /Copy categories/ })).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Create and import' }))
 
-    await waitFor(() => expect(createBudget).toHaveBeenCalledWith({ name: 'Home', emoji: '🏠', currencyCode: 'EUR', copyCategories: false, import: true }))
+    await waitFor(() => expect(createBudget).toHaveBeenCalledWith({ name: 'Home', icon: 'House', currencyCode: 'EUR', copyCategories: false, import: true }))
     expect(document.cookie).toContain('aviary-budget=s9')
     expect(await screen.findByRole('dialog', { name: 'Bring your history into Home' }, { timeout: 2000 })).toBeTruthy()
     expect(importFlow).toHaveBeenCalledWith(expect.objectContaining({ skipAsk: true }))

@@ -11,6 +11,8 @@ export interface BudgetSummary {
   id: string
   name: string
   emoji: string
+  /** A category catalog key. Missing from servers before icons: resolve it with budgetIconKey. */
+  icon?: string
   role: BudgetRole
   ownerId: string
   currencyCode: string
@@ -23,7 +25,7 @@ export interface BudgetSummary {
 export interface BudgetMember { userId: string; name: string | null; avatarUrl: string | null; role: BudgetRole; joinedAt: string | null }
 
 /** A budget its owner deleted in the last 30 days. Only the owner can restore it. */
-export interface DeletedBudget { id: string; name: string; emoji: string; deletedAt: string; deletedBy: string | null; canRestore: boolean }
+export interface DeletedBudget { id: string; name: string; emoji: string; icon?: string; deletedAt: string; deletedBy: string | null; canRestore: boolean }
 
 export interface BudgetList {
   budgets: BudgetSummary[]
@@ -53,7 +55,7 @@ export async function getBudgets(): Promise<BudgetList> {
 
 export interface NewBudget {
   name: string
-  emoji: string
+  icon: string
   currencyCode: string
   copyCategories: boolean
   /** Start empty, to be set up by the history import (ImportFlow) once it's the active budget. */
@@ -114,11 +116,11 @@ export const restoreBudget = (id: string) => call<unknown>(`/api/spaces/${id}/re
 export const transferBudget = (id: string, to: string) => call<unknown>(`/api/spaces/${id}/transfer`, send('POST', { to }))
 
 /** A shared budget you own, with the others in it: account deletion asks who gets each one. */
-export interface OwnedSharedBudget { id: string; name: string; emoji: string; personal: boolean; members: { userId: string; name: string | null; joinedAt?: string | null }[] }
+export interface OwnedSharedBudget { id: string; name: string; emoji: string; icon?: string; personal: boolean; members: { userId: string; name: string | null; joinedAt?: string | null }[] }
 export const getSharedBudgets = () => call<{ budgets: OwnedSharedBudget[] }>('/api/user/shared-budgets')
 
 export type InvitePreview =
-  | { status: 'ok' | 'expired' | 'cancelled' | 'accepted'; budget: { id: string; name: string; emoji: string }; inviter: string | null; members: number }
+  | { status: 'ok' | 'expired' | 'cancelled' | 'accepted'; budget: { id: string; name: string; emoji: string; icon?: string }; inviter: string | null; members: number }
   | { status: 'not_found' }
 
 /** Public. A 404 is just `not_found`. */

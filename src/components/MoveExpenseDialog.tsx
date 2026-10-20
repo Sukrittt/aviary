@@ -9,6 +9,7 @@ import { splitEmoji } from '../lib/emoji'
 import { Scrim, Sheet } from './MotionSheet'
 import { CategoryIcon } from './CategoryIcon'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
+import { BudgetIcon } from './CategoryIcon'
 
 const plainKey = (name: string) => splitEmoji(name).text.toLowerCase()
 
@@ -84,7 +85,7 @@ export function MoveExpenseDialog({ id, version, category, onClose, onMoved }: {
               onClick={() => { setTo(b.id); setPicked(null); setError('') }}
               disabled={busy}
             >
-              {`${b.emoji} ${b.name}`}
+              <BudgetIcon budget={b} /> {b.name}
             </button>
           ))}
         </div>
@@ -135,7 +136,7 @@ export function MoveExpenseDialog({ id, version, category, onClose, onMoved }: {
             disabled={!target || !chosen || busy}
             onClick={() => void submit()}
           >
-            {target ? `Move to ${target.emoji} ${target.name}` : 'Move'}
+            {target ? <>Move to <BudgetIcon budget={target} /> {target.name}</> : 'Move'}
           </SuccessButton>
         </div>
       </Sheet>

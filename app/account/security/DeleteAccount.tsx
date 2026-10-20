@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useBillingStatus } from '@/src/hooks/useBillingStatus'
 import { getSharedBudgets, type OwnedSharedBudget } from '@/src/api/spaces'
+import { BudgetIcon } from '@/src/components/CategoryIcon'
 
 /** lib/archive.ts GRACE_DAYS: how long a deleted account (and the budgets it closed) can come back. */
 const GRACE_DAYS = 7
@@ -93,7 +94,7 @@ export function DeleteAccount({ email }: { email: string | undefined }) {
           {shared.map((b) => (
             <fieldset key={b.id} className="delete-shared-budget">
               <legend className="account-confirm-copy">
-                <strong>{`${b.emoji} ${b.name}`}</strong>
+                <strong className="budget-title"><BudgetIcon budget={b} /> {b.name}</strong>
               </legend>
               {[...b.members.map((m) => ({ value: m.userId, label: `Hand it to ${handOffName(m)}` })), { value: CLOSE, label: 'Close it' }].map((o) => (
                 <label key={o.value || 'close'} className="delete-shared-option">

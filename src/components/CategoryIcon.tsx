@@ -7,6 +7,7 @@ import type { CSSProperties, SVGProps } from 'react'
 import type { IconWeight } from './icons'
 import { CATEGORY_ICON_SPRITE } from './categoryIconSprite'
 import { CATEGORY_ICONS, categoryIconKey, groupIconKey, type CategoryIconKey } from '@/src/lib/categoryIcons'
+import { budgetIconKey } from '@/src/lib/budgetIcons'
 
 type GlyphProps = Omit<SVGProps<SVGSVGElement>, 'ref'> & {
   size?: number | string
@@ -47,4 +48,10 @@ export function CategoryIcon({ name, icon, group, kind = 'category', size = '1em
   const key = kind === 'group' ? groupIconKey(name, icon) : categoryIconKey(name, icon, group)
   const Icon = CATEGORY_ICON_COMPONENTS[key]
   return <Icon size={size} weight={weight} className={className} aria-hidden />
+}
+
+/** A budget's icon: the one picked, else its emoji's match (budgets from before icons). */
+export function BudgetIcon({ budget, size = '1em', className }: { budget: { icon?: string | null; emoji?: string | null }; size?: number | string; className?: string }) {
+  const Icon = CATEGORY_ICON_COMPONENTS[budgetIconKey(budget)]
+  return <Icon size={size} className={className} aria-hidden />
 }

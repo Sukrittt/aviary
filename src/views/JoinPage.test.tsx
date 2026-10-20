@@ -35,7 +35,7 @@ describe('JoinPage', () => {
   it('says who invited you, with the app, the store and the web', async () => {
     previewInvite.mockResolvedValue(ok)
     renderIt()
-    expect(await screen.findByRole('heading', { name: 'Priya invited you to 🏠 Home budget' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: 'Priya invited you to Home budget' })).toBeTruthy()
     expect(screen.getByRole('link', { name: 'Open in app' }).getAttribute('href')).toBe('envelope://join/ABC234')
     expect(screen.getByRole('link', { name: 'Get it on Google Play' }).getAttribute('href')).toContain('play.google.com')
     expect(screen.getByRole('button', { name: 'Continue on web' })).toBeTruthy()

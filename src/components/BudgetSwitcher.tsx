@@ -16,11 +16,12 @@ import { currencyInfo } from '../lib/currencies'
 import { Scrim, Sheet } from './MotionSheet'
 import { CurrencyPicker } from './CurrencyPicker'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
+import { BudgetIcon } from './CategoryIcon'
+import { BUDGET_ICONS, BUDGET_ICON_KEYS } from '../lib/budgetIcons'
 
 /** Where "Need more?" sends you: the help page, which links to every way to reach us. */
 const SUPPORT_PATH = '/account/help'
 
-export const BUDGET_EMOJI = ['🏠', '✈️', '👨‍👩‍👧', '💼', '🎓', '🐾', '🚗', '🎉', '💍', '🏖️', '🛠️', '💰']
 
 /**
  * The top bar's "<emoji> <name> ▾" chip. Renders nothing until there are two
@@ -40,7 +41,7 @@ export function BudgetSwitcher({ className = '', labelClassName = '', onOpen }: 
         aria-label={`Budget: ${active.name}. Switch budget`}
         onClick={() => { onOpen?.(); setOpen(true) }}
       >
-        <span aria-hidden="true">{active.emoji}</span>
+        <BudgetIcon budget={active} size={16} className="budget-chip-icon" />
         <span className={`budget-chip-name ${labelClassName}`.trim()}>{active.name}</span>
         <CaretDownIcon size={12} weight="bold" aria-hidden="true" />
       </button>
@@ -88,7 +89,7 @@ function BudgetSheet({ onClose }: { onClose: () => void }) {
                   aria-current={current || undefined}
                   onClick={() => (current ? onClose() : switchBudget(b))}
                 >
-                  <span className="budget-row-emoji" aria-hidden="true">{b.emoji}</span>
+                  <span className="budget-row-emoji" aria-hidden="true"><BudgetIcon budget={b} size={18} /></span>
                   <span className="budget-row-name">{b.name}</span>
                   {b.role === 'owner' && <span className="budget-owner-badge">Owner</span>}
                   <Avatars members={b.members} />
@@ -107,7 +108,7 @@ function BudgetSheet({ onClose }: { onClose: () => void }) {
             <ul className="budget-list">
               {restorable.map((d) => (
                 <li key={d.id} className="budget-member">
-                  <span className="budget-row-emoji" aria-hidden="true">{d.emoji}</span>
+                  <span className="budget-row-emoji" aria-hidden="true"><BudgetIcon budget={d} size={18} /></span>
                   <span className="budget-member-body">
                     <span className="budget-row-name">{d.name}</span>
                     <span className="account-row-hint">{`Restorable until ${new Date(Date.parse(d.deletedAt) + 30 * 86_400_000).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`}</span>
@@ -149,11 +150,11 @@ function Avatars({ members }: { members: BudgetSummary['members'] }) {
   )
 }
 
-/** "Logging to 🏠 Home" in a sheet that writes to the active budget. Nothing with one budget. */
+/** "Logging to Home", with its icon, in a sheet that writes to the active budget. Nothing with one budget. */
 export function BudgetLine({ verb = 'Logging to' }: { verb?: string }) {
   const { multi, active } = useSpaces()
   if (!multi || !active) return null
-  return <p className="budget-line">{`${verb} ${active.emoji} ${active.name}`}</p>
+  return <p className="budget-line">{verb} <BudgetIcon budget={active} className="budget-line-icon" /> {active.name}</p>
 }
 
 /** Account page's "New budget" row: the one entry point a one-budget account sees. */
@@ -202,7 +203,7 @@ export function CreateBudgetDialog({ onClose }: { onClose: () => void }) {
   const { active } = useSpaces()
   const { currencyCode: current } = useCurrency()
   const [name, setName] = useState('')
-  const [emoji, setEmoji] = useState(BUDGET_EMOJI[0])
+  const [icon, setIcon] = useState(BUDGET_ICON_KEYS[0])
   const [currencyCode, setCurrencyCode] = useState<string>(current)
   const [pickCurrency, setPickCurrency] = useState(false)
   const [copyCategories, setCopyCategories] = useState(true)
@@ -221,13 +222,13 @@ export function CreateBudgetDialog({ onClose }: { onClose: () => void }) {
     button.start()
     try {
       if (start === 'import') {
-        const budget = await createBudget({ name: name.trim(), emoji, currencyCode, copyCategories: false, import: true })
+        const budget = await createBudget({ name: name.trim(), icon, currencyCode, copyCategories: false, import: true })
         // The import endpoints work on the active budget, so make it this one before the flow opens.
         setBudgetCookie(budget.id)
         button.succeed(() => setImporting(budget))
         return
       }
-      const budget = await createBudget({ name: name.trim(), emoji, currencyCode, copyCategories })
+      const budget = await createBudget({ name: name.trim(), icon, currencyCode, copyCategories })
       button.succeed(() => switchBudget(budget))
     } catch (err) {
       setError(createError(err))
@@ -259,11 +260,11 @@ export function CreateBudgetDialog({ onClose }: { onClose: () => void }) {
             autoFocus
           />
 
-          <div className="erd-log-label">Emoji</div>
-          <div className="budget-emoji-grid" role="radiogroup" aria-label="Emoji">
-            {BUDGET_EMOJI.map((e) => (
-              <button key={e} type="button" role="radio" aria-checked={emoji === e} className={`budget-emoji${emoji === e ? ' is-selected' : ''}`} onClick={() => setEmoji(e)}>
-                {e}
+          <div className="erd-log-label">Icon</div>
+          <div className="budget-emoji-grid" role="radiogroup" aria-label="Icon">
+            {BUDGET_ICON_KEYS.map((key) => (
+              <button key={key} type="button" role="radio" aria-checked={icon === key} aria-label={BUDGET_ICONS[key]!.label} className={`budget-emoji${icon === key ? ' is-selected' : ''}`} onClick={() => setIcon(key)}>
+                <BudgetIcon budget={{ icon: key }} size={22} />
               </button>
             ))}
           </div>

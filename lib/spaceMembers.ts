@@ -3,6 +3,8 @@
  * shared budget with a 30-day restore. See lib/spaces.ts for what a budget
  * ("space") is.
  */
+import { budgetIconKey } from '@/src/lib/budgetIcons'
+import type { CategoryIconKey } from '@/src/lib/categoryIcons'
 import { randomInt } from 'node:crypto'
 import type { Db } from 'mongodb'
 import { del, list } from '@vercel/blob'
@@ -77,7 +79,7 @@ export async function cancelInvite(auth: Auth, spaceId: string, code: string): P
 }
 
 export type InvitePreview =
-  | { status: 'ok' | 'expired' | 'cancelled' | 'accepted'; budget: { id: string; name: string; emoji: string }; inviter: string | null; members: number }
+  | { status: 'ok' | 'expired' | 'cancelled' | 'accepted'; budget: { id: string; name: string; emoji: string; icon: CategoryIconKey }; inviter: string | null; members: number }
   | { status: 'not_found' }
 
 /** What the join page and the app show before someone joins. Public: the code is the secret. */
@@ -93,7 +95,7 @@ export async function invitePreview(rawCode: string): Promise<InvitePreview> {
     : invite.status === 'accepted' ? 'accepted'
       : invite.expires_at <= new Date().toISOString() ? 'expired' : 'ok'
   const members = await db.collection(SPACE_MEMBERS).countDocuments({ space_id: space._id })
-  return { status, budget: { id: space._id, name: space.name, emoji: space.emoji }, inviter: firstName(personName(inviter ?? undefined)), members }
+  return { status, budget: { id: space._id, name: space.name, emoji: space.emoji, icon: budgetIconKey(space) }, inviter: firstName(personName(inviter ?? undefined)), members }
 }
 
 const firstName = (name: string | null) => name?.split(/\s+/)[0] || null
@@ -282,14 +284,14 @@ export async function transferOwnership(auth: Auth, spaceId: string, toUserId: s
   await handOver(db, space, toUserId, { keepOldOwner: true })
 }
 
-export interface OwnedSharedBudget { id: string; name: string; emoji: string; personal: boolean; members: { userId: string; name: string | null; joinedAt: string | null }[] }
+export interface OwnedSharedBudget { id: string; name: string; emoji: string; icon: CategoryIconKey; personal: boolean; members: { userId: string; name: string | null; joinedAt: string | null }[] }
 
 /** Budgets this person owns that someone else is in: what account deletion offers to hand over. */
 export async function sharedBudgetsOwnedBy(userId: string): Promise<OwnedSharedBudget[]> {
   const { budgets } = await listBudgets(userId)
   return budgets
     .filter((b) => b.role === 'owner' && b.members.length > 1)
-    .map((b) => ({ id: b.id, name: b.name, emoji: b.emoji, personal: b.personal, members: b.members.filter((m) => m.userId !== userId).map((m) => ({ userId: m.userId, name: m.name, joinedAt: m.joinedAt })) }))
+    .map((b) => ({ id: b.id, name: b.name, emoji: b.emoji, icon: b.icon, personal: b.personal, members: b.members.filter((m) => m.userId !== userId).map((m) => ({ userId: m.userId, name: m.name, joinedAt: m.joinedAt })) }))
 }
 
 /**

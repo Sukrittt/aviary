@@ -9,6 +9,7 @@ import { useSpaces } from '../hooks/useSpaces'
 import { BirdMark } from '../components/BirdMark'
 import { PLAY_STORE_URL } from '../components/billing/copy'
 import { JoinConfirm, inviteBlocked, openBudget, signInToJoin } from '../components/JoinBudget'
+import { BudgetIcon } from '../components/CategoryIcon'
 
 /** `/join/<code>`: what an invite link opens. Works signed out; joining on web signs you in first. */
 export function JoinPage({ code }: { code: string }) {
@@ -18,7 +19,7 @@ export function JoinPage({ code }: { code: string }) {
   const [confirming, setConfirming] = useState(false)
   const preview = q.data
 
-  let headline: string
+  let headline: React.ReactNode
   let body: string | null = null
   if (q.isPending) headline = 'Opening your invite…'
   else if (q.isError || !preview) {
@@ -28,8 +29,8 @@ export function JoinPage({ code }: { code: string }) {
     headline = preview.status === 'not_found' ? "That invite doesn't exist" : 'This invite has expired'
     body = inviteBlocked(preview)
   } else {
-    const where = `${preview.budget.emoji} ${preview.budget.name} budget`
-    headline = preview.inviter ? `${preview.inviter} invited you to ${where}` : `You're invited to ${where}`
+    const where = <><BudgetIcon budget={preview.budget} className="join-budget-icon" /> {`${preview.budget.name} budget`}</>
+    headline = preview.inviter ? <>{`${preview.inviter} invited you to `}{where}</> : <>{"You're invited to "}{where}</>
     body = `${preview.members} ${preview.members === 1 ? 'person' : 'people'} in it so far. Your own budget stays exactly as it is.`
   }
   const usable = preview && preview.status !== 'not_found' && !inviteBlocked(preview)

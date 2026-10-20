@@ -16,6 +16,7 @@ import { useUser } from '../hooks/useUser'
 import { Scrim, Sheet } from './MotionSheet'
 import { ConfirmDialog } from './ConfirmDialog'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
+import { BudgetIcon } from './CategoryIcon'
 
 const GENERIC = 'Check your connection and try again.'
 
@@ -121,7 +122,7 @@ export function BudgetMembersDialog({ budget, onClose }: { budget: BudgetSummary
     <Scrim className="erd-modal-overlay" onClick={busy ? undefined : onClose}>
       <Sheet className="erd-modal-card budget-sheet budget-members" role="dialog" aria-modal="true" aria-label={`${budget.name} budget settings`} onClick={(e) => e.stopPropagation()}>
         <div className="erd-modal-head">
-          <h3>{`${budget.emoji} ${budget.name}`}</h3>
+          <h3 className="budget-title"><BudgetIcon budget={budget} /> {budget.name}</h3>
           <button type="button" className="erd-modal-close" onClick={onClose} aria-label="Close">✕</button>
         </div>
 
