@@ -52,6 +52,15 @@ describe('BudgetMembersDialog', () => {
     expect(screen.queryByRole('button', { name: 'Leave budget' })).toBeNull()
   })
 
+  it('calls you "You" when your account has no name, not "You (you)"', async () => {
+    const unnamed = people.map((m) => ({ ...m, name: null }))
+    api.getMembers.mockResolvedValue(info({ members: unnamed }))
+    renderIt({ ...home, members: unnamed })
+    expect(await screen.findByText('You')).toBeTruthy()
+    expect(screen.queryByText('You (you)')).toBeNull()
+    expect(screen.getByText('Someone')).toBeTruthy()
+  })
+
   it('member: leave and the notify toggle, nothing of the owner’s', async () => {
     me.id = 'u2'
     api.getMembers.mockResolvedValue(info({ role: 'member' }))

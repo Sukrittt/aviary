@@ -72,6 +72,8 @@ describe('first-run intro', () => {
     expect(screen.getByRole('dialog', { name: 'You and Priya share this budget' })).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Next' }))
     expect(screen.getByRole('dialog', { name: 'Switch budgets from here' })).toBeTruthy()
+    // Someone who only joined has no budget of their own, and on desktop the chip sits in the sidebar.
+    expect(screen.getByText('Tap the budget chip to hop between your budgets.')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Got it' }))
     expect(screen.queryByRole('dialog')).toBeNull()
     unmount()

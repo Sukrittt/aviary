@@ -148,7 +148,7 @@ export function BudgetMembersDialog({ budget, onClose }: { budget: BudgetSummary
             <li key={m.userId} className="budget-member">
               <MemberAvatar member={m} size={32} className="budget-avatar is-large" />
               <span className="budget-member-body">
-                <span className="budget-row-name">{m.userId === me ? `${m.name ?? 'You'} (you)` : m.name ?? 'Someone'}</span>
+                <span className="budget-row-name">{m.userId === me ? (m.name ? `${m.name} (you)` : 'You') : m.name ?? 'Someone'}</span>
                 <span className="account-row-hint">{m.joinedAt ? `Joined ${joinedOn(m.joinedAt)}` : 'Started this budget'}</span>
               </span>
               {m.role === 'owner' ? (

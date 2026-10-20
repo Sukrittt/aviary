@@ -119,7 +119,7 @@ function JoinedIntro() {
   const who = rest > 0 ? `You, ${lead} and ${rest} more` : `You and ${lead}`
   const cards = [
     { title: `${who} share this budget`, body: "Everything anyone logs lands here, and you'll see who added what." },
-    { title: 'Switch budgets from here', body: 'Tap the budget chip up top to hop between this one and your own.' },
+    { title: 'Switch budgets from here', body: 'Tap the budget chip to hop between your budgets.' },
   ]
   const done = () => {
     try {
