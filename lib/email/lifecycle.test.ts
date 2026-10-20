@@ -1,7 +1,8 @@
 // @vitest-environment node
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MongoClient, type Db } from 'mongodb'
-import { MongoMemoryServer } from 'mongodb-memory-server'
+import type { MongoMemoryServer } from 'mongodb-memory-server'
+import { startMongo } from '@/src/test-utils/mongo'
 import type { Access } from '@/lib/billing/access'
 
 let db: Db, client: MongoClient, server: MongoMemoryServer
@@ -25,10 +26,10 @@ const ago = (days: number) => new Date(now.getTime() - days * DAY)
 const iso = (d: Date) => d.toISOString()
 
 beforeAll(async () => {
-  server = await MongoMemoryServer.create({ binary: { version: '8.2.6' } })
+  server = await startMongo()
   client = await MongoClient.connect(server.getUri())
   db = client.db('lifecycle_email_test')
-}, 30_000)
+}, 120_000)
 afterAll(async () => { await client?.close(); await server?.stop() })
 beforeEach(async () => {
   await db.dropDatabase()

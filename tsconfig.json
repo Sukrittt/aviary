@@ -23,5 +23,5 @@
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", "mission-control-app", "dist"]
+  "exclude": ["node_modules", "mission-control-app", "dist", ".claude", ".worktrees"]
 }

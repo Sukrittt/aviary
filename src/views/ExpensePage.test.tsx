@@ -19,7 +19,22 @@ vi.mock('@/src/api/expenses', () => ({ getRecentExpenses: vi.fn(async () => ({ r
 vi.mock('@/src/api/categories', () => ({ getCategories: vi.fn(async () => [{ name: 'Food', group: 'Essentials' }]) }))
 vi.mock('@/src/api/groups', () => ({ getGroups: vi.fn(async () => ['Essentials']), getGroupRows: vi.fn(async () => []) }))
 vi.mock('@/src/api/subscriptions', () => ({ getSubscriptions: vi.fn(async () => []), cancelSubscription: vi.fn(), reactivateSubscription: vi.fn() }))
-vi.mock('../components/ExpenseSidebar', () => ({ ExpenseSidebar: ({ onBulkReturn }: { onBulkReturn?: () => void }) => <button onClick={onBulkReturn}>Return all to RTA</button> }))
+// Keeps its open dialog in local state, like the real sidebar, so a remount shows.
+vi.mock('../components/ExpenseSidebar', async () => {
+  const { useState } = await import('react')
+  return {
+    ExpenseSidebar: ({ onBulkReturn }: { onBulkReturn?: () => void }) => {
+      const [showStatement, setShowStatement] = useState(false)
+      return (
+        <>
+          {onBulkReturn && <button onClick={onBulkReturn}>Return all to RTA</button>}
+          <button onClick={() => setShowStatement(true)}>Add from statement</button>
+          {showStatement && <div>statement-dialog</div>}
+        </>
+      )
+    },
+  }
+})
 vi.mock('../components/EnvelopeGrid', () => ({ EnvelopeGrid: () => <div>Envelope content</div> }))
 vi.mock('../components/RecentActivity', () => ({ RecentActivity: () => null }))
 vi.mock('../components/FluidDemo', () => ({ FluidDemo: () => null }))
@@ -269,5 +284,18 @@ it('holds the Ready to Assign celebration until the dialog that caused it closes
   dialog.remove()
   expect(await screen.findByText('Every rupee has a job.')).toBeInTheDocument()
   expect(track).toHaveBeenCalledWith('rta_zero_celebrated')
+  client.clear()
+})
+
+it('keeps a sidebar dialog opened while loading open once the dashboard arrives', async () => {
+  let resolveBudgets!: (rows: Awaited<ReturnType<typeof getBudgets>>) => void
+  vi.mocked(getBudgets).mockReturnValueOnce(new Promise((resolve) => { resolveBudgets = resolve }))
+  const client = renderPage()
+  fireEvent.click(screen.getByRole('button', { name: 'Add from statement' }))
+  expect(screen.getByText('statement-dialog')).toBeInTheDocument()
+
+  await act(async () => resolveBudgets([]))
+  expect(await screen.findByText('Envelope content')).toBeInTheDocument()
+  expect(screen.getByText('statement-dialog')).toBeInTheDocument()
   client.clear()
 })

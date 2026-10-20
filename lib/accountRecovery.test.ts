@@ -1,5 +1,6 @@
 import { beforeAll, afterAll, it, expect, vi } from 'vitest'
-import { MongoMemoryReplSet } from 'mongodb-memory-server'
+import type { MongoMemoryReplSet } from 'mongodb-memory-server'
+import { startMongoReplSet } from '@/src/test-utils/mongo'
 vi.mock('./workosClient', () => ({ getWorkOSClient: () => ({ userManagement: { deleteUser: vi.fn() } }) }))
 vi.mock('./cache', () => ({ invalidate: vi.fn() }))
 vi.mock('./ai/briefCache', () => ({ BRIEF_SOURCES: new Set(), BRIEF_CACHE_COLLECTION: 'ai_brief', invalidateBrief: vi.fn(async () => {}) }))
@@ -7,7 +8,7 @@ import { getDb, getClient } from './mongodb'
 import { softDeleteAccount, restoreAccount } from './accountLifecycle'
 let server: MongoMemoryReplSet
 beforeAll(async () => {
-  server = await MongoMemoryReplSet.create({ binary: { version: '8.2.6' }, replSet: { count: 1 } })
+  server = await startMongoReplSet()
   vi.stubEnv('MONGODB_URI', server.getUri('recovery'))
 }, 120000)
 afterAll(async () => { await (await getClient()).close(); await server.stop(); vi.unstubAllEnvs() })

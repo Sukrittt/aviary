@@ -1,5 +1,6 @@
 import { beforeAll, afterAll, beforeEach, describe, it, expect, vi } from 'vitest'
-import { MongoMemoryReplSet } from 'mongodb-memory-server'
+import type { MongoMemoryReplSet } from 'mongodb-memory-server'
+import { startMongoReplSet } from '@/src/test-utils/mongo'
 import { randomBytes } from 'node:crypto'
 
 const USER = 'accounts-income-test'
@@ -28,7 +29,7 @@ import * as recurring from '../recurring-incomes/route'
 
 let server: MongoMemoryReplSet
 beforeAll(async () => {
-  server = await MongoMemoryReplSet.create({ binary: { version: '8.2.6' }, replSet: { count: 1 } })
+  server = await startMongoReplSet()
   vi.stubEnv('MONGODB_URI', server.getUri('accounts'))
   vi.stubEnv('FIELD_KEY_V1', randomBytes(32).toString('base64'))
   const db = await getDb()

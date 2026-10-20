@@ -1,10 +1,11 @@
 import { beforeAll, afterAll, it, expect, vi } from 'vitest'
-import { MongoMemoryServer } from 'mongodb-memory-server'
+import type { MongoMemoryServer } from 'mongodb-memory-server'
+import { startMongo } from '@/src/test-utils/mongo'
 import { getDb, getClient } from './mongodb'
 import { acquireLease } from './resourceLease'
 let server: MongoMemoryServer
 beforeAll(async () => {
-  server = await MongoMemoryServer.create({ binary: { version: '8.2.6' } })
+  server = await startMongo()
   vi.stubEnv('MONGODB_URI', server.getUri('leases'))
 }, 120000)
 afterAll(async () => { await (await getClient()).close(); await server.stop(); vi.unstubAllEnvs() })
