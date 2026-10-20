@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { InvoiceIcon, UploadSimpleIcon } from '@/src/components/icons'
+import { ForkKnifeIcon, ImageSquareIcon, InvoiceIcon, ReceiptIcon, UploadSimpleIcon } from '@/src/components/icons'
 import { Scrim, Sheet } from '@/src/components/MotionSheet'
 import { LoadingCaption } from '@/src/components/LoadingCaption'
 import { ScanReview } from './ScanReview'
@@ -32,7 +32,9 @@ export function ScanBillModal({ onClose, onEnterManually }: Props) {
   const subtitle =
     phase === 'review'
       ? `${state.productItems.length} ${state.productItems.length === 1 ? 'item' : 'items'} · scanned just now`
-      : null
+      : phase === 'pick'
+        ? 'Aviary reads the items and works out your share.'
+        : null
 
   return (
     <Scrim className="erd-modal-overlay" onClick={dismissable ? onClose : undefined}>
@@ -204,8 +206,9 @@ function ScanPick({ pickFile, pickFrame }: Pick<ScanBillState, 'pickFile' | 'pic
   }
 
   return (
+    <>
     <div
-      className={`scan-drop ${dragging ? 'is-dragging' : ''}`}
+      className={`scan-drop statement-drop ${dragging ? 'is-dragging' : ''}`}
       onDragOver={(e) => {
         e.preventDefault()
         setDragging(true)
@@ -218,9 +221,9 @@ function ScanPick({ pickFile, pickFrame }: Pick<ScanBillState, 'pickFile' | 'pic
         if (file) void pickFile(file)
       }}
     >
-      <InvoiceIcon className="scan-drop-icon" size={34} aria-hidden="true" />
+      <span className="gap-tile gap-tile--upload"><InvoiceIcon size={24} aria-hidden="true" /></span>
       <p className="scan-drop-title">Drop a bill or a screenshot here</p>
-      <p className="scan-drop-copy">We&apos;ll read the items and calculate your share.</p>
+      <p className="scan-drop-copy">or</p>
       <div className="scan-actions-row">
         <button type="button" className="account-pill-btn account-pill-btn--primary" onClick={() => inputRef.current?.click()}>
           Choose a file
@@ -231,7 +234,6 @@ function ScanPick({ pickFile, pickFrame }: Pick<ScanBillState, 'pickFile' | 'pic
           </button>
         )}
       </div>
-      <p className="scan-drop-formats">JPG, PNG or WebP</p>
       {cameraError && <p className="erd-log-error">{cameraError}</p>}
       <input
         ref={inputRef}
@@ -246,5 +248,23 @@ function ScanPick({ pickFile, pickFrame }: Pick<ScanBillState, 'pickFile' | 'pic
         }}
       />
     </div>
+    <ul className="statement-sources" aria-label="Works with">
+      {BILL_SOURCES.map(({ icon: Icon, label, hint }) => (
+        <li key={label}>
+          <span className="gap-tile"><Icon size={18} aria-hidden="true" /></span>
+          <span>
+            <b>{label}</b>
+            {hint}
+          </span>
+        </li>
+      ))}
+    </ul>
+    </>
   )
 }
+
+const BILL_SOURCES = [
+  { icon: ForkKnifeIcon, label: 'Restaurant bill', hint: 'Split by items' },
+  { icon: ReceiptIcon, label: 'Shop receipt', hint: 'Groceries, stores' },
+  { icon: ImageSquareIcon, label: 'Order screenshot', hint: 'Swiggy, Zomato' },
+] as const

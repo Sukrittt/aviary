@@ -10645,7 +10645,7 @@ button.account-feature-card {
 
 /* Scan a bill */
 .expense-redesign .erd-modal-card.scan-modal {
-  width: 560px;
+  width: 620px;
   box-shadow: 0 24px 60px -18px oklch(0% 0 0 / 0.55);
 }
 .expense-redesign .erd-modal-card.scan-modal.is-wide {

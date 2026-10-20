@@ -16,7 +16,6 @@ vi.mock('../hooks/usePersistentState', () => ({ usePersistentState: (k: string, 
 let hidden: string[] = []
 vi.mock('../hooks/useUser', () => ({ useHiddenFeatures: () => hidden }))
 vi.mock('./LogExpenseModal', () => ({ LogExpenseModal: () => <div>log-expense-dialog</div> }))
-vi.mock('../features/scan-bill/ScanBillModal', () => ({ ScanBillModal: () => <div>scan-dialog</div> }))
 vi.mock('../features/fill-gap/StatementModal', () => ({ StatementModal: () => <div>statement-dialog</div> }))
 vi.mock('./ConfirmDialog', () => ({ SignOutDialog: () => null }))
 vi.mock('../hooks/useSpaces', () => ({ useSpaces: () => ({ multi: false, budgets: [] }) }))
@@ -32,16 +31,14 @@ beforeEach(() => {
 
 describe('ExpenseSidebar', () => {
   it('drops the entry points of features hidden in Features', () => {
-    hidden = ['insights', 'askAviary', 'billScan']
+    hidden = ['insights', 'askAviary']
     render(<ExpenseSidebar />)
     expect(screen.queryByText('Insights')).toBeNull()
     expect(screen.queryByText('Ask Aviary')).toBeNull()
-    expect(screen.queryByText('Scan a bill')).toBeNull()
     expect(screen.getByText('Categories')).toBeTruthy()
   })
 
-  it('keeps statement upload when bill scan is hidden, since catching up is core logging', () => {
-    hidden = ['billScan']
+  it('opens statement upload from the sidebar', () => {
     render(<ExpenseSidebar />)
     fireEvent.click(screen.getByText('Add from statement'))
     expect(screen.getByText('statement-dialog')).toBeTruthy()
@@ -110,10 +107,8 @@ describe('ExpenseSidebar', () => {
     allowed = false
     render(<ExpenseSidebar />)
     fireEvent.click(screen.getByText('Log expense'))
-    fireEvent.click(screen.getByText('Scan a bill'))
     fireEvent.click(screen.getByText('Ask Aviary'))
     expect(screen.queryByText('log-expense-dialog')).toBeNull()
-    expect(screen.queryByText('scan-dialog')).toBeNull()
     expect(openMoneyBrain).not.toHaveBeenCalled()
     expect(push).toHaveBeenCalledWith('/expense')
   })
