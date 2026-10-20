@@ -67,7 +67,7 @@ export function FillGap() {
 function GapSheet({ since, onChoose }: { since: string; onChoose: (step: Step, option: string) => void }) {
   // Upload leads: the reason people can't catch up is not remembering, and their UPI app does.
   const others = [
-    { step: 'type' as const, icon: ChatTextIcon, label: 'Type what you remember', hint: 'One line, several spends. Aviary sorts them.' },
+    { step: 'type' as const, icon: ChatTextIcon, label: 'Type what you remember', hint: 'Add what you remember, one at a time.' },
     { step: 'fresh' as const, icon: ArrowClockwiseIcon, label: 'Start fresh', hint: 'One rough total, then carry on from today.' },
   ]
   return (
