@@ -14,6 +14,7 @@ import { useAddExpense, useLastSpent } from '@/src/hooks/useExpenses'
 import { useCategories } from '@/src/hooks/useCategories'
 import { usePersistentState } from '@/src/hooks/usePersistentState'
 import { useAccessAllowed } from '@/src/hooks/useBillingStatus'
+import { useSpaces } from '@/src/hooks/useSpaces'
 import { formatDateShort } from '@/src/lib/format'
 import { todayLocal } from '@/src/lib/date'
 import { track } from '@/src/lib/analytics'
@@ -32,6 +33,7 @@ type Step = 'sheet' | 'type' | 'upload' | 'fresh' | null
 export function FillGap() {
   const lastSpent = useLastSpent().data
   const allowed = useAccessAllowed()
+  const { readOnly } = useSpaces()
   const [seen, setSeen] = usePersistentState(GAP_SEEN_KEY, '', asString, asString)
   // The option opened from the sheet. The sheet itself shows for any gap not yet seen while none is open.
   const [step, setStep] = useState<Step>(null)
@@ -41,7 +43,8 @@ export function FillGap() {
   const [answeredFor, setAnsweredFor] = useState<string | null>(null)
   const gap = since ?? answeredFor
 
-  if (!gap || !allowed) return null
+  // Every way to catch up logs expenses, so a read-only budget gets no prompt at all.
+  if (!gap || !allowed || readOnly) return null
 
   function choose(next: Step, option: string) {
     track('gap_sheet_choice', { option })

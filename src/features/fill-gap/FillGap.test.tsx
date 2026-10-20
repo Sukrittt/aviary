@@ -6,6 +6,8 @@ const mutateAsync = vi.fn()
 vi.mock('@/src/hooks/useExpenses', () => ({ useLastSpent: () => ({ data: lastSpent }), useAddExpense: () => ({ mutateAsync, refresh: vi.fn() }) }))
 vi.mock('@/src/hooks/useCategories', () => ({ useCategories: () => ({ data: [] }) }))
 vi.mock('@/src/hooks/useBillingStatus', () => ({ useAccessAllowed: () => true }))
+const spaces = vi.hoisted(() => ({ readOnly: false }))
+vi.mock('@/src/hooks/useSpaces', () => ({ useSpaces: () => ({ readOnly: spaces.readOnly, active: undefined }) }))
 vi.mock('@/src/lib/date', () => ({ todayLocal: () => '2026-10-19' }))
 vi.mock('@/src/context/CurrencyContext', () => ({ useCurrency: () => ({ currencySymbol: '₹' }) }))
 vi.mock('@/src/components/LogExpenseModal', () => ({ LogExpenseModal: ({ onBack }: { onBack: () => void }) => <button type="button" onClick={onBack}>log-expense-dialog</button> }))
@@ -24,6 +26,7 @@ const { FillGap } = await import('./FillGap')
 beforeEach(() => {
   vi.clearAllMocks()
   localStorage.clear()
+  spaces.readOnly = false
   lastSpent = { Food: '2026-10-15', Travel: '2026-10-02' }
   mutateAsync.mockResolvedValue({})
 })
@@ -117,5 +120,11 @@ describe('FillGap', () => {
     fireEvent.click(await screen.findByText('No idea'))
     await waitFor(() => expect(screen.queryByText('Roughly how much did you spend while away?')).toBeNull())
     expect(mutateAsync).not.toHaveBeenCalled()
+  })
+
+  it('shows nothing in a read-only budget', () => {
+    spaces.readOnly = true
+    render(<FillGap />)
+    expect(screen.queryByText('Pick up where you left off')).toBeNull()
   })
 })

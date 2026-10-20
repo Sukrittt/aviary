@@ -43,6 +43,8 @@ import {
   type HoldingDraft,
 } from "../lib/holdingConflict";
 import { BirdEmptyState } from "../components/BirdEmptyState";
+import { useSpaces } from "../hooks/useSpaces";
+import { ReadOnlyDialog, ReadOnlyNotice } from "../components/BudgetNotices";
 
 const TYPES = [
   "Equity",
@@ -97,6 +99,7 @@ export function InvestmentsPage() {
   const holdingsQuery = useHoldings();
   const eventsQuery = useHoldingEvents();
   const deleteHolding = useDeleteHolding();
+  const { readOnly } = useSpaces();
 
   const holdings = holdingsQuery.data ?? EMPTY;
   const events = eventsQuery.data ?? EMPTY;
@@ -193,14 +196,16 @@ export function InvestmentsPage() {
               </div>
             </div>
             <div className="erd-panel-tools">
-              <button
-                type="button"
-                className="erd-log-btn"
-                onClick={() => setEditing("")}
-              >
-                <PlusIcon size={14} aria-hidden="true" />
-                Add holding
-              </button>
+              {!readOnly && (
+                <button
+                  type="button"
+                  className="erd-log-btn"
+                  onClick={() => setEditing("")}
+                >
+                  <PlusIcon size={14} aria-hidden="true" />
+                  Add holding
+                </button>
+              )}
             </div>
           </div>
 
@@ -461,7 +466,8 @@ export function InvestmentsPage() {
           queuedDelete.current = null;
         }}
       >
-        {deleteTarget && (
+        {deleteTarget && readOnly && <ReadOnlyDialog onClose={() => setDeleteTarget(null)} />}
+        {deleteTarget && !readOnly && (
           <ConfirmDialog
             title={`Delete ${deleteTarget}?`}
             body="It will move to Archive. You can restore it for 7 days."
@@ -501,6 +507,7 @@ function HoldingActionModal({
   const [hideAmounts] = useHideAmounts();
   const performAction = usePerformHoldingAction();
   const phase = useButtonPhase();
+  const { readOnly } = useSpaces();
   const currentValue = Number(holding?.value) || 0;
   const [amount, setAmount] = useState(
     type === "market_update" && holding ? String(currentValue) : "",
@@ -546,6 +553,7 @@ function HoldingActionModal({
             ✕
           </button>
         </div>
+        {readOnly ? <ReadOnlyNotice onClose={onClose} /> : <>
         <div className="account-row-label">{name}</div>
         {holding && (
           <div className="account-row-meta">
@@ -583,6 +591,7 @@ function HoldingActionModal({
         >
           Confirm
         </SuccessButton>
+        </>}
       </Sheet>
     </Scrim>
   );
@@ -602,6 +611,7 @@ export function HoldingModal({
   const addHolding = useAddHolding();
   const updateHolding = useUpdateHolding();
   const phase = useButtonPhase();
+  const { readOnly } = useSpaces();
   const isEdit = name !== undefined;
   const initialDraft: HoldingDraft = holding
     ? holdingDraft(holding)
@@ -740,7 +750,7 @@ export function HoldingModal({
           </button>
         </div>
 
-        {conflict && merged ? (
+        {readOnly ? <ReadOnlyNotice onClose={onClose} /> : conflict && merged ? (
           <div
             className="txn-review"
             role="region"

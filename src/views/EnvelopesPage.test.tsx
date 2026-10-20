@@ -27,7 +27,7 @@ vi.mock('next/navigation', () => ({ usePathname: () => '/expense/envelopes' }))
 // The sidebar reads the WorkOS session, which drags @workos-inc/authkit-nextjs
 // (and next/server) into a jsdom run. It is chrome, not what this file tests.
 vi.mock('../components/ExpenseSidebar', () => ({ ExpenseSidebar: () => null }))
-const spaces = vi.hoisted(() => ({ active: undefined as unknown }))
+const spaces = vi.hoisted(() => ({ active: undefined as unknown, readOnly: false }))
 vi.mock('../hooks/useSpaces', () => ({ useSpaces: () => spaces }))
 vi.mock('../../components/AppearanceProvider', () => ({
   useAppearance: () => ({ theme: 'dark', setTheme: vi.fn() }),
@@ -268,6 +268,20 @@ describe('EnvelopesPage', () => {
     const alerts = await screen.findAllByRole('alert')
     expect(alerts[0]).toHaveTextContent("This budget is read-only until Priya renews. Your data's safe, and export's always free.")
     spaces.active = undefined
+  })
+
+  it('hides every write control in a read-only budget, keeping the list', async () => {
+    spaces.readOnly = true
+    renderPage()
+    const list = await groupList()
+    expect(list.getByText('Rent')).toBeInTheDocument()
+    expect(list.getByRole('link', { name: 'View transactions for Rent' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /New group/ })).not.toBeInTheDocument()
+    for (const name of ['Add a category to Home', 'Edit Home', 'Delete Home', 'Edit Rent', 'Delete Rent', 'Move Rent', 'Move Home']) {
+      expect(screen.queryByLabelText(name)).not.toBeInTheDocument()
+    }
+    expect(screen.getByRole('button', { name: 'Spending alerts for Water: 25%, 50%' })).toBeDisabled()
+    spaces.readOnly = false
   })
 
   it('surfaces a written message, never the raw server text', async () => {

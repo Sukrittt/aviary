@@ -1,4 +1,5 @@
 import { ExpenseNoticeDialog } from './ExpenseNoticeDialog';
+import { ReadOnlyDialog } from './BudgetNotices';
 import { ExpenseWriteError } from '../lib/expenseConflict';
 import { useCurrency } from "@/src/context/CurrencyContext";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -925,7 +926,8 @@ export function TransactionsView({
           queuedDelete.current = null;
         }}
       >
-        {deleteTxn && (
+        {deleteTxn && readOnly && <ReadOnlyDialog onClose={() => setDeleteTxn(null)} />}
+        {deleteTxn && !readOnly && (
           <ConfirmDialog
             title="Delete this transaction?"
             body={`“${deleteTxn.item}” will move to Archive. You can restore it for 7 days.`}
@@ -945,7 +947,8 @@ export function TransactionsView({
             </button>
           </ConfirmDialog>
         )}
-        {confirmBulk && (
+        {confirmBulk && readOnly && <ReadOnlyDialog onClose={() => setConfirmBulk(false)} />}
+        {confirmBulk && !readOnly && (
           <ConfirmDialog
             title={`Delete ${selectedTxns.length} transaction${selectedTxns.length === 1 ? "" : "s"}?`}
             body={`${selectedTxns.length === 1 ? "It'll" : "They'll"} move to Archive. You can restore ${selectedTxns.length === 1 ? "it" : "them"} for 7 days.`}

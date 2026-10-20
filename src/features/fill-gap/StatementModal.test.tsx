@@ -5,6 +5,8 @@ import userEvent from '@testing-library/user-event'
 const mutateAsync = vi.fn()
 const refresh = vi.fn()
 const readStatement = vi.fn()
+const spaces = vi.hoisted(() => ({ readOnly: false }))
+vi.mock('@/src/hooks/useSpaces', () => ({ useSpaces: () => ({ readOnly: spaces.readOnly, active: undefined }) }))
 vi.mock('@/src/hooks/useExpenses', () => ({ useAddExpense: () => ({ mutateAsync, refresh }) }))
 vi.mock('@/src/hooks/useCategories', () => ({
   useCategories: () => ({ data: [{ name: 'Food' }, { name: 'Travel' }] }),
@@ -28,6 +30,7 @@ const proposal = {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  spaces.readOnly = false
   readStatement.mockResolvedValue(proposal)
   mutateAsync.mockResolvedValue({})
 })
@@ -168,5 +171,12 @@ describe('StatementModal', () => {
     fireEvent.change(screen.getByLabelText('Statement or screenshots'), { target: { files: shots } })
     expect(await screen.findByText(/Up to 5 screenshots at a time/)).toBeTruthy()
     expect(readStatement).not.toHaveBeenCalled()
+  })
+
+  it('shows the read-only notice instead of the picker in a read-only budget', () => {
+    spaces.readOnly = true
+    render(<StatementModal onClose={() => {}} />)
+    expect(screen.getByRole('status')).toHaveTextContent('This budget is read-only')
+    expect(screen.queryByLabelText('Statement or screenshots')).toBeNull()
   })
 })

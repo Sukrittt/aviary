@@ -14,6 +14,7 @@ const members = [
 ]
 const home = { id: 's1', name: 'Home', emoji: '🏠', role: 'member', ownerId: 'u1', members, personal: false }
 const READ_ONLY = "This budget is read-only until Priya renews. Your data's safe, and export's always free."
+const BANNER = "Read-onlyPriya's plan has lapsed. You can view and export everything; logging comes back once they renew."
 
 beforeEach(() => {
   spaces.value = { active: home, readOnly: false, deleted: [], loaded: true }
@@ -28,14 +29,14 @@ describe('read-only budget', () => {
   it("shows the banner when the owner's plan lapsed", () => {
     spaces.value = { ...spaces.value, readOnly: true }
     render(<ReadOnlyBanner />)
-    expect(screen.getByRole('status').textContent).toBe(READ_ONLY)
+    expect(screen.getByRole('status').textContent).toBe(BANNER)
   })
 
   it('shows it the moment a write comes back 402, before the list catches up', () => {
     render(<ReadOnlyBanner />)
     expect(screen.queryByRole('status')).toBeNull()
     act(() => { window.dispatchEvent(new Event(BUDGET_READ_ONLY_EVENT)) })
-    expect(screen.getByRole('status').textContent).toBe(READ_ONLY)
+    expect(screen.getByRole('status').textContent).toBe(BANNER)
   })
 
   it("turns a member's 402 into that message, never the subscribe one", () => {

@@ -12,6 +12,8 @@ import {
   useSubscriptions,
 } from '../hooks/useSubscriptions'
 import { useHideAmounts } from '../hooks/useHideAmounts'
+import { useSpaces } from '../hooks/useSpaces'
+import { ReadOnlyDialog } from '../components/BudgetNotices'
 import type { SubscriptionRow } from '../types'
 
 interface SubscriptionEdit {
@@ -50,6 +52,8 @@ export function SubscriptionsPage() {
   const cancelSubscription = useCancelSubscription()
   const reactivateSubscription = useReactivateSubscription()
   const [hideAmounts] = useHideAmounts()
+  const { readOnly } = useSpaces()
+  const [showReadOnly, setShowReadOnly] = useState(false)
   const [busyService, setBusyService] = useState<string | null>(null)
   const [editing, setEditing] = useState<SubscriptionEdit | null | undefined>(undefined)
   const [actionError, setActionError] = useState('')
@@ -71,6 +75,11 @@ export function SubscriptionsPage() {
   }
 
   async function changeStatus(service: string, action: 'cancel' | 'reactivate') {
+    // The panel owns the Cancel/Reactivate buttons; say why instead of a 402.
+    if (readOnly) {
+      setShowReadOnly(true)
+      return
+    }
     setBusyService(service)
     setActionError('')
     try {
@@ -92,10 +101,12 @@ export function SubscriptionsPage() {
           <p>{subscriptions.active.length === 0 ? 'Nothing active yet' : `${subscriptions.active.length} active`}</p>
         </div>
         <div className="txn-page-actions">
-          <button type="button" className="erd-log-btn txn-page-log-btn" onClick={() => setEditing(null)} disabled={subscriptionsQ.isLoading}>
-            <PlusIcon size={14} aria-hidden="true" />
-            Add subscription
-          </button>
+          {!readOnly && (
+            <button type="button" className="erd-log-btn txn-page-log-btn" onClick={() => setEditing(null)} disabled={subscriptionsQ.isLoading}>
+              <PlusIcon size={14} aria-hidden="true" />
+              Add subscription
+            </button>
+          )}
         </div>
       </header>
 
@@ -117,6 +128,7 @@ export function SubscriptionsPage() {
       />
 
       <AnimatePresence>
+        {showReadOnly && <ReadOnlyDialog onClose={() => setShowReadOnly(false)} />}
         {editing !== undefined && (
           <SubscriptionModal
             editData={editing ?? undefined}

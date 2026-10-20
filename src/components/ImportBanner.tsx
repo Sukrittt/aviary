@@ -8,6 +8,7 @@ import { CheckIcon, XIcon } from '@/src/components/icons'
 import { continueImport, getImportStatus, type ImportStatus } from '@/src/api/imports'
 import { readPref, writePref } from '@/src/lib/localPref'
 import { track } from '@/src/lib/analytics'
+import { useSpaces } from '@/src/hooks/useSpaces'
 import { Confetti } from './onboarding/Confetti'
 import { bannerProgress, bannerSub, historyDone, importEta } from './onboarding/importCopy'
 
@@ -108,6 +109,7 @@ export function useImportInProgress(): boolean {
 export function ImportBanner() {
   const qc = useQueryClient()
   const data = useImportStatus()
+  const { readOnly } = useSpaces()
   const [dismissed, setDismissed] = useState<string | null>(null)
   const [retrying, setRetrying] = useState(false)
   // Confetti only for an arrival they watched, not a done banner they come back to.
@@ -145,7 +147,7 @@ export function ImportBanner() {
     return (
       <div className="import-banner is-failed" role="alert">
         <span>Some of your history didn’t make it in. Check your connection and try again.</span>
-        <button
+        {!readOnly && <button
           type="button"
           className="import-banner-action"
           disabled={retrying}
@@ -162,7 +164,7 @@ export function ImportBanner() {
           }}
         >
           Try again
-        </button>
+        </button>}
       </div>
     )
   }

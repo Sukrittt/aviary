@@ -17,7 +17,7 @@ import { SplitExpenseEditor, makeSplitLine, type SplitLine } from './SplitExpens
 import { MoveExpenseDialog } from './MoveExpenseDialog'
 import { useSpaces } from '../hooks/useSpaces'
 import { useAuthors } from '../hooks/useAuthors'
-import { useReadOnlyError } from './BudgetNotices'
+import { ReadOnlyNotice, useReadOnlyError } from './BudgetNotices'
 import { ArrowClockwiseIcon, ArrowsLeftRightIcon } from '@/src/components/icons'
 import { AnimatePresence } from 'motion/react'
 
@@ -81,7 +81,7 @@ export function TransactionEditModal({
   const [photoUrl, setPhotoUrl] = useState<string | null>(null)
   const [photoBusy, setPhotoBusy] = useState(false)
   const [photoError, setPhotoError] = useState('')
-  const { multi } = useSpaces()
+  const { multi, readOnly } = useSpaces()
   const authors = useAuthors()
   const [moving, setMoving] = useState(false)
 
@@ -246,6 +246,7 @@ export function TransactionEditModal({
           </button>
         </div>
 
+        {readOnly ? <ReadOnlyNotice onClose={onClose} /> : <>
         {error && !conflict && <p className="txn-entry-error">{error}</p>}
         {conflict && (
           <div className="txn-review" ref={reviewRef} tabIndex={-1} role="region" aria-labelledby="txn-review-title">
@@ -358,6 +359,7 @@ export function TransactionEditModal({
             Save changes
           </SuccessButton>
         </div>
+        </>}
         </>}
       </Sheet>
       <AnimatePresence>

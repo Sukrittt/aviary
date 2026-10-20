@@ -242,14 +242,22 @@ export default function AccountPage() {
 
       <div>
         <div className="account-section-label" style={{ marginBottom: 10 }}>
+          Budgets
+        </div>
+        <div className="account-card">
+          <NewBudgetEntry render={(open) => <AccountRow icon={WalletIcon} label="New budget" hint="Keep a trip or a household apart" onClick={open} />} />
+          <BudgetMembersEntry render={(open, budget) => <AccountRow icon={UsersIcon} label={budget.members.length > 1 ? `${budget.name} members` : 'Share this budget'} hint={budget.role === 'owner' ? 'Invite someone to budget with you' : "See who's in, or leave"} onClick={open} />} />
+          <JoinCodeEntry render={(open) => <AccountRow icon={TicketIcon} label="Join with a code" hint="Got an invite? Pop it in" onClick={open} />} />
+        </div>
+      </div>
+
+      <div>
+        <div className="account-section-label" style={{ marginBottom: 10 }}>
           Account
         </div>
         <div className="account-card">
           <AccountRow icon={LockIcon} label="Account & security" href="/account/security" />
           <AccountRow icon={DatabaseIcon} label="Your data" href="/account/data" />
-          <NewBudgetEntry render={(open) => <AccountRow icon={WalletIcon} label="New budget" hint="Keep a trip or a household apart" onClick={open} />} />
-          <BudgetMembersEntry render={(open, budget) => <AccountRow icon={UsersIcon} label={budget.members.length > 1 ? `${budget.name} members` : 'Share this budget'} hint={budget.role === 'owner' ? 'Invite someone to budget with you' : "See who's in, or leave"} onClick={open} />} />
-          <JoinCodeEntry render={(open) => <AccountRow icon={TicketIcon} label="Join with a code" hint="Got an invite? Pop it in" onClick={open} />} />
           {shown('billScan') && <AccountRow icon={ClockCounterClockwiseIcon} label="Bills Scanned" href="/account/bill-scans" />}
           {/* Twin of Mobile's Plan & billing row: tapping it shows the plan once
               billing is live, or the trial notice before then. The badge is a

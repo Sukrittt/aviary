@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { ArrowLeftIcon, BankIcon, CaretDownIcon, CheckIcon, FileTextIcon, ImagesIcon, UploadSimpleIcon } from '@/src/components/icons'
 import { CategoryIcon } from '@/src/components/CategoryIcon'
 import { BirdEmptyState } from '@/src/components/BirdEmptyState'
+import { ReadOnlyNotice } from '@/src/components/BudgetNotices'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { MENU_ITEM, MENU_POPUP } from '@/src/components/menuStyles'
 import { Confetti } from '@/src/components/onboarding/Confetti'
@@ -14,6 +15,7 @@ import { SuccessButton, useButtonPhase } from '@/src/components/SuccessButton'
 import { useCurrency } from '@/src/context/CurrencyContext'
 import { useCategories, useCategoryStyle } from '@/src/hooks/useCategories'
 import { useAddExpense } from '@/src/hooks/useExpenses'
+import { useSpaces } from '@/src/hooks/useSpaces'
 import { formatDateShort } from '@/src/lib/format'
 import { splitEmoji } from '@/src/lib/emoji'
 import { track } from '@/src/lib/analytics'
@@ -55,6 +57,7 @@ export function StatementModal({ onClose, onBack }: { onClose: () => void; onBac
   const [progress, setProgress] = useState(0)
   const [done, setDone] = useState<CaughtUp | null>(null)
   const button = useButtonPhase()
+  const { readOnly } = useSpaces()
   // The lists refetch once after the batch, not after every row.
   const addExpense = useAddExpense({ refetch: false })
   // Rows a partly failed attempt already logged; a retry skips them (their client_ids would dedupe anyway).
@@ -164,6 +167,7 @@ export function StatementModal({ onClose, onBack }: { onClose: () => void; onBac
           </div>
         )}
 
+        {readOnly ? <ReadOnlyNotice onClose={onClose} /> : <>
         {phase === 'pick' && <StatementPick onFiles={read} />}
 
         {phase === 'reading' && (
@@ -198,6 +202,7 @@ export function StatementModal({ onClose, onBack }: { onClose: () => void; onBac
         )}
 
         {phase === 'done' && done && <StatementDone done={done} onClose={onClose} />}
+        </>}
       </Sheet>
     </Scrim>
   )

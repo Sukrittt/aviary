@@ -2,6 +2,8 @@
 
 import { useEffect, useId, useRef, useState } from 'react'
 import { Scrim, Sheet } from './MotionSheet'
+import { ReadOnlyNotice } from './BudgetNotices'
+import { useSpaces } from '../hooks/useSpaces'
 import { useAddCategory } from '../hooks/useCategories'
 import { useGroupIcons, useGroups } from '../hooks/useGroups'
 import { categoryColor, colorStyle, splitEmoji } from '../lib/emoji'
@@ -19,6 +21,7 @@ export function AddCategoryModal({ onClose, onCreated, initialGroup = '' }: {
   const groups = useGroups().data ?? []
   const groupIcons = useGroupIcons()
   const addCategory = useAddCategory()
+  const { readOnly } = useSpaces()
   const [name, setName] = useState('')
   const [group, setGroup] = useState(initialGroup)
   // Follows the name until the user picks one ("Fuel" gets the pump).
@@ -65,7 +68,7 @@ export function AddCategoryModal({ onClose, onCreated, initialGroup = '' }: {
       <Sheet className="erd-modal-card env-sheet" role="dialog" aria-modal="true" aria-label="Add category"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); close() } }}>
-        <form style={{ display: 'flex', flexDirection: 'column', gap: 'inherit' }} onSubmit={(e) => { e.preventDefault(); void save() }}>
+        {readOnly ? <ReadOnlyNotice onClose={onClose} /> : <form style={{ display: 'flex', flexDirection: 'column', gap: 'inherit' }} onSubmit={(e) => { e.preventDefault(); void save() }}>
           <div className="env-sheet-title">Add category</div>
           <p className="env-sheet-copy">Categories live inside a group. Pick where this one belongs.</p>
           <label className="env-sheet-section-label" htmlFor={inputId}>Name</label>
@@ -90,7 +93,7 @@ export function AddCategoryModal({ onClose, onCreated, initialGroup = '' }: {
               {saving ? 'Saving…' : 'Add category'}
             </button>
           </div>
-        </form>
+        </form>}
       </Sheet>
     </Scrim>
   )

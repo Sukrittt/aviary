@@ -3,13 +3,14 @@ import { act, fireEvent, render, screen } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MoneyBrainDrawer } from './MoneyBrainDrawer'
 
-const state = vi.hoisted(() => ({ hidden: false, theme: 'light' as 'light' | 'dark' | null, briefLoading: false }))
+const state = vi.hoisted(() => ({ hidden: false, theme: 'light' as 'light' | 'dark' | null, briefLoading: false, readOnly: false }))
 vi.mock('@/components/AppearanceProvider', () => ({ useAppearance: () => ({ theme: state.theme }) }))
 vi.mock('../hooks/useBudgets', () => ({ useBudgets: () => ({ data: [] }) }))
 vi.mock('../hooks/useExpenses', () => ({ useRecentExpenses: () => ({ data: [] }), useAddExpense: () => ({ mutateAsync: vi.fn() }) }))
 vi.mock('../hooks/useCategories', () => ({ useCategories: () => ({ data: [] }) }))
 vi.mock('../hooks/useGroups', () => ({ useGroups: () => ({ data: [] }), useGroupIcons: () => new Map() }))
 vi.mock('../hooks/useHideAmounts', () => ({ useHideAmounts: () => [state.hidden] }))
+vi.mock('../hooks/useSpaces', () => ({ useSpaces: () => ({ readOnly: state.readOnly, active: undefined }) }))
 vi.mock('../hooks/useChatSessions', () => ({ useChatSessions: () => ({}), useChatSessionsCount: () => ({ data: 5 }) }))
 vi.mock('../hooks/useMoneyBrief', () => ({ useMoneyBrief: () => state.briefLoading ? { isLoading: true } : ({ data: {
   narrative: 'Your monthly brief.', meta: { txnCountThisMonth: 58 }, questions: [],
@@ -21,10 +22,18 @@ vi.mock('@/src/api/ai', () => ({
   updateProposalStatus: vi.fn(async () => {}),
   CAPTURE_FAILED_MESSAGE: "I couldn't read that one. Try again, or add it with the + button.",
 }))
-beforeEach(() => { state.hidden = false; state.theme = 'light'; state.briefLoading = false; Element.prototype.scrollTo = vi.fn() })
+beforeEach(() => { state.hidden = false; state.theme = 'light'; state.briefLoading = false; state.readOnly = false; Element.prototype.scrollTo = vi.fn() })
 function show() {
   return render(<QueryClientProvider client={new QueryClient()}><MoneyBrainDrawer onClose={vi.fn()} /></QueryClientProvider>)
 }
+it('pauses the composer and the question chips in a read-only budget', () => {
+  state.readOnly = true
+  show()
+  expect(screen.getByRole('status')).toHaveTextContent('Ask Aviary is paused.')
+  expect(screen.queryByRole('textbox', { name: 'Ask Aviary' })).toBeNull()
+  expect(screen.queryByText('Ask anything')).toBeNull()
+})
+
 it('follows the selected app theme outside the page shell and updates while open', () => {
   const client = new QueryClient()
   const drawer = () => <QueryClientProvider client={client}><MoneyBrainDrawer onClose={vi.fn()} /></QueryClientProvider>

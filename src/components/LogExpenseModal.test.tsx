@@ -9,7 +9,7 @@ const { addExpenseMutation, deleteExpenseMutation, addCategoryMutation, history,
   deleteExpenseMutation: vi.fn(),
   addCategoryMutation: vi.fn(),
   history: { rows: [] as unknown[] },
-  spaces: { multi: false, active: { emoji: '🐦', name: 'Personal' } },
+  spaces: { multi: false, active: { id: 'u1', emoji: '🐦', name: 'Personal' } },
 }))
 vi.mock('../hooks/useSpaces', () => ({ useSpaces: () => spaces }))
 vi.mock('../hooks/useAccounts', () => ({

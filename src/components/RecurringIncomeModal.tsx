@@ -14,7 +14,8 @@ import {
   useUpdateRecurringIncome,
 } from '../hooks/useIncomes'
 import { todayLocal } from '../lib/date'
-import { useReadOnlyError } from './BudgetNotices'
+import { ReadOnlyNotice, useReadOnlyError } from './BudgetNotices'
+import { useSpaces } from '../hooks/useSpaces'
 
 const FREQUENCIES = ['weekly', 'monthly', 'yearly', 'daily']
 const RETRY = 'Check your connection and try again.'
@@ -49,6 +50,7 @@ export function RecurringIncomeModal({ id, initial, onClose }: Props) {
   const [error, setError] = useState('')
   const { saving, success, start, succeed, fail } = useButtonPhase()
   const readOnlyError = useReadOnlyError()
+  const { readOnly } = useSpaces()
 
   const parsed = Number(amount)
   const endsBeforeStart = endDate !== '' && endDate < payday
@@ -101,6 +103,7 @@ export function RecurringIncomeModal({ id, initial, onClose }: Props) {
             ✕
           </button>
         </div>
+        {readOnly ? <ReadOnlyNotice onClose={onClose} /> : <>
 
         <div className="erd-recurring-body">
           <div className="erd-recurring-grid">
@@ -183,6 +186,7 @@ export function RecurringIncomeModal({ id, initial, onClose }: Props) {
             </div>
           )}
         </div>
+        </>}
       </Sheet>
     </Scrim>
   )

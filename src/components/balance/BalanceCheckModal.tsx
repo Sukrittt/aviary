@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { BankIcon, XIcon } from '@/src/components/icons'
 import type { CaptureProposal } from '@/src/api/ai'
 import type { BalanceResult, BalanceStatus, MoneyInReason, ResolveAnswer } from '@/src/api/balanceChecks'
+import { ReadOnlyNotice } from '@/src/components/BudgetNotices'
 import { CaptureReview } from '@/src/components/CaptureReview'
 import { LoadingCaption } from '@/src/components/LoadingCaption'
 import { Scrim, Sheet } from '@/src/components/MotionSheet'
@@ -11,6 +12,7 @@ import { SuccessButton, useButtonPhase } from '@/src/components/SuccessButton'
 import { useCurrency } from '@/src/context/CurrencyContext'
 import { GAP_ORIGIN } from '@/src/features/capture/captureRows'
 import { useBalanceStatus, useResolveBalanceCheck, useSubmitBalance } from '@/src/hooks/useBalanceCheck'
+import { useSpaces } from '@/src/hooks/useSpaces'
 import { track } from '@/src/lib/analytics'
 
 const AMOUNT_RE = /^\d+(\.\d{1,2})?$/
@@ -62,6 +64,7 @@ function defaultName(i: number): string {
  */
 export function BalanceCheckModal({ onClose: close }: { onClose: () => void }) {
   const statusQ = useBalanceStatus({ fresh: true })
+  const { readOnly } = useSpaces()
   const [step, setStep] = useState<Step>({ name: 'enter' })
   // The check is already resolved by the time estimates show, and they live only here: closing
   // would lose them, so the review has to end with Log or Not now.
@@ -99,7 +102,7 @@ export function BalanceCheckModal({ onClose: close }: { onClose: () => void }) {
             <XIcon size={18} />
           </button>
         </div>
-        {body}
+        {readOnly ? <ReadOnlyNotice onClose={onClose} /> : body}
       </Sheet>
     </Scrim>
   )

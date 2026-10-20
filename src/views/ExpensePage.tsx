@@ -53,6 +53,8 @@ import { FillGap } from "../features/fill-gap/FillGap";
 import { RecurringIncomeModal } from "../components/RecurringIncomeModal";
 import { useRecurringIncomes } from "../hooks/useIncomes";
 import { useAccounts } from "../hooks/useAccounts";
+import { useSpaces } from "../hooks/useSpaces";
+import { ReadOnlyDialog } from "../components/BudgetNotices";
 import { SuccessButton, useButtonPhase } from "../components/SuccessButton";
 import { ImportBanner, useImportInProgress } from "../components/ImportBanner";
 import type { EnvelopeState } from "../types/expense";
@@ -86,6 +88,7 @@ export function ExpensePage() {
   const subscriptionsQuery = useSubscriptions();
   const user = useUser().data;
   const hidden = useHiddenFeatures();
+  const { readOnly } = useSpaces();
 
   const updateBudgetM = useUpdateBudget();
   const transferBudgetM = useTransferBudget();
@@ -269,10 +272,16 @@ export function ExpensePage() {
   const bulkReturnPhase = useButtonPhase();
   const [showLogModal, setShowLogModal] = useState(false);
   const [subscriptionBusy, setSubscriptionBusy] = useState<string | null>(null);
+  const [showReadOnly, setShowReadOnly] = useState(false);
   const [editingSubscription, setEditingSubscription] = useState<SubscriptionPanelItem | null | undefined>(undefined);
   const { theme, setTheme } = useAppearance();
 
   async function changeSubscriptionStatus(service: string, action: "cancel" | "reactivate") {
+    // The panel owns the Cancel/Reactivate buttons; say why instead of a 402.
+    if (readOnly) {
+      setShowReadOnly(true);
+      return;
+    }
     setSubscriptionBusy(service);
     try {
       if (action === "cancel") await cancelSubscriptionM.mutateAsync(service);
@@ -413,7 +422,7 @@ export function ExpensePage() {
       </header>
 
       <div className="erd-main">
-        <ExpenseSidebar onBulkReturn={panel ? () => setShowBulkReturnConfirm(true) : undefined} />
+        <ExpenseSidebar onBulkReturn={panel && !readOnly ? () => setShowBulkReturnConfirm(true) : undefined} />
         {!panel ? (
           <div className="erd-content">
             <HomeSkeleton />
@@ -643,6 +652,7 @@ export function ExpensePage() {
         </motion.div>
         )}
         <AnimatePresence>
+          {showReadOnly && <ReadOnlyDialog onClose={() => setShowReadOnly(false)} />}
           {editingSubscription !== undefined && (
             <SubscriptionModal
               editData={editingSubscription ? {
@@ -657,7 +667,8 @@ export function ExpensePage() {
               onSaved={() => setEditingSubscription(undefined)}
             />
           )}
-          {payCreditCardAmount !== null && envelopeState && (
+          {payCreditCardAmount !== null && readOnly && <ReadOnlyDialog onClose={() => setPayCreditCardAmount(null)} />}
+          {payCreditCardAmount !== null && !readOnly && envelopeState && (
             <Scrim
               className="modal-overlay"
               onClick={() => setPayCreditCardAmount(null)}

@@ -50,7 +50,7 @@ export function BudgetSwitcher({ className = '', labelClassName = '', card = fal
         <span key={active.id} className="budget-chip-current">
           <span className="budget-chip-tile"><BudgetIcon budget={active} size={card ? 18 : 16} className="budget-chip-icon" /></span>
           <span className={`budget-chip-text ${labelClassName}`.trim()}>
-            {card && <span className="budget-chip-eyebrow">Budget</span>}
+            {card && <span className="budget-chip-eyebrow">Budget{active.readOnly && <span className="budget-chip-tag">Read-only</span>}</span>}
             <span className="budget-chip-name">{active.name}</span>
           </span>
         </span>

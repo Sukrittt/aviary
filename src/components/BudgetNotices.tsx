@@ -6,9 +6,15 @@ import { BUDGET_READ_ONLY_EVENT, LOST_BUDGET_KEY } from '../api/client'
 import { useSpaces } from '../hooks/useSpaces'
 import { ownerName } from '../hooks/useAuthors'
 import { Scrim, Sheet } from './MotionSheet'
+import { LockIcon } from '@/src/components/icons'
 
+/** The inline error when a write comes back 402. */
 export const readOnlyMessage = (owner: string | null) =>
   `This budget is read-only until ${owner ?? 'its owner'} renews. Your data's safe, and export's always free.`
+
+/** The standing strip at the top of the page: what the state means and when it ends. */
+export const readOnlyBanner = (owner: string | null) =>
+  `${owner ? `${owner}'s` : "The owner's"} plan has lapsed. You can view and export everything; logging comes back once they renew.`
 
 /**
  * Maps a failed write to the read-only message, or null for any other error.
@@ -22,6 +28,33 @@ export function useReadOnlyError() {
 }
 
 const introKey = (id: string) => `aviary-budget-intro:${id}`
+
+/**
+ * Stands in for a write form when the budget is read-only: say why up front
+ * instead of letting the form fail on submit.
+ */
+export function ReadOnlyNotice({ onClose }: { onClose: () => void }) {
+  const { active } = useSpaces()
+  return (
+    <div className="budget-readonly-notice" role="status">
+      <span className="budget-readonly-notice-icon"><LockIcon size={20} weight="fill" aria-hidden="true" /></span>
+      <p className="budget-readonly-notice-title">This budget is read-only</p>
+      <p className="budget-readonly-notice-text">{readOnlyBanner(ownerName(active))}</p>
+      <button type="button" className="account-pill-btn" onClick={onClose}>Got it</button>
+    </div>
+  )
+}
+
+/** The notice as its own dialog, where a confirm (delete) would have opened. */
+export function ReadOnlyDialog({ onClose }: { onClose: () => void }) {
+  return (
+    <Scrim className="erd-modal-overlay" onClick={onClose}>
+      <Sheet className="erd-modal-card" role="dialog" aria-modal="true" aria-label="This budget is read-only" onClick={(e) => e.stopPropagation()}>
+        <ReadOnlyNotice onClose={onClose} />
+      </Sheet>
+    </Scrim>
+  )
+}
 
 /** Budget-wide notices, mounted once per page by ExpenseSidebar. */
 export function BudgetNotices() {
@@ -46,7 +79,9 @@ export function ReadOnlyBanner() {
   if (!active || !(readOnly || (flagged && active.role === 'member'))) return null
   return (
     <div className="budget-readonly-banner" role="status">
-      {readOnlyMessage(ownerName(active))}
+      <LockIcon size={14} weight="fill" aria-hidden="true" />
+      <span className="budget-readonly-tag">Read-only</span>
+      <span>{readOnlyBanner(ownerName(active))}</span>
     </div>
   )
 }

@@ -7,6 +7,8 @@ import type { RowOrigin } from '@/src/features/capture/captureRows'
 import { BalanceCheckModal } from './BalanceCheckModal'
 
 const mocks = vi.hoisted(() => ({ status: vi.fn(), submit: vi.fn(), resolve: vi.fn(), track: vi.fn() }))
+const spaces = vi.hoisted(() => ({ readOnly: false }))
+vi.mock('@/src/hooks/useSpaces', () => ({ useSpaces: () => ({ readOnly: spaces.readOnly, active: undefined }) }))
 vi.mock('@/src/api/balanceChecks', () => ({
   getBalanceStatus: () => mocks.status(),
   submitBalance: (...args: unknown[]) => mocks.submit(...args),
@@ -60,6 +62,7 @@ beforeEach(() => {
   vi.useFakeTimers({ shouldAdvanceTime: true })
   mocks.status.mockResolvedValue(status())
   onClose = vi.fn()
+  spaces.readOnly = false
 })
 
 afterEach(() => {
@@ -243,4 +246,15 @@ it('shows a written message, never the server error, when saving fails', async (
   expect(screen.getByRole('alert')).toHaveTextContent("Couldn't save your balance. Check your connection and try again.")
   expect(screen.queryByText(/503/)).toBeNull()
   expect(onClose).not.toHaveBeenCalled()
+})
+
+it('shows the read-only notice instead of the balance form in a read-only budget', async () => {
+  spaces.readOnly = true
+  render(
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <BalanceCheckModal onClose={onClose} />
+    </QueryClientProvider>,
+  )
+  expect(await screen.findByRole('status')).toHaveTextContent('This budget is read-only')
+  expect(screen.queryByRole('textbox')).toBeNull()
 })

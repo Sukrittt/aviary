@@ -1,6 +1,8 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { CopyIcon } from '@/src/components/icons'
 import { Scrim, Sheet } from './MotionSheet'
+import { ReadOnlyNotice } from './BudgetNotices'
+import { useSpaces } from '../hooks/useSpaces'
 import { useCurrency } from '@/src/context/CurrencyContext'
 import { useDeleteExpense, useDismissDuplicate } from '../hooks/useExpenses'
 import type { DuplicatePair } from '../api/expenses'
@@ -26,6 +28,7 @@ export function DuplicateReviewDialog({ pairs, onClose }: { pairs: DuplicatePair
   const { formatCurrency } = useCurrency()
   const deleteExpense = useDeleteExpense()
   const dismiss = useDismissDuplicate()
+  const { readOnly } = useSpaces()
   const deletePhase = useButtonPhase()
   const [failed, setFailed] = useState(false)
   const [answered, setAnswered] = useState<ReadonlySet<string>>(new Set())
@@ -97,7 +100,7 @@ export function DuplicateReviewDialog({ pairs, onClose }: { pairs: DuplicatePair
     <Scrim className="category-manager-overlay" style={{ zIndex: 210 }} onClick={(event) => { if (event.target === event.currentTarget) onClose() }}>
       <Sheet className="category-manager subscription-modal" role="dialog" aria-modal="true" aria-labelledby={`${id}-title`}
         onKeyDown={(event) => { if (event.key === 'Escape') { event.stopPropagation(); onClose() } }}>
-        <div className="txn-review">
+        {readOnly ? <ReadOnlyNotice onClose={onClose} /> : <div className="txn-review">
           <span className="txn-review-icon" aria-hidden="true"><CopyIcon size={22} /></span>
           <h4 id={`${id}-title`}>Logged twice?</h4>
           <p className="txn-review-intro">
@@ -123,7 +126,7 @@ export function DuplicateReviewDialog({ pairs, onClose }: { pairs: DuplicatePair
               Keep both
             </button>
           </div>
-        </div>
+        </div>}
       </Sheet>
     </Scrim>
   )

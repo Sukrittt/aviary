@@ -48,6 +48,7 @@ import type { CategoryRow } from "../types";
 import { BirdEmptyState } from "../components/BirdEmptyState";
 import { DragItem, DragList, useDragOrder } from "../components/DragReorder";
 import { useReadOnlyError } from "../components/BudgetNotices";
+import { useSpaces } from "../hooks/useSpaces";
 
 /** A pending rename or creation, in whichever place the row sits. */
 type Draft =
@@ -135,6 +136,8 @@ export function EnvelopesPage() {
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
   const [error, setError] = useState<string | null>(null);
   const readOnlyError = useReadOnlyError();
+  // A lapsed shared budget: the list stays, every write control goes.
+  const { readOnly } = useSpaces();
 
   const grouped = useMemo(
     () => groupCategories(categories, groups),
@@ -359,16 +362,18 @@ export function EnvelopesPage() {
                 A place for all your money. A heads-up before you overspend.
               </p>
             </div>
-            <div className="txn-page-actions">
-              <button
-                type="button"
-                className="erd-log-btn txn-page-log-btn"
-                onClick={() => beginDraft({ kind: "new-group" })}
-              >
-                <PlusIcon size={14} aria-hidden="true" />
-                New group
-              </button>
-            </div>
+            {!readOnly && (
+              <div className="txn-page-actions">
+                <button
+                  type="button"
+                  className="erd-log-btn txn-page-log-btn"
+                  onClick={() => beginDraft({ kind: "new-group" })}
+                >
+                  <PlusIcon size={14} aria-hidden="true" />
+                  New group
+                </button>
+              </div>
+            )}
           </header>
 
           <div className="env-page-toolbar">
@@ -406,7 +411,7 @@ export function EnvelopesPage() {
               subject="envelopes"
               title="Your categories are waiting"
               description="Make a group, add a category, and give all your money a place to land."
-              action={{
+              action={readOnly ? undefined : {
                 label: "Create your first group",
                 onClick: () => beginDraft({ kind: "new-group" }),
               }}
@@ -431,7 +436,7 @@ export function EnvelopesPage() {
               const body = (grip: ReactNode) => (
                 <>
                   <div className="env-group-head">
-                    {grip}
+                    {!readOnly && grip}
                     <button
                       type="button"
                       className="env-group-toggle"
@@ -456,7 +461,7 @@ export function EnvelopesPage() {
                         {group.items.length}
                       </span>
                     </button>
-                    <div className="env-group-actions">
+                    {!readOnly && <div className="env-group-actions">
                       <IconTip label="Add category">
                         <button
                           type="button"
@@ -511,7 +516,7 @@ export function EnvelopesPage() {
                           </button>
                         </IconTip>
                       )}
-                    </div>
+                    </div>}
                   </div>
 
                   {!dragging && (
@@ -526,7 +531,7 @@ export function EnvelopesPage() {
                             : DEFAULT_ALERT_PCTS;
                           return (
                             <>
-                              {catGrip}
+                              {!readOnly && catGrip}
                               <Pop
                                 value={`${category.color}|${category.icon}`}
                                 className="env-cat-icon"
@@ -543,6 +548,7 @@ export function EnvelopesPage() {
                               <button
                                 type="button"
                                 className="env-cat-alerts"
+                                disabled={readOnly}
                                 onClick={() => {
                                   setEditing(category);
                                   setDraftPcts(thresholds);
@@ -570,6 +576,7 @@ export function EnvelopesPage() {
                                     <ReceiptIcon size={14} aria-hidden="true" />
                                   </Link>
                                 </IconTip>
+                                {!readOnly && <>
                                 <IconTip label="Edit category">
                                   <button
                                     type="button"
@@ -606,6 +613,7 @@ export function EnvelopesPage() {
                                     <TrashIcon size={14} aria-hidden="true" />
                                   </button>
                                 </IconTip>
+                                </>}
                               </div>
                             </>
                           );
