@@ -28,7 +28,7 @@ import { ExpenseSidebar } from "../components/ExpenseSidebar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MENU_ITEM, MENU_POPUP } from "../components/menuStyles";
 import { Scrim, Sheet } from "../components/MotionSheet";
-import { ExpensePageLoading } from "../components/ExpensePageLoading";
+import { HomeSkeleton } from "../components/TabSkeleton";
 import {
   toExpensePanelData,
   type ExpensePanelData,
@@ -384,39 +384,41 @@ export function ExpensePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [panel]);
 
-  if (!panel) {
-    return <ExpensePageLoading />;
-  }
-
+  // Loading and loaded share one tree, so the sidebar stays mounted when the
+  // data lands and a dialog opened from it (mid-upload, say) stays open.
   return (
     <section className="expense-redesign">
-      <WeekRecapGate />
-      <FillGap />
+      {panel && <WeekRecapGate />}
+      {panel && <FillGap />}
       {actionError && (
         <div className="erd-action-error" role="alert">
           {actionError}
         </div>
       )}
-      <button
-        type="button"
-        className="erd-theme-toggle"
-        onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-        aria-label="Toggle theme"
-      >
-        {theme === "dark" ? <SunIcon aria-hidden /> : <MoonIcon aria-hidden />}
-      </button>
+      {panel && (
+        <button
+          type="button"
+          className="erd-theme-toggle"
+          onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+          aria-label="Toggle theme"
+        >
+          {theme === "dark" ? <SunIcon aria-hidden /> : <MoonIcon aria-hidden />}
+        </button>
+      )}
 
       <header className="erd-mobile-header">
         <div className="erd-mobile-greet">
-          <BirdMark size={30} perched /> Aviary
+          <BirdMark size={30} perched={!!panel} /> Aviary
         </div>
       </header>
 
-      {/* Mounted only once the dashboard has loaded, so the bird lands on the
-          real sidebar rather than the loading screen's copy of it. */}
-
       <div className="erd-main">
-        <ExpenseSidebar onBulkReturn={() => setShowBulkReturnConfirm(true)} />
+        <ExpenseSidebar onBulkReturn={panel ? () => setShowBulkReturnConfirm(true) : undefined} />
+        {!panel ? (
+          <div className="erd-content">
+            <HomeSkeleton />
+          </div>
+        ) : (
         <motion.div className="erd-content" layoutScroll>
           <LayoutGroup id="home-onboarding">
           <div className="erd-home" data-get-started={showGetStarted ? "true" : undefined}>
@@ -639,6 +641,7 @@ export function ExpensePage() {
           </div>
           </LayoutGroup>
         </motion.div>
+        )}
         <AnimatePresence>
           {editingSubscription !== undefined && (
             <SubscriptionModal
@@ -869,6 +872,7 @@ export function ExpensePage() {
           type="button"
           className="erd-tab-fab"
           onClick={() => setShowLogModal(true)}
+          disabled={!panel}
           aria-label="Log expense"
         >
           +
