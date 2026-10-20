@@ -14,6 +14,7 @@ import {
   useUpdateRecurringIncome,
 } from '../hooks/useIncomes'
 import { todayLocal } from '../lib/date'
+import { useReadOnlyError } from './BudgetNotices'
 
 const FREQUENCIES = ['weekly', 'monthly', 'yearly', 'daily']
 const RETRY = 'Check your connection and try again.'
@@ -47,6 +48,7 @@ export function RecurringIncomeModal({ id, initial, onClose }: Props) {
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [error, setError] = useState('')
   const { saving, success, start, succeed, fail } = useButtonPhase()
+  const readOnlyError = useReadOnlyError()
 
   const parsed = Number(amount)
   const endsBeforeStart = endDate !== '' && endDate < payday
@@ -64,9 +66,9 @@ export function RecurringIncomeModal({ id, initial, onClose }: Props) {
       if (id) await update.mutateAsync({ id, updates: fields })
       else await add.mutateAsync(fields)
       succeed(onClose)
-    } catch {
+    } catch (err) {
       fail()
-      setError(`${isEdit ? "Couldn't save" : "Couldn't add this"}. ${RETRY}`)
+      setError(readOnlyError(err) ?? `${isEdit ? "Couldn't save" : "Couldn't add this"}. ${RETRY}`)
     }
   }
 
@@ -78,10 +80,10 @@ export function RecurringIncomeModal({ id, initial, onClose }: Props) {
       else await update.mutateAsync({ id: existing.id, updates: { status: isActive ? 'paused' : 'active' } })
       setConfirmingDelete(false)
       succeed(onClose)
-    } catch {
+    } catch (err) {
       setConfirmingDelete(false)
       fail()
-      setError(`${action === 'delete' ? "Couldn't delete this" : "Couldn't update this"}. ${RETRY}`)
+      setError(readOnlyError(err) ?? `${action === 'delete' ? "Couldn't delete this" : "Couldn't update this"}. ${RETRY}`)
     }
   }
 

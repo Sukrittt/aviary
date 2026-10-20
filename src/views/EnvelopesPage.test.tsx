@@ -27,6 +27,8 @@ vi.mock('next/navigation', () => ({ usePathname: () => '/expense/envelopes' }))
 // The sidebar reads the WorkOS session, which drags @workos-inc/authkit-nextjs
 // (and next/server) into a jsdom run. It is chrome, not what this file tests.
 vi.mock('../components/ExpenseSidebar', () => ({ ExpenseSidebar: () => null }))
+const spaces = vi.hoisted(() => ({ active: undefined as unknown }))
+vi.mock('../hooks/useSpaces', () => ({ useSpaces: () => spaces }))
 vi.mock('../../components/AppearanceProvider', () => ({
   useAppearance: () => ({ theme: 'dark', setTheme: vi.fn() }),
 }))
@@ -253,6 +255,19 @@ describe('EnvelopesPage', () => {
     await user.click(screen.getByRole('button', { name: '75%' }))
     await user.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(updateCategory).toHaveBeenCalledWith('🚿 Water', { alertPcts: null }))
+  })
+
+  it("a member in a lapsed budget hears it's read-only", async () => {
+    const user = userEvent.setup()
+    spaces.active = { id: 's1', name: 'Home', role: 'member', ownerId: 'u1', members: [{ userId: 'u1', name: 'Priya Shah' }] }
+    ;(addGroup as Mock).mockRejectedValue(Object.assign(new Error('402'), { status: 402 }))
+    renderPage()
+    await user.click(await screen.findByRole('button', { name: /New group/ }))
+    await user.type(screen.getByPlaceholderText('Transport, Health…'), 'Home')
+    await user.keyboard('{Enter}')
+    const alerts = await screen.findAllByRole('alert')
+    expect(alerts[0]).toHaveTextContent("This budget is read-only until Priya renews. Your data's safe, and export's always free.")
+    spaces.active = undefined
   })
 
   it('surfaces a written message, never the raw server text', async () => {
