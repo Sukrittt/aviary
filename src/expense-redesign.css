@@ -3507,7 +3507,7 @@
 .expense-redesign .txn-timeline-search {
   flex: 1;
   min-width: 0;
-  padding: 10px 0;
+  padding: 11px 0 9px;
   border: 0;
   background: transparent;
   color: var(--erd-text);
