@@ -8,13 +8,13 @@ const binary = { version: '8.2.6' }
 const instance = { launchTimeout: 60_000 }
 
 // The library picks a free port, then mongod binds it; another mongod can take
-// it in between ('Port "…" already in use'). That fails fast, so retry once.
-async function retryOnPortClash<T>(start: () => Promise<T>): Promise<T> {
+// it in between ('Port "…" already in use'). That fails fast, so try a few times.
+async function retryOnPortClash<T>(start: () => Promise<T>, tries = 3): Promise<T> {
   try {
     return await start()
   } catch (e) {
-    if (!(e instanceof Error && /already in use/.test(e.message))) throw e
-    return start()
+    if (tries <= 1 || !(e instanceof Error && /already in use/.test(e.message))) throw e
+    return retryOnPortClash(start, tries - 1)
   }
 }
 
