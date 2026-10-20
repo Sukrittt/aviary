@@ -22,7 +22,15 @@ export interface BudgetSummary {
   readOnly?: boolean
 }
 
-export interface BudgetMember { userId: string; name: string | null; avatarUrl: string | null; role: BudgetRole; joinedAt: string | null }
+export interface BudgetMember {
+  userId: string
+  name: string | null
+  avatarUrl: string | null
+  role: BudgetRole
+  joinedAt: string | null
+  /** Owner's view only: their plan isn't active, so the budget would lock if handed to them. */
+  lapsed?: boolean
+}
 
 /** A budget its owner deleted in the last 30 days. Only the owner can restore it. */
 export interface DeletedBudget { id: string; name: string; emoji: string; icon?: string; deletedAt: string; deletedBy: string | null; canRestore: boolean }

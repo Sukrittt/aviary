@@ -186,6 +186,17 @@ describe('BudgetMembersDialog', () => {
     await waitFor(() => expect(onClose).toHaveBeenCalled(), { timeout: 2000 })
   })
 
+  it('warns before handing the budget to someone without a plan', async () => {
+    // Billing follows the owner, so this would lock the budget for everyone.
+    api.getMembers.mockResolvedValue(info({ members: people.map((p) => (p.userId === 'u2' ? { ...p, lapsed: true } : p)) }))
+    render(<BudgetMembersDialog budget={home} onClose={vi.fn()} />, { wrapper: queryWrapper() })
+    fireEvent.click(await screen.findByRole('button', { name: /Make someone else the owner/ }))
+    const pick = screen.getByRole('dialog', { name: "Who's the new owner?" })
+    fireEvent.click(within(pick).getByRole('button', { name: /Rahul Rao.*Not subscribed/ }))
+    const dialog = screen.getByRole('alertdialog', { name: 'Make Rahul the owner of Home?' })
+    expect(within(dialog).getByText(/Rahul isn't subscribed, so Home goes read-only for everyone/)).toBeTruthy()
+  })
+
   it('no hand-over for a member, or on the personal budget', async () => {
     me.id = 'u2'
     api.getMembers.mockResolvedValue(info({ role: 'member' }))

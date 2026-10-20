@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Image from 'next/image'
 import { AnimatePresence } from 'motion/react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { CaretRightIcon, UserPlusIcon } from '@/src/components/icons'
+import { CaretRightIcon, LockIcon, UserPlusIcon } from '@/src/components/icons'
 import {
   cancelInvite, createInvite, deleteBudget, getMembers, removeMember, renameBudget, setNotifyOthers, switchBudget, transferBudget,
   type BudgetMember, type BudgetSummary, type Invite, type MembersInfo,
@@ -315,6 +315,7 @@ function PickOwnerDialog({ members, onPick, onClose }: { members: BudgetMember[]
                   <span className="budget-row-name">{m.name ?? 'Someone'}</span>
                   {!m.name && m.joinedAt && <span className="account-row-hint">{`Joined ${joinedOn(m.joinedAt)}`}</span>}
                 </span>
+                {m.lapsed && <span className="budget-locked-badge"><LockIcon size={11} weight="fill" aria-hidden="true" />Not subscribed</span>}
               </button>
             </li>
           ))}
@@ -346,7 +347,11 @@ function TransferDialog({ budget, member, onCancel, onDone }: { budget: BudgetSu
   return (
     <ConfirmDialog
       title={`Make ${who} the owner of ${budget.name}?`}
-      body={`${who}'s plan covers ${budget.name} from now on, and only they can invite, remove or delete. You stay in it.`}
+      body={
+        member.lapsed
+          ? `${who} isn't subscribed, so ${budget.name} goes read-only for everyone, you included, until they are. Only they can invite, remove or delete. You stay in it.`
+          : `${who}'s plan covers ${budget.name} from now on, and only they can invite, remove or delete. You stay in it.`
+      }
       cancelLabel="Keep it"
       busy={busy}
       onCancel={onCancel}
