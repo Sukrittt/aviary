@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { getBudgets, type BudgetSummary } from '@/src/api/spaces'
-import { ACTIVE_BUDGET_KEY } from '@/src/api/client'
+import { getBudgets, switchBudget, type BudgetSummary } from '@/src/api/spaces'
+import { ACTIVE_BUDGET_KEY, budgetCookie } from '@/src/api/client'
 
 export const spacesKey = ['spaces'] as const
 
@@ -22,6 +22,13 @@ export function useSpaces() {
       // storage blocked
     }
   }, [active])
+  // No personal budget (joined from an invite) and no cookie (a new browser, or
+  // after logging out): the server opened a shared one here, but every other
+  // request names no budget and reads the personal one that doesn't exist.
+  const serverPick = budgets.find((b) => b.id === q.data?.activeId)
+  useEffect(() => {
+    if (serverPick && !serverPick.personal && budgetCookie() !== serverPick.id) switchBudget(serverPick)
+  }, [serverPick])
   return {
     budgets,
     active,

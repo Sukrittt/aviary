@@ -148,7 +148,7 @@ export function BudgetMembersDialog({ budget, onClose }: { budget: BudgetSummary
             <li key={m.userId} className="budget-member">
               <MemberAvatar member={m} size={32} className="budget-avatar is-large" />
               <span className="budget-member-body">
-                <span className="budget-row-name">{m.userId === me ? `${m.name ?? 'You'} (you)` : m.name ?? 'Someone'}</span>
+                <span className="budget-row-name">{m.userId === me ? (m.name ? `${m.name} (you)` : 'You') : m.name ?? 'Someone'}</span>
                 <span className="account-row-hint">{m.joinedAt ? `Joined ${joinedOn(m.joinedAt)}` : 'Started this budget'}</span>
               </span>
               {m.role === 'owner' ? (
@@ -238,7 +238,7 @@ export function BudgetMembersDialog({ budget, onClose }: { budget: BudgetSummary
         {confirm?.kind === 'remove' && (
           <ConfirmDialog
             title={`Remove ${firstName(confirm.member.name) ?? 'them'}?`}
-            body={`${firstName(confirm.member.name) ?? 'They'} loses access to ${budget.name}. What they logged stays.`}
+            body={`${firstName(confirm.member.name) ?? 'This person'} loses access to ${budget.name}. What they logged stays.`}
             cancelLabel="Keep"
             busy={busy}
             onCancel={() => setConfirm(null)}
@@ -296,7 +296,10 @@ function PickOwnerDialog({ members, onPick, onClose }: { members: BudgetMember[]
             <li key={m.userId}>
               <button type="button" className="budget-row" onClick={() => onPick(m)}>
                 <MemberAvatar member={m} />
-                <span className="budget-row-name">{m.name ?? 'Someone'}</span>
+                <span className="budget-member-body">
+                  <span className="budget-row-name">{m.name ?? 'Someone'}</span>
+                  {!m.name && m.joinedAt && <span className="account-row-hint">{`Joined ${joinedOn(m.joinedAt)}`}</span>}
+                </span>
               </button>
             </li>
           ))}

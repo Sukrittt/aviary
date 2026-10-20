@@ -57,6 +57,14 @@ describe('BudgetSwitcher', () => {
     expect(switchBudget).toHaveBeenCalledWith(personal)
   })
 
+  it('counts the people past the first three', async () => {
+    const six = ['Priya', 'Rahul', 'Meera', 'Arjun', 'Kavya', 'Dev'].map((name, i) => ({ userId: `p${i}`, name, avatarUrl: null, role: i ? 'member' as const : 'owner' as const, joinedAt: null }))
+    getBudgets.mockResolvedValue(list([personal, budget('s1', 'Home', '🏠', { members: six })]))
+    renderIt(<BudgetSwitcher />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Budget: Personal. Switch budget' }))
+    expect(screen.getByText('+3')).toBeTruthy()
+  })
+
   it('swaps New budget for a way to ask for more at the limit', async () => {
     const five = [personal, home, budget('s2', 'Trip', '✈️'), budget('s3', 'Work', '💼'), budget('s4', 'Pets', '🐾')]
     getBudgets.mockResolvedValue(list(five))

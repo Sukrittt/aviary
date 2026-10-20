@@ -79,4 +79,16 @@ describe('SubscriptionGate', () => {
     renderAt('/expense', { data: { ...expired.data, allowed: true, mode: 'trial', trialDaysRemaining: 30 } })
     expect(screen.getByText('budgeting app')).toBeTruthy()
   })
+
+  it.each([
+    ['no trial of their own', { allowed: false, mode: 'setup_incomplete' }],
+    ['a lapsed plan of their own', { allowed: false, mode: 'expired' }],
+  ])('keeps a shared budget open for a member with %s: the owner pays', (_, status) => {
+    // A brand-new account that joins skips onboarding, so it has no trial. Sending
+    // it to /onboarding bounced straight back to /expense, forever.
+    replaceMock.mockClear()
+    renderAt('/expense', { data: { ...expired.data, ...status, covered: true } })
+    expect(screen.getByText('budgeting app')).toBeTruthy()
+    expect(replaceMock).not.toHaveBeenCalled()
+  })
 })

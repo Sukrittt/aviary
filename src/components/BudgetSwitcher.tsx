@@ -144,6 +144,7 @@ function Avatars({ members }: { members: BudgetSummary['members'] }) {
   return (
     <span className="budget-avatars" aria-hidden="true">
       {members.slice(0, 3).map((m) => <MemberAvatar key={m.userId} member={m} />)}
+      {members.length > 3 && <span className="budget-avatar budget-avatar--more">{`+${members.length - 3}`}</span>}
     </span>
   )
 }

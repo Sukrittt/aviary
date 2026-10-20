@@ -8,6 +8,10 @@ import { getSharedBudgets, type OwnedSharedBudget } from '@/src/api/spaces'
 const GRACE_DAYS = 7
 const CLOSE = ''
 
+/** Who a budget goes to. Unnamed members are told apart by the join date the member list shows. */
+const handOffName = (m: OwnedSharedBudget['members'][number]) =>
+  m.name ?? (m.joinedAt ? `whoever joined ${new Date(m.joinedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}` : 'them')
+
 /**
  * The account page's "Delete account" card. Owners of shared budgets first
  * pick who gets each one (or close it), then type their email to confirm.
@@ -91,7 +95,7 @@ export function DeleteAccount({ email }: { email: string | undefined }) {
               <legend className="account-confirm-copy">
                 <strong>{`${b.emoji} ${b.name}`}</strong>
               </legend>
-              {[...b.members.map((m) => ({ value: m.userId, label: `Hand it to ${m.name ?? 'them'}` })), { value: CLOSE, label: 'Close it' }].map((o) => (
+              {[...b.members.map((m) => ({ value: m.userId, label: `Hand it to ${handOffName(m)}` })), { value: CLOSE, label: 'Close it' }].map((o) => (
                 <label key={o.value || 'close'} className="delete-shared-option">
                   <input
                     type="radio"

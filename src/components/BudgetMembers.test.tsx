@@ -52,6 +52,15 @@ describe('BudgetMembersDialog', () => {
     expect(screen.queryByRole('button', { name: 'Leave budget' })).toBeNull()
   })
 
+  it('calls you "You" when your account has no name, not "You (you)"', async () => {
+    const unnamed = people.map((m) => ({ ...m, name: null }))
+    api.getMembers.mockResolvedValue(info({ members: unnamed }))
+    renderIt({ ...home, members: unnamed })
+    expect(await screen.findByText('You')).toBeTruthy()
+    expect(screen.queryByText('You (you)')).toBeNull()
+    expect(screen.getByText('Someone')).toBeTruthy()
+  })
+
   it('member: leave and the notify toggle, nothing of the owner’s', async () => {
     me.id = 'u2'
     api.getMembers.mockResolvedValue(info({ role: 'member' }))
@@ -76,6 +85,15 @@ describe('BudgetMembersDialog', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'Leave' }))
     await waitFor(() => expect(api.switchBudget).toHaveBeenCalledWith(personal))
     expect(api.removeMember).toHaveBeenCalledWith('s1', 'me')
+  })
+
+  it('removing someone unnamed still reads right', async () => {
+    const unnamed = people.map((m) => ({ ...m, name: null }))
+    api.getMembers.mockResolvedValue(info({ members: unnamed }))
+    renderIt({ ...home, members: unnamed })
+    fireEvent.click(await screen.findByRole('button', { name: 'Remove' }))
+    const dialog = screen.getByRole('alertdialog', { name: 'Remove them?' })
+    expect(within(dialog).getByText('This person loses access to Home. What they logged stays.')).toBeTruthy()
   })
 
   it('removing someone says what stays', async () => {
@@ -129,6 +147,14 @@ describe('BudgetMembersDialog', () => {
     expect(await screen.findByRole('button', { name: /Invite/ })).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Delete budget' })).toBeNull()
     expect(screen.queryByRole('switch')).toBeNull()
+  })
+
+  it('the owner picker tells unnamed members apart by when they joined', async () => {
+    const unnamed = [people[0], { ...people[1], name: null }]
+    api.getMembers.mockResolvedValue(info({ members: unnamed }))
+    render(<BudgetMembersDialog budget={{ ...home, members: unnamed }} onClose={vi.fn()} />, { wrapper: queryWrapper() })
+    fireEvent.click(await screen.findByRole('button', { name: /Make someone else the owner/ }))
+    expect(within(screen.getByRole('dialog', { name: "Who's the new owner?" })).getByRole('button', { name: /Someone.*Joined 12 Oct 2026/ })).toBeTruthy()
   })
 
   it('owner hands the budget over: pick, confirm, then it closes', async () => {

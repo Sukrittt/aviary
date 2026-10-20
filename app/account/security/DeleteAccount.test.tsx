@@ -52,6 +52,17 @@ describe('DeleteAccount', () => {
     expect(sentBody()).toEqual({ email: 'me@x.com', transfers: { s1: 'u3', s3: 'u5' } })
   })
 
+  it('tells unnamed members apart by when they joined', async () => {
+    getSharedBudgets.mockResolvedValue({
+      budgets: [{ id: 's1', name: 'Home', emoji: '🏠', personal: false, members: [{ userId: 'u2', name: null, joinedAt: '2026-10-18T10:00:00Z' }, { userId: 'u3', name: null, joinedAt: '2026-10-19T10:00:00Z' }, { userId: 'u4', name: null }] }],
+    })
+    render(<DeleteAccount email="me@x.com" />)
+    fireEvent.click(screen.getByRole('button', { name: 'Delete account' }))
+    expect(await screen.findByRole('radio', { name: 'Hand it to whoever joined 18 Oct 2026' })).toBeTruthy()
+    expect(screen.getByRole('radio', { name: 'Hand it to whoever joined 19 Oct 2026' })).toBeTruthy()
+    expect(screen.getByRole('radio', { name: 'Hand it to them' })).toBeTruthy()
+  })
+
   it("won't go on without the list", async () => {
     getSharedBudgets.mockRejectedValue(new Error('500'))
     render(<DeleteAccount email="me@x.com" />)

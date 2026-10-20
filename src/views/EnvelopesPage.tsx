@@ -47,6 +47,7 @@ import { EMPTY } from "../lib/constants";
 import type { CategoryRow } from "../types";
 import { BirdEmptyState } from "../components/BirdEmptyState";
 import { DragItem, DragList, useDragOrder } from "../components/DragReorder";
+import { useReadOnlyError } from "../components/BudgetNotices";
 
 /** A pending rename or creation, in whichever place the row sits. */
 type Draft =
@@ -133,6 +134,7 @@ export function EnvelopesPage() {
   const [draftPcts, setDraftPcts] = useState<number[]>(DEFAULT_ALERT_PCTS);
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const readOnlyError = useReadOnlyError();
 
   const grouped = useMemo(
     () => groupCategories(categories, groups),
@@ -141,13 +143,13 @@ export function EnvelopesPage() {
   const groupDrag = useDragOrder(groups, (name, toIndex) =>
     moveGroup.mutate(
       { name, toIndex },
-      { onError: () => setError("That didn't save. Try again.") },
+      { onError: (e) => setError(readOnlyError(e) ?? "That didn't save. Try again.") },
     ),
   );
   const moveCategoryTo = (name: string, toIndex: number) =>
     moveCategory.mutate(
       { name, toIndex },
-      { onError: () => setError("That didn't save. Try again.") },
+      { onError: (e) => setError(readOnlyError(e) ?? "That didn't save. Try again.") },
     );
   // Named groups follow the drag's live order; ungrouped "Other" stays pinned last.
   const byGroupName = new Map(grouped.map((g) => [g.name, g]));
@@ -206,9 +208,10 @@ export function EnvelopesPage() {
       // generic line the reader can act on.
       const message = e instanceof Error ? e.message : "";
       setError(
-        /already exists/i.test(message)
-          ? `That ${whenBusy} already exists.`
-          : "That did not save. Try again.",
+        readOnlyError(e) ??
+          (/already exists/i.test(message)
+            ? `That ${whenBusy} already exists.`
+            : "That didn't save. Try again."),
       );
       return false;
     }
