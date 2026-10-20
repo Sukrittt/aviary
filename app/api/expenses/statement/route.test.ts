@@ -68,6 +68,13 @@ describe('POST /api/expenses/statement', () => {
     expect(await res.json()).toEqual({ error: 'pdf_locked' })
   })
 
+  it('names a statement in another currency the same way', async () => {
+    mockBuild.mockRejectedValue(new StatementError('other_currency'))
+    const res = await POST(fileReq('card.csv', 'Date,Description,Amount (USD)\n'))
+    expect(res.status).toBe(400)
+    expect(await res.json()).toEqual({ error: 'other_currency' })
+  })
+
   it('returns 502 when the model fails, and 429 when rate limited', async () => {
     mockBuild.mockRejectedValue(new Error('gemini down'))
     expect((await POST(jsonReq({ images: [img] }))).status).toBe(502)

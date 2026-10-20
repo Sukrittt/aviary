@@ -210,6 +210,18 @@ describe('readSource for a csv', () => {
     expect(normalizeStatement(raw, TODAY).rows).toEqual([{ date: '2026-10-17', amount: 349, payee: 'Swiggy' }])
   })
 
+  it("turns away a file that's all in another currency, by symbol, header or column", async () => {
+    const { readStatementTable, StatementError } = await import('./statement')
+    const read = (csv: string[], currency = 'INR') => readStatementTable(Buffer.from(csv.join('\n')), 'card.csv', TODAY, currency, async () => ({}))
+    const other = new StatementError('other_currency')
+    await expect(read(['Date,Description,Amount', '17/10/26,Starbucks,-$5.00', '18/10/26,Uber,-$12.40'])).rejects.toEqual(other)
+    await expect(read(['Date,Description,Amount (USD)', '17/10/26,Starbucks,-5.00'])).rejects.toEqual(other)
+    await expect(read(['Date,Description,Amount,Currency', '17/10/26,Starbucks,-5,USD', '18/10/26,Uber,-12,USD'])).rejects.toEqual(other)
+    // The budget's own currency, or a file that names none, reads as before.
+    await expect(read(['Date,Description,Amount (USD)', '17/10/26,Starbucks,-5.00'], 'USD')).resolves.toMatchObject({ transactions: [{ payee: 'Starbucks', amount: 5 }] })
+    await expect(read(['Date,Description,Amount', '17/10/26,Swiggy,-349'])).resolves.toMatchObject({ transactions: [{ payee: 'Swiggy', amount: 349 }] })
+  })
+
   it('calls an xlsx that inflates past the cap too big, not unreadable', async () => {
     const read = await import('./import/read')
     const { readStatementTable, StatementError } = await import('./statement')

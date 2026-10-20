@@ -28,6 +28,7 @@ const COPY: Record<string, string> = {
   unreadable: "Couldn't read that one. Try a CSV or Excel statement, or a screenshot of your payments.",
   empty: "Couldn't find any payments from the last month in that.",
   too_big: "That's too big to upload. Try fewer screenshots or a shorter date range.",
+  other_currency: "This statement's in a different currency from your budget. Try one from your main account.",
 }
 const RATE_LIMITED = "That's a lot of uploads in a row. Give it a minute and try again."
 const ALLOWANCE = "You've used this month's AI reads. Add these by hand for now."

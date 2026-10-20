@@ -3,7 +3,7 @@ import { Type, type Schema } from '@google/genai'
 import type { Auth } from '@/lib/access'
 import { getCollection } from '@/lib/http'
 import { getCachedCategoryMap } from '@/lib/categoryMap'
-import { getUserCurrency, nowForUser } from '@/lib/userCurrency'
+import { getBudgetCurrency, nowForUser } from '@/lib/userCurrency'
 import { validDate } from '@/lib/inputValidation'
 import { generateJSONFromImage, type ImagePart } from '@/lib/ai/gemini'
 import { assignCategories, matchFromHistory, MAX_CAPTURE_AGE_DAYS, MAX_CAPTURE_AMOUNT, type CaptureItem } from '@/lib/ai/capture'
@@ -11,6 +11,7 @@ import { pickColumnRoles } from '@/lib/import/ai'
 import { readTable, ZipTooLarge } from '@/lib/import/read'
 import { ImportError, inspect, needsColumnHelp, normalize, resolveRows, unresolvedColumns, type Layout, type StoredRow } from '@/lib/import/normalize'
 import type { Role } from '@/lib/import/presets'
+import { isCurrencyCode } from '@/src/lib/currencies'
 
 /**
  * "Fill the gap": the days someone didn't log, read back from a UPI or bank
@@ -50,7 +51,7 @@ export interface StatementProposal {
 }
 
 /** A failure the client turns into written copy. */
-export type StatementErrorCode = 'unreadable' | 'empty' | 'pdf_locked' | 'too_big'
+export type StatementErrorCode = 'unreadable' | 'empty' | 'pdf_locked' | 'too_big' | 'other_currency'
 export class StatementError extends Error {
   constructor(readonly code: StatementErrorCode) {
     super(code)
@@ -244,7 +245,8 @@ export type StatementSource =
 
 /**
  * A csv or xlsx through the import's reader and column mapping. Rows in a
- * currency other than the user's are left out, not logged as theirs.
+ * currency other than the user's are left out, not logged as theirs, and a
+ * file that's all in another one ("$5.00", "Amount (USD)") is turned away.
  * `pickRoles` names the columns alias matching couldn't (Jev in production).
  */
 export async function readStatementTable(
@@ -258,8 +260,12 @@ export async function readStatementTable(
     const layout = inspect(await readTable(data, filename))
     const roles = needsColumnHelp(layout) ? await pickRoles(layout).catch(() => ({})) : {}
     const n = normalize(layout, today, roles, currencyCode)
+    if (isCurrencyCode(n.fileCurrency) && n.fileCurrency !== currencyCode && !n.rows.some((r) => r.currency === currencyCode)) {
+      throw new StatementError('other_currency')
+    }
     return rowsFromTable(resolveRows(n.rows, { direction: n.defaultDirection, currency: currencyCode, hasCurrency: n.hasCurrency }))
   } catch (err) {
+    if (err instanceof StatementError) throw err
     if (err instanceof ZipTooLarge) throw new StatementError('too_big')
     if (err instanceof ImportError) throw new StatementError(err.code === 'empty' ? 'empty' : 'unreadable')
     throw new StatementError('unreadable')
@@ -271,6 +277,8 @@ async function readSource(auth: Auth, source: StatementSource, today: string, cu
     return readStatementTable(source.data, source.filename, today, currencyCode, (layout) => pickColumnRoles(unresolvedColumns(layout), auth.userId))
   }
   if (source.kind === 'pdf' && isLockedPdf(source.data)) throw new StatementError('pdf_locked')
+  // ponytail: no other_currency here. The prompt has the model leave other-currency rows out, so an all-foreign
+  // screenshot reads as 'empty'. A per-row currency in STATEMENT_SCHEMA could say so, once the model's shown to fill it reliably.
   const parts = source.kind === 'pdf' ? [{ data: source.data.toString('base64'), mimeType: 'application/pdf' }] : source.images
   return generateJSONFromImage(statementPrompt(today, currencyCode), parts, STATEMENT_SCHEMA, { userId: auth.userId, feature: 'statement' }, { timeoutMs: 40_000 })
 }
@@ -279,7 +287,7 @@ async function readSource(auth: Auth, source: StatementSource, today: string, cu
 export async function buildStatementProposal(auth: Auth, source: StatementSource): Promise<StatementProposal> {
   const [now, currencyCode, categoriesColl, expensesColl, overridesColl] = await Promise.all([
     nowForUser(auth.userId),
-    getUserCurrency(auth.userId),
+    getBudgetCurrency(auth),
     getCollection('categories', auth),
     getCollection('expenses', auth),
     getCollection('category_map_overrides', auth),

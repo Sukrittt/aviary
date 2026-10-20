@@ -16,7 +16,7 @@ const MAX_BODY_LEN = 4_400_000
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const TABLE_FILE = /\.(csv|tsv|txt|xlsx)$/i
 
-const STATUS: Record<StatementError['code'], number> = { unreadable: 400, empty: 400, pdf_locked: 400, too_big: 413 }
+const STATUS: Record<StatementError['code'], number> = { unreadable: 400, empty: 400, pdf_locked: 400, too_big: 413, other_currency: 400 }
 
 /**
  * `POST /api/expenses/statement`: reads the days someone didn't log from

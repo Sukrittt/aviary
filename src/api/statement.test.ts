@@ -19,4 +19,9 @@ describe('readStatement', () => {
     apiFetch.mockResolvedValue(Response.json({ error: 'gemini exploded' }, { status: 502 }))
     await expect(readStatement(images)).rejects.toThrow('Check your connection and try again.')
   })
+
+  it('says when a statement is in another currency from the budget', async () => {
+    apiFetch.mockResolvedValue(Response.json({ error: 'other_currency' }, { status: 400 }))
+    await expect(readStatement({ file: new File(['x'], 'card.csv') })).rejects.toThrow("This statement's in a different currency from your budget. Try one from your main account.")
+  })
 })
