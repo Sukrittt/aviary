@@ -27,7 +27,7 @@ vi.mock('../components/ExpenseSidebar', async () => {
       const [showStatement, setShowStatement] = useState(false)
       return (
         <>
-          <button onClick={onBulkReturn}>Return all to RTA</button>
+          {onBulkReturn && <button onClick={onBulkReturn}>Return all to RTA</button>}
           <button onClick={() => setShowStatement(true)}>Add from statement</button>
           {showStatement && <div>statement-dialog</div>}
         </>
