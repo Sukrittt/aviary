@@ -12011,6 +12011,10 @@ button.account-feature-card {
   align-items: center;
   gap: 14px;
 }
+.home-learning-toggle {
+  margin-left: auto;
+  flex: none;
+}
 .home-learning-bird {
   display: grid;
   place-items: center;
