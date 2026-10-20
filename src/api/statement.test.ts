@@ -21,7 +21,8 @@ describe('readStatement', () => {
   })
 
   it('says when a statement is in another currency from the budget', async () => {
-    apiFetch.mockResolvedValue(Response.json({ error: 'other_currency' }, { status: 400 }))
-    await expect(readStatement({ file: new File(['x'], 'card.csv') })).rejects.toThrow("This statement's in a different currency from your budget. Try one from your main account.")
+    apiFetch.mockImplementation(async () => Response.json({ error: 'other_currency' }, { status: 400 }))
+    await expect(readStatement({ file: new File(['x'], 'card.csv') })).rejects.toThrow("These payments are in a different currency from your budget, so nothing was added. Try a statement or screenshot from the account you budget in.")
+    await expect(readStatement({ file: new File(['x'], 'card.csv') })).rejects.toMatchObject({ title: 'Different currency' })
   })
 })

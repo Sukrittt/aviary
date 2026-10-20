@@ -787,7 +787,7 @@ export function TransactionsView({
                           {isSelected && (
                             <svg viewBox="0 0 24 24" fill="none">
                               <path
-                                d="M5 13l4 4L19 7"
+                                d="M3.15 11.9l4 4L17.15 5.9"
                                 stroke="currentColor"
                                 strokeWidth={3}
                                 strokeLinecap="round"

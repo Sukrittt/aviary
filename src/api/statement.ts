@@ -20,15 +20,26 @@ export interface StatementProposal {
   dropped: number
 }
 
-/** What went wrong, already worded for the user. */
-export class StatementFailure extends Error {}
+/** What went wrong, already worded for the user, with a short title to sit over it. */
+export class StatementFailure extends Error {
+  constructor(message: string, readonly title = "That didn't go through") {
+    super(message)
+  }
+}
 
 const COPY: Record<string, string> = {
   pdf_locked: "That PDF has a password. Download the statement as Excel or CSV from net banking and upload that instead.",
   unreadable: "Couldn't read that one. Try a CSV or Excel statement, or a screenshot of your payments.",
   empty: "Couldn't find any payments from the last month in that.",
   too_big: "That's too big to upload. Try fewer screenshots or a shorter date range.",
-  other_currency: "This statement's in a different currency from your budget. Try one from your main account.",
+  other_currency: "These payments are in a different currency from your budget, so nothing was added. Try a statement or screenshot from the account you budget in.",
+}
+const TITLE: Record<string, string> = {
+  pdf_locked: 'That PDF is locked',
+  unreadable: 'Hard to read, that one',
+  empty: 'No payments in there',
+  too_big: "That's a big one",
+  other_currency: 'Different currency',
 }
 const RATE_LIMITED = "That's a lot of uploads in a row. Give it a minute and try again."
 const ALLOWANCE = "You've used this month's AI reads. Add these by hand for now."
@@ -50,13 +61,14 @@ export async function readStatement(input: { images: { data: string; mimeType: s
   try {
     resp = await apiFetch('/api/expenses/statement', { method: 'POST', headers, body, signal: AbortSignal.timeout(60_000) })
   } catch {
-    throw new StatementFailure(GENERIC)
+    throw new StatementFailure(GENERIC, "Couldn't reach Aviary")
   }
   if (resp.ok) return resp.json()
-  if (await allowanceHit(resp, 'statement')) throw new StatementFailure(ALLOWANCE)
-  if (resp.status === 429) throw new StatementFailure(RATE_LIMITED)
+  if (await allowanceHit(resp, 'statement')) throw new StatementFailure(ALLOWANCE, "That's this month's AI reads")
+  if (resp.status === 429) throw new StatementFailure(RATE_LIMITED, 'One moment')
   // The platform turns away a body past 4.5MB before the route sees it, with no JSON code.
-  if (resp.status === 413) throw new StatementFailure(COPY.too_big)
+  if (resp.status === 413) throw new StatementFailure(COPY.too_big, TITLE.too_big)
   const code = ((await resp.json().catch(() => null)) as { error?: unknown } | null)?.error
-  throw new StatementFailure((typeof code === 'string' && COPY[code]) || GENERIC)
+  const known = typeof code === 'string' && COPY[code] ? code : null
+  throw new StatementFailure(known ? COPY[known] : GENERIC, known ? TITLE[known] : undefined)
 }

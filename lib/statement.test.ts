@@ -12,6 +12,7 @@ import {
   rowsFromTable,
   isLockedPdf,
   MAX_STATEMENT_ROWS,
+  StatementError,
 } from './statement'
 
 const TODAY = '2026-10-19'
@@ -239,11 +240,28 @@ describe('readSource for a csv', () => {
 })
 
 describe('statementPrompt', () => {
-  it('leaves out rows in another currency rather than reading them as the account currency', async () => {
+  it('asks for the currency each amount is shown in, so code can turn the others away', async () => {
     const { statementPrompt } = await import('./statement')
-    const prompt = statementPrompt(TODAY, 'INR')
-    expect(prompt).toContain('Amounts are in INR.')
-    expect(prompt).toContain('Leave out any transaction shown in a currency other than INR.')
+    const prompt = statementPrompt(TODAY, 'GBP')
+    expect(prompt).toContain('The budget is in GBP.')
+    expect(prompt).toContain('currency: the ISO 4217 code')
+    expect(prompt).not.toContain('Leave out any transaction shown in a currency')
+  })
+})
+
+describe('normalizeStatement: currency on a screenshot', () => {
+  const t = (amount: number, currency?: string) => ({ date: '2026-10-18', amount, payee: 'Swiggy', direction: 'debit', currency })
+
+  it('turns away a screenshot that is all in another currency, instead of reading it as empty', () => {
+    expect(() => normalizeStatement({ transactions: [t(500, 'INR'), t(240, 'inr')] }, TODAY, 'GBP')).toThrow(new StatementError('other_currency'))
+  })
+  it('leaves out the other-currency rows of a mixed one, counted as dropped, never logged as the budget currency', () => {
+    const out = normalizeStatement({ transactions: [t(500, 'INR'), t(12, 'GBP'), t(8, '')] }, TODAY, 'GBP')
+    expect(out.rows.map((r) => r.amount)).toEqual([12, 8])
+    expect(out.dropped).toBe(1)
+  })
+  it('reads rows with no currency, or one it does not know, as the budget currency, as before', () => {
+    expect(normalizeStatement({ transactions: [t(8), t(9, 'Rs?')] }, TODAY, 'GBP').rows).toHaveLength(2)
   })
 })
 

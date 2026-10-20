@@ -5571,7 +5571,9 @@
   color: var(--tk-on-success);
 }
 
-.setup-cta.is-saving {
+.setup-cta.is-saving,
+.erd-log-submit.is-saving:disabled {
+  opacity: 1;
   position: relative;
   overflow: hidden;
   isolation: isolate;
@@ -5580,8 +5582,9 @@
   cursor: progress;
 }
 
-/* Fills as each setup write lands, so a slow save visibly moves. */
-.setup-cta.is-saving::before {
+/* Fills as each setup write lands, so a slow save visibly moves. The statement import's log button shares it. */
+.setup-cta.is-saving::before,
+.erd-log-submit.is-saving::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -14345,6 +14348,11 @@ button.account-feature-card {
   border-radius: 14px;
   transition: background-color 140ms, transform 140ms;
 }
+.gap-day {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
 .gap-row.is-selected {
   background: color-mix(in oklab, var(--gold) 7%, transparent);
 }
@@ -14456,10 +14464,6 @@ button.account-feature-card {
 }
 .gap-row.is-off .gap-row-icon {
   opacity: 0.55;
-}
-.gap-row-picker {
-  padding: 6px 8px 10px 90px;
-  animation: setup-fade-in 200ms ease both;
 }
 .gap-note {
   margin: 12px 0 0;
@@ -14691,9 +14695,6 @@ button.account-feature-card {
   }
   .gap-row-hint {
     display: none;
-  }
-  .gap-row-picker {
-    padding-left: 8px;
   }
 }
 /* ── Budgets: the switcher chip, its sheet, the create dialog ── */

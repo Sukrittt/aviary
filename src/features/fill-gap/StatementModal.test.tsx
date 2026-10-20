@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 
 const mutateAsync = vi.fn()
 const refresh = vi.fn()
@@ -8,13 +9,6 @@ vi.mock('@/src/hooks/useExpenses', () => ({ useAddExpense: () => ({ mutateAsync,
 vi.mock('@/src/hooks/useCategories', () => ({
   useCategories: () => ({ data: [{ name: 'Food' }, { name: 'Travel' }] }),
   useCategoryStyle: () => () => ({ background: 'gold', color: 'black' }),
-}))
-vi.mock('@/src/components/CategoryPicker', () => ({
-  CategoryPicker: ({ onChange }: { onChange: (c: string) => void }) => (
-    <button type="button" onClick={() => onChange('Food')}>
-      Food chip
-    </button>
-  ),
 }))
 vi.mock('@/src/context/CurrencyContext', () => ({ useCurrency: () => ({ formatMoney: (n: number) => `₹${n}` }) }))
 vi.mock('@/src/api/statement', async (orig) => ({ ...(await orig<object>()), readStatement: (...a: unknown[]) => readStatement(...a) }))
@@ -61,8 +55,8 @@ describe('StatementModal', () => {
     await upload()
     fireEvent.click(screen.getByLabelText('Add Chai, ₹20'))
     expect(screen.getByText('Pick a category for the ticked rows to log them.')).toBeTruthy()
-    fireEvent.click(screen.getByLabelText('Pick a category for Chai'))
-    fireEvent.click(screen.getByText('Food chip'))
+    await userEvent.click(screen.getByLabelText('Pick a category for Chai'))
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Food' }))
     fireEvent.click(screen.getByText('Log 2 · ₹369'))
     await waitFor(() => expect(mutateAsync).toHaveBeenCalledTimes(2))
     // Oldest day first: Chai (12 Oct) goes before Swiggy.
@@ -81,8 +75,8 @@ describe('StatementModal', () => {
 
   it('picking a category ticks the row it belongs to', async () => {
     await upload()
-    fireEvent.click(screen.getByLabelText('Pick a category for Chai'))
-    fireEvent.click(screen.getByText('Food chip'))
+    await userEvent.click(screen.getByLabelText('Pick a category for Chai'))
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Food' }))
     expect(screen.getByLabelText('Add Chai, ₹20').getAttribute('aria-checked')).toBe('true')
     expect(screen.getByText('Log 2 · ₹369')).toBeTruthy()
   })

@@ -1,10 +1,12 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useRef, useState, type CSSProperties } from 'react'
 import Link from 'next/link'
 import { ArrowLeftIcon, BankIcon, CaretDownIcon, CheckIcon, FileTextIcon, ImagesIcon, UploadSimpleIcon } from '@/src/components/icons'
 import { CategoryIcon } from '@/src/components/CategoryIcon'
-import { CategoryPicker } from '@/src/components/CategoryPicker'
+import { BirdEmptyState } from '@/src/components/BirdEmptyState'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { MENU_ITEM, MENU_POPUP } from '@/src/components/menuStyles'
 import { Confetti } from '@/src/components/onboarding/Confetti'
 import { Scrim, Sheet } from '@/src/components/MotionSheet'
 import { LoadingCaption } from '@/src/components/LoadingCaption'
@@ -48,7 +50,7 @@ export function StatementModal({ onClose, onBack }: { onClose: () => void; onBac
   const [phase, setPhase] = useState<'pick' | 'reading' | 'review' | 'error' | 'done'>('pick')
   const [proposal, setProposal] = useState<StatementProposal | null>(null)
   const [rows, setRows] = useState<Record<string, RowState>>({})
-  const [error, setError] = useState('')
+  const [error, setError] = useState({ title: '', message: '' })
   const [logError, setLogError] = useState('')
   const [progress, setProgress] = useState(0)
   const [done, setDone] = useState<CaughtUp | null>(null)
@@ -58,8 +60,8 @@ export function StatementModal({ onClose, onBack }: { onClose: () => void; onBac
   // Rows a partly failed attempt already logged; a retry skips them (their client_ids would dedupe anyway).
   const logged = useRef(new Map<string, string | null>())
 
-  function fail(message: string) {
-    setError(message)
+  function fail(message: string, title = "Couldn't use that one") {
+    setError({ title, message })
     setPhase('error')
   }
 
@@ -75,13 +77,14 @@ export function StatementModal({ onClose, onBack }: { onClose: () => void; onBac
         : await readStatement({
             images: await Promise.all(images.map(async (f) => ({ data: base64Of(await dataUrlFromFile(f, SCREENSHOT_ENCODING)), mimeType: 'image/jpeg' }))),
           })
-      if (result.items.length === 0) return fail(creditsLine(result.credits) ? "Only money coming in there, so there's nothing to add." : UNREADABLE)
+      if (result.items.length === 0) return fail(creditsLine(result.credits) ? "Only money coming in there, so there's nothing to add." : UNREADABLE, creditsLine(result.credits) ? 'Nothing going out' : 'Hard to read, that one')
       setProposal(result)
       setRows(Object.fromEntries(result.items.map((i) => [i.id, { checked: !i.suggestSkip, category: i.category }])))
       setPhase('review')
       track('statement_read', { kind: doc ? 'file' : 'screenshots', rows: result.items.length, credits: result.credits })
     } catch (err) {
-      fail(err instanceof StatementFailure ? err.message : UNREADABLE)
+      if (err instanceof StatementFailure) fail(err.message, err.title)
+      else fail(UNREADABLE, 'Hard to read, that one')
     }
   }
 
@@ -170,13 +173,13 @@ export function StatementModal({ onClose, onBack }: { onClose: () => void; onBac
         )}
 
         {phase === 'error' && (
-          <div className="scan-center">
-            <p className="scan-error-copy">{error}</p>
-            <div className="scan-actions-row">
-              <button type="button" className="account-pill-btn account-pill-btn--primary" onClick={() => setPhase('pick')}>
-                Try another
-              </button>
-            </div>
+          <div role="alert">
+            <BirdEmptyState
+              mood="searching"
+              title={error.title}
+              description={error.message}
+              action={{ label: 'Try again', onClick: () => setPhase('pick') }}
+            />
           </div>
         )}
 
@@ -254,6 +257,8 @@ function StatementPick({ onFiles }: { onFiles: (files: File[]) => void }) {
   )
 }
 
+const VIEWPORT = { x: 0, y: 0, get width() { return window.innerWidth }, get height() { return window.innerHeight } }
+
 const STATEMENT_SOURCES = [
   { icon: ImagesIcon, label: 'Screenshots', hint: 'UPI app, up to 5' },
   { icon: BankIcon, label: 'Bank export', hint: 'CSV or Excel' },
@@ -274,7 +279,6 @@ function StatementReview({ proposal, rows, busy, saving, success, progress, erro
   const { formatMoney } = useCurrency()
   const categories = useCategories().data ?? []
   const styleOf = useCategoryStyle()
-  const [picking, setPicking] = useState<string | null>(null)
   const items = proposal.items
   const checked = items.filter((i) => rows[i.id]?.checked)
   const missing = checked.filter((i) => !rows[i.id].category).length
@@ -283,6 +287,7 @@ function StatementReview({ proposal, rows, busy, saving, success, progress, erro
   const dates = items.map((i) => i.date).sort()
   const allOn = checked.length === items.length
   const iconOf = (name: string) => categories.find((c) => c.name === name)
+  const names = [...new Set(categories.map((c) => c.name))]
 
   return (
     <div className="gap-review">
@@ -304,7 +309,6 @@ function StatementReview({ proposal, rows, busy, saving, success, progress, erro
             {day.rows.map((item) => {
               const row = rows[item.id]
               const category = iconOf(row.category)
-              const open = picking === item.id
               return (
                 <div key={item.id} className="gap-row-wrap">
                   <div className={`gap-row${row.checked ? ' is-selected' : ' is-off'}`}>
@@ -321,7 +325,7 @@ function StatementReview({ proposal, rows, busy, saving, success, progress, erro
                       <span className={`txn-check${row.checked ? ' is-on' : ''}`}>
                         {row.checked && (
                           <svg viewBox="0 0 24 24" fill="none">
-                            <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" pathLength={1} />
+                            <path d="M3.15 11.9l4 4L17.15 5.9" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" pathLength={1} />
                           </svg>
                         )}
                       </span>
@@ -332,33 +336,38 @@ function StatementReview({ proposal, rows, busy, saving, success, progress, erro
                     <span className="gap-row-main">
                       <span className="gap-row-name">{item.item}</span>
                       <span className="gap-row-meta">
-                        <button
-                          type="button"
-                          className={`gap-row-category${row.checked && !row.category ? ' is-missing' : ''}`}
-                          aria-expanded={open}
-                          aria-label={row.category ? `Category for ${item.item}: ${splitEmoji(row.category).text}. Change it` : `Pick a category for ${item.item}`}
-                          disabled={busy}
-                          onClick={() => setPicking(open ? null : item.id)}
-                        >
-                          {row.category ? splitEmoji(row.category).text : 'Pick a category'}
-                          <CaretDownIcon size={11} weight="bold" aria-hidden="true" />
-                        </button>
+                        {/* A menu, not chips under the row: picking one doesn't push the rest of the list down. */}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger
+                            disabled={busy}
+                            render={<button type="button" className={`gap-row-category${row.checked && !row.category ? ' is-missing' : ''}`} />}
+                            aria-label={row.category ? `Category for ${item.item}: ${splitEmoji(row.category).text}. Change it` : `Pick a category for ${item.item}`}
+                          >
+                            {row.category ? splitEmoji(row.category).text : 'Pick a category'}
+                            <CaretDownIcon size={11} weight="bold" aria-hidden="true" />
+                          </DropdownMenuTrigger>
+                          {/* Sized to the window, not the review's scroll box, so the list isn't cut off at the modal's edge. */}
+                          <DropdownMenuContent align="start" collisionBoundary={VIEWPORT} className={`${MENU_POPUP} max-h-[min(18rem,var(--available-height))]`}>
+                            {names.map((name) => {
+                              const c = iconOf(name)
+                              return (
+                                <DropdownMenuItem
+                                  key={name}
+                                  className={`${MENU_ITEM}${name === row.category ? ' bg-(--tk-accent-soft)! text-(--tk-accent-ink)!' : ''}`}
+                                  onClick={() => onChange([item.id], { category: name, checked: true })}
+                                >
+                                  <CategoryIcon name={name} icon={c?.icon} group={c?.group} />
+                                  {splitEmoji(name).text}
+                                </DropdownMenuItem>
+                              )
+                            })}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                         {item.suggestSkip && <span className="gap-row-hint">{SKIP_LABEL[item.suggestSkip]}</span>}
                       </span>
                     </span>
                     <span className="gap-row-amount">{formatMoney(item.amount)}</span>
                   </div>
-                  {open && (
-                    <div className="gap-row-picker">
-                      <CategoryPicker
-                        value={row.category}
-                        onChange={(c) => {
-                          onChange([item.id], { category: c, checked: true })
-                          setPicking(null)
-                        }}
-                      />
-                    </div>
-                  )}
                 </div>
               )
             })}
@@ -373,6 +382,9 @@ function StatementReview({ proposal, rows, busy, saving, success, progress, erro
         baseClass="erd-log-submit"
         saving={saving}
         success={success}
+        className={saving ? 'is-saving' : undefined}
+        style={saving ? ({ '--save-progress': checked.length ? progress / checked.length : 0 } as CSSProperties) : undefined}
+        aria-busy={saving}
         savingLabel={checked.length > 1 ? `Logging ${progress} of ${checked.length}…` : 'Logging…'}
         successLabel={`Logged ${checked.length}`}
         disabled={busy || checked.length === 0 || missing > 0}
