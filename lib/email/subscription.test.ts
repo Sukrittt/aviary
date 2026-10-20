@@ -1,7 +1,8 @@
 // @vitest-environment node
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MongoClient, ObjectId, type Db } from 'mongodb'
-import { MongoMemoryServer } from 'mongodb-memory-server'
+import type { MongoMemoryServer } from 'mongodb-memory-server'
+import { startMongo } from '@/src/test-utils/mongo'
 import { BILLING_EVENTS, BILLING_SUBSCRIPTIONS, type BillingEventDoc, type BillingSubscriptionDoc } from '@/lib/billing/records'
 
 let db: Db, client: MongoClient, server: MongoMemoryServer
@@ -12,10 +13,10 @@ const { sendEmail, EmailSendError } = await import('./resend')
 const { prepareSubscriptionEmails, retrySubscriptionEmails, EMAIL_OUTBOX } = await import('./subscription')
 
 beforeAll(async () => {
-  server = await MongoMemoryServer.create({ binary: { version: '8.2.6' } })
+  server = await startMongo()
   client = await MongoClient.connect(server.getUri())
   db = client.db('subscription_email_test')
-}, 30_000)
+}, 120_000)
 afterAll(async () => { await client?.close(); await server?.stop() })
 beforeEach(async () => {
   await db.dropDatabase()

@@ -1,7 +1,8 @@
 // @vitest-environment node
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Db, MongoClient, ObjectId } from 'mongodb'
-import { MongoMemoryServer } from 'mongodb-memory-server'
+import type { MongoMemoryServer } from 'mongodb-memory-server'
+import { startMongo } from '@/src/test-utils/mongo'
 import { redirect } from 'next/navigation'
 
 let db: Db
@@ -24,10 +25,10 @@ const { GET } = await import('@/app/api/changelog/latest/route')
 const { POST } = await import('@/app/api/changelog/[id]/seen/route')
 
 beforeAll(async () => {
-  server = await MongoMemoryServer.create({ binary: { version: '8.2.6' } })
+  server = await startMongo()
   client = await MongoClient.connect(server.getUri())
   db = client.db('changelog_test')
-}, 60_000)
+}, 120_000)
 afterAll(async () => { await client?.close(); await server?.stop() })
 beforeEach(async () => {
   vi.clearAllMocks()
