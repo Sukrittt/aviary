@@ -91,9 +91,24 @@ export function useExpensesFeed(params: Omit<ExpensesPageParams, 'page' | 'photo
 
 export type AddExpenseResult = { id?: string; timestamp?: string; version?: number; clientId: string; pending: boolean; duplicate?: boolean }
 
-export function useAddExpense() {
+/**
+ * `refetch: false` is for a batch: rows save without refetching the lists
+ * after each one, and the caller calls `refresh()` once when it's done.
+ */
+export function useAddExpense({ refetch = true }: { refetch?: boolean } = {}) {
   const qc = useQueryClient()
-  return useMutation({
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: key })
+    qc.invalidateQueries({ queryKey: briefKey })
+    // A credit-card expense add/edit/delete also rebalances the Credit
+    // Card envelope server-side — bust budgets too or Envelopes shows a
+    // stale balance for up to its 30s staleTime.
+    qc.invalidateQueries({ queryKey: budgetsKey })
+    qc.invalidateQueries({ queryKey: categoryMapKey })
+    // Manual creates complete a server-owned getting started milestone.
+    qc.invalidateQueries({ queryKey: userKey })
+  }
+  const mutation = useMutation({
     mutationFn: async (row: NewExpenseRow): Promise<AddExpenseResult> => {
       const payload = mintExpensePayload(row)
       // Mobile catches a transport failure here and queues the payload for its
@@ -114,17 +129,10 @@ export function useAddExpense() {
         payment_method: row.payment_method ?? 'unknown',
         has_notes: !!row.notes?.trim(),
       })
-      qc.invalidateQueries({ queryKey: key })
-      qc.invalidateQueries({ queryKey: briefKey })
-      // A credit-card expense add/edit/delete also rebalances the Credit
-      // Card envelope server-side — bust budgets too or Envelopes shows a
-      // stale balance for up to its 30s staleTime.
-      qc.invalidateQueries({ queryKey: budgetsKey })
-      qc.invalidateQueries({ queryKey: categoryMapKey })
-      // Manual creates complete a server-owned getting started milestone.
-      qc.invalidateQueries({ queryKey: userKey })
+      if (refetch) refresh()
     },
   })
+  return { ...mutation, refresh }
 }
 
 // Rows carry has_photo, so a new photo has to bust the list. Most

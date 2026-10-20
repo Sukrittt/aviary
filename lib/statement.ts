@@ -2,15 +2,17 @@ import { createHash, randomUUID } from 'node:crypto'
 import { Type, type Schema } from '@google/genai'
 import type { Auth } from '@/lib/access'
 import { getCollection } from '@/lib/http'
-import { getCachedCategoryMap } from '@/lib/categoryMap'
-import { getUserCurrency, nowForUser } from '@/lib/userCurrency'
+import { getCachedCategoryMap, itemKey } from '@/lib/categoryMap'
+import { getBudgetCurrency, nowForUser } from '@/lib/userCurrency'
 import { validDate } from '@/lib/inputValidation'
 import { generateJSONFromImage, type ImagePart } from '@/lib/ai/gemini'
-import { assignCategories, matchFromHistory, MAX_CAPTURE_AGE_DAYS, MAX_CAPTURE_AMOUNT, type CaptureItem } from '@/lib/ai/capture'
+import { assignCategories, MAX_CAPTURE_AGE_DAYS, MAX_CAPTURE_AMOUNT, type CaptureItem } from '@/lib/ai/capture'
+import type { AiCaller } from '@/lib/ai/usage'
 import { pickColumnRoles } from '@/lib/import/ai'
 import { readTable, ZipTooLarge } from '@/lib/import/read'
 import { ImportError, inspect, needsColumnHelp, normalize, resolveRows, unresolvedColumns, type Layout, type StoredRow } from '@/lib/import/normalize'
 import type { Role } from '@/lib/import/presets'
+import { isCurrencyCode } from '@/src/lib/currencies'
 
 /**
  * "Fill the gap": the days someone didn't log, read back from a UPI or bank
@@ -50,7 +52,7 @@ export interface StatementProposal {
 }
 
 /** A failure the client turns into written copy. */
-export type StatementErrorCode = 'unreadable' | 'empty' | 'pdf_locked' | 'too_big'
+export type StatementErrorCode = 'unreadable' | 'empty' | 'pdf_locked' | 'too_big' | 'other_currency'
 export class StatementError extends Error {
   constructor(readonly code: StatementErrorCode) {
     super(code)
@@ -108,13 +110,22 @@ const NARRATION_NOISE = /^(?:(?:upi|imps|neft|rtgs|pos|ecom|bil|onl|payment|paid
 // SBI's "TO TRANSFER-UPI/…" and an auto-debit's "ACH D- NETFLIX…" lead in front of the narration.
 const LEAD_IN = /^(?:(?:to|by) transfer\s*-\s*|n?ach\s*(?:d|dr|debit)?\s*-\s*)/i
 
+// ponytail: initialisms with a vowel look like words, so they're listed; add payees as they're seen.
+const INITIALISMS = new Set(['IRCTC', 'LIC', 'IOCL', 'ICICI', 'IDFC', 'SBI', 'ITC', 'IKEA'])
+// Short abbreviations with no vowel that still read as words.
+const NOT_INITIALISMS = new Set(['DR', 'MR', 'MRS', 'MS', 'ST', 'LTD', 'PVT', 'GYM'])
+
+/** "HP PETROL PUMP" is HP Petrol Pump: 2 to 5 letters with no vowel (HP, PVR, BSNL) stay capitals, like the listed initialisms. */
 function titleCase(text: string): string {
-  return text.toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase())
+  return text.replace(/\S+/g, (w) => {
+    if (INITIALISMS.has(w) || (/^[A-Z]{2,5}$/.test(w) && !/[AEIOU]/.test(w) && !NOT_INITIALISMS.has(w))) return w
+    return w[0] + w.slice(1).toLowerCase()
+  })
 }
 
 /**
  * A readable payee from what a statement says: "UPI/DR/4123…/SWIGGY/YESB/swiggy@ybl/Payment"
- * is Swiggy. Shouting all-caps names are title-cased; anything already mixed-case is kept.
+ * is Swiggy. Shouting all-caps names are title-cased, initialisms aside; anything already mixed-case is kept.
  */
 export function payeeLabel(raw: unknown): string {
   if (typeof raw !== 'string') return ''
@@ -235,7 +246,8 @@ export type StatementSource =
 
 /**
  * A csv or xlsx through the import's reader and column mapping. Rows in a
- * currency other than the user's are left out, not logged as theirs.
+ * currency other than the user's are left out, not logged as theirs, and a
+ * file that's all in another one ("$5.00", "Amount (USD)") is turned away.
  * `pickRoles` names the columns alias matching couldn't (Jev in production).
  */
 export async function readStatementTable(
@@ -249,8 +261,12 @@ export async function readStatementTable(
     const layout = inspect(await readTable(data, filename))
     const roles = needsColumnHelp(layout) ? await pickRoles(layout).catch(() => ({})) : {}
     const n = normalize(layout, today, roles, currencyCode)
+    if (isCurrencyCode(n.fileCurrency) && n.fileCurrency !== currencyCode && !n.rows.some((r) => r.currency === currencyCode)) {
+      throw new StatementError('other_currency')
+    }
     return rowsFromTable(resolveRows(n.rows, { direction: n.defaultDirection, currency: currencyCode, hasCurrency: n.hasCurrency }))
   } catch (err) {
+    if (err instanceof StatementError) throw err
     if (err instanceof ZipTooLarge) throw new StatementError('too_big')
     if (err instanceof ImportError) throw new StatementError(err.code === 'empty' ? 'empty' : 'unreadable')
     throw new StatementError('unreadable')
@@ -262,15 +278,41 @@ async function readSource(auth: Auth, source: StatementSource, today: string, cu
     return readStatementTable(source.data, source.filename, today, currencyCode, (layout) => pickColumnRoles(unresolvedColumns(layout), auth.userId))
   }
   if (source.kind === 'pdf' && isLockedPdf(source.data)) throw new StatementError('pdf_locked')
+  // ponytail: no other_currency here. The prompt has the model leave other-currency rows out, so an all-foreign
+  // screenshot reads as 'empty'. A per-row currency in STATEMENT_SCHEMA could say so, once the model's shown to fill it reliably.
   const parts = source.kind === 'pdf' ? [{ data: source.data.toString('base64'), mimeType: 'application/pdf' }] : source.images
   return generateJSONFromImage(statementPrompt(today, currencyCode), parts, STATEMENT_SCHEMA, { userId: auth.userId, feature: 'statement' }, { timeoutMs: 40_000 })
+}
+
+type Envelope = Pick<CaptureItem, 'category' | 'categoryConfidence'>
+
+/**
+ * One envelope per payee. History counts only for the exact payee the user
+ * logged before: word matching, fine for a typed "swiggy dinner", would file
+ * every "Swiggy" under Groceries after a few "Swiggy Instamart" rows. The rest
+ * go to Jev, which knows merchants, in the order given, up to MAX_JEV_PAYEES;
+ * past that the user picks.
+ */
+export async function categorizePayees(payees: string[], categories: string[], items: Record<string, string>, caller: AiCaller): Promise<Map<string, Envelope>> {
+  const out = new Map<string, Envelope>()
+  const unknown: string[] = []
+  for (const payee of payees) {
+    const known = items[itemKey(payee)]
+    if (known && categories.includes(known)) out.set(payee, { category: known, categoryConfidence: 1 })
+    else unknown.push(payee)
+  }
+  const asked = unknown.slice(0, MAX_JEV_PAYEES)
+  // No words: assignCategories goes straight to Jev.
+  const answers = await assignCategories(asked.map((item) => ({ item })), categories, {}, caller)
+  asked.forEach((payee, i) => out.set(payee, answers[i]))
+  return out
 }
 
 /** Reads an upload into a proposal: rows, envelopes from history then Jev, and which rows start unchecked. */
 export async function buildStatementProposal(auth: Auth, source: StatementSource): Promise<StatementProposal> {
   const [now, currencyCode, categoriesColl, expensesColl, overridesColl] = await Promise.all([
     nowForUser(auth.userId),
-    getUserCurrency(auth.userId),
+    getBudgetCurrency(auth),
     getCollection('categories', auth),
     getCollection('expenses', auth),
     getCollection('category_map_overrides', auth),
@@ -286,7 +328,7 @@ export async function buildStatementProposal(auth: Auth, source: StatementSource
     expensesColl.find({ date: { $gte: addDays(rows[0].date, -1) } }, { projection: { date: 1, amount_inr: 1 } }).toArray(),
     expensesColl.find({}, { projection: { date: 1 } }).sort({ date: -1 }).limit(1).toArray(),
     categoriesColl.find({}, { projection: { name: 1 } }).toArray(),
-    getCachedCategoryMap(auth.userId, expensesColl, overridesColl),
+    getCachedCategoryMap(auth.spaceId, expensesColl, overridesColl),
   ])
   const skips = markSuggestedSkips(
     rows,
@@ -295,26 +337,23 @@ export async function buildStatementProposal(auth: Auth, source: StatementSource
   )
   const categories = [...new Set(categoryDocs.map((d) => String(d.name ?? '')).filter(Boolean))]
 
-  // One envelope per payee. Rows that start checked get Jev first; the rest only if there's room.
+  // Rows that start checked get Jev first; the rest only if there's room.
   const payees = [...new Set([...rows.filter((_, i) => !skips[i]), ...rows].map((r) => r.payee))]
-  const asked = payees.slice(0, MAX_JEV_PAYEES)
-  const answers = await assignCategories(asked.map((item) => ({ item })), categories, map.words, { userId: auth.userId, feature: 'statement' })
-  const byPayee = new Map(asked.map((p, i) => [p, answers[i]]))
+  const byPayee = await categorizePayees(payees, categories, map.items, { userId: auth.userId, feature: 'statement' })
   const ids = statementClientIds(rows)
 
   return {
     id: randomUUID(),
     items: rows.map((r, i) => {
-      const known = byPayee.get(r.payee)
-      const fromHistory = known ? '' : matchFromHistory(r.payee, map.words, categories)
+      const envelope = byPayee.get(r.payee)
       return {
         id: ids[i],
         item: r.payee,
         amount: r.amount,
         splitWays: 1,
         date: r.date,
-        category: known?.category ?? fromHistory,
-        categoryConfidence: known?.categoryConfidence ?? (fromHistory ? 1 : null),
+        category: envelope?.category ?? '',
+        categoryConfidence: envelope?.categoryConfidence ?? null,
         suggestSkip: skips[i],
       }
     }),

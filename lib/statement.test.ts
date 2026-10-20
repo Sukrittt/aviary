@@ -1,5 +1,10 @@
 import { describe, it, expect, vi } from 'vitest'
+
+const scoreCategory = vi.fn()
+vi.mock('@/lib/ai/jev', () => ({ scoreCategory: (...a: unknown[]) => scoreCategory(...a) }))
+
 import {
+  categorizePayees,
   normalizeStatement,
   payeeLabel,
   statementClientIds,
@@ -76,13 +81,22 @@ describe('payeeLabel', () => {
   })
 
   it('reads SBI, bill pay, card and auto-debit narrations', () => {
-    expect(payeeLabel('TO TRANSFER-UPI/DR/627145001122/IRCTC/HDFC/irctc@hdfcbank/Ticket')).toBe('Irctc')
+    expect(payeeLabel('TO TRANSFER-UPI/DR/627145001122/IRCTC/HDFC/irctc@hdfcbank/Ticket')).toBe('IRCTC')
     expect(payeeLabel('TO TRANSFER-UPI/DR/627245001123/SHARMA KIRANA/SBIN/sharmakirana@sbi/Pay')).toBe('Sharma Kirana')
     expect(payeeLabel('BIL/ONL/000987123/AIRTEL POSTPAID/AIRT991')).toBe('Airtel Postpaid')
     expect(payeeLabel('POS 4321XXXXXXXX9012 DMART ANDHERI')).toBe('Dmart Andheri')
     expect(payeeLabel('ACH D- NETFLIX ENTERTAINMENT-NFLX99812')).toBe('Netflix Entertainment')
     expect(payeeLabel('ATM/CASH WDL/ANDHERI EAST/S1AN2201')).toBe('Cash withdrawal')
     expect(payeeLabel('UPI/DR/412345678904/DR REDDYS LAB/HDFC/drreddy@hdfcbank/Payment')).toBe('Dr Reddys Lab')
+  })
+
+  it('keeps initialisms in capitals when it title-cases a shouting name', () => {
+    expect(payeeLabel('TO TRANSFER-UPI/DR/627545001126/HP PETROL PUMP/SBIN/hppetrol@sbi/Fuel')).toBe('HP Petrol Pump')
+    expect(payeeLabel('UPI-PVR INOX-pvrinox@hdfcbank-HDFC0000499-429111223305-UPI')).toBe('PVR Inox')
+    expect(payeeLabel('BSNL MOBILE')).toBe('BSNL Mobile')
+    expect(payeeLabel('LIC PREMIUM')).toBe('LIC Premium')
+    expect(payeeLabel('KFC PVT LTD')).toBe('KFC Pvt Ltd')
+    expect(payeeLabel('DMRC Metro Recharge')).toBe('DMRC Metro Recharge')
   })
 
   it('caps the length', () => {
@@ -201,6 +215,20 @@ describe('readSource for a csv', () => {
     expect(normalizeStatement(raw, TODAY).rows).toEqual([{ date: '2026-10-17', amount: 349, payee: 'Swiggy' }])
   })
 
+  it("turns away a file that's all in another currency, by symbol, header or column", async () => {
+    const { readStatementTable, StatementError } = await import('./statement')
+    const read = (csv: string[], currency = 'INR') => readStatementTable(Buffer.from(csv.join('\n')), 'card.csv', TODAY, currency, async () => ({}))
+    const other = new StatementError('other_currency')
+    await expect(read(['Date,Description,Amount', '17/10/26,Starbucks,-$5.00', '18/10/26,Uber,-$12.40'])).rejects.toEqual(other)
+    await expect(read(['Date,Description,Amount (USD)', '17/10/26,Starbucks,-5.00'])).rejects.toEqual(other)
+    await expect(read(['Date,Description,Amount,Currency', '17/10/26,Starbucks,-5,USD', '18/10/26,Uber,-12,USD'])).rejects.toEqual(other)
+    // A Currency column left blank doesn't hide what the header says.
+    await expect(read(['Date,Description,Amount (USD),Currency', '17/10/26,Starbucks,-5.00,'])).rejects.toEqual(other)
+    // The budget's own currency, or a file that names none, reads as before.
+    await expect(read(['Date,Description,Amount (USD)', '17/10/26,Starbucks,-5.00'], 'USD')).resolves.toMatchObject({ transactions: [{ payee: 'Starbucks', amount: 5 }] })
+    await expect(read(['Date,Description,Amount', '17/10/26,Swiggy,-349'])).resolves.toMatchObject({ transactions: [{ payee: 'Swiggy', amount: 349 }] })
+  })
+
   it('calls an xlsx that inflates past the cap too big, not unreadable', async () => {
     const read = await import('./import/read')
     const { readStatementTable, StatementError } = await import('./statement')
@@ -216,5 +244,31 @@ describe('statementPrompt', () => {
     const prompt = statementPrompt(TODAY, 'INR')
     expect(prompt).toContain('Amounts are in INR.')
     expect(prompt).toContain('Leave out any transaction shown in a currency other than INR.')
+  })
+})
+
+describe('categorizePayees', () => {
+  const categories = ['Groceries', 'Food delivery', 'Travel']
+  const caller = { userId: 'u1', feature: 'statement' as const }
+
+  it("doesn't file Swiggy under Groceries because of past Swiggy Instamart rows", async () => {
+    scoreCategory.mockReset().mockResolvedValue({ choice: 'Food delivery', probability: 0.99 })
+    const out = await categorizePayees(['Swiggy', 'Swiggy Instamart'], categories, { 'swiggy instamart': 'Groceries' }, caller)
+    expect(out.get('Swiggy')).toEqual({ category: 'Food delivery', categoryConfidence: 0.99 })
+    expect(out.get('Swiggy Instamart')).toEqual({ category: 'Groceries', categoryConfidence: 1 })
+    expect(scoreCategory).toHaveBeenCalledTimes(1)
+  })
+
+  it("keeps the user's own envelope for a payee they've logged before, whatever Jev thinks", async () => {
+    scoreCategory.mockReset().mockResolvedValue({ choice: 'Food delivery', probability: 1 })
+    const out = await categorizePayees(['Swiggy'], categories, { swiggy: 'Groceries' }, caller)
+    expect(out.get('Swiggy')).toEqual({ category: 'Groceries', categoryConfidence: 1 })
+    expect(scoreCategory).not.toHaveBeenCalled()
+  })
+
+  it('asks Jev when the remembered envelope is gone', async () => {
+    scoreCategory.mockReset().mockResolvedValue({ choice: 'Travel', probability: 0.9 })
+    const out = await categorizePayees(['IRCTC'], categories, { irctc: 'Trains' }, caller)
+    expect(out.get('IRCTC')).toEqual({ category: 'Travel', categoryConfidence: 0.9 })
   })
 })

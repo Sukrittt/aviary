@@ -2,8 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 
 const mutateAsync = vi.fn()
+const refresh = vi.fn()
 const readStatement = vi.fn()
-vi.mock('@/src/hooks/useExpenses', () => ({ useAddExpense: () => ({ mutateAsync }) }))
+vi.mock('@/src/hooks/useExpenses', () => ({ useAddExpense: () => ({ mutateAsync, refresh }) }))
 vi.mock('@/src/hooks/useCategories', () => ({
   useCategories: () => ({ data: [{ name: 'Food' }, { name: 'Travel' }] }),
   useCategoryStyle: () => () => ({ background: 'gold', color: 'black' }),
@@ -64,8 +65,9 @@ describe('StatementModal', () => {
     fireEvent.click(screen.getByText('Food chip'))
     fireEvent.click(screen.getByText('Log 2 · ₹369'))
     await waitFor(() => expect(mutateAsync).toHaveBeenCalledTimes(2))
-    expect(mutateAsync.mock.calls.map((c) => c[0].client_id)).toEqual(['statement:a', 'statement:c'])
-    expect(mutateAsync.mock.calls[1][0]).toMatchObject({ source: 'statement', category: 'Food', date: '2026-10-12' })
+    // Oldest day first: Chai (12 Oct) goes before Swiggy.
+    expect(mutateAsync.mock.calls.map((c) => c[0].client_id)).toEqual(['statement:c', 'statement:a'])
+    expect(mutateAsync.mock.calls[0][0]).toMatchObject({ source: 'statement', category: 'Food', date: '2026-10-12' })
   })
 
   it('ticks every row at once, and unticks them again', async () => {
@@ -132,6 +134,38 @@ describe('StatementModal', () => {
     fireEvent.click(screen.getByText('Log 1 · ₹349'))
     expect(await screen.findByText('Those were already in your budget, so nothing doubled up.', {}, { timeout: 3000 })).toBeTruthy()
     expect(screen.queryByText(/added/)).toBeNull()
+  })
+
+  it("logs a few days at a time, a day's rows in order, counts each as it finishes, and refetches once", async () => {
+    // Rows 0 and 1 share a day; 2 to 5 each have their own.
+    const date = (i: number) => (i < 2 ? '2026-10-15' : `2026-10-1${4 + i}`)
+    readStatement.mockResolvedValue({
+      ...proposal,
+      items: Array.from({ length: 6 }, (_, i) => ({ id: `statement:${i}`, item: `Shop ${i}`, amount: 10, date: date(i), category: 'Food', suggestSkip: null })),
+    })
+    const pending: Array<() => void> = []
+    let inFlight = 0
+    let most = 0
+    mutateAsync.mockImplementation(() => new Promise((resolve) => {
+      most = Math.max(most, ++inFlight)
+      pending.push(() => { inFlight--; resolve({}) })
+    }))
+    await upload()
+    fireEvent.click(screen.getByText('Log 6 · ₹60'))
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalledTimes(4))
+    expect(screen.getByText('Logging 0 of 6…')).toBeTruthy()
+    // Row 1 waits for row 0, its own day's earlier row; the other days go meanwhile.
+    expect(mutateAsync.mock.calls.map((c) => c[0].client_id)).toEqual(['statement:0', 'statement:2', 'statement:3', 'statement:4'])
+    pending.splice(0, 2).forEach((done) => done())
+    expect(await screen.findByText('Logging 2 of 6…')).toBeTruthy()
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalledTimes(6))
+    expect(refresh).not.toHaveBeenCalled()
+    pending.splice(0).forEach((done) => done())
+    expect(await screen.findByText("You're caught up.", {}, { timeout: 3000 })).toBeTruthy()
+    expect(screen.getByText('6 payments added')).toBeTruthy()
+    expect(most).toBe(4)
+    expect(mutateAsync.mock.calls.map((c) => c[0].client_id).slice(4).sort()).toEqual(['statement:1', 'statement:5'])
+    expect(refresh).toHaveBeenCalledTimes(1)
   })
 
   it('turns away a sixth screenshot before uploading', async () => {

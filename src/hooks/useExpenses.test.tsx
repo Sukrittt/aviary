@@ -50,6 +50,21 @@ it('useAddExpense invalidates both the expenses and ai-brief queries on success'
   expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['user'] })
 })
 
+it('useAddExpense for a batch leaves the cache alone until refresh()', async () => {
+  ;(postExpensePayload as Mock).mockResolvedValue({ id: 'row-1', timestamp: '2026-01-01T10:00:00+05:30' })
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries')
+  const { result } = renderHook(() => useAddExpense({ refetch: false }), { wrapper: wrapper(queryClient) })
+
+  await result.current.mutateAsync({ item: 'Coffee', amount_inr: '150', category: 'Food' })
+  await result.current.mutateAsync({ item: 'Tea', amount_inr: '20', category: 'Food' })
+  expect(invalidateSpy).not.toHaveBeenCalled()
+  result.current.refresh()
+  expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['expenses'] })
+  expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['budgets'] })
+  expect(invalidateSpy).toHaveBeenCalledTimes(5)
+})
+
 
 // An edit can flip payment_method or move month, which rebalances the
 // Credit Card envelope server-side — the budgets cache must bust too or

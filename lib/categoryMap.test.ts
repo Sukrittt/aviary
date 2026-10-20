@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { getCachedCategoryMap, invalidateCategoryMap, buildCategoryMap, learnCategoryCorrection } from './categoryMap'
 import type { ScopedCollection } from './scoped'
 
-function fakeExpensesCollection(rows: Array<{ item: string; category: string }>) {
+function fakeExpensesCollection(rows: Array<{ item: string; category: string; timestamp?: string }>) {
   return {
     find: vi.fn(() => ({ toArray: async () => rows })),
   } as unknown as ScopedCollection
@@ -57,6 +57,33 @@ describe('buildCategoryMap', () => {
     const map = await buildCategoryMap(coll, overrides)
     expect(map.words.swiggy).toBe('Food')
     expect(map.words.instamart).toBe('Groceries')
+  })
+
+  it('remembers whole items too, so a payee matches only what was logged under that name', async () => {
+    const coll = fakeExpensesCollection([
+      { item: 'Swiggy  Instamart', category: 'Groceries' },
+      { item: 'swiggy instamart', category: 'Groceries' },
+      { item: 'Swiggy', category: 'Food' },
+    ])
+    const map = await buildCategoryMap(coll)
+    expect(map.items).toEqual({ 'swiggy instamart': 'Groceries', swiggy: 'Food' })
+    expect(map.words.swiggy).toBe('Groceries')
+  })
+
+  it('files an exact item under its latest category, so a correction beats older votes', async () => {
+    const coll = fakeExpensesCollection([
+      { item: 'Swiggy', category: 'Eating out', timestamp: '2026-10-18T20:00:00+05:30' },
+      { item: 'Swiggy', category: 'Groceries', timestamp: '2026-10-01T20:00:00+05:30' },
+      { item: 'Swiggy', category: 'Groceries', timestamp: '2026-10-02T20:00:00+05:30' },
+      { item: 'Swiggy', category: 'Groceries', timestamp: '2026-10-03T20:00:00+05:30' },
+    ])
+    expect((await buildCategoryMap(coll)).items.swiggy).toBe('Eating out')
+  })
+
+  it('keeps an item named __proto__ as a plain entry', async () => {
+    const map = await buildCategoryMap(fakeExpensesCollection([{ item: '__proto__', category: 'Food' }]))
+    expect(Object.hasOwn(map.items, '__proto__')).toBe(true)
+    expect(Object.getPrototypeOf(map.items)).toBe(Object.prototype)
   })
 
   // Seen in prod: "and"→Groceries, "to"→Metro, "ou"/"ch"/"ap" from half-typed text.
