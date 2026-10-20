@@ -53,6 +53,30 @@ export function RestrictedNotice() {
         <p style={{ margin: 0, color: 'var(--tk-text2)', lineHeight: 1.55 }}>{lockedReason(status)}</p>
       </div>
 
+      {shared.length > 0 && (
+        <div style={{ display: 'grid', gap: 8 }}>
+          <span className="account-section-label">Budgets shared with you</span>
+          <div className="account-card budget-covered-card">
+            {shared.map((b) => {
+              const owner = ownerName(b)
+              return (
+                <button key={b.id} type="button" className="account-row" onClick={() => switchBudget(b)}>
+                  <span className="budget-covered-tile"><BudgetIcon budget={b} size={18} /></span>
+                  <span className="account-row-label">
+                    {b.name}
+                    <span style={{ display: 'block', fontSize: 13, color: 'var(--tk-text2)', fontWeight: 400 }}>
+                      {owner ? `${owner} pays for this one` : 'Paid for by its owner'}, so it stays open to you.
+                    </span>
+                  </span>
+                  <span className="budget-covered-open">Open</span>
+                  <CaretRightIcon size={16} className="account-row-arrow" aria-hidden="true" />
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       <div
         style={{
           display: 'grid',
@@ -125,29 +149,6 @@ export function RestrictedNotice() {
           </p>
         )}
       </div>
-
-      {shared.length > 0 && (
-        <div style={{ display: 'grid', gap: 8 }}>
-          <span className="account-section-label">Budgets shared with you</span>
-          <div className="account-card">
-            {shared.map((b) => {
-              const owner = ownerName(b)
-              return (
-                <button key={b.id} type="button" className="account-row" onClick={() => switchBudget(b)}>
-                  <BudgetIcon budget={b} size={16} />
-                  <span className="account-row-label">
-                    {b.name}
-                    <span style={{ display: 'block', fontSize: 13, color: 'var(--tk-text3)', fontWeight: 400 }}>
-                      {owner ? `${owner} pays for this one` : 'Paid for by its owner'}, so it stays open to you
-                    </span>
-                  </span>
-                  <CaretRightIcon size={16} className="account-row-arrow" aria-hidden="true" />
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      )}
 
       {/* The account page's own rows, minus anything that needs access
           (bill scans) or has nothing to say here (plan, legal). Each one

@@ -11,6 +11,9 @@ const { getBudgets, createBudget, switchBudget } = vi.hoisted(() => ({
 }))
 vi.mock('../api/spaces', () => ({ getBudgets, createBudget, switchBudget }))
 
+const billing = vi.hoisted(() => ({ data: undefined as { allowed: boolean; enforced: boolean } | undefined }))
+vi.mock('../hooks/useBillingStatus', () => ({ useBillingStatus: () => billing }))
+
 const importFlow = vi.hoisted(() => vi.fn())
 vi.mock('./onboarding/ImportFlow', () => ({
   ImportFlow: (props: { skipAsk?: boolean; onFresh: () => void }) => {
@@ -34,6 +37,7 @@ const renderIt = (ui: React.ReactElement) => render(<CurrencyScope code="EUR">{u
 
 beforeEach(() => {
   vi.clearAllMocks()
+  billing.data = undefined
 })
 
 describe('BudgetSwitcher', () => {
@@ -128,5 +132,29 @@ describe('CreateBudgetDialog', () => {
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Home' } })
     fireEvent.click(screen.getByRole('button', { name: 'Create budget' }))
     expect((await screen.findByRole('alert')).textContent).toMatch(/hit your budget limit/)
+  })
+})
+
+describe('BudgetSheet lock tags', () => {
+  it('marks own budgets Locked when the own plan lapsed, and read-only ones Read-only', async () => {
+    // Inside a budget someone else pays for, their own budgets are shut: say so
+    // before they tap one and land on the subscribe screen.
+    billing.data = { allowed: false, enforced: true }
+    const studio = budget('s2', 'Studio', '✈️', { role: 'member', ownerId: 'u2', personal: false })
+    getBudgets.mockResolvedValue(list([personal, home, studio, budget('s3', 'Lapsed', '🏠', { role: 'member', ownerId: 'u3', personal: false, readOnly: true })], { activeId: 's2' }))
+    renderIt(<BudgetSwitcher />)
+    fireEvent.click(await screen.findByRole('button', { name: /Studio/ }))
+    await screen.findByRole('dialog', { name: 'Your budgets' })
+    expect(screen.getAllByText('Locked')).toHaveLength(2)
+    expect(screen.getAllByText('Read-only')).toHaveLength(1)
+  })
+
+  it('shows no Locked tag while the own plan is fine', async () => {
+    billing.data = { allowed: true, enforced: true }
+    getBudgets.mockResolvedValue(list([personal, home]))
+    renderIt(<BudgetSwitcher />)
+    fireEvent.click(await screen.findByRole('button', { name: /Personal/ }))
+    await screen.findByRole('dialog', { name: 'Your budgets' })
+    expect(screen.queryByText('Locked')).toBeNull()
   })
 })

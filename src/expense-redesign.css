@@ -15016,3 +15016,10 @@ button.account-feature-card {
 /* Budget icons: our category glyphs, inline with the budget's name. */
 .budget-chip .budget-chip-icon { color: inherit; }
 .budget-line-icon, .budget-title svg, .join-budget-icon { vertical-align: -0.125em; }
+
+/* Lock screen: budgets someone else pays for, the one way through. */
+.budget-covered-card { border-color: var(--tk-accent); box-shadow: 0 0 0 3px var(--tk-accent-soft); }
+.budget-covered-tile { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: var(--tk-accent-soft); color: var(--tk-accent-ink); flex-shrink: 0; }
+.budget-covered-open { padding: 4px 10px; border-radius: 999px; background: var(--tk-accent); color: var(--tk-on-accent); font-size: 12px; font-weight: 600; flex-shrink: 0; }
+/* Switcher: an own budget shut by the person's own lapsed plan. */
+.budget-locked-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 999px; background: var(--tk-warn-soft); color: var(--tk-warn-ink); font-size: 12px; font-weight: 600; flex-shrink: 0; }

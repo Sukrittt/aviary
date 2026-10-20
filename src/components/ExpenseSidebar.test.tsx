@@ -5,7 +5,7 @@ const push = vi.fn()
 vi.mock('next/navigation', () => ({ usePathname: () => '/account', useRouter: () => ({ push }) }))
 
 let allowed = true
-vi.mock('../hooks/useBillingStatus', () => ({ useAccessAllowed: () => allowed }))
+vi.mock('../hooks/useBillingStatus', () => ({ useAccessAllowed: () => allowed, useBillingStatus: () => ({ data: undefined }) }))
 
 const openMoneyBrain = vi.fn()
 vi.mock('@/components/MoneyBrainProvider', () => ({ useMoneyBrain: () => ({ openMoneyBrain }) }))

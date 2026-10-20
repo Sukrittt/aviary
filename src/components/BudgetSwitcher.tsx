@@ -5,13 +5,14 @@ import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { AnimatePresence } from 'motion/react'
 import { useQueryClient } from '@tanstack/react-query'
-import { CaretDownIcon, CaretRightIcon, CheckIcon, GearIcon, PlusIcon, TicketIcon } from '@/src/components/icons'
+import { CaretDownIcon, CaretRightIcon, CheckIcon, GearIcon, LockIcon, PlusIcon, TicketIcon } from '@/src/components/icons'
 import { createBudget, restoreBudget, switchBudget, type BudgetSummary } from '../api/spaces'
 import { BudgetMembersDialog, MemberAvatar } from './BudgetMembers'
 import { JoinCodeDialog } from './JoinBudget'
 import { HttpError, setBudgetCookie } from '../api/client'
 import { ImportFlow } from './onboarding/ImportFlow'
 import { spacesKey, useSpaces } from '../hooks/useSpaces'
+import { useBillingStatus } from '../hooks/useBillingStatus'
 import { useCurrency } from '@/src/context/CurrencyContext'
 import { currencyInfo } from '../lib/currencies'
 import { Scrim, Sheet } from './MotionSheet'
@@ -64,6 +65,9 @@ export function BudgetSwitcher({ className = '', labelClassName = '', card = fal
 function BudgetSheet({ onClose }: { onClose: () => void }) {
   const { budgets, deleted, active, count, limit, atLimit } = useSpaces()
   const qc = useQueryClient()
+  // Their own plan lapsed: every budget they own is shut, only the ones others pay for open.
+  const { data: billing } = useBillingStatus()
+  const ownLocked = !!billing && billing.enforced && !billing.allowed
   const [view, setView] = useState<'list' | 'create' | 'join'>('list')
   const [settings, setSettings] = useState<BudgetSummary | null>(null)
   const [restoreError, setRestoreError] = useState('')
@@ -103,6 +107,8 @@ function BudgetSheet({ onClose }: { onClose: () => void }) {
                   <span className="budget-row-emoji" aria-hidden="true"><BudgetIcon budget={b} size={18} /></span>
                   <span className="budget-row-name">{b.name}</span>
                   {b.role === 'owner' && <span className="budget-owner-badge">Owner</span>}
+                  {b.readOnly && <span className="budget-locked-badge"><LockIcon size={11} weight="fill" aria-hidden="true" />Read-only</span>}
+                  {b.role === 'owner' && ownLocked && <span className="budget-locked-badge"><LockIcon size={11} weight="fill" aria-hidden="true" />Locked</span>}
                   <Avatars members={b.members} />
                   <span className="budget-row-check">{current && <CheckIcon size={16} weight="bold" aria-label="Current budget" />}</span>
                 </button>
