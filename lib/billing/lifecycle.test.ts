@@ -181,7 +181,7 @@ describe('sendTrialReminders', () => {
     vi.clearAllMocks()
     claimed.clear()
   })
-  const trialEnding = (days: number) => ({ _id: 'user_a', trialEndsAt: new Date(NOW.getTime() + days * DAY) })
+  const trialEnding = (days: number, length = 30) => ({ _id: 'user_a', trialEndsAt: new Date(NOW.getTime() + days * DAY), trialStartedAt: new Date(NOW.getTime() + (days - length) * DAY) })
 
   it('reminds a trialing user once per tier', async () => {
     getAccess.mockResolvedValue({ enforced: true, mode: 'trial' })
@@ -193,15 +193,26 @@ describe('sendTrialReminders', () => {
   it('gives each day its own job: the month so far, what pauses, then one tap', async () => {
     getAccess.mockResolvedValue({ enforced: true, mode: 'trial' })
     const expenses = [{ user_id: 'user_a', deleted_at: null }, { user_id: 'user_a', deleted_at: null }, { user_id: 'user_a', deleted_at: new Date() }, { user_id: 'user_b', deleted_at: null }]
-    const sent = async (days: number) => {
+    const sent = async (days: number, length = 30, rows: unknown[] = expenses) => {
       sendPushNotification.mockClear()
-      const { db } = fakeDb({ billing_accounts: [trialEnding(days)], users: [{ _id: 'user_a' }], expenses })
+      const { db } = fakeDb({ billing_accounts: [trialEnding(days, length)], users: [{ _id: 'user_a' }], expenses: rows as Record<string, unknown>[] })
       await sendTrialReminders(db, NOW)
       return (sendPushNotification.mock.calls[0] as unknown as [{ title: string; body: string }])[0]
     }
-    expect(await sent(6.5)).toMatchObject({ title: 'Your 30 days on us end in 7 days', body: expect.stringContaining("You've logged 2 expenses so far") })
+    expect(await sent(6.5)).toMatchObject({ title: 'Your 30 days on us end in 7 days', body: expect.stringContaining('Your budget has 2 expenses so far') })
     expect(await sent(2.5)).toMatchObject({ title: 'Your 30 days on us end in 3 days', body: expect.stringContaining('Your 2 expenses stay safe') })
     expect(await sent(0.5)).toMatchObject({ title: 'Your 30 days on us end tomorrow', body: 'Tomorrow you can keep Aviary in one tap. Your data stays safe either way.' })
+  })
+
+  it("says a longer trial's real length, and still sends when the count fails", async () => {
+    getAccess.mockResolvedValue({ enforced: true, mode: 'trial' })
+    sendPushNotification.mockClear()
+    const { db } = fakeDb({ billing_accounts: [trialEnding(6.5, 45)], users: [{ _id: 'user_a' }] })
+    const real = (db as unknown as { collection: (n: string) => Record<string, unknown> }).collection
+    ;(db as unknown as { collection: unknown }).collection = (n: string) =>
+      n === 'expenses' ? { ...real(n), countDocuments: async () => { throw new Error('mongo down') } } : real(n)
+    expect((await sendTrialReminders(db, NOW)).sent).toBe(1)
+    expect(sendPushNotification).toHaveBeenCalledWith(expect.objectContaining({ title: 'Your 45 days on us end in 7 days', body: 'Open Aviary to see exactly what happens next.' }))
   })
 
   it('stays quiet for a subscriber, and while enforcement is off', async () => {

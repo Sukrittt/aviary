@@ -81,7 +81,7 @@ export function WebPlanPicker({ trialEndsAt = null, trigger = 'plan_screen' }: {
           </h3>
           <p style={{ ...note, fontWeight: 500 }}>
             {timeline
-              ? `Your 30 days on us run to ${formatDate(trialEndsAt)}. Subscribe now and the first charge waits for that date.`
+              ? `It's on us until ${formatDate(trialEndsAt)}. Subscribe now and the first charge waits for that date.`
               : "One plan. No ads, ever. Here's what it keeps switched on."}
           </p>
         </div>

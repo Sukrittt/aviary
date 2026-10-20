@@ -12,6 +12,17 @@ export function defersFirstCharge(trialEndsAt: string | Date | null | undefined,
   return !!trialEndsAt && new Date(trialEndsAt).getTime() > now + 15 * 60_000
 }
 
+/**
+ * "30 days on us", with the trial's real length: early accounts got 45, and
+ * an admin can extend one. 30 when the dates aren't known.
+ */
+export function daysOnUs(status: { trialStartedAt?: string | null; trialEndsAt?: string | null } | undefined): string {
+  const start = Date.parse(status?.trialStartedAt ?? '')
+  const end = Date.parse(status?.trialEndsAt ?? '')
+  const days = Number.isFinite(start) && Number.isFinite(end) && end > start ? Math.round((end - start) / 86_400_000) : 30
+  return `${days} days on us`
+}
+
 /** Reminder thresholds, in days remaining. Matches payment-subscriptions-plan.md. */
 export const REMINDER_DAYS = [7, 3, 1]
 
@@ -37,14 +48,14 @@ export function billingVisible(status: BillingStatus | undefined): boolean {
 export function planSummary(status: BillingStatus): string {
   switch (status.mode) {
     case 'trial':
-      return `30 days on us · ${trialRemainingLabel(status.trialDaysRemaining)}`
+      return `${daysOnUs(status)} · ${trialRemainingLabel(status.trialDaysRemaining)}`
     case 'paid':
       if (status.renewalState === 'grace') return status.store === 'web' ? 'Payment issue · retrying' : 'Payment issue · fix in Google Play'
       if (status.gifted) return `Gifted plan · ends ${formatDate(status.paidExpiresAt)}`
-      if (status.renewalState === 'scheduled') return `30 days on us · first charge ${formatDate(status.paidExpiresAt)}`
+      if (status.renewalState === 'scheduled') return `${daysOnUs(status)} · first charge ${formatDate(status.paidExpiresAt)}`
       return status.autoRenew ? `Renews ${formatDate(status.paidExpiresAt)}` : `Ends ${formatDate(status.paidExpiresAt)}`
     case 'expired':
-      return status.trialEndsAt && !status.productId ? '30 days on us ended' : 'Subscription ended'
+      return status.trialEndsAt && !status.productId ? `${daysOnUs(status)} ended` : 'Subscription ended'
     default:
       return 'Finish setup to start your trial'
   }
@@ -79,7 +90,7 @@ export function lockedReason(status: BillingStatus | undefined): string {
       return 'Your payment is still being confirmed. This can take a little while with some payment methods — no need to pay again.'
     default:
       return status?.mode === 'expired' && status.trialEndsAt && !status.productId
-        ? 'Your 30 days on us are up. Subscribe to carry on budgeting.'
+        ? `Your ${daysOnUs(status)} are up. Subscribe to carry on budgeting.`
         : 'Your subscription has ended. Subscribe to carry on budgeting.'
   }
 }

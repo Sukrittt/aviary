@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { ClockIcon, XIcon } from '@/src/components/icons'
 import { useBillingStatus } from '@/src/hooks/useBillingStatus'
-import { shouldWarnAboutTrial, trialRemainingLabel } from './copy'
+import { daysOnUs, shouldWarnAboutTrial, trialRemainingLabel } from './copy'
 
 /**
  * Trial countdown, shown only once the trial is nearly over.
@@ -40,7 +40,7 @@ export function TrialBanner() {
     >
       <ClockIcon size={16} aria-hidden style={{ flexShrink: 0, color: urgent ? 'var(--tk-warn)' : 'var(--tk-text2)' }} />
       <span style={{ flex: 1, minWidth: 0 }}>
-        <strong>30 days on us: {trialRemainingLabel(days)}.</strong>{' '}
+        <strong>{daysOnUs(data)}: {trialRemainingLabel(days)}.</strong>{' '}
         <span style={{ color: 'var(--tk-text2)' }}>Pick a plan to keep budgeting.</span>
       </span>
       <Link href="/account" style={{ color: 'var(--tk-accent-ink)', fontWeight: 600, textDecoration: 'none', flexShrink: 0 }}>

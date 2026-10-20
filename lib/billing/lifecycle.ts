@@ -81,10 +81,12 @@ async function notifyOnce(db: Db, userId: string, key: string, title: string, bo
  */
 async function trialReminderBody(db: Db, userId: string, tier: number): Promise<string> {
   if (tier === 1) return 'Tomorrow you can keep Aviary in one tap. Your data stays safe either way.'
-  const n = await db.collection('expenses').countDocuments({ user_id: userId, deleted_at: null })
+  // A miss here must not stop the rest of the run: fall back to the copy without a number.
+  // ponytail: counts the personal budget only (rows keyed by owner), so a shared one isn't in it.
+  const n = await db.collection('expenses').countDocuments({ user_id: userId, deleted_at: null }).catch(() => 0)
   const logged = `${n} expense${n === 1 ? '' : 's'}`
   if (tier === 3) return `After that, Aviary pauses. ${n ? `Your ${logged} ${n === 1 ? 'stays' : 'stay'} safe` : 'Your data stays safe'}, and export's always free.`
-  return n ? `You've logged ${logged} so far. Open Aviary to see what happens next.` : 'Open Aviary to see exactly what happens next.'
+  return n ? `Your budget has ${logged} so far. Open Aviary to see what happens next.` : 'Open Aviary to see exactly what happens next.'
 }
 
 /**
@@ -107,7 +109,9 @@ export async function sendTrialReminders(db: Db, now: Date): Promise<{ sent: num
     const access = await getAccess(account._id, now)
     if (!access.enforced || access.mode !== 'trial') continue
     const key = `billing:trial:${tier}d:${account.trialEndsAt.toISOString()}`
-    const title = tier === 1 ? 'Your 30 days on us end tomorrow' : `Your 30 days on us end in ${plural(tier)}`
+    // The trial's own length: early accounts got 45 days, and admins can extend one.
+    const onUs = `${Math.round((account.trialEndsAt.getTime() - account.trialStartedAt.getTime()) / DAY_MS)} days on us`
+    const title = tier === 1 ? `Your ${onUs} end tomorrow` : `Your ${onUs} end in ${plural(tier)}`
     const body = await trialReminderBody(db, account._id, tier)
     if (await notifyOnce(db, account._id, key, title, body)) sent++
   }

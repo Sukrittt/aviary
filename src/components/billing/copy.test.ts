@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { lockedReason, shouldWarnAboutTrial, trialRemainingLabel, formatDate, formatPrice, planSummary, storeLabel, yearlySavingsPercent } from './copy'
+import { daysOnUs, lockedReason, shouldWarnAboutTrial, trialRemainingLabel, formatDate, formatPrice, planSummary, storeLabel, yearlySavingsPercent } from './copy'
 import type { BillingStatus } from '@/src/api/billing'
 
 const base: BillingStatus = {
@@ -59,7 +59,7 @@ describe('lockedReason', () => {
   })
 
   it('calls an ended trial a trial, not a subscription', () => {
-    expect(lockedReason({ ...base, mode: 'expired', renewalState: null })).toContain('Your 30 days on us are up')
+    expect(lockedReason({ ...base, mode: 'expired', renewalState: null })).toContain('Your 45 days on us are up')
   })
 
   it('calls an ended subscription a subscription', () => {
@@ -79,8 +79,8 @@ describe('formatDate', () => {
 describe('planSummary', () => {
   it('summarises the plan for the account row', async () => {
     const { planSummary, billingVisible } = await import('./copy')
-    expect(planSummary({ ...base, trialDaysRemaining: 3 })).toBe('30 days on us · 3 days left')
-    expect(planSummary({ ...base, mode: 'expired', productId: null })).toBe('30 days on us ended')
+    expect(planSummary({ ...base, trialDaysRemaining: 3 })).toBe('45 days on us · 3 days left')
+    expect(planSummary({ ...base, mode: 'expired', productId: null })).toBe('45 days on us ended')
     expect(billingVisible({ ...base, enforced: false, purchaseEnabled: false })).toBe(false)
     expect(billingVisible(undefined)).toBe(false)
   })
@@ -119,5 +119,13 @@ describe('yearlySavingsPercent', () => {
     expect(yearlySavingsPercent(9900, 99900)).toBe(15)
     expect(yearlySavingsPercent(9900, 9900 * 12)).toBeNull()
     expect(yearlySavingsPercent(0, 100)).toBeNull()
+  })
+})
+
+describe('daysOnUs', () => {
+  it("says the trial's real length, 30 when the dates are missing", () => {
+    expect(daysOnUs({ trialStartedAt: '2026-08-01T00:00:00Z', trialEndsAt: '2026-08-31T00:00:00Z' })).toBe('30 days on us')
+    expect(daysOnUs({ trialStartedAt: '2026-08-01T00:00:00Z', trialEndsAt: '2026-09-15T00:00:00Z' })).toBe('45 days on us')
+    expect(daysOnUs({ trialStartedAt: null, trialEndsAt: null })).toBe('30 days on us')
   })
 })

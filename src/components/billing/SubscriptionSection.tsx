@@ -6,7 +6,7 @@ import { ArrowSquareOutIcon, ArrowsClockwiseIcon, CaretRightIcon, XCircleIcon, X
 import { ConfirmDialog } from '@/src/components/ConfirmDialog'
 import { Scrim, Sheet } from '@/src/components/MotionSheet'
 import { useBillingStatus, useCancelWebSubscription, usePayPalReturn, useSyncBilling, type PayPalReturn } from '@/src/hooks/useBillingStatus'
-import { billingVisible, formatDate, PLAY_STORE_URL, trialRemainingLabel } from './copy'
+import { billingVisible, daysOnUs, formatDate, PLAY_STORE_URL, trialRemainingLabel } from './copy'
 import { WebPlanPicker } from './WebPlanPicker'
 
 /**
@@ -112,7 +112,7 @@ export function SubscriptionSection() {
                 {cancel.isError
                   ? "That didn't go through. Check your connection and try again."
                   : scheduled
-                    ? `You won't be charged. Your 30 days on us still run until ${formatDate(data.paidExpiresAt)}.`
+                    ? `You won't be charged. Your ${daysOnUs(data)} still run until ${formatDate(data.paidExpiresAt)}.`
                     : `You keep everything until ${formatDate(data.paidExpiresAt)}.`}
               </span>
             </span>
@@ -189,7 +189,7 @@ export function SubscriptionSection() {
             title={scheduled ? 'Cancel subscription?' : 'Cancel renewal?'}
             body={
               scheduled
-                ? `You won't be charged. Your 30 days on us still run until ${formatDate(data.paidExpiresAt)}.`
+                ? `You won't be charged. Your ${daysOnUs(data)} still run until ${formatDate(data.paidExpiresAt)}.`
                 : `You won't be charged again, and you keep everything until ${formatDate(data.paidExpiresAt)}.`
             }
             cancelLabel="Keep my plan"
@@ -226,11 +226,11 @@ function trapKeys(e: KeyboardEvent<HTMLDivElement>, close: () => void) {
   }
 }
 
-function describePlan(data: { mode: string; trialEndsAt: string | null; paidExpiresAt: string | null; autoRenew: boolean; basePlanId: string | null; renewalState: string | null; gifted?: boolean }): string {
-  if (data.mode === 'trial') return `Your 30 days on us end ${formatDate(data.trialEndsAt)}`
+function describePlan(data: { mode: string; trialStartedAt?: string | null; trialEndsAt: string | null; paidExpiresAt: string | null; autoRenew: boolean; basePlanId: string | null; renewalState: string | null; gifted?: boolean }): string {
+  if (data.mode === 'trial') return `Your ${daysOnUs(data)} end ${formatDate(data.trialEndsAt)}`
   if (data.mode === 'paid') {
     const plan = data.basePlanId ? `${data.basePlanId[0].toUpperCase()}${data.basePlanId.slice(1)} · ` : ''
-    if (data.renewalState === 'scheduled') return `${plan}30 days on us until ${formatDate(data.paidExpiresAt)}, then your first charge`
+    if (data.renewalState === 'scheduled') return `${plan}${daysOnUs(data)} until ${formatDate(data.paidExpiresAt)}, then your first charge`
     // "Renews" and "ends" are not interchangeable. Someone who cancelled needs
     // to see the date their access stops, not a renewal that is not coming.
     return `${plan}${data.autoRenew ? 'Renews' : 'Ends'} ${formatDate(data.paidExpiresAt)}`
