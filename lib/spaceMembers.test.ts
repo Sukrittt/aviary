@@ -188,6 +188,12 @@ describe('delete and restore', () => {
     expect(await resolveSpaceAccess('user_b', HOME, lookupMembership)).toMatchObject({ spaceId: HOME, role: 'member' })
   })
 
+  it('someone who only had that budget gets a fresh personal one when it closes', async () => {
+    await joinBudget('user_c', (await createInvite(owner, HOME)).code)
+    await deleteBudget(owner, HOME, 'Home')
+    expect((await listBudgets('user_c')).budgets.map((b) => b.id)).toEqual(['user_c'])
+  })
+
   it('purges a budget 30 days after it was deleted, and not before', async () => {
     const db = await getDb()
     await scoped(db.collection('expenses'), HOME).insertOne({ item: 'Rent', amount_inr: 100, date: '2026-10-01' })
@@ -287,6 +293,12 @@ describe('account deletion with shared budgets', () => {
     expect(pushes[0].title).toMatch(/closed/)
     await restoreAccountSpaces(await getDb(), 'user_a')
     expect(await resolveSpaceAccess('user_b', HOME, lookupMembership)).toMatchObject({ spaceId: HOME, role: 'member' })
+  })
+
+  it('someone who only had a budget the deletion closed gets a fresh personal one', async () => {
+    await joinBudget('user_c', (await createInvite(owner, HOME)).code)
+    await handOffSharedBudgets(await getDb(), 'user_a', {})
+    expect((await listBudgets('user_c')).budgets.map((b) => b.id)).toEqual(['user_c'])
   })
 
   it('ignores a pick that is not a member of that budget', async () => {

@@ -177,6 +177,7 @@ export async function deleteBudget(auth: Auth, spaceId: string, confirmName: str
   await db.collection<SpaceDoc>(SPACES).updateOne({ _id: spaceId }, { $set: { deleted_at: new Date().toISOString(), deleted_by: auth.userId } as never })
   await db.collection(SPACE_INVITES).updateMany({ space_id: spaceId, status: 'pending' }, { $set: { status: 'cancelled' } })
   forgetMembership(spaceId)
+  for (const m of await db.collection<SpaceMemberDoc>(SPACE_MEMBERS).find({ space_id: spaceId, user_id: { $ne: auth.userId } }).toArray()) await givePersonalBackIfAlone(db, m.user_id)
 }
 
 export async function restoreBudget(auth: Auth, spaceId: string): Promise<void> {
@@ -312,6 +313,7 @@ export async function handOffSharedBudgets(db: Db, userId: string, transfers: Re
     await db.collection(SPACE_INVITES).updateMany({ space_id: b.id, status: 'pending' }, { $set: { status: 'cancelled' } })
     forgetMembership(b.id)
     for (const m of b.members) {
+      await givePersonalBackIfAlone(db, m.userId)
       try {
         await sendPushNotification({ userId: m.userId, title: `${b.name} budget closed`, body: `${who} deleted their account, so ${b.name} closed. It can come back if they restore it.` })
       } catch (err) {
