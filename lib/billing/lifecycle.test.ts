@@ -88,6 +88,7 @@ function fakeDb(seed: Record<string, Record<string, unknown>[]>) {
         return {
           find: (f: Record<string, unknown>) => ({ limit: () => ({ toArray: async () => store[name].filter((d) => matches(d, f)) }), toArray: async () => store[name].filter((d) => matches(d, f)) }),
           findOne: async (f: Record<string, unknown>) => store[name].find((d) => matches(d, f)) ?? null,
+          countDocuments: async (f: Record<string, unknown>) => store[name].filter((d) => matches(d, f)).length,
           updateOne: async (f: Record<string, unknown>, u: { $set: Record<string, unknown> }) => {
             const d = store[name].find((x) => matches(x, f))
             if (d) Object.assign(d, u.$set)
@@ -187,6 +188,20 @@ describe('sendTrialReminders', () => {
     const { db } = fakeDb({ billing_accounts: [trialEnding(6.5)], users: [{ _id: 'user_a' }] })
     expect((await sendTrialReminders(db, NOW)).sent).toBe(1)
     expect((await sendTrialReminders(db, new Date(NOW.getTime() + DAY))).sent).toBe(0)
+  })
+
+  it('gives each day its own job: the month so far, what pauses, then one tap', async () => {
+    getAccess.mockResolvedValue({ enforced: true, mode: 'trial' })
+    const expenses = [{ user_id: 'user_a', deleted_at: null }, { user_id: 'user_a', deleted_at: null }, { user_id: 'user_a', deleted_at: new Date() }, { user_id: 'user_b', deleted_at: null }]
+    const sent = async (days: number) => {
+      sendPushNotification.mockClear()
+      const { db } = fakeDb({ billing_accounts: [trialEnding(days)], users: [{ _id: 'user_a' }], expenses })
+      await sendTrialReminders(db, NOW)
+      return (sendPushNotification.mock.calls[0] as unknown as [{ title: string; body: string }])[0]
+    }
+    expect(await sent(6.5)).toMatchObject({ title: 'Your 30 days on us end in 7 days', body: expect.stringContaining("You've logged 2 expenses so far") })
+    expect(await sent(2.5)).toMatchObject({ title: 'Your 30 days on us end in 3 days', body: expect.stringContaining('Your 2 expenses stay safe') })
+    expect(await sent(0.5)).toMatchObject({ title: 'Your 30 days on us end tomorrow', body: 'Tomorrow you can keep Aviary in one tap. Your data stays safe either way.' })
   })
 
   it('stays quiet for a subscriber, and while enforcement is off', async () => {

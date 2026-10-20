@@ -62,7 +62,7 @@ describe('WebPlanPicker', () => {
     const day = (d: Date) => d.toLocaleDateString(undefined, { day: 'numeric', month: 'long' })
     render(<WebPlanPicker trialEndsAt={end.toISOString()} />)
     expect(screen.getByText('Try everything. Pay only if it sticks.')).toBeTruthy()
-    expect(screen.getByText(/Your trial runs to .+\. Subscribe now and the first charge waits for that date\./)).toBeTruthy()
+    expect(screen.getByText(/Your 30 days on us run to .+\. Subscribe now and the first charge waits for that date\./)).toBeTruthy()
     expect(screen.getByText('Today')).toBeTruthy()
     expect(screen.getByText(day(new Date(end.getTime() - 7 * 86_400_000)))).toBeTruthy()
     expect(screen.getByText(day(end))).toBeTruthy()

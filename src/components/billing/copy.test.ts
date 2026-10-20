@@ -59,7 +59,7 @@ describe('lockedReason', () => {
   })
 
   it('calls an ended trial a trial, not a subscription', () => {
-    expect(lockedReason({ ...base, mode: 'expired', renewalState: null })).toContain('Your free trial has ended')
+    expect(lockedReason({ ...base, mode: 'expired', renewalState: null })).toContain('Your 30 days on us are up')
   })
 
   it('calls an ended subscription a subscription', () => {
@@ -79,8 +79,8 @@ describe('formatDate', () => {
 describe('planSummary', () => {
   it('summarises the plan for the account row', async () => {
     const { planSummary, billingVisible } = await import('./copy')
-    expect(planSummary({ ...base, trialDaysRemaining: 3 })).toBe('Free trial · 3 days left')
-    expect(planSummary({ ...base, mode: 'expired', productId: null })).toBe('Trial ended')
+    expect(planSummary({ ...base, trialDaysRemaining: 3 })).toBe('30 days on us · 3 days left')
+    expect(planSummary({ ...base, mode: 'expired', productId: null })).toBe('30 days on us ended')
     expect(billingVisible({ ...base, enforced: false, purchaseEnabled: false })).toBe(false)
     expect(billingVisible(undefined)).toBe(false)
   })

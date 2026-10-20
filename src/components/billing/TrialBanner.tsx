@@ -40,7 +40,7 @@ export function TrialBanner() {
     >
       <ClockIcon size={16} aria-hidden style={{ flexShrink: 0, color: urgent ? 'var(--tk-warn)' : 'var(--tk-text2)' }} />
       <span style={{ flex: 1, minWidth: 0 }}>
-        <strong>Free trial: {trialRemainingLabel(days)}.</strong>{' '}
+        <strong>30 days on us: {trialRemainingLabel(days)}.</strong>{' '}
         <span style={{ color: 'var(--tk-text2)' }}>Pick a plan to keep budgeting.</span>
       </span>
       <Link href="/account" style={{ color: 'var(--tk-accent-ink)', fontWeight: 600, textDecoration: 'none', flexShrink: 0 }}>

@@ -37,14 +37,14 @@ export function billingVisible(status: BillingStatus | undefined): boolean {
 export function planSummary(status: BillingStatus): string {
   switch (status.mode) {
     case 'trial':
-      return `Free trial · ${trialRemainingLabel(status.trialDaysRemaining)}`
+      return `30 days on us · ${trialRemainingLabel(status.trialDaysRemaining)}`
     case 'paid':
       if (status.renewalState === 'grace') return status.store === 'web' ? 'Payment issue · retrying' : 'Payment issue · fix in Google Play'
       if (status.gifted) return `Gifted plan · ends ${formatDate(status.paidExpiresAt)}`
-      if (status.renewalState === 'scheduled') return `Free trial · first charge ${formatDate(status.paidExpiresAt)}`
+      if (status.renewalState === 'scheduled') return `30 days on us · first charge ${formatDate(status.paidExpiresAt)}`
       return status.autoRenew ? `Renews ${formatDate(status.paidExpiresAt)}` : `Ends ${formatDate(status.paidExpiresAt)}`
     case 'expired':
-      return status.trialEndsAt && !status.productId ? 'Trial ended' : 'Subscription ended'
+      return status.trialEndsAt && !status.productId ? '30 days on us ended' : 'Subscription ended'
     default:
       return 'Finish setup to start your trial'
   }
@@ -79,7 +79,7 @@ export function lockedReason(status: BillingStatus | undefined): string {
       return 'Your payment is still being confirmed. This can take a little while with some payment methods — no need to pay again.'
     default:
       return status?.mode === 'expired' && status.trialEndsAt && !status.productId
-        ? 'Your free trial has ended. Subscribe to carry on budgeting.'
+        ? 'Your 30 days on us are up. Subscribe to carry on budgeting.'
         : 'Your subscription has ended. Subscribe to carry on budgeting.'
   }
 }
