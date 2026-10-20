@@ -58,14 +58,18 @@ export function SubscriptionGate({ children }: { children: ReactNode }) {
   // No trial on the server means onboarding never finished, even if
   // OnboardingGate's fail-open check let the user past it. There's no
   // subscription to have ended, so this goes to onboarding, not the lock.
-  const setupIncomplete = gated && data?.mode === 'setup_incomplete' && !data.allowed
+  // `covered`: the open budget is someone else's and their plan decides, so
+  // neither the setup bounce nor the lock applies (a member who joined from an
+  // invite never onboarded, and /onboarding would send them straight back).
+  const allowed = !data || data.allowed || !!data.covered
+  const setupIncomplete = gated && data?.mode === 'setup_incomplete' && !allowed
   useEffect(() => {
     if (setupIncomplete) router.replace('/onboarding')
   }, [setupIncomplete, router])
 
   if (!gated) return <>{children}</>
   if (setupIncomplete) return null
-  if (data && !data.allowed) return <RestrictedNotice />
+  if (!allowed) return <RestrictedNotice />
   return (
     <>
       {/* Only above the budgeting screens. The countdown is a reminder to act
