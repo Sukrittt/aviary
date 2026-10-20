@@ -169,7 +169,8 @@ function charges(input: ForecastInput, until: string, { requireCategory }: { req
       today,
     )
     for (let i = 0; d && d <= until && i < 400; i++) {
-      if (!logged.has(`sub:${s.service}:${d}`)) out.push([d, s.category ?? '', Number(s.amount_inr) || 0])
+      // A due date from the renewal month alone isn't rolled past today, and the cron won't log those.
+      if (d >= today && !logged.has(`sub:${s.service}:${d}`)) out.push([d, s.category ?? '', Number(s.amount_inr) || 0])
       const next = rollForward(d, cycle)
       if (!next || next <= d) break
       d = next
