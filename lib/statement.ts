@@ -108,13 +108,22 @@ const NARRATION_NOISE = /^(?:(?:upi|imps|neft|rtgs|pos|ecom|bil|onl|payment|paid
 // SBI's "TO TRANSFER-UPI/…" and an auto-debit's "ACH D- NETFLIX…" lead in front of the narration.
 const LEAD_IN = /^(?:(?:to|by) transfer\s*-\s*|n?ach\s*(?:d|dr|debit)?\s*-\s*)/i
 
+// ponytail: initialisms with a vowel look like words, so they're listed; add payees as they're seen.
+const INITIALISMS = new Set(['IRCTC', 'LIC', 'IOCL', 'ICICI', 'IDFC', 'SBI', 'ITC', 'IKEA'])
+// Short abbreviations with no vowel that still read as words.
+const NOT_INITIALISMS = new Set(['DR', 'MR', 'MRS', 'MS', 'ST', 'LTD', 'PVT', 'GYM'])
+
+/** "HP PETROL PUMP" is HP Petrol Pump: 2 to 5 letters with no vowel (HP, PVR, BSNL) stay capitals, like the listed initialisms. */
 function titleCase(text: string): string {
-  return text.toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase())
+  return text.replace(/\S+/g, (w) => {
+    if (INITIALISMS.has(w) || (/^[A-Z]{2,5}$/.test(w) && !/[AEIOU]/.test(w) && !NOT_INITIALISMS.has(w))) return w
+    return w[0] + w.slice(1).toLowerCase()
+  })
 }
 
 /**
  * A readable payee from what a statement says: "UPI/DR/4123…/SWIGGY/YESB/swiggy@ybl/Payment"
- * is Swiggy. Shouting all-caps names are title-cased; anything already mixed-case is kept.
+ * is Swiggy. Shouting all-caps names are title-cased, initialisms aside; anything already mixed-case is kept.
  */
 export function payeeLabel(raw: unknown): string {
   if (typeof raw !== 'string') return ''

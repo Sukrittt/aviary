@@ -76,13 +76,22 @@ describe('payeeLabel', () => {
   })
 
   it('reads SBI, bill pay, card and auto-debit narrations', () => {
-    expect(payeeLabel('TO TRANSFER-UPI/DR/627145001122/IRCTC/HDFC/irctc@hdfcbank/Ticket')).toBe('Irctc')
+    expect(payeeLabel('TO TRANSFER-UPI/DR/627145001122/IRCTC/HDFC/irctc@hdfcbank/Ticket')).toBe('IRCTC')
     expect(payeeLabel('TO TRANSFER-UPI/DR/627245001123/SHARMA KIRANA/SBIN/sharmakirana@sbi/Pay')).toBe('Sharma Kirana')
     expect(payeeLabel('BIL/ONL/000987123/AIRTEL POSTPAID/AIRT991')).toBe('Airtel Postpaid')
     expect(payeeLabel('POS 4321XXXXXXXX9012 DMART ANDHERI')).toBe('Dmart Andheri')
     expect(payeeLabel('ACH D- NETFLIX ENTERTAINMENT-NFLX99812')).toBe('Netflix Entertainment')
     expect(payeeLabel('ATM/CASH WDL/ANDHERI EAST/S1AN2201')).toBe('Cash withdrawal')
     expect(payeeLabel('UPI/DR/412345678904/DR REDDYS LAB/HDFC/drreddy@hdfcbank/Payment')).toBe('Dr Reddys Lab')
+  })
+
+  it('keeps initialisms in capitals when it title-cases a shouting name', () => {
+    expect(payeeLabel('TO TRANSFER-UPI/DR/627545001126/HP PETROL PUMP/SBIN/hppetrol@sbi/Fuel')).toBe('HP Petrol Pump')
+    expect(payeeLabel('UPI-PVR INOX-pvrinox@hdfcbank-HDFC0000499-429111223305-UPI')).toBe('PVR Inox')
+    expect(payeeLabel('BSNL MOBILE')).toBe('BSNL Mobile')
+    expect(payeeLabel('LIC PREMIUM')).toBe('LIC Premium')
+    expect(payeeLabel('KFC PVT LTD')).toBe('KFC Pvt Ltd')
+    expect(payeeLabel('DMRC Metro Recharge')).toBe('DMRC Metro Recharge')
   })
 
   it('caps the length', () => {
