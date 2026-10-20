@@ -23,12 +23,15 @@ beforeEach(() => {
 })
 
 describe('FillGap', () => {
-  it('offers the three ways to catch up after two days away, calmly', () => {
+  it('offers the three ways to catch up after two days away, upload first, with no corner close', () => {
     render(<FillGap />)
     expect(screen.getByText('Pick up where you left off')).toBeTruthy()
-    expect(screen.getByText('Type what you spent')).toBeTruthy()
-    expect(screen.getByText('Upload a statement or screenshot')).toBeTruthy()
-    expect(screen.getByText('Start fresh')).toBeTruthy()
+    const labels = screen.getAllByRole('button').map((b) => b.textContent)
+    expect(labels[0]).toContain('Upload a screenshot or statement')
+    expect(labels[0]).toContain('You tick what\'s right')
+    expect(labels[1]).toContain('Type what you remember')
+    expect(labels[2]).toContain('Start fresh')
+    expect(screen.queryByLabelText('Close')).toBeNull()
   })
 
   it('says nothing when something was logged yesterday', () => {
@@ -48,7 +51,7 @@ describe('FillGap', () => {
 
   it('comes back for a newer gap without a reload, even after an option was used', async () => {
     const { rerender } = render(<FillGap />)
-    fireEvent.click(screen.getByText('Upload a statement or screenshot'))
+    fireEvent.click(screen.getByText('Upload a screenshot or statement'))
     fireEvent.click(await screen.findByText('statement-dialog'))
     await waitFor(() => expect(screen.queryByText('Pick up where you left off')).toBeNull())
     lastSpent = { Food: '2026-10-17' }
@@ -58,7 +61,7 @@ describe('FillGap', () => {
 
   it('opens the upload from the sheet', async () => {
     render(<FillGap />)
-    fireEvent.click(screen.getByText('Upload a statement or screenshot'))
+    fireEvent.click(screen.getByText('Upload a screenshot or statement'))
     expect(await screen.findByText('statement-dialog')).toBeTruthy()
   })
 

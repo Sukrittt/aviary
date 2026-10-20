@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { AnimatePresence } from 'motion/react'
-import { ChatTextIcon, UploadSimpleIcon, ArrowClockwiseIcon } from '@/src/components/icons'
+import { ChatTextIcon, UploadSimpleIcon, ArrowClockwiseIcon, CaretRightIcon } from '@/src/components/icons'
 import { Scrim, Sheet } from '@/src/components/MotionSheet'
 import { CategoryPicker } from '@/src/components/CategoryPicker'
 import { LogExpenseModal } from '@/src/components/LogExpenseModal'
@@ -65,10 +65,10 @@ export function FillGap() {
 }
 
 function GapSheet({ since, onChoose }: { since: string; onChoose: (step: Step, option: string) => void }) {
-  const options = [
-    { step: 'type' as const, icon: ChatTextIcon, label: 'Type what you spent', hint: 'Add what you remember, one at a time' },
-    { step: 'upload' as const, icon: UploadSimpleIcon, label: 'Upload a statement or screenshot', hint: 'Your UPI or bank app has the details' },
-    { step: 'fresh' as const, icon: ArrowClockwiseIcon, label: 'Start fresh', hint: 'One rough total, then carry on from today' },
+  // Upload leads: the reason people can't catch up is not remembering, and their UPI app does.
+  const others = [
+    { step: 'type' as const, icon: ChatTextIcon, label: 'Type what you remember', hint: 'One line, several spends. Aviary sorts them.' },
+    { step: 'fresh' as const, icon: ArrowClockwiseIcon, label: 'Start fresh', hint: 'One rough total, then carry on from today.' },
   ]
   return (
     <Scrim className="erd-modal-overlay" onClick={() => onChoose(null, 'dismiss')}>
@@ -76,20 +76,33 @@ function GapSheet({ since, onChoose }: { since: string; onChoose: (step: Step, o
         <div className="erd-modal-head">
           <div>
             <h3>Pick up where you left off</h3>
-            <p className="scan-subtitle">{`Your last expense was on ${formatDateShort(since)}. Catch up whichever way is easiest.`}</p>
+            <p className="scan-subtitle">{`Last logged on ${formatDateShort(since)}. Catching up takes about a minute, and nothing lands until you've checked it.`}</p>
           </div>
-          <button type="button" className="erd-modal-close" onClick={() => onChoose(null, 'dismiss')} aria-label="Close">
-            ✕
-          </button>
         </div>
+        <button type="button" className="gap-hero" onClick={() => onChoose('upload', 'upload')}>
+          <span className="gap-chip">Easiest</span>
+          <span className="gap-hero-top">
+            <span className="gap-tile gap-tile--upload"><UploadSimpleIcon size={24} aria-hidden="true" /></span>
+            <span>
+              <span className="gap-option-label">Upload a screenshot or statement</span>
+              <span className="gap-option-hint">Your UPI or bank app remembers what you don&apos;t.</span>
+            </span>
+          </span>
+          <span className="gap-steps">
+            <span><i>1</i><b>Share it</b></span>
+            <span><i>2</i>Aviary reads it</span>
+            <span><i>3</i>You tick what&apos;s right</span>
+          </span>
+        </button>
         <div className="gap-options">
-          {options.map(({ step, icon: Icon, label, hint }) => (
+          {others.map(({ step, icon: Icon, label, hint }) => (
             <button key={step} type="button" className="gap-option" onClick={() => onChoose(step, step)}>
-              <Icon size={20} aria-hidden="true" />
+              <span className={`gap-tile gap-tile--${step}`}><Icon size={18} aria-hidden="true" /></span>
               <span>
                 <span className="gap-option-label">{label}</span>
                 <span className="gap-option-hint">{hint}</span>
               </span>
+              <CaretRightIcon size={16} aria-hidden="true" />
             </button>
           ))}
         </div>
