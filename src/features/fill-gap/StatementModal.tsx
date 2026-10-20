@@ -325,7 +325,7 @@ function StatementReview({ proposal, rows, busy, saving, success, progress, erro
                       <span className={`txn-check${row.checked ? ' is-on' : ''}`}>
                         {row.checked && (
                           <svg viewBox="0 0 24 24" fill="none">
-                            <path d="M3.15 11.9l4 4L17.15 5.9" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" pathLength={1} />
+                            <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" pathLength={1} />
                           </svg>
                         )}
                       </span>
