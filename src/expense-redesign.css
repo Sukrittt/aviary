@@ -2468,6 +2468,25 @@
   margin-top: -14px;
 }
 
+.expense-redesign .erd-modal-back {
+  /* Back to where this modal was opened from: above the title, so it never floats beside a two-line head. */
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: -4px 0 10px -6px;
+  padding: 4px 8px;
+  border: none;
+  border-radius: 999px;
+  background: none;
+  color: var(--erd-text2);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.expense-redesign .erd-modal-back:hover {
+  background: var(--erd-input-bg);
+  color: var(--erd-text);
+}
 .expense-redesign .erd-modal-close {
   background: none;
   border: none;
@@ -14470,6 +14489,82 @@ button.account-feature-card {
   color: var(--erd-text);
   font: inherit;
   outline: none;
+}
+.gap-split-toggle {
+  display: block;
+  margin: 12px 0 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--gold-ink);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.gap-split-toggle:hover {
+  color: var(--erd-text);
+}
+/* Start fresh, split: a rough amount per category. */
+.gap-split {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.gap-split li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 6px 6px 14px;
+  border-radius: 14px;
+  background: var(--erd-input-bg);
+}
+.gap-split-cat {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+.gap-split-amount {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 132px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: var(--erd-modal-bg);
+  font-size: 15px;
+  font-weight: 600;
+}
+.gap-split-amount input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  color: var(--erd-text);
+  font: inherit;
+  text-align: right;
+  outline: none;
+}
+.gap-split-remove {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--erd-text3);
+  cursor: pointer;
+}
+.gap-split-remove:hover {
+  background: var(--erd-modal-bg);
+  color: var(--erd-text);
 }
 /* The end of the flow: setup's done screen, a size down for a dialog. */
 .gap-done-card {

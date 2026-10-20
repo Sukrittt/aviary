@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { gapToFill, freshStartExpense, statementExpense, creditsLine, daySpan, caughtUp, byDay } from './gap'
+import { gapToFill, freshStartExpense, freshStartSplit, statementExpense, creditsLine, daySpan, caughtUp, byDay } from './gap'
 import { formatDateShort } from '@/src/lib/format'
 
 const TODAY = '2026-10-19'
@@ -46,6 +46,28 @@ describe('freshStartExpense', () => {
     expect(freshStartExpense('1.250,5', 'Food', '2026-10-12', TODAY)).toBeNull()
     for (const bad of ['', '0', 'abc', '-5', '12.345']) expect(freshStartExpense(bad, 'Food', '2026-10-12', TODAY)).toBeNull()
     expect(freshStartExpense('500', '', '2026-10-12', TODAY)).toBeNull()
+  })
+})
+
+describe('freshStartSplit', () => {
+  const SINCE = '2026-10-12'
+  it('is one expense today per category, each keyed by the gap and its category', () => {
+    const rows = freshStartSplit([{ amount: '2000', category: 'Food' }, { amount: '1,500', category: 'Travel' }], SINCE, TODAY)
+    expect(rows?.map((r) => [r.category, r.amount_inr, r.date, r.item, r.client_id])).toEqual([
+      ['Food', '2000', TODAY, 'Untracked spending', 'fresh:2026-10-12:Food'],
+      ['Travel', '1500', TODAY, 'Untracked spending', 'fresh:2026-10-12:Travel'],
+    ])
+  })
+  it('adds up a category picked twice, in paise', () => {
+    const rows = freshStartSplit([{ amount: '0.10', category: 'Food' }, { amount: '0.20', category: 'Food' }], SINCE, TODAY)
+    expect(rows?.map((r) => [r.category, r.amount_inr])).toEqual([['Food', '0.3']])
+  })
+  it('skips rows left blank, but a half-filled row holds the whole split back', () => {
+    expect(freshStartSplit([{ amount: '500', category: 'Food' }, { amount: '', category: '' }], SINCE, TODAY)?.length).toBe(1)
+    expect(freshStartSplit([{ amount: '500', category: 'Food' }, { amount: '200', category: '' }], SINCE, TODAY)).toBeNull()
+    expect(freshStartSplit([{ amount: '500', category: 'Food' }, { amount: '', category: 'Travel' }], SINCE, TODAY)).toBeNull()
+    expect(freshStartSplit([{ amount: '0', category: 'Food' }], SINCE, TODAY)).toBeNull()
+    expect(freshStartSplit([{ amount: '', category: '' }], SINCE, TODAY)).toBeNull()
   })
 })
 

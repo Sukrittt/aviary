@@ -3,14 +3,20 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 
 let lastSpent: Record<string, string> | undefined
 const mutateAsync = vi.fn()
-vi.mock('@/src/hooks/useExpenses', () => ({ useLastSpent: () => ({ data: lastSpent }), useAddExpense: () => ({ mutateAsync }) }))
+vi.mock('@/src/hooks/useExpenses', () => ({ useLastSpent: () => ({ data: lastSpent }), useAddExpense: () => ({ mutateAsync, refresh: vi.fn() }) }))
+vi.mock('@/src/hooks/useCategories', () => ({ useCategories: () => ({ data: [] }) }))
 vi.mock('@/src/hooks/useBillingStatus', () => ({ useAccessAllowed: () => true }))
 vi.mock('@/src/lib/date', () => ({ todayLocal: () => '2026-10-19' }))
 vi.mock('@/src/context/CurrencyContext', () => ({ useCurrency: () => ({ currencySymbol: '₹' }) }))
 vi.mock('@/src/components/LogExpenseModal', () => ({ LogExpenseModal: ({ onBack }: { onBack: () => void }) => <button type="button" onClick={onBack}>log-expense-dialog</button> }))
 vi.mock('./StatementModal', () => ({ StatementModal: ({ onClose }: { onClose: () => void }) => <button type="button" onClick={onClose}>statement-dialog</button> }))
 vi.mock('@/src/components/CategoryPicker', () => ({
-  CategoryPicker: ({ onChange }: { onChange: (c: string) => void }) => <button type="button" onClick={() => onChange('Food')}>Food</button>,
+  CategoryPicker: ({ onChange }: { onChange: (c: string) => void }) => (
+    <>
+      <button type="button" onClick={() => onChange('Food')}>Food</button>
+      <button type="button" onClick={() => onChange('Travel')}>Travel</button>
+    </>
+  ),
 }))
 
 const { FillGap } = await import('./FillGap')
@@ -65,7 +71,7 @@ describe('FillGap', () => {
     fireEvent.click(await screen.findByText('log-expense-dialog'))
     fireEvent.click(await screen.findByText('Start fresh'))
     expect(await screen.findByText('Roughly how much did you spend while away?')).toBeTruthy()
-    fireEvent.click(screen.getByLabelText('Back'))
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }))
     expect(await screen.findByText('Pick up where you left off')).toBeTruthy()
   })
 
@@ -84,6 +90,25 @@ describe('FillGap', () => {
     await waitFor(() => expect(mutateAsync).toHaveBeenCalledWith(expect.objectContaining({
       item: 'Untracked spending', amount_inr: '3500', category: 'Food', date: '2026-10-19', source: 'fresh_start', client_id: 'fresh:2026-10-15',
     })))
+  })
+
+  it('can split the rough total across categories, one expense each, keeping what was typed', async () => {
+    render(<FillGap />)
+    fireEvent.click(screen.getByText('Start fresh'))
+    fireEvent.change(await screen.findByLabelText('Rough total'), { target: { value: '2000' } })
+    fireEvent.click(screen.getByText('Food'))
+    fireEvent.click(screen.getByText('Split across categories'))
+    expect((screen.getByLabelText('Rough amount for Food') as HTMLInputElement).value).toBe('2000')
+    fireEvent.click(screen.getByText('Travel'))
+    // Half filled holds it back.
+    expect((screen.getByRole('button', { name: /Log/ }) as HTMLButtonElement).disabled).toBe(true)
+    fireEvent.change(screen.getByLabelText('Rough amount for Travel'), { target: { value: '800' } })
+    fireEvent.click(screen.getByText('Log 2 expenses'))
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalledTimes(2))
+    expect(mutateAsync.mock.calls.map(([e]) => [e.category, e.amount_inr, e.client_id])).toEqual([
+      ['Food', '2000', 'fresh:2026-10-15:Food'],
+      ['Travel', '800', 'fresh:2026-10-15:Travel'],
+    ])
   })
 
   it('"No idea" just closes, logging nothing', async () => {

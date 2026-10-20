@@ -138,6 +138,11 @@ export function StatementModal({ onClose, onBack }: { onClose: () => void; onBac
         aria-modal="true"
         aria-label="Add from statement or screenshot"
       >
+        {onBack && phase === 'pick' && (
+          <button type="button" className="erd-modal-back" onClick={onBack}>
+            <ArrowLeftIcon size={14} aria-hidden="true" /> Back
+          </button>
+        )}
         {phase !== 'done' && (
           <div className="erd-modal-head">
             {phase === 'pick' ? (
@@ -148,11 +153,7 @@ export function StatementModal({ onClose, onBack }: { onClose: () => void; onBac
             ) : (
               <h3>{phase === 'review' ? 'Check these, then log' : 'Add from statement or screenshot'}</h3>
             )}
-            {onBack && phase === 'pick' ? (
-              <button type="button" className="erd-modal-close" onClick={onBack} aria-label="Back">
-                <ArrowLeftIcon size={18} aria-hidden="true" />
-              </button>
-            ) : (
+            {!(onBack && phase === 'pick') && (
               <button type="button" className="erd-modal-close" onClick={onClose} aria-label="Close" disabled={busy}>
                 ✕
               </button>
@@ -254,9 +255,9 @@ function StatementPick({ onFiles }: { onFiles: (files: File[]) => void }) {
 }
 
 const STATEMENT_SOURCES = [
-  { icon: ImagesIcon, label: 'Screenshots', hint: 'UPI or bank app history, up to 5' },
+  { icon: ImagesIcon, label: 'Screenshots', hint: 'UPI app, up to 5' },
   { icon: BankIcon, label: 'Bank export', hint: 'CSV or Excel' },
-  { icon: FileTextIcon, label: 'PDF statement', hint: 'From your bank or card' },
+  { icon: FileTextIcon, label: 'PDF statement', hint: 'From your bank' },
 ] as const
 
 function StatementReview({ proposal, rows, busy, saving, success, progress, error, onChange, onLog }: {

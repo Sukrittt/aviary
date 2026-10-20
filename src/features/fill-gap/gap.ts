@@ -45,6 +45,28 @@ export function freshStartExpense(amountText: string, category: string, since: s
   }
 }
 
+/**
+ * "Split it": the rough total across categories, one expense today for each,
+ * so every category's money left stays honest. A category picked twice adds
+ * up (in paise). Blank rows are skipped; a half-filled one, or none at all,
+ * logs nothing. Each is keyed by the gap and its category, so a retry after
+ * a partly failed save logs only what's missing.
+ */
+export function freshStartSplit(rows: { amount: string; category: string }[], since: string, today: string): NewExpenseRow[] | null {
+  const paise = new Map<string, number>()
+  for (const row of rows) {
+    if (!row.amount.trim() && !row.category) continue
+    const one = freshStartExpense(row.amount, row.category, since, today)
+    if (!one) return null
+    paise.set(one.category, (paise.get(one.category) ?? 0) + Math.round(Number(one.amount_inr) * 100))
+  }
+  if (!paise.size) return null
+  return [...paise].map(([category, p]) => ({
+    ...freshStartExpense(String(p / 100), category, since, today)!,
+    client_id: `fresh:${since}:${category}`,
+  }))
+}
+
 /** A statement row the user kept. Its client_id is the server's hash, so uploading the same file again adds nothing. */
 export function statementExpense(row: { id: string; item: string; amount: number; date: string }, category: string): NewExpenseRow {
   return { item: row.item, amount_inr: String(row.amount), category, date: row.date, source: 'statement', client_id: row.id }

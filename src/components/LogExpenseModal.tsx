@@ -432,17 +432,18 @@ export function LogExpenseModal({ onClose, onBack, onSaved }: Props) {
               }
               icon={WarningIcon}
             />
+            {onBack && (
+              <button type="button" className="erd-modal-back" onClick={onBack} disabled={success}>
+                <ArrowLeftIcon size={14} aria-hidden="true" /> Back
+              </button>
+            )}
             <div className="erd-modal-head">
               <h3>Log expense</h3>
-              <button
-                type="button"
-                className="erd-modal-close"
-                onClick={onBack ?? onClose}
-                aria-label={onBack ? 'Back' : 'Close'}
-                disabled={success}
-              >
-                {onBack ? <ArrowLeftIcon size={18} aria-hidden="true" /> : <XIcon size={18} aria-hidden="true" />}
-              </button>
+              {!onBack && (
+                <button type="button" className="erd-modal-close" onClick={onClose} aria-label="Close" disabled={success}>
+                  <XIcon size={18} aria-hidden="true" />
+                </button>
+              )}
             </div>
             <BudgetLine />
 
