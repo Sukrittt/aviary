@@ -89,21 +89,26 @@ export function StatementModal({ onClose }: { onClose: () => void }) {
     button.start()
     setLogError('')
     let failed = 0
-    const queue = toLog.filter((item) => !logged.current.has(item.id))
+    const pending = toLog.filter((item) => !logged.current.has(item.id))
     // Progress counts finished rows, those an earlier try saved included.
-    let finished = toLog.length - queue.length
+    let finished = toLog.length - pending.length
     setProgress(finished)
-    // A few at a time, started oldest first. Same-day rows can land in Activity in any order; a statement has no times anyway.
+    // A few at a time, each day in its own lane: a row's time is minted when its save starts, so a
+    // day's rows go one after another, oldest first, and Activity keeps the statement's order. Days overlap.
+    // ponytail: one busy day still saves serially; stagger timestamps if that's ever the bottleneck.
+    const lanes = [...byDay(pending)]
     const worker = async () => {
-      for (let item = queue.shift(); item; item = queue.shift()) {
-        try {
-          const saved = await addExpense.mutateAsync(statementExpense(item, rows[item.id].category))
-          // null: the server already had it, so it's handled but not new.
-          logged.current.set(item.id, saved?.duplicate ? null : rows[item.id].category)
-        } catch {
-          failed++
+      for (let lane = lanes.shift(); lane; lane = lanes.shift()) {
+        for (const item of lane.rows) {
+          try {
+            const saved = await addExpense.mutateAsync(statementExpense(item, rows[item.id].category))
+            // null: the server already had it, so it's handled but not new.
+            logged.current.set(item.id, saved?.duplicate ? null : rows[item.id].category)
+          } catch {
+            failed++
+          }
+          setProgress(++finished)
         }
-        setProgress(++finished)
       }
     }
     await Promise.all(Array.from({ length: LOG_CONCURRENCY }, worker))
