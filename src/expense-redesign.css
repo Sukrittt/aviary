@@ -14121,7 +14121,7 @@ button.account-feature-card {
   font-weight: 600;
   color: var(--erd-text);
 }
-/* Toned tiles, same as the landing page's "ways" cards. Fixed pastels read in both themes. */
+/* Icon tiles in the app's own tones, like the tour's: neutral, with gold for the one option that leads. */
 .gap-tile {
   flex: none;
   display: grid;
@@ -14129,20 +14129,18 @@ button.account-feature-card {
   width: 36px;
   height: 36px;
   border-radius: 11px;
-  color: #22201c;
-  box-shadow: inset 0 -3px 0 oklch(0% 0 0 / 0.07);
+  background: var(--erd-input-bg);
+  color: var(--erd-text2);
+}
+.gap-option .gap-tile {
+  background: var(--erd-modal-bg);
 }
 .gap-tile--upload {
   width: 48px;
   height: 48px;
   border-radius: 14px;
-  background: #a5d8ee;
-}
-.gap-tile--type {
-  background: #b7e7a2;
-}
-.gap-tile--fresh {
-  background: #f8cb7b;
+  background: var(--gold-soft);
+  color: var(--gold-ink);
 }
 .gap-options {
   display: flex;
@@ -14212,6 +14210,62 @@ button.account-feature-card {
 }
 .gap-review {
   margin-top: 14px;
+}
+/* Statement picker: the drop zone, then what it reads, so it isn't a blank box. */
+.statement-drop {
+  gap: 8px;
+  padding: 32px 24px 28px;
+}
+.statement-drop .gap-tile {
+  margin-bottom: 6px;
+  transition: transform 0.2s ease;
+}
+.statement-drop.is-dragging .gap-tile {
+  transform: translateY(-4px) scale(1.06);
+}
+.statement-drop .scan-drop-copy {
+  font-size: 12px;
+}
+.statement-sources {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.statement-sources li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--erd-border);
+  border-radius: 14px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--erd-text2);
+}
+.statement-sources .gap-tile {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+}
+.statement-sources b {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--erd-text);
+}
+@media (max-width: 560px) {
+  .statement-sources {
+    grid-template-columns: 1fr;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .statement-drop .gap-tile {
+    transition: none;
+  }
 }
 .gap-review-head {
   display: flex;

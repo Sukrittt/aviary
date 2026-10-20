@@ -99,7 +99,7 @@ function GapSheet({ since, onChoose }: { since: string; onChoose: (step: Step, o
         <div className="gap-options">
           {others.map(({ step, icon: Icon, label, hint }) => (
             <button key={step} type="button" className="gap-option" onClick={() => onChoose(step, step)}>
-              <span className={`gap-tile gap-tile--${step}`}><Icon size={18} aria-hidden="true" /></span>
+              <span className="gap-tile"><Icon size={18} aria-hidden="true" /></span>
               <span>
                 <span className="gap-option-label">{label}</span>
                 <span className="gap-option-hint">{hint}</span>

@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeftIcon, CaretDownIcon, CheckIcon, UploadSimpleIcon } from '@/src/components/icons'
+import { ArrowLeftIcon, BankIcon, CaretDownIcon, CheckIcon, FileTextIcon, ImagesIcon, UploadSimpleIcon } from '@/src/components/icons'
 import { CategoryIcon } from '@/src/components/CategoryIcon'
 import { CategoryPicker } from '@/src/components/CategoryPicker'
 import { Confetti } from '@/src/components/onboarding/Confetti'
@@ -140,7 +140,14 @@ export function StatementModal({ onClose, onBack }: { onClose: () => void; onBac
       >
         {phase !== 'done' && (
           <div className="erd-modal-head">
-            <h3>{phase === 'review' ? 'Check these, then log' : 'Add from statement or screenshot'}</h3>
+            {phase === 'pick' ? (
+              <div>
+                <h3>Add from statement or screenshot</h3>
+                <p className="scan-subtitle">Aviary reads the payments. Nothing&apos;s logged until you tick it.</p>
+              </div>
+            ) : (
+              <h3>{phase === 'review' ? 'Check these, then log' : 'Add from statement or screenshot'}</h3>
+            )}
             {onBack && phase === 'pick' ? (
               <button type="button" className="erd-modal-close" onClick={onBack} aria-label="Back">
                 <ArrowLeftIcon size={18} aria-hidden="true" />
@@ -197,8 +204,9 @@ function StatementPick({ onFiles }: { onFiles: (files: File[]) => void }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)
   return (
+    <>
     <div
-      className={`scan-drop ${dragging ? 'is-dragging' : ''}`}
+      className={`scan-drop statement-drop ${dragging ? 'is-dragging' : ''}`}
       onDragOver={(e) => {
         e.preventDefault()
         setDragging(true)
@@ -210,15 +218,12 @@ function StatementPick({ onFiles }: { onFiles: (files: File[]) => void }) {
         onFiles(Array.from(e.dataTransfer.files))
       }}
     >
-      <UploadSimpleIcon className="scan-drop-icon" size={34} aria-hidden="true" />
-      <p className="scan-drop-title">Drop screenshots or a statement here</p>
-      <p className="scan-drop-copy">Your UPI or bank app already has the days you missed. We&apos;ll read the payments, you pick what to add.</p>
-      <div className="scan-actions-row">
-        <button type="button" className="account-pill-btn account-pill-btn--primary" onClick={() => inputRef.current?.click()}>
-          Choose files
-        </button>
-      </div>
-      <p className="scan-drop-formats">Up to 5 screenshots · CSV, Excel or PDF</p>
+      <span className="gap-tile gap-tile--upload"><UploadSimpleIcon size={24} aria-hidden="true" /></span>
+      <p className="scan-drop-title">{dragging ? 'Let go to read them' : 'Drop files here'}</p>
+      <p className="scan-drop-copy">or</p>
+      <button type="button" className="account-pill-btn account-pill-btn--primary" onClick={() => inputRef.current?.click()}>
+        Choose files
+      </button>
       <input
         ref={inputRef}
         type="file"
@@ -233,8 +238,26 @@ function StatementPick({ onFiles }: { onFiles: (files: File[]) => void }) {
         }}
       />
     </div>
+    <ul className="statement-sources" aria-label="Works with">
+      {STATEMENT_SOURCES.map(({ icon: Icon, label, hint }) => (
+        <li key={label}>
+          <span className="gap-tile"><Icon size={18} aria-hidden="true" /></span>
+          <span>
+            <b>{label}</b>
+            {hint}
+          </span>
+        </li>
+      ))}
+    </ul>
+    </>
   )
 }
+
+const STATEMENT_SOURCES = [
+  { icon: ImagesIcon, label: 'Screenshots', hint: 'UPI or bank app history, up to 5' },
+  { icon: BankIcon, label: 'Bank export', hint: 'CSV or Excel' },
+  { icon: FileTextIcon, label: 'PDF statement', hint: 'From your bank or card' },
+] as const
 
 function StatementReview({ proposal, rows, busy, saving, success, progress, error, onChange, onLog }: {
   proposal: StatementProposal
