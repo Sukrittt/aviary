@@ -8,6 +8,8 @@ import { ScanReview } from './ScanReview'
 import { ScanConfirm } from './ScanConfirm'
 import type { ScanBillState } from './useScanBillController'
 import { useScanBillDraft } from './ScanBillProvider'
+import { useSpaces } from '@/src/hooks/useSpaces'
+import { ReadOnlyNotice } from '@/src/components/BudgetNotices'
 
 interface Props {
   onClose: () => void
@@ -21,6 +23,8 @@ interface Props {
  */
 export function ScanBillModal({ onClose, onEnterManually }: Props) {
   const { state, registerOnDone } = useScanBillDraft()
+  // A scan ends in logged expenses, so a read-only budget gets the notice, not the picker.
+  const { readOnly } = useSpaces()
   const replacementInputRef = useRef<HTMLInputElement>(null)
   useEffect(() => registerOnDone(onClose), [registerOnDone, onClose])
   const { phase } = state
@@ -79,6 +83,7 @@ export function ScanBillModal({ onClose, onEnterManually }: Props) {
             </button>
           </div>
         </div>
+        {readOnly ? <ReadOnlyNotice onClose={onClose} /> : <>
         <input
           ref={replacementInputRef}
           type="file"
@@ -125,6 +130,7 @@ export function ScanBillModal({ onClose, onEnterManually }: Props) {
         )}
         {phase === 'review' && <ScanReview {...state} />}
         {phase === 'confirm' && <ScanConfirm {...state} />}
+        </>}
       </Sheet>
     </Scrim>
   )

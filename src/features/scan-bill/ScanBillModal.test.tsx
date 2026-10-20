@@ -11,6 +11,8 @@ import { saveBillScan } from '@/src/api/bills'
 import { dataUrlFromFile } from './image'
 import { postExpensePayload } from '@/src/api/expenses'
 
+const spaces = vi.hoisted(() => ({ readOnly: false }))
+vi.mock('@/src/hooks/useSpaces', () => ({ useSpaces: () => ({ readOnly: spaces.readOnly, active: undefined }) }))
 vi.mock('@/src/api/scan', () => ({ scanBill: vi.fn() }))
 vi.mock('@/src/api/bills', () => ({ saveBillScan: vi.fn() }))
 vi.mock('@/src/api/categories', () => ({ getCategories: vi.fn().mockResolvedValue([{ name: 'Groceries', group: 'Home' }, { name: 'Dining', group: 'Home' }]) }))
@@ -24,6 +26,7 @@ vi.mock('@/src/api/expenses', async (importActual) => ({
 
 beforeEach(() => {
   vi.clearAllMocks()
+  spaces.readOnly = false
   vi.mocked(saveBillScan).mockResolvedValue(undefined)
 })
 
@@ -84,6 +87,14 @@ vi.mock('./image', () => ({
   dataUrlFromVideo: vi.fn(),
   base64Of: (url: string) => url.slice(url.indexOf(',') + 1),
 }))
+
+it('shows the read-only notice instead of the picker in a read-only budget', () => {
+  spaces.readOnly = true
+  renderSession()
+  fireEvent.click(screen.getByText('Open scan'))
+  expect(screen.getByRole('status')).toHaveTextContent('This budget is read-only')
+  expect(screen.queryByText('Choose a file')).toBeNull()
+})
 
 it('pastes a bill, splits it, logs the share and saves the scan without blank rows', async () => {
   ;(scanBill as Mock).mockResolvedValue({
