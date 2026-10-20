@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { AnimatePresence } from 'motion/react'
 import { useQueryClient } from '@tanstack/react-query'
@@ -28,7 +29,10 @@ const SUPPORT_PATH = '/account/help'
  * budgets, so a one-budget account looks exactly as before. `labelClassName`
  * lets the sidebar fold the name away in its collapsed rail.
  */
-export function BudgetSwitcher({ className = '', labelClassName = '', card = false, onOpen }: { className?: string; labelClassName?: string; card?: boolean; onOpen?: () => void }) {
+/** Set before a switch from inside Log expense; the sidebar reopens the modal after the reload. */
+export const REOPEN_LOG_KEY = 'aviary.reopenLog'
+
+export function BudgetSwitcher({ className = '', labelClassName = '', card = false, prefix, onOpen }: { className?: string; labelClassName?: string; card?: boolean; prefix?: string; onOpen?: () => void }) {
   const { multi, active } = useSpaces()
   const [open, setOpen] = useState(false)
   if (!multi || !active) return null
@@ -42,6 +46,7 @@ export function BudgetSwitcher({ className = '', labelClassName = '', card = fal
         onClick={() => { onOpen?.(); setOpen(true) }}
       >
         {/* Keyed on the budget so a switch remounts icon and name, which the card cross-fades in. */}
+        {prefix && <span className="budget-chip-prefix">{prefix}</span>}
         <span key={active.id} className="budget-chip-current">
           <span className="budget-chip-tile"><BudgetIcon budget={active} size={card ? 18 : 16} className="budget-chip-icon" /></span>
           <span className={`budget-chip-text ${labelClassName}`.trim()}>
@@ -198,11 +203,14 @@ const START_CHOICES = [
 function ImportIntoBudget({ budget }: { budget: BudgetSummary }) {
   const toHome = () => { window.location.href = '/expense' }
   const close = () => switchBudget(budget)
-  return (
+  if (typeof document === 'undefined') return null
+  // Portalled like Scrim: inside the sidebar its z-index would sit under the rail toggle.
+  return createPortal(
     <div className="expense-redesign setup-page budget-import" role="dialog" aria-modal="true" aria-label={`Bring your history into ${budget.name}`}>
       <button type="button" className="erd-modal-close budget-import-close" onClick={close} aria-label="Close">✕</button>
       <ImportFlow skipAsk onFresh={close} onDone={toHome} onAlreadySetUp={toHome} />
-    </div>
+    </div>,
+    document.querySelector('.expense-redesign') ?? document.body,
   )
 }
 

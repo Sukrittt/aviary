@@ -439,13 +439,14 @@ it.each([
   expect(onClose).toHaveBeenCalledOnce()
 })
 
-it('names the budget it logs to, only once there are two', () => {
+it('offers a budget switch on the Amount row, only once there are two', () => {
   const { unmount } = render(<LogExpenseModal onClose={vi.fn()} onSaved={vi.fn()} />)
   expect(screen.queryByText(/Logging to/)).toBeNull()
   unmount()
   spaces.multi = true
-  spaces.active = { emoji: '🏠', name: 'Home' }
+  spaces.active = { id: 's1', emoji: '🏠', name: 'Home' }
   render(<LogExpenseModal onClose={vi.fn()} onSaved={vi.fn()} />)
-  expect(screen.getByText('Logging to Home')).toBeTruthy()
+  const chip = screen.getByRole('button', { name: 'Budget: Home. Switch budget' })
+  expect(chip.textContent).toBe('Logging toHome')
   expect(screen.queryByText(/🏠/)).toBeNull()
 })

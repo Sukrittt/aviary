@@ -2755,8 +2755,7 @@
   margin-bottom: 24px;
   flex: 0 0 auto;
 }
-.erd-log-head-end { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.erd-log-head-end .budget-line { margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.erd-log-amount-row { justify-content: space-between; }
 @media (min-width: 901px) { .expense-redesign .erd-modal-card.erd-log-card { width: 560px; } }
 .erd-log-card .erd-log-body {
   overflow-y: auto;
@@ -14745,6 +14744,12 @@ button.account-feature-card {
 .budget-chip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .budget-chip-eyebrow { display: none; }
 
+/* Inline in a form's label row: "Logging to ✈ Studio ▾", quiet until hovered. */
+.budget-chip.is-inline { min-height: 28px; padding: 4px 10px; font-size: 12px; background: none; }
+.budget-chip.is-inline:hover { background: var(--erd-input-bg); }
+.budget-chip.is-inline .budget-chip-current { flex: none; }
+.budget-chip-prefix { color: var(--erd-text2); font-weight: 600; }
+
 /* The sidebar's workspace card: icon on an accent tile, "BUDGET" eyebrow, name. */
 .budget-chip.is-card {
   align-self: stretch;
@@ -14821,9 +14826,10 @@ button.account-feature-card {
 .budget-group .budget-row-wrap { gap: 0; padding-right: 6px; }
 .budget-group .budget-row-wrap + .budget-row-wrap { border-top: 1px solid var(--erd-border); }
 .budget-group .budget-row { border: 0; border-radius: 0; background: none; min-height: 52px; padding: 12px 10px 12px 14px; }
-.budget-group .budget-row:hover { background: var(--erd-input-bg); }
-.budget-group .budget-row.is-active, .budget-group .budget-row.is-active:hover { background: none; }
-.budget-group .budget-row-wrap:has(.is-active) { background: var(--gold-soft); box-shadow: inset 3px 0 0 var(--gold); }
+.budget-group .budget-row:hover, .budget-group .budget-row.is-active { background: none; }
+.budget-group .budget-row-wrap:hover { background: var(--erd-input-bg); }
+.budget-group .budget-row-settings:hover { background: var(--erd-border); }
+.budget-group .budget-row-wrap:has(.is-active) { background: var(--gold-soft); }
 .budget-sheet-actions { display: flex; gap: 8px; margin-top: 12px; }
 .budget-sheet-actions .budget-new { display: inline-flex; flex: 1; align-items: center; justify-content: center; gap: 6px; min-height: 42px; font-size: 13px; }
 .budget-count { margin: 14px 0 0; color: var(--erd-text2); font-size: 12px; font-weight: 600; }

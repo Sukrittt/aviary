@@ -11,7 +11,7 @@ import { useAccessAllowed } from "../hooks/useBillingStatus";
 import { useHiddenFeatures } from "../hooks/useUser";
 import { BirdMark } from "./BirdMark";
 import { LogExpenseModal } from "./LogExpenseModal";
-import { BudgetSwitcher } from "./BudgetSwitcher";
+import { BudgetSwitcher, REOPEN_LOG_KEY } from "./BudgetSwitcher";
 import { BudgetNotices } from "./BudgetNotices";
 import { useSpaces } from "../hooks/useSpaces";
 import { StatementModal } from "../features/fill-gap/StatementModal";
@@ -112,6 +112,14 @@ function ExpenseSidebarNav({ onBulkReturn }: Props) {
   const hidden = useHiddenFeatures();
   const { multi, readOnly } = useSpaces();
   const [showLog, setShowLog] = useState(false);
+  // Back from a budget switch made inside Log expense: open it again in the new budget.
+  // Read once after mount: sessionStorage doesn't exist on the server render.
+  useEffect(() => {
+    if (sessionStorage.getItem(REOPEN_LOG_KEY) !== '1') return;
+    sessionStorage.removeItem(REOPEN_LOG_KEY);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setShowLog(true);
+  }, []);
   const [showStatement, setShowStatement] = useState(false);
   const [confirmSignOut, setConfirmSignOut] = useState(false);
   const hover = useState<string | null>(null);

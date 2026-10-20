@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { CalendarBlankIcon, ChatTextIcon, PlusIcon, TagIcon, WarningIcon, WalletIcon, XIcon, ArrowLeftIcon } from '@/src/components/icons'
 import { useOptionalMoneyBrain } from '@/components/moneyBrainContext'
 import { useHiddenFeatures } from '../hooks/useUser'
-import { BudgetLine } from './BudgetSwitcher'
+import { BudgetSwitcher, REOPEN_LOG_KEY } from './BudgetSwitcher'
 import { useReadOnlyError } from './BudgetNotices'
 import { Scrim, Sheet } from './MotionSheet'
 import { DatePicker, formatShort } from './DatePicker'
@@ -439,21 +439,22 @@ export function LogExpenseModal({ onClose, onBack, onSaved }: Props) {
             )}
             <div className="erd-modal-head">
               <h3>Log expense</h3>
-              <div className="erd-log-head-end">
-                <BudgetLine />
-                {!onBack && (
-                  <button type="button" className="erd-modal-close" onClick={onClose} aria-label="Close" disabled={success}>
-                    <XIcon size={18} aria-hidden="true" />
-                  </button>
-                )}
-              </div>
+              {!onBack && (
+                <button type="button" className="erd-modal-close" onClick={onClose} aria-label="Close" disabled={success}>
+                  <XIcon size={18} aria-hidden="true" />
+                </button>
+              )}
             </div>
 
             <div className="erd-log-body">
               <section className="erd-log-section">
-                <label className="erd-log-label" htmlFor="erd-log-amount">
-                  Amount
-                </label>
+                <div className="erd-log-label-row erd-log-amount-row">
+                  <label className="erd-log-label" htmlFor="erd-log-amount">
+                    Amount
+                  </label>
+                  {/* Picking another budget reloads into it; the flag brings this modal back up. */}
+                  <BudgetSwitcher className="is-inline" prefix="Logging to" onOpen={() => sessionStorage.setItem(REOPEN_LOG_KEY, '1')} />
+                </div>
                 <div
                   ref={amountNudgeRef}
                   className={`erd-amount-field${warning ? ' is-warn' : ''}${flag('amount') ? ' is-missing' : ''}`}
