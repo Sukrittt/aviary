@@ -446,5 +446,6 @@ it('names the budget it logs to, only once there are two', () => {
   spaces.multi = true
   spaces.active = { emoji: '🏠', name: 'Home' }
   render(<LogExpenseModal onClose={vi.fn()} onSaved={vi.fn()} />)
-  expect(screen.getByText('Logging to 🏠 Home')).toBeTruthy()
+  expect(screen.getByText('Logging to Home')).toBeTruthy()
+  expect(screen.queryByText(/🏠/)).toBeNull()
 })

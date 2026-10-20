@@ -121,6 +121,19 @@ describe('/api/spaces', () => {
     expect((await create({ name: 'Seven' })).status).toBe(409)
   })
 
+  it('picks an icon from our set, keeping an emoji for older app builds', async () => {
+    const budget = await (await create({ emoji: undefined, icon: 'Airplane' })).json()
+    expect(budget).toMatchObject({ icon: 'Airplane', emoji: '✈️' })
+    expect((await create({ emoji: undefined, icon: 'NotAnIcon' })).status).toBe(400)
+    const patch = PATCH(new Request('http://x', { method: 'PATCH', body: JSON.stringify({ icon: 'House' }) }), { params: Promise.resolve({ id: budget.id }) })
+    expect(await (await patch).json()).toMatchObject({ icon: 'House' })
+  })
+
+  it('gives older budgets, and older apps sending an emoji, the matching icon', async () => {
+    expect(await (await create({})).json()).toMatchObject({ icon: 'Airplane', emoji: '✈️' })
+    expect((await list()).budgets[0]).toMatchObject({ personal: true, icon: 'Bird' })
+  })
+
   it('rejects a missing name, a non-emoji and an unknown currency', async () => {
     expect((await create({ name: ' ' })).status).toBe(400)
     expect((await create({ emoji: 'ab' })).status).toBe(400)

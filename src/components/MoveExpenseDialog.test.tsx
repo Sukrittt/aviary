@@ -35,7 +35,7 @@ describe('MoveExpenseDialog', () => {
     expect(groceries.getAttribute('aria-checked')).toBe('true')
 
     fireEvent.click(screen.getByRole('radio', { name: /Rent/ }))
-    fireEvent.click(screen.getByRole('button', { name: 'Move to 🏠 Home' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Move to Home' }))
     await waitFor(() => expect(moveExpense).toHaveBeenCalledWith({ id: 'e1', version: 3, to: 's1', category: 'Rent' }))
     await waitFor(() => expect(onMoved).toHaveBeenCalled(), { timeout: 2000 })
   })

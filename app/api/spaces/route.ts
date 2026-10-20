@@ -2,7 +2,7 @@ import { isCurrencyCode } from '@/src/lib/currencies'
 import { json, error, readBody } from '@/lib/http'
 import { getAuth, readOnlyGuard } from '@/lib/access'
 import { ownerLapsed, requireOwnPlan } from '@/lib/billing/guard'
-import { BudgetError, budgetNameError, createBudget, isBudgetEmoji, listBudgets } from '@/lib/spaces'
+import { BudgetError, budgetNameError, createBudget, requestedBudgetIcon, listBudgets } from '@/lib/spaces'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,7 +22,7 @@ export async function GET(req: Request) {
   return json({ ...list, budgets, activeId }, { headers: { 'Cache-Control': 'private, no-store' } })
 }
 
-/** `POST /api/spaces` `{ name, emoji, currencyCode, copyCategories, import? }` (`import`: start empty and set it up from a file): a new budget, owned (and paid for) by the caller. */
+/** `POST /api/spaces` `{ name, icon, currencyCode, copyCategories, import? }` (`import`: start empty and set it up from a file): a new budget, owned (and paid for) by the caller. */
 export async function POST(req: Request) {
   const auth = await getAuth(req)
   const guard = readOnlyGuard({ ...auth, spaceDenied: undefined }, 'POST')
@@ -34,12 +34,13 @@ export async function POST(req: Request) {
   const body = await readBody(req)
   const nameError = budgetNameError(body.name)
   if (nameError) return error(nameError)
-  if (!isBudgetEmoji(body.emoji)) return error('invalid emoji')
+  const icon = requestedBudgetIcon(body)
+  if (!icon) return error('invalid icon')
   if (!isCurrencyCode(body.currencyCode)) return error('invalid currency code')
   try {
     const budget = await createBudget(auth, {
       name: String(body.name),
-      emoji: body.emoji,
+      icon,
       currencyCode: body.currencyCode,
       copyCategories: body.copyCategories !== false,
       importing: body.import === true,

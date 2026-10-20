@@ -14887,3 +14887,8 @@ button.account-feature-card {
 .txn-author .budget-avatar { border-width: 2px; }
 .join-card .auth-headline { font-size: 28px; }
 
+
+/* Budget icons: our category glyphs, inline with the budget's name. */
+.budget-chip .budget-chip-icon { color: inherit; }
+[data-collapsible="icon"] .budget-chip.is-rail .budget-chip-icon { display: block; }
+.budget-line-icon, .budget-title svg, .join-budget-icon { vertical-align: -0.125em; }
