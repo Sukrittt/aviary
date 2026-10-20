@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const isRateLimited = vi.fn(async () => false)
+const isRateLimited = vi.fn(async (_key: string) => false)
 vi.mock('@/lib/rateLimit', () => ({ isRateLimited, clientIp: () => '1.2.3.4' }))
 vi.mock('@/lib/mongodb', () => ({ getDb: async () => ({}) }))
 const queueLeadPlan = vi.fn(async () => 'lead/x/plan/2026-10-19')
@@ -36,6 +36,12 @@ describe('POST /api/leads', () => {
 
   it('accepts anything the planner field can hold', async () => {
     expect((await post({ email: 'a@b.co', salary: 9_999_999_999, rent: 2_00_00_000 })).status).toBe(200)
+  })
+
+  it('stops queueing plans once the day’s global cap is hit (#206)', async () => {
+    isRateLimited.mockImplementation(async (key: string) => key === 'leads:global')
+    expect((await post({ email: 'a@b.co', salary: 50000 })).status).toBe(429)
+    expect(queueLeadPlan).not.toHaveBeenCalled()
   })
 
   it('rate limits by IP', async () => {

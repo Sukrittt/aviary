@@ -39,8 +39,8 @@ export interface SendResult { sent: number; skipped: number; failed: number; nee
 async function recipient(db: Db, row: OutboxEmail): Promise<string | null> {
   if (row.lead_id) {
     const lead = await db.collection<LeadDoc>(LEADS).findOne({ _id: row.lead_id }, { projection: { email: 1, optedOutAt: 1 } })
-    // A plan someone just asked for again is sent even after they turned the tips off.
-    return lead && (!lead.optedOutAt || row.step === 'plan') ? lead.email : null
+    // The planner form is public, so anyone can ask for a plan to any address. An opt-out stops those too.
+    return lead && !lead.optedOutAt ? lead.email : null
   }
   const user = await db.collection<UserDoc>('users').findOne({ _id: row.user_id, deleted_at: null, emailVerified: { $ne: false } }, { projection: { email: 1, emailOptOutAt: 1 } })
   if (!user) return null

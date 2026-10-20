@@ -146,6 +146,14 @@ describe('salary planner leads', () => {
     expect(await prepareLifecycleEmails(db, now, 15)).toBe(0)
   })
 
+  it('never sends a plan to an address that opted out, whoever asks for it (#206)', async () => {
+    await queueLeadPlan(db, 'lead@example.com', plan, ago(1))
+    await db.collection(LEADS).updateOne({ _id: leadId('lead@example.com') as never }, { $set: { optedOutAt: ago(1) } })
+    await queueLeadPlan(db, 'lead@example.com', plan, now)
+    await retryLifecycleEmails()
+    expect(sendEmail).not.toHaveBeenCalled()
+  })
+
   it('follows a confirmed lead on day 3, and hands an address that signed up to the account emails', async () => {
     await queueLeadPlan(db, 'lead@example.com', plan, ago(3))
     await outbox().updateMany({}, { $set: { 'delivery.state': 'sent' } })
