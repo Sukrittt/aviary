@@ -296,7 +296,10 @@ function PickOwnerDialog({ members, onPick, onClose }: { members: BudgetMember[]
             <li key={m.userId}>
               <button type="button" className="budget-row" onClick={() => onPick(m)}>
                 <MemberAvatar member={m} />
-                <span className="budget-row-name">{m.name ?? 'Someone'}</span>
+                <span className="budget-member-body">
+                  <span className="budget-row-name">{m.name ?? 'Someone'}</span>
+                  {!m.name && m.joinedAt && <span className="account-row-hint">{`Joined ${joinedOn(m.joinedAt)}`}</span>}
+                </span>
               </button>
             </li>
           ))}

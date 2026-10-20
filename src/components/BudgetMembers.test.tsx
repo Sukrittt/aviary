@@ -149,6 +149,14 @@ describe('BudgetMembersDialog', () => {
     expect(screen.queryByRole('switch')).toBeNull()
   })
 
+  it('the owner picker tells unnamed members apart by when they joined', async () => {
+    const unnamed = [people[0], { ...people[1], name: null }]
+    api.getMembers.mockResolvedValue(info({ members: unnamed }))
+    render(<BudgetMembersDialog budget={{ ...home, members: unnamed }} onClose={vi.fn()} />, { wrapper: queryWrapper() })
+    fireEvent.click(await screen.findByRole('button', { name: /Make someone else the owner/ }))
+    expect(within(screen.getByRole('dialog', { name: "Who's the new owner?" })).getByRole('button', { name: /Someone.*Joined 12 Oct 2026/ })).toBeTruthy()
+  })
+
   it('owner hands the budget over: pick, confirm, then it closes', async () => {
     api.getMembers.mockResolvedValue(info())
     api.transferBudget.mockResolvedValue({ ok: true })
