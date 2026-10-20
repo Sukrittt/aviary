@@ -2,8 +2,13 @@ import type { ScopedCollection } from './scoped'
 
 export interface CategoryMap {
   words: Record<string, string>
+  /** Whole item (itemKey) → the category it was mostly saved under. Server-only: GET /api/category-map sends `words`. */
+  items: Record<string, string>
   updatedAt: string
 }
+
+/** How `items` keys an item: lowercased, spaces collapsed. */
+export const itemKey = (item: string) => item.replace(/\s+/g, ' ').trim().toLowerCase()
 
 /**
  * One `category_map_overrides` doc: word → category, from a user correction
@@ -39,33 +44,25 @@ export async function buildCategoryMap(
     .toArray()
 
   const wordCategories = new Map<string, Map<string, number>>()
+  const itemCategories = new Map<string, Map<string, number>>()
+  const vote = (votes: Map<string, Map<string, number>>, key: string, category: string) => {
+    let catCount = votes.get(key)
+    if (!catCount) {
+      catCount = new Map()
+      votes.set(key, catCount)
+    }
+    catCount.set(category, (catCount.get(category) ?? 0) + 1)
+  }
 
   for (const row of rows) {
     const item = String(row.item ?? '')
     const category = String(row.category ?? '')
     if (!item || !category) continue
-    for (const word of itemWords(item)) {
-      let catCount = wordCategories.get(word)
-      if (!catCount) {
-        catCount = new Map()
-        wordCategories.set(word, catCount)
-      }
-      catCount.set(category, (catCount.get(category) ?? 0) + 1)
-    }
+    for (const word of itemWords(item)) vote(wordCategories, word, category)
+    vote(itemCategories, itemKey(item), category)
   }
 
-  const words: Record<string, string> = {}
-  for (const [word, cats] of wordCategories) {
-    let bestCat = ''
-    let bestCount = 0
-    for (const [cat, count] of cats) {
-      if (count > bestCount) {
-        bestCat = cat
-        bestCount = count
-      }
-    }
-    if (bestCat) words[word] = bestCat
-  }
+  const words = majority(wordCategories)
 
   if (overridesCollection) {
     const overrides = await overridesCollection.find({}).toArray()
@@ -79,7 +76,23 @@ export async function buildCategoryMap(
     }
   }
 
-  return { words, updatedAt: new Date().toISOString() }
+  return { words, items: majority(itemCategories), updatedAt: new Date().toISOString() }
+}
+
+function majority(votes: Map<string, Map<string, number>>): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const [key, cats] of votes) {
+    let bestCat = ''
+    let bestCount = 0
+    for (const [cat, count] of cats) {
+      if (count > bestCount) {
+        bestCat = cat
+        bestCount = count
+      }
+    }
+    if (bestCat) out[key] = bestCat
+  }
+  return out
 }
 
 // ponytail: unbounded Map on a personal app with a handful of users; swap for
@@ -127,7 +140,7 @@ function itemWords(item: string): string[] {
  * What the log-expense screens would have auto-picked for `item`: the category
  * most of its words map to. Mirrors Mobile's/Web's client-side suggestCategory.
  */
-export function suggestFromMap(map: CategoryMap, item: string): string {
+export function suggestFromMap(map: Omit<CategoryMap, 'items'>, item: string): string {
   const scores = new Map<string, number>()
   for (const word of itemWords(item)) {
     const cat = map.words[word]
@@ -155,7 +168,7 @@ export function suggestFromMap(map: CategoryMap, item: string): string {
  * vote and can hide the mismatch. Returns whether anything was written.
  */
 export async function learnCategoryCorrection(
-  map: CategoryMap,
+  map: Omit<CategoryMap, 'items'>,
   item: string,
   category: string,
   overridesCollection: ScopedCollection,

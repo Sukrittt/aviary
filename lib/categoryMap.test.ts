@@ -59,6 +59,17 @@ describe('buildCategoryMap', () => {
     expect(map.words.instamart).toBe('Groceries')
   })
 
+  it('remembers whole items too, so a payee matches only what was logged under that name', async () => {
+    const coll = fakeExpensesCollection([
+      { item: 'Swiggy  Instamart', category: 'Groceries' },
+      { item: 'swiggy instamart', category: 'Groceries' },
+      { item: 'Swiggy', category: 'Food' },
+    ])
+    const map = await buildCategoryMap(coll)
+    expect(map.items).toEqual({ 'swiggy instamart': 'Groceries', swiggy: 'Food' })
+    expect(map.words.swiggy).toBe('Groceries')
+  })
+
   // Seen in prod: "and"→Groceries, "to"→Metro, "ou"/"ch"/"ap" from half-typed text.
   it('skips filler words and 1-2 letter fragments, from history and overrides alike', async () => {
     const coll = fakeExpensesCollection([{ item: 'bus to office', category: 'Commute' }])

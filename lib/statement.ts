@@ -2,11 +2,12 @@ import { createHash, randomUUID } from 'node:crypto'
 import { Type, type Schema } from '@google/genai'
 import type { Auth } from '@/lib/access'
 import { getCollection } from '@/lib/http'
-import { getCachedCategoryMap } from '@/lib/categoryMap'
+import { getCachedCategoryMap, itemKey } from '@/lib/categoryMap'
 import { getBudgetCurrency, nowForUser } from '@/lib/userCurrency'
 import { validDate } from '@/lib/inputValidation'
 import { generateJSONFromImage, type ImagePart } from '@/lib/ai/gemini'
-import { assignCategories, matchFromHistory, MAX_CAPTURE_AGE_DAYS, MAX_CAPTURE_AMOUNT, type CaptureItem } from '@/lib/ai/capture'
+import { assignCategories, MAX_CAPTURE_AGE_DAYS, MAX_CAPTURE_AMOUNT, type CaptureItem } from '@/lib/ai/capture'
+import type { AiCaller } from '@/lib/ai/usage'
 import { pickColumnRoles } from '@/lib/import/ai'
 import { readTable, ZipTooLarge } from '@/lib/import/read'
 import { ImportError, inspect, needsColumnHelp, normalize, resolveRows, unresolvedColumns, type Layout, type StoredRow } from '@/lib/import/normalize'
@@ -283,6 +284,30 @@ async function readSource(auth: Auth, source: StatementSource, today: string, cu
   return generateJSONFromImage(statementPrompt(today, currencyCode), parts, STATEMENT_SCHEMA, { userId: auth.userId, feature: 'statement' }, { timeoutMs: 40_000 })
 }
 
+type Envelope = Pick<CaptureItem, 'category' | 'categoryConfidence'>
+
+/**
+ * One envelope per payee. History counts only for the exact payee the user
+ * logged before: word matching, fine for a typed "swiggy dinner", would file
+ * every "Swiggy" under Groceries after a few "Swiggy Instamart" rows. The rest
+ * go to Jev, which knows merchants, in the order given, up to MAX_JEV_PAYEES;
+ * past that the user picks.
+ */
+export async function categorizePayees(payees: string[], categories: string[], items: Record<string, string>, caller: AiCaller): Promise<Map<string, Envelope>> {
+  const out = new Map<string, Envelope>()
+  const unknown: string[] = []
+  for (const payee of payees) {
+    const known = items[itemKey(payee)]
+    if (known && categories.includes(known)) out.set(payee, { category: known, categoryConfidence: 1 })
+    else unknown.push(payee)
+  }
+  const asked = unknown.slice(0, MAX_JEV_PAYEES)
+  // No words: assignCategories goes straight to Jev.
+  const answers = await assignCategories(asked.map((item) => ({ item })), categories, {}, caller)
+  asked.forEach((payee, i) => out.set(payee, answers[i]))
+  return out
+}
+
 /** Reads an upload into a proposal: rows, envelopes from history then Jev, and which rows start unchecked. */
 export async function buildStatementProposal(auth: Auth, source: StatementSource): Promise<StatementProposal> {
   const [now, currencyCode, categoriesColl, expensesColl, overridesColl] = await Promise.all([
@@ -303,7 +328,7 @@ export async function buildStatementProposal(auth: Auth, source: StatementSource
     expensesColl.find({ date: { $gte: addDays(rows[0].date, -1) } }, { projection: { date: 1, amount_inr: 1 } }).toArray(),
     expensesColl.find({}, { projection: { date: 1 } }).sort({ date: -1 }).limit(1).toArray(),
     categoriesColl.find({}, { projection: { name: 1 } }).toArray(),
-    getCachedCategoryMap(auth.userId, expensesColl, overridesColl),
+    getCachedCategoryMap(auth.spaceId, expensesColl, overridesColl),
   ])
   const skips = markSuggestedSkips(
     rows,
@@ -312,26 +337,23 @@ export async function buildStatementProposal(auth: Auth, source: StatementSource
   )
   const categories = [...new Set(categoryDocs.map((d) => String(d.name ?? '')).filter(Boolean))]
 
-  // One envelope per payee. Rows that start checked get Jev first; the rest only if there's room.
+  // Rows that start checked get Jev first; the rest only if there's room.
   const payees = [...new Set([...rows.filter((_, i) => !skips[i]), ...rows].map((r) => r.payee))]
-  const asked = payees.slice(0, MAX_JEV_PAYEES)
-  const answers = await assignCategories(asked.map((item) => ({ item })), categories, map.words, { userId: auth.userId, feature: 'statement' })
-  const byPayee = new Map(asked.map((p, i) => [p, answers[i]]))
+  const byPayee = await categorizePayees(payees, categories, map.items, { userId: auth.userId, feature: 'statement' })
   const ids = statementClientIds(rows)
 
   return {
     id: randomUUID(),
     items: rows.map((r, i) => {
-      const known = byPayee.get(r.payee)
-      const fromHistory = known ? '' : matchFromHistory(r.payee, map.words, categories)
+      const envelope = byPayee.get(r.payee)
       return {
         id: ids[i],
         item: r.payee,
         amount: r.amount,
         splitWays: 1,
         date: r.date,
-        category: known?.category ?? fromHistory,
-        categoryConfidence: known?.categoryConfidence ?? (fromHistory ? 1 : null),
+        category: envelope?.category ?? '',
+        categoryConfidence: envelope?.categoryConfidence ?? null,
         suggestSkip: skips[i],
       }
     }),

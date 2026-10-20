@@ -1,5 +1,10 @@
 import { describe, it, expect, vi } from 'vitest'
+
+const scoreCategory = vi.fn()
+vi.mock('@/lib/ai/jev', () => ({ scoreCategory: (...a: unknown[]) => scoreCategory(...a) }))
+
 import {
+  categorizePayees,
   normalizeStatement,
   payeeLabel,
   statementClientIds,
@@ -237,5 +242,31 @@ describe('statementPrompt', () => {
     const prompt = statementPrompt(TODAY, 'INR')
     expect(prompt).toContain('Amounts are in INR.')
     expect(prompt).toContain('Leave out any transaction shown in a currency other than INR.')
+  })
+})
+
+describe('categorizePayees', () => {
+  const categories = ['Groceries', 'Food delivery', 'Travel']
+  const caller = { userId: 'u1', feature: 'statement' as const }
+
+  it("doesn't file Swiggy under Groceries because of past Swiggy Instamart rows", async () => {
+    scoreCategory.mockReset().mockResolvedValue({ choice: 'Food delivery', probability: 0.99 })
+    const out = await categorizePayees(['Swiggy', 'Swiggy Instamart'], categories, { 'swiggy instamart': 'Groceries' }, caller)
+    expect(out.get('Swiggy')).toEqual({ category: 'Food delivery', categoryConfidence: 0.99 })
+    expect(out.get('Swiggy Instamart')).toEqual({ category: 'Groceries', categoryConfidence: 1 })
+    expect(scoreCategory).toHaveBeenCalledTimes(1)
+  })
+
+  it("keeps the user's own envelope for a payee they've logged before, whatever Jev thinks", async () => {
+    scoreCategory.mockReset().mockResolvedValue({ choice: 'Food delivery', probability: 1 })
+    const out = await categorizePayees(['Swiggy'], categories, { swiggy: 'Groceries' }, caller)
+    expect(out.get('Swiggy')).toEqual({ category: 'Groceries', categoryConfidence: 1 })
+    expect(scoreCategory).not.toHaveBeenCalled()
+  })
+
+  it('asks Jev when the remembered envelope is gone', async () => {
+    scoreCategory.mockReset().mockResolvedValue({ choice: 'Travel', probability: 0.9 })
+    const out = await categorizePayees(['IRCTC'], categories, { irctc: 'Trains' }, caller)
+    expect(out.get('IRCTC')).toEqual({ category: 'Travel', categoryConfidence: 0.9 })
   })
 })

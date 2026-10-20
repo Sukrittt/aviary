@@ -13,5 +13,5 @@ export async function GET(req: Request) {
   const coll = await getCollection('expenses', auth)
   const overridesColl = await getCollection('category_map_overrides', auth)
   const map = await getCachedCategoryMap(auth.spaceId, coll, overridesColl)
-  return json(map)
+  return json({ words: map.words, updatedAt: map.updatedAt })
 }
