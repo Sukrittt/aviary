@@ -2,8 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 
 const mutateAsync = vi.fn()
+const refresh = vi.fn()
 const readStatement = vi.fn()
-vi.mock('@/src/hooks/useExpenses', () => ({ useAddExpense: () => ({ mutateAsync }) }))
+vi.mock('@/src/hooks/useExpenses', () => ({ useAddExpense: () => ({ mutateAsync, refresh }) }))
 vi.mock('@/src/hooks/useCategories', () => ({
   useCategories: () => ({ data: [{ name: 'Food' }, { name: 'Travel' }] }),
   useCategoryStyle: () => () => ({ background: 'gold', color: 'black' }),
@@ -132,6 +133,34 @@ describe('StatementModal', () => {
     fireEvent.click(screen.getByText('Log 1 · ₹349'))
     expect(await screen.findByText('Those were already in your budget, so nothing doubled up.', {}, { timeout: 3000 })).toBeTruthy()
     expect(screen.queryByText(/added/)).toBeNull()
+  })
+
+  it('logs a few rows at a time, counts each as it finishes, and refetches once', async () => {
+    readStatement.mockResolvedValue({
+      ...proposal,
+      items: Array.from({ length: 6 }, (_, i) => ({ id: `statement:${i}`, item: `Shop ${i}`, amount: 10, date: '2026-10-17', category: 'Food', suggestSkip: null })),
+    })
+    const pending: Array<() => void> = []
+    let inFlight = 0
+    let most = 0
+    mutateAsync.mockImplementation(() => new Promise((resolve) => {
+      most = Math.max(most, ++inFlight)
+      pending.push(() => { inFlight--; resolve({}) })
+    }))
+    await upload()
+    fireEvent.click(screen.getByText('Log 6 · ₹60'))
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalledTimes(4))
+    expect(screen.getByText('Logging 0 of 6…')).toBeTruthy()
+    pending.splice(0, 2).forEach((done) => done())
+    expect(await screen.findByText('Logging 2 of 6…')).toBeTruthy()
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalledTimes(6))
+    expect(refresh).not.toHaveBeenCalled()
+    pending.splice(0).forEach((done) => done())
+    expect(await screen.findByText("You're caught up.", {}, { timeout: 3000 })).toBeTruthy()
+    expect(screen.getByText('6 payments added')).toBeTruthy()
+    expect(most).toBe(4)
+    expect(mutateAsync.mock.calls.map((c) => c[0].client_id)).toEqual(['statement:0', 'statement:1', 'statement:2', 'statement:3', 'statement:4', 'statement:5'])
+    expect(refresh).toHaveBeenCalledTimes(1)
   })
 
   it('turns away a sixth screenshot before uploading', async () => {

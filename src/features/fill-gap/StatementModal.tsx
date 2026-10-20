@@ -27,6 +27,9 @@ const SCREENSHOT_ENCODING = { maxEdge: 1600, quality: 0.6 }
 const STATEMENT_FILE = /\.(csv|tsv|txt|xlsx|pdf)$/i
 const UNREADABLE = "Couldn't read that one. Try a CSV or Excel statement, or a screenshot of your payments."
 
+/** Saves in flight at once. Each is ~2.5s of server work and POST /api/expenses has no rate limit; more mostly queues on the server. */
+const LOG_CONCURRENCY = 4
+
 const SKIP_LABEL = { logged: 'Looks logged already', before_last: 'Before your last log' } as const
 
 type RowState = { checked: boolean; category: string }
@@ -49,7 +52,8 @@ export function StatementModal({ onClose }: { onClose: () => void }) {
   const [progress, setProgress] = useState(0)
   const [done, setDone] = useState<CaughtUp | null>(null)
   const button = useButtonPhase()
-  const addExpense = useAddExpense()
+  // The lists refetch once after the batch, not after every row.
+  const addExpense = useAddExpense({ refetch: false })
   // Rows a partly failed attempt already logged; a retry skips them (their client_ids would dedupe anyway).
   const logged = useRef(new Map<string, string | null>())
 
@@ -85,19 +89,25 @@ export function StatementModal({ onClose }: { onClose: () => void }) {
     button.start()
     setLogError('')
     let failed = 0
-    setProgress(0)
-    // One at a time, oldest first, so Activity keeps the statement's order.
-    for (const [n, item] of toLog.entries()) {
-      setProgress(n + 1)
-      if (logged.current.has(item.id)) continue
-      try {
-        const saved = await addExpense.mutateAsync(statementExpense(item, rows[item.id].category))
-        // null: the server already had it, so it's handled but not new.
-        logged.current.set(item.id, saved?.duplicate ? null : rows[item.id].category)
-      } catch {
-        failed++
+    const queue = toLog.filter((item) => !logged.current.has(item.id))
+    // Progress counts finished rows, those an earlier try saved included.
+    let finished = toLog.length - queue.length
+    setProgress(finished)
+    // A few at a time, started oldest first. Same-day rows can land in Activity in any order; a statement has no times anyway.
+    const worker = async () => {
+      for (let item = queue.shift(); item; item = queue.shift()) {
+        try {
+          const saved = await addExpense.mutateAsync(statementExpense(item, rows[item.id].category))
+          // null: the server already had it, so it's handled but not new.
+          logged.current.set(item.id, saved?.duplicate ? null : rows[item.id].category)
+        } catch {
+          failed++
+        }
+        setProgress(++finished)
       }
     }
+    await Promise.all(Array.from({ length: LOG_CONCURRENCY }, worker))
+    addExpense.refresh()
     if (failed > 0) {
       button.fail()
       setLogError(`Couldn't log ${failed === toLog.length ? 'these' : failed}. Check your connection and try again.`)
