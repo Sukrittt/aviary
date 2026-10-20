@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { AnimatePresence } from 'motion/react'
-import { ChatTextIcon, UploadSimpleIcon, ArrowClockwiseIcon, CaretRightIcon } from '@/src/components/icons'
+import { ChatTextIcon, UploadSimpleIcon, ArrowClockwiseIcon, ArrowLeftIcon, CaretRightIcon } from '@/src/components/icons'
 import { Scrim, Sheet } from '@/src/components/MotionSheet'
 import { CategoryPicker } from '@/src/components/CategoryPicker'
 import { LogExpenseModal } from '@/src/components/LogExpenseModal'
@@ -18,7 +18,8 @@ import { StatementModal } from './StatementModal'
 import { freshStartExpense, gapToFill, GAP_SEEN_KEY } from './gap'
 
 const asString = (raw: string) => raw
-type Step = 'type' | 'upload' | 'fresh' | null
+// 'sheet' is the sheet reopened by an option's back arrow, after this gap was already marked seen.
+type Step = 'sheet' | 'type' | 'upload' | 'fresh' | null
 
 /**
  * The dashboard's "Pick up where you left off". Shows once per gap, when the
@@ -45,20 +46,21 @@ export function FillGap() {
     setSeen(gap!)
     setStep(next)
   }
+  const back = () => setStep('sheet')
 
   return (
     <>
       <AnimatePresence>
-        {step === null && since && <GapSheet since={since} onChoose={choose} />}
+        {((step === null && since) || step === 'sheet') && <GapSheet since={gap} onChoose={choose} />}
       </AnimatePresence>
       <AnimatePresence>
-        {step === 'type' && <LogExpenseModal onClose={() => setStep(null)} onSaved={() => {}} />}
+        {step === 'type' && <LogExpenseModal onClose={() => setStep(null)} onBack={back} onSaved={() => {}} />}
       </AnimatePresence>
       <AnimatePresence>
-        {step === 'upload' && <StatementModal onClose={() => setStep(null)} />}
+        {step === 'upload' && <StatementModal onClose={() => setStep(null)} onBack={back} />}
       </AnimatePresence>
       <AnimatePresence>
-        {step === 'fresh' && <FreshStartModal since={gap} today={today} onClose={() => setStep(null)} />}
+        {step === 'fresh' && <FreshStartModal since={gap} today={today} onClose={() => setStep(null)} onBack={back} />}
       </AnimatePresence>
     </>
   )
@@ -115,7 +117,7 @@ function GapSheet({ since, onChoose }: { since: string; onChoose: (step: Step, o
 }
 
 /** "Start fresh": one question. A number logs a single "Untracked spending" today; "No idea" just closes. */
-export function FreshStartModal({ since, today, onClose }: { since: string; today: string; onClose: () => void }) {
+export function FreshStartModal({ since, today, onClose, onBack }: { since: string; today: string; onClose: () => void; onBack?: () => void }) {
   const { currencySymbol } = useCurrency()
   const [amount, setAmount] = useState('')
   const [category, setCategory] = useState('')
@@ -147,8 +149,8 @@ export function FreshStartModal({ since, today, onClose }: { since: string; toda
             <h3>Roughly how much did you spend while away?</h3>
             <p className="scan-subtitle">A ballpark is fine. It goes in as one expense today, so what&apos;s left stays right and your history stays as it was.</p>
           </div>
-          <button type="button" className="erd-modal-close" onClick={onClose} aria-label="Close" disabled={busy}>
-            ✕
+          <button type="button" className="erd-modal-close" onClick={onBack ?? onClose} aria-label={onBack ? 'Back' : 'Close'} disabled={busy}>
+            {onBack ? <ArrowLeftIcon size={18} aria-hidden="true" /> : '✕'}
           </button>
         </div>
         <label className="gap-amount">

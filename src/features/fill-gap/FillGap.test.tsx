@@ -7,7 +7,7 @@ vi.mock('@/src/hooks/useExpenses', () => ({ useLastSpent: () => ({ data: lastSpe
 vi.mock('@/src/hooks/useBillingStatus', () => ({ useAccessAllowed: () => true }))
 vi.mock('@/src/lib/date', () => ({ todayLocal: () => '2026-10-19' }))
 vi.mock('@/src/context/CurrencyContext', () => ({ useCurrency: () => ({ currencySymbol: '₹' }) }))
-vi.mock('@/src/components/LogExpenseModal', () => ({ LogExpenseModal: () => <div>log-expense-dialog</div> }))
+vi.mock('@/src/components/LogExpenseModal', () => ({ LogExpenseModal: ({ onBack }: { onBack: () => void }) => <button type="button" onClick={onBack}>log-expense-dialog</button> }))
 vi.mock('./StatementModal', () => ({ StatementModal: ({ onClose }: { onClose: () => void }) => <button type="button" onClick={onClose}>statement-dialog</button> }))
 vi.mock('@/src/components/CategoryPicker', () => ({
   CategoryPicker: ({ onChange }: { onChange: (c: string) => void }) => <button type="button" onClick={() => onChange('Food')}>Food</button>,
@@ -56,6 +56,16 @@ describe('FillGap', () => {
     await waitFor(() => expect(screen.queryByText('Pick up where you left off')).toBeNull())
     lastSpent = { Food: '2026-10-17' }
     rerender(<FillGap />)
+    expect(await screen.findByText('Pick up where you left off')).toBeTruthy()
+  })
+
+  it('goes back to the sheet from an option, so another can be picked', async () => {
+    render(<FillGap />)
+    fireEvent.click(screen.getByText('Type what you remember'))
+    fireEvent.click(await screen.findByText('log-expense-dialog'))
+    fireEvent.click(await screen.findByText('Start fresh'))
+    expect(await screen.findByText('Roughly how much did you spend while away?')).toBeTruthy()
+    fireEvent.click(screen.getByLabelText('Back'))
     expect(await screen.findByText('Pick up where you left off')).toBeTruthy()
   })
 

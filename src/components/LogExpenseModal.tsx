@@ -3,7 +3,7 @@
 import { useCurrency } from '@/src/context/CurrencyContext'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { CalendarBlankIcon, ChatTextIcon, PlusIcon, TagIcon, WarningIcon, WalletIcon, XIcon } from '@/src/components/icons'
+import { CalendarBlankIcon, ChatTextIcon, PlusIcon, TagIcon, WarningIcon, WalletIcon, XIcon, ArrowLeftIcon } from '@/src/components/icons'
 import { useOptionalMoneyBrain } from '@/components/moneyBrainContext'
 import { useHiddenFeatures } from '../hooks/useUser'
 import { BudgetLine } from './BudgetSwitcher'
@@ -40,6 +40,8 @@ import { base64Of, dataUrlFromFile, PHOTO_ENCODING } from '../features/scan-bill
 
 interface Props {
   onClose: () => void
+  /** Shown in place of the close button, e.g. back to the catch-up sheet. */
+  onBack?: () => void
   onSaved: () => void
 }
 
@@ -62,7 +64,7 @@ function offsetDateValue(daysAgo: number): string {
   return toDateInputValue(d)
 }
 
-export function LogExpenseModal({ onClose, onSaved }: Props) {
+export function LogExpenseModal({ onClose, onBack, onSaved }: Props) {
   const { currencySymbol, formatMoney } = useCurrency()
   const brain = useOptionalMoneyBrain()
   const askHidden = useHiddenFeatures().includes('askAviary')
@@ -435,11 +437,11 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
               <button
                 type="button"
                 className="erd-modal-close"
-                onClick={onClose}
-                aria-label="Close"
+                onClick={onBack ?? onClose}
+                aria-label={onBack ? 'Back' : 'Close'}
                 disabled={success}
               >
-                <XIcon size={18} aria-hidden="true" />
+                {onBack ? <ArrowLeftIcon size={18} aria-hidden="true" /> : <XIcon size={18} aria-hidden="true" />}
               </button>
             </div>
             <BudgetLine />

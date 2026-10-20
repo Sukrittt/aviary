@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react'
 import Link from 'next/link'
-import { CaretDownIcon, CheckIcon, UploadSimpleIcon } from '@/src/components/icons'
+import { ArrowLeftIcon, CaretDownIcon, CheckIcon, UploadSimpleIcon } from '@/src/components/icons'
 import { CategoryIcon } from '@/src/components/CategoryIcon'
 import { CategoryPicker } from '@/src/components/CategoryPicker'
 import { Confetti } from '@/src/components/onboarding/Confetti'
@@ -43,7 +43,8 @@ type RowState = { checked: boolean; category: string }
  * about to become, and it ends on "You're caught up": what got filled in
  * and where the money went, so the last thing you see is that it worked.
  */
-export function StatementModal({ onClose }: { onClose: () => void }) {
+export function StatementModal({ onClose, onBack }: { onClose: () => void; onBack?: () => void }) {
+  // Back to the sheet only from the picker; past it there's a read to lose.
   const [phase, setPhase] = useState<'pick' | 'reading' | 'review' | 'error' | 'done'>('pick')
   const [proposal, setProposal] = useState<StatementProposal | null>(null)
   const [rows, setRows] = useState<Record<string, RowState>>({})
@@ -140,9 +141,15 @@ export function StatementModal({ onClose }: { onClose: () => void }) {
         {phase !== 'done' && (
           <div className="erd-modal-head">
             <h3>{phase === 'review' ? 'Check these, then log' : 'Add from statement or screenshot'}</h3>
-            <button type="button" className="erd-modal-close" onClick={onClose} aria-label="Close" disabled={busy}>
-              ✕
-            </button>
+            {onBack && phase === 'pick' ? (
+              <button type="button" className="erd-modal-close" onClick={onBack} aria-label="Back">
+                <ArrowLeftIcon size={18} aria-hidden="true" />
+              </button>
+            ) : (
+              <button type="button" className="erd-modal-close" onClick={onClose} aria-label="Close" disabled={busy}>
+                ✕
+              </button>
+            )}
           </div>
         )}
 
