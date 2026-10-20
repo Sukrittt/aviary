@@ -175,10 +175,10 @@ function CardHead({ title = 150, toggle = 150 }: { title?: number; toggle?: numb
   return (
     <div className="sk-head">
       <span className="sk-row-text">
-        <Bone w={title} h={18} />
-        <Bone w={100} h={11} />
+        <Bone w={`min(${title}px, 100%)`} h={18} />
+        <Bone w="min(100px, 70%)" h={11} />
       </span>
-      {toggle > 0 && <Bone w={toggle} h={32} r={999} />}
+      {toggle > 0 && <Bone w={toggle} h={32} r={999} style={{ flexShrink: 1, minWidth: 64 }} />}
     </div>
   )
 }
