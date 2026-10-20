@@ -114,7 +114,7 @@ export const restoreBudget = (id: string) => call<unknown>(`/api/spaces/${id}/re
 export const transferBudget = (id: string, to: string) => call<unknown>(`/api/spaces/${id}/transfer`, send('POST', { to }))
 
 /** A shared budget you own, with the others in it: account deletion asks who gets each one. */
-export interface OwnedSharedBudget { id: string; name: string; emoji: string; personal: boolean; members: { userId: string; name: string | null }[] }
+export interface OwnedSharedBudget { id: string; name: string; emoji: string; personal: boolean; members: { userId: string; name: string | null; joinedAt?: string | null }[] }
 export const getSharedBudgets = () => call<{ budgets: OwnedSharedBudget[] }>('/api/user/shared-budgets')
 
 export type InvitePreview =

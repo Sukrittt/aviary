@@ -248,7 +248,7 @@ describe('account deletion with shared budgets', () => {
   it('lists the shared budgets the person owns, with who could take each one', async () => {
     const list = await sharedBudgetsOwnedBy('user_a')
     expect(list.map((b) => b.id).sort()).toEqual([HOME, 'user_a'].sort())
-    expect(list[0].members).toEqual([expect.objectContaining({ userId: 'user_b', name: 'Rahul' })])
+    expect(list[0].members).toEqual([expect.objectContaining({ userId: 'user_b', name: 'Rahul', joinedAt: expect.any(String) })])
   })
 
   it('transfers the ones they pick, personal budget included, and keeps that data out of the account purge', async () => {

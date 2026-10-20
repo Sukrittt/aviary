@@ -281,14 +281,14 @@ export async function transferOwnership(auth: Auth, spaceId: string, toUserId: s
   await handOver(db, space, toUserId, { keepOldOwner: true })
 }
 
-export interface OwnedSharedBudget { id: string; name: string; emoji: string; personal: boolean; members: { userId: string; name: string | null }[] }
+export interface OwnedSharedBudget { id: string; name: string; emoji: string; personal: boolean; members: { userId: string; name: string | null; joinedAt: string | null }[] }
 
 /** Budgets this person owns that someone else is in: what account deletion offers to hand over. */
 export async function sharedBudgetsOwnedBy(userId: string): Promise<OwnedSharedBudget[]> {
   const { budgets } = await listBudgets(userId)
   return budgets
     .filter((b) => b.role === 'owner' && b.members.length > 1)
-    .map((b) => ({ id: b.id, name: b.name, emoji: b.emoji, personal: b.personal, members: b.members.filter((m) => m.userId !== userId).map((m) => ({ userId: m.userId, name: m.name })) }))
+    .map((b) => ({ id: b.id, name: b.name, emoji: b.emoji, personal: b.personal, members: b.members.filter((m) => m.userId !== userId).map((m) => ({ userId: m.userId, name: m.name, joinedAt: m.joinedAt })) }))
 }
 
 /**
