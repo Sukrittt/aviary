@@ -33,7 +33,7 @@ describe('landing hero note', () => {
     vi.mocked(getPlanPrices).mockRejectedValue(new Error('down'))
     const out = await html()
     expect(out).not.toContain('/month')
-    expect(out.match(/Free for 30 days · No card needed/g)).toHaveLength(2)
+    expect(out.match(/Free for 30 days · No card/g)).toHaveLength(2)
   })
 })
 

@@ -74,13 +74,13 @@ export function LandingPage({ monthlyPrice, ios = false, android = false, intl =
         : <p className="lp-market">Outside India? <Link href="/intl">See the page for your region</Link></p>)}
       <Link className="lp-early" href={FEEDBACK_BOARD_PATH}><b>Early access</b><span className="lp-early-desktop">Your feedback shapes what we build next</span><span className="lp-early-mobile">Help shape Aviary</span><ArrowRightIcon size={14} aria-hidden="true" /></Link>
       <h1 id="landing-title">The budget app that <span className="lp-learns">learns your habits<svg viewBox="0 0 200 14" preserveAspectRatio="none" aria-hidden="true"><path d="M3 10 C 40 3, 70 3, 100 8 S 160 13, 197 5" /></svg></span>.</h1>
-      <p>It notices your <FirstHabit /> and nudges you to log it in one tap, so you’re still logging on day 4.<br className="lp-desktop-break" /> Miss a day? Type what you remember and you’re caught up.<br className="lp-desktop-break" /> No bank link, no loans, no offers.</p>
+      <p>It notices your <FirstHabit /> and nudges you to log it in one tap.<br className="lp-desktop-break" /> Miss a day? Type what you remember and you’re caught up.</p>
       {/* On iPhone the web app is the one thing they can use today, so it takes the ink pill and sits above the waitlist. */}
       <div className="lp-hero-actions">
         {!ios && <StoreLink placement="hero" />}
-        <Link href="/expense" className={`lp-button ${ios ? 'lp-button--dark' : 'lp-button--ghost'}`}><MonitorIcon size={18} aria-hidden="true" />Use it on the web today</Link>
+        <Link href="/expense" className={`lp-button ${ios ? 'lp-button--dark' : 'lp-button--ghost'}`}><MonitorIcon size={18} aria-hidden="true" />Try it on the web</Link>
       </div>
-      <span className="lp-hero-note">Free for 30 days{afterTrial} · No card needed</span>
+      <span className="lp-hero-note">Free for 30 days{afterTrial} · No card, no bank link</span>
       {ios && <IosWaitlist placement="hero" className="lp-waitlist--hero" />}
       {/* Desktop only: plenty of iPhone owners browse on a Mac and would miss the waitlist at the bottom. */}
       {!ios && !android && <span className="lp-hero-note lp-hero-note--tight">Not on iPhone yet. <a href="#get">Join the waitlist</a></span>}

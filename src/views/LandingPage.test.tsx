@@ -30,12 +30,12 @@ describe('LandingPage', () => {
     expect(screen.queryByRole('link', { name: /Get it on Android|Get the app/ })).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Join waitlist' })).toHaveAttribute('href', '#top')
     expect(screen.getAllByLabelText('Email for the iPhone waitlist')).toHaveLength(2)
-    expect(screen.getByRole('link', { name: 'Use it on the web today' })).toHaveClass('lp-button--dark')
+    expect(screen.getByRole('link', { name: 'Try it on the web' })).toHaveClass('lp-button--dark')
   })
 
   it.each([{}, { ios: true }, { android: true }])('puts a web app button in the hero for %o', (props) => {
     render(<LandingPage {...props} />)
-    expect(screen.getByRole('link', { name: 'Use it on the web today' })).toHaveAttribute('href', '/expense')
+    expect(screen.getByRole('link', { name: 'Try it on the web' })).toHaveAttribute('href', '/expense')
   })
   it('points desktop visitors to the iPhone waitlist from the hero', () => {
     render(<LandingPage />)

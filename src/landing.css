@@ -58,7 +58,7 @@ html:has(.lp) { scroll-behavior: smooth; }
 /* Wipe the svg in, not a dash: a pixel dash length can't know how wide the habit word renders. */
 @keyframes lp-draw { to { clip-path: inset(-100% -5% -100% -5%); } }
 /* 680px: the first line holds the longest rotating habit (takeout Saturdays, 654px) without wrapping mid-rotation. */
-.lp-hero > p { max-width: 680px; margin-top: 22px; font-size: 20px; line-height: 1.55; color: var(--muted); text-wrap: pretty; }
+.lp-hero > p { max-width: 680px; margin-top: 22px; font-size: 20px; line-height: 1.55; color: var(--muted); text-wrap: balance; }
 .lp-hero-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 28px; }
 .lp-hero-note { display: block; margin-top: 18px; font-size: 14px; color: var(--muted); }
 .lp-hero-note a { text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; }
