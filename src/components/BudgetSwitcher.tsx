@@ -256,7 +256,7 @@ export function CreateBudgetDialog({ onClose }: { onClose: () => void }) {
             value={name}
             maxLength={40}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Home, Goa trip, Studio…"
+            placeholder={currencyCode === 'INR' ? 'Home, Goa trip, Studio…' : 'Home, Beach trip, Studio…'}
             autoFocus
           />
 
@@ -284,17 +284,28 @@ export function CreateBudgetDialog({ onClose }: { onClose: () => void }) {
           {start === 'fresh' && (
             <>
               <div className="erd-log-label">Currency</div>
-              {pickCurrency ? (
-                <CurrencyPicker value={currencyCode} onChange={(code) => { setCurrencyCode(code); setPickCurrency(false) }} />
-              ) : (
-                <button type="button" className="account-row budget-currency" onClick={() => setPickCurrency(true)}>
-                  <span className="account-row-label">{currency.name}</span>
-                  <span className="account-chip">
-                    {currency.code}{currency.symbol !== currency.code ? ` · ${currency.symbol}` : ''}
-                    <CaretRightIcon size={14} aria-hidden="true" />
-                  </span>
-                </button>
-              )}
+              <button type="button" className="account-row budget-currency" onClick={() => setPickCurrency(true)}>
+                <span className="account-row-label">{currency.name}</span>
+                <span className="account-chip">
+                  {currency.code}{currency.symbol !== currency.code ? ` · ${currency.symbol}` : ''}
+                  <CaretRightIcon size={14} aria-hidden="true" />
+                </span>
+              </button>
+              <AnimatePresence>
+                {pickCurrency && (
+                  <Scrim className="erd-modal-overlay" onClick={() => setPickCurrency(false)}>
+                    <Sheet className="erd-modal-card currency-modal" role="dialog" aria-modal="true" aria-label="Currency" onClick={(e) => e.stopPropagation()}>
+                      <div className="erd-modal-head">
+                        <h3>Currency</h3>
+                        <button type="button" className="erd-modal-close" onClick={() => setPickCurrency(false)} aria-label="Close">✕</button>
+                      </div>
+                      <div style={{ marginTop: 16 }}>
+                        <CurrencyPicker value={currencyCode} autoFocus onChange={(code) => { setCurrencyCode(code); setPickCurrency(false) }} />
+                      </div>
+                    </Sheet>
+                  </Scrim>
+                )}
+              </AnimatePresence>
 
               <label className="account-row budget-copy">
                 <span className="account-row-label">

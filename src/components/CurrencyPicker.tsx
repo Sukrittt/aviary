@@ -7,7 +7,7 @@ import { useCurrency } from '@/src/context/CurrencyContext'
 import { useUpdateUser } from '@/src/hooks/useUser'
 import { Scrim, Sheet } from './MotionSheet'
 
-export function CurrencyPicker({ value, onChange, disabled = false }: { value: string; onChange: (code: string) => void; disabled?: boolean }) {
+export function CurrencyPicker({ value, onChange, disabled = false, autoFocus = false }: { value: string; onChange: (code: string) => void; disabled?: boolean; autoFocus?: boolean }) {
   const [search, setSearch] = useState('')
   const selected = currencyInfo(value)
   const matches = searchCurrencies(search)
@@ -19,7 +19,7 @@ export function CurrencyPicker({ value, onChange, disabled = false }: { value: s
       </div>
       <span className="currency-selected-code">{selected.code}{selected.symbol !== selected.code ? ` · ${selected.symbol}` : ''}</span>
     </div>
-    <input type="search" aria-label="Search currencies" placeholder="Search currency, country or code" value={search} onChange={e => setSearch(e.target.value)} className="txn-entry-input" style={{ width: '100%', boxSizing: 'border-box', marginBottom: 12 }} />
+    <input type="search" autoFocus={autoFocus} aria-label="Search currencies" placeholder="Search currency, country or code" value={search} onChange={e => setSearch(e.target.value)} className="txn-entry-input" style={{ width: '100%', boxSizing: 'border-box', marginBottom: 12 }} />
     <div role="group" aria-label="Currency" style={{ maxHeight: 440, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 12 }}>
       {matches.map(c => <button key={c.code} type="button" disabled={disabled} aria-pressed={value === c.code} onClick={() => onChange(c.code)} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', textAlign: 'left', padding: '12px 14px', minHeight: 48, color: 'var(--text)', background: value === c.code ? 'var(--mint-soft)' : 'transparent', border: 0, borderBottom: '1px solid var(--border)', cursor: 'pointer', font: 'inherit' }}>
         <span style={{ flex: 1 }}>{c.name}<small style={{ display: 'block', color: 'var(--text-2)' }}>{c.code}{c.symbol !== c.code ? ` · ${c.symbol}` : ''}</small></span>
@@ -54,6 +54,7 @@ export function CurrencySetting() {
             <p className="account-row-meta" style={{ margin: '12px 0 16px' }}>Changing currency updates how amounts are displayed. Amounts aren’t converted.</p>
             <CurrencyPicker
               value={currencyCode}
+              autoFocus
               disabled={update.isPending}
               onChange={code => { setOpen(false); update.mutate({ currencyCode: code }) }}
             />
