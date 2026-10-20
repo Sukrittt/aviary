@@ -14495,6 +14495,7 @@ button.account-feature-card {
   object-fit: cover;
 }
 .budget-avatar + .budget-avatar { margin-left: -6px; }
+.budget-avatar--more { width: auto; min-width: 20px; padding: 0 4px; border-radius: 10px; }
 .budget-new { margin-top: 4px; color: var(--erd-text2); }
 .budget-count { margin: 14px 0 0; color: var(--erd-text2); font-size: 12px; font-weight: 600; }
 .budget-limit { margin: 6px 0 0; color: var(--erd-text2); font-size: 13px; }

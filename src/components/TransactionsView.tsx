@@ -484,7 +484,7 @@ export function TransactionsView({
         <div className="txn-page-heading">
           <span className="txn-page-eyebrow">Transaction history</span>
           <h1>Activity</h1>
-          <p>Review, search, and edit everything you have logged.</p>
+          <p>Review, search, and edit everything you’ve logged.</p>
         </div>
         <div className="txn-page-actions">
           {feedOn && (

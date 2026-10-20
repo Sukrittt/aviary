@@ -26,7 +26,7 @@ export function TransactionsPage() {
           Activity <InvoiceIcon aria-hidden />
         </div>
         <div className="erd-mobile-sub">
-          <span>Every transaction you have logged</span>
+          <span>Every transaction you’ve logged</span>
         </div>
       </header>
 
