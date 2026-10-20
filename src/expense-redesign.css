@@ -14038,8 +14038,11 @@ button.account-feature-card {
 }
 
 /* ── Fill the gap: catch-up sheet, statement review, start fresh ── */
-.expense-redesign .erd-modal-card.gap-sheet {
-  width: 460px;
+/* Desktop only: below 900px every modal card is a full-width bottom sheet. */
+@media (min-width: 901px) {
+  .expense-redesign .erd-modal-card.gap-sheet {
+    width: 540px;
+  }
 }
 .gap-sheet .scan-subtitle {
   margin-top: 6px;
