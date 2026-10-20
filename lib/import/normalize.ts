@@ -1,7 +1,7 @@
 import { findHeaderRow, type Table } from './read'
 import { defaultDirection, detectDateOrder, detectDecimalComma, parseAmount, parseDate, type Direction } from './parse'
 import { CURRENCIES, isCurrencyCode } from '@/src/lib/currencies'
-import { detectPreset, genericTell, headerScore, mapColumns, typeKind, type AppId, type Preset, type Role, type RowFields, type SkipReason } from './presets'
+import { detectPreset, genericTell, headerName, headerScore, mapColumns, typeKind, type AppId, type Preset, type Role, type RowFields, type SkipReason } from './presets'
 
 const MAX_ITEM = 200
 const MAX_NOTES = 300
@@ -82,7 +82,7 @@ function symbolCurrency(cells: string[]): string {
   return found.size === 1 && !found.has('?') ? [...found][0] : ''
 }
 
-const lower = (cells: string[]) => cells.map((c) => c.trim().toLowerCase())
+const lower = (cells: string[]) => cells.map(headerName)
 const isPlan = (headers: string[]) => headers.includes('month') && headers.includes('assigned')
 
 /** Finds the transactions table and its header line, and maps what it can by name. */

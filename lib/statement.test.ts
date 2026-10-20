@@ -75,6 +75,15 @@ describe('payeeLabel', () => {
     expect(payeeLabel('POS 4321 DMART ANDHERI')).toBe('Dmart Andheri')
   })
 
+  it('reads SBI, bill pay, card and auto-debit narrations', () => {
+    expect(payeeLabel('TO TRANSFER-UPI/DR/627145001122/IRCTC/HDFC/irctc@hdfcbank/Ticket')).toBe('Irctc')
+    expect(payeeLabel('TO TRANSFER-UPI/DR/627245001123/SHARMA KIRANA/SBIN/sharmakirana@sbi/Pay')).toBe('Sharma Kirana')
+    expect(payeeLabel('BIL/ONL/000987123/AIRTEL POSTPAID/AIRT991')).toBe('Airtel Postpaid')
+    expect(payeeLabel('POS 4321XXXXXXXX9012 DMART ANDHERI')).toBe('Dmart Andheri')
+    expect(payeeLabel('ACH D- NETFLIX ENTERTAINMENT-NFLX99812')).toBe('Netflix Entertainment')
+    expect(payeeLabel('ATM/CASH WDL/ANDHERI EAST/S1AN2201')).toBe('Cash withdrawal')
+  })
+
   it('caps the length', () => {
     expect(payeeLabel('A'.repeat(200)).length).toBeLessThanOrEqual(60)
   })

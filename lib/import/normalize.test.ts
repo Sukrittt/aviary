@@ -100,6 +100,19 @@ describe('presets', () => {
 })
 
 describe('generic files', () => {
+  it("reads ICICI's columns, which carry the currency in their names", () => {
+    const layout = inspect([{ name: 'icici.xlsx', rows: [
+      ['ICICI Bank Limited'],
+      ['S No.', 'Value Date', 'Transaction Date', 'Cheque Number', 'Transaction Remarks', 'Withdrawal Amount (INR )', 'Deposit Amount (INR )', 'Balance (INR )'],
+      ['1', '08/10/2026', '08/10/2026', '', 'UPI/428145660011/Swiggy/swiggy.stores@axb/Payment', '534', '0', '37676'],
+      ['2', '10/10/2026', '10/10/2026', '', 'UPI/428345660015/ROHAN MEHTA/rohan@oksbi/Dinner split', '0', '1200', '38876'],
+    ] }])
+    expect(needsColumnHelp(layout)).toBe(false)
+    const out = normalize(layout, TODAY)
+    expect(out.rows.map((r) => [r.kind, r.amount])).toEqual([['expense', 534], ['income', 1200]])
+    expect(out.rows[0].item).toContain('Swiggy')
+  })
+
   it.each([
     [['€ 3,99', '€ 12,00'], 'EUR'],
     [['₹1,250', '-₹40'], 'INR'],
