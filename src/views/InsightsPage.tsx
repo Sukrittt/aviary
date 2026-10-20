@@ -9,7 +9,8 @@ import { ArrowLeftIcon, CaretLeftIcon, CaretRightIcon, GearIcon, HouseIcon, Invo
 import { CategoryIcon } from "@/src/components/CategoryIcon";
 import { useAppearance } from "@/components/AppearanceProvider";
 import { ExpenseSidebar } from "@/src/components/ExpenseSidebar";
-import { LoadingCaption } from "@/src/components/LoadingCaption";
+import { InsightsSkeleton } from "@/src/components/TabSkeleton";
+import { useForecast } from "@/src/hooks/useForecast";
 import { EditMonthIncomeScreen, MoveMoneyScreen } from "@/src/components/MoneyScreens";
 import { CategoryBreakdown } from "@/src/components/charts/CategoryBreakdown";
 import { Heatmap, type HeatmapCell } from "@/src/components/charts/Heatmap";
@@ -110,6 +111,8 @@ export function InsightsPage() {
     if (selectedBreakdownKey != null) setSelectedBreakdownKey(null);
   }
 
+  // Same rule ForecastCard renders by, so its bones don't vanish on load.
+  const forecast = useForecast();
   const loading =
     budgetsQuery.isLoading ||
     expensesQuery.isLoading ||
@@ -463,9 +466,7 @@ export function InsightsPage() {
           </header>
 
           {loading ? (
-            <div className="ins-loading">
-              <LoadingCaption placement="page" feature="insights" />
-            </div>
+            <InsightsSkeleton forecast={isCurrent && (forecast.isPending || !!forecast.data)} />
           ) : (
             <div className="insights-grid">
               <article

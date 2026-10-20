@@ -8,13 +8,6 @@
   flex-direction: column;
 }
 
-.ins-loading {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 .ins-period-header {
   display: flex;
   align-items: center;
