@@ -8,7 +8,7 @@ import {
   popIn,
   staggerDelay,
 } from "../components/landing/mobile/kit";
-import { ArrowRightIcon, CaretRightIcon, PlusIcon } from "@/src/components/icons";
+import { ArrowClockwiseIcon, ArrowRightIcon, CaretRightIcon, PlusIcon } from "@/src/components/icons";
 import {
   useAddHolding,
   useDeleteHolding,
@@ -747,7 +747,7 @@ export function HoldingModal({
             aria-labelledby="holding-conflict-title"
           >
             <span className="txn-review-icon" aria-hidden="true">
-              ↻
+              <ArrowClockwiseIcon size={24} />
             </span>
             <h4 id="holding-conflict-title">This holding was updated</h4>
             <p className="txn-review-intro">

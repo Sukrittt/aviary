@@ -18,7 +18,7 @@ import { MoveExpenseDialog } from './MoveExpenseDialog'
 import { useSpaces } from '../hooks/useSpaces'
 import { useAuthors } from '../hooks/useAuthors'
 import { useReadOnlyError } from './BudgetNotices'
-import { ArrowsLeftRightIcon } from '@/src/components/icons'
+import { ArrowClockwiseIcon, ArrowsLeftRightIcon } from '@/src/components/icons'
 import { AnimatePresence } from 'motion/react'
 
 interface Props {
@@ -249,7 +249,7 @@ export function TransactionEditModal({
         {error && !conflict && <p className="txn-entry-error">{error}</p>}
         {conflict && (
           <div className="txn-review" ref={reviewRef} tabIndex={-1} role="region" aria-labelledby="txn-review-title">
-            <span className="txn-review-icon" aria-hidden="true">↻</span>
+            <span className="txn-review-icon" aria-hidden="true"><ArrowClockwiseIcon size={24} /></span>
             <h4 id="txn-review-title">This transaction was updated</h4>
             <p className="txn-review-intro">A newer version was saved elsewhere. Your edits are still here.</p>
             {reviewRows.length > 0 && (
