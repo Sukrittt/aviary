@@ -87,6 +87,15 @@ describe('BudgetMembersDialog', () => {
     expect(api.removeMember).toHaveBeenCalledWith('s1', 'me')
   })
 
+  it('removing someone unnamed still reads right', async () => {
+    const unnamed = people.map((m) => ({ ...m, name: null }))
+    api.getMembers.mockResolvedValue(info({ members: unnamed }))
+    renderIt({ ...home, members: unnamed })
+    fireEvent.click(await screen.findByRole('button', { name: 'Remove' }))
+    const dialog = screen.getByRole('alertdialog', { name: 'Remove them?' })
+    expect(within(dialog).getByText('This person loses access to Home. What they logged stays.')).toBeTruthy()
+  })
+
   it('removing someone says what stays', async () => {
     api.getMembers.mockResolvedValue(info())
     api.removeMember.mockResolvedValue({ ok: true })

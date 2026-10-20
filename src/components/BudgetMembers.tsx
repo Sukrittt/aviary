@@ -238,7 +238,7 @@ export function BudgetMembersDialog({ budget, onClose }: { budget: BudgetSummary
         {confirm?.kind === 'remove' && (
           <ConfirmDialog
             title={`Remove ${firstName(confirm.member.name) ?? 'them'}?`}
-            body={`${firstName(confirm.member.name) ?? 'They'} loses access to ${budget.name}. What they logged stays.`}
+            body={`${firstName(confirm.member.name) ?? 'This person'} loses access to ${budget.name}. What they logged stays.`}
             cancelLabel="Keep"
             busy={busy}
             onCancel={() => setConfirm(null)}
