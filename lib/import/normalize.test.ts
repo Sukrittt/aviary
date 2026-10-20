@@ -111,6 +111,12 @@ describe('generic files', () => {
     const out = normalize(layout, TODAY)
     expect(out.rows.map((r) => [r.kind, r.amount])).toEqual([['expense', 534], ['income', 1200]])
     expect(out.rows[0].item).toContain('Swiggy')
+    expect(out.fileCurrency).toBe('INR')
+  })
+
+  it('takes the currency from a column name when the amounts show none', () => {
+    const out = normalize(inspect([{ name: 'x.csv', rows: [['Date', 'Description', 'Amount (USD)'], ['2026-09-01', 'Coffee', '-4.50']] }]), TODAY)
+    expect(out.fileCurrency).toBe('USD')
   })
 
   it.each([

@@ -82,6 +82,7 @@ describe('payeeLabel', () => {
     expect(payeeLabel('POS 4321XXXXXXXX9012 DMART ANDHERI')).toBe('Dmart Andheri')
     expect(payeeLabel('ACH D- NETFLIX ENTERTAINMENT-NFLX99812')).toBe('Netflix Entertainment')
     expect(payeeLabel('ATM/CASH WDL/ANDHERI EAST/S1AN2201')).toBe('Cash withdrawal')
+    expect(payeeLabel('UPI/DR/412345678904/DR REDDYS LAB/HDFC/drreddy@hdfcbank/Payment')).toBe('Dr Reddys Lab')
   })
 
   it('caps the length', () => {
