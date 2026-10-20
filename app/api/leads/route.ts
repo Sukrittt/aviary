@@ -8,6 +8,8 @@ export const dynamic = 'force-dynamic'
 
 // The planner's money fields keep 10 digits, so anything they accept is accepted here.
 const MAX_SALARY = 9_999_999_999
+// ponytail: one global bucket, so a flood blocks real visitors too. Add a captcha if that bites.
+const MAX_PLANS_PER_DAY = 50
 
 /**
  * Public, unauthenticated: the salary planner's "Email me this plan". The plan
@@ -29,6 +31,8 @@ export async function POST(req: Request) {
     { windowMs: 60 * 60 * 1000, limit: 10 },
   ])
   if (limited) return error('rate limited', 429)
+  // Every plan email shares the Resend quota with sign-in, receipts and trial notices.
+  if (await isRateLimited('leads:global', { windowMs: 24 * 60 * 60 * 1000, limit: MAX_PLANS_PER_DAY })) return error('rate limited', 429)
 
   const rows = salaryPlan(salary, rent === undefined ? {} : { rent }).map((c): [string, number] => [c.name, c.amount])
   const rowId = await queueLeadPlan(await getDb(), email, { salary: Math.floor(salary), rows })

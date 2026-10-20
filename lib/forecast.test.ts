@@ -161,6 +161,17 @@ describe('forecast', () => {
     expect(f.envelopes[0].scheduled).toBe(119)
   })
 
+  it('doesn’t count past charges of a subscription dated only by its renewal month (#207)', () => {
+    const f = forecast(
+      input({
+        envelopes: [env('Fun', 2000)],
+        expenses: threeMonths('Food', 1),
+        subscriptions: [{ service: 'Gym', category: 'Fun', amount_inr: 500, billing_cycle: 'monthly', next_due_date: '', renewal_or_end_month: 'January 2026', status: 'active' }],
+      }),
+    )
+    expect(f.envelopes[0].scheduled).toBe(0)
+  })
+
   it('gives the date an envelope crosses zero before month end', () => {
     // 1000 at 97.22/day: 27.8 left on the 29th, below zero on the 30th.
     const f = forecast(input({ envelopes: [env('Food', 1000)], expenses: threeMonths('Food', 100) }))
