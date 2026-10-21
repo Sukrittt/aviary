@@ -22,7 +22,7 @@ export default function BudgetSpreadsheetPage() {
       <li><strong>Built for your phone.</strong> Type “auto 240, lunch 150” and both spends are logged. Or scan the bill.</li>
       <li><strong>Nothing to maintain.</strong> Each new month starts fresh with the same assigned amounts. No tabs to copy, no formulas to fix.</li>
     </ul>
-    <p>A spreadsheet still makes sense if you enjoy building your own formulas, want it free, or share the budget with a partner.</p>
+    <p>A spreadsheet still makes sense if you enjoy building your own formulas or want it free.</p>
 
     <h2>Side by side</h2>
     <CompareTable them="Spreadsheet" rows={[
@@ -49,7 +49,6 @@ export default function BudgetSpreadsheetPage() {
     <ul>
       <li><strong>It can be free.</strong> Google Sheets costs nothing with a Google account.</li>
       <li><strong>Total control.</strong> Any layout, any formula, any chart. Want your home loan next to your budget? A sheet can do that.</li>
-      <li><strong>Sharing.</strong> You can share a Google Sheet with a partner and both edit it. Aviary budgets are one person each.</li>
       <li><strong>iPhone.</strong> Sheets and Excel both have iPhone apps. Aviary is on Android and the web for now.</li>
     </ul>
 

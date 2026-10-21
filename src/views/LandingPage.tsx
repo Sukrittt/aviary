@@ -11,7 +11,7 @@ import { IosWaitlist } from '../components/landing/IosWaitlist'
 // Parked while the page leads with habit nudges; see the commented section below.
 // import { MoneyLesson } from '../components/landing/MoneyLesson'
 import { BirdLanding, BirdMark } from '../components/BirdMark'
-import { HeroStage, LearnDiagram, MoreInside, FirstHabit, NoticeSplit, ShotClip, KeepEverything } from '../components/landing/Nudges'
+import { HeroStage, LearnDiagram, MoreInside, FirstHabit, NoticeSplit, ShotClip, KeepEverything, Together, CatchUp } from '../components/landing/Nudges'
 import { FEEDBACK_BOARD_PATH } from '@/lib/links'
 import { GITHUB, LandingFooter, LandingHeader } from '../components/landing/Chrome'
 import { SampleScope } from '../components/landing/sample'
@@ -31,6 +31,13 @@ const RULES = [
   { title: 'Fills in the usual', body: 'What it was, how much, which category and how you paid. All from your own history.' },
   { title: 'Two a day, and it backs off', body: 'Your strongest habits go first. Skip one twice and it moves an hour later. Five times and it goes quiet. Or switch them off any time.' },
   { title: 'Skips what’s done, asks when it isn’t', body: 'Already logged it today? Then there’s nothing to nudge. Nothing logged by evening? One push asks “Anything today?”' },
+]
+
+/** Shared budgets (lib/spaces.ts): one plan, the owner plus five, five budgets each. */
+const together = (intl: boolean) => [
+  { title: 'One plan covers everyone', body: 'Up to 6 people on one subscription. Nobody else pays a thing, and how you split the cost between you is your business.' },
+  { title: 'Yours stays yours', body: `Your personal budget is separate, and you switch at the top of Home. Up to 5 budgets each: ${intl ? 'the house' : 'the flat'}, a trip, the wedding.` },
+  { title: 'Leave the way you came', body: 'Anyone can leave, the owner can hand it over, and a deleted budget can be brought back for 30 days.' },
 ]
 
 /** The arc every budgeting app shares. Day numbers are a feeling, not a stat. */
@@ -113,6 +120,7 @@ export function LandingPage({ monthlyPrice, ios = false, android = false, intl =
       <span className="lp-question">Day 5 with Aviary</span>
       <h2 id="anywhere-title" className="lp-h2">Missed yesterday?<br />Type what you remember.</h2>
       <p className="lp-lede">Open Ask Aviary and type {intl ? '“bus 3, lunch 15, Friday dinner 60”' : '“auto 240, lunch 150, Friday dinner 900”'}. It turns that into separate spends, picks the categories, and you check them before they land. Two missed days take about a minute.</p>
+      <CatchUp />
       <ul className="lp-ways lp-ways--compact">
         {anywhere(intl).map(({ icon: Icon, tone, title, body }) => <li key={title}>
           <span className={`lp-way-icon lp-tone-${tone}`}><Icon size={22} aria-hidden="true" /></span>
@@ -177,6 +185,16 @@ export function LandingPage({ monthlyPrice, ios = false, android = false, intl =
           </div>
         </article>
       </div>
+    </section>
+
+    <section id="together" className="lp-section lp-center" aria-labelledby="together-title">
+      <span className="lp-question">For two, or the whole {intl ? 'house' : 'flat'}</span>
+      <h2 id="together-title" className="lp-h2">One budget. Every phone.</h2>
+      <p className="lp-lede">Rent, groceries and the weekend, out of one pot. Invite your partner or {intl ? 'housemates' : 'flatmates'}, and whoever paid logs it. Everyone sees what’s left, and who spent it.</p>
+      <Together />
+      <dl className="lp-rules">
+        {together(intl).map((r) => <div key={r.title}><dt>{r.title}</dt><dd>{r.body}</dd></div>)}
+      </dl>
     </section>
 
     <Playground />

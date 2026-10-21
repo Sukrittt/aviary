@@ -213,10 +213,11 @@ function AskScene({ playing }: { playing: boolean }) {
 // ─── More in the nest: what the logs add up to ────────────────────────────────
 
 /** A recording in a shot phone that plays only while that phone itself is in view, so a swiped-away one stops. */
-export function ShotClip({ name }: { name: string }) {
+/** `bare` drops the phone frame, for a parent that draws its own and lays a banner over it. */
+export function ShotClip({ name, bare = false }: { name: string; bare?: boolean }) {
   const reduced = useReducedMotion()
   const { ref, visible } = useOnScreen<HTMLDivElement>(0.5)
-  return <div className="lp-shot-phone" ref={ref}><Clip name={name} playing={visible && !reduced} loop /></div>
+  return <div className={bare ? undefined : 'lp-shot-phone'} ref={ref}><Clip name={name} playing={visible && !reduced} loop /></div>
 }
 
 /** Three more screens of the app, in the "log from anywhere" phone frames. */
@@ -244,6 +245,59 @@ export function MoreInside() {
     <figure className="lp-shot">
       <div className="lp-shot-art" aria-hidden="true"><ShotClip name="invest" /></div>
       <figcaption><strong>Investments</strong><span>{investments}, with your net worth charted since day one.</span></figcaption>
+    </figure>
+  </div>
+}
+
+// ─── Budget together: make it, join it, see who logged what ──────────────────
+
+/** A shared budget's life in three screens: created and shared, joined with the code, and everyone's spends in one list with a face on each. */
+export function Together() {
+  const { together } = useSample()
+  return <div className="lp-shots">
+    <figure className="lp-shot">
+      <div className="lp-shot-art" aria-hidden="true"><ShotClip name="create" /></div>
+      <figcaption><strong>Make it, share it</strong><span>Name a budget, pick an icon, tap Invite. The link goes out on WhatsApp like anything else.</span></figcaption>
+    </figure>
+    <figure className="lp-shot">
+      <div className="lp-shot-art" aria-hidden="true"><ShotClip name="join" /></div>
+      <figcaption><strong>They tap the link</strong><span>Or type the six-letter code. No card, no setup, nothing to copy over. They’re in.</span></figcaption>
+    </figure>
+    <figure className="lp-shot">
+      <div className="lp-shot-art" aria-hidden="true">
+        <div className="lp-shot-phone">
+          <ShotClip name="members" bare />
+          <div className="lp-app-banner lp-heads-up">
+            <div className="lp-notif-app"><span className="lp-notif-icon"><BirdMark size={13} perched /></span>Aviary<span className="lp-heads-up-time">· now</span><CaretDownIcon size={14} weight="bold" /></div>
+            <div className="lp-heads-up-row"><b>{together.logged[0]}</b><span>{together.logged[1]}</span></div>
+          </div>
+        </div>
+      </div>
+      <figcaption><strong>Everyone’s spends, one list</strong><span>Every log carries who made it. Switch on “Tell me when others log” and you hear the moment it lands.</span></figcaption>
+    </figure>
+  </div>
+}
+
+// ─── Catch up from a statement: a week of payments read off screenshots ──────
+
+/** The upload clip next to what it accepts: UPI app screenshots or a statement file, de-duplicated. */
+export function CatchUp() {
+  const { catchUp } = useSample()
+  return <div className="lp-keep">
+    <figure className="lp-shot">
+      <div className="lp-shot-art" aria-hidden="true"><ShotClip name="catchup" /></div>
+      <figcaption><strong>Missed a whole week? Upload it.</strong><span>Screenshots of your payments app, or a bank statement. Aviary reads the payments, matches each to a category, and you tick the ones that are yours.</span></figcaption>
+    </figure>
+    <figure className="lp-shot">
+      <div className="lp-keep-art" aria-hidden="true">
+        <div className="lp-stage-card">
+          <div className="lp-keep-apps">{catchUp.from.map(a => <span key={a}>{a}</span>)}</div>
+          <div className="lp-envelope-line"><span>{catchUp.added}</span><strong>{catchUp.total}<small> added</small></strong></div>
+          <div className="lp-envelope-bar"><i style={{ transform: `scaleX(${catchUp.bar})` }} /></div>
+          <p className="lp-stage-note">Upload the same screen twice and nothing doubles up.</p>
+        </div>
+      </div>
+      <figcaption><strong>Still your call.</strong><span>Nothing lands until you’ve checked it. Credits are skipped, transfers can be marked income, and anything already logged is left alone.</span></figcaption>
     </figure>
   </div>
 }

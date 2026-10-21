@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { BellIcon, BrainIcon, GiftIcon, BankIcon, EnvelopeSimpleIcon, MonitorIcon, ChartPieIcon, RepeatIcon, ScanIcon, DeviceMobileIcon, WalletIcon, WifiSlashIcon } from '@/src/components/icons'
+import { BellIcon, BrainIcon, GiftIcon, BankIcon, EnvelopeSimpleIcon, MonitorIcon, ChartPieIcon, RepeatIcon, ScanIcon, DeviceMobileIcon, UsersIcon, WalletIcon, WifiSlashIcon } from '@/src/components/icons'
 import { pageMetadata } from '@/lib/seo'
 import { visitorCheckoutProvider, visitorPlanPrices } from '@/lib/billing/prices'
 import { formatPrice, PLAY_STORE_URL, yearlySavingsPercent } from '@/src/components/billing/copy'
@@ -21,6 +21,7 @@ const perUnit = (amount: number, parts: number, currency: string) => {
 
 const INCLUDED = [
   { icon: WalletIcon, tone: 'rent', title: 'Categories', body: 'Set money aside by purpose. See what’s left before you spend.' },
+  { icon: UsersIcon, tone: 'fun', title: 'Shared budgets', body: 'One plan covers up to 6 people in a budget. Partners and flatmates join free.' },
   { icon: BellIcon, tone: 'fun', title: 'Habit nudges', body: 'Aviary learns your routine and nudges you while it’s fresh.' },
   { icon: ScanIcon, tone: 'food', title: 'Receipt scanning', body: 'Snap the bill. Every line read, split if you shared.' },
   { icon: RepeatIcon, tone: 'savings', title: 'Bills and subscriptions', body: 'Renewals with due dates, and a heads-up before they charge.' },
@@ -35,6 +36,7 @@ const INCLUDED = [
 const FAQS = [
   { q: 'What happens when my trial ends?', a: 'Nothing is charged. When you open the app, you’ll see the two plans and pick one to carry on. Your categories and history stay exactly where you left them, and you can export your data whether or not you subscribe.' },
   { q: 'Do I need a card to start?', a: 'No. There’s no card, no UPI mandate and nothing to cancel during the 30 days. You only set up a payment method if you decide to keep going.' },
+  { q: 'Does my partner need their own plan?', a: 'No. One subscription covers a budget and everyone in it, up to 6 people. Only the person who made the budget needs a plan. Anyone they invite joins free, logs into the same categories, and is never asked to pay for it. If you want to split the cost between you, that’s between you.' },
   { q: 'Can I cancel?', a: 'Any time, with no fee and no notice period. You keep full access until the end of the period you’ve already paid for.' },
   { q: 'Do you offer refunds?', a: 'Payments cover the period you’ve started, so we don’t refund part of a month or year after you cancel. Some cases do get a full refund, and the refund policy lists them.', link: { href: '/legal/refunds', label: 'Read the refund and cancellation policy' } },
   { q: 'Are taxes included?', a: 'Yes. The price you see here is the price you pay on the website. Google Play sets its own local prices, so the Android app may show a slightly different number.' },
@@ -53,7 +55,7 @@ export default async function PricingPage() {
     <section className="lp-hero" aria-labelledby="pricing-title">
       <p className="lp-early lp-early--still"><b>30 days free</b><span className="lp-early-desktop">No card. No mandate. Nothing to cancel.</span><span className="lp-early-mobile">No card. Nothing to cancel.</span></p>
       <h1 id="pricing-title">Try it for 30 days.<br />Then one simple plan.</h1>
-      <p>Every account starts with a free trial of the whole app. When it ends, pick monthly or yearly. Cancel any time.</p>
+      <p>Every account starts with a free trial of the whole app. When it ends, pick monthly or yearly. One plan covers up to 6 people in a shared budget. Cancel any time.</p>
       <div className="lp-hero-actions">
         <TrackedLink className="lp-button lp-button--dark" href={PLAY_STORE_URL} event="store_cta_clicked" properties={{ placement: 'pricing_hero' }}><DeviceMobileIcon size={18} aria-hidden="true" />Start your free trial</TrackedLink>
         <Link href="/expense" className="lp-button lp-button--ghost"><MonitorIcon size={18} aria-hidden="true" />Open web app</Link>
