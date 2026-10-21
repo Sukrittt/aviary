@@ -307,3 +307,44 @@ describe('account deletion with shared budgets', () => {
     expect(await resolveSpaceAccess('user_b', HOME, lookupMembership)).toMatchObject({ denied: true })
   })
 })
+
+describe('account deletion with a budget nobody else is in', () => {
+  it('closes it with the account, quietly, and reopens it on restore', async () => {
+    const db = await getDb()
+    await handOffSharedBudgets(db, 'user_a', {})
+    await softDeleteAccount(db, 'user_a')
+    expect(await db.collection('spaces').findOne({ _id: HOME as never })).toMatchObject({ deleted_by: 'user_a', deleted_reason: 'account' })
+    expect(await db.collection('spaces').findOne({ _id: 'user_a' as never })).toBeNull()
+    expect(pushes).toEqual([])
+    await restoreAccount(db, 'user_a')
+    expect(await resolveSpaceAccess('user_a', HOME, lookupMembership)).toMatchObject({ spaceId: HOME, role: 'owner' })
+  })
+
+  it('the GC purges it, data and all', async () => {
+    const db = await getDb()
+    await scoped(db.collection('expenses'), HOME).insertOne({ item: 'Hotel', amount_inr: 100, date: '2026-10-01' })
+    await handOffSharedBudgets(db, 'user_a', {})
+    await softDeleteAccount(db, 'user_a')
+    expect(await purgeDeletedSpaces(db, new Date(Date.now() + 31 * 86_400_000))).toBe(1)
+    expect(await db.collection('expenses').countDocuments({ user_id: HOME })).toBe(0)
+    expect(await db.collection('spaces').countDocuments({ _id: HOME as never })).toBe(0)
+  })
+
+  it('an immediate purge takes it too, but not a budget someone else is in', async () => {
+    const db = await getDb()
+    const now = new Date().toISOString()
+    const SHARED = 'bbbbbbbbbbbbbbbbbbbbbbbb'
+    await db.collection<SpaceDoc>('spaces').insertOne({ _id: SHARED, name: 'Flat', emoji: '🏢', owner_id: 'user_a', currencyCode: 'INR', onboardedAt: now, deleted_at: null, created_at: now })
+    await db.collection('space_members').insertMany([
+      { space_id: SHARED, user_id: 'user_a', role: 'owner', joined_at: now, notify_others: false },
+      { space_id: SHARED, user_id: 'user_b', role: 'member', joined_at: now, notify_others: false },
+    ])
+    await scoped(db.collection('expenses'), HOME).insertOne({ item: 'Hotel', amount_inr: 100, date: '2026-10-01' })
+    await scoped(db.collection('expenses'), SHARED).insertOne({ item: 'Rent', amount_inr: 100, date: '2026-10-01' })
+    await purgeAccountNow(db, 'user_a')
+    expect(await db.collection('expenses').countDocuments({ user_id: HOME })).toBe(0)
+    expect(await db.collection('spaces').countDocuments({ _id: HOME as never })).toBe(0)
+    expect(await db.collection('expenses').countDocuments({ user_id: SHARED })).toBe(1)
+    expect(await db.collection('space_members').countDocuments({ space_id: SHARED, user_id: 'user_b' })).toBe(1)
+  })
+})
