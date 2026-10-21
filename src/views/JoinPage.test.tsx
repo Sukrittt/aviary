@@ -3,13 +3,15 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { queryWrapper } from '../test-utils/queryWrapper'
 import { HttpError, budgetCookie, setBudgetCookie } from '../api/client'
 
-const { previewInvite, joinBudget, getBudgets, auth } = vi.hoisted(() => ({
+const { previewInvite, joinBudget, getBudgets, getUser, auth } = vi.hoisted(() => ({
   previewInvite: vi.fn(),
   joinBudget: vi.fn(),
   getBudgets: vi.fn(),
+  getUser: vi.fn(),
   auth: { user: null as null | { id: string }, loading: false },
 }))
 vi.mock('../api/spaces', () => ({ previewInvite, joinBudget, getBudgets }))
+vi.mock('../api/account', () => ({ getUser }))
 vi.mock('@workos-inc/authkit-nextjs/components', () => ({ useAuth: () => auth }))
 
 const { JoinPage } = await import('./JoinPage')
@@ -21,6 +23,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   auth.user = { id: 'u2' }
   getBudgets.mockResolvedValue({ budgets: [], count: 1, limit: 5, activeId: 'u2' })
+  getUser.mockResolvedValue({ _id: 'u2' })
   vi.stubGlobal('location', { assign })
 })
 afterEach(() => {
@@ -64,17 +67,43 @@ describe('JoinPage', () => {
     expect(joinBudget).not.toHaveBeenCalled()
   })
 
-  it('signed in: confirms, joins, opens the budget', async () => {
+  it('signed in: the invitation, the join, a welcome with everyone in it, then the budget', async () => {
     previewInvite.mockResolvedValue(ok)
-    joinBudget.mockResolvedValue({ spaceId: 's1', already: false })
+    joinBudget.mockImplementation(async () => {
+      const member = (userId: string, name: string, role: string) => ({ userId, name, avatarUrl: null, role, joinedAt: null })
+      getBudgets.mockResolvedValue({ budgets: [{ id: 's1', name: 'Home', emoji: '🏠', role: 'member', ownerId: 'u1', currencyCode: 'INR', personal: false, members: [member('u1', 'Priya Shah', 'owner'), member('u2', 'Rahul Rao', 'member')] }], count: 2, limit: 5, activeId: 'u2' })
+      return { spaceId: 's1', already: false }
+    })
     renderIt()
     fireEvent.click(await screen.findByRole('button', { name: 'Continue on web' }))
-    expect(screen.getByRole('alertdialog', { name: 'Join Home budget?' })).toBeTruthy()
+    expect(screen.getByRole('alertdialog', { name: 'Priya invited you to Home' })).toBeTruthy()
+    expect(screen.getByText('2 people already in')).toBeTruthy()
     expect(screen.getByText('Your own budget stays exactly as it is.')).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Join' }))
-    await waitFor(() => expect(assign).toHaveBeenCalledWith('/expense'))
+    fireEvent.click(screen.getByRole('button', { name: 'Join Home' }))
+    const welcome = await screen.findByRole('dialog', { name: "You're in, Rahul" }, { timeout: 3000 })
+    expect(welcome.textContent).toContain("Everything anyone logs in Home lands here, and you'll see who added what.")
+    expect(screen.getByTestId('join-you').textContent).toContain('R')
+    expect(assign).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: "Let's go" }))
+    expect(assign).toHaveBeenCalledWith('/expense')
     expect(joinBudget).toHaveBeenCalledWith('ABC234')
     expect(budgetCookie()).toBe('s1')
+  })
+
+  it('someone with no budget of their own still gets the welcome, not a reload into the budget', async () => {
+    const reload = vi.fn()
+    vi.stubGlobal('location', { assign, reload })
+    previewInvite.mockResolvedValue(ok)
+    joinBudget.mockImplementation(async () => {
+      // No personal budget: the server opens the one just joined.
+      getBudgets.mockResolvedValue({ budgets: [{ id: 's1', name: 'Home', emoji: '🏠', role: 'member', ownerId: 'u1', currencyCode: 'INR', personal: false, members: [] }], count: 1, limit: 5, activeId: 's1' })
+      return { spaceId: 's1', already: false }
+    })
+    renderIt()
+    fireEvent.click(await screen.findByRole('button', { name: 'Continue on web' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Join Home' }))
+    expect(await screen.findByRole('dialog', { name: "You're in" }, { timeout: 3000 })).toBeTruthy()
+    expect(reload).not.toHaveBeenCalled()
   })
 
   it('already a member: just opens it', async () => {
@@ -98,7 +127,7 @@ describe('JoinPage', () => {
     joinBudget.mockRejectedValue(new HttpError(status, code))
     renderIt()
     fireEvent.click(await screen.findByRole('button', { name: 'Continue on web' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Join' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Join Home' }))
     expect((await screen.findByRole('alert')).textContent).toBe(message)
     expect(assign).not.toHaveBeenCalled()
   })
