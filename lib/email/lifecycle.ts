@@ -133,7 +133,16 @@ async function queueLead(db: Db, lead: LeadDoc, step: LeadStep, sent: string[], 
   await queue(db, { _id: id, lead_id: lead._id, step }, message(lead.email, content, unsubscribeHeaders(`l:${lead._id}`)), now)
 }
 
-export const leadId = (email: string) => createHash('sha256').update(email).digest('hex').slice(0, 32)
+/** One inbox, one key: drop any `+tag`, and Gmail's ignored dots, so an alias can't dodge the opt-out or the daily cap (#211). */
+function inboxKey(email: string): string {
+  const at = email.lastIndexOf('@')
+  let local = email.slice(0, at).split('+')[0]
+  let domain = email.slice(at + 1)
+  if (domain === 'gmail.com' || domain === 'googlemail.com') { local = local.replaceAll('.', ''); domain = 'gmail.com' }
+  return `${local}@${domain}`
+}
+
+export const leadId = (email: string) => createHash('sha256').update(inboxKey(email.trim().toLowerCase())).digest('hex').slice(0, 32)
 
 /**
  * Record a salary-planner lead and queue the plan they asked for. At most one
@@ -143,8 +152,11 @@ export const leadId = (email: string) => createHash('sha256').update(email).dige
 export async function queueLeadPlan(db: Db, email: string, plan: LeadDoc['plan'], now = new Date()): Promise<string> {
   const _id = leadId(email)
   const leads = db.collection<LeadDoc>(LEADS)
+  // Leads before #211 were keyed on the raw address; an opt-out made then still holds.
+  const legacyId = createHash('sha256').update(email.trim().toLowerCase()).digest('hex').slice(0, 32)
+  const legacy = legacyId === _id ? null : await leads.findOne({ _id: legacyId }, { projection: { optedOutAt: 1 } })
   await leads.updateOne({ _id }, {
-    $setOnInsert: { email, source: 'salary-planner', createdAt: now, confirmedAt: null, optedOutAt: null },
+    $setOnInsert: { email, source: 'salary-planner', createdAt: now, confirmedAt: null, optedOutAt: legacy?.optedOutAt ?? null },
     $set: { plan },
   }, { upsert: true })
   const lead = (await leads.findOne({ _id }))!

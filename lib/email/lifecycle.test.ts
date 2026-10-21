@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { createHash } from 'node:crypto'
 import { MongoClient, type Db } from 'mongodb'
 import type { MongoMemoryServer } from 'mongodb-memory-server'
 import { startMongo } from '@/src/test-utils/mongo'
@@ -150,6 +151,27 @@ describe('salary planner leads', () => {
     await queueLeadPlan(db, 'lead@example.com', plan, ago(1))
     await db.collection(LEADS).updateOne({ _id: leadId('lead@example.com') as never }, { $set: { optedOutAt: ago(1) } })
     await queueLeadPlan(db, 'lead@example.com', plan, now)
+    await retryLifecycleEmails()
+    expect(sendEmail).not.toHaveBeenCalled()
+  })
+
+  it('treats +tags and Gmail dots as the same address for the opt-out and the daily cap (#211)', async () => {
+    await queueLeadPlan(db, 'jane@gmail.com', plan, ago(1))
+    await db.collection(LEADS).updateOne({ _id: leadId('jane@gmail.com') as never }, { $set: { optedOutAt: ago(1) } })
+    await outbox().deleteMany({})
+    for (const alias of ['jane+1@gmail.com', 'j.ane@gmail.com', 'J.a.n.e+promo@googlemail.com']) await queueLeadPlan(db, alias, plan, now)
+    expect(await outbox().countDocuments()).toBe(1)
+    await retryLifecycleEmails()
+    expect(sendEmail).not.toHaveBeenCalled()
+    // Dots only fold on Gmail; elsewhere they're part of the address.
+    expect(leadId('j.ane@example.com')).not.toBe(leadId('jane@example.com'))
+    expect(leadId('jane+x@example.com')).toBe(leadId('jane@example.com'))
+  })
+
+  it('keeps an opt-out made under the old raw-address key (#211)', async () => {
+    const legacyId = createHash('sha256').update('j.ane@gmail.com').digest('hex').slice(0, 32)
+    await db.collection(LEADS).insertOne({ _id: legacyId as never, email: 'j.ane@gmail.com', source: 'salary-planner', createdAt: ago(9), confirmedAt: null, optedOutAt: ago(9) })
+    await queueLeadPlan(db, 'j.ane@gmail.com', plan, now)
     await retryLifecycleEmails()
     expect(sendEmail).not.toHaveBeenCalled()
   })
