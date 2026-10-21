@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 const mutateAsync = vi.fn()
@@ -163,6 +163,51 @@ describe('StatementModal', () => {
     expect(most).toBe(4)
     expect(mutateAsync.mock.calls.map((c) => c[0].client_id).slice(4).sort()).toEqual(['statement:1', 'statement:5'])
     expect(refresh).toHaveBeenCalledTimes(1)
+  })
+
+  it('asks for a locked pdf\'s password in place, and keeps the file through a wrong guess', async () => {
+    const { StatementFailure } = await import('@/src/api/statement')
+    readStatement
+      .mockRejectedValueOnce(new StatementFailure('locked', 'That PDF is locked', 'pdf_locked'))
+      .mockRejectedValueOnce(new StatementFailure('wrong', 'Wrong password', 'pdf_password_wrong'))
+    render(<StatementModal onClose={() => {}} />)
+    const pdf = new File(['%PDF /Encrypt'], 'hdfc.pdf', { type: 'application/pdf' })
+    fireEvent.change(screen.getByLabelText('Statement or screenshots'), { target: { files: [pdf] } })
+    expect(await screen.findByText('hdfc.pdf has a password')).toBeTruthy()
+    expect(screen.getByText('Used once to open the file. Never saved.')).toBeTruthy()
+    expect(screen.queryByRole('alert')).toBeNull()
+
+    await userEvent.type(screen.getByLabelText('Password'), 'nope')
+    // Both clicks land before the reading screen renders; only one upload goes.
+    const open = screen.getByText('Open it')
+    act(() => {
+      fireEvent.click(open)
+      fireEvent.click(open)
+    })
+    expect(await screen.findByText("That didn't open it, try again.")).toBeTruthy()
+    expect((screen.getByLabelText('Password') as HTMLInputElement).value).toBe('')
+
+    await userEvent.type(screen.getByLabelText('Password'), '01011990')
+    fireEvent.click(screen.getByText('Open it'))
+    await screen.findByText('Check these, then log')
+    expect(readStatement.mock.calls.map((c) => c[0])).toEqual([{ file: pdf }, { file: pdf, password: 'nope' }, { file: pdf, password: '01011990' }])
+  })
+
+  it('stays on the password when a retry hits the rate limit, so the file is kept', async () => {
+    const { StatementFailure } = await import('@/src/api/statement')
+    readStatement
+      .mockRejectedValueOnce(new StatementFailure('locked', 'That PDF is locked', 'pdf_locked'))
+      .mockRejectedValueOnce(new StatementFailure('Give it a minute.', 'One moment', 'rate_limited'))
+    render(<StatementModal onClose={() => {}} />)
+    const pdf = new File(['%PDF /Encrypt'], 'hdfc.pdf', { type: 'application/pdf' })
+    fireEvent.change(screen.getByLabelText('Statement or screenshots'), { target: { files: [pdf] } })
+    await userEvent.type(await screen.findByLabelText('Password'), '01011990')
+    fireEvent.click(screen.getByText('Open it'))
+    expect(await screen.findByText('Give it a minute.')).toBeTruthy()
+    await userEvent.type(screen.getByLabelText('Password'), '01011990')
+    fireEvent.click(screen.getByText('Open it'))
+    await screen.findByText('Check these, then log')
+    expect(readStatement).toHaveBeenLastCalledWith({ file: pdf, password: '01011990' })
   })
 
   it('turns away a sixth screenshot before uploading', async () => {

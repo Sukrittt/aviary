@@ -5,7 +5,8 @@ import { getCollection } from '@/lib/http'
 import { getCachedCategoryMap, itemKey } from '@/lib/categoryMap'
 import { getBudgetCurrency, nowForUser } from '@/lib/userCurrency'
 import { validDate } from '@/lib/inputValidation'
-import { generateJSONFromImage, type ImagePart } from '@/lib/ai/gemini'
+import { getDocumentProxy, extractText } from 'unpdf'
+import { generateJSON, generateJSONFromImage, type ImagePart } from '@/lib/ai/gemini'
 import { assignCategories, MAX_CAPTURE_AGE_DAYS, MAX_CAPTURE_AMOUNT, type CaptureItem } from '@/lib/ai/capture'
 import type { AiCaller } from '@/lib/ai/usage'
 import { pickColumnRoles } from '@/lib/import/ai'
@@ -25,6 +26,8 @@ import { isCurrencyCode } from '@/src/lib/currencies'
 
 export const MAX_STATEMENT_ROWS = 200
 export const MAX_SCREENSHOTS = 5
+/** A locked pdf's text, past which it's turned away as too big rather than sent: about 150k tokens, a long way past 200 rows. */
+export const MAX_PDF_TEXT = 500_000
 /** Jev calls per upload. Payees past this get the user's history or nothing. */
 const MAX_JEV_PAYEES = 40
 const MAX_PAYEE_LEN = 60
@@ -52,7 +55,7 @@ export interface StatementProposal {
 }
 
 /** A failure the client turns into written copy. */
-export type StatementErrorCode = 'unreadable' | 'empty' | 'pdf_locked' | 'too_big' | 'other_currency'
+export type StatementErrorCode = 'unreadable' | 'empty' | 'pdf_locked' | 'pdf_password_wrong' | 'pdf_no_text' | 'too_big' | 'other_currency'
 export class StatementError extends Error {
   constructor(readonly code: StatementErrorCode) {
     super(code)
@@ -247,9 +250,35 @@ export function isLockedPdf(buf: Buffer): boolean {
   return buf.includes('/Encrypt')
 }
 
+/**
+ * A locked pdf's text, page by page, opened in memory. The password goes to
+ * pdf.js and nowhere else: not the model, not a log, not an error, and the
+ * unlocked copy is never written anywhere. Also opens a pdf locked only
+ * against editing, which needs no password. No text at all means a scan.
+ */
+export async function unlockPdfText(data: Buffer, password?: string): Promise<string[]> {
+  let pages: string[]
+  try {
+    const pdf = await getDocumentProxy(new Uint8Array(data), { password })
+    try {
+      pages = (await extractText(pdf, { mergePages: false })).text
+    } finally {
+      await pdf.loadingTask.destroy()
+    }
+  } catch (err) {
+    const e = err as { name?: string; code?: number }
+    // pdf.js: 1 is no password given, 2 is the wrong one.
+    if (e?.name === 'PasswordException') throw new StatementError(e.code === 2 ? 'pdf_password_wrong' : 'pdf_locked')
+    throw new StatementError('unreadable')
+  }
+  if (!pages.some((p) => p.trim())) throw new StatementError('pdf_no_text')
+  if (pages.reduce((n, p) => n + p.length, 0) > MAX_PDF_TEXT) throw new StatementError('too_big')
+  return pages
+}
+
 export type StatementSource =
   | { kind: 'images'; images: ImagePart[] }
-  | { kind: 'pdf'; data: Buffer }
+  | { kind: 'pdf'; data: Buffer; password?: string }
   | { kind: 'table'; data: Buffer; filename: string }
 
 /**
@@ -281,11 +310,15 @@ export async function readStatementTable(
   }
 }
 
-async function readSource(auth: Auth, source: StatementSource, today: string, currencyCode: string): Promise<unknown> {
+export async function readSource(auth: Auth, source: StatementSource, today: string, currencyCode: string): Promise<unknown> {
   if (source.kind === 'table') {
     return readStatementTable(source.data, source.filename, today, currencyCode, (layout) => pickColumnRoles(unresolvedColumns(layout), auth.userId))
   }
-  if (source.kind === 'pdf' && isLockedPdf(source.data)) throw new StatementError('pdf_locked')
+  if (source.kind === 'pdf' && isLockedPdf(source.data)) {
+    const pages = await unlockPdfText(source.data, source.password)
+    const text = pages.map((p, i) => `Page ${i + 1}:\n${p}`).join('\n\n')
+    return generateJSON(`${statementPrompt(today, currencyCode)}\n\nThe statement's text:\n\n${text}`, STATEMENT_SCHEMA, { userId: auth.userId, feature: 'statement' }, { timeoutMs: 40_000 })
+  }
   // The model reports each row's currency; normalizeStatement leaves the others out, or turns an all-foreign read away.
   const parts = source.kind === 'pdf' ? [{ data: source.data.toString('base64'), mimeType: 'application/pdf' }] : source.images
   return generateJSONFromImage(statementPrompt(today, currencyCode), parts, STATEMENT_SCHEMA, { userId: auth.userId, feature: 'statement' }, { timeoutMs: 40_000 })

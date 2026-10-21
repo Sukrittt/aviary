@@ -61,7 +61,28 @@ describe('POST /api/expenses/statement', () => {
     expect(mockBuild.mock.calls[1][1]).toMatchObject({ kind: 'pdf' })
   })
 
-  it('names a locked pdf so the app can point at Excel or CSV', async () => {
+  it('passes a locked pdf its password, and leaves it off when blank', async () => {
+    const form = new FormData()
+    form.append('file', new File(['%PDF /Encrypt'], 'statement.pdf', { type: 'application/pdf' }))
+    form.append('password', '01011990')
+    await POST(new Request('https://example.com/api/expenses/statement', { method: 'POST', body: form }))
+    expect(mockBuild.mock.calls[0][1]).toMatchObject({ kind: 'pdf', password: '01011990' })
+    form.set('password', '')
+    await POST(new Request('https://example.com/api/expenses/statement', { method: 'POST', body: form }))
+    expect(mockBuild.mock.calls[1][1]).not.toHaveProperty('password')
+  })
+
+  it('names a wrong password, without echoing it back', async () => {
+    mockBuild.mockRejectedValue(new StatementError('pdf_password_wrong'))
+    const form = new FormData()
+    form.append('file', new File(['%PDF /Encrypt'], 'statement.pdf', { type: 'application/pdf' }))
+    form.append('password', 'secret123')
+    const res = await POST(new Request('https://example.com/api/expenses/statement', { method: 'POST', body: form }))
+    expect(res.status).toBe(400)
+    expect(await res.text()).toBe(JSON.stringify({ error: 'pdf_password_wrong' }))
+  })
+
+  it('names a locked pdf so the app can ask for its password', async () => {
     mockBuild.mockRejectedValue(new StatementError('pdf_locked'))
     const res = await POST(fileReq('statement.pdf', '%PDF /Encrypt', 'application/pdf'))
     expect(res.status).toBe(400)

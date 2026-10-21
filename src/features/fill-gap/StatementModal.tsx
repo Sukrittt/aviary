@@ -2,7 +2,7 @@
 
 import { useRef, useState, type CSSProperties } from 'react'
 import Link from 'next/link'
-import { ArrowLeftIcon, BankIcon, CaretDownIcon, CheckIcon, FileTextIcon, ImagesIcon, UploadSimpleIcon } from '@/src/components/icons'
+import { ArrowLeftIcon, BankIcon, CaretDownIcon, CheckIcon, FileTextIcon, ImagesIcon, LockIcon, UploadSimpleIcon } from '@/src/components/icons'
 import { CategoryIcon } from '@/src/components/CategoryIcon'
 import { BirdEmptyState } from '@/src/components/BirdEmptyState'
 import { ReadOnlyNotice } from '@/src/components/BudgetNotices'
@@ -49,7 +49,9 @@ type RowState = { checked: boolean; category: string }
  */
 export function StatementModal({ onClose, onBack }: { onClose: () => void; onBack?: () => void }) {
   // Back to the sheet only from the picker; past it there's a read to lose.
-  const [phase, setPhase] = useState<'pick' | 'reading' | 'review' | 'error' | 'done'>('pick')
+  const [phase, setPhase] = useState<'pick' | 'reading' | 'password' | 'review' | 'error' | 'done'>('pick')
+  // A locked pdf waiting on its password. The file stays so a wrong guess isn't a re-upload; the password lives only in the field.
+  const [locked, setLocked] = useState<{ file: File; wrong: boolean; error: string } | null>(null)
   const [proposal, setProposal] = useState<StatementProposal | null>(null)
   const [rows, setRows] = useState<Record<string, RowState>>({})
   const [error, setError] = useState({ title: '', message: '' })
@@ -68,7 +70,7 @@ export function StatementModal({ onClose, onBack }: { onClose: () => void; onBac
     setPhase('error')
   }
 
-  async function read(files: File[]) {
+  async function read(files: File[], password?: string) {
     const images = files.filter((f) => f.type.startsWith('image/'))
     const doc = files.find((f) => !f.type.startsWith('image/') && STATEMENT_FILE.test(f.name))
     if (!doc && images.length === 0) return fail('Pick screenshots, or a CSV, Excel or PDF statement.')
@@ -76,7 +78,7 @@ export function StatementModal({ onClose, onBack }: { onClose: () => void; onBac
     setPhase('reading')
     try {
       const result = doc
-        ? await readStatement({ file: doc })
+        ? await readStatement({ file: doc, password })
         : await readStatement({
             images: await Promise.all(images.map(async (f) => ({ data: base64Of(await dataUrlFromFile(f, SCREENSHOT_ENCODING)), mimeType: 'image/jpeg' }))),
           })
@@ -86,7 +88,14 @@ export function StatementModal({ onClose, onBack }: { onClose: () => void; onBac
       setPhase('review')
       track('statement_read', { kind: doc ? 'file' : 'screenshots', rows: result.items.length, credits: result.credits })
     } catch (err) {
-      if (err instanceof StatementFailure) fail(err.message, err.title)
+      if (doc && err instanceof StatementFailure && (err.code === 'pdf_locked' || err.code === 'pdf_password_wrong')) {
+        setLocked({ file: doc, wrong: err.code === 'pdf_password_wrong', error: '' })
+        setPhase('password')
+      } else if (doc && password && err instanceof StatementFailure && (err.code === 'rate_limited' || err.code === 'offline')) {
+        // Worth another go with the same file, so stay on the password, not the error screen whose Try again starts over.
+        setLocked({ file: doc, wrong: false, error: err.message })
+        setPhase('password')
+      } else if (err instanceof StatementFailure) fail(err.message, err.title)
       else fail(UNREADABLE, 'Hard to read, that one')
     }
   }
@@ -170,6 +179,16 @@ export function StatementModal({ onClose, onBack }: { onClose: () => void; onBac
         {readOnly ? <ReadOnlyNotice onClose={onClose} /> : <>
         {phase === 'pick' && <StatementPick onFiles={read} />}
 
+        {phase === 'password' && locked && (
+          <StatementPassword
+            name={locked.file.name}
+            wrong={locked.wrong}
+            error={locked.error}
+            onSubmit={(password) => read([locked.file], password)}
+            onPickAnother={() => setPhase('pick')}
+          />
+        )}
+
         {phase === 'reading' && (
           <div className="scan-center">
             <LoadingCaption feature="readStatement" />
@@ -205,6 +224,52 @@ export function StatementModal({ onClose, onBack }: { onClose: () => void; onBac
         </>}
       </Sheet>
     </Scrim>
+  )
+}
+
+/** A locked pdf's password, asked for in place. Sent once with the file, never kept. */
+function StatementPassword({ name, wrong, error, onSubmit, onPickAnother }: {
+  name: string
+  wrong: boolean
+  error: string
+  onSubmit: (password: string) => void
+  onPickAnother: () => void
+}) {
+  const [password, setPassword] = useState('')
+  // Once per showing: a double click lands before the reading screen does. A wrong guess remounts this.
+  const sent = useRef(false)
+  return (
+    <form
+      className="statement-password"
+      onSubmit={(e) => {
+        e.preventDefault()
+        if (!password || sent.current) return
+        sent.current = true
+        onSubmit(password)
+      }}
+    >
+      <span className="gap-tile"><LockIcon size={20} aria-hidden="true" /></span>
+      <p className="scan-drop-title">{name} has a password</p>
+      <label htmlFor="statement-password" className="erd-log-label">Password</label>
+      <input
+        id="statement-password"
+        className="erd-log-input"
+        type="password"
+        autoComplete="off"
+        autoFocus
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        aria-invalid={wrong}
+        aria-describedby="statement-password-hint"
+      />
+      {(wrong || error) && <p role="alert" className="statement-password-error">{wrong ? "That didn't open it, try again." : error}</p>}
+      <p id="statement-password-hint" className="scan-subtitle">
+        Usually your date of birth (DDMMYYYY), customer ID, or the format your bank&apos;s email mentions.
+      </p>
+      <p className="scan-subtitle">Used once to open the file. Never saved.</p>
+      <button type="submit" className="account-pill-btn account-pill-btn--primary" disabled={!password}>Open it</button>
+      <button type="button" className="statement-password-other" onClick={onPickAnother}>Pick another file</button>
+    </form>
   )
 }
 
