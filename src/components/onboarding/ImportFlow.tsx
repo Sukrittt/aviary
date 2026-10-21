@@ -517,7 +517,8 @@ function Review({ review, picked, budgetName, onReview, onDone, onAlreadySetUp }
   const accountCount = useCountUp(accounts.length, 700, 330)
   const incomeShown = useCountUp(hasSalary ? Math.round(salaryAmount) : 0, 900, 410)
   const summary = [
-    { key: 'envelopes' as const, icon: TagIcon, label: 'Envelopes', value: later ? (newCount ? `${newCount} new` : 'All matched') : String(catCount) },
+    // Nothing to bring in: no envelopes to place either.
+    ...(nothing ? [] : [{ key: 'envelopes' as const, icon: TagIcon, label: 'Envelopes', value: later ? (newCount ? `${newCount} new` : 'All matched') : String(catCount) }]),
     ...(accounts.length > 0 ? [{ key: 'accounts' as const, icon: WalletIcon, label: 'Accounts', value: String(accountCount) }] : []),
     ...(later ? [] : [{ key: 'income' as const, icon: CardholderIcon, label: 'Monthly income', value: hasSalary ? formatMoney(incomeShown === Math.round(salaryAmount) ? salaryAmount : incomeShown) : 'Add it later' }]),
   ]

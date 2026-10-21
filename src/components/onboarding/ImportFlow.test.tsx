@@ -296,6 +296,16 @@ describe('ImportFlow', () => {
       expect(screen.getByRole('button', { name: 'Envelopes 1 new' })).toBeTruthy()
     })
 
+    it('with nothing from before the first entry, there’s nothing to place and nothing to bring in', async () => {
+      previewImport.mockResolvedValue({ ...later, counts: { expense: 0, refund: 0, income: 0, from: '', to: '' }, samples: [] })
+      render(<ImportFlow skipAsk onFresh={vi.fn()} onDone={vi.fn()} onAlreadySetUp={vi.fn()} />)
+      fireEvent.click(screen.getByRole('button', { name: /Monefy/ }))
+      fireEvent.change(screen.getByLabelText('Choose your export file'), { target: { files: [file()] } })
+      expect(await screen.findByText('Nothing in this file is from before 3 Oct, when you started in Aviary.')).toBeTruthy()
+      expect(screen.queryByRole('button', { name: /^Envelopes/ })).toBeNull()
+      expect(screen.getByRole('button', { name: 'Bring it in' })).toHaveProperty('disabled', true)
+    })
+
     it('puts a leftover category into an existing envelope and sends no salary', async () => {
       previewImport.mockResolvedValue(later)
       render(<ImportFlow skipAsk onFresh={vi.fn()} onDone={vi.fn()} onAlreadySetUp={vi.fn()} />)
