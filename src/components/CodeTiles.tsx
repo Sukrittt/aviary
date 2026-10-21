@@ -46,7 +46,7 @@ export function CodeTiles({ id, value, onChange, length, error, shakeFor = '', a
         id={id}
         className="code-tiles-input"
         value={value}
-        maxLength={length}
+        // No maxLength: it would cut a pasted "AB-23 CD" before the caller strips the dash.
         autoComplete="off"
         autoCapitalize="characters"
         spellCheck={false}

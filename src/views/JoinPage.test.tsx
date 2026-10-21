@@ -90,6 +90,22 @@ describe('JoinPage', () => {
     expect(budgetCookie()).toBe('s1')
   })
 
+  it('someone with no budget of their own still gets the welcome, not a reload into the budget', async () => {
+    const reload = vi.fn()
+    vi.stubGlobal('location', { assign, reload })
+    previewInvite.mockResolvedValue(ok)
+    joinBudget.mockImplementation(async () => {
+      // No personal budget: the server opens the one just joined.
+      getBudgets.mockResolvedValue({ budgets: [{ id: 's1', name: 'Home', emoji: '🏠', role: 'member', ownerId: 'u1', currencyCode: 'INR', personal: false, members: [] }], count: 1, limit: 5, activeId: 's1' })
+      return { spaceId: 's1', already: false }
+    })
+    renderIt()
+    fireEvent.click(await screen.findByRole('button', { name: 'Continue on web' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Join Home' }))
+    expect(await screen.findByRole('dialog', { name: "You're in" }, { timeout: 3000 })).toBeTruthy()
+    expect(reload).not.toHaveBeenCalled()
+  })
+
   it('already a member: just opens it', async () => {
     previewInvite.mockResolvedValue(ok)
     getBudgets.mockResolvedValue({ budgets: [{ id: 's1', name: 'Home', emoji: '🏠', role: 'member', ownerId: 'u1', currencyCode: 'INR', personal: false, members: [] }], count: 2, limit: 5, activeId: 'u2' })

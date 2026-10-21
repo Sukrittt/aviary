@@ -77,6 +77,9 @@ export function JoinConfirm({ code, preview, limit, onCancel }: { code: string; 
     setError('')
     try {
       const { spaceId } = await joinBudget(code)
+      // In it now. Someone with no budget of their own would otherwise be
+      // switched (a reload) into it by useSpaces, before the welcome shows.
+      setBudgetCookie(spaceId)
       // Fresh members for the welcome, you included.
       await queryClient.refetchQueries({ queryKey: spacesKey }).catch(() => {})
       button.succeed(() => setJoined(spaceId))
@@ -133,20 +136,18 @@ export function JoinConfirm({ code, preview, limit, onCancel }: { code: string; 
         {error && <p className="erd-log-error" role="alert">{error}</p>}
         <div className="archive-confirm-actions">
           <button type="button" className="account-pill-btn" onClick={onCancel} disabled={button.saving || button.success}>Not now</button>
-          {!error && (
-            <SuccessButton
-              type="button"
-              baseClass="account-pill-btn account-pill-btn--primary"
-              saving={button.saving}
-              success={button.success}
-              savingLabel="Joining…"
-              successLabel="Joined"
-              onClick={() => void join()}
-              disabled={button.saving || button.success}
-            >
-              {`Join ${budget.name}`}
-            </SuccessButton>
-          )}
+          <SuccessButton
+            type="button"
+            baseClass="account-pill-btn account-pill-btn--primary"
+            saving={button.saving}
+            success={button.success}
+            savingLabel="Joining…"
+            successLabel="Joined"
+            onClick={() => void join()}
+            disabled={button.saving || button.success}
+          >
+            {`Join ${budget.name}`}
+          </SuccessButton>
         </div>
       </Sheet>
     </Scrim>
@@ -158,7 +159,8 @@ export function JoinCodeDialog({ memberOf, limit, onClose }: { memberOf: (id: st
   const [code, setCode] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const [preview, setPreview] = useState<Previewed | null>(null)
+  // With the code it came from: the tiles can change while a lookup is out.
+  const [preview, setPreview] = useState<{ code: string; invite: Previewed } | null>(null)
   // The code that matched nothing, so the tiles shake once per wrong code.
   const [wrong, setWrong] = useState('')
 
@@ -172,14 +174,14 @@ export function JoinCodeDialog({ memberOf, limit, onClose }: { memberOf: (id: st
       if (p.status === 'not_found') setWrong(value)
       if (blocked) setError(blocked)
       else if (p.status !== 'not_found' && memberOf(p.budget.id)) return openBudget(p.budget.id)
-      else setPreview(p as Previewed)
+      else setPreview({ code: value, invite: p as Previewed })
     } catch {
       setError(GENERIC)
     }
     setBusy(false)
   }
 
-  if (preview) return <JoinConfirm code={code} preview={preview} limit={limit} onCancel={onClose} />
+  if (preview) return <JoinConfirm code={preview.code} preview={preview.invite} limit={limit} onCancel={onClose} />
   return (
     <Scrim className="erd-modal-overlay" onClick={onClose}>
       <Sheet className="erd-modal-card budget-sheet" role="dialog" aria-modal="true" aria-label="Join with a code" onClick={(e) => e.stopPropagation()}>

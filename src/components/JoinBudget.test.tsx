@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { queryWrapper } from '../test-utils/queryWrapper'
 
-const { previewInvite, getBudgets } = vi.hoisted(() => ({ previewInvite: vi.fn(), getBudgets: vi.fn() }))
-vi.mock('../api/spaces', () => ({ previewInvite, getBudgets, joinBudget: vi.fn() }))
+const { previewInvite, getBudgets, joinBudget } = vi.hoisted(() => ({ previewInvite: vi.fn(), getBudgets: vi.fn(), joinBudget: vi.fn() }))
+vi.mock('../api/spaces', () => ({ previewInvite, getBudgets, joinBudget }))
 vi.mock('../api/account', () => ({ getUser: vi.fn(async () => ({ _id: 'u2' })) }))
 
 const { JoinCodeDialog, whoIsIn } = await import('./JoinBudget')
@@ -36,6 +36,35 @@ describe('JoinCodeDialog', () => {
     fireEvent.change(screen.getByLabelText('Invite code'), { target: { value: 'ZZZZ9' } })
     expect(screen.getByTestId('code-tile-0').className).not.toContain('is-error')
     expect(screen.queryByRole('alert')).toBeNull()
+  })
+})
+
+describe('JoinCodeDialog edges', () => {
+  it("doesn't cap what you paste, so a code with dashes or spaces still fills all six", () => {
+    renderIt()
+    expect(screen.getByLabelText('Invite code').getAttribute('maxlength')).toBeNull()
+  })
+
+  it('joins the code it showed you, even if you edited it while it was looking', async () => {
+    let answer: (v: unknown) => void = () => {}
+    previewInvite.mockImplementationOnce(() => new Promise((r) => { answer = r }))
+    joinBudget.mockRejectedValue(new Error('offline'))
+    renderIt()
+    fireEvent.change(screen.getByLabelText('Invite code'), { target: { value: 'AB23CD' } })
+    fireEvent.change(screen.getByLabelText('Invite code'), { target: { value: 'AB23CE' } })
+    answer(ok)
+    fireEvent.click(await screen.findByRole('button', { name: 'Join Home' }))
+    await waitFor(() => expect(joinBudget).toHaveBeenCalledWith('AB23CD'))
+  })
+
+  it('keeps Join there to try again after it fails', async () => {
+    previewInvite.mockResolvedValue(ok)
+    joinBudget.mockRejectedValue(new Error('offline'))
+    renderIt()
+    fireEvent.change(screen.getByLabelText('Invite code'), { target: { value: 'AB23CD' } })
+    fireEvent.click(await screen.findByRole('button', { name: 'Join Home' }))
+    expect((await screen.findByRole('alert')).textContent).toBe('Check your connection and try again.')
+    expect(screen.getByRole('button', { name: 'Join Home' })).toBeTruthy()
   })
 })
 
