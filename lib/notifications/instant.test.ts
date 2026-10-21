@@ -213,4 +213,18 @@ describe('notifyThresholdCrossed', () => {
       notifyThresholdCrossed({ userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const }, 'Food'),
     ).resolves.toBeUndefined()
   })
+
+  it("speaks a shared budget's currency, not the logger's own", async () => {
+    usersFindOneMock.mockResolvedValue({ _id: 'user_a', currencyCode: 'INR' } as typeof USER)
+    buildExpenseContextMock.mockResolvedValueOnce({ ...(await buildExpenseContextMock()), currencyCode: 'USD' } as never)
+    await notifyThresholdCrossed({ userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'space_x', spaceOwnerId: 'user_b', spaceRole: 'member' as const }, 'Food')
+    expect(sendPushNotificationMock.mock.calls[0][0].body).toContain('$900')
+    expect(sendPushNotificationMock.mock.calls[0][0].body).not.toContain('₹')
+  })
+
+  it('tracks a category per budget, so the same name in two budgets alerts in each', async () => {
+    await notifyThresholdCrossed({ userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const }, 'Food')
+    await notifyThresholdCrossed({ userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'space_x', spaceOwnerId: 'user_b', spaceRole: 'member' as const }, 'Food')
+    expect(sendPushNotificationMock).toHaveBeenCalledTimes(2)
+  })
 })
