@@ -202,13 +202,18 @@ export async function purgeDeletedSpaces(db: Db, now: Date = new Date()): Promis
   for (const space of due) {
     // A personal budget is never deleted this way; guard anyway, since its id is a person's.
     if (space._id === space.owner_id) continue
-    for (const name of BUDGET_COLLECTIONS) await db.collection(name).deleteMany({ user_id: space._id })
-    await purgeBlobs([`bills/${space._id}/`, `exports/${space._id}/`, `expense-photos/${space._id}/`])
-    await db.collection(SPACE_MEMBERS).deleteMany({ space_id: space._id })
-    await db.collection(SPACE_INVITES).deleteMany({ space_id: space._id })
-    await db.collection(SPACES).deleteOne({ _id: space._id as never })
+    await purgeSpace(db, space._id)
   }
   return due.filter((s) => s._id !== s.owner_id).length
+}
+
+/** A budget's data, blobs, members, invites and doc, gone for good. */
+export async function purgeSpace(db: Db, spaceId: string): Promise<void> {
+  for (const name of BUDGET_COLLECTIONS) await db.collection(name).deleteMany({ user_id: spaceId })
+  await purgeBlobs([`bills/${spaceId}/`, `exports/${spaceId}/`, `expense-photos/${spaceId}/`])
+  await db.collection(SPACE_MEMBERS).deleteMany({ space_id: spaceId })
+  await db.collection(SPACE_INVITES).deleteMany({ space_id: spaceId })
+  await db.collection(SPACES).deleteOne({ _id: spaceId as never })
 }
 
 export async function purgeBlobs(prefixes: string[]): Promise<number> {
@@ -286,11 +291,11 @@ export async function transferOwnership(auth: Auth, spaceId: string, toUserId: s
 
 export interface OwnedSharedBudget { id: string; name: string; emoji: string; icon: CategoryIconKey; personal: boolean; members: { userId: string; name: string | null; joinedAt: string | null }[] }
 
-/** Budgets this person owns that someone else is in: what account deletion offers to hand over. */
-export async function sharedBudgetsOwnedBy(userId: string): Promise<OwnedSharedBudget[]> {
+/** Budgets this person owns that someone else is in: what account deletion offers to hand over. `alsoSolo` adds the non-personal ones nobody else is in. */
+export async function sharedBudgetsOwnedBy(userId: string, alsoSolo = false): Promise<OwnedSharedBudget[]> {
   const { budgets } = await listBudgets(userId)
   return budgets
-    .filter((b) => b.role === 'owner' && b.members.length > 1)
+    .filter((b) => b.role === 'owner' && (b.members.length > 1 || (alsoSolo && !b.personal)))
     .map((b) => ({ id: b.id, name: b.name, emoji: b.emoji, icon: b.icon, personal: b.personal, members: b.members.filter((m) => m.userId !== userId).map((m) => ({ userId: m.userId, name: m.name, joinedAt: m.joinedAt })) }))
 }
 
@@ -298,9 +303,10 @@ export async function sharedBudgetsOwnedBy(userId: string): Promise<OwnedSharedB
  * Before an account is deleted: each shared budget they own goes to the
  * member they picked in `transfers`, or else closes (restorable with the
  * account) and its members are told. Picks naming a non-member are ignored.
+ * Budgets nobody else is in close too, so the GC purges them with the account.
  */
 export async function handOffSharedBudgets(db: Db, userId: string, transfers: Record<string, string>): Promise<void> {
-  const owned = await sharedBudgetsOwnedBy(userId)
+  const owned = await sharedBudgetsOwnedBy(userId, true)
   const user = await db.collection<PersonDoc>('users').findOne({ _id: userId })
   const who = firstName(personName(user ?? undefined)) ?? 'The owner'
   for (const b of owned) {

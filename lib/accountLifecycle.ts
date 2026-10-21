@@ -11,7 +11,7 @@ import { FEEDBACK } from './feedback'
 import type { UserDoc } from './users'
 import { getWorkOSClient } from './workosClient'
 import { PERSON_COLLECTIONS } from './http'
-import { personalBudgetHandedOff, restoreAccountSpaces } from './spaceMembers'
+import { personalBudgetHandedOff, purgeSpace, restoreAccountSpaces } from './spaceMembers'
 
 /**
  * The collections an account deletion sweeps. When the person's personal
@@ -98,6 +98,10 @@ export async function purgeAccountNow(db: Db, userId: string): Promise<{ rows: n
   let rows = 0
   for (const name of await accountCollections(db, userId, [...Object.values(COLLECTIONS), ...EXTRA_USER_COLLECTIONS])) {
     rows += (await db.collection(name).deleteMany({ user_id: userId })).deletedCount
+  }
+  // Budgets they own that nobody else is in go with them, closed or not.
+  for (const space of await db.collection('spaces').find({ owner_id: userId, _id: { $ne: userId as never } }).toArray()) {
+    if (!(await db.collection('space_members').findOne({ space_id: space._id, user_id: { $ne: userId } }))) await purgeSpace(db, String(space._id))
   }
   // Their seats in other people's budgets, and their personal budget's doc unless it changed hands.
   rows += (await db.collection('space_members').deleteMany({ user_id: userId })).deletedCount

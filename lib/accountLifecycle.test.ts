@@ -12,7 +12,7 @@ const purgeUserIdeasMock = vi.fn(async () => 0)
 vi.mock('./ideas', () => ({ purgeUserIdeas: purgeUserIdeasMock }))
 
 const { purgeAccountNow } = await import('./accountLifecycle')
-const collectionMock = vi.fn((_name: string) => ({ deleteMany: deleteManyMock, deleteOne: deleteOneMock, findOne: async () => null }))
+const collectionMock = vi.fn((_name: string) => ({ deleteMany: deleteManyMock, deleteOne: deleteOneMock, findOne: async () => null, find: () => ({ toArray: async () => [] }) }))
 const db = { collection: collectionMock } as never
 
 beforeEach(() => {
