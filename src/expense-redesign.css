@@ -3284,12 +3284,14 @@
 .expense-redesign .action-button,
 .erd-log-submit,
 .setup-cta,
+.account-pill-btn,
 .expense-redesign .txn-review-primary {
   position: relative;
 }
 .expense-redesign .action-button.is-success,
 .erd-log-submit.is-success,
 .setup-cta.is-success,
+.account-pill-btn.is-success,
 .expense-redesign .txn-review-primary.is-success {
   background: var(--tk-success-bg);
   border-color: var(--tk-success-bg);
@@ -3304,6 +3306,7 @@
 .expense-redesign .action-button.is-success:disabled,
 .erd-log-submit.is-success:disabled,
 .setup-cta.is-success:disabled,
+.account-pill-btn.is-success:disabled,
 .expense-redesign .txn-review-primary.is-success:disabled {
   opacity: 1;
   cursor: default;
@@ -3311,12 +3314,14 @@
 .expense-redesign .action-button.is-success .sb-label,
 .erd-log-submit.is-success .sb-label,
 .setup-cta.is-success .sb-label,
+.account-pill-btn.is-success .sb-label,
 .expense-redesign .txn-review-primary.is-success .sb-label {
   visibility: hidden;
 }
 .expense-redesign .action-button .sb-tick,
 .erd-log-submit .sb-tick,
 .setup-cta .sb-tick,
+.account-pill-btn .sb-tick,
 .expense-redesign .txn-review-primary .sb-tick {
   position: absolute;
   inset: 0;
@@ -3329,6 +3334,7 @@
 .expense-redesign .action-button .sb-tick svg,
 .erd-log-submit .sb-tick svg,
 .setup-cta .sb-tick svg,
+.account-pill-btn .sb-tick svg,
 .expense-redesign .txn-review-primary .sb-tick svg {
   width: 18px;
   height: 18px;
@@ -3336,6 +3342,7 @@
 .expense-redesign .action-button .sb-tick path,
 .erd-log-submit .sb-tick path,
 .setup-cta .sb-tick path,
+.account-pill-btn .sb-tick path,
 .expense-redesign .txn-review-primary .sb-tick path {
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
