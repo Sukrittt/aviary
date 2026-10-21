@@ -14278,6 +14278,44 @@ button.account-feature-card {
 .gap-review {
   margin-top: 14px;
 }
+/* A locked pdf's password, asked for in the same modal. */
+.statement-password {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 24px 4px 4px;
+}
+.statement-password .gap-tile {
+  align-self: center;
+}
+.statement-password .scan-drop-title {
+  text-align: center;
+}
+.statement-password .erd-log-label {
+  margin-bottom: 0;
+}
+.statement-password .erd-log-input {
+  margin-top: 0;
+}
+.statement-password-error {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--coral);
+}
+.statement-password .account-pill-btn {
+  margin-top: 10px;
+}
+.statement-password-other {
+  align-self: center;
+  background: none;
+  border: 0;
+  padding: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--erd-text2);
+  cursor: pointer;
+}
 /* Statement picker: the drop zone, then what it reads, so it isn't a blank box. */
 .statement-drop {
   gap: 8px;

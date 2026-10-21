@@ -22,13 +22,16 @@ export interface StatementProposal {
 
 /** What went wrong, already worded for the user, with a short title to sit over it. */
 export class StatementFailure extends Error {
-  constructor(message: string, readonly title = "That didn't go through") {
+  /** `code` is the server's, when it sent one: pdf_locked and pdf_password_wrong ask for the password. */
+  constructor(message: string, readonly title = "That didn't go through", readonly code?: string) {
     super(message)
   }
 }
 
 const COPY: Record<string, string> = {
-  pdf_locked: "That PDF has a password. Download the statement as Excel or CSV from net banking and upload that instead.",
+  pdf_locked: 'That PDF has a password. Type it in to open it.',
+  pdf_password_wrong: "That didn't open it, try again.",
+  pdf_no_text: "That PDF is a scan, so there's no text to read. Try screenshots of your payments instead.",
   unreadable: "Couldn't read that one. Try a CSV or Excel statement, or a screenshot of your payments.",
   empty: "Couldn't find any payments from the last month in that.",
   too_big: "That's too big to upload. Try fewer screenshots or a shorter date range.",
@@ -36,6 +39,8 @@ const COPY: Record<string, string> = {
 }
 const TITLE: Record<string, string> = {
   pdf_locked: 'That PDF is locked',
+  pdf_password_wrong: 'Wrong password',
+  pdf_no_text: "That's a scan",
   unreadable: 'Hard to read, that one',
   empty: 'No payments in there',
   too_big: "That's a big one",
@@ -45,13 +50,14 @@ const RATE_LIMITED = "That's a lot of uploads in a row. Give it a minute and try
 const ALLOWANCE = "You've used this month's AI reads. Add these by hand for now."
 const GENERIC = 'Check your connection and try again.'
 
-/** Up to five screenshots as `{ data, mimeType }`, or one csv, xlsx or pdf file. 60s, like the server. */
-export async function readStatement(input: { images: { data: string; mimeType: string }[] } | { file: File }): Promise<StatementProposal> {
+/** Up to five screenshots as `{ data, mimeType }`, or one csv, xlsx or pdf file, with a locked pdf's password. 60s, like the server. */
+export async function readStatement(input: { images: { data: string; mimeType: string }[] } | { file: File; password?: string }): Promise<StatementProposal> {
   let body: BodyInit
   let headers: HeadersInit | undefined
   if ('file' in input) {
     const form = new FormData()
     form.append('file', input.file, input.file.name)
+    if (input.password) form.append('password', input.password)
     body = form
   } else {
     body = JSON.stringify(input)
@@ -70,5 +76,5 @@ export async function readStatement(input: { images: { data: string; mimeType: s
   if (resp.status === 413) throw new StatementFailure(COPY.too_big, TITLE.too_big)
   const code = ((await resp.json().catch(() => null)) as { error?: unknown } | null)?.error
   const known = typeof code === 'string' && COPY[code] ? code : null
-  throw new StatementFailure(known ? COPY[known] : GENERIC, known ? TITLE[known] : undefined)
+  throw new StatementFailure(known ? COPY[known] : GENERIC, known ? TITLE[known] : undefined, known ?? undefined)
 }

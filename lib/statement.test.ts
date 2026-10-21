@@ -1,7 +1,18 @@
+// @vitest-environment node
 import { describe, it, expect, vi } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 
 const scoreCategory = vi.fn()
 vi.mock('@/lib/ai/jev', () => ({ scoreCategory: (...a: unknown[]) => scoreCategory(...a) }))
+const generateJSON = vi.fn()
+const { extractText } = vi.hoisted(() => ({ extractText: vi.fn() }))
+vi.mock('unpdf', async (orig) => {
+  const real = await orig<typeof import('unpdf')>()
+  extractText.mockImplementation(real.extractText)
+  return { ...real, extractText: (...a: Parameters<typeof real.extractText>) => extractText(...a) }
+})
+vi.mock('@/lib/ai/gemini', async (orig) => ({ ...(await orig<typeof import('@/lib/ai/gemini')>()), generateJSON: (...a: unknown[]) => generateJSON(...a) }))
 
 import {
   categorizePayees,
@@ -11,6 +22,8 @@ import {
   markSuggestedSkips,
   rowsFromTable,
   isLockedPdf,
+  readSource,
+  unlockPdfText,
   MAX_STATEMENT_ROWS,
   StatementError,
 } from './statement'
@@ -182,6 +195,51 @@ describe('isLockedPdf', () => {
   it('spots an encrypted pdf by its trailer', () => {
     expect(isLockedPdf(Buffer.from('%PDF-1.7\n...trailer << /Root 1 0 R /Encrypt 5 0 R >>'))).toBe(true)
     expect(isLockedPdf(Buffer.from('%PDF-1.7\n...trailer << /Root 1 0 R >>'))).toBe(false)
+  })
+})
+
+describe('a password-protected pdf', () => {
+  const fixture = (name: string) => readFileSync(join(__dirname, '__fixtures__', name))
+  const locked = fixture('locked-statement.pdf')
+  const PASSWORD = '01011990'
+  const auth = { userId: 'user_a' } as Parameters<typeof readSource>[0]
+
+  it('opens with the right password and reads every page', async () => {
+    const pages = await unlockPdfText(locked, PASSWORD)
+    expect(pages).toHaveLength(2)
+    expect(pages[0]).toContain('UPI-SWIGGY-swiggy@icici 450.00')
+    expect(pages[1]).toContain('UPI-UBER-uber@axis 312.00')
+  })
+
+  it('asks for a password, then says when it was wrong', async () => {
+    await expect(unlockPdfText(locked)).rejects.toEqual(new StatementError('pdf_locked'))
+    await expect(unlockPdfText(locked, 'nope')).rejects.toEqual(new StatementError('pdf_password_wrong'))
+  })
+
+  it('opens one locked only against editing without asking', async () => {
+    expect((await unlockPdfText(fixture('locked-statement-owner-only.pdf')))[0]).toContain('UPI-ZEPTO')
+  })
+
+  it('calls a pdf with no text in it a scan', async () => {
+    extractText.mockResolvedValueOnce({ totalPages: 1, text: ['  '] })
+    await expect(unlockPdfText(locked, PASSWORD)).rejects.toEqual(new StatementError('pdf_no_text'))
+  })
+
+  it('sends the text to the model, never the password or the file, and never logs the password', async () => {
+    const logs = (['log', 'info', 'warn', 'error', 'debug'] as const).map((m) => vi.spyOn(console, m).mockImplementation(() => {}))
+    generateJSON.mockResolvedValueOnce({ transactions: [{ date: '2026-10-12', amount: 450, payee: 'Swiggy', direction: 'debit', currency: 'INR' }] })
+    const raw = await readSource(auth, { kind: 'pdf', data: locked, password: PASSWORD }, TODAY, 'INR')
+    expect(normalizeStatement(raw, TODAY, 'INR').rows).toEqual([{ date: '2026-10-12', amount: 450, payee: 'Swiggy' }])
+    const prompt = String(generateJSON.mock.calls[0][0])
+    expect(prompt).toContain('UPI-ZEPTO-zepto@ybl 1,230.50')
+    expect(prompt).toContain('UPI-UBER-uber@axis 312.00')
+    expect(JSON.stringify(generateJSON.mock.calls)).not.toContain(PASSWORD)
+    const wrong = await readSource(auth, { kind: 'pdf', data: locked, password: `${PASSWORD}9` }, TODAY, 'INR').catch((e: Error) => e)
+    expect(`${(wrong as Error).message} ${(wrong as Error).stack}`).not.toContain(PASSWORD)
+    for (const spy of logs) {
+      expect(JSON.stringify(spy.mock.calls)).not.toContain(PASSWORD)
+      spy.mockRestore()
+    }
   })
 })
 
