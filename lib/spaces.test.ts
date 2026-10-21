@@ -12,16 +12,20 @@ const space = (over: Partial<SpaceDoc> = {}): SpaceDoc => ({
 })
 
 describe('resolveSpaceAccess', () => {
-  it('serves the personal budget when no budget is asked for, without a lookup', async () => {
-    const lookup = vi.fn()
+  it('serves the personal budget when no budget is asked for', async () => {
+    const lookup = vi.fn(async () => ({ space: null, role: null }))
     expect(await resolveSpaceAccess('user_a', null, lookup)).toEqual({ spaceId: 'user_a', ownerId: 'user_a', role: 'owner' })
-    expect(lookup).not.toHaveBeenCalled()
   })
 
-  it("serves the personal budget when asked for one's own id, without a lookup", async () => {
-    const lookup = vi.fn()
+  it("serves the personal budget when asked for one's own id, shared or not", async () => {
+    const lookup = vi.fn(async () => ({ space: space({ _id: 'user_a' }), role: 'owner' as const }))
     expect(await resolveSpaceAccess('user_a', 'user_a', lookup)).toEqual({ spaceId: 'user_a', ownerId: 'user_a', role: 'owner' })
-    expect(lookup).not.toHaveBeenCalled()
+  })
+
+  it('denies a personal budget its account deletion handed to someone else, asked for or not (#213)', async () => {
+    const lookup = vi.fn(async () => ({ space: space({ _id: 'user_a', owner_id: 'user_b' }), role: null }))
+    expect(await resolveSpaceAccess('user_a', 'user_a', lookup)).toEqual({ spaceId: 'user_a', denied: true })
+    expect(await resolveSpaceAccess('user_a', null, lookup)).toEqual({ spaceId: 'user_a', denied: true })
   })
 
   it('serves a shared budget to a member, billed to its owner', async () => {

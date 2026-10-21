@@ -91,14 +91,17 @@ export type SpaceLookup = (userId: string, spaceId: string) => Promise<{ space: 
 
 /**
  * Which budget a request runs against, and who pays for it. No budget asked
- * for, or one's own id, is the personal budget, decided without a database
- * round trip so single-budget accounts pay nothing for this.
+ * for, or one's own id, is the personal budget, unless its owner's account
+ * deletion handed it to someone else (`handOffSharedBudgets`): then it's
+ * theirs only if they're still a member. That check rides the cached lookup.
  */
 export async function resolveSpaceAccess(userId: string, requested: string | null, lookup: SpaceLookup): Promise<SpaceAccess> {
-  if (!requested || requested === userId) return { spaceId: userId, ownerId: userId, role: 'owner' }
-  if (!SPACE_ID_RE.test(requested)) return { spaceId: 'invalid', denied: true }
-  const { space, role } = await lookup(userId, requested)
-  if (!space || space.deleted_at || !role) return { spaceId: requested, denied: true }
+  const spaceId = requested || userId
+  const own = spaceId === userId
+  if (!own && !SPACE_ID_RE.test(spaceId)) return { spaceId: 'invalid', denied: true }
+  const { space, role } = await lookup(userId, spaceId)
+  if (own && (!space || space.owner_id === userId)) return { spaceId, ownerId: userId, role: 'owner' }
+  if (!space || space.deleted_at || !role) return { spaceId, denied: true }
   return { spaceId: space._id, ownerId: space.owner_id, role }
 }
 

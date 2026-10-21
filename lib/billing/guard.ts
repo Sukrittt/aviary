@@ -14,6 +14,7 @@ import { NextResponse } from 'next/server'
 import type { Auth } from '../access'
 import { billingFlagsFor } from './flags'
 import { getAccess } from './service'
+import { getDb } from '../mongodb'
 
 /**
  * Stable, distinct error code. Not 401 (the session is fine) and not a
@@ -33,6 +34,13 @@ export const NOT_A_MEMBER = 'NOT_A_MEMBER'
 export const BUDGET_READ_ONLY = 'BUDGET_READ_ONLY'
 
 /**
+ * A write from an account in its deletion grace window. Reads stay open:
+ * the mobile app signs out on any 401/403 query, which would leave no way to
+ * reach Restore (an account route, never guarded here).
+ */
+export const ACCOUNT_DELETED = 'ACCOUNT_DELETED'
+
+/**
  * 402 when the account may not use normal app features, else null. Call at
  * the top of a handler, after `getAuth`.
  *
@@ -45,6 +53,11 @@ export const BUDGET_READ_ONLY = 'BUDGET_READ_ONLY'
 export async function requireAccess(auth: Auth, opts: { setup?: boolean } = {}): Promise<NextResponse | null> {
   if (auth.readOnly) return null
   if (auth.spaceDenied) return NextResponse.json({ error: NOT_A_MEMBER, spaceId: auth.spaceId }, { status: 403 })
+  // `method` is unset only for jobs, which never come from a deleted account's session.
+  const write = !!auth.method && auth.method !== 'GET' && auth.method !== 'HEAD'
+  if (write && (await (await getDb()).collection<{ _id: string }>('users').findOne({ _id: auth.userId, deleted_at: { $ne: null } }, { projection: { _id: 1 } }))) {
+    return NextResponse.json({ error: ACCOUNT_DELETED }, { status: 401 })
+  }
 
   // The budget's owner pays for everyone in it, so it's their plan that decides.
   const payer = auth.spaceOwnerId

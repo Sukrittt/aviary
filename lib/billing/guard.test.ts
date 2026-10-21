@@ -7,13 +7,17 @@ vi.mock('../systemSettings', () => ({ getSystemSettings: getSystemSettingsMock }
 const getAccessMock = vi.fn()
 vi.mock('./service', () => ({ getAccess: getAccessMock }))
 
-const { requireAccess, requireOwnPlan, SUBSCRIPTION_REQUIRED, NOT_A_MEMBER, BUDGET_READ_ONLY } = await import('./guard')
+const usersFindOne = vi.fn(async (): Promise<unknown> => null)
+vi.mock('../mongodb', () => ({ getDb: async () => ({ collection: () => ({ findOne: usersFindOne }) }) }))
+
+const { requireAccess, requireOwnPlan, SUBSCRIPTION_REQUIRED, NOT_A_MEMBER, BUDGET_READ_ONLY, ACCOUNT_DELETED } = await import('./guard')
 
 const user: Auth = { userId: 'user_a', readOnly: false, sessionId: 'sess_1', spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const }
 const demo: Auth = { userId: 'demo', readOnly: true, sessionId: null, spaceId: 'demo', spaceOwnerId: 'demo', spaceRole: 'owner' as const }
 
 beforeEach(() => {
   vi.clearAllMocks()
+  usersFindOne.mockResolvedValue(null)
   getSystemSettingsMock.mockResolvedValue({ billing: { enforced: true, purchaseEnabled: true, audience: 'everyone' } })
 })
 
@@ -98,6 +102,29 @@ describe('requireAccess', () => {
       const res = await requireAccess({ ...member, spaceDenied: true })
       expect(res?.status).toBe(403)
       expect(await res!.json()).toMatchObject({ error: NOT_A_MEMBER })
+    })
+  })
+
+  describe('a soft-deleted account (#213)', () => {
+    it('answers 401 to its writes, even with billing switched off', async () => {
+      getSystemSettingsMock.mockResolvedValue({ billing: { enforced: false, purchaseEnabled: false, audience: 'everyone' } })
+      usersFindOne.mockResolvedValue({ _id: 'user_a' })
+      const res = await requireAccess({ ...user, method: 'POST' })
+      expect(res?.status).toBe(401)
+      expect(await res!.json()).toMatchObject({ error: ACCOUNT_DELETED })
+      expect(usersFindOne).toHaveBeenCalledWith({ _id: 'user_a', deleted_at: { $ne: null } }, expect.anything())
+    })
+
+    it('keeps reads open, so the mobile app stays signed in long enough to restore', async () => {
+      getAccessMock.mockResolvedValue({ allowed: true, mode: 'paid' })
+      usersFindOne.mockResolvedValue({ _id: 'user_a' })
+      expect(await requireAccess({ ...user, method: 'GET' })).toBeNull()
+      expect(usersFindOne).not.toHaveBeenCalled()
+    })
+
+    it('lets a live account write', async () => {
+      getAccessMock.mockResolvedValue({ allowed: true, mode: 'paid' })
+      expect(await requireAccess({ ...user, method: 'POST' })).toBeNull()
     })
   })
 
