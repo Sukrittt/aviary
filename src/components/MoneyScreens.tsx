@@ -22,6 +22,8 @@ import { AccountChips } from './AccountChips'
 import { EMPTY } from '../lib/constants'
 import { splitEmoji } from '../lib/emoji'
 import { BudgetWriteError } from '../lib/budgetConflict'
+import { useSpaces } from '../hooks/useSpaces'
+import { ReadOnlyNotice } from './BudgetNotices'
 import type { BudgetRow, IncomeRow } from '../types'
 import {
   computeEnvelopeState,
@@ -91,6 +93,7 @@ function Screen({
   children: ReactNode
 }) {
   const reduce = useReducedMotion()
+  const { readOnly } = useSpaces()
   const dialogRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null
@@ -161,7 +164,7 @@ function Screen({
           <div className="money-dots">{dots}</div>
           <h2 className="money-title">{title}</h2>
         </header>}
-        <fieldset className="money-content" disabled={busy}>{children}</fieldset>
+        {readOnly ? <ReadOnlyNotice onClose={onClose} /> : <fieldset className="money-content" disabled={busy}>{children}</fieldset>}
       </motion.div>
     </Scrim>
     </MotionConfig>
@@ -336,18 +339,25 @@ interface SourceItem {
   score: number
 }
 
-export function MoveMoneyScreen({ targetCategory, onClose }: { targetCategory: string; onClose: () => void }) {
+export function MoveMoneyScreen({ targetCategory, amount, onClose }: {
+  targetCategory: string
+  /** Opening amount, e.g. the shortfall Insights' forecast offered to top up. */
+  amount?: number
+  onClose: () => void
+}) {
   const data = useMoneyData()
   if (data.isLoading) return <FormSheet title="Pull money" onClose={onClose} busy={false}><LoadingCaption /></FormSheet>
-  return <MoveMoneyBody targetCategoryName={targetCategory} onClose={onClose} data={data} />
+  return <MoveMoneyBody targetCategoryName={targetCategory} initialAmount={amount} onClose={onClose} data={data} />
 }
 
 function MoveMoneyBody({
   targetCategoryName,
+  initialAmount,
   onClose,
   data,
 }: {
   targetCategoryName: string
+  initialAmount?: number
   onClose: () => void
   data: ReturnType<typeof useMoneyData>
 }) {
@@ -375,7 +385,9 @@ function MoveMoneyBody({
 
   const [step, setStep] = useState<'amount' | 'sources'>('amount')
   const [allocs, setAllocs] = useState<Record<string, number>>({})
-  const [amountStr, setAmountStr] = useState(isOverspent ? String(cents(shortfall)) : '')
+  const [amountStr, setAmountStr] = useState(
+    initialAmount && initialAmount > 0 ? String(cents(initialAmount)) : isOverspent ? String(cents(shortfall)) : '',
+  )
   const [query, setQuery] = useState('')
   const [error, setError] = useState('')
 
@@ -933,6 +945,7 @@ function FormSheet({ title, onClose, onBack, busy, footer, className = '', child
   className?: string
   children: ReactNode
 }) {
+  const { readOnly } = useSpaces()
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape' && !busy) (onBack ?? onClose)()
@@ -949,8 +962,10 @@ function FormSheet({ title, onClose, onBack, busy, footer, className = '', child
             <XIcon size={18} />
           </button>
         </div>
-        <div className="erd-sub-body">{children}</div>
-        {footer && <div className="erd-sub-footer">{footer}</div>}
+        {readOnly ? <ReadOnlyNotice onClose={onClose} /> : <>
+          <div className="erd-sub-body">{children}</div>
+          {footer && <div className="erd-sub-footer">{footer}</div>}
+        </>}
       </Sheet>
     </Scrim>
   )

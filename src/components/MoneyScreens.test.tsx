@@ -13,6 +13,8 @@ vi.mock('../hooks/useBudgets', () => ({
   useAddBudget: () => ({ mutateAsync: mocks.add }),
   useTransferBudget: () => ({ mutateAsync: mocks.transfer }),
 }))
+const spaces = vi.hoisted(() => ({ readOnly: false }))
+vi.mock('../hooks/useSpaces', () => ({ useSpaces: () => ({ readOnly: spaces.readOnly, active: undefined }) }))
 vi.mock('../hooks/useExpenses', () => ({ useRecentExpenses: () => ({ data: [] }) }))
 vi.mock('../hooks/useCategories', () => ({ useCategories: () => ({ data: [{ name: 'Food', group: 'Home' }, { name: 'Rent', group: 'Home' }] }) }))
 vi.mock('../hooks/useGroups', () => ({ useGroups: () => ({ data: ['Home'] }), useGroupIcons: () => new Map() }))
@@ -30,6 +32,7 @@ beforeEach(() => {
   mocks.updateIncome.mockResolvedValue(2)
   mocks.accounts = []
   mocks.budgetsLoading = false
+  spaces.readOnly = false
   mocks.budgets = [['__income__', '2000'], ['Food', '100'], ['Rent', '500']].map(([category, assigned]) => ({ month: currentMonthKey(), category, assigned, rolled_over: '0', version: 3 }))
 })
 
@@ -54,6 +57,21 @@ describe('money screens', () => {
     expect(screen.queryByRole('button', { name: '1' })).not.toBeInTheDocument()
     typeAmount('123.45')
     expect(screen.getByRole('textbox', { name: 'Amount' })).toHaveValue('123.45')
+  })
+
+  it.each([
+    ['move', () => <MoveMoneyScreen targetCategory="Food" onClose={vi.fn()} />],
+    ['income', () => <EditMonthIncomeScreen month={currentMonthKey()} onClose={vi.fn()} />],
+  ] as const)('%s shows the read-only notice instead of a form in a read-only budget', (_name, create) => {
+    spaces.readOnly = true
+    render(create())
+    expect(screen.getByRole('status')).toHaveTextContent('This budget is read-only')
+    expect(screen.queryByRole('textbox', { name: 'Amount' })).not.toBeInTheDocument()
+  })
+
+  it("opens on the amount the forecast's top-up asked for", () => {
+    render(<MoveMoneyScreen targetCategory="Food" amount={750} onClose={vi.fn()} />)
+    expect((screen.getByRole('textbox', { name: 'Amount' }) as HTMLInputElement).value).toContain('750')
   })
 
   it('submits a decimal transfer from multiple sources exactly', async () => {

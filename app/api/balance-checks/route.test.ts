@@ -6,7 +6,7 @@ const stores: Record<string, Doc[]> = { balance_checks: [], expenses: [], accoun
 const addIncome = vi.fn(async (..._args: unknown[]) => ({ id: 'inc', version: 0, duplicate: false }))
 vi.mock('@/lib/income', () => ({ addIncome: (...args: unknown[]) => addIncome(...args) }))
 let now = { date: '2026-09-27', timestamp: '2026-09-27T10:00:00+05:30' }
-let auth = { userId: 'user_a', readOnly: false, sessionId: null as string | null }
+let auth = { userId: 'user_a', readOnly: false, sessionId: null as string | null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const }
 
 vi.mock('@/lib/access', () => ({
   getAuth: vi.fn(async () => auth),
@@ -103,7 +103,7 @@ beforeEach(() => {
   stores.balance_checks = []
   stores.expenses = []
   now = { date: '2026-09-27', timestamp: '2026-09-27T10:00:00+05:30' }
-  auth = { userId: 'user_a', readOnly: false, sessionId: null }
+  auth = { userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const }
 })
 
 describe('POST /api/balance-checks', () => {

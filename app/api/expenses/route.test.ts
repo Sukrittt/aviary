@@ -9,7 +9,7 @@ vi.mock('@/lib/userCurrency', async (importOriginal) => ({
 
 
 vi.mock('@/lib/access', () => ({
-  getAuth: vi.fn(async () => ({ userId: 'user_a', readOnly: false, sessionId: null })),
+  getAuth: vi.fn(async () => ({ userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const })),
   readOnlyGuard: vi.fn(() => null),
 }))
 
@@ -323,6 +323,19 @@ describe('GET/PUT/DELETE /api/expenses — id-based addressing (C2)', () => {
     const res = await DELETE(req('DELETE', { id: row._id.toString() }))
     expect(res.status).toBe(200)
     expect(stores.expenses).toHaveLength(0)
+  })
+
+  it('DELETE of an imported card refund gives its amount back to the Credit Card envelope', async () => {
+    const { createExpense } = await import('@/lib/createExpense')
+    const auth = { userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const }
+    const card = { category: 'Shopping', date: '2026-03-10', payment_method: 'credit_card', source: 'import', notify: false }
+    await createExpense(auth, { ...card, item: 'Shoes', amount_inr: '2000' })
+    const refund = await createExpense(auth, { ...card, item: 'Shoes refund', amount_inr: '-500' })
+    expect(budgetFor('2026-03')?.assigned).toBe('1500')
+
+    const res = await DELETE(req('DELETE', { id: refund.id }))
+    expect(res.status).toBe(200)
+    expect(budgetFor('2026-03')?.assigned).toBe('2000')
   })
 
   it('requires a version for old clients instead of accepting an unsafe fallback', async () => {

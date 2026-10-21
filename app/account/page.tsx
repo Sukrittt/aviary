@@ -5,7 +5,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { AnimatePresence } from 'motion/react'
-import { WalletIcon, BankIcon, ArchiveIcon, BrainIcon, CaretRightIcon, CompassIcon, CreditCardIcon, DatabaseIcon, FileTextIcon, GiftIcon, ClockCounterClockwiseIcon, ChartLineIcon, LockIcon, ChatCircleIcon, ReceiptIcon, RepeatIcon, ScanIcon, ScrollIcon, SlidersHorizontalIcon, TrendUpIcon, UserPlusIcon, CheckIcon, type PhosphorIcon } from '@/src/components/icons'
+import { WalletIcon, BankIcon, ArchiveIcon, BrainIcon, CaretRightIcon, CompassIcon, CreditCardIcon, DatabaseIcon, FileTextIcon, GiftIcon, ClockCounterClockwiseIcon, ChartLineIcon, LockIcon, ChatCircleIcon, ReceiptIcon, RepeatIcon, ScanIcon, ScrollIcon, SlidersHorizontalIcon, TrendUpIcon, UserPlusIcon, UsersIcon, TicketIcon, CheckIcon, type PhosphorIcon } from '@/src/components/icons'
 import { useAuth } from '@workos-inc/authkit-nextjs/components'
 import { useAppearance } from '../../components/AppearanceProvider'
 import { useHideAmounts } from '../../src/hooks/useHideAmounts'
@@ -21,6 +21,9 @@ import { useHiddenFeatures } from '../../src/hooks/useUser'
 import type { HideableFeature } from '../../src/lib/features'
 import { FEEDBACK_BOARD_PATH } from '../../lib/links'
 import { Toast } from '../../src/components/Toast'
+import { NewBudgetEntry } from '../../src/components/BudgetSwitcher'
+import { BudgetMembersEntry } from '../../src/components/BudgetMembers'
+import { JoinCodeEntry } from '../../src/components/JoinBudget'
 import { track } from '../../src/lib/analytics'
 
 const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.sukrit04.envelope'
@@ -234,6 +237,17 @@ export default function AccountPage() {
               ))}
             </div>
           </div>
+        </div>
+      </div>
+
+      <div>
+        <div className="account-section-label" style={{ marginBottom: 10 }}>
+          Budgets
+        </div>
+        <div className="account-card">
+          <NewBudgetEntry render={(open) => <AccountRow icon={WalletIcon} label="New budget" hint="Keep a trip or a household apart" onClick={open} />} />
+          <BudgetMembersEntry render={(open, budget) => <AccountRow icon={UsersIcon} label={budget.members.length > 1 ? `${budget.name} members` : 'Share this budget'} hint={budget.role === 'owner' ? 'Invite someone to budget with you' : "See who's in, or leave"} onClick={open} />} />
+          <JoinCodeEntry render={(open) => <AccountRow icon={TicketIcon} label="Join with a code" hint="Got an invite? Pop it in" onClick={open} />} />
         </div>
       </div>
 

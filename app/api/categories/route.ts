@@ -4,6 +4,7 @@ import { requireAccess } from '@/lib/billing/guard'
 import { invalidate } from '@/lib/cache'
 import { withTx } from '@/lib/mongodb'
 import { isCategoryIconKey } from '@/src/lib/categoryIcons'
+import { isCategoryColor } from '@/src/lib/categoryColors'
 import { createCategory } from '@/lib/categories'
 
 export const dynamic = 'force-dynamic'
@@ -32,6 +33,7 @@ export async function GET(req: Request) {
         name: d.name ?? '',
         group: d.group ?? '',
         ...(isCategoryIconKey(d.icon) ? { icon: d.icon } : {}),
+        ...(isCategoryColor(d.color) ? { color: d.color } : {}),
         ...(Array.isArray(d.alertPcts) ? { alertPcts: d.alertPcts } : {}),
       }))
       .filter((c) => c.name),
@@ -48,11 +50,13 @@ export async function POST(req: Request) {
   const body = await readBody(req)
   if (!body.name) return error('name required')
   if (body.icon !== undefined && !isCategoryIconKey(body.icon)) return error('unknown icon')
+  if (body.color !== undefined && !isCategoryColor(body.color)) return error('unknown color')
 
   const created = await createCategory(auth, {
     name: String(body.name),
     group: String(body.group ?? ''),
     ...(body.icon !== undefined ? { icon: body.icon } : {}),
+    ...(body.color !== undefined ? { color: body.color } : {}),
   })
   if (created === 'exists') return error('category already exists', 409)
   return json({ ok: true })
@@ -81,6 +85,7 @@ export async function PUT(req: Request) {
     alertPcts = [...pcts].sort((a, b) => a - b)
   }
   if (body.icon !== undefined && !isCategoryIconKey(body.icon)) return error('unknown icon')
+  if (body.color !== undefined && !isCategoryColor(body.color)) return error('unknown color')
 
   const coll = await getCollection('categories', auth)
   const budgetColl = await getCollection('budgets', auth)
@@ -136,6 +141,10 @@ export async function PUT(req: Request) {
         await coll.updateOne({ name: effectiveName }, { $set: { icon: body.icon } }, { session })
       }
 
+      if (body.color !== undefined) {
+        await coll.updateOne({ name: effectiveName }, { $set: { color: body.color } }, { session })
+      }
+
       if (body.alertPcts === null) {
         await coll.updateOne({ name: effectiveName }, { $unset: { alertPcts: '' } }, { session })
       } else if (alertPcts) {
@@ -154,10 +163,10 @@ export async function PUT(req: Request) {
   // Cache invalidation goes after the transaction resolves — withTx can rerun
   // its callback, so nothing with an outside effect belongs inside it.
   if (renamed) {
-    invalidate('budgets', auth.userId)
-    invalidate('expenses', auth.userId)
+    invalidate('budgets', auth.spaceId)
+    invalidate('expenses', auth.spaceId)
   }
-  invalidate('categories', auth.userId)
+  invalidate('categories', auth.spaceId)
   return json({ ok: true })
 }
 
@@ -174,6 +183,6 @@ export async function DELETE(req: Request) {
   const coll = await getCollection('categories', auth)
   const result = await coll.deleteOne({ name: String(body.name) })
   if (result.deletedCount === 0) return error('category not found', 404)
-  invalidate('categories', auth.userId)
+  invalidate('categories', auth.spaceId)
   return json({ ok: true })
 }

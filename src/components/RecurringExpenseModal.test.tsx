@@ -29,6 +29,11 @@ vi.mock('./CategoryPicker', () => ({
   ),
 }))
 vi.mock('./DatePicker', () => ({ DatePicker: () => null }))
+vi.mock('../hooks/useSpaces', () => ({
+  useSpaces: () => ({
+    active: { id: 's1', name: 'Home', role: 'member', ownerId: 'u1', members: [{ userId: 'u1', name: 'Priya Shah' }, { userId: 'u2', name: 'Rahul' }] },
+  }),
+}))
 
 const suggest = vi.mocked(suggestCategoryLLM)
 
@@ -86,4 +91,16 @@ it('keeps a prefilled category instead of requesting a replacement', async () =>
   await new Promise((resolve) => setTimeout(resolve, 250))
   expect(suggest).not.toHaveBeenCalled()
   expect(screen.getByLabelText('Category')).toHaveTextContent('Rent')
+})
+
+it("a member in a lapsed budget hears it's read-only, not to check their connection", async () => {
+  mutation.mutateAsync.mockRejectedValue(Object.assign(new Error('402'), { status: 402 }))
+  render(
+    <RecurringExpenseModal
+      initialValues={{ item: 'Netflix', amount_inr: '649', category: 'Rent', frequency: 'monthly', start_date: '2026-09-23', end_date: '', notes: '', payment_method: 'bank' }}
+      onClose={vi.fn()}
+    />,
+  )
+  fireEvent.click(screen.getByRole('button', { name: 'Add recurring expense' }))
+  expect(await screen.findByText("This budget is read-only until Priya renews. Your data's safe, and export's always free.")).toBeTruthy()
 })

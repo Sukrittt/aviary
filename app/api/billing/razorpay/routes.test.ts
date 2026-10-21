@@ -1,7 +1,7 @@
 import { createHmac } from 'node:crypto'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
-const authMock = vi.fn(async () => ({ userId: 'user_a', readOnly: false, sessionId: 's' }))
+const authMock = vi.fn(async () => ({ userId: 'user_a', readOnly: false, sessionId: 's', spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const }))
 vi.mock('@/lib/access', () => ({ getAuth: () => authMock() }))
 vi.mock('@/lib/rateLimit', () => ({ isRateLimited: vi.fn(async () => false) }))
 
@@ -70,7 +70,7 @@ describe('POST /api/billing/razorpay/subscribe', () => {
   })
 
   it('refuses the demo user', async () => {
-    authMock.mockResolvedValueOnce({ userId: 'demo', readOnly: true, sessionId: null as never })
+    authMock.mockResolvedValueOnce({ userId: 'demo', readOnly: true, sessionId: null as never, spaceId: 'demo', spaceOwnerId: 'demo', spaceRole: 'owner' as const })
     expect((await subscribe(post({ period: 'monthly' }))).status).toBe(401)
   })
 

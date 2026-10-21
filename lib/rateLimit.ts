@@ -2,7 +2,7 @@ import { getDb } from './mongodb'
 
 const RATE_LIMIT_COLLECTION = 'rate_limit_hits'
 
-type RateLimitHit = { key: string; ts: Date }
+type RateLimitHit = { key: string; ts: Date; expiresAt: Date }
 
 export type RateLimitTier = { windowMs: number; limit: number }
 
@@ -11,8 +11,10 @@ export type RateLimitTier = { windowMs: number; limit: number }
  * is shared across serverless instances — unlike a per-instance in-memory Map
  * (the shape app/api/ai/chat/route.ts used before this existed).
  *
- * One document per hit rather than an array-per-key: a TTL index on `ts`
- * (see scripts/ensure-indexes.mjs) garbage-collects old hits automatically,
+ * One document per hit rather than an array-per-key: each hit carries its own
+ * `expiresAt` (now + the longest tier it was checked against), and a TTL index
+ * on it (see scripts/ensure-indexes.mjs) garbage-collects old hits, so a 24h
+ * window never loses hits to a shorter global TTL (#211),
  * so there's no pruning logic here — `countDocuments` with a `$gte` cutoff is
  * always correct regardless of how stale the TTL cleanup is running behind.
  *
@@ -38,7 +40,7 @@ export async function isRateLimited(key: string, opts: RateLimitTier | RateLimit
   )
   if (tiers.some((tier, i) => counts[i] >= tier.limit)) return true
 
-  await coll.insertOne({ key, ts: now })
+  await coll.insertOne({ key, ts: now, expiresAt: new Date(now.getTime() + Math.max(...tiers.map((t) => t.windowMs))) })
   return false
 }
 

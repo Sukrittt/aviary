@@ -15,6 +15,6 @@ export async function createGroup(auth: Auth, name: string): Promise<'created' |
     if ((err as { code?: number }).code === 11000) return 'exists'
     throw err
   }
-  invalidate('groups', auth.userId)
+  invalidate('groups', auth.spaceId)
   return 'created'
 }

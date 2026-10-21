@@ -1,8 +1,7 @@
 import { json, readBody } from '@/lib/http'
+import { budgetSetUp } from '@/lib/spaces'
 import { getAuth, readOnlyGuard } from '@/lib/access'
 import { requireAccess } from '@/lib/billing/guard'
-import { getDb } from '@/lib/mongodb'
-import type { UserDoc } from '@/lib/users'
 import { ImportError } from '@/lib/import/normalize'
 import { importErrorResponse, MAX_UPLOAD_BYTES, previewFile, recomputePreview } from '@/lib/import/service'
 
@@ -23,8 +22,7 @@ export async function POST(req: Request) {
   const guard = readOnlyGuard(auth, 'POST')
   if (guard) return guard
   try {
-    const user = await (await getDb()).collection<UserDoc>('users').findOne({ _id: auth.userId }, { projection: { onboardedAt: 1 } })
-    if (user?.onboardedAt) throw new ImportError('already_onboarded')
+    if (await budgetSetUp(auth)) throw new ImportError('already_onboarded')
 
     if ((req.headers.get('content-type') ?? '').startsWith('multipart/form-data')) {
       // Checked before reading the body where the client says its size.

@@ -3,6 +3,10 @@
 import Link from 'next/link'
 import { CaretRightIcon, CompassIcon, DatabaseIcon, ArrowSquareOutIcon, LockIcon, ChatCircleIcon, ArrowsClockwiseIcon, type PhosphorIcon } from '@/src/components/icons'
 import { useBillingStatus, useSyncBilling } from '@/src/hooks/useBillingStatus'
+import { useSpaces } from '@/src/hooks/useSpaces'
+import { ownerName } from '@/src/hooks/useAuthors'
+import { switchBudget } from '@/src/api/spaces'
+import { BudgetIcon } from '@/src/components/CategoryIcon'
 import { lockedReason, PLAY_STORE_URL } from './copy'
 import { WebPlanPicker } from './WebPlanPicker'
 
@@ -23,6 +27,9 @@ import { WebPlanPicker } from './WebPlanPicker'
 export function RestrictedNotice() {
   const { data: status } = useBillingStatus()
   const sync = useSyncBilling()
+  // Budgets someone else pays for stay open to this person; only the lock on
+  // their own plan put them here, so give them a way through to those.
+  const shared = useSpaces().budgets.filter((b) => b.role === 'member' && !b.readOnly)
 
   return (
     <div style={{ maxWidth: 600, margin: '0 auto', padding: '48px 20px', display: 'grid', gap: 20 }}>
@@ -45,6 +52,30 @@ export function RestrictedNotice() {
         </h1>
         <p style={{ margin: 0, color: 'var(--tk-text2)', lineHeight: 1.55 }}>{lockedReason(status)}</p>
       </div>
+
+      {shared.length > 0 && (
+        <div style={{ display: 'grid', gap: 8 }}>
+          <span className="account-section-label">Budgets shared with you</span>
+          <div className="account-card budget-covered-card">
+            {shared.map((b) => {
+              const owner = ownerName(b)
+              return (
+                <button key={b.id} type="button" className="account-row" onClick={() => switchBudget(b)}>
+                  <span className="budget-covered-tile"><BudgetIcon budget={b} size={18} /></span>
+                  <span className="account-row-label">
+                    {b.name}
+                    <span style={{ display: 'block', fontSize: 13, color: 'var(--tk-text2)', fontWeight: 400 }}>
+                      {owner ? `${owner} pays for this one` : 'Paid for by its owner'}, so it stays open to you.
+                    </span>
+                  </span>
+                  <span className="budget-covered-open">Open</span>
+                  <CaretRightIcon size={16} className="account-row-arrow" aria-hidden="true" />
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       <div
         style={{

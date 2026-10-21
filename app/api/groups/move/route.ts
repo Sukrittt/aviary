@@ -31,6 +31,6 @@ export async function POST(req: Request) {
       updateOne: { filter: { name }, update: { $set: { order: minOrder + i } } },
     })),
   )
-  invalidate('groups', auth.userId)
+  invalidate('groups', auth.spaceId)
   return json({ ok: true })
 }

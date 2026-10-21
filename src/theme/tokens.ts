@@ -49,6 +49,15 @@ export interface ThemeTokens {
   warn: string
   warnInk: string
   warnSoft: string
+  // Extra category tints, only for a picked colour (never the name hash).
+  pink: string
+  pinkSoft: string
+  indigo: string
+  indigoSoft: string
+  brown: string
+  brownSoft: string
+  slate: string
+  slateSoft: string
   /** Home's "left" pills. Solid in light mode: an alpha tint of mint/warn/coral
    *  over white reads muddy grey. Dark keeps the alpha tints. */
   pillGood: string
@@ -101,6 +110,14 @@ export const darkTokens: ThemeTokens = {
   warn: '#f2c94c',
   warnInk: '#f7d774',
   warnSoft: 'rgba(242, 201, 76, 0.22)',
+  pink: '#ff7ab6',
+  pinkSoft: 'rgba(255, 122, 182, 0.22)',
+  indigo: '#8b8cff',
+  indigoSoft: 'rgba(139, 140, 255, 0.22)',
+  brown: '#c99c7a',
+  brownSoft: 'rgba(201, 156, 122, 0.22)',
+  slate: '#a6b0bf',
+  slateSoft: 'rgba(166, 176, 191, 0.22)',
   pillGood: '#3ed68a',
   pillGoodBg: 'rgba(62, 214, 138, 0.16)',
   pillLow: '#f7d774',
@@ -148,6 +165,14 @@ export const lightTokens: ThemeTokens = {
   warn: '#eab308',
   warnInk: '#a16207',
   warnSoft: 'rgba(234, 179, 8, 0.18)',
+  pink: '#d6337f',
+  pinkSoft: 'rgba(214, 51, 127, 0.18)',
+  indigo: '#4f46e5',
+  indigoSoft: 'rgba(79, 70, 229, 0.18)',
+  brown: '#8a5a3b',
+  brownSoft: 'rgba(138, 90, 59, 0.18)',
+  slate: '#5b6575',
+  slateSoft: 'rgba(91, 101, 117, 0.18)',
   pillGood: '#15803d',
   pillGoodBg: '#dcfce7',
   pillLow: '#b45309',

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { AccountsPage } from './AccountsPage'
+import { AccountModal, AccountsPage } from './AccountsPage'
 
 const { push, updateMutation } = vi.hoisted(() => ({ push: vi.fn(), updateMutation: vi.fn(async () => undefined) }))
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }))
@@ -11,6 +11,8 @@ vi.mock('../hooks/useAccounts', () => ({
   useUpdateAccount: () => ({ mutateAsync: updateMutation, isPending: false }),
 }))
 vi.mock('../hooks/useBalanceCheck', () => ({ useBalanceStatus: () => ({ isLoading: false, data: { accounts: [] } }) }))
+const spaces = vi.hoisted(() => ({ active: undefined as unknown, readOnly: false }))
+vi.mock('../hooks/useSpaces', () => ({ useSpaces: () => spaces }))
 
 describe('AccountsPage', () => {
   it("opens an account's transactions and deletes it by archiving after a confirm", async () => {
@@ -21,5 +23,16 @@ describe('AccountsPage', () => {
     expect(updateMutation).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
     await waitFor(() => expect(updateMutation).toHaveBeenCalledWith({ id: 'a1', updates: { archived: true } }))
+  })
+
+  it('opens the account modal to a read-only notice instead of the form', () => {
+    spaces.readOnly = true
+    try {
+      render(<AccountModal id="a1" onClose={vi.fn()} />)
+      expect(screen.getByRole('status')).toHaveTextContent('This budget is read-only')
+      expect(screen.queryByLabelText('Name')).toBeNull()
+    } finally {
+      spaces.readOnly = false
+    }
   })
 })

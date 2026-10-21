@@ -17,6 +17,8 @@ vi.mock('@/src/api/holdings', () => ({
   performHoldingAction: vi.fn(),
 }))
 vi.mock('@/src/api/holdingEvents', () => ({ getHoldingEvents: vi.fn() }))
+const spaces = vi.hoisted(() => ({ active: undefined as unknown, readOnly: false }))
+vi.mock('../hooks/useSpaces', () => ({ useSpaces: () => spaces }))
 
 // The sidebar reads the WorkOS session, which drags @workos-inc/authkit-nextjs
 // (and next/cache) into a jsdom run. It is chrome, not what this file tests.
@@ -93,6 +95,19 @@ describe('InvestmentsPage deletion', () => {
     renderPage()
     await screen.findByRole('button', { name: /Stocks/ })
     expect(screen.queryByText(/Next \d/)).not.toBeInTheDocument()
+  })
+})
+
+describe('HoldingModal read-only', () => {
+  it('shows the read-only notice instead of the form', () => {
+    spaces.readOnly = true
+    try {
+      renderModal(holding())
+      expect(screen.getByRole('status')).toHaveTextContent('This budget is read-only')
+      expect(screen.queryByRole('switch')).toBeNull()
+    } finally {
+      spaces.readOnly = false
+    }
   })
 })
 

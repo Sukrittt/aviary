@@ -6,7 +6,8 @@ import { AnimatePresence, motion } from "motion/react";
 import { ReceiptIcon, BellIcon, ArrowsInLineVerticalIcon, SquaresFourIcon, MoonIcon, PencilSimpleIcon, PlusIcon, SunIcon, TrashIcon, XIcon } from "@/src/components/icons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { CategoryIcon } from "../components/CategoryIcon";
-import { CategoryIconPicker } from "../components/CategoryIconPicker";
+import { CategoryIconPicker, ColorSwatches } from "../components/CategoryIconPicker";
+import { Pop } from "../components/Pop";
 import { categoryIconKey, groupIconKey, type CategoryIconKey } from "../lib/categoryIcons";
 import { useAppearance } from "../../components/AppearanceProvider";
 import { ExpenseSidebar } from "../components/ExpenseSidebar";
@@ -28,6 +29,7 @@ import {
   useAddGroup,
   useUpdateGroup,
   useGroupIcons,
+  useGroupColors,
   useDeleteGroup,
   useMoveGroup,
 } from "../hooks/useGroups";
@@ -38,18 +40,21 @@ import {
   groupDeleteBody,
   OTHER_LABEL,
 } from "../lib/envelopeGroups";
-import { splitEmoji, avatarStyleFor } from "../lib/emoji";
+import { splitEmoji, avatarStyleFor, categoryColor, colorStyle, groupColor } from "../lib/emoji";
+import { isCategoryColor, type CategoryColor } from "../lib/categoryColors";
 import { DEFAULT_ALERT_PCTS } from "../lib/alerts";
 import { EMPTY } from "../lib/constants";
 import type { CategoryRow } from "../types";
 import { BirdEmptyState } from "../components/BirdEmptyState";
 import { DragItem, DragList, useDragOrder } from "../components/DragReorder";
+import { useReadOnlyError } from "../components/BudgetNotices";
+import { useSpaces } from "../hooks/useSpaces";
 
 /** A pending rename or creation, in whichever place the row sits. */
 type Draft =
   | { kind: "new-group" }
-  | { kind: "rename-category"; name: string; group: string; icon?: string }
-  | { kind: "rename-group"; name: string; icon?: string };
+  | { kind: "rename-category"; name: string; group: string; icon?: string; color?: string }
+  | { kind: "rename-group"; name: string; icon?: string; color?: string };
 
 type DeleteTarget =
   { kind: "category"; name: string } | { kind: "group"; name: string };
@@ -109,6 +114,7 @@ export function EnvelopesPage() {
   const addGroup = useAddGroup();
   const updateGroup = useUpdateGroup();
   const groupIcons = useGroupIcons();
+  const groupColors = useGroupColors();
   const deleteGroup = useDeleteGroup();
   const moveCategory = useMoveCategory();
   const moveGroup = useMoveGroup();
@@ -120,12 +126,18 @@ export function EnvelopesPage() {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [draftText, setDraftText] = useState("");
   const [draftIcon, setDraftIcon] = useState<CategoryIconKey>("Wallet");
+  // Null until the user picks one (or the row already has one): until then
+  // the colour follows the name, as everywhere else.
+  const [pickedColor, setPickedColor] = useState<CategoryColor | null>(null);
   const [addCategoryGroup, setAddCategoryGroup] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [editing, setEditing] = useState<CategoryRow | null>(null);
   const [draftPcts, setDraftPcts] = useState<number[]>(DEFAULT_ALERT_PCTS);
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const readOnlyError = useReadOnlyError();
+  // A lapsed shared budget: the list stays, every write control goes.
+  const { readOnly } = useSpaces();
 
   const grouped = useMemo(
     () => groupCategories(categories, groups),
@@ -134,13 +146,13 @@ export function EnvelopesPage() {
   const groupDrag = useDragOrder(groups, (name, toIndex) =>
     moveGroup.mutate(
       { name, toIndex },
-      { onError: () => setError("That didn't save. Try again.") },
+      { onError: (e) => setError(readOnlyError(e) ?? "That didn't save. Try again.") },
     ),
   );
   const moveCategoryTo = (name: string, toIndex: number) =>
     moveCategory.mutate(
       { name, toIndex },
-      { onError: () => setError("That didn't save. Try again.") },
+      { onError: (e) => setError(readOnlyError(e) ?? "That didn't save. Try again.") },
     );
   // Named groups follow the drag's live order; ungrouped "Other" stays pinned last.
   const byGroupName = new Map(grouped.map((g) => [g.name, g]));
@@ -179,6 +191,8 @@ export function EnvelopesPage() {
       setDraftIcon(categoryIconKey(next.name, next.icon, next.group));
     if (next.kind === "rename-group")
       setDraftIcon(groupIconKey(next.name, next.icon));
+    if (next.kind !== "new-group")
+      setPickedColor(isCategoryColor(next.color) ? next.color : null);
   }
 
   /** The stored name for draft text: the old name's emoji, if any, then the words. */
@@ -197,9 +211,10 @@ export function EnvelopesPage() {
       // generic line the reader can act on.
       const message = e instanceof Error ? e.message : "";
       setError(
-        /already exists/i.test(message)
-          ? `That ${whenBusy} already exists.`
-          : "That did not save. Try again.",
+        readOnlyError(e) ??
+          (/already exists/i.test(message)
+            ? `That ${whenBusy} already exists.`
+            : "That didn't save. Try again."),
       );
       return false;
     }
@@ -215,14 +230,16 @@ export function EnvelopesPage() {
     else if (draft.kind === "rename-group") {
       const newName = withOldEmoji(draft.name, name);
       const iconChanged = draftIcon !== groupIconKey(draft.name, draft.icon);
+      const colorChanged = pickedColor !== null && pickedColor !== draft.color;
       ok =
-        (newName === draft.name && !iconChanged) ||
+        (newName === draft.name && !iconChanged && !colorChanged) ||
         (await run(
           () =>
             updateGroup.mutateAsync({
               name: draft.name,
               ...(newName !== draft.name ? { newName } : {}),
               ...(iconChanged ? { icon: draftIcon } : {}),
+              ...(colorChanged ? { color: pickedColor } : {}),
             }),
           "group",
         ));
@@ -231,8 +248,9 @@ export function EnvelopesPage() {
       const newName = withOldEmoji(draft.name, name);
       const iconChanged =
         draftIcon !== categoryIconKey(draft.name, draft.icon, draft.group);
+      const colorChanged = pickedColor !== null && pickedColor !== draft.color;
       ok =
-        (newName === draft.name && !iconChanged) ||
+        (newName === draft.name && !iconChanged && !colorChanged) ||
         (await run(
           () =>
             updateCategory.mutateAsync({
@@ -240,6 +258,7 @@ export function EnvelopesPage() {
               updates: {
                 ...(newName !== draft.name ? { newName } : {}),
                 ...(iconChanged ? { icon: draftIcon } : {}),
+                ...(colorChanged ? { color: pickedColor } : {}),
               },
             }),
           "category",
@@ -285,6 +304,12 @@ export function EnvelopesPage() {
   }
 
   const loading = categoriesQuery.isLoading || groupsQuery.isLoading;
+  // The same colour the row wears on the list, so the sheet's tile matches it.
+  const draftColor: CategoryColor =
+    draft?.kind === "rename-category"
+      ? categoryColor(draftText.trim(), pickedColor ?? undefined)
+      : groupColor(pickedColor ?? undefined);
+  const draftTint = colorStyle(draftColor);
 
   const nameInput = (
     <input
@@ -337,16 +362,18 @@ export function EnvelopesPage() {
                 A place for all your money. A heads-up before you overspend.
               </p>
             </div>
-            <div className="txn-page-actions">
-              <button
-                type="button"
-                className="erd-log-btn txn-page-log-btn"
-                onClick={() => beginDraft({ kind: "new-group" })}
-              >
-                <PlusIcon size={14} aria-hidden="true" />
-                New group
-              </button>
-            </div>
+            {!readOnly && (
+              <div className="txn-page-actions">
+                <button
+                  type="button"
+                  className="erd-log-btn txn-page-log-btn"
+                  onClick={() => beginDraft({ kind: "new-group" })}
+                >
+                  <PlusIcon size={14} aria-hidden="true" />
+                  New group
+                </button>
+              </div>
+            )}
           </header>
 
           <div className="env-page-toolbar">
@@ -384,7 +411,7 @@ export function EnvelopesPage() {
               subject="envelopes"
               title="Your categories are waiting"
               description="Make a group, add a category, and give all your money a place to land."
-              action={{
+              action={readOnly ? undefined : {
                 label: "Create your first group",
                 onClick: () => beginDraft({ kind: "new-group" }),
               }}
@@ -409,7 +436,7 @@ export function EnvelopesPage() {
               const body = (grip: ReactNode) => (
                 <>
                   <div className="env-group-head">
-                    {grip}
+                    {!readOnly && grip}
                     <button
                       type="button"
                       className="env-group-toggle"
@@ -421,15 +448,20 @@ export function EnvelopesPage() {
                         size={14}
                         className="env-group-chevron"
                       />
-                      <span className="env-group-icon" aria-hidden="true">
+                      <Pop
+                        value={`${groupColors.get(group.name)}|${groupIcons.get(group.name)}`}
+                        className="env-group-icon"
+                        style={colorStyle(groupColor(groupColors.get(group.name)))}
+                        aria-hidden="true"
+                      >
                         <CategoryIcon kind="group" name={group.name} icon={groupIcons.get(group.name)} />
-                      </span>
+                      </Pop>
                       <span className="env-group-name">{text}</span>
                       <span className="env-group-count">
                         {group.items.length}
                       </span>
                     </button>
-                    <div className="env-group-actions">
+                    {!readOnly && <div className="env-group-actions">
                       <IconTip label="Add category">
                         <button
                           type="button"
@@ -446,17 +478,22 @@ export function EnvelopesPage() {
                         </button>
                       </IconTip>
                       {group.name && (
-                        <IconTip label="Rename group">
+                        <IconTip label="Edit group">
                           <button
                             type="button"
                             className="env-icon-btn"
                             onClick={() =>
                               beginDraft(
-                                { kind: "rename-group", name: group.name, icon: groupIcons.get(group.name) },
+                                {
+                                  kind: "rename-group",
+                                  name: group.name,
+                                  icon: groupIcons.get(group.name),
+                                  color: groupColors.get(group.name),
+                                },
                                 group.name,
                               )
                             }
-                            aria-label={`Rename ${text}`}
+                            aria-label={`Edit ${text}`}
                           >
                             <PencilSimpleIcon size={14} aria-hidden="true" />
                           </button>
@@ -479,7 +516,7 @@ export function EnvelopesPage() {
                           </button>
                         </IconTip>
                       )}
-                    </div>
+                    </div>}
                   </div>
 
                   {!dragging && (
@@ -494,10 +531,11 @@ export function EnvelopesPage() {
                             : DEFAULT_ALERT_PCTS;
                           return (
                             <>
-                              {catGrip}
-                              <span
+                              {!readOnly && catGrip}
+                              <Pop
+                                value={`${category.color}|${category.icon}`}
                                 className="env-cat-icon"
-                                style={avatarStyleFor(parts.text)}
+                                style={avatarStyleFor(parts.text, category.color)}
                                 aria-hidden="true"
                               >
                                 <CategoryIcon
@@ -505,11 +543,12 @@ export function EnvelopesPage() {
                                   icon={category.icon}
                                   group={group.name}
                                 />
-                              </span>
+                              </Pop>
                               <span className="env-cat-name">{parts.text}</span>
                               <button
                                 type="button"
                                 className="env-cat-alerts"
+                                disabled={readOnly}
                                 onClick={() => {
                                   setEditing(category);
                                   setDraftPcts(thresholds);
@@ -537,7 +576,8 @@ export function EnvelopesPage() {
                                     <ReceiptIcon size={14} aria-hidden="true" />
                                   </Link>
                                 </IconTip>
-                                <IconTip label="Rename category">
+                                {!readOnly && <>
+                                <IconTip label="Edit category">
                                   <button
                                     type="button"
                                     className="env-icon-btn"
@@ -548,11 +588,12 @@ export function EnvelopesPage() {
                                           name: category.name,
                                           group: group.name,
                                           icon: category.icon,
+                                          color: category.color,
                                         },
                                         category.name,
                                       )
                                     }
-                                    aria-label={`Rename ${parts.text}`}
+                                    aria-label={`Edit ${parts.text}`}
                                   >
                                     <PencilSimpleIcon size={14} aria-hidden="true" />
                                   </button>
@@ -572,6 +613,7 @@ export function EnvelopesPage() {
                                     <TrashIcon size={14} aria-hidden="true" />
                                   </button>
                                 </IconTip>
+                                </>}
                               </div>
                             </>
                           );
@@ -630,10 +672,10 @@ export function EnvelopesPage() {
               aria-modal="true"
               aria-label={
                 draft.kind === "rename-category"
-                  ? "Rename category"
+                  ? "Edit category"
                   : draft.kind === "new-group"
                     ? "Add group"
-                    : "Rename group"
+                    : "Edit group"
               }
               onClick={(e) => e.stopPropagation()}
             >
@@ -643,7 +685,7 @@ export function EnvelopesPage() {
                     className="env-sheet-rename-icon"
                     value={draftIcon}
                     onChange={setDraftIcon}
-                    tint={avatarStyleFor(draftText.trim())}
+                    tint={draftTint}
                     disabled={submitting}
                   />
                   <div className="env-sheet-rename-heading">
@@ -652,8 +694,8 @@ export function EnvelopesPage() {
                     </span>
                     <h2 className="env-sheet-title">
                       {draft.kind === "rename-category"
-                        ? "Rename category"
-                        : "Rename group"}
+                        ? "Edit category"
+                        : "Edit group"}
                     </h2>
                   </div>
                   <button
@@ -690,6 +732,9 @@ export function EnvelopesPage() {
                 )}
                 {nameInput}
               </div>
+              {draft.kind !== "new-group" && (
+                <ColorSwatches value={draftColor} onChange={setPickedColor} disabled={submitting} />
+              )}
 
               {error && (
                 <p className="env-sheet-hint" role="alert">
@@ -721,11 +766,9 @@ export function EnvelopesPage() {
                 >
                   {submitting
                     ? "Saving…"
-                    : draft.kind === "rename-category"
-                      ? "Rename"
-                      : draft.kind === "new-group"
-                        ? "Create group"
-                        : "Rename"}
+                    : draft.kind === "new-group"
+                      ? "Create group"
+                      : "Save"}
                 </button>
               </div>
             </Sheet>

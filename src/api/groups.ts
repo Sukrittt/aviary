@@ -6,12 +6,13 @@ export async function getGroups(): Promise<string[]> {
   return resp.json()
 }
 
-/** Each group's picked icon, by name. Groups without one are left out. */
-export async function getGroupIcons(): Promise<Map<string, string>> {
+export type GroupRow = { name: string; icon?: string; color?: string }
+
+/** Each group with its picked icon and colour, if any. */
+export async function getGroupRows(): Promise<GroupRow[]> {
   const resp = await apiFetch('/api/groups?icons=1')
   if (!resp.ok) throw new Error(`Failed to load groups: ${resp.status}`)
-  const rows: { name: string; icon?: string }[] = await resp.json()
-  return new Map(rows.flatMap((r) => (r.icon ? [[r.name, r.icon] as const] : [])))
+  return resp.json()
 }
 
 export async function addGroup(name: string): Promise<void> {
@@ -23,7 +24,7 @@ export async function addGroup(name: string): Promise<void> {
   if (!resp.ok) throw new Error(await apiErrorMessage(resp, 'Failed to add group'))
 }
 
-export async function updateGroup(name: string, updates: { newName?: string; icon?: string }): Promise<void> {
+export async function updateGroup(name: string, updates: { newName?: string; icon?: string; color?: string }): Promise<void> {
   const resp = await apiFetch('/api/groups', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },

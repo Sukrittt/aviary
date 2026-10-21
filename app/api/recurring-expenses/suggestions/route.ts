@@ -5,7 +5,7 @@ import { error, getCollection, json, readBody } from '@/lib/http'
 import { aiDisabledResponse } from '@/lib/systemSettings'
 import { aiAllowanceResponse } from '@/lib/ai/allowance'
 import { isRateLimited } from '@/lib/rateLimit'
-import { getUserCurrency, nowForUser } from '@/lib/userCurrency'
+import { getBudgetCurrency, nowForUser } from '@/lib/userCurrency'
 import { buildCandidates, DETECTION_VERSION, fingerprint, nextSuggestedDate, normalizeItem, scanWindow, type DetectionDecision, type DetectionFrequency, type RecurringCandidate } from '@/lib/recurringDetection'
 import { evaluateRecurring } from '@/lib/ai/recurringDetection'
 import type { RecurringScan, RecurringSuggestion, ScanMonths } from '@/src/types/recurringSuggestions'
@@ -18,7 +18,7 @@ const CONCURRENCY = 3
 const MAX_ROWS = 10000
 const EXPENSE_PROJECTION = { _id: 1, version: 1, date: 1, item: 1, description: 1, amount_inr: 1, amount: 1, category: 1, payment_method: 1, notes: 1, source: 1 }
 // Built-in _id uniqueness provides a per-user, cross-instance lock without a migration.
-const documentId = (auth: Auth, key: string) => new ObjectId(fingerprint([auth.userId, key]).slice(0, 24))
+const documentId = (auth: Auth, key: string) => new ObjectId(fingerprint([auth.spaceId, key]).slice(0, 24))
 const snapshotId = (auth: Auth, months: ScanMonths) => documentId(auth, `snapshot:${DETECTION_VERSION}:${months}`)
 const parseMonths = (value: unknown): ScanMonths | null => value === undefined || value === null ? 6 : value === 1 || value === 3 || value === 6 || value === 12 ? value : null
 const isTrackedSubscription = (row: Record<string, unknown>) => !/^cancel/i.test(String(row.status ?? 'active'))
@@ -29,7 +29,7 @@ type Cache = Awaited<ReturnType<typeof getCollection>>
 
 async function loadHistory(auth: Auth, months: ScanMonths, cache: Cache) {
   const [{ date: today }, currency, expenses, recurring, subscriptions] = await Promise.all([
-    nowForUser(auth.userId), getUserCurrency(auth.userId), getCollection('expenses', auth),
+    nowForUser(auth.userId), getBudgetCurrency(auth), getCollection('expenses', auth),
     getCollection('recurring_expenses', auth), getCollection('subscriptions', auth),
   ])
   const windowStart = scanWindow(today, months)
@@ -106,7 +106,7 @@ export async function GET(req: Request) {
     const snapshot: Snapshot = JSON.parse(doc.snapshot)
     if (!snapshot.scan.suggestions.length) return json(snapshot.scan)
     const [currency, expenses, recurring, subscriptions] = await Promise.all([
-      getUserCurrency(auth.userId), getCollection('expenses', auth), getCollection('recurring_expenses', auth), getCollection('subscriptions', auth),
+      getBudgetCurrency(auth), getCollection('expenses', auth), getCollection('recurring_expenses', auth), getCollection('subscriptions', auth),
     ])
     if (currency !== snapshot.currency) return json({ ...snapshot.scan, suggestions: [], stale: true })
     const ids = Object.values(snapshot.evidence).flat().map(e => new ObjectId(e.id))

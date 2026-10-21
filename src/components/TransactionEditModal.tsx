@@ -14,6 +14,12 @@ import { SuccessButton, useButtonPhase } from './SuccessButton'
 import { DatePicker } from './DatePicker'
 import { CategoryPicker } from './CategoryPicker'
 import { SplitExpenseEditor, makeSplitLine, type SplitLine } from './SplitExpenseEditor'
+import { MoveExpenseDialog } from './MoveExpenseDialog'
+import { useSpaces } from '../hooks/useSpaces'
+import { useAuthors } from '../hooks/useAuthors'
+import { ReadOnlyNotice, useReadOnlyError } from './BudgetNotices'
+import { ArrowClockwiseIcon, ArrowsLeftRightIcon } from '@/src/components/icons'
+import { AnimatePresence } from 'motion/react'
 
 interface Props {
   id?: string
@@ -26,6 +32,8 @@ interface Props {
   /** The row's account, '' for none. */
   accountId?: string
   hasPhoto?: boolean
+  /** Who logged it; shown as "Added by" in a shared budget. */
+  createdBy?: string | null
   onClose: () => void
   onSaved: () => void
 }
@@ -40,6 +48,7 @@ export function TransactionEditModal({
   category: initialCategory,
   accountId: initialAccountId = '',
   hasPhoto: initialHasPhoto = false,
+  createdBy = null,
   onClose,
   onSaved,
 }: Props) {
@@ -64,6 +73,7 @@ export function TransactionEditModal({
     makeSplitLine(initialCategory, String(amountInr)),
   ])
   const { saving, success, start, succeed, fail } = useButtonPhase()
+  const readOnlyError = useReadOnlyError()
   const [error, setError] = useState('')
   // Photo edits save on their own, right away: they don't touch the row's
   // fields or version, so they can't conflict with the form above.
@@ -71,6 +81,9 @@ export function TransactionEditModal({
   const [photoUrl, setPhotoUrl] = useState<string | null>(null)
   const [photoBusy, setPhotoBusy] = useState(false)
   const [photoError, setPhotoError] = useState('')
+  const { multi, readOnly } = useSpaces()
+  const authors = useAuthors()
+  const [moving, setMoving] = useState(false)
 
   const amt = parseFloat(amount)
   const canSave = isSplit
@@ -101,7 +114,7 @@ export function TransactionEditModal({
         setDeleted(true); setShowDeletedNotice(true); setError(''); refresh(); fail(); return
       }
     }
-    setError(err instanceof Error ? err.message : 'Failed to update transaction')
+    setError(readOnlyError(err) ?? "Couldn't save your changes. Check your connection and try again.")
     refresh()
     fail()
   }
@@ -224,16 +237,20 @@ export function TransactionEditModal({
       {showDeletedNotice && <ExpenseNoticeDialog status={404} action="edit" onBack={() => setShowDeletedNotice(false)} />}
       <Sheet className="category-manager subscription-modal">
         <div className="category-manager-header">
-          <h3>Edit transaction</h3>
+          <div>
+            <h3>Edit transaction</h3>
+            {authors && id && <p className="budget-line">{`Added by ${authors.name(createdBy)}`}</p>}
+          </div>
           <button type="button" className="action-button is-ghost" onClick={onClose} aria-label="Close" disabled={success}>
             ✕
           </button>
         </div>
 
+        {readOnly ? <ReadOnlyNotice onClose={onClose} /> : <>
         {error && !conflict && <p className="txn-entry-error">{error}</p>}
         {conflict && (
           <div className="txn-review" ref={reviewRef} tabIndex={-1} role="region" aria-labelledby="txn-review-title">
-            <span className="txn-review-icon" aria-hidden="true">↻</span>
+            <span className="txn-review-icon" aria-hidden="true"><ArrowClockwiseIcon size={24} /></span>
             <h4 id="txn-review-title">This transaction was updated</h4>
             <p className="txn-review-intro">A newer version was saved elsewhere. Your edits are still here.</p>
             {reviewRows.length > 0 && (
@@ -321,12 +338,19 @@ export function TransactionEditModal({
           </div>
         </div>
 
+        {multi && id && !isSplit && !deleted && (
+          <button type="button" className="action-button is-ghost txn-edit-move" onClick={() => setMoving(true)} disabled={saving || success}>
+            <ArrowsLeftRightIcon size={14} aria-hidden="true" /> Logged in the wrong budget? Move it
+          </button>
+        )}
+
         <div className="subscription-modal-actions">
           <button type="button" className="action-button is-ghost" onClick={onClose} disabled={success}>
             Cancel
           </button>
           <SuccessButton
             type="button"
+            className="is-active erd-accent-action"
             disabled={!canSave || saving || success || !!conflict || deleted}
             saving={saving}
             success={success}
@@ -336,7 +360,19 @@ export function TransactionEditModal({
           </SuccessButton>
         </div>
         </>}
+        </>}
       </Sheet>
+      <AnimatePresence>
+        {moving && id && (
+          <MoveExpenseDialog
+            id={id}
+            version={expectedVersion ?? 0}
+            category={category}
+            onClose={() => setMoving(false)}
+            onMoved={() => { onSaved(); onClose() }}
+          />
+        )}
+      </AnimatePresence>
     </Scrim>
   )
 }

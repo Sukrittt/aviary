@@ -71,7 +71,21 @@ const OPEN: Record<string, string> = {
   'changelog/latest': 'signed-in release notes; no budgeting content',
   'changelog/[id]/seen': 'account-level release announcement tracking, available while expired',
   waitlist: 'public landing-page signup; no session, no budgeting content',
+  leads: 'public salary-planner email capture; no session, no budgeting content',
+  'email/unsubscribe': 'signed email link; an expired account must still be able to stop emails',
+  'email/confirm': 'signed email link for salary-planner leads; no session, no budgeting content',
   'notifications/register': 'a device must be able to register to receive the "your trial ended" push',
+  // Writes here use requireOwnPlan: the caller's own plan, not the active budget's.
+  spaces: 'budget switcher: listing must work from a lapsed budget, so you can switch out of it',
+  'spaces/[id]': 'owner budget settings, gated against the owner’s own plan; delete is an exit',
+  'spaces/[id]/members': 'who is in a budget: readable from a lapsed one',
+  'spaces/[id]/members/[userId]': 'leaving and removing are exits, never paywalled',
+  'spaces/[id]/invites': 'gated against the owner’s own plan',
+  'spaces/[id]/invites/[code]': 'cancelling an invite is an exit',
+  'spaces/[id]/restore': 'owner undoing a delete within 30 days',
+  'spaces/[id]/transfer': 'handing a budget on is an exit, never paywalled',
+  'user/shared-budgets': 'account deletion step, an exit route',
+  'join/[code]': 'joining is covered by the owner’s plan; a brand-new person has no trial yet',
 }
 
 function routeDirs(dir: string, prefix = ''): string[] {

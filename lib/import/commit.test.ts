@@ -1,5 +1,6 @@
 import { beforeAll, afterAll, beforeEach, describe, it, expect, vi } from 'vitest'
-import { MongoMemoryReplSet } from 'mongodb-memory-server'
+import type { MongoMemoryReplSet } from 'mongodb-memory-server'
+import { startMongoReplSet } from '@/src/test-utils/mongo'
 import { ObjectId } from 'mongodb'
 import { randomBytes } from 'node:crypto'
 import { gzipSync } from 'node:zlib'
@@ -10,9 +11,11 @@ vi.mock('@/lib/cache', () => ({ invalidate: vi.fn() }))
 vi.mock('@/lib/workosClient', () => ({ getWorkOSClient: vi.fn() }))
 vi.mock('@/lib/categoryMap', () => ({ invalidateCategoryMap: vi.fn() }))
 vi.mock('@/lib/notifications/instant', () => ({ notifyThresholdCrossed: vi.fn(), reconcileThresholdLevels: vi.fn() }))
-vi.mock('@/lib/userCurrency', () => ({
+vi.mock('@/lib/userCurrency', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/userCurrency')>()),
   nowForUser: async () => ({ date: '2026-10-17', timestamp: '2026-10-17T10:00:00.000Z' }),
   getUserCurrency: async () => 'INR',
+  getBudgetCurrency: async () => 'INR',
 }))
 const completeOnboarding = vi.fn(async () => ({ ok: true }))
 vi.mock('@/lib/billing/service', () => ({ completeOnboarding: () => completeOnboarding() }))
@@ -37,12 +40,12 @@ import { chainPass, passAndChain, retryImport, runImportPass } from './backfill'
 import type { Review } from './service'
 
 const USER = 'import-test'
-const auth = { userId: USER, readOnly: false, sessionId: null }
+const auth = { userId: USER, readOnly: false, sessionId: null, spaceId: USER, spaceOwnerId: USER, spaceRole: 'owner' as const }
 const fixture = (name: string) => readFileSync(path.join(import.meta.dirname, 'fixtures', name))
 
 let server: MongoMemoryReplSet
 beforeAll(async () => {
-  server = await MongoMemoryReplSet.create({ binary: { version: '8.2.6' }, replSet: { count: 1 } })
+  server = await startMongoReplSet()
   vi.stubEnv('MONGODB_URI', server.getUri('imports'))
   vi.stubEnv('FIELD_KEY_V1', randomBytes(32).toString('base64'))
   const db = await getDb()
@@ -280,6 +283,18 @@ describe('commit edge cases', () => {
     expect(await (await coll('recurring_incomes')).findOne({ status: 'active' })).toMatchObject({ start_date: '2026-11-01' })
   })
 
+  it('a payday of the 31st starting in a 30-day month still lands on the 31st after it', async () => {
+    const review = await previewFile(auth, csv([
+      'Date,Item,Amount', '2026-08-01,Salary Aug,1000', '2026-09-01,Salary Sep,1000', '2026-10-01,Salary Oct,1000', '2026-10-02,Bread,-3',
+    ]), 'x.csv')
+    await commitImport(auth, review.importId, editsFrom(review, { salary: { amount: 1000, day: 31 } }))
+    // November has no 31st, so its payday is the 30th; December's is the 31st again.
+    expect(await (await coll('recurring_incomes')).findOne({ status: 'active' })).toMatchObject({ next_run_date: '2026-11-30' })
+    const { runRecurringIncomes } = await import('@/lib/income')
+    await runRecurringIncomes(auth, '2026-11-30')
+    expect(await (await coll('recurring_incomes')).findOne({ status: 'active' })).toMatchObject({ next_run_date: '2026-12-31' })
+  })
+
   it('won’t import into an account that finished setting up another way', async () => {
     const review = await previewFile(auth, fixture('money-manager.csv'), 'mm.csv')
     await (await getDb()).collection('users').updateOne({ _id: USER as never }, { $set: { onboardedAt: '2026-10-17T09:00:00.000Z' } })
@@ -368,10 +383,10 @@ describe('chaining passes', () => {
     const fetchMock = vi.fn(async () => new Response('{}'))
     vi.stubGlobal('fetch', fetchMock)
     try {
-      await chainPass(USER, '6710e6f0a1b2c3d4e5f60718')
+      await chainPass(auth, '6710e6f0a1b2c3d4e5f60718')
       expect(fetchMock).not.toHaveBeenCalled()
       vi.stubEnv('VERCEL_URL', 'aviary-git-x.vercel.app')
-      await chainPass(USER, '6710e6f0a1b2c3d4e5f60718')
+      await chainPass(auth, '6710e6f0a1b2c3d4e5f60718')
       expect((fetchMock.mock.calls[0] as unknown as [string])[0]).toBe('https://aviary-git-x.vercel.app/api/cron/import-pass')
     } finally {
       vi.unstubAllGlobals()
@@ -414,5 +429,32 @@ describe('failing rows', () => {
 
     expect(await retryImport(auth, id)).toBe(true)
     expect(await (await coll('imports')).findOne({ _id: new ObjectId(id) })).toMatchObject({ status: 'importing', cursor: 50, failed: 0, streak: 0 })
+  })
+})
+
+describe('into a new budget', () => {
+  const trip = { ...auth, spaceId: 'sp_trip' }
+  beforeEach(async () => {
+    const db = await getDb()
+    await db.collection('users').updateOne({ _id: USER as never }, { $set: { onboardedAt: '2026-01-01T00:00:00.000Z' } })
+    await db.collection('spaces').insertOne({ _id: 'sp_trip' as never, name: 'Trip', emoji: '✈️', owner_id: USER, currencyCode: 'USD', onboardedAt: null, deleted_at: null, created_at: '' })
+  })
+
+  it("sets up that budget from the file, leaving the person's own account, currency and trial alone", async () => {
+    const review = await previewFile(trip, fixture('money-manager.csv'), 'mm.csv')
+    await commitImport(trip, review.importId, editsFrom(review))
+    const db = await getDb()
+    expect(await scoped(db.collection('categories'), 'sp_trip').countDocuments({})).toBe(4)
+    expect(await count('categories')).toBe(0)
+    const space = await db.collection('spaces').findOne({ _id: 'sp_trip' as never })
+    expect(space).toMatchObject({ currencyCode: 'INR', onboardedAt: expect.any(String) })
+    expect((await db.collection('users').findOne({ _id: USER as never }))?.currencyCode).toBe('USD')
+    expect(completeOnboarding).not.toHaveBeenCalled()
+  })
+
+  it('refuses a budget that is already set up', async () => {
+    await (await getDb()).collection('spaces').updateOne({ _id: 'sp_trip' as never }, { $set: { onboardedAt: '2026-10-01T00:00:00.000Z' } })
+    const review = await previewFile(trip, fixture('money-manager.csv'), 'mm.csv')
+    await expect(commitImport(trip, review.importId, editsFrom(review))).rejects.toMatchObject({ code: 'already_onboarded' })
   })
 })

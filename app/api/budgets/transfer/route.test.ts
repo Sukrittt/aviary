@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('@/lib/access', () => ({
-  getAuth: vi.fn(async () => ({ userId: 'user_a', readOnly: false, sessionId: null })),
+  getAuth: vi.fn(async () => ({ userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const })),
   readOnlyGuard: vi.fn(() => null),
 }))
 
@@ -97,7 +97,7 @@ describe('POST /api/budgets/transfer', () => {
     expect(row('2026-03', 'Dining')?.version).toBe(1)
     expect(row('2026-03', 'Travel')?.version).toBe(1)
     expect(reconcileThresholdLevelsMock).toHaveBeenCalledWith(
-      { userId: 'user_a', readOnly: false, sessionId: null },
+      { userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const },
       ['Travel', 'Dining'],
       '2026-03',
     )
@@ -112,7 +112,7 @@ describe('POST /api/budgets/transfer', () => {
     expect(row('2026-03', 'Travel')?.assigned).toBe('800')
     expect(store).toHaveLength(1)
     expect(reconcileThresholdLevelsMock).toHaveBeenCalledWith(
-      { userId: 'user_a', readOnly: false, sessionId: null },
+      { userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const },
       ['Travel'],
       '2026-03',
     )

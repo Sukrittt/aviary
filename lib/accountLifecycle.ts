@@ -10,6 +10,17 @@ import { purgeUserIdeas } from './ideas'
 import { FEEDBACK } from './feedback'
 import type { UserDoc } from './users'
 import { getWorkOSClient } from './workosClient'
+import { PERSON_COLLECTIONS } from './http'
+import { personalBudgetHandedOff, purgeSpace, restoreAccountSpaces } from './spaceMembers'
+
+/**
+ * The collections an account deletion sweeps. When the person's personal
+ * budget went to another member (lib/spaceMembers.ts handOffSharedBudgets),
+ * its data isn't theirs to take: only their own person-level rows go.
+ */
+async function accountCollections(db: Db, userId: string, all: string[]): Promise<string[]> {
+  return (await personalBudgetHandedOff(db, userId)) ? all.filter((c) => PERSON_COLLECTIONS.has(c) || c === 'email_outbox') : all
+}
 
 /**
  * Soft-deletes an account: archives every row (lib/scoped.ts `deleted_at`)
@@ -22,7 +33,7 @@ export async function softDeleteAccount(db: Db, userId: string): Promise<string>
     const users = db.collection<UserDoc>('users')
     const user = await users.findOne({ _id: userId }, { session })
     if (user?.deleted_at) return user.deleted_at
-    for (const name of Object.values(COLLECTIONS)) {
+    for (const name of await accountCollections(db, userId, Object.values(COLLECTIONS))) {
       await db.collection(name).updateMany(
         { user_id: userId, deleted_at: null },
         { $set: { deleted_at: deletedAt, account_deleted_at: deletedAt }, ...(name === 'expenses' ? { $inc: { version: 1 } } : {}) },
@@ -56,6 +67,7 @@ export async function restoreAccount(db: Db, userId: string): Promise<void> {
     }
     await users.updateOne({ _id: userId }, { $set: { deleted_at: null } }, { session })
   })
+  await restoreAccountSpaces(db, userId)
   await invalidateAccount(userId)
 }
 
@@ -82,9 +94,21 @@ export async function purgeAccountNow(db: Db, userId: string): Promise<{ rows: n
     if ((err as { status?: number }).status !== 404) throw err
   }
 
+  const handedOff = await personalBudgetHandedOff(db, userId)
   let rows = 0
-  for (const name of [...Object.values(COLLECTIONS), ...EXTRA_USER_COLLECTIONS]) {
+  for (const name of await accountCollections(db, userId, [...Object.values(COLLECTIONS), ...EXTRA_USER_COLLECTIONS])) {
     rows += (await db.collection(name).deleteMany({ user_id: userId })).deletedCount
+  }
+  // Budgets they own that nobody else is in go with them, closed or not.
+  for (const space of await db.collection('spaces').find({ owner_id: userId, _id: { $ne: userId as never } }).toArray()) {
+    if (!(await db.collection('space_members').findOne({ space_id: space._id, user_id: { $ne: userId } }))) await purgeSpace(db, String(space._id))
+  }
+  // Their seats in other people's budgets, and their personal budget's doc unless it changed hands.
+  rows += (await db.collection('space_members').deleteMany({ user_id: userId })).deletedCount
+  if (!handedOff) {
+    rows += (await db.collection('space_members').deleteMany({ space_id: userId })).deletedCount
+    await db.collection('space_invites').deleteMany({ space_id: userId })
+    await db.collection('spaces').deleteOne({ _id: userId as never })
   }
   // Not a plain sweep: their votes have to come off other people's idea counts.
   rows += await purgeUserIdeas(db, userId)
@@ -93,7 +117,8 @@ export async function purgeAccountNow(db: Db, userId: string): Promise<{ rows: n
 
   let blobs = 0
   if (process.env.BLOB_READ_WRITE_TOKEN) {
-    for (const prefix of [`bills/${userId}/`, `exports/${userId}/`, `expense-photos/${userId}/`, `feedback-screenshots/${userId}/`]) {
+    const prefixes = handedOff ? [`feedback-screenshots/${userId}/`] : [`bills/${userId}/`, `exports/${userId}/`, `expense-photos/${userId}/`, `feedback-screenshots/${userId}/`]
+    for (const prefix of prefixes) {
       let cursor: string | undefined
       do {
         const page = await list({ prefix, cursor })

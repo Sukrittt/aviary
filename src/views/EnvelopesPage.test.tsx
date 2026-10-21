@@ -17,7 +17,7 @@ vi.mock('@/src/api/categories', () => ({
 }))
 vi.mock('@/src/api/groups', () => ({
   getGroups: vi.fn(),
-  getGroupIcons: vi.fn(async () => new Map()),
+  getGroupRows: vi.fn(async () => []),
   addGroup: vi.fn(),
   updateGroup: vi.fn(),
   deleteGroup: vi.fn(),
@@ -27,6 +27,8 @@ vi.mock('next/navigation', () => ({ usePathname: () => '/expense/envelopes' }))
 // The sidebar reads the WorkOS session, which drags @workos-inc/authkit-nextjs
 // (and next/server) into a jsdom run. It is chrome, not what this file tests.
 vi.mock('../components/ExpenseSidebar', () => ({ ExpenseSidebar: () => null }))
+const spaces = vi.hoisted(() => ({ active: undefined as unknown, readOnly: false }))
+vi.mock('../hooks/useSpaces', () => ({ useSpaces: () => spaces }))
 vi.mock('../../components/AppearanceProvider', () => ({
   useAppearance: () => ({ theme: 'dark', setTheme: vi.fn() }),
 }))
@@ -120,7 +122,7 @@ describe('EnvelopesPage', () => {
     await user.type(screen.getByPlaceholderText('Groceries, fuel, gym…'), 'Gas')
     await user.keyboard('{Enter}')
     // The icon follows the name until one is picked.
-    await waitFor(() => expect(addCategory).toHaveBeenCalledWith('Gas', 'Home', 'Fire'))
+    await waitFor(() => expect(addCategory).toHaveBeenCalledWith('Gas', 'Home', 'Fire', undefined))
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Add category' })).not.toBeInTheDocument())
   })
 
@@ -166,13 +168,13 @@ describe('EnvelopesPage', () => {
   it('renames a category through the edit dialog', async () => {
     const user = userEvent.setup()
     renderPage()
-    await user.click(await screen.findByLabelText('Rename Rent'))
-    const dialog = screen.getByRole('dialog', { name: 'Rename category' })
+    await user.click(await screen.findByLabelText('Edit Rent'))
+    const dialog = screen.getByRole('dialog', { name: 'Edit category' })
     const input = within(dialog).getByRole('textbox')
     expect(input).toHaveValue('Rent')
     await user.clear(input)
     await user.type(input, 'Mortgage')
-    await user.click(within(dialog).getByRole('button', { name: 'Rename' }))
+    await user.click(within(dialog).getByRole('button', { name: 'Save' }))
     // The legacy emoji stays on the stored name; Mobile still reads it.
     await waitFor(() => expect(updateCategory).toHaveBeenCalledWith('🏠 Rent', { newName: '🏠 Mortgage' }))
   })
@@ -180,8 +182,8 @@ describe('EnvelopesPage', () => {
   it('picks a new icon from the searchable grid', async () => {
     const user = userEvent.setup()
     renderPage()
-    await user.click(await screen.findByLabelText('Rename Rent'))
-    const dialog = screen.getByRole('dialog', { name: 'Rename category' })
+    await user.click(await screen.findByLabelText('Edit Rent'))
+    const dialog = screen.getByRole('dialog', { name: 'Edit category' })
     await user.click(within(dialog).getByRole('button', { name: 'Icon: House. Change icon' }))
     // A popover portalled to the body, outside the sheet.
     const picker = screen.getByRole('dialog', { name: 'Choose an icon' })
@@ -189,32 +191,54 @@ describe('EnvelopesPage', () => {
     await user.click(within(picker).getByRole('button', { name: 'Pizza' }))
     expect(screen.queryByRole('dialog', { name: 'Choose an icon' })).not.toBeInTheDocument()
     expect(within(dialog).getByRole('button', { name: 'Icon: Pizza. Change icon' })).toBeInTheDocument()
-    await user.click(within(dialog).getByRole('button', { name: 'Rename' }))
+    await user.click(within(dialog).getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(updateCategory).toHaveBeenCalledWith('🏠 Rent', { icon: 'Pizza' }))
   })
 
   it('renames a group through the edit dialog', async () => {
     const user = userEvent.setup()
     renderPage()
-    await user.click(await screen.findByLabelText('Rename Home'))
-    const dialog = screen.getByRole('dialog', { name: 'Rename group' })
+    await user.click(await screen.findByLabelText('Edit Home'))
+    const dialog = screen.getByRole('dialog', { name: 'Edit group' })
     const input = within(dialog).getByRole('textbox')
     await user.clear(input)
     await user.type(input, 'Housing')
-    await user.click(within(dialog).getByRole('button', { name: 'Rename' }))
+    await user.click(within(dialog).getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(updateGroup).toHaveBeenCalledWith('Home', { newName: 'Housing' }))
+  })
+
+  it("opens a group's edit dialog on the colour its list tile wears, and saves a picked one", async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await user.click(await screen.findByLabelText('Edit Home'))
+    const dialog = screen.getByRole('dialog', { name: 'Edit group' })
+    // An unpicked group wears the accent on the list, so the dialog starts there too.
+    expect(within(dialog).getByRole('button', { name: 'Orange' })).toHaveAttribute('aria-pressed', 'true')
+    await user.click(within(dialog).getByRole('button', { name: 'Red' }))
+    await user.click(within(dialog).getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(updateGroup).toHaveBeenCalledWith('Home', { color: 'coral' }))
+  })
+
+  it("saves a category's picked colour", async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await user.click(await screen.findByLabelText('Edit Rent'))
+    const dialog = screen.getByRole('dialog', { name: 'Edit category' })
+    await user.click(within(dialog).getByRole('button', { name: 'Teal' }))
+    await user.click(within(dialog).getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(updateCategory).toHaveBeenCalledWith('🏠 Rent', { color: 'blue' }))
   })
 
   it('picks a group icon without renaming it', async () => {
     const user = userEvent.setup()
     renderPage()
-    await user.click(await screen.findByLabelText('Rename Home'))
-    const dialog = screen.getByRole('dialog', { name: 'Rename group' })
+    await user.click(await screen.findByLabelText('Edit Home'))
+    const dialog = screen.getByRole('dialog', { name: 'Edit group' })
     await user.click(within(dialog).getByRole('button', { name: /Change icon/ }))
     const picker = screen.getByRole('dialog', { name: 'Choose an icon' })
     await user.type(within(picker).getByLabelText('Search icons'), 'tree')
     await user.click(within(picker).getByRole('button', { name: 'Tree' }))
-    await user.click(within(dialog).getByRole('button', { name: 'Rename' }))
+    await user.click(within(dialog).getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(updateGroup).toHaveBeenCalledWith('Home', { icon: 'Tree' }))
   })
 
@@ -231,6 +255,33 @@ describe('EnvelopesPage', () => {
     await user.click(screen.getByRole('button', { name: '75%' }))
     await user.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(updateCategory).toHaveBeenCalledWith('🚿 Water', { alertPcts: null }))
+  })
+
+  it("a member in a lapsed budget hears it's read-only", async () => {
+    const user = userEvent.setup()
+    spaces.active = { id: 's1', name: 'Home', role: 'member', ownerId: 'u1', members: [{ userId: 'u1', name: 'Priya Shah' }] }
+    ;(addGroup as Mock).mockRejectedValue(Object.assign(new Error('402'), { status: 402 }))
+    renderPage()
+    await user.click(await screen.findByRole('button', { name: /New group/ }))
+    await user.type(screen.getByPlaceholderText('Transport, Health…'), 'Home')
+    await user.keyboard('{Enter}')
+    const alerts = await screen.findAllByRole('alert')
+    expect(alerts[0]).toHaveTextContent("This budget is read-only until Priya renews. Your data's safe, and export's always free.")
+    spaces.active = undefined
+  })
+
+  it('hides every write control in a read-only budget, keeping the list', async () => {
+    spaces.readOnly = true
+    renderPage()
+    const list = await groupList()
+    expect(list.getByText('Rent')).toBeInTheDocument()
+    expect(list.getByRole('link', { name: 'View transactions for Rent' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /New group/ })).not.toBeInTheDocument()
+    for (const name of ['Add a category to Home', 'Edit Home', 'Delete Home', 'Edit Rent', 'Delete Rent', 'Move Rent', 'Move Home']) {
+      expect(screen.queryByLabelText(name)).not.toBeInTheDocument()
+    }
+    expect(screen.getByRole('button', { name: 'Spending alerts for Water: 25%, 50%' })).toBeDisabled()
+    spaces.readOnly = false
   })
 
   it('surfaces a written message, never the raw server text', async () => {

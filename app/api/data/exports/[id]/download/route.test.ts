@@ -6,9 +6,10 @@ vi.mock('@/lib/exports', () => ({
   getExportDownloadUrl: (...args: unknown[]) => getExportDownloadUrl(...(args as Parameters<typeof getExportDownloadUrl>)),
 }))
 
-let auth = { userId: 'user_a', readOnly: false, sessionId: null as string | null }
+let auth = { userId: 'user_a', readOnly: false, sessionId: null as string | null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const }
 vi.mock('@/lib/access', () => ({
   getAuth: vi.fn(async () => auth),
+  spaceGuard: () => null,
 }))
 
 type Doc = Record<string, unknown> & { _id: ObjectId }
@@ -33,7 +34,7 @@ function req(): Request {
 beforeEach(() => {
   store.length = 0
   getExportDownloadUrl.mockClear()
-  auth = { userId: 'user_a', readOnly: false, sessionId: null }
+  auth = { userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const }
 })
 
 describe('GET /api/data/exports/[id]/download', () => {
@@ -67,7 +68,7 @@ describe('GET /api/data/exports/[id]/download', () => {
   })
 
   it('blocks the read-only demo user', async () => {
-    auth = { userId: 'demo', readOnly: true, sessionId: null }
+    auth = { userId: 'demo', readOnly: true, sessionId: null, spaceId: 'demo', spaceOwnerId: 'demo', spaceRole: 'owner' as const }
     const res = await GET(req(), { params: Promise.resolve({ id: new ObjectId().toString() }) })
     expect(res.status).toBe(401)
   })

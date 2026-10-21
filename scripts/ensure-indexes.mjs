@@ -26,6 +26,13 @@ loadEnv()
 // group/holding after archiving the old one doesn't throw E11000.
 const LIVE_ONLY = { partialFilterExpression: { deleted_at: null } }
 
+// Indexes that were replaced and must go, or they'd keep doing their old job.
+// Dropped before INDEXES is applied; a missing one is fine.
+const DROPPED = {
+  // The old 1h TTL on `ts` deleted hits a 24h window still needed (#211).
+  rate_limit_hits: ['ts_1'],
+}
+
 const INDEXES = {
   expenses: [
     [{ user_id: 1, date: -1 }, {}],
@@ -34,6 +41,8 @@ const INDEXES = {
     // user_id, so a sparse compound index would still index every legacy row
     // as client_id: null and the second one would violate uniqueness.
     [{ user_id: 1, client_id: 1 }, { unique: true, partialFilterExpression: { client_id: { $type: 'string' } } }],
+    // The evening check: did this person log today, in any budget they're in.
+    [{ created_by: 1, date: -1 }, {}],
   ],
   budgets: [[{ user_id: 1, month: 1, category: 1 }, { unique: true, ...LIVE_ONLY }]],
   categories: [
@@ -73,9 +82,6 @@ const INDEXES = {
     [{ user_id: 1, status: 1 }, {}],
     [{ status: 1, lockedUntil: 1 }, {}],
   ],
-  // TTL index: hits older than an hour (the longest window lib/rateLimit.ts
-  // checks against) are garbage-collected automatically. Correctness never
-  // depends on this running promptly — every check bounds by its own cutoff.
   // Cached money briefs. Looked up by _id, cleared by user_id whenever that
   // user writes an expense, budget, category, group, subscription or holding
   // (lib/ai/briefCache.ts). The TTL only reclaims documents for users who
@@ -84,9 +90,13 @@ const INDEXES = {
     [{ user_id: 1 }, {}],
     [{ builtAt: 1 }, { expireAfterSeconds: 60 * 60 * 24 * 2 }],
   ],
+  // TTL index: each hit carries its own `expiresAt` (now + the longest window
+  // it was checked against, lib/rateLimit.ts), so day-long windows keep a full
+  // day of hits. Correctness never depends on this running promptly: every
+  // check bounds by its own cutoff.
   rate_limit_hits: [
     [{ key: 1, ts: -1 }, {}],
-    [{ ts: 1 }, { expireAfterSeconds: 3600 }],
+    [{ expiresAt: 1 }, { expireAfterSeconds: 0 }],
   ],
   // Landing-page platform waitlist (app/api/waitlist): one row per email per
   // platform; the unique index backs the route's upsert against races.
@@ -191,6 +201,21 @@ const INDEXES = {
     // dedupe guarantee above still covers every delivery that can arrive.
     [{ receivedAt: 1 }, { expireAfterSeconds: 60 * 60 * 24 * 90 }],
   ],
+  // Budgets (lib/spaces.ts). The money crons list live shared budgets; the
+  // switcher lists a person's own.
+  spaces: [
+    [{ owner_id: 1 }, {}],
+    [{ deleted_at: 1 }, {}],
+  ],
+  space_members: [
+    // One membership per person per budget, which also makes a double-tapped join a no-op.
+    [{ space_id: 1, user_id: 1 }, { unique: true }],
+    [{ user_id: 1 }, {}],
+  ],
+  space_invites: [
+    [{ code: 1 }, { unique: true }],
+    [{ space_id: 1, status: 1 }, {}],
+  ],
 }
 
 async function main() {
@@ -201,6 +226,23 @@ async function main() {
   await client.connect()
   try {
     const db = client.db()
+    console.log(`database: ${db.databaseName}`)
+    for (const [name, indexes] of Object.entries(DROPPED)) {
+      for (const index of indexes) {
+        try {
+          await db.collection(name).dropIndex(index)
+          console.log(`${name.padEnd(24)} dropped ${index}`)
+        } catch (err) {
+          // 27 IndexNotFound, 26 NamespaceNotFound: already gone.
+          if (err.code !== 27 && err.code !== 26) {
+            console.error(`${name.padEnd(24)} FAILED drop ${index}: ${err.message}`)
+            process.exitCode = 1
+          }
+        }
+      }
+    }
+    // Hits written before `expiresAt` existed: give them one (no window is longer than a day) so the new TTL reaps them.
+    await db.collection('rate_limit_hits').updateMany({ expiresAt: { $exists: false } }, [{ $set: { expiresAt: { $add: ['$ts', 2 * 24 * 60 * 60 * 1000] } } }])
     for (const [name, specs] of Object.entries(INDEXES)) {
       for (const [keys, options] of specs) {
         try {

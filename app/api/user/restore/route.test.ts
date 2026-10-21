@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('@/lib/access', () => ({
-  getAuth: vi.fn(async () => ({ userId: 'user_a', readOnly: false, sessionId: null })),
+  getAuth: vi.fn(async () => ({ userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const })),
 }))
 
 const restoreMock = vi.fn(async () => {})
@@ -16,6 +16,10 @@ vi.mock('@/lib/mongodb', () => ({
     collection: vi.fn(() => ({ findOne: usersFindOneMock, updateOne: usersUpdateOneMock })),
   })),
 }))
+
+// A soft-deleted account must still reach restore, so it never goes through
+// requireAccess, which 401s a deleted account's writes (#213).
+vi.mock('@/lib/billing/guard', () => ({ requireAccess: vi.fn(() => { throw new Error('restore must not go through requireAccess') }) }))
 
 // lib/accountLifecycle.ts imports the server-only WorkOS client for its purge helper.
 vi.mock('@/lib/workosClient', () => ({ getWorkOSClient: vi.fn() }))

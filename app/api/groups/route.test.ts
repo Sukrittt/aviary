@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('@/lib/access', () => ({
-  getAuth: vi.fn(async () => ({ userId: 'user_a', readOnly: false, sessionId: null })),
+  getAuth: vi.fn(async () => ({ userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const })),
   readOnlyGuard: vi.fn(() => null),
 }))
 vi.mock('@/lib/billing/guard', () => ({ requireAccess: vi.fn(async () => null) }))
@@ -107,5 +107,11 @@ describe('PUT /api/groups (rename)', () => {
     const res = await PUT(req('PUT', { name: 'Home', icon: 'NotAnIcon' }))
     expect(res.status).toBe(400)
     expect(stores.groups.find((g) => g.name === 'Home')?.icon).toBeUndefined()
+  })
+
+  it('saves a picked color and rejects one outside the set', async () => {
+    expect((await PUT(req('PUT', { name: 'Home', color: 'red' }))).status).toBe(400)
+    expect((await PUT(req('PUT', { name: 'Home', color: 'coral' }))).status).toBe(200)
+    expect(stores.groups.find((g) => g.name === 'Home')?.color).toBe('coral')
   })
 })

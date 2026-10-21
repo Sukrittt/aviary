@@ -29,7 +29,7 @@ const json = (body: unknown) => new Request('https://example.com/api/import/prev
 
 beforeEach(() => {
   vi.clearAllMocks()
-  mockGetAuth.mockResolvedValue({ userId: 'user_a', readOnly: false, sessionId: null })
+  mockGetAuth.mockResolvedValue({ userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const })
   mockFindUser.mockResolvedValue({ _id: 'user_a', onboardedAt: null })
   previewFile.mockResolvedValue({ importId: 'imp1' })
   recomputePreview.mockResolvedValue({ importId: 'imp1', direction: 'positive_spend' })

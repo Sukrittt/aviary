@@ -28,7 +28,7 @@ import { ExpenseSidebar } from "../components/ExpenseSidebar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MENU_ITEM, MENU_POPUP } from "../components/menuStyles";
 import { Scrim, Sheet } from "../components/MotionSheet";
-import { ExpensePageLoading } from "../components/ExpensePageLoading";
+import { HomeSkeleton } from "../components/TabSkeleton";
 import {
   toExpensePanelData,
   type ExpensePanelData,
@@ -49,14 +49,18 @@ import { FeatureNudge } from "../components/home/FeatureNudge";
 import { WeekRecapGate } from "../components/wrapped/WeekRecap";
 import { usePersistentState } from "../hooks/usePersistentState";
 import { LogExpenseModal } from "../components/LogExpenseModal";
+import { FillGap } from "../features/fill-gap/FillGap";
 import { RecurringIncomeModal } from "../components/RecurringIncomeModal";
 import { useRecurringIncomes } from "../hooks/useIncomes";
 import { useAccounts } from "../hooks/useAccounts";
+import { useSpaces } from "../hooks/useSpaces";
+import { ReadOnlyDialog } from "../components/BudgetNotices";
 import { SuccessButton, useButtonPhase } from "../components/SuccessButton";
 import { ImportBanner, useImportInProgress } from "../components/ImportBanner";
 import type { EnvelopeState } from "../types/expense";
 import { computeEnvelopeState, currentMonthKey, daysLeftInMonth, monthLabel, prevMonthKey } from "../lib/envelope";
 import { InsightsTab } from "@/src/components/InsightsTab";
+import { ForecastLine } from "@/src/components/Forecast";
 
 const parseDismissed = (raw: string) => raw === "1";
 const serializeDismissed = (value: boolean) => value ? "1" : "0";
@@ -84,6 +88,7 @@ export function ExpensePage() {
   const subscriptionsQuery = useSubscriptions();
   const user = useUser().data;
   const hidden = useHiddenFeatures();
+  const { readOnly } = useSpaces();
 
   const updateBudgetM = useUpdateBudget();
   const transferBudgetM = useTransferBudget();
@@ -267,10 +272,16 @@ export function ExpensePage() {
   const bulkReturnPhase = useButtonPhase();
   const [showLogModal, setShowLogModal] = useState(false);
   const [subscriptionBusy, setSubscriptionBusy] = useState<string | null>(null);
+  const [showReadOnly, setShowReadOnly] = useState(false);
   const [editingSubscription, setEditingSubscription] = useState<SubscriptionPanelItem | null | undefined>(undefined);
   const { theme, setTheme } = useAppearance();
 
   async function changeSubscriptionStatus(service: string, action: "cancel" | "reactivate") {
+    // The panel owns the Cancel/Reactivate buttons; say why instead of a 402.
+    if (readOnly) {
+      setShowReadOnly(true);
+      return;
+    }
     setSubscriptionBusy(service);
     try {
       if (action === "cancel") await cancelSubscriptionM.mutateAsync(service);
@@ -382,38 +393,41 @@ export function ExpensePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [panel]);
 
-  if (!panel) {
-    return <ExpensePageLoading />;
-  }
-
+  // Loading and loaded share one tree, so the sidebar stays mounted when the
+  // data lands and a dialog opened from it (mid-upload, say) stays open.
   return (
     <section className="expense-redesign">
-      <WeekRecapGate />
+      {panel && <WeekRecapGate />}
+      {panel && <FillGap />}
       {actionError && (
         <div className="erd-action-error" role="alert">
           {actionError}
         </div>
       )}
-      <button
-        type="button"
-        className="erd-theme-toggle"
-        onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-        aria-label="Toggle theme"
-      >
-        {theme === "dark" ? <SunIcon aria-hidden /> : <MoonIcon aria-hidden />}
-      </button>
+      {panel && (
+        <button
+          type="button"
+          className="erd-theme-toggle"
+          onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+          aria-label="Toggle theme"
+        >
+          {theme === "dark" ? <SunIcon aria-hidden /> : <MoonIcon aria-hidden />}
+        </button>
+      )}
 
       <header className="erd-mobile-header">
         <div className="erd-mobile-greet">
-          <BirdMark size={30} perched /> Aviary
+          <BirdMark size={30} perched={!!panel} /> Aviary
         </div>
       </header>
 
-      {/* Mounted only once the dashboard has loaded, so the bird lands on the
-          real sidebar rather than the loading screen's copy of it. */}
-
       <div className="erd-main">
-        <ExpenseSidebar onBulkReturn={() => setShowBulkReturnConfirm(true)} />
+        <ExpenseSidebar onBulkReturn={panel && !readOnly ? () => setShowBulkReturnConfirm(true) : undefined} />
+        {!panel ? (
+          <div className="erd-content">
+            <HomeSkeleton />
+          </div>
+        ) : (
         <motion.div className="erd-content" layoutScroll>
           <LayoutGroup id="home-onboarding">
           <div className="erd-home" data-get-started={showGetStarted ? "true" : undefined}>
@@ -518,6 +532,8 @@ export function ExpensePage() {
                   </div>
                 </>
               )}
+
+              {envelopeState && <ForecastLine hideAmounts={hideAmounts} />}
               {/* One banner at a time, same as Mobile: the leftover notice goes first,
                   and the next one waits for it to fade out. */}
               <AnimatePresence mode="wait">
@@ -634,7 +650,9 @@ export function ExpensePage() {
           </div>
           </LayoutGroup>
         </motion.div>
+        )}
         <AnimatePresence>
+          {showReadOnly && <ReadOnlyDialog onClose={() => setShowReadOnly(false)} />}
           {editingSubscription !== undefined && (
             <SubscriptionModal
               editData={editingSubscription ? {
@@ -649,7 +667,8 @@ export function ExpensePage() {
               onSaved={() => setEditingSubscription(undefined)}
             />
           )}
-          {payCreditCardAmount !== null && envelopeState && (
+          {payCreditCardAmount !== null && readOnly && <ReadOnlyDialog onClose={() => setPayCreditCardAmount(null)} />}
+          {payCreditCardAmount !== null && !readOnly && envelopeState && (
             <Scrim
               className="modal-overlay"
               onClick={() => setPayCreditCardAmount(null)}
@@ -864,6 +883,7 @@ export function ExpensePage() {
           type="button"
           className="erd-tab-fab"
           onClick={() => setShowLogModal(true)}
+          disabled={!panel}
           aria-label="Log expense"
         >
           +

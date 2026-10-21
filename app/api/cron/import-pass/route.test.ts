@@ -31,7 +31,7 @@ describe('POST /api/cron/import-pass', () => {
     const res = await POST(req({ userId: 'user_a', importId: id }, 'test-secret'))
     expect(res.status).toBe(200)
     await afterCallbacks[0]()
-    expect(passAndChain.mock.calls[0]).toEqual([{ userId: 'user_a', readOnly: false, sessionId: null }, id, expect.any(Number)])
+    expect(passAndChain.mock.calls[0]).toEqual([{ userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const }, id, expect.any(Number)])
   })
 
   it('rejects a malformed body', async () => {

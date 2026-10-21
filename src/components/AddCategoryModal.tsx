@@ -2,12 +2,15 @@
 
 import { useEffect, useId, useRef, useState } from 'react'
 import { Scrim, Sheet } from './MotionSheet'
+import { ReadOnlyNotice } from './BudgetNotices'
+import { useSpaces } from '../hooks/useSpaces'
 import { useAddCategory } from '../hooks/useCategories'
 import { useGroupIcons, useGroups } from '../hooks/useGroups'
-import { avatarStyleFor, splitEmoji } from '../lib/emoji'
+import { categoryColor, colorStyle, splitEmoji } from '../lib/emoji'
+import type { CategoryColor } from '../lib/categoryColors'
 import { categoryIconKey, type CategoryIconKey } from '../lib/categoryIcons'
 import { CategoryIcon } from './CategoryIcon'
-import { CategoryIconPicker } from './CategoryIconPicker'
+import { CategoryIconPicker, ColorSwatches } from './CategoryIconPicker'
 import type { CategoryRow } from '../types'
 
 export function AddCategoryModal({ onClose, onCreated, initialGroup = '' }: {
@@ -18,11 +21,15 @@ export function AddCategoryModal({ onClose, onCreated, initialGroup = '' }: {
   const groups = useGroups().data ?? []
   const groupIcons = useGroupIcons()
   const addCategory = useAddCategory()
+  const { readOnly } = useSpaces()
   const [name, setName] = useState('')
   const [group, setGroup] = useState(initialGroup)
   // Follows the name until the user picks one ("Fuel" gets the pump).
   const [pickedIcon, setPickedIcon] = useState<CategoryIconKey | null>(null)
   const icon = pickedIcon ?? categoryIconKey(name, undefined, group)
+  // Same: follows the name's hash until the user picks one.
+  const [pickedColor, setPickedColor] = useState<CategoryColor | null>(null)
+  const color = categoryColor(splitEmoji(name).text, pickedColor ?? undefined)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
   const pending = useRef(false)
@@ -40,7 +47,7 @@ export function AddCategoryModal({ onClose, onCreated, initialGroup = '' }: {
 
   async function save() {
     if (!name.trim() || pending.current) return
-    const created = { name: name.trim(), group, icon }
+    const created = { name: name.trim(), group, icon, ...(pickedColor ? { color: pickedColor } : {}) }
     pending.current = true
     setSaving(true)
     setError('')
@@ -49,7 +56,7 @@ export function AddCategoryModal({ onClose, onCreated, initialGroup = '' }: {
       onCreated(created)
     } catch (err) {
       setError(err instanceof Error && /already exists/i.test(err.message)
-        ? 'That category already exists.' : 'That did not save. Try again.')
+        ? 'That category already exists.' : "That didn't save. Try again.")
     } finally {
       pending.current = false
       setSaving(false)
@@ -61,14 +68,15 @@ export function AddCategoryModal({ onClose, onCreated, initialGroup = '' }: {
       <Sheet className="erd-modal-card env-sheet" role="dialog" aria-modal="true" aria-label="Add category"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); close() } }}>
-        <form style={{ display: 'flex', flexDirection: 'column', gap: 'inherit' }} onSubmit={(e) => { e.preventDefault(); void save() }}>
+        {readOnly ? <ReadOnlyNotice onClose={onClose} /> : <form style={{ display: 'flex', flexDirection: 'column', gap: 'inherit' }} onSubmit={(e) => { e.preventDefault(); void save() }}>
           <div className="env-sheet-title">Add category</div>
           <p className="env-sheet-copy">Categories live inside a group. Pick where this one belongs.</p>
           <label className="env-sheet-section-label" htmlFor={inputId}>Name</label>
-          <CategoryIconPicker value={icon} onChange={setPickedIcon} tint={avatarStyleFor(splitEmoji(name).text)} disabled={saving}>
+          <CategoryIconPicker value={icon} onChange={setPickedIcon} tint={colorStyle(color)} disabled={saving}>
             <input id={inputId} className="env-input" autoFocus placeholder="Groceries, fuel, gym…" value={name}
               disabled={saving} onChange={(e) => setName(e.target.value)} />
           </CategoryIconPicker>
+          <ColorSwatches value={color} onChange={setPickedColor} disabled={saving} />
           <p className="env-sheet-section-label">GROUP</p>
           <div className="env-pct-row">
             <button type="button" className={`env-pct${group === '' ? ' is-on' : ''}`} aria-pressed={group === ''}
@@ -85,7 +93,7 @@ export function AddCategoryModal({ onClose, onCreated, initialGroup = '' }: {
               {saving ? 'Saving…' : 'Add category'}
             </button>
           </div>
-        </form>
+        </form>}
       </Sheet>
     </Scrim>
   )

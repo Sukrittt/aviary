@@ -8,6 +8,7 @@ import {
   updateSubscription,
 } from '@/src/api/subscriptions'
 import { track } from '@/src/lib/analytics'
+import { forecastKey } from './useForecast'
 
 export const subscriptionsKey = ['subscriptions'] as const
 const key = subscriptionsKey
@@ -27,6 +28,7 @@ export function useAddSubscription() {
       track('subscription_added', { billing_cycle: row.billing_cycle ?? 'unknown' })
       qc.invalidateQueries({ queryKey: key })
       qc.invalidateQueries({ queryKey: briefKey })
+      qc.invalidateQueries({ queryKey: forecastKey })
     },
   })
 }
@@ -39,6 +41,7 @@ export function useUpdateSubscription() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: key })
       qc.invalidateQueries({ queryKey: briefKey })
+      qc.invalidateQueries({ queryKey: forecastKey })
     },
   })
 }
@@ -50,6 +53,7 @@ export function useCancelSubscription() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: key })
       qc.invalidateQueries({ queryKey: briefKey })
+      qc.invalidateQueries({ queryKey: forecastKey })
     },
   })
 }
@@ -61,6 +65,7 @@ export function useReactivateSubscription() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: key })
       qc.invalidateQueries({ queryKey: briefKey })
+      qc.invalidateQueries({ queryKey: forecastKey })
     },
   })
 }
@@ -72,6 +77,7 @@ export function useDeleteSubscription() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: key })
       qc.invalidateQueries({ queryKey: briefKey })
+      qc.invalidateQueries({ queryKey: forecastKey })
     },
   })
 }

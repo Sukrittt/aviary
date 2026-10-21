@@ -8,6 +8,7 @@ import {
   updateRecurringExpense,
 } from '@/src/api/recurringExpenses'
 import { track, type AppEvent } from '@/src/lib/analytics'
+import { forecastKey } from './useForecast'
 
 export const recurringExpensesKey = ['recurring-expenses'] as const
 const key = recurringExpensesKey
@@ -31,6 +32,7 @@ function useRecurringMutation<TArgs>(mutationFn: (args: TArgs) => Promise<void>,
       // modal can dismiss back to a list that hasn't picked up the change yet.
       await qc.invalidateQueries({ queryKey: key })
       qc.invalidateQueries({ queryKey: briefKey })
+      qc.invalidateQueries({ queryKey: forecastKey })
     },
   })
 }

@@ -2,6 +2,14 @@ import { describe, expect, it } from 'vitest'
 import { expenseNotice } from './expenseNotice'
 
 describe('expenseNotice', () => {
+  it('names the read-only budget on a 402', () => {
+    expect(expenseNotice(402, 'delete')).toEqual({
+      title: 'This budget is read-only',
+      message: "The budget owner's plan has lapsed, so nothing can be deleted until they renew. You can still view and export everything.",
+      backLabel: 'Back to transactions',
+    })
+  })
+
   describe('status 404 (already deleted)', () => {
     it('returns edit-specific copy and draft backLabel when action is edit', () => {
       const result = expenseNotice(404, 'edit')

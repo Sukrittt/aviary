@@ -118,7 +118,7 @@ export async function flagIfDuplicate(auth: Auth, added: DuplicateExpense & { da
     if (!duplicateOf) return null
     // No version bump: this is a review marker, not an edit a client could conflict with.
     await coll.updateOne({ _id: new ObjectId(added.id) }, { $set: { duplicate_of: duplicateOf } })
-    invalidate('expenses', auth.userId)
+    invalidate('expenses', auth.spaceId)
     return duplicateOf
   } catch (err) {
     console.warn('[duplicates] check failed:', (err as Error).message)

@@ -3,13 +3,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 const runJev = vi.fn()
 const generateJSON = vi.fn()
 
-vi.mock('@/lib/access', () => ({ getAuth: vi.fn(async () => ({ userId: 'user_1', readOnly: false, sessionId: null })) }))
+vi.mock('@/lib/access', () => ({ getAuth: vi.fn(async () => ({ userId: 'user_1', readOnly: false, sessionId: null, spaceId: 'user_1', spaceOwnerId: 'user_1', spaceRole: 'owner' as const })) }))
 vi.mock('@/lib/billing/guard', () => ({ requireAccess: vi.fn(async () => null) }))
 vi.mock('@/lib/systemSettings', () => ({ aiDisabledResponse: vi.fn(async () => null) }))
 vi.mock('@/lib/ai/allowance', () => ({ aiAllowanceResponse: vi.fn(async () => null) }))
 vi.mock('@/lib/rateLimit', () => ({ isRateLimited: vi.fn(async () => false) }))
 vi.mock('@/lib/userCurrency', () => ({
   getUserCurrency: vi.fn(async () => 'INR'),
+  getBudgetCurrency: vi.fn(async () => 'INR'),
   nowForUser: vi.fn(async () => ({ date: '2026-09-23', timestamp: '2026-09-23T10:00:00+05:30' })),
 }))
 

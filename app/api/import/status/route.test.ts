@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 
 const requireAccess = vi.fn(async (..._a: unknown[]) => null)
-vi.mock('@/lib/access', () => ({ getAuth: async () => ({ userId: 'u1', readOnly: false, sessionId: null }), readOnlyGuard: () => null }))
+vi.mock('@/lib/access', () => ({ getAuth: async () => ({ userId: 'u1', readOnly: false, sessionId: null, spaceId: 'u1', spaceOwnerId: 'u1', spaceRole: 'owner' as const }), readOnlyGuard: () => null }))
 vi.mock('@/lib/billing/guard', () => ({ requireAccess: (...a: unknown[]) => requireAccess(...a) }))
 vi.mock('@/lib/import/service', () => ({ importsCollection: async () => ({ findOne: async () => null }) }))
 vi.mock('@/lib/import/backfill', () => ({ runImportPass: vi.fn(), retryImport: vi.fn(), passAndChain: vi.fn() }))

@@ -1,5 +1,5 @@
 import { currencyInstruction } from '@/lib/ai/moneyBrainPrompt'
-import { getUserCurrency, nowForUser } from '@/lib/userCurrency'
+import { getBudgetCurrency, nowForUser } from '@/lib/userCurrency'
 import { computeEnvelopeState } from '@/src/lib/envelope'
 import { savingsTrend } from '@/src/lib/monthly'
 import { getCollection } from '@/lib/http'
@@ -534,7 +534,7 @@ export async function buildExpenseContext(
 
   const currentMonth = today.slice(0, 7)
 
-  const currencyCode = await getUserCurrency(auth.userId)
+  const currencyCode = await getBudgetCurrency(auth)
   const result = summarizeExpenses({ expenses, budgets, categories, groups, subscriptions, holdings, currentMonth, today })
   return { ...result, facts: `${currencyInstruction(currencyCode)}\n${result.facts}`, currencyCode }
 }

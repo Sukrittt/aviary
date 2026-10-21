@@ -640,6 +640,8 @@
   width: 100%;
   padding: 16px 20px;
   border: 1px solid var(--erd-border);
+  text-align: left;
+  border: 1px solid var(--erd-border);
   box-shadow: none;
   color: var(--erd-text);
   font: inherit;
@@ -2468,6 +2470,26 @@
   margin-top: -14px;
 }
 
+.expense-redesign .erd-modal-back {
+  /* Back to where this modal was opened from: above the title, so it never floats beside a two-line head. */
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  margin: -4px 0 10px -6px;
+  padding: 4px 8px;
+  border: none;
+  border-radius: 999px;
+  background: none;
+  color: var(--erd-text2);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.expense-redesign .erd-modal-back:hover {
+  background: var(--erd-input-bg);
+  color: var(--erd-text);
+}
 .expense-redesign .erd-modal-close {
   background: none;
   border: none;
@@ -2505,6 +2527,9 @@
   overflow-y: auto;
 }
 .erd-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 8px 12px;
   border-radius: 100px;
   font-size: 12px;
@@ -2730,6 +2755,8 @@
   margin-bottom: 24px;
   flex: 0 0 auto;
 }
+.erd-log-amount-row { justify-content: space-between; }
+@media (min-width: 901px) { .expense-redesign .erd-modal-card.erd-log-card { width: 560px; } }
 .erd-log-card .erd-log-body {
   overflow-y: auto;
   min-height: 0;
@@ -3211,6 +3238,8 @@
 .expense-redesign .action-button.is-ghost:hover {
   background: var(--erd-border);
 }
+.expense-redesign .action-button.is-ghost.txn-edit-move { display: inline-flex; align-items: center; gap: 6px; width: auto; padding-left: 0; }
+.expense-redesign .action-button.is-ghost.txn-edit-move:hover { background: none; color: var(--erd-text); }
 
 /* ── Transactions page ──────────────────────────────────────── */
 
@@ -3239,7 +3268,7 @@
 /* App.css also owns the legacy `.action-button.is-active` pattern. Keep the
    redesign's primary actions explicit so import order cannot turn them back
    into the old translucent button. */
-.expense-redesign .action-button.is-active.erd-accent-action {
+.expense-redesign .action-button.is-active.erd-accent-action:not(.is-success) {
   background: var(--gold);
   color: var(--erd-on-accent);
   border-color: var(--gold);
@@ -3255,12 +3284,14 @@
 .expense-redesign .action-button,
 .erd-log-submit,
 .setup-cta,
+.account-pill-btn,
 .expense-redesign .txn-review-primary {
   position: relative;
 }
 .expense-redesign .action-button.is-success,
 .erd-log-submit.is-success,
 .setup-cta.is-success,
+.account-pill-btn.is-success,
 .expense-redesign .txn-review-primary.is-success {
   background: var(--tk-success-bg);
   border-color: var(--tk-success-bg);
@@ -3275,6 +3306,7 @@
 .expense-redesign .action-button.is-success:disabled,
 .erd-log-submit.is-success:disabled,
 .setup-cta.is-success:disabled,
+.account-pill-btn.is-success:disabled,
 .expense-redesign .txn-review-primary.is-success:disabled {
   opacity: 1;
   cursor: default;
@@ -3282,12 +3314,14 @@
 .expense-redesign .action-button.is-success .sb-label,
 .erd-log-submit.is-success .sb-label,
 .setup-cta.is-success .sb-label,
+.account-pill-btn.is-success .sb-label,
 .expense-redesign .txn-review-primary.is-success .sb-label {
   visibility: hidden;
 }
 .expense-redesign .action-button .sb-tick,
 .erd-log-submit .sb-tick,
 .setup-cta .sb-tick,
+.account-pill-btn .sb-tick,
 .expense-redesign .txn-review-primary .sb-tick {
   position: absolute;
   inset: 0;
@@ -3300,6 +3334,7 @@
 .expense-redesign .action-button .sb-tick svg,
 .erd-log-submit .sb-tick svg,
 .setup-cta .sb-tick svg,
+.account-pill-btn .sb-tick svg,
 .expense-redesign .txn-review-primary .sb-tick svg {
   width: 18px;
   height: 18px;
@@ -3307,6 +3342,7 @@
 .expense-redesign .action-button .sb-tick path,
 .erd-log-submit .sb-tick path,
 .setup-cta .sb-tick path,
+.account-pill-btn .sb-tick path,
 .expense-redesign .txn-review-primary .sb-tick path {
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
@@ -3488,7 +3524,7 @@
 .expense-redesign .txn-timeline-search {
   flex: 1;
   min-width: 0;
-  padding: 10px 0;
+  padding: 11px 0 9px;
   border: 0;
   background: transparent;
   color: var(--erd-text);
@@ -4484,9 +4520,9 @@
 }
 
 .is-ok > .auth-code-box {
-  border-color: var(--mint);
-  background: var(--erd-input-bg);
-  color: var(--mint);
+  border-color: var(--tk-success-bg);
+  background: var(--tk-success-bg);
+  color: var(--tk-on-success);
   animation: auth-box-lock-in 0.38s cubic-bezier(0.34, 1.56, 0.64, 1)
     calc(var(--i) * 55ms) both;
 }
@@ -4508,12 +4544,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--mint);
+  background: var(--tk-success-bg);
   animation: auth-check-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
 .auth-verified-badge path {
-  stroke: var(--erd-on-accent);
+  stroke: var(--tk-on-success);
   stroke-width: 3.4;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -5552,7 +5588,9 @@
   color: var(--tk-on-success);
 }
 
-.setup-cta.is-saving {
+.setup-cta.is-saving,
+.erd-log-submit.is-saving:disabled {
+  opacity: 1;
   position: relative;
   overflow: hidden;
   isolation: isolate;
@@ -5561,8 +5599,9 @@
   cursor: progress;
 }
 
-/* Fills as each setup write lands, so a slow save visibly moves. */
-.setup-cta.is-saving::before {
+/* Fills as each setup write lands, so a slow save visibly moves. The statement import's log button shares it. */
+.setup-cta.is-saving::before,
+.erd-log-submit.is-saving::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -6329,6 +6368,10 @@ button.account-feature-card {
   display: flex;
   gap: 8px;
 }
+
+.delete-shared-budget { margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 6px; }
+.delete-shared-option { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: var(--erd-text); cursor: pointer; }
+.delete-shared-option input { accent-color: var(--gold); margin: 0; }
 
 .account-confirm-actions button {
   flex: 1;
@@ -8035,6 +8078,21 @@ button.account-feature-card {
   border-radius: 16px;
   background: var(--erd-input-bg);
 }
+.brain-readonly {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 12px 14px 16px;
+  padding: 10px 14px;
+  border: 1px solid var(--tk-warn-soft);
+  border-radius: 14px;
+  background: linear-gradient(var(--tk-warn-soft), var(--tk-warn-soft)), var(--tk-card-solid);
+  color: var(--erd-text2);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.brain-readonly svg { flex-shrink: 0; margin-top: 3px; color: var(--tk-warn-ink); }
+.brain-readonly strong { color: var(--erd-text); }
 .brain-composer:focus-within {
   border-color: var(--gold);
   box-shadow: none;
@@ -10622,7 +10680,7 @@ button.account-feature-card {
 
 /* Scan a bill */
 .expense-redesign .erd-modal-card.scan-modal {
-  width: 560px;
+  width: 620px;
   box-shadow: 0 24px 60px -18px oklch(0% 0 0 / 0.55);
 }
 .expense-redesign .erd-modal-card.scan-modal.is-wide {
@@ -11793,23 +11851,28 @@ button.account-feature-card {
   font-size: 26px;
   color: var(--coral);
 }
-/* An unfunded envelope: asks for a budget in place of the envelope card. */
+/* An unfunded envelope: asks for a budget in place of the envelope card, as a row like the over card's Cover it. */
 .erd-added-nudge {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 6px;
-  text-align: center;
-  background: none;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  border: 1px solid var(--erd-border);
+  text-align: left;
 }
 .erd-added-nudge strong {
-  font: 600 18px/1.3 var(--font-display);
+  display: block;
+  font: 600 15px/1.3 var(--font-display);
   color: var(--erd-text);
 }
 .erd-added-nudge p {
-  margin: 0 0 6px;
+  margin: 2px 0 0;
   font: 600 13px/1.3 var(--font-body);
   color: var(--erd-text2);
+}
+.erd-added-nudge .account-pill-btn {
+  flex-shrink: 0;
 }
 .erd-added-footer {
   align-self: stretch;
@@ -11929,6 +11992,8 @@ button.account-feature-card {
   align-items: center;
   gap: 16px;
   padding: 16px 20px;
+  border: 1px solid var(--erd-border);
+  text-align: left;
   border-color: transparent;
   background: var(--tk-pill-good-bg);
   font-size: 15px;
@@ -11966,6 +12031,10 @@ button.account-feature-card {
   display: flex;
   align-items: center;
   gap: 14px;
+}
+.home-learning-toggle {
+  margin-left: auto;
+  flex: none;
 }
 .home-learning-bird {
   display: grid;
@@ -12833,8 +12902,79 @@ button.account-feature-card {
   border: 1px solid color-mix(in oklab, currentColor 25%, transparent);
   font-size: 20px;
   cursor: pointer;
-  transition: transform 120ms ease;
+  transition: transform 120ms ease, background-color 300ms ease, color 300ms ease;
 }
+/* The edit sheets' colour row: the six tints, the picked one ringed in its ink. */
+.color-swatches {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding-inline: 4px;
+  margin-top: 14px;
+}
+.color-swatch {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border-radius: 50%;
+  border: 0;
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 200ms ease;
+}
+.color-swatch:hover:not(:disabled) {
+  transform: scale(1.08);
+}
+.color-swatch:active:not(:disabled) {
+  transform: scale(0.9);
+}
+/* Selected: a ring in the swatch's own colour, set off by a gap of card. */
+.color-swatch[aria-pressed="true"] {
+  box-shadow: 0 0 0 2px var(--tk-card-solid), 0 0 0 4px currentColor;
+}
+/* A fresh pick: the swatch springs back and one ring ripples out.
+   Once, not a loop: a pulse that keeps going reads as "look at me". */
+.color-swatches--live .color-swatch[aria-pressed="true"] {
+  animation: swatch-pick 420ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.color-swatches--live .color-swatch[aria-pressed="true"]::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  pointer-events: none;
+  animation: swatch-ripple 600ms ease-out forwards;
+}
+@keyframes swatch-pick {
+  0% { transform: scale(0.85); }
+  60% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+@keyframes swatch-ripple {
+  0% { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .color-swatches--live .color-swatch[aria-pressed="true"] { animation: none; }
+  .color-swatches--live .color-swatch[aria-pressed="true"]::after { content: none; }
+}
+.color-swatch:focus-visible {
+  outline: 2px solid var(--erd-text);
+  outline-offset: 5px;
+}
+
+/* A group's icon on the Categories list wears its colour, like a category's tile. */
+.env-group-icon {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  font-size: 15px;
+}
+
 /* The rename sheets' header tile doubles as the picker. */
 .cat-icon-picker-trigger.env-sheet-rename-icon {
   width: 52px;
@@ -12974,6 +13114,8 @@ button.account-feature-card {
   align-items: center;
   justify-content: space-between;
   padding: 16px 20px;
+  border: 1px solid var(--erd-border);
+  text-align: left;
 }
 .erd-home-month:has(.sk-bone) {
   gap: 6px;
@@ -13345,6 +13487,12 @@ button.account-feature-card {
   width: 100%;
   max-width: 520px;
   margin-top: 20px;
+}
+.import-ask-trust {
+  margin: 16px 0 0;
+  color: var(--erd-text3);
+  font-size: 13px;
+  font-weight: 500;
 }
 .import-choice-text {
   display: flex;
@@ -13954,4 +14102,1007 @@ button.account-feature-card {
   min-height: 0;
   padding: 4px 10px;
   border-radius: 8px;
+}
+
+/* ── Fill the gap: catch-up sheet, statement review, start fresh ── */
+/* Desktop only: below 900px every modal card is a full-width bottom sheet. */
+@media (min-width: 901px) {
+  .expense-redesign .erd-modal-card.gap-sheet {
+    width: 540px;
+  }
+}
+.gap-sheet .scan-subtitle {
+  margin-top: 6px;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+/* The hero: upload, with the three steps that follow, so the choice isn't blind. */
+.gap-hero {
+  position: relative;
+  display: block;
+  width: 100%;
+  margin-top: 20px;
+  padding: 16px 16px 14px;
+  border: 1.5px solid var(--erd-border-strong);
+  border-radius: 18px;
+  background: var(--erd-modal-bg);
+  color: var(--erd-text);
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 10px 24px -18px oklch(0% 0 0 / 0.5);
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.gap-hero:hover {
+  border-color: var(--erd-text3);
+  transform: translateY(-1px);
+}
+.gap-hero-top {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.gap-chip {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--mint-soft);
+  color: var(--mint);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.gap-steps {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--erd-border-strong);
+  font-size: 12.5px;
+  color: var(--erd-text2);
+  white-space: nowrap;
+}
+.gap-steps > span {
+  display: flex;
+  align-items: center;
+}
+.gap-steps > span + span::before {
+  content: '›';
+  margin-right: 10px;
+  color: var(--erd-border-strong);
+}
+.gap-steps i {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  margin-right: 5px;
+  border-radius: 50%;
+  background: var(--erd-input-bg);
+  font: 700 10px/1 var(--font-body);
+  color: var(--erd-text);
+}
+.gap-steps b {
+  font-weight: 600;
+  color: var(--erd-text);
+}
+/* Icon tiles in the app's own tones, like the tour's: neutral, with gold for the one option that leads. */
+.gap-tile {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  background: var(--erd-input-bg);
+  color: var(--erd-text2);
+}
+.gap-option .gap-tile {
+  background: var(--erd-modal-bg);
+}
+.gap-tile--upload {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: var(--gold-soft);
+  color: var(--gold-ink);
+}
+.gap-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+.gap-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 11px 14px;
+  border: 1px solid var(--erd-border);
+  border-radius: 16px;
+  background: var(--erd-input-bg);
+  color: var(--erd-text);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+.gap-option:hover {
+  border-color: var(--erd-border-strong);
+}
+.gap-option > svg {
+  flex: none;
+  margin-left: auto;
+  color: var(--erd-text3);
+}
+.gap-option-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+}
+.gap-hero .gap-option-label {
+  font-size: 15px;
+}
+.gap-option-hint {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--erd-text2);
+}
+.gap-hero .gap-option-hint {
+  font-size: 13px;
+}
+.gap-later {
+  display: block;
+  margin: 14px auto 0;
+  padding: 6px 12px;
+  border: none;
+  background: none;
+  color: var(--erd-text2);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+@media (max-width: 480px) {
+  .gap-steps {
+    font-size: 11.5px;
+    gap: 6px;
+  }
+  .gap-steps > span + span::before {
+    margin-right: 6px;
+  }
+}
+.gap-review {
+  margin-top: 14px;
+}
+/* Statement picker: the drop zone, then what it reads, so it isn't a blank box. */
+.statement-drop {
+  gap: 8px;
+  padding: 32px 24px 28px;
+}
+.statement-drop .gap-tile {
+  margin-bottom: 6px;
+  transition: transform 0.2s ease;
+}
+.statement-drop.is-dragging .gap-tile {
+  transform: translateY(-4px) scale(1.06);
+}
+.statement-drop .scan-drop-copy {
+  font-size: 12px;
+}
+.statement-sources {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.statement-sources li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--erd-border);
+  border-radius: 14px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--erd-text2);
+}
+.statement-sources .gap-tile {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+}
+.statement-sources b {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--erd-text);
+}
+@media (max-width: 560px) {
+  .statement-sources {
+    grid-template-columns: 1fr;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .statement-drop .gap-tile {
+    transition: none;
+  }
+}
+.gap-review-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--erd-text2);
+  font-size: 13px;
+  font-weight: 600;
+}
+.gap-tick-all {
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--gold-ink);
+  font: 600 13px var(--font-body);
+  cursor: pointer;
+}
+.gap-tick-all:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.gap-days {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: min(56vh, 520px);
+  margin-top: 12px;
+  overflow-y: auto;
+}
+/* Same day header as Activity's .txn-timeline-header, a size down for a dialog. */
+.gap-day-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+  padding: 0 8px 8px;
+  border-bottom: 1px solid var(--erd-border-strong);
+  color: var(--erd-text);
+  font: 600 13px var(--font-display);
+}
+.gap-day-head span:last-child {
+  color: var(--erd-text2);
+  font-family: var(--font-body);
+  font-variant-numeric: tabular-nums;
+}
+/* A row reads like the Activity row it's about to become: Activity's select
+   tick (.txn-check), the category's tinted icon, name, amount. A transparent
+   button covers the row to tick it, as in Archive; the category pill sits
+   above it. */
+.gap-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 36px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 8px;
+  border-radius: 14px;
+  transition: background-color 140ms, transform 140ms;
+}
+.gap-day {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.gap-row.is-selected {
+  background: color-mix(in oklab, var(--gold) 7%, transparent);
+}
+.gap-row:has(.gap-row-pick:active:enabled) {
+  transform: scale(0.985);
+}
+.gap-row-pick {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border: 0;
+  border-radius: 14px;
+  background: none;
+  cursor: pointer;
+}
+.gap-row-pick:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: -2px;
+}
+.gap-row-pick:disabled {
+  cursor: default;
+}
+.gap-row .txn-check-slot {
+  width: 22px;
+  margin-right: 0;
+}
+.gap-row .txn-check {
+  opacity: 1;
+  transform: scale(1);
+}
+.gap-row-icon {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: var(--erd-input-bg);
+  color: var(--erd-text3);
+  font-size: 16px;
+  transition: opacity 140ms;
+}
+.gap-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.gap-row-name {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.gap-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--erd-text2);
+  font-size: 12px;
+  font-weight: 500;
+}
+.gap-row-category {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  max-width: 100%;
+  padding: 3px 8px 3px 10px;
+  border: 1px solid var(--erd-border-strong);
+  border-radius: 999px;
+  background: var(--erd-input-bg);
+  color: var(--erd-text);
+  font: 600 12px var(--font-body);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color 140ms;
+}
+.gap-row-category:hover:enabled,
+.gap-row-category[aria-expanded='true'] {
+  border-color: var(--gold);
+}
+.gap-row-category.is-missing {
+  border-color: var(--warn-ink);
+  background: var(--warn-soft);
+  color: var(--warn-ink);
+}
+.gap-row-category:disabled {
+  cursor: default;
+}
+.gap-row-hint {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.gap-row-amount {
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.gap-row.is-off .gap-row-name,
+.gap-row.is-off .gap-row-amount {
+  color: var(--erd-text3);
+}
+.gap-row.is-off .gap-row-icon {
+  opacity: 0.55;
+}
+.gap-note {
+  margin: 12px 0 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--erd-text2);
+}
+.gap-note.is-warn {
+  color: var(--warn-ink);
+}
+.gap-amount {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 18px;
+  padding: 12px 16px;
+  border-radius: 16px;
+  background: var(--erd-input-bg);
+  font-size: 28px;
+  font-weight: 600;
+}
+.gap-amount input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  color: var(--erd-text);
+  font: inherit;
+  outline: none;
+}
+.gap-split-toggle {
+  display: block;
+  margin: 12px 0 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--gold-ink);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.gap-split-toggle:hover {
+  color: var(--erd-text);
+}
+/* Start fresh, split: a rough amount per category. */
+.gap-split {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.gap-split li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 6px 6px 14px;
+  border-radius: 14px;
+  background: var(--erd-input-bg);
+}
+.gap-split-cat {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+.gap-split-amount {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 132px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: var(--erd-modal-bg);
+  font-size: 15px;
+  font-weight: 600;
+}
+.gap-split-amount input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  color: var(--erd-text);
+  font: inherit;
+  text-align: right;
+  outline: none;
+}
+.gap-split-remove {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--erd-text3);
+  cursor: pointer;
+}
+.gap-split-remove:hover {
+  background: var(--erd-modal-bg);
+  color: var(--erd-text);
+}
+/* The end of the flow: setup's done screen, a size down for a dialog. */
+.gap-done-card {
+  position: relative;
+  overflow-x: hidden;
+}
+.gap-done {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding-top: 12px;
+}
+.gap-done > :not(.setup-confetti) {
+  animation: setup-fade-in 350ms ease both;
+}
+.gap-done-badge {
+  width: 56px;
+  height: 56px;
+  border-radius: 20px;
+  display: grid;
+  place-items: center;
+  background: var(--mint-soft);
+  color: var(--mint);
+}
+.expense-redesign .gap-done .gap-done-title {
+  margin: 14px 0 0;
+  font: 600 26px/1.15 var(--font-display);
+  letter-spacing: -0.02em;
+  animation-delay: 80ms;
+}
+.gap-done-copy {
+  max-width: 340px;
+  margin: 8px 0 0;
+  color: var(--erd-text2);
+  font-size: 14px;
+  line-height: 1.5;
+  animation-delay: 140ms;
+}
+.gap-done-summary {
+  width: 100%;
+  margin-top: 20px;
+  padding: 16px;
+  border: 1px solid var(--erd-border);
+  border-radius: 18px;
+  background: var(--erd-input-bg);
+  text-align: left;
+  animation-delay: 200ms;
+}
+.gap-done-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--erd-border);
+  color: var(--erd-text2);
+  font-size: 13px;
+  font-weight: 600;
+}
+.gap-done-total strong {
+  color: var(--erd-text);
+  font: 600 22px var(--font-display);
+  font-variant-numeric: tabular-nums;
+}
+.gap-done-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.gap-done-list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.gap-done-list .gap-row-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 11px;
+  font-size: 15px;
+}
+.gap-done-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 550;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.gap-done-more {
+  margin: 10px 0 0 44px;
+  color: var(--erd-text3);
+  font-size: 12px;
+  font-weight: 500;
+}
+.gap-done .gap-note {
+  animation-delay: 240ms;
+}
+.gap-done-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  margin-top: 20px;
+  animation-delay: 260ms;
+}
+.gap-done-actions .account-pill-btn {
+  flex: 1;
+  justify-content: center;
+  text-decoration: none;
+}
+@media (max-width: 640px) {
+  .gap-row {
+    grid-template-columns: auto 32px minmax(0, 1fr) auto;
+    gap: 10px;
+  }
+  .gap-row-icon {
+    width: 32px;
+    height: 32px;
+  }
+  .gap-row-hint {
+    display: none;
+  }
+}
+/* ── Budgets: the switcher chip, its sheet, the create dialog ── */
+.budget-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 34px;
+  padding: 6px 12px;
+  border: 1px solid var(--erd-border);
+  border-radius: 999px;
+  background: var(--erd-pill-bg);
+  color: var(--erd-text);
+  font: 600 13px/1 var(--font-display);
+  cursor: pointer;
+}
+.budget-chip:hover { border-color: var(--erd-border-strong); }
+.budget-chip svg { flex-shrink: 0; color: var(--erd-text3); }
+.budget-chip-current { display: inline-flex; align-items: center; gap: 6px; min-width: 0; flex: 1; }
+.budget-chip-tile { display: inline-grid; place-items: center; flex-shrink: 0; }
+.budget-chip-text { display: inline-flex; flex-direction: column; min-width: 0; text-align: left; }
+.budget-chip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.budget-chip-eyebrow { display: none; }
+
+/* Inline in a form's label row: "Logging to ✈ Studio ▾", quiet until hovered. */
+.budget-chip.is-inline { min-height: 28px; padding: 4px 10px; font-size: 12px; background: none; }
+.budget-chip.is-inline:hover { background: var(--erd-input-bg); }
+.budget-chip.is-inline .budget-chip-current { flex: none; }
+.budget-chip-prefix { color: var(--erd-text2); font-weight: 600; }
+
+/* The sidebar's workspace card: icon on an accent tile, "BUDGET" eyebrow, name. */
+.budget-chip.is-card {
+  align-self: stretch;
+  gap: 10px;
+  min-height: 54px;
+  padding: 10px 12px 10px 10px;
+  border-radius: 14px;
+  background: var(--erd-card);
+  box-shadow: 0 1px 2px oklch(0% 0 0 / 0.04);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.budget-chip.is-card:hover { box-shadow: 0 2px 6px oklch(0% 0 0 / 0.06); }
+.budget-chip.is-card .budget-chip-current { gap: 10px; animation: budget-chip-swap 0.28s ease-out; }
+.budget-chip.is-card .budget-chip-tile { width: 34px; height: 34px; border-radius: 10px; background: var(--gold-soft); color: var(--gold-ink); transition: width 0.2s linear, height 0.2s linear; }
+.budget-chip.is-card .budget-chip-icon { color: inherit; }
+.budget-chip-tag { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 999px; background: var(--erd-input-bg); color: var(--erd-text2); font-size: 9px; letter-spacing: 0.06em; vertical-align: 1px; }
+.budget-chip.is-card .budget-chip-eyebrow { display: block; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--erd-text2); line-height: 1.2; }
+.budget-chip.is-card .budget-chip-name { font-size: 14px; line-height: 1.2; margin-top: 2px; }
+@keyframes budget-chip-swap { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .budget-chip.is-card .budget-chip-current { animation: none; } }
+
+/* Collapsed rail: just the tile. */
+[data-collapsible="icon"] .budget-chip.is-rail { align-self: flex-start; min-height: 0; padding: 6px; gap: 0; border-radius: 12px; }
+[data-collapsible="icon"] .budget-chip.is-rail > svg { display: none; }
+[data-collapsible="icon"] .budget-chip.is-card .budget-chip-tile { width: 30px; height: 30px; }
+.budget-chip.is-topbar { max-width: 150px; }
+
+.budget-list { list-style: none; margin: 14px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.budget-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 12px;
+  border: 1px solid var(--erd-border);
+  border-radius: 14px;
+  background: var(--erd-card);
+  color: var(--erd-text);
+  font: 600 14px/1.2 var(--font-body);
+  text-align: left;
+  cursor: pointer;
+}
+.budget-row:hover { border-color: var(--erd-border-strong); background: var(--erd-input-bg); }
+.budget-row.is-active { border-color: var(--gold); background: var(--gold-soft); }
+.budget-row-emoji { display: grid; place-items: center; width: 24px; font-size: 18px; flex-shrink: 0; }
+.budget-row-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.budget-row-check { display: grid; place-items: center; width: 18px; color: var(--gold-ink); flex-shrink: 0; }
+.budget-owner-badge {
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--mint-soft);
+  color: var(--mint);
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.budget-avatars { display: flex; flex-shrink: 0; }
+.budget-avatar {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid var(--erd-modal-bg);
+  background: var(--gold-soft);
+  color: var(--gold-ink);
+  font: 700 12px/1 var(--font-display);
+  object-fit: cover;
+}
+.budget-avatar + .budget-avatar { margin-left: -6px; }
+.budget-avatar--more { width: auto; min-width: 20px; padding: 0 4px; border-radius: 10px; }
+/* The switcher sheet: one grouped card of budgets, the gear inside each row. */
+.budget-group { gap: 0; border: 1px solid var(--erd-border); border-radius: 16px; background: var(--erd-card); overflow: hidden; }
+.budget-group .budget-row-wrap { gap: 0; padding-right: 6px; }
+.budget-group .budget-row-wrap + .budget-row-wrap { border-top: 1px solid var(--erd-border); }
+.budget-group .budget-row { border: 0; border-radius: 0; background: none; min-height: 52px; padding: 12px 10px 12px 14px; }
+.budget-group .budget-row:hover, .budget-group .budget-row.is-active { background: none; }
+.budget-group .budget-row-wrap:hover { background: var(--erd-input-bg); }
+.budget-group .budget-row-settings:hover { background: var(--erd-border); }
+.budget-group .budget-row-wrap:has(.is-active) { background: var(--gold-soft); }
+.budget-sheet-actions { display: flex; gap: 8px; margin-top: 12px; }
+.budget-sheet-actions .budget-new { display: inline-flex; flex: 1; align-items: center; justify-content: center; gap: 6px; min-height: 42px; font-size: 13px; }
+.budget-count { margin: 14px 0 0; color: var(--erd-text2); font-size: 12px; font-weight: 600; }
+.budget-limit { margin: 6px 0 0; color: var(--erd-text2); font-size: 13px; }
+.budget-limit a { color: var(--gold-ink); font-weight: 600; }
+
+.budget-emoji-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+.budget-emoji {
+  aspect-ratio: 1;
+  border: 1px solid var(--erd-border-strong);
+  border-radius: 12px;
+  background: var(--erd-input-bg);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  font-size: 20px;
+  cursor: pointer;
+  transition: transform 0.12s ease;
+}
+.budget-emoji.is-selected { border-color: var(--gold); background: var(--gold-soft); }
+.budget-emoji:active { transform: scale(0.95); }
+.budget-emoji.is-selected { animation: budget-pick-bounce 0.36s cubic-bezier(0.34, 1.56, 0.64, 1); }
+@keyframes budget-pick-bounce {
+  0% { transform: scale(0.95); }
+  60% { transform: scale(1.04); }
+  100% { transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .budget-emoji { animation: none !important; transition: none; }
+  .budget-emoji:active { transform: none; }
+}
+.budget-currency, .budget-copy {
+  padding: 12px 14px;
+  border: 1px solid var(--erd-border-strong);
+  border-radius: 16px;
+  background: var(--erd-input-bg);
+}
+.budget-copy { margin-top: 14px; }
+@media (min-width: 901px) { .expense-redesign .erd-modal-card.budget-create { width: 560px; } }
+.budget-create .import-choices { margin-top: 14px; gap: 8px; max-width: none; }
+.budget-create .import-choice { padding: 12px; border-radius: 14px; }
+.budget-import { position: fixed; inset: 0; z-index: 220; overflow-y: auto; background: var(--erd-bg); }
+.budget-import-close { position: absolute; top: 16px; right: 16px; }
+
+.budget-line { margin: 4px 0 0; color: var(--erd-text2); font-size: 12px; font-weight: 600; }
+
+/* ── Budgets: members, invites, join, notices ── */
+.budget-row-wrap { display: flex; align-items: center; gap: 4px; }
+.budget-row-wrap .budget-row { flex: 1; min-width: 0; }
+.budget-row-settings {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  color: var(--erd-text3);
+  cursor: pointer;
+}
+.budget-row-settings:hover { background: var(--erd-input-bg); color: var(--erd-text); }
+.budget-avatar.is-large { width: 32px; height: 32px; font-size: 14px; }
+.budget-members .erd-log-label { margin-top: 16px; }
+.budget-rename-row { display: flex; gap: 8px; align-items: center; }
+.budget-rename-row .erd-log-input { flex: 1; }
+.budget-members-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.budget-members-head .account-pill-btn { display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; }
+.budget-member { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 6px 4px; }
+.budget-member-body { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 2px; font: 600 14px/1.2 var(--font-body); color: var(--erd-text); }
+.budget-member-role { color: var(--erd-text3); font-size: 12px; font-weight: 600; }
+.budget-members-danger { display: flex; justify-content: flex-start; margin-top: 18px; }
+.budget-members-danger:empty { display: none; }
+.budget-code {
+  margin: 16px 0 10px;
+  font: 700 36px/1 var(--font-display);
+  letter-spacing: 0.18em;
+  text-align: center;
+  color: var(--erd-text);
+  user-select: all;
+}
+.budget-code-small { font-family: var(--font-display); letter-spacing: 0.08em; }
+.budget-code-input { font: 700 22px/1 var(--font-display); letter-spacing: 0.24em; text-transform: uppercase; text-align: center; }
+.budget-share-actions { display: flex; justify-content: center; gap: 8px; }
+.budget-share-message {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--erd-border-strong);
+  border-radius: 14px;
+  background: var(--erd-input-bg);
+  color: var(--erd-text2);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.budget-readonly-banner {
+  position: fixed;
+  z-index: 150;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 1px solid var(--tk-warn-soft);
+  border-radius: 14px;
+  /* The tint is translucent: lay it on a solid card so the list underneath doesn't show through. */
+  background: linear-gradient(var(--tk-warn-soft), var(--tk-warn-soft)), var(--tk-card-solid);
+  color: var(--erd-text);
+  font: 500 13px/1.4 var(--font-body);
+  text-align: center;
+}
+.budget-readonly-banner svg { flex-shrink: 0; color: var(--erd-text2); }
+/* In place of a write form (money screens, subscription, recurring). */
+.budget-readonly-notice { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 20px 8px 8px; text-align: center; }
+.budget-readonly-notice-icon { display: grid; place-items: center; width: 44px; height: 44px; margin-bottom: 6px; border-radius: 50%; background: var(--tk-warn-soft); color: var(--tk-warn-ink); }
+.budget-readonly-notice-title { margin: 0; font: 700 16px/1.3 var(--font-display); color: var(--erd-text); }
+.budget-readonly-notice-text { margin: 0 0 12px; max-width: 34ch; font-size: 13px; line-height: 1.45; color: var(--erd-text2); }
+.budget-readonly-tag { font-weight: 700; color: var(--erd-text); }
+.budget-readonly-tag::after { content: '·'; margin-left: 8px; color: var(--erd-text3); }
+/* Mobile: a toast above the tab bar, as before. */
+@media (max-width: 900px) {
+  .budget-readonly-banner {
+    left: 50%;
+    bottom: calc(88px + env(safe-area-inset-bottom));
+    width: min(560px, calc(100vw - 32px));
+    transform: translateX(-50%);
+    box-shadow: 0 8px 24px rgb(0 0 0 / 0.08);
+  }
+}
+/* Desktop: a strip across the top of the content column; the page starts below it. */
+@media (min-width: 901px) {
+  .budget-readonly-banner {
+    top: 12px;
+    left: calc(var(--sidebar-width) + 40px);
+    right: 40px;
+    transition: left 0.2s linear;
+  }
+  [data-state="collapsed"] ~ .budget-readonly-banner { left: calc(var(--sidebar-width-icon) + 40px); }
+  .expense-redesign:has(.budget-readonly-banner) .erd-content { padding-top: 72px; }
+}
+
+.budget-intro {
+  position: fixed;
+  right: 20px;
+  bottom: calc(96px + env(safe-area-inset-bottom));
+  z-index: 160;
+  width: min(340px, calc(100vw - 40px));
+  padding: 18px;
+  border: 1px solid var(--erd-border-strong);
+  border-radius: 20px;
+  background: var(--erd-modal-bg);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.14);
+}
+.budget-intro-step { margin: 0 0 4px; color: var(--erd-text3); font-size: 12px; font-weight: 600; }
+@media (min-width: 1024px) {
+  .budget-intro { right: auto; left: 268px; bottom: auto; top: 72px; }
+}
+.budget-chip.is-pointed { box-shadow: 0 0 0 3px var(--gold); animation: budget-chip-pulse 1.4s ease-in-out infinite; }
+@keyframes budget-chip-pulse { 50% { box-shadow: 0 0 0 6px var(--gold-soft); } }
+@media (prefers-reduced-motion: reduce) { .budget-chip.is-pointed { animation: none; } }
+
+.expense-redesign .txn-timeline-icon:has(.txn-author) { position: relative; overflow: visible; }
+.txn-author { position: absolute; right: -6px; bottom: -6px; display: inline-flex; }
+.txn-author .budget-avatar { border-width: 2px; }
+.join-card .auth-headline { font-size: 28px; }
+
+
+/* Budget icons: our category glyphs, inline with the budget's name. */
+.budget-chip .budget-chip-icon { color: inherit; }
+.budget-line-icon, .budget-title svg, .join-budget-icon { vertical-align: -0.125em; }
+
+/* Lock screen: budgets someone else pays for, the one way through. */
+.budget-covered-card { border-color: var(--tk-accent); box-shadow: 0 0 0 3px var(--tk-accent-soft); }
+.budget-covered-tile { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: var(--tk-accent-soft); color: var(--tk-accent-ink); flex-shrink: 0; }
+.budget-covered-open { padding: 4px 10px; border-radius: 999px; background: var(--tk-accent); color: var(--tk-on-accent); font-size: 12px; font-weight: 600; flex-shrink: 0; }
+/* Switcher: an own budget shut by the person's own lapsed plan. */
+.budget-locked-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 999px; background: var(--tk-warn-soft); color: var(--tk-warn-ink); font-size: 12px; font-weight: 600; flex-shrink: 0; }
+
+/* Joining a budget. Twin of Mobile's join modal: tiles that pop, a shake on a
+   wrong code, the invitation, then a welcome your face drops into. */
+.code-tiles { position: relative; display: flex; gap: 8px; margin: 2px 0 6px; }
+.code-tile {
+  flex: 1;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  border: 1.5px solid var(--erd-border-strong);
+  background: var(--erd-input-bg);
+  color: var(--erd-text);
+  font: 600 24px/1 var(--font-display);
+  transition: border-color 0.15s ease;
+}
+.code-tile.is-active { border-color: var(--tk-accent); }
+.code-tile.is-error { border-color: var(--coral); }
+.code-tile-char { display: inline-block; animation: code-pop 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+@keyframes code-pop { from { opacity: 0; transform: scale(0.82); } to { opacity: 1; transform: none; } }
+/* Over the tiles so a click anywhere lands in it; it types, pastes and autofills, unseen. */
+.code-tiles-input { position: absolute; inset: 0; width: 100%; opacity: 0; border: 0; caret-color: transparent; cursor: text; font-size: 16px; }
+
+.join-sheet { display: flex; flex-direction: column; align-items: center; text-align: center; }
+.join-sheet .archive-confirm-actions { align-self: stretch; }
+.join-hero {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  margin: 4px 0 12px;
+  border-radius: 50%;
+  background: var(--tk-accent-soft);
+  color: var(--tk-accent-ink);
+}
+.join-who { margin: 0 0 4px; color: var(--erd-text3); font-size: 13px; font-weight: 600; }
+.join-tip { margin: 4px 0 0; padding: 8px 12px; border-radius: 12px; background: var(--erd-input-bg); color: var(--erd-text2); font-size: 13px; font-weight: 600; }
+.join-faces { display: flex; align-items: center; margin: 14px 0 10px; }
+.join-faces > * + * { margin-left: -8px; }
+.join-face.budget-avatar { width: 36px; height: 36px; border-width: 2px; font-size: 15px; }
+.join-you { position: relative; display: inline-flex; animation: join-drop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both; }
+@keyframes join-drop { from { opacity: 0; transform: translateY(-28px) scale(0.6); } to { opacity: 1; transform: none; } }
+.join-splash { position: absolute; left: 50%; top: 50%; width: 0; height: 0; pointer-events: none; }
+.join-splash::before {
+  content: '';
+  position: absolute;
+  width: 36px;
+  height: 36px;
+  margin: -18px 0 0 -18px;
+  border: 2px solid var(--tk-accent);
+  border-radius: 50%;
+  opacity: 0;
+  animation: join-halo 0.56s cubic-bezier(0.2, 0.7, 0.3, 1) 0.55s both;
+}
+.join-splash i {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px 0 0 -2.5px;
+  border-radius: 99px;
+  background: var(--tk-accent);
+  opacity: 0;
+  animation: join-particle 0.64s cubic-bezier(0.2, 0.7, 0.3, 1) calc(0.55s + var(--d)) both;
+}
+.join-splash i.is-dash { width: 3px; height: 8px; margin: -4px 0 0 -1.5px; background: var(--tk-accent-ink); }
+@keyframes join-halo { from { opacity: 0.5; transform: scale(0.9); } to { opacity: 0; transform: scale(1.7); } }
+@keyframes join-particle {
+  0% { opacity: 0; transform: rotate(var(--a)) translateY(-14px); }
+  25% { opacity: 1; }
+  60% { opacity: 1; transform: rotate(var(--a)) translateY(-28px); }
+  100% { opacity: 0; transform: rotate(var(--a)) translateY(-34px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .code-tile-char, .join-you { animation: none; }
+  .join-splash { display: none; }
 }

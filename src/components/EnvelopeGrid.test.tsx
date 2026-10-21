@@ -2,6 +2,8 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { EnvelopeGrid } from './EnvelopeGrid'
+import { avatarStyleFor } from '../lib/emoji'
+vi.mock('../hooks/useCategories', () => ({ useCategoryStyle: () => (name: string) => avatarStyleFor(name), useCategoryColors: () => new Map() }))
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }))
 vi.mock('@/src/context/CurrencyContext', () => ({

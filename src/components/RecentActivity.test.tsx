@@ -2,6 +2,8 @@ import { render, screen } from '@testing-library/react'
 import { expect, it, vi } from 'vitest'
 import { RecentActivity } from './RecentActivity'
 import type { ExpenseRow } from '../types'
+import { avatarStyleFor } from '../lib/emoji'
+vi.mock('../hooks/useCategories', () => ({ useCategoryStyle: () => (name: string) => avatarStyleFor(name), useCategoryColors: () => new Map() }))
 vi.mock('@/src/context/CurrencyContext', () => ({ useCurrency: () => ({
   formatCurrency: (amount: number, hidden: boolean) => hidden ? '---' : `₹${amount}`,
 }) }))

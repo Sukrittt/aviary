@@ -81,6 +81,11 @@ async function autoAddDueToday(db: Db, userId: string, date: string): Promise<bo
   return added < keys.length
 }
 
+/** Expenses this person logged on `date`, in any budget. Rows from before sharing (no `created_by`) in their personal budget are theirs. */
+export function ownLogsOn(userId: string, date: string) {
+  return { date, deleted_at: null, $or: [{ created_by: userId }, { user_id: userId, created_by: { $exists: false } }] }
+}
+
 /**
  * Bypasses `scoped()` like the other crons: cross-tenant, and it only reads
  * fields that aren't encrypted. Any live expense dated today counts as
@@ -118,9 +123,11 @@ export async function runEveningCheck(at = new Date()): Promise<{ sent: number; 
         continue
       }
 
+      // Their own logs in any budget they're in. A partner logging in a shared
+      // budget doesn't count as this person having logged.
       const logged = await db
         .collection(COLLECTIONS.expenses)
-        .findOne({ user_id: user._id, date, deleted_at: null }, { projection: { _id: 1 } })
+        .findOne(ownLogsOn(user._id, date), { projection: { _id: 1 } })
       if (logged || (await autoAddDueToday(db, user._id, date))) continue
 
       const key = `evening-check:${date}`

@@ -97,7 +97,7 @@ beforeEach(() => {
   getAccess.mockClear().mockResolvedValue({ mode: 'trial', trialEndsAt: null, paidExpiresAt: null })
 })
 
-const auth = { userId: 'user_a', readOnly: false, sessionId: null }
+const auth = { userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const }
 
 /** A ready export for `user_a`, counted against this month's quota. */
 function readyExport(created_at: string): Doc {
@@ -195,7 +195,7 @@ describe('buildAndStoreExport', () => {
     )
     stores.budgets.push({ _id: new ObjectId(), user_id: 'user_a', month: '2026-09', category: 'Food', assigned: '5000' } as Doc)
 
-    await buildAndStoreExport('user_a', exportId.toString())
+    await buildAndStoreExport({ userId: 'user_a', spaceId: 'user_a' }, exportId.toString())
 
     expect(put).toHaveBeenCalledTimes(1)
     const [pathname, , opts] = put.mock.calls[0]
@@ -229,7 +229,7 @@ describe('buildAndStoreExport', () => {
       { _id: new ObjectId(), user_id: 'user_a', item: 'September', amount_inr: '3', category: 'Food', date: '2026-09-01' } as Doc,
     )
 
-    await buildAndStoreExport('user_a', exportId.toString())
+    await buildAndStoreExport({ userId: 'user_a', spaceId: 'user_a' }, exportId.toString())
 
     const wb = new ExcelJS.Workbook()
     await wb.xlsx.load(uploads[0] as never)
@@ -242,7 +242,7 @@ describe('buildAndStoreExport', () => {
     stores.exports.push({ _id: exportId, user_id: 'user_a', status: 'pending', month: '2026-09', created_at: 'x' } as Doc)
     put.mockRejectedValueOnce(new Error('blob store unavailable'))
 
-    await buildAndStoreExport('user_a', exportId.toString())
+    await buildAndStoreExport({ userId: 'user_a', spaceId: 'user_a' }, exportId.toString())
 
     const doc = stores.exports[0]
     expect(doc.status).toBe('failed')
@@ -256,7 +256,7 @@ describe('buildAndStoreExport', () => {
     put.mockRejectedValueOnce(new Error('blob store unavailable'))
     sendPushNotification.mockRejectedValueOnce(new Error('expo down'))
 
-    await expect(buildAndStoreExport('user_a', exportId.toString())).resolves.toBeUndefined()
+    await expect(buildAndStoreExport({ userId: 'user_a', spaceId: 'user_a' }, exportId.toString())).resolves.toBeUndefined()
     expect(stores.exports[0].status).toBe('failed')
   })
 })

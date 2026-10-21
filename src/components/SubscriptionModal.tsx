@@ -10,6 +10,8 @@ import { DatePicker } from './DatePicker'
 import { CategoryPicker } from './CategoryPicker'
 import { useAddSubscription, useUpdateSubscription } from '../hooks/useSubscriptions'
 import { suggestPresets } from '../lib/subscriptionPresets'
+import { useSpaces } from '../hooks/useSpaces'
+import { ReadOnlyNotice } from './BudgetNotices'
 
 interface SubscriptionEdit {
   service: string
@@ -104,6 +106,7 @@ export function SubscriptionModal({ onClose, onSaved, editData, initialValues, s
   const [showCalendar, setShowCalendar] = useState(false)
   const pickDateChipRef = useRef<HTMLButtonElement>(null)
   const { saving, success, start, succeed, fail } = useButtonPhase()
+  const { readOnly } = useSpaces()
   const [error, setError] = useState('')
   const addSub = useAddSubscription()
   const updateSub = useUpdateSubscription()
@@ -181,6 +184,7 @@ export function SubscriptionModal({ onClose, onSaved, editData, initialValues, s
             <XIcon size={18} aria-hidden="true" />
           </button>
         </div>
+        {readOnly ? <ReadOnlyNotice onClose={onClose} /> : <>
 
         <div className="erd-sub-body">
           {error && <p className="erd-log-error">{error}</p>}
@@ -358,6 +362,7 @@ export function SubscriptionModal({ onClose, onSaved, editData, initialValues, s
             <p className="erd-sub-save-hint">Enter {missing.join(' and ')} to save.</p>
           )}
         </div>
+        </>}
       </Sheet>
     </Scrim>
   )

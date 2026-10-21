@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const getAuthMock = vi.fn(async () => ({ userId: 'user_a', readOnly: false, sessionId: null }))
+const getAuthMock = vi.fn(async () => ({ userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const }))
 const readOnlyGuardMock = vi.fn((): Response | null => null)
 vi.mock('@/lib/access', () => ({
   getAuth: getAuthMock,
@@ -45,7 +45,7 @@ const validBody = {
 
 beforeEach(() => {
   getAuthMock.mockClear()
-  getAuthMock.mockResolvedValue({ userId: 'user_a', readOnly: false, sessionId: null })
+  getAuthMock.mockResolvedValue({ userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const })
   readOnlyGuardMock.mockClear()
   readOnlyGuardMock.mockReturnValue(null)
   isRateLimitedMock.mockClear()

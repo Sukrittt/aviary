@@ -45,6 +45,13 @@ describe('isRateLimited', () => {
     expect(await isRateLimited('user_a', { windowMs: 60_000, limit: 1 })).toBe(false)
   })
 
+  it('stamps each hit to expire only once the longest tier window has passed (#211)', async () => {
+    const before = Date.now()
+    await isRateLimited('user_a', [{ windowMs: 60_000, limit: 5 }, { windowMs: 86_400_000, limit: 5 }])
+    const [hit] = hits as { expiresAt?: Date }[]
+    expect(hit.expiresAt?.getTime()).toBeGreaterThanOrEqual(before + 86_400_000)
+  })
+
   describe('multiple tiers', () => {
     it('trips on the tighter burst tier before the looser hourly tier is reached', async () => {
       const tiers = [

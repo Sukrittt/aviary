@@ -14,6 +14,8 @@ import { AccountWriteError } from '../api/accounts'
 import { liveAccounts, useAccounts, useAddAccount, useUpdateAccount } from '../hooks/useAccounts'
 import { useBalanceStatus } from '../hooks/useBalanceCheck'
 import type { AccountRow, AccountType } from '../types'
+import { useSpaces } from '../hooks/useSpaces'
+import { ReadOnlyNotice } from '../components/BudgetNotices'
 
 export const ACCOUNT_TYPES: { value: AccountType; label: string }[] = [
   { value: 'bank', label: 'Bank' },
@@ -39,6 +41,7 @@ export function AccountsPage() {
   const live = liveAccounts(all)
   const archived = all.filter((a) => a.archived)
   const update = useUpdateAccount()
+  const { readOnly } = useSpaces()
   // undefined: closed. '': adding. An id: editing.
   const [editing, setEditing] = useState<string | undefined>(undefined)
   const [error, setError] = useState('')
@@ -75,10 +78,12 @@ export function AccountsPage() {
           <p>{live.length === 0 ? 'Add a bank, card or wallet to get started.' : 'Each expense says which one paid.'}</p>
         </div>
         <div className="txn-page-actions">
-          <button type="button" className="erd-log-btn txn-page-log-btn" onClick={() => setEditing('')}>
-            <PlusIcon size={14} aria-hidden="true" />
-            Add account
-          </button>
+          {!readOnly && (
+            <button type="button" className="erd-log-btn txn-page-log-btn" onClick={() => setEditing('')}>
+              <PlusIcon size={14} aria-hidden="true" />
+              Add account
+            </button>
+          )}
         </div>
       </header>
 
@@ -89,7 +94,13 @@ export function AccountsPage() {
           <p className="account-row-meta">Couldn&apos;t load your accounts. Check your connection and try again.</p>
         </div>
       ) : live.length === 0 && archived.length === 0 ? (
-        <StarterAccounts />
+        readOnly ? (
+          <div className="account-empty">
+            <p className="account-row-meta">No accounts yet.</p>
+          </div>
+        ) : (
+          <StarterAccounts />
+        )
       ) : (
         <>
           <ul className="account-card recurring-list" aria-label="Accounts">
@@ -104,8 +115,10 @@ export function AccountsPage() {
                   {/* The actions pop in one by one once the row has landed. */}
                   {[
                     { icon: InvoiceIcon, label: `View ${a.name} transactions`, onClick: () => router.push(`/expense/transactions?account=${encodeURIComponent(a.id)}`) },
-                    { icon: PencilSimpleIcon, label: `Edit ${a.name}`, onClick: () => setEditing(a.id) },
-                    { icon: TrashIcon, label: `Delete ${a.name}`, onClick: () => setDeleting(a) },
+                    ...(readOnly ? [] : [
+                      { icon: PencilSimpleIcon, label: `Edit ${a.name}`, onClick: () => setEditing(a.id) },
+                      { icon: TrashIcon, label: `Delete ${a.name}`, onClick: () => setDeleting(a) },
+                    ]),
                   ].map(({ icon: Icon, label, onClick }, j) => (
                     <motion.button key={label} type="button" className="env2-icon-btn" aria-label={label} title={label} onClick={onClick} {...popIn(staggerDelay(i) + 120 + j * 45)}>
                       <Icon size={15} aria-hidden="true" />
@@ -126,7 +139,7 @@ export function AccountsPage() {
                   <li key={a.id} className="account-row" style={{ cursor: 'default' }}>
                     <span aria-hidden="true" style={{ display: 'inline-flex', opacity: 0.5 }}><AccountIcon account={a} size={20} /></span>
                     <span style={{ flex: 1, minWidth: 0, opacity: 0.6 }} className="account-row-label">{accountLabel(a)}</span>
-                    <button type="button" className="scan-link-btn is-mint" disabled={update.isPending} onClick={() => restore(a)}>Restore</button>
+                    {!readOnly && <button type="button" className="scan-link-btn is-mint" disabled={update.isPending} onClick={() => restore(a)}>Restore</button>}
                   </li>
                 ))}
               </ul>
@@ -233,6 +246,7 @@ export function AccountModal({ id, onClose }: { id?: string; onClose: () => void
   const [confirmArchive, setConfirmArchive] = useState(false)
   const [error, setError] = useState('')
   const { saving, success, start, succeed, fail } = useButtonPhase()
+  const { readOnly } = useSpaces()
   const busy = saving || success || update.isPending
   const canSubmit = name.trim() !== '' && name.trim().length <= 30
 
@@ -269,6 +283,7 @@ export function AccountModal({ id, onClose }: { id?: string; onClose: () => void
           <h3>{existing ? 'Edit account' : 'New account'}</h3>
           <button type="button" className="erd-modal-close" onClick={onClose} aria-label="Close" disabled={busy}><XIcon size={18} /></button>
         </div>
+        {readOnly ? <ReadOnlyNotice onClose={onClose} /> : <>
         <div className="erd-recurring-body">
           <section className="erd-recurring-section">
             <label className="erd-log-label" htmlFor="account-name">Name</label>
@@ -320,6 +335,7 @@ export function AccountModal({ id, onClose }: { id?: string; onClose: () => void
             </div>
           )}
         </div>
+        </>}
       </Sheet>
     </Scrim>
   )

@@ -6,6 +6,7 @@ import { RecurringSuggestions } from './RecurringSuggestions'
 import type { RecurringScan } from '../types/recurringSuggestions'
 const mocks = vi.hoisted(() => ({ load: vi.fn(), scan: vi.fn(), dismiss: vi.fn(), hidden: [] as string[] }))
 vi.mock('../hooks/useUser', () => ({ useHiddenFeatures: () => mocks.hidden }))
+vi.mock('../hooks/useSpaces', () => ({ useSpaces: () => ({ readOnly: false, active: undefined }) }))
 vi.mock('../api/recurringSuggestions', () => ({ loadRecurringSuggestions: mocks.load, scanRecurringSuggestions: mocks.scan, dismissRecurringSuggestion: mocks.dismiss }))
 vi.mock('./RecurringExpenseModal', () => ({ RecurringExpenseModal: ({ initialValues, onClose, onAdded }: { initialValues: { item: string; start_date: string }; onClose: () => void; onAdded: () => void }) => <div role="dialog"><p>{initialValues.item} starts {initialValues.start_date}</p><button onClick={onClose}>Cancel review</button><button onClick={() => { onAdded(); onClose() }}>Confirm addition</button></div> }))
 vi.mock('./SubscriptionModal', () => ({ SubscriptionModal: ({ initialValues, suggestionId, onClose }: { initialValues: { service: string; next_due_date: string }; suggestionId: string; onClose: () => void }) => <div role="dialog"><p>{initialValues.service} renews {initialValues.next_due_date}</p><p>Suggestion {suggestionId}</p><button onClick={onClose}>Cancel subscription review</button></div> }))

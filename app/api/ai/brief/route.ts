@@ -3,7 +3,7 @@ import { scrubEmDashes } from '@/lib/ai/emDash'
 import { formatMoney } from '@/src/lib/currencies'
 import { Type } from '@google/genai'
 import { json, error, getCollection } from '@/lib/http'
-import { getUserCurrency, nowForUser } from '@/lib/userCurrency'
+import { getBudgetCurrency, nowForUser } from '@/lib/userCurrency'
 import { getAuth, type Auth } from '@/lib/access'
 import { requireAccess } from '@/lib/billing/guard'
 import { buildExpenseContext, factsFor, type SummarizeExpensesMeta } from '@/lib/ai/expenseContext'
@@ -88,9 +88,9 @@ export async function GET(req: Request) {
   const caller = { userId: auth.userId, feature: 'brief' as const }
 
   try {
-    const [currencyCode, { date }] = await Promise.all([getUserCurrency(auth.userId), nowForUser(auth.userId)])
+    const [currencyCode, { date }] = await Promise.all([getBudgetCurrency(auth), nowForUser(auth.userId)])
     const cache = await getCollection(BRIEF_CACHE_COLLECTION, auth)
-    const _id = briefCacheId(auth.userId, `${currencyCode}|${date}`)
+    const _id = briefCacheId(auth.spaceId, `${currencyCode}|${date}`)
 
     const cached = await cache.findOne({ _id })
     if (cached?.builtAt instanceof Date && Date.now() - cached.builtAt.getTime() < CACHE_TTL_MS) {

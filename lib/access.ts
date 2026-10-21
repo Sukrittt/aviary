@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { withAuth } from '@workos-inc/authkit-nextjs'
 import { touchLastSeen } from './lastSeen'
 import { bearerToken, verifyBearerToken } from './bearer'
+import { BUDGET_COOKIE, lookupMembership, requestedSpaceId, resolveSpaceAccess, type SpaceRole } from './spaces'
 
 export { bearerToken, verifyBearerToken }
 
@@ -15,6 +16,41 @@ export interface Auth {
   readOnly: boolean
   /** The WorkOS session id (`sid`), when resolved from a real session. Null for the demo user. */
   sessionId: string | null
+  /**
+   * The budget this request reads and writes (lib/spaces.ts). Equal to
+   * `userId` for the personal budget, which is what every request without an
+   * `x-aviary-budget` header gets, so old app versions are unchanged.
+   */
+  spaceId: string
+  /** Who pays for `spaceId`. Billing is checked against them, not the requester. */
+  spaceOwnerId: string
+  spaceRole: SpaceRole
+  /** Set when the request named a budget the user isn't a member of. requireAccess 403s it. */
+  spaceDenied?: true
+  /** The request's method, so a lapsed shared budget can stay readable. Unset for jobs. */
+  method?: string
+}
+
+/** Adds the budget the request names to a resolved identity. */
+async function withSpace(req: Request, base: Pick<Auth, 'userId' | 'readOnly' | 'sessionId'>, cookieFallback = false): Promise<Auth> {
+  const requested = requestedSpaceId(req) ?? (cookieFallback ? await pageBudgetCookie() : null)
+  const access = await resolveSpaceAccess(base.userId, base.readOnly ? null : requested, lookupMembership)
+  if (access.denied) return { ...base, method: req.method, spaceId: access.spaceId, spaceOwnerId: base.userId, spaceRole: 'member', spaceDenied: true }
+  return { ...base, method: req.method, spaceId: access.spaceId, spaceOwnerId: access.ownerId, spaceRole: access.role }
+}
+
+/**
+ * The budget cookie of the page request itself. A server component's prefetch
+ * builds a bare `Request` with no cookie header, so without this it would
+ * read the personal budget while the page shows another.
+ */
+async function pageBudgetCookie(): Promise<string | null> {
+  try {
+    const { cookies } = await import('next/headers')
+    return (await cookies()).get(BUDGET_COOKIE)?.value || null
+  } catch {
+    return null
+  }
 }
 
 /**
@@ -56,21 +92,26 @@ export async function getAuth(req: Request): Promise<Auth> {
     const resolved = await verifyBearerToken(token)
     if (resolved) {
       await touchLastSeen(resolved.userId)
-      return { userId: resolved.userId, readOnly: false, sessionId: resolved.sessionId }
+      return withSpace(req, { userId: resolved.userId, readOnly: false, sessionId: resolved.sessionId })
     }
   }
 
+  let session: { userId: string; sessionId: string | null } | null = null
   try {
     const { user, sessionId } = await withAuth()
     if (user) {
       await touchLastSeen(user.id)
-      return { userId: user.id, readOnly: false, sessionId: sessionId ?? null }
+      session = { userId: user.id, sessionId: sessionId ?? null }
     }
   } catch {
     // No session cookie, or called outside a request scope — fall through.
   }
+  // Outside the try: a failed membership lookup must surface, not quietly
+  // turn a signed-in person into the demo user.
+  if (session) return withSpace(req, { ...session, readOnly: false }, true)
 
-  return { userId: demoUserId(), readOnly: true, sessionId: null }
+  const demo = demoUserId()
+  return { userId: demo, readOnly: true, sessionId: null, spaceId: demo, spaceOwnerId: demo, spaceRole: 'owner' }
 }
 
 /** 403 response used for any write attempt by the read-only demo user. */
@@ -84,5 +125,15 @@ export function readOnlyResponse(): NextResponse {
  */
 export function readOnlyGuard(auth: Auth, method: string): NextResponse | null {
   if (auth.readOnly && method !== 'GET') return readOnlyResponse()
+  return spaceGuard(auth)
+}
+
+/**
+ * 403 when the request named a budget this person isn't in, for the exit
+ * routes requireAccess doesn't guard (export, privacy proof). Without it they
+ * still couldn't reach the budget (getCollection throws), but would 500.
+ */
+export function spaceGuard(auth: Auth): NextResponse | null {
+  if (auth.spaceDenied) return NextResponse.json({ error: 'NOT_A_MEMBER', spaceId: auth.spaceId }, { status: 403 })
   return null
 }

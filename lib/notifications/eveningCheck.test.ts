@@ -4,7 +4,7 @@ type User = { _id: string; timezone?: string; lastSeenAt?: Date; createdAt?: Dat
 
 let tokenUsers: string[] = []
 let users: User[] = []
-let loggedToday: Array<{ user_id: string; date: string }> = []
+let loggedToday: Array<{ user_id: string; date: string; created_by?: string }> = []
 let recurringDue: Array<{ user_id: string }> = []
 let subs: Array<Record<string, unknown>> = []
 const claimed = new Set<string>()
@@ -27,9 +27,11 @@ const usersUpdateOne = vi.fn(async (filter: { _id: string }, update: { $set?: { 
   user.lastReengage = next
   return { modifiedCount: 1 }
 })
-const expensesFindOne = vi.fn(async (filter: { user_id: string; date: string; deleted_at: null }) =>
-  loggedToday.find((e) => e.user_id === filter.user_id && e.date === filter.date) ?? null,
-)
+type OwnLogs = { date: string; $or: [{ created_by: string }, { user_id: string }] }
+const expensesFindOne = vi.fn(async (filter: OwnLogs) => {
+  const me = filter.$or[0].created_by
+  return loggedToday.find((e) => e.date === filter.date && (e.created_by === me || (e.user_id === me && e.created_by === undefined))) ?? null
+})
 
 vi.mock('@/lib/mongodb', () => ({
   getDb: vi.fn(async () => ({
@@ -62,7 +64,7 @@ vi.mock('@/lib/push', () => ({
   checkPushReceipts: async () => ({ checked: 0, pruned: 0 }),
 }))
 
-const { eveningDateFor, eveningCopy, runEveningCheck } = await import('./eveningCheck')
+const { eveningDateFor, eveningCopy, runEveningCheck, ownLogsOn } = await import('./eveningCheck')
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -119,7 +121,7 @@ describe('runEveningCheck', () => {
     expect(await runEveningCheck(at)).toEqual({ sent: 1, failed: 0, pruned: 0 })
     expect(sendPushNotification).toHaveBeenCalledTimes(1)
     expect(sendPushNotification.mock.calls[0][0]).toMatchObject({ userId: 'u1', data: { route: '/modals/log-expense' } })
-    expect(expensesFindOne).toHaveBeenCalledWith({ user_id: 'u1', date: '2026-10-06', deleted_at: null }, expect.anything())
+    expect(expensesFindOne).toHaveBeenCalledWith(ownLogsOn('u1', '2026-10-06'), expect.anything())
   })
 
   it('skips a user who already logged today, from any source', async () => {
@@ -129,6 +131,24 @@ describe('runEveningCheck', () => {
 
     expect(await runEveningCheck(at)).toEqual({ sent: 0, failed: 0, pruned: 0 })
     expect(sendPushNotification).not.toHaveBeenCalled()
+  })
+
+  it("counts their own logs in a shared budget, and not a partner's in theirs", async () => {
+    tokenUsers = ['u1', 'u2']
+    users = [{ _id: 'u1', timezone: 'Asia/Kolkata' }, { _id: 'u2', timezone: 'Asia/Kolkata' }]
+    // u1 logged in a shared budget; u2 logged into u1's personal budget, which u1 shares.
+    loggedToday = [{ user_id: 'sp_home', date: '2026-10-06', created_by: 'u1' }, { user_id: 'u1', date: '2026-10-06', created_by: 'u2' }]
+
+    expect(await runEveningCheck(at)).toEqual({ sent: 0, failed: 0, pruned: 0 })
+    expect(expensesFindOne).toHaveBeenCalledTimes(2)
+  })
+
+  it("still nudges someone whose partner logged in the budget they share", async () => {
+    tokenUsers = ['u1']
+    users = [{ _id: 'u1', timezone: 'Asia/Kolkata' }]
+    loggedToday = [{ user_id: 'u1', date: '2026-10-06', created_by: 'u2' }]
+
+    expect((await runEveningCheck(at)).sent).toBe(1)
   })
 
   it('skips a user outside their evening window', async () => {

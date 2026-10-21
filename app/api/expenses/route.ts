@@ -4,6 +4,7 @@ import { json, error, readBody, getCollection, parsePageParams, pageMeta } from 
 import { getAuth, readOnlyGuard, type Auth } from '@/lib/access'
 import { requireAccess } from '@/lib/billing/guard'
 import { EXPENSE_HEADERS, toRow } from '@/lib/models'
+import { notifyOthersOfLog } from '@/lib/spaceMembers'
 import { invalidate } from '@/lib/cache'
 import { getCachedCategoryMap, invalidateCategoryMap, learnCategoryCorrection, type CategoryMap } from '@/lib/categoryMap'
 import { notifyThresholdCrossed } from '@/lib/notifications/instant'
@@ -25,7 +26,7 @@ async function mapBeforeWrite(auth: Auth): Promise<CategoryMap | null> {
   try {
     const expenses = await getCollection('expenses', auth)
     const overrides = await getCollection('category_map_overrides', auth)
-    return await getCachedCategoryMap(auth.userId, expenses, overrides)
+    return await getCachedCategoryMap(auth.spaceId, expenses, overrides)
   } catch {
     return null
   }
@@ -35,7 +36,7 @@ async function learnFromSave(auth: Auth, map: CategoryMap | null, item: string, 
   if (!map) return
   try {
     const overrides = await getCollection('category_map_overrides', auth)
-    if (await learnCategoryCorrection(map, item, category, overrides)) invalidateCategoryMap(auth.userId)
+    if (await learnCategoryCorrection(map, item, category, overrides)) invalidateCategoryMap(auth.spaceId)
   } catch {
     // Learning is a nicety; the expense is already saved.
   }
@@ -44,9 +45,11 @@ async function learnFromSave(auth: Auth, map: CategoryMap | null, item: string, 
 // Where a client says an expense came from. `text` is a row typed into the
 // money brain and confirmed on its review card (lib/ai/capture.ts);
 // `balance_gap` is an estimate confirmed after a weekly balance check
-// (lib/balanceCheck.ts). Server-side sources (recurring, subscription) are set
-// by their own jobs, never by a client.
-const CLIENT_SOURCES = new Set(['manual', 'text', 'balance_gap'])
+// (lib/balanceCheck.ts); `statement` is a row read from an upload the user
+// started (lib/statement.ts); `fresh_start` is the one "Untracked spending"
+// estimate logged instead of back-filling a gap. Server-side sources
+// (recurring, subscription) are set by their own jobs, never by a client.
+const CLIENT_SOURCES = new Set(['manual', 'text', 'balance_gap', 'statement', 'fresh_start'])
 
 /**
  * `GET /api/expenses` — three modes, picked by `?page=` and `?from=`.
@@ -166,7 +169,7 @@ export async function GET(req: Request) {
   // `photos=1` (Activity's feed view) adds a signed `photo_url` per photo row,
   // so the feed doesn't make one request per card.
   const rows = url.searchParams.get('photos') === '1'
-    ? await Promise.all(pageDocs.map((d) => expenseRowWithPhotoUrl(auth.userId, d)))
+    ? await Promise.all(pageDocs.map((d) => expenseRowWithPhotoUrl(auth.spaceId, d)))
     : pageDocs.map((d) => expenseRow(d))
 
   return json({
@@ -182,7 +185,8 @@ export async function GET(req: Request) {
 // `has_photo` rides alongside like `id`/`version`, outside the CSV columns.
 function expenseRow(doc: Record<string, unknown>) {
   // `account_id` rides outside EXPENSE_HEADERS like `id`: that array is also the CSV export's columns.
-  return { ...toRow(EXPENSE_HEADERS, doc), id: String(doc._id), version: Number(doc.version ?? 0), account_id: String(doc.account_id ?? ''), has_photo: typeof doc.photo_file === 'string' }
+  // `created_by` is null on rows from before budgets were shared: those count as the owner's.
+  return { ...toRow(EXPENSE_HEADERS, doc), id: String(doc._id), version: Number(doc.version ?? 0), account_id: String(doc.account_id ?? ''), has_photo: typeof doc.photo_file === 'string', created_by: typeof doc.created_by === 'string' ? doc.created_by : null }
 }
 
 // A signing failure drops just that row's `photo_url`; the feed falls back to
@@ -261,6 +265,10 @@ export async function POST(req: Request) {
   // accidentally complete the step. Idempotent replays keep the first instant.
   if (body.source === 'manual') await markManualTransactionComplete(auth.userId)
   if (!result.duplicate) await learnFromSave(auth, mapBefore, String(body.item), result.category)
+  if (!result.duplicate) {
+    await notifyOthersOfLog(auth, { item: String(body.item), amount: Number(body.amount_inr), category: result.category })
+      .catch((err) => console.error('expenses: notify others failed', err))
+  }
 
   // Replays were checked on their first attempt. Mobile's offline queue lands
   // here too, which is where accidental double entries mostly come from.
@@ -377,10 +385,10 @@ export async function PUT(req: Request) {
     return writeError(err)
   }
 
-  invalidate('expenses', auth.userId)
-  invalidate('wrapped', auth.userId)
-  if (outcome.affectsCC) invalidate('budgets', auth.userId)
-  invalidateCategoryMap(auth.userId)
+  invalidate('expenses', auth.spaceId)
+  invalidate('wrapped', auth.spaceId)
+  if (outcome.affectsCC) invalidate('budgets', auth.spaceId)
+  invalidateCategoryMap(auth.spaceId)
   if (outcome.recategorized) await learnFromSave(auth, mapBefore, outcome.item, outcome.category)
   // The category that could newly be over its threshold: wherever the edit
   // landed the expense, not where it used to be.
@@ -414,7 +422,7 @@ export async function DELETE(req: Request) {
       if (result.deletedCount !== 1) throw new ExpenseWriteError(409, 'This transaction changed. Refresh and review it before deleting.')
       const affectsCC = found.payment_method === 'credit_card'
       const amount = Number(found.amount_inr)
-      if (affectsCC && amount > 0) {
+      if (affectsCC && amount !== 0 && Number.isFinite(amount)) {
         await adjustCreditCardEnvelope(auth, String(found.date ?? '').slice(0, 7), -amount, session)
       }
       return { category: String(found.category ?? ''), affectsCC, photoFile }
@@ -423,12 +431,12 @@ export async function DELETE(req: Request) {
     return writeError(err)
   }
 
-  if (outcome.photoFile) await deleteExpensePhotoQuietly(auth.userId, String(body.id), outcome.photoFile)
+  if (outcome.photoFile) await deleteExpensePhotoQuietly(auth.spaceId, String(body.id), outcome.photoFile)
 
-  invalidate('expenses', auth.userId)
-  invalidate('wrapped', auth.userId)
-  if (outcome.affectsCC) invalidate('budgets', auth.userId)
-  invalidateCategoryMap(auth.userId)
+  invalidate('expenses', auth.spaceId)
+  invalidate('wrapped', auth.spaceId)
+  if (outcome.affectsCC) invalidate('budgets', auth.spaceId)
+  invalidateCategoryMap(auth.spaceId)
 
   // Deleting can drop a category back below a threshold it had crossed —
   // sync that the same way an edit-down does, so a later re-cross fires again.

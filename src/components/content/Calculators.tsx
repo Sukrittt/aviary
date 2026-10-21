@@ -3,6 +3,7 @@
 import { useId, useState } from 'react'
 import { emergencyFund, lakhs, rentAffordability, salaryPlan, sinkingFund, split503020 } from '@/lib/tools/money'
 import { formatINR } from '@/src/lib/format'
+import { EmailPlan } from './EmailPlan'
 
 /** A rupee amount field. Keeps digits only and shows the amount the Indian way under it. */
 /** `onChange` gets null when the field is emptied, so callers can tell "0" from "not entered". */
@@ -39,6 +40,7 @@ export function SalaryPlanner({ initial = 40000 }: { initial?: number }) {
       <thead><tr><th scope="col">Category</th><th scope="col">Per month</th><th scope="col">Share</th></tr></thead>
       <tbody>{plan.map((c) => <tr key={c.name}><th scope="row">{c.name}</th><td>{formatINR(c.amount)}</td><td>{salary ? `${Math.round((c.amount / salary) * 100)}%` : '0%'}</td></tr>)}</tbody>
     </table></div>
+    <EmailPlan salary={salary ?? 0} rent={rent} />
   </div>
 }
 

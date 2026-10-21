@@ -1,0 +1,361 @@
+'use client'
+
+import { useState } from 'react'
+import { createPortal } from 'react-dom'
+import Link from 'next/link'
+import { AnimatePresence } from 'motion/react'
+import { useQueryClient } from '@tanstack/react-query'
+import { CaretDownIcon, CaretRightIcon, CheckIcon, GearIcon, LockIcon, PlusIcon, TicketIcon } from '@/src/components/icons'
+import { createBudget, restoreBudget, switchBudget, type BudgetSummary } from '../api/spaces'
+import { BudgetMembersDialog, MemberAvatar } from './BudgetMembers'
+import { JoinCodeDialog } from './JoinBudget'
+import { HttpError, setBudgetCookie } from '../api/client'
+import { ImportFlow } from './onboarding/ImportFlow'
+import { spacesKey, useSpaces } from '../hooks/useSpaces'
+import { useBillingStatus } from '../hooks/useBillingStatus'
+import { useCurrency } from '@/src/context/CurrencyContext'
+import { currencyInfo } from '../lib/currencies'
+import { Scrim, Sheet } from './MotionSheet'
+import { CurrencyPicker } from './CurrencyPicker'
+import { SuccessButton, useButtonPhase } from './SuccessButton'
+import { BudgetIcon } from './CategoryIcon'
+import { BUDGET_ICONS, BUDGET_ICON_KEYS } from '../lib/budgetIcons'
+
+/** Where "Need more?" sends you: the help page, which links to every way to reach us. */
+const SUPPORT_PATH = '/account/help'
+
+
+/**
+ * The top bar's "<emoji> <name> ▾" chip. Renders nothing until there are two
+ * budgets, so a one-budget account looks exactly as before. `labelClassName`
+ * lets the sidebar fold the name away in its collapsed rail.
+ */
+/** Set before a switch from inside Log expense; the sidebar reopens the modal after the reload. */
+export const REOPEN_LOG_KEY = 'aviary.reopenLog'
+
+export function BudgetSwitcher({ className = '', labelClassName = '', card = false, prefix, onOpen }: { className?: string; labelClassName?: string; card?: boolean; prefix?: string; onOpen?: () => void }) {
+  const { multi, active } = useSpaces()
+  const [open, setOpen] = useState(false)
+  if (!multi || !active) return null
+  return (
+    <>
+      <button
+        type="button"
+        className={`budget-chip ${card ? 'is-card' : ''} ${className}`.trim()}
+        aria-haspopup="dialog"
+        aria-label={`Budget: ${active.name}. Switch budget`}
+        onClick={() => { onOpen?.(); setOpen(true) }}
+      >
+        {/* Keyed on the budget so a switch remounts icon and name, which the card cross-fades in. */}
+        {prefix && <span className="budget-chip-prefix">{prefix}</span>}
+        <span key={active.id} className="budget-chip-current">
+          <span className="budget-chip-tile"><BudgetIcon budget={active} size={card ? 18 : 16} className="budget-chip-icon" /></span>
+          <span className={`budget-chip-text ${labelClassName}`.trim()}>
+            {card && <span className="budget-chip-eyebrow">Budget{active.readOnly && <span className="budget-chip-tag">Read-only</span>}</span>}
+            <span className="budget-chip-name">{active.name}</span>
+          </span>
+        </span>
+        <CaretDownIcon size={12} weight="bold" aria-hidden="true" />
+      </button>
+      <AnimatePresence>{open && <BudgetSheet onClose={() => setOpen(false)} />}</AnimatePresence>
+    </>
+  )
+}
+
+function BudgetSheet({ onClose }: { onClose: () => void }) {
+  const { budgets, deleted, active, count, limit, atLimit } = useSpaces()
+  const qc = useQueryClient()
+  // Their own plan lapsed: every budget they own is shut, only the ones others pay for open.
+  const { data: billing } = useBillingStatus()
+  const ownLocked = !!billing && billing.enforced && !billing.allowed
+  const [view, setView] = useState<'list' | 'create' | 'join'>('list')
+  const [settings, setSettings] = useState<BudgetSummary | null>(null)
+  const [restoreError, setRestoreError] = useState('')
+  if (view === 'create') return <CreateBudgetDialog onClose={onClose} />
+  if (view === 'join') return <JoinCodeDialog memberOf={(id) => budgets.some((b) => b.id === id)} limit={limit} onClose={onClose} />
+  if (settings) return <BudgetMembersDialog budget={settings} onClose={() => setSettings(null)} />
+
+  async function restore(id: string) {
+    setRestoreError('')
+    try {
+      await restoreBudget(id)
+      await qc.invalidateQueries({ queryKey: spacesKey })
+    } catch {
+      setRestoreError('Check your connection and try again.')
+    }
+  }
+
+  const restorable = deleted.filter((d) => d.canRestore)
+  return (
+    <Scrim className="erd-modal-overlay" onClick={onClose}>
+      <Sheet className="erd-modal-card budget-sheet" role="dialog" aria-modal="true" aria-label="Your budgets" onClick={(e) => e.stopPropagation()}>
+        <div className="erd-modal-head">
+          <h3>Your budgets</h3>
+          <button type="button" className="erd-modal-close" onClick={onClose} aria-label="Close">✕</button>
+        </div>
+        <ul className="budget-list budget-group">
+          {budgets.map((b) => {
+            const current = b.id === active?.id
+            return (
+              <li key={b.id} className="budget-row-wrap">
+                <button
+                  type="button"
+                  className={`budget-row${current ? ' is-active' : ''}`}
+                  aria-current={current || undefined}
+                  onClick={() => (current ? onClose() : switchBudget(b))}
+                >
+                  <span className="budget-row-emoji" aria-hidden="true"><BudgetIcon budget={b} size={18} /></span>
+                  <span className="budget-row-name">{b.name}</span>
+                  {b.role === 'owner' && <span className="budget-owner-badge">Owner</span>}
+                  {b.readOnly && <span className="budget-locked-badge"><LockIcon size={11} weight="fill" aria-hidden="true" />Read-only</span>}
+                  {b.role === 'owner' && ownLocked && <span className="budget-locked-badge"><LockIcon size={11} weight="fill" aria-hidden="true" />Locked</span>}
+                  <Avatars members={b.members} />
+                  <span className="budget-row-check">{current && <CheckIcon size={16} weight="bold" aria-label="Current budget" />}</span>
+                </button>
+                <button type="button" className="budget-row-settings" aria-label={`Settings for ${b.name}`} onClick={() => setSettings(b)}>
+                  <GearIcon size={16} aria-hidden="true" />
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+        {restorable.length > 0 && (
+          <>
+            <div className="erd-log-label">Recently deleted</div>
+            <ul className="budget-list">
+              {restorable.map((d) => (
+                <li key={d.id} className="budget-member">
+                  <span className="budget-row-emoji" aria-hidden="true"><BudgetIcon budget={d} size={18} /></span>
+                  <span className="budget-member-body">
+                    <span className="budget-row-name">{d.name}</span>
+                    <span className="account-row-hint">{`Restorable until ${new Date(Date.parse(d.deletedAt) + 30 * 86_400_000).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`}</span>
+                  </span>
+                  <button type="button" className="account-pill-btn" onClick={() => void restore(d.id)}>Restore</button>
+                </li>
+              ))}
+            </ul>
+            {restoreError && <p className="erd-log-error" role="alert">{restoreError}</p>}
+          </>
+        )}
+        <p className="budget-count">{`${count} of ${limit} budgets`}</p>
+        {atLimit && (
+          <p className="budget-limit">
+            {"That's the most you can have. Need more? "}
+            <Link href={SUPPORT_PATH} onClick={onClose}>Contact us</Link>
+          </p>
+        )}
+        <div className="budget-sheet-actions">
+          {!atLimit && (
+            <button type="button" className="account-pill-btn account-pill-btn--primary budget-new" onClick={() => setView('create')}>
+              <PlusIcon size={14} weight="bold" aria-hidden="true" /> New budget
+            </button>
+          )}
+          <button type="button" className="account-pill-btn budget-new" onClick={() => setView('join')}>
+            <TicketIcon size={14} aria-hidden="true" /> Join with a code
+          </button>
+        </div>
+      </Sheet>
+    </Scrim>
+  )
+}
+
+function Avatars({ members }: { members: BudgetSummary['members'] }) {
+  return (
+    <span className="budget-avatars" aria-hidden="true">
+      {members.slice(0, 3).map((m) => <MemberAvatar key={m.userId} member={m} />)}
+      {members.length > 3 && <span className="budget-avatar budget-avatar--more">{`+${members.length - 3}`}</span>}
+    </span>
+  )
+}
+
+/** "Logging to Home", with its icon, in a sheet that writes to the active budget. Nothing with one budget. */
+export function BudgetLine({ verb = 'Logging to' }: { verb?: string }) {
+  const { multi, active } = useSpaces()
+  if (!multi || !active) return null
+  return <p className="budget-line">{verb} <BudgetIcon budget={active} className="budget-line-icon" /> {active.name}</p>
+}
+
+/** Account page's "New budget" row: the one entry point a one-budget account sees. */
+export function NewBudgetEntry({ render }: { render: (open: () => void) => React.ReactNode }) {
+  const { canCreate, atLimit } = useSpaces()
+  const [open, setOpen] = useState(false)
+  if (!canCreate || atLimit) return null
+  return (
+    <>
+      {render(() => setOpen(true))}
+      <AnimatePresence>{open && <CreateBudgetDialog onClose={() => setOpen(false)} />}</AnimatePresence>
+    </>
+  )
+}
+
+function createError(err: unknown): string {
+  if (err instanceof HttpError) {
+    if (err.status === 409) return "You've hit your budget limit. Need more? Contact us from Help & feedback."
+    if (err.status === 402) return 'A new budget needs an active plan.'
+    if (err.status === 400) return 'Give it a name and pick an emoji.'
+  }
+  return 'Check your connection and try again.'
+}
+
+const START_CHOICES = [
+  { id: 'fresh', title: 'Start fresh', detail: 'Set it up as you go.' },
+  { id: 'import', title: 'Bring in history from another app', detail: 'Your categories and spending from YNAB, Wallet and more.' },
+] as const
+
+/**
+ * The history import, full screen, for a just-made budget that's already the
+ * active one (by cookie). Done lands on Home in it; closing reloads into it, empty.
+ */
+function ImportIntoBudget({ budget }: { budget: BudgetSummary }) {
+  const toHome = () => { window.location.href = '/expense' }
+  const close = () => switchBudget(budget)
+  if (typeof document === 'undefined') return null
+  // Portalled like Scrim: inside the sidebar its z-index would sit under the rail toggle.
+  return createPortal(
+    <div className="expense-redesign setup-page budget-import" role="dialog" aria-modal="true" aria-label={`Bring your history into ${budget.name}`}>
+      <button type="button" className="erd-modal-close budget-import-close" onClick={close} aria-label="Close">✕</button>
+      <ImportFlow skipAsk onFresh={close} onDone={toHome} onAlreadySetUp={toHome} />
+    </div>,
+    document.querySelector('.expense-redesign') ?? document.body,
+  )
+}
+
+export function CreateBudgetDialog({ onClose }: { onClose: () => void }) {
+  const { active } = useSpaces()
+  const { currencyCode: current } = useCurrency()
+  const [name, setName] = useState('')
+  const [icon, setIcon] = useState(BUDGET_ICON_KEYS[0])
+  const [currencyCode, setCurrencyCode] = useState<string>(current)
+  const [pickCurrency, setPickCurrency] = useState(false)
+  const [copyCategories, setCopyCategories] = useState(true)
+  const [start, setStart] = useState<'fresh' | 'import'>('fresh')
+  const [importing, setImporting] = useState<BudgetSummary | null>(null)
+  const [error, setError] = useState('')
+  const button = useButtonPhase()
+  const busy = button.saving || button.success
+  const currency = currencyInfo(currencyCode)
+  const from = active?.name ?? 'this budget'
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!name.trim() || busy) return
+    setError('')
+    button.start()
+    try {
+      if (start === 'import') {
+        const budget = await createBudget({ name: name.trim(), icon, currencyCode, copyCategories: false, import: true })
+        // The import endpoints work on the active budget, so make it this one before the flow opens.
+        setBudgetCookie(budget.id)
+        button.succeed(() => setImporting(budget))
+        return
+      }
+      const budget = await createBudget({ name: name.trim(), icon, currencyCode, copyCategories })
+      button.succeed(() => switchBudget(budget))
+    } catch (err) {
+      setError(createError(err))
+      button.fail()
+    }
+  }
+
+  if (importing) return <ImportIntoBudget budget={importing} />
+
+  return (
+    <Scrim className="erd-modal-overlay" onClick={busy ? undefined : onClose}>
+      <Sheet className="erd-modal-card budget-create" role="dialog" aria-modal="true" aria-label="New budget" onClick={(e) => e.stopPropagation()}>
+        <form onSubmit={submit}>
+          <div className="erd-modal-head">
+            <h3>New budget</h3>
+            <button type="button" className="erd-modal-close" onClick={onClose} aria-label="Close" disabled={busy}>✕</button>
+          </div>
+          <p className="account-row-meta">A trip, a household, a side hustle. Each one keeps its own money and categories.</p>
+
+          <label className="erd-log-label" htmlFor="budget-name" style={{ display: 'block' }}>Name</label>
+          <input
+            id="budget-name"
+            className="erd-log-input"
+            style={{ marginTop: 0 }}
+            value={name}
+            maxLength={40}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={currencyCode === 'INR' ? 'Home, Goa trip, Studio…' : 'Home, Beach trip, Studio…'}
+            autoFocus
+          />
+
+          <div className="erd-log-label">Icon</div>
+          <div className="budget-emoji-grid" role="radiogroup" aria-label="Icon">
+            {BUDGET_ICON_KEYS.map((key) => (
+              <button key={key} type="button" role="radio" aria-checked={icon === key} aria-label={BUDGET_ICONS[key]!.label} className={`budget-emoji${icon === key ? ' is-selected' : ''}`} onClick={() => setIcon(key)}>
+                <BudgetIcon budget={{ icon: key }} size={22} />
+              </button>
+            ))}
+          </div>
+
+          <div className="import-choices" role="radiogroup" aria-label="How do you want to start?">
+            {START_CHOICES.map((c) => (
+              <button key={c.id} type="button" role="radio" aria-checked={start === c.id} className={`import-choice${start === c.id ? ' is-on' : ''}`} onClick={() => setStart(c.id)}>
+                <span className="import-choice-radio" aria-hidden="true">{start === c.id && <span className="import-choice-dot" />}</span>
+                <span className="import-choice-text">
+                  <span className="import-choice-title">{c.title}</span>
+                  <span className="import-choice-detail">{c.detail}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {start === 'fresh' && (
+            <>
+              <div className="erd-log-label">Currency</div>
+              <button type="button" className="account-row budget-currency" onClick={() => setPickCurrency(true)}>
+                <span className="account-row-label">{currency.name}</span>
+                <span className="account-chip">
+                  {currency.code}{currency.symbol !== currency.code ? ` · ${currency.symbol}` : ''}
+                  <CaretRightIcon size={14} aria-hidden="true" />
+                </span>
+              </button>
+              <AnimatePresence>
+                {pickCurrency && (
+                  <Scrim className="erd-modal-overlay" onClick={() => setPickCurrency(false)}>
+                    <Sheet className="erd-modal-card currency-modal" role="dialog" aria-modal="true" aria-label="Currency" onClick={(e) => e.stopPropagation()}>
+                      <div className="erd-modal-head">
+                        <h3>Currency</h3>
+                        <button type="button" className="erd-modal-close" onClick={() => setPickCurrency(false)} aria-label="Close">✕</button>
+                      </div>
+                      <div style={{ marginTop: 16 }}>
+                        <CurrencyPicker value={currencyCode} autoFocus onChange={(code) => { setCurrencyCode(code); setPickCurrency(false) }} />
+                      </div>
+                    </Sheet>
+                  </Scrim>
+                )}
+              </AnimatePresence>
+
+              <label className="account-row budget-copy">
+                <span className="account-row-label">
+                  {`Copy categories from ${from}`}
+                  <span className="account-row-hint">Just the categories. None of the money comes along.</span>
+                </span>
+                <input type="checkbox" role="switch" className="account-switch" checked={copyCategories} onChange={(e) => setCopyCategories(e.target.checked)} />
+              </label>
+            </>
+          )}
+
+          {error && <p className="erd-log-error" role="alert">{error}</p>}
+
+          <div className="archive-confirm-actions">
+            <button type="button" className="account-pill-btn" onClick={onClose} disabled={busy}>Cancel</button>
+            <SuccessButton
+              type="submit"
+              className="is-active erd-accent-action"
+              saving={button.saving}
+              success={button.success}
+              savingLabel="Creating…"
+              successLabel="Created"
+              disabled={!name.trim() || busy}
+            >
+              {start === 'import' ? 'Create and import' : 'Create budget'}
+            </SuccessButton>
+          </div>
+        </form>
+      </Sheet>
+    </Scrim>
+  )
+}

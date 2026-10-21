@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest'
 import { TransactionsView } from './TransactionsView'
 import { ExpenseWriteError } from '../lib/expenseConflict'
+import { avatarStyleFor } from '../lib/emoji'
 const { remove, dismiss, duplicates, page, pageArgs } = vi.hoisted(() => ({
   pageArgs: [] as Record<string, unknown>[],
   remove: vi.fn(),
@@ -12,6 +13,8 @@ const { remove, dismiss, duplicates, page, pageArgs } = vi.hoisted(() => ({
 }))
 const feedMocks = vi.hoisted(() => ({ user: {} as { activityFeed?: boolean } }))
 vi.mock('../hooks/useUser', () => ({ useUser: () => ({ data: feedMocks.user }) }))
+const spaceMocks = vi.hoisted(() => ({ value: { multi: false, budgets: [] } as Record<string, unknown> }))
+vi.mock('../hooks/useSpaces', () => ({ useSpaces: () => spaceMocks.value }))
 const importMocks = vi.hoisted(() => ({ importing: false }))
 vi.mock('./ImportBanner', () => ({ useImportInProgress: () => importMocks.importing }))
 vi.mock('../hooks/useAccounts', () => ({ useAccounts: () => ({ data: [] }), liveAccounts: () => [] }))
@@ -19,7 +22,7 @@ vi.mock('../hooks/useIncomes', () => ({ useIncomes: () => ({ data: incomeMocks.r
 const incomeMocks = vi.hoisted(() => ({ rows: [] as Record<string, unknown>[] }))
 vi.mock('next/navigation', () => ({ useSearchParams: () => new URLSearchParams(), useRouter: () => ({ replace: vi.fn() }) }))
 vi.mock('../hooks/useBudgets', () => ({ useBudgets: () => ({ data: [{ category: 'Groceries' }] }) }))
-vi.mock('../hooks/useCategories', () => ({ useCategories: () => ({ data: [{ name: 'Groceries' }, { name: 'Subscription' }] }), useCategoryIcons: () => new Map() }))
+vi.mock('../hooks/useCategories', () => ({ useCategories: () => ({ data: [{ name: 'Groceries' }, { name: 'Subscription' }] }), useCategoryIcons: () => new Map(), useCategoryStyle: () => (name: string) => avatarStyleFor(name) }))
 vi.mock('../hooks/useRecentCategories', () => ({ useRecentCategories: () => ({ recents: [] }) }))
 vi.mock('../hooks/useExpenses', () => ({
   useExpensesPage: (args: Record<string, unknown>) => (pageArgs.push(args), { data: { rows: [{ id: 'one', version: 0, timestamp: '2026-09-18T10:00:00', date: '2026-09-18', item: 'Lunch', amount_inr: '100', category: 'Food' }, ...page.extra], total: 1 + page.extra.length, pageCount: 1, totalAmount: 100 } }),
@@ -284,4 +287,52 @@ it('shows no clock time on an imported row: it would be the import’s, not the 
   expect(screen.getByText('Groceries', { selector: '.txn-timeline-meta, .txn-timeline-meta *' })).toBeInTheDocument()
   expect(screen.queryByText(/4:20/)).toBeNull()
   page.extra = []
+})
+
+describe('who logged what', () => {
+  const members = [
+    { userId: 'u1', name: 'Priya Shah', avatarUrl: null, role: 'owner', joinedAt: null },
+    { userId: 'u2', name: 'Rahul Rao', avatarUrl: null, role: 'member', joinedAt: '2026-10-12' },
+  ]
+  const shared = { multi: true, shared: true, readOnly: false, active: { id: 's1', name: 'Home', emoji: '🏠', role: 'member', ownerId: 'u1', members } }
+  beforeEach(() => {
+    feedMocks.user = { _id: 'u2' } as typeof feedMocks.user
+    page.extra = [{ id: 'two', version: 0, timestamp: '2026-09-18T12:00:00', date: '2026-09-18', item: 'Taxi', amount_inr: '50', category: 'Travel', created_by: 'u2' }]
+  })
+  afterEach(() => {
+    feedMocks.user = {}
+    page.extra = []
+    spaceMocks.value = { multi: false, budgets: [] }
+  })
+
+  it('changes nothing in a one-person budget', () => {
+    render(<TransactionsView />)
+    expect(screen.queryByRole('tab', { name: 'Mine' })).toBeNull()
+    expect(screen.queryByRole('img', { name: /Added by/ })).toBeNull()
+  })
+
+  it('marks each row with who added it, the owner for rows with no author', () => {
+    spaceMocks.value = shared
+    render(<TransactionsView />)
+    expect(screen.getByRole('img', { name: 'Added by Priya' })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Added by you' })).toBeInTheDocument()
+  })
+
+  it('Mine shows only your rows; Everyone brings the rest back', async () => {
+    spaceMocks.value = shared
+    render(<TransactionsView />)
+    expect(screen.getByRole('tab', { name: 'Everyone' })).toHaveAttribute('aria-selected', 'true')
+    fireEvent.click(screen.getByRole('tab', { name: 'Mine' }))
+    expect(screen.getByText('Taxi')).toBeInTheDocument()
+    // The row animates out.
+    await waitFor(() => expect(screen.queryByText('Lunch')).toBeNull())
+    fireEvent.click(screen.getByRole('tab', { name: 'Everyone' }))
+    expect(screen.getByText('Lunch')).toBeInTheDocument()
+  })
+
+  it('hides Log expense in a read-only budget', () => {
+    spaceMocks.value = { ...shared, readOnly: true }
+    render(<TransactionsView />)
+    expect(screen.queryByRole('button', { name: 'Log expense' })).toBeNull()
+  })
 })

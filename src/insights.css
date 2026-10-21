@@ -8,13 +8,6 @@
   flex-direction: column;
 }
 
-.ins-loading {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 .ins-period-header {
   display: flex;
   align-items: center;
@@ -144,6 +137,10 @@
 
 .ins-top-card {
   animation-delay: 130ms;
+}
+
+.ins-biggest-card {
+  grid-column: 1 / -1;
 }
 
 .ins-top-list {
@@ -992,3 +989,49 @@
 }
 .ins-breakdown-empty strong { margin-top: 8px; font-family: var(--font-display); font-size: 18px; font-weight: 600; }
 .ins-breakdown-empty p { margin: 4px 0 0; color: var(--erd-text2); font-size: 13px; }
+
+/* Forecast (components/Forecast.tsx): rows aren't buttons, and next month sits under the list. */
+.expense-redesign div.ins-top-row { cursor: default; }
+.expense-redesign div.ins-top-row:hover { background: transparent; }
+.ins-forecast-next {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 14px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--erd-border);
+  font-size: 14px;
+}
+/* Shortfalls read amber with a fix beside them, not red: a gap to close, not a failure. */
+.ins-card-heading p.ins-forecast-cover { margin-top: 6px; color: var(--erd-text2); }
+.expense-redesign .ins-top-meta.ins-forecast-short { color: var(--warn-fg); }
+.ins-forecast-topup {
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.ins-forecast-topup:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.ins-forecast-more {
+  width: 100%;
+  padding: 10px 0 0;
+  border: 0;
+  border-top: 1px solid var(--erd-border);
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ins-forecast-next strong { color: var(--erd-text); font-weight: 500; }
+.ins-forecast-next span { color: var(--erd-text3); font-size: 12px; font-weight: 500; }
+/* Home's forecast line is a link styled as the slim Ready to Assign row. */
+.expense-redesign a.erd-home-rta-slim { text-decoration: none; }

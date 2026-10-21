@@ -22,7 +22,7 @@ describe('expense screen visual regressions', () => {
       /\.expense-redesign \.mc-filter-chips \.action-button\.is-active\s*{[^}]*background:\s*var\(--gold-soft\)/,
     )
     expect(expenseCss).toMatch(
-      /\.expense-redesign \.action-button\.is-active\.erd-accent-action\s*{[\s\S]*?background:\s*var\(--gold\)/,
+      /\.expense-redesign \.action-button\.is-active\.erd-accent-action(?::not\(\.is-success\))?\s*{[\s\S]*?background:\s*var\(--gold\)/,
     )
   })
 

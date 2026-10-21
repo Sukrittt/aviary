@@ -19,7 +19,7 @@ vi.mock('@/lib/exports', () => ({
   buildAndStoreExport: (...args: unknown[]) => buildAndStoreExport(...(args as Parameters<typeof buildAndStoreExport>)),
 }))
 
-let auth = { userId: 'user_a', readOnly: false, sessionId: null as string | null }
+let auth = { userId: 'user_a', readOnly: false, sessionId: null as string | null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const }
 vi.mock('@/lib/access', () => ({
   getAuth: vi.fn(async () => auth),
   readOnlyGuard: vi.fn((a: { readOnly: boolean }, method: string) =>
@@ -62,7 +62,7 @@ beforeEach(() => {
   queuedAfter.length = 0
   exportAllowance.mockClear().mockResolvedValue({ usedThisMonth: 0, limit: 3, allowed: true, exitExport: false })
   buildAndStoreExport.mockClear()
-  auth = { userId: 'user_a', readOnly: false, sessionId: null }
+  auth = { userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const }
 })
 
 describe('POST /api/data/export', () => {
@@ -79,7 +79,7 @@ describe('POST /api/data/export', () => {
 
     expect(queuedAfter).toHaveLength(1)
     await queuedAfter[0]()
-    expect(buildAndStoreExport).toHaveBeenCalledWith('user_a', body.id)
+    expect(buildAndStoreExport).toHaveBeenCalledWith(expect.objectContaining({ userId: 'user_a', spaceId: 'user_a' }), body.id)
   })
 
   it('rejects with 429 once the monthly quota is used, without inserting a doc', async () => {
@@ -101,7 +101,7 @@ describe('POST /api/data/export', () => {
   })
 
   it('blocks the read-only demo user', async () => {
-    auth = { userId: 'demo', readOnly: true, sessionId: null }
+    auth = { userId: 'demo', readOnly: true, sessionId: null, spaceId: 'demo', spaceOwnerId: 'demo', spaceRole: 'owner' as const }
     const res = await POST(req())
     expect(res.status).toBe(403)
     expect(store).toHaveLength(0)

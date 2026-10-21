@@ -20,7 +20,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
   const imageUrl =
     doc.image_status === 'ready' && typeof doc.image_ext === 'string'
-      ? await getBillScanImageUrl(auth.userId, id, doc.image_ext)
+      ? await getBillScanImageUrl(auth.spaceId, id, doc.image_ext)
       : null
 
   return json({

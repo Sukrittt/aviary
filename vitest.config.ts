@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config'
+import { configDefaults, defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import path from 'node:path'
 import mdx from '@mdx-js/rollup'
@@ -19,7 +19,8 @@ export default defineConfig({
     // `test` script so `npx vitest` and editor runners get it too.
     execArgv: ['--no-experimental-webstorage'],
     include: ['**/*.test.{ts,tsx}'],
-    exclude: ['node_modules/**', '.next/**', 'dist/**', '.claude/**'],
+    // .claude/worktrees and .worktrees hold other git worktrees of this repo.
+    exclude: [...configDefaults.exclude, '.next/**', 'dist/**', '.claude/**', '.worktrees/**'],
   },
   resolve: {
     alias: {

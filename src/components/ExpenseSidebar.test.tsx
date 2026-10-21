@@ -5,18 +5,20 @@ const push = vi.fn()
 vi.mock('next/navigation', () => ({ usePathname: () => '/account', useRouter: () => ({ push }) }))
 
 let allowed = true
-vi.mock('../hooks/useBillingStatus', () => ({ useAccessAllowed: () => allowed }))
+vi.mock('../hooks/useBillingStatus', () => ({ useAccessAllowed: () => allowed, useBillingStatus: () => ({ data: undefined }) }))
 
 const openMoneyBrain = vi.fn()
 vi.mock('@/components/MoneyBrainProvider', () => ({ useMoneyBrain: () => ({ openMoneyBrain }) }))
-vi.mock('@/components/AppearanceProvider', () => ({ useAppearance: () => ({ theme: 'dark', setTheme: vi.fn() }) }))
+let theme = 'dark'
+vi.mock('@/components/AppearanceProvider', () => ({ useAppearance: () => ({ theme, setTheme: vi.fn() }) }))
 const setCollapsed = vi.fn()
 vi.mock('../hooks/usePersistentState', () => ({ usePersistentState: (k: string, v: unknown) => [v, (next: unknown) => setCollapsed(k, next)] }))
 let hidden: string[] = []
 vi.mock('../hooks/useUser', () => ({ useHiddenFeatures: () => hidden }))
 vi.mock('./LogExpenseModal', () => ({ LogExpenseModal: () => <div>log-expense-dialog</div> }))
-vi.mock('../features/scan-bill/ScanBillModal', () => ({ ScanBillModal: () => <div>scan-dialog</div> }))
+vi.mock('../features/fill-gap/StatementModal', () => ({ StatementModal: () => <div>statement-dialog</div> }))
 vi.mock('./ConfirmDialog', () => ({ SignOutDialog: () => null }))
+vi.mock('../hooks/useSpaces', () => ({ useSpaces: () => ({ multi: false, budgets: [] }) }))
 
 const { ExpenseSidebar } = await import('./ExpenseSidebar')
 
@@ -24,16 +26,22 @@ beforeEach(() => {
   vi.clearAllMocks()
   allowed = true
   hidden = []
+  theme = 'dark'
 })
 
 describe('ExpenseSidebar', () => {
   it('drops the entry points of features hidden in Features', () => {
-    hidden = ['insights', 'askAviary', 'billScan']
+    hidden = ['insights', 'askAviary']
     render(<ExpenseSidebar />)
     expect(screen.queryByText('Insights')).toBeNull()
     expect(screen.queryByText('Ask Aviary')).toBeNull()
-    expect(screen.queryByText('Scan a bill')).toBeNull()
     expect(screen.getByText('Categories')).toBeTruthy()
+  })
+
+  it('opens statement upload from the sidebar', () => {
+    render(<ExpenseSidebar />)
+    fireEvent.click(screen.getByText('Add from statement'))
+    expect(screen.getByText('statement-dialog')).toBeTruthy()
   })
 
   it('opens and closes the mobile navigation accessibly', async () => {
@@ -60,6 +68,28 @@ describe('ExpenseSidebar', () => {
     expect(screen.getByRole('navigation', { name: 'Primary' })).toBeTruthy()
   })
 
+  it('moves one hover pill to whichever row is under the pointer', () => {
+    render(<ExpenseSidebar />)
+    const nav = screen.getByRole('navigation', { name: 'Primary' })
+    const pills = () => [...nav.querySelectorAll('li > span.absolute')].map((pill) => pill.parentElement?.textContent)
+
+    fireEvent.mouseEnter(screen.getByText('Activity').closest('li')!)
+    expect(pills()).toEqual(['Activity'])
+    fireEvent.mouseEnter(screen.getByText('Categories').closest('li')!)
+    expect(pills()).toEqual(['Categories'])
+    fireEvent.mouseLeave(nav)
+    expect(pills()).toEqual([])
+  })
+
+  it('keeps the hover pill on the theme row when its label flips', () => {
+    const { rerender } = render(<ExpenseSidebar />)
+    const nav = screen.getByRole('navigation', { name: 'Primary' })
+    fireEvent.mouseEnter(screen.getByText('Light mode').closest('li')!)
+    theme = 'light'
+    rerender(<ExpenseSidebar />)
+    expect([...nav.querySelectorAll('li > span.absolute')].map((pill) => pill.parentElement?.textContent)).toEqual(['Dark mode'])
+  })
+
   it('remembers the collapsed rail between visits', () => {
     render(<ExpenseSidebar />)
     fireEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }))
@@ -77,10 +107,8 @@ describe('ExpenseSidebar', () => {
     allowed = false
     render(<ExpenseSidebar />)
     fireEvent.click(screen.getByText('Log expense'))
-    fireEvent.click(screen.getByText('Scan a bill'))
     fireEvent.click(screen.getByText('Ask Aviary'))
     expect(screen.queryByText('log-expense-dialog')).toBeNull()
-    expect(screen.queryByText('scan-dialog')).toBeNull()
     expect(openMoneyBrain).not.toHaveBeenCalled()
     expect(push).toHaveBeenCalledWith('/expense')
   })

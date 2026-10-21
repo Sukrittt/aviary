@@ -2,7 +2,7 @@ import { gunzipSync, gzipSync } from 'node:zlib'
 import { ObjectId } from 'mongodb'
 import type { Auth } from '@/lib/access'
 import { getCollection, json } from '@/lib/http'
-import { getUserCurrency, nowForUser } from '@/lib/userCurrency'
+import { getBudgetCurrency, nowForUser } from '@/lib/userCurrency'
 import { currencyInfo, isCurrencyCode } from '@/src/lib/currencies'
 import type { AccountType } from '@/lib/accounts'
 import { readTable, ZipTooLarge } from './read'
@@ -182,7 +182,7 @@ export async function previewFile(auth: Auth, buf: Buffer, filename: string): Pr
   const roles = needsColumnHelp(layout) && (await importAiAllowed(auth))
     ? await pickColumnRoles(unresolvedColumns(layout), auth.userId).catch(() => ({}))
     : {}
-  const userCurrency = await getUserCurrency(auth.userId)
+  const userCurrency = await getBudgetCurrency(auth)
   const n = normalize(layout, today, roles, userCurrency)
   const rows = packRows(n.rows)
   if (rows.length > MAX_ROWS_BYTES) throw new ImportError('too_big')

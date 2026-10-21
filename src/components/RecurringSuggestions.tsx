@@ -25,6 +25,7 @@ import { Select } from "./Select";
 import { RecurringExpenseModal } from "./RecurringExpenseModal";
 import { SubscriptionModal } from "./SubscriptionModal";
 import { useHiddenFeatures } from "../hooks/useUser";
+import { useSpaces } from "../hooks/useSpaces";
 
 const baseKey = ["recurring-suggestions"] as const;
 type SuggestionKind = RecurringSuggestion["kind"];
@@ -37,6 +38,8 @@ export function RecurringSuggestions({ kind = "other_recurring" }: { kind?: Sugg
   // With Subscriptions switched off, a subscription is set up as a recurring expense, so it lands somewhere they can see.
   const hidden = useHiddenFeatures();
   const asSubscription = !(allMode && hidden.includes("subscriptions"));
+  // Scan and dismiss write to the budget; saved suggestions still show read-only.
+  const { readOnly } = useSpaces();
   const [months, setMonths] = useState<ScanMonths>(subscriptionMode ? 12 : 6);
   const key = [...baseKey, months] as const;
   const { formatCurrency } = useCurrency();
@@ -105,26 +108,28 @@ export function RecurringSuggestions({ kind = "other_recurring" }: { kind?: Sugg
               }}
             />
           </div>
-          <button
-            type="button"
-            className="account-compact-btn recurring-discovery-scan"
-            disabled={busy || query.isLoading}
-            onClick={() => scan.mutate(months)}
-          >
-            {scan.isPending && (
-              <CircleNotchIcon
-                size={16}
-                className="recurring-discovery-spinner"
-                aria-hidden="true"
-              />
-            )}
-            {scan.isPending
-              ? "Scanning expenses…"
-              : data?.scannedAt && data.remaining > 0
-                ? "Scan remaining patterns"
-                : allMode ? "Find repeat payments" : subscriptionMode ? "Find subscriptions" : "Find recurring expenses"}
-            {!scan.isPending && <ArrowRightIcon size={16} aria-hidden="true" />}
-          </button>
+          {!readOnly && (
+            <button
+              type="button"
+              className="account-compact-btn recurring-discovery-scan"
+              disabled={busy || query.isLoading}
+              onClick={() => scan.mutate(months)}
+            >
+              {scan.isPending && (
+                <CircleNotchIcon
+                  size={16}
+                  className="recurring-discovery-spinner"
+                  aria-hidden="true"
+                />
+              )}
+              {scan.isPending
+                ? "Scanning expenses…"
+                : data?.scannedAt && data.remaining > 0
+                  ? "Scan remaining patterns"
+                  : allMode ? "Find repeat payments" : subscriptionMode ? "Find subscriptions" : "Find recurring expenses"}
+              {!scan.isPending && <ArrowRightIcon size={16} aria-hidden="true" />}
+            </button>
+          )}
         </div>
       </div>
       {months === 1 && (
@@ -254,14 +259,16 @@ export function RecurringSuggestions({ kind = "other_recurring" }: { kind?: Sugg
                   >
                     Review and add
                   </button>
-                  <button
-                    type="button"
-                    className="scan-link-btn"
-                    disabled={busy}
-                    onClick={() => dismiss.mutate(s.id)}
-                  >
-                    Dismiss
-                  </button>
+                  {!readOnly && (
+                    <button
+                      type="button"
+                      className="scan-link-btn"
+                      disabled={busy}
+                      onClick={() => dismiss.mutate(s.id)}
+                    >
+                      Dismiss
+                    </button>
+                  )}
                 </div>
               </motion.li>
             ))}

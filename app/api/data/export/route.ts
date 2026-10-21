@@ -18,7 +18,7 @@ export async function POST(req: Request) {
   const guard = readOnlyGuard(auth, 'POST')
   if (guard) return guard
 
-  const release = await acquireLease(`export:${auth.userId}`)
+  const release = await acquireLease(`export:${auth.spaceId}`)
   if (!release) return error('An export is already being prepared.', 409)
   let queued = false
   try {
@@ -28,7 +28,7 @@ export async function POST(req: Request) {
     const exports = await getCollection('exports', auth)
     const { insertedId } = await exports.insertOne({ status: 'pending', month: currentMonthKey(), created_at: nowIST().timestamp })
     after(async () => {
-      try { await buildAndStoreExport(auth.userId, insertedId.toString()) }
+      try { await buildAndStoreExport(auth, insertedId.toString()) }
       finally { await release() }
     })
     queued = true

@@ -104,7 +104,11 @@ export async function PUT(req: Request) {
   if (body.label !== undefined) update.label = String(body.label).trim()
   if (body.amount !== undefined) update.amount = String(Math.round(Number(body.amount) * 100) / 100)
   if (body.frequency !== undefined) update.frequency = String(body.frequency)
-  if (body.start_date !== undefined) update.start_date = String(body.start_date)
+  // Edit forms resend start_date unchanged; only a new payday replaces the day an import anchored.
+  if (body.start_date !== undefined && String(body.start_date) !== String(existing.start_date)) {
+    update.start_date = String(body.start_date)
+    update.anchor_day = ''
+  }
   if (body.end_date !== undefined) update.end_date = String(body.end_date)
   if (body.status !== undefined) update.status = String(body.status)
   try {
@@ -125,7 +129,7 @@ export async function PUT(req: Request) {
   const today = (await nowForUser(auth.userId)).date
   if (resuming || update.frequency !== undefined || update.start_date !== undefined) {
     const frequency = update.frequency ?? String(existing.frequency)
-    update.next_run_date = firstRunOnOrAfter(startDate, frequency, today)
+    update.next_run_date = firstRunOnOrAfter(startDate, frequency, today, update.start_date === undefined ? Number(existing.anchor_day) || undefined : undefined)
   }
   // Pausing keeps this month's pay counted and stops it from next month (see countsIn).
   if (update.status === 'paused' && String(existing.status) === 'active') update.stops_after = today.slice(0, 7)

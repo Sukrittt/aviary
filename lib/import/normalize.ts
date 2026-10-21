@@ -1,7 +1,7 @@
 import { findHeaderRow, type Table } from './read'
 import { defaultDirection, detectDateOrder, detectDecimalComma, parseAmount, parseDate, type Direction } from './parse'
 import { CURRENCIES, isCurrencyCode } from '@/src/lib/currencies'
-import { detectPreset, genericTell, headerScore, mapColumns, typeKind, type AppId, type Preset, type Role, type RowFields, type SkipReason } from './presets'
+import { detectPreset, genericTell, headerName, headerScore, mapColumns, typeKind, type AppId, type Preset, type Role, type RowFields, type SkipReason } from './presets'
 
 const MAX_ITEM = 200
 const MAX_NOTES = 300
@@ -82,7 +82,7 @@ function symbolCurrency(cells: string[]): string {
   return found.size === 1 && !found.has('?') ? [...found][0] : ''
 }
 
-const lower = (cells: string[]) => cells.map((c) => c.trim().toLowerCase())
+const lower = (cells: string[]) => cells.map(headerName)
 const isPlan = (headers: string[]) => headers.includes('month') && headers.includes('assigned')
 
 /** Finds the transactions table and its header line, and maps what it can by name. */
@@ -162,7 +162,10 @@ export function normalize(layout: Layout, today: string, roles: Record<number, R
   if (!data.some((r) => r.some((c) => c.trim()))) throw new ImportError('empty_file')
   const at = (row: string[], role: Role) => (mapping[role] === undefined ? '' : (row[mapping[role]!] ?? '').trim())
   const amountCells = data.flatMap((r) => (['amount', 'outflow', 'inflow'] as const).map((role) => at(r, role))).filter(Boolean)
-  const likely = data.map((r) => at(r, 'currency').toUpperCase()).find(isCurrencyCode) || symbolCurrency(amountCells) || userCurrency
+  const header = layout.table.rows[layout.headerIndex] ?? []
+  // "Withdrawal Amount (INR )": the currency headerName left out of the column's name.
+  const headerCurrency = symbolCurrency((['amount', 'outflow', 'inflow'] as const).map((role) => (mapping[role] === undefined ? '' : header[mapping[role]!]?.match(/\(([^)]*)\)\s*$/)?.[1].trim() ?? '')).filter(Boolean))
+  const likely = data.map((r) => at(r, 'currency').toUpperCase()).find(isCurrencyCode) || symbolCurrency(amountCells) || headerCurrency || userCurrency
   const threeDecimals = isCurrencyCode(likely) && new Intl.NumberFormat('en', { style: 'currency', currency: likely }).resolvedOptions().maximumFractionDigits === 3
   const decimalComma = detectDecimalComma(amountCells, threeDecimals)
   const dateOrder = detectDateOrder(data.map((r) => at(r, 'date')))
@@ -237,7 +240,7 @@ export function normalize(layout: Layout, today: string, roles: Record<number, R
     defaultDirection: defaultDirection(signs, false),
     directionSource: signs.length ? 'sign' : 'column',
     hasCurrency: mapping.currency !== undefined,
-    fileCurrency: [...codes].sort((a, b) => b[1] - a[1])[0]?.[0] ?? (mapping.currency === undefined ? symbolCurrency(amountCells) : ''),
+    fileCurrency: [...codes].sort((a, b) => b[1] - a[1])[0]?.[0] ?? (symbolCurrency(amountCells) || headerCurrency),
     plan: readPlan(layout.plan, today, threeDecimals),
   }
 }

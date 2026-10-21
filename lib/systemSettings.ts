@@ -11,6 +11,12 @@ export interface SystemSettings {
    * enforced until one is set.
    */
   aiMonthlyCostUsd: number | null
+  /**
+   * Trial nudges, lead follow-ups and the evergreen "let it run" emails
+   * (lib/email/lifecycle.ts). Off = nothing new is queued; welcome, billing
+   * and the salary plan someone just asked for still send.
+   */
+  lifecycleEmails: boolean
   /** Banner shown across the web app and exposed at GET /api/system/status for clients. */
   maintenance: { on: boolean; message: string }
   /**
@@ -52,6 +58,7 @@ export interface SystemSettings {
 const DEFAULTS: SystemSettings = {
   aiDisabled: false,
   aiMonthlyCostUsd: null,
+  lifecycleEmails: false,
   maintenance: { on: false, message: '' },
   appUpdate: {
     android: {
@@ -77,6 +84,7 @@ export async function getSystemSettings(): Promise<SystemSettings> {
     const value: SystemSettings = {
       aiDisabled: doc?.aiDisabled ?? DEFAULTS.aiDisabled,
       aiMonthlyCostUsd: doc?.aiMonthlyCostUsd ?? DEFAULTS.aiMonthlyCostUsd,
+      lifecycleEmails: doc?.lifecycleEmails ?? DEFAULTS.lifecycleEmails,
       maintenance: { ...DEFAULTS.maintenance, ...doc?.maintenance },
       appUpdate: {
         android: { ...DEFAULTS.appUpdate.android, ...doc?.appUpdate?.android },

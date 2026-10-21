@@ -151,3 +151,67 @@ export function EnvelopesSkeleton() {
     </Pulse>
   )
 }
+
+/** Insights' month-end forecast: heading, total, then four envelope rows. */
+export function ForecastSkeleton() {
+  return (
+    <article className="erd-card ins-card ins-top-card">
+      <Pulse>
+        <div className="sk-inline" style={{ justifyContent: 'space-between', marginBottom: 12 }}>
+          <span className="sk-row-text">
+            <Bone w={170} h={18} />
+            <Bone w={130} h={11} />
+          </span>
+          <Bone w={64} h={18} />
+        </div>
+        {Array.from({ length: 4 }, (_, i) => <Row key={i} icon={44} r={22} />)}
+      </Pulse>
+    </article>
+  )
+}
+
+/** A card heading: title and caption on the left, a segmented toggle on the right. */
+function CardHead({ title = 150, toggle = 150 }: { title?: number; toggle?: number }) {
+  return (
+    <div className="sk-head">
+      <span className="sk-row-text">
+        <Bone w={`min(${title}px, 100%)`} h={18} />
+        <Bone w="min(100px, 70%)" h={11} />
+      </span>
+      {toggle > 0 && <Bone w={toggle} h={32} r={999} style={{ flexShrink: 1, minWidth: 64 }} />}
+    </div>
+  )
+}
+
+/** Mirrors Insights' grid: trend chart, forecast (this month only) over the heatmap, breakdown, then biggest spends. */
+export function InsightsSkeleton({ forecast = true }: { forecast?: boolean }) {
+  return (
+    <Pulse className="insights-grid">
+      <div className="erd-card sk-card ins-trend-card">
+        <CardHead />
+        <Bone h={245} r={12} />
+      </div>
+      <div className="ins-left-col">
+        {forecast && (
+          <div className="erd-card sk-card">
+            <CardHead title={170} toggle={0} />
+            {Array.from({ length: 3 }, (_, i) => <Row key={i} icon={44} r={22} />)}
+          </div>
+        )}
+        <div className="erd-card sk-card ins-heatmap-card">
+          <CardHead title={110} toggle={140} />
+          <Bone h={170} r={12} />
+        </div>
+      </div>
+      <div className="erd-card sk-card ins-breakdown-card">
+        <CardHead title={130} />
+        <Bone w={180} h={180} r={999} style={{ alignSelf: 'center', margin: '8px 0' }} />
+        {Array.from({ length: 4 }, (_, i) => <Row key={i} icon={36} r={12} />)}
+      </div>
+      <div className="erd-card sk-card ins-biggest-card">
+        <CardHead title={140} toggle={70} />
+        {Array.from({ length: 4 }, (_, i) => <Row key={i} icon={44} r={22} />)}
+      </div>
+    </Pulse>
+  )
+}

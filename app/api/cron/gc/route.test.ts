@@ -15,7 +15,7 @@ vi.mock('@/lib/mongodb', () => ({
     collection: (name: string) => {
       if (name === 'users') return { find: usersFindMock, deleteOne: usersDeleteOneMock }
       if (name === 'billing_accounts') return { deleteOne: billingDeleteOneMock }
-      return { deleteMany: collectionDeleteMany(name) }
+      return { deleteMany: collectionDeleteMany(name), deleteOne: vi.fn(async () => ({ deletedCount: 0 })), findOne: async () => null, find: () => ({ toArray: async () => [] }) }
     },
   })),
 }))

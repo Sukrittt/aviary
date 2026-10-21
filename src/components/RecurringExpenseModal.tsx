@@ -22,6 +22,8 @@ import { suggestCategoryLLM } from '../lib/autoCategory'
 import { EMPTY } from '../lib/constants'
 import { todayLocal } from '../lib/date'
 import { splitEmoji } from '../lib/emoji'
+import { ReadOnlyNotice, useReadOnlyError } from './BudgetNotices'
+import { useSpaces } from '../hooks/useSpaces'
 
 const FREQUENCIES = ['daily', 'weekly', 'monthly', 'yearly']
 const PAYMENT_METHODS = [
@@ -76,6 +78,8 @@ export function RecurringExpenseModal({ id, initialValues, suggestionId, onAdded
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [error, setError] = useState('')
   const { saving, success, start, succeed, fail } = useButtonPhase()
+  const readOnlyError = useReadOnlyError()
+  const { readOnly } = useSpaces()
 
   const parsedAmount = Number(amount)
   const endsBeforeStart = endDate !== '' && endDate < startDate
@@ -111,9 +115,9 @@ export function RecurringExpenseModal({ id, initialValues, suggestionId, onAdded
     setCategoryTouched(true)
   }
 
-  function onFailure(title: string) {
+  function onFailure(title: string, err: unknown) {
     fail()
-    setError(`${title}. ${RETRY}`)
+    setError(readOnlyError(err) ?? `${title}. ${RETRY}`)
   }
 
   async function handleSubmit() {
@@ -143,7 +147,7 @@ export function RecurringExpenseModal({ id, initialValues, suggestionId, onAdded
         setError(err.message)
         return
       }
-      onFailure(isEdit ? "Couldn't save" : "Couldn't add this")
+      onFailure(isEdit ? "Couldn't save" : "Couldn't add this", err)
     }
   }
 
@@ -155,9 +159,9 @@ export function RecurringExpenseModal({ id, initialValues, suggestionId, onAdded
       else await (isActive ? pauseRecurring : resumeRecurring).mutateAsync(existing.id)
       setConfirmingDelete(false)
       succeed(onClose)
-    } catch {
+    } catch (err) {
       setConfirmingDelete(false)
-      onFailure(action === 'delete' ? "Couldn't delete this" : "Couldn't update this")
+      onFailure(action === 'delete' ? "Couldn't delete this" : "Couldn't update this", err)
     }
   }
 
@@ -170,6 +174,7 @@ export function RecurringExpenseModal({ id, initialValues, suggestionId, onAdded
             <XIcon size={18} aria-hidden="true" />
           </button>
         </div>
+        {readOnly ? <ReadOnlyNotice onClose={onClose} /> : <>
 
         <div className="erd-recurring-body">
           {initialValues && <p className="recurring-hint erd-recurring-review">Review this suggestion. Once added, we’ll automatically log an expense on every due date. Past expenses stay unchanged.</p>}
@@ -336,6 +341,7 @@ export function RecurringExpenseModal({ id, initialValues, suggestionId, onAdded
             </div>
           )}
         </div>
+        </>}
       </Sheet>
     </Scrim>
   )

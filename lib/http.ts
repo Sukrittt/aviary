@@ -37,13 +37,33 @@ export async function readBody(req: Request): Promise<Record<string, unknown>> {
 }
 
 /**
- * Resolve a Mongo collection, scoped to the requesting user. The returned
- * handle injects `user_id` into every filter and insert, so handlers cannot
- * reach another user's documents — see `lib/scoped.ts`.
+ * Collections that belong to a person rather than a budget, scoped by
+ * `userId` whichever budget is active. Everything else is budget data,
+ * scoped by `spaceId` (lib/spaces.ts).
+ */
+export const PERSON_COLLECTIONS = new Set([
+  'users', 'push_tokens', 'push_tickets', 'chat_sessions', 'ai_usage', 'notification_log',
+  'billing_accounts', 'billing_subscriptions', 'ideas', 'feedback',
+])
+
+/** A request named a budget it isn't a member of. requireAccess answers 403 first; this stops any route that skips it. */
+export class SpaceAccessError extends Error {
+  constructor(spaceId: string) {
+    super(`not a member of budget ${spaceId}`)
+  }
+}
+
+/**
+ * Resolve a Mongo collection, scoped to the request's budget (or, for a
+ * person collection, the person). The returned handle injects `user_id` into
+ * every filter and insert, so handlers cannot reach another budget's
+ * documents — see `lib/scoped.ts`.
  */
 export async function getCollection(base: string, auth: Auth): Promise<ScopedCollection> {
   const db = await getDb()
-  return scoped(db.collection(base), auth.userId)
+  if (PERSON_COLLECTIONS.has(base)) return scoped(db.collection(base), auth.userId)
+  if (auth.spaceDenied) throw new SpaceAccessError(auth.spaceId)
+  return scoped(db.collection(base), auth.spaceId, { actorId: auth.userId })
 }
 
 /** Force handlers to run dynamically (never prerendered at build time). */

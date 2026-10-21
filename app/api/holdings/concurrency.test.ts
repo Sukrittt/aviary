@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import { MongoMemoryReplSet } from 'mongodb-memory-server'
+import type { MongoMemoryReplSet } from 'mongodb-memory-server'
+import { startMongoReplSet } from '@/src/test-utils/mongo'
 import { randomBytes } from 'node:crypto'
 
 const controls = vi.hoisted(() => ({
@@ -7,7 +8,7 @@ const controls = vi.hoisted(() => ({
 }))
 
 vi.mock('@/lib/access', () => ({
-  getAuth: async () => ({ userId: 'holding-concurrency-test', readOnly: false, sessionId: null }),
+  getAuth: async () => ({ userId: 'holding-concurrency-test', readOnly: false, sessionId: null, spaceId: 'holding-concurrency-test', spaceOwnerId: 'holding-concurrency-test', spaceRole: 'owner' as const }),
   readOnlyGuard: () => null,
 }))
 vi.mock('@/lib/billing/guard', () => ({ requireAccess: async () => null }))
@@ -43,7 +44,7 @@ import { GET, PUT } from './route'
 let server: MongoMemoryReplSet
 
 beforeAll(async () => {
-  server = await MongoMemoryReplSet.create({ binary: { version: '8.2.6' }, replSet: { count: 1 } })
+  server = await startMongoReplSet()
   vi.stubEnv('MONGODB_URI', server.getUri('holding-concurrency'))
   vi.stubEnv('FIELD_KEY_V1', randomBytes(32).toString('base64'))
   await (await getDb()).collection('holdings').createIndex(
@@ -137,7 +138,7 @@ describe('holding concurrency on a real replica set', () => {
     await seed({ version: 0 })
 
     const action = await applyHoldingAction(
-      { userId: 'holding-concurrency-test', readOnly: false, sessionId: null },
+      { userId: 'holding-concurrency-test', readOnly: false, sessionId: null, spaceId: 'holding-concurrency-test', spaceOwnerId: 'holding-concurrency-test', spaceRole: 'owner' as const },
       { name: 'Stocks', action: 'contribution', amount: 250 },
     )
     expect(action).toMatchObject({ ok: true, previousValue: 1000, newValue: 1250 })

@@ -3,9 +3,11 @@
 import { useCurrency } from '@/src/context/CurrencyContext'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { CalendarBlankIcon, ChatTextIcon, PlusIcon, TagIcon, WarningIcon, WalletIcon, XIcon } from '@/src/components/icons'
+import { CalendarBlankIcon, ChatTextIcon, PlusIcon, TagIcon, WarningIcon, WalletIcon, XIcon, ArrowLeftIcon } from '@/src/components/icons'
 import { useOptionalMoneyBrain } from '@/components/moneyBrainContext'
 import { useHiddenFeatures } from '../hooks/useUser'
+import { BudgetSwitcher, REOPEN_LOG_KEY } from './BudgetSwitcher'
+import { useReadOnlyError } from './BudgetNotices'
 import { Scrim, Sheet } from './MotionSheet'
 import { DatePicker, formatShort } from './DatePicker'
 import { getCategoryMap } from '../api/categoryMap'
@@ -38,6 +40,8 @@ import { base64Of, dataUrlFromFile, PHOTO_ENCODING } from '../features/scan-bill
 
 interface Props {
   onClose: () => void
+  /** Shown in place of the close button, e.g. back to the catch-up sheet. */
+  onBack?: () => void
   onSaved: () => void
 }
 
@@ -60,7 +64,7 @@ function offsetDateValue(daysAgo: number): string {
   return toDateInputValue(d)
 }
 
-export function LogExpenseModal({ onClose, onSaved }: Props) {
+export function LogExpenseModal({ onClose, onBack, onSaved }: Props) {
   const { currencySymbol, formatMoney } = useCurrency()
   const brain = useOptionalMoneyBrain()
   const askHidden = useHiddenFeatures().includes('askAviary')
@@ -88,6 +92,7 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
   const pickDateChipRef = useRef<HTMLButtonElement>(null)
   const [error, setError] = useState('')
   const { saving, success, start, fail, reset } = useButtonPhase()
+  const readOnlyError = useReadOnlyError()
   const uploadPhotoM = useUploadExpensePhoto()
   const photoSeq = useRef(0)
   // Set by a successful add: the dialog swaps the form for Mobile's expense-added beats.
@@ -363,9 +368,9 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
       })
       setPhotoNotice('')
       if (pickedPhoto) void uploadPhoto(result.id, pickedPhoto)
-    } catch {
+    } catch (err) {
       // The form keeps every field, so nothing the user typed is lost.
-      setError("Couldn't save. Your entry's safe. Fix anything and try again.")
+      setError(readOnlyError(err) ?? "Couldn't save. Your entry's safe. Fix anything and try again.")
       fail()
     }
   }
@@ -427,24 +432,29 @@ export function LogExpenseModal({ onClose, onSaved }: Props) {
               }
               icon={WarningIcon}
             />
+            {onBack && (
+              <button type="button" className="erd-modal-back" onClick={onBack} disabled={success}>
+                <ArrowLeftIcon size={14} aria-hidden="true" /> Back
+              </button>
+            )}
             <div className="erd-modal-head">
               <h3>Log expense</h3>
-              <button
-                type="button"
-                className="erd-modal-close"
-                onClick={onClose}
-                aria-label="Close"
-                disabled={success}
-              >
-                <XIcon size={18} aria-hidden="true" />
-              </button>
+              {!onBack && (
+                <button type="button" className="erd-modal-close" onClick={onClose} aria-label="Close" disabled={success}>
+                  <XIcon size={18} aria-hidden="true" />
+                </button>
+              )}
             </div>
 
             <div className="erd-log-body">
               <section className="erd-log-section">
-                <label className="erd-log-label" htmlFor="erd-log-amount">
-                  Amount
-                </label>
+                <div className="erd-log-label-row erd-log-amount-row">
+                  <label className="erd-log-label" htmlFor="erd-log-amount">
+                    Amount
+                  </label>
+                  {/* Picking another budget reloads into it; the flag brings this modal back up. */}
+                  <BudgetSwitcher className="is-inline" prefix="Logging to" onOpen={() => sessionStorage.setItem(REOPEN_LOG_KEY, '1')} />
+                </div>
                 <div
                   ref={amountNudgeRef}
                   className={`erd-amount-field${warning ? ' is-warn' : ''}${flag('amount') ? ' is-missing' : ''}`}

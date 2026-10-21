@@ -207,5 +207,5 @@ export function useCancelWebSubscription() {
  */
 export function useAccessAllowed(): boolean {
   const { data } = useBillingStatus()
-  return data?.allowed ?? true
+  return data ? data.allowed || !!data.covered : true
 }

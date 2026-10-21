@@ -1,7 +1,8 @@
 // @vitest-environment node
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MongoClient, type Db } from 'mongodb'
-import { MongoMemoryServer } from 'mongodb-memory-server'
+import type { MongoMemoryServer } from 'mongodb-memory-server'
+import { startMongo } from '@/src/test-utils/mongo'
 import type { UserDoc } from '@/lib/users'
 
 let db: Db
@@ -18,10 +19,10 @@ const { deliverWelcomeEmail, queueWelcomeEmail, scheduleWelcomeEmail } = await i
 const { sendEmail, EmailSendError } = await import('./resend')
 
 beforeAll(async () => {
-  server = await MongoMemoryServer.create({ binary: { version: '8.2.6' } })
+  server = await startMongo()
   client = await MongoClient.connect(server.getUri())
   db = client.db('welcome_test')
-}, 30_000)
+}, 120_000)
 afterAll(async () => { await client?.close(); await server?.stop() })
 beforeEach(async () => {
   await db.dropDatabase()

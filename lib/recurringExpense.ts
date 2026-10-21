@@ -38,6 +38,8 @@ export interface RecurringExpenseSchedule {
   end_date: string
   next_run_date: string
   status: string
+  /** Payday asked for when `start_date` had to clamp it (a 31st starting in November). */
+  anchor_day?: number
 }
 
 function parse(dateStr: string): Date | null {
@@ -104,7 +106,7 @@ export function occurrencesDue(rec: RecurringExpenseSchedule, today: string): st
   if (rec.status !== 'active') return []
   if (!parse(rec.next_run_date) || !parse(today)) return []
 
-  const anchor = parse(rec.start_date)?.getUTCDate()
+  const anchor = rec.anchor_day || parse(rec.start_date)?.getUTCDate()
   const due: string[] = []
   let cursor = rec.next_run_date
 
@@ -142,9 +144,9 @@ export function isExpired(rec: Pick<RecurringExpenseSchedule, 'end_date'>, today
  * backfill in `occurrencesDue` exists for runs the cron *missed*, not for
  * dates that predate the recurrence itself.
  */
-export function firstRunOnOrAfter(startDate: string, frequency: string, today: string): string {
+export function firstRunOnOrAfter(startDate: string, frequency: string, today: string, anchorDay?: number): string {
   if (!parse(startDate)) return startDate
-  const anchor = parse(startDate)!.getUTCDate()
+  const anchor = anchorDay || parse(startDate)!.getUTCDate()
 
   let cursor = startDate
   for (let i = 0; i < MAX_BACKFILL && cursor < today; i++) {

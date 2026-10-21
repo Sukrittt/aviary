@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const getAuthMock = vi.fn(async () => ({ userId: 'user_a', readOnly: false, sessionId: null }))
+const getAuthMock = vi.fn(async () => ({ userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const }))
 vi.mock('@/lib/access', () => ({
   getAuth: () => getAuthMock(),
   readOnlyGuard: (a: { readOnly: boolean }, method: string) =>
@@ -35,7 +35,7 @@ function patch(body: unknown, id = SESSION, proposalId = PROPOSAL) {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  getAuthMock.mockResolvedValue({ userId: 'user_a', readOnly: false, sessionId: null })
+  getAuthMock.mockResolvedValue({ userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const })
   updateOneMock.mockResolvedValue({ matchedCount: 1 })
   findOneMock.mockResolvedValue(null)
 })
@@ -126,7 +126,7 @@ describe('PATCH /api/ai/chat/sessions/:id/proposals/:proposalId', () => {
   })
 
   it('is read-only for the demo account', async () => {
-    getAuthMock.mockResolvedValue({ userId: 'demo', readOnly: true, sessionId: null })
+    getAuthMock.mockResolvedValue({ userId: 'demo', readOnly: true, sessionId: null, spaceId: 'demo', spaceOwnerId: 'demo', spaceRole: 'owner' as const })
     expect((await patch({ status: 'dismissed' })).status).toBe(403)
     expect(updateOneMock).not.toHaveBeenCalled()
   })

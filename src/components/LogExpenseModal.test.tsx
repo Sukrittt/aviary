@@ -4,12 +4,14 @@ import { LogExpenseModal } from './LogExpenseModal'
 import { MoneyBrainContext } from '@/components/moneyBrainContext'
 import { suggestCategoryLLM } from '../lib/autoCategory'
 
-const { addExpenseMutation, deleteExpenseMutation, addCategoryMutation, history } = vi.hoisted(() => ({
+const { addExpenseMutation, deleteExpenseMutation, addCategoryMutation, history, spaces } = vi.hoisted(() => ({
   addExpenseMutation: vi.fn(),
   deleteExpenseMutation: vi.fn(),
   addCategoryMutation: vi.fn(),
   history: { rows: [] as unknown[] },
+  spaces: { multi: false, active: { id: 'u1', emoji: '🐦', name: 'Personal' } },
 }))
+vi.mock('../hooks/useSpaces', () => ({ useSpaces: () => spaces }))
 vi.mock('../hooks/useAccounts', () => ({
   useAccounts: () => ({ data: [], isSuccess: true }),
   liveAccounts: () => [],
@@ -76,6 +78,7 @@ beforeEach(() => {
   deleteExpenseMutation.mockReset()
   addCategoryMutation.mockReset()
   history.rows = []
+  spaces.multi = false
 })
 
 it('blocks a save with empty fields and names them in a toast', async () => {
@@ -434,4 +437,16 @@ it.each([
   expect(screen.queryByText('Added ₹450 · Milk')).not.toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: screenLabel }))
   expect(onClose).toHaveBeenCalledOnce()
+})
+
+it('offers a budget switch on the Amount row, only once there are two', () => {
+  const { unmount } = render(<LogExpenseModal onClose={vi.fn()} onSaved={vi.fn()} />)
+  expect(screen.queryByText(/Logging to/)).toBeNull()
+  unmount()
+  spaces.multi = true
+  spaces.active = { id: 's1', emoji: '🏠', name: 'Home' }
+  render(<LogExpenseModal onClose={vi.fn()} onSaved={vi.fn()} />)
+  const chip = screen.getByRole('button', { name: 'Budget: Home. Switch budget' })
+  expect(chip.textContent).toBe('Logging toHome')
+  expect(screen.queryByText(/🏠/)).toBeNull()
 })

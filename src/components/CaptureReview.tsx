@@ -27,6 +27,7 @@ import { todayLocal } from '@/src/lib/date'
 import { splitEmoji } from '@/src/lib/emoji'
 import { formatDateShort } from '@/src/lib/format'
 import { unusualAmount } from '@/src/lib/unusualAmount'
+import { BudgetLine } from './BudgetSwitcher'
 
 interface Props {
   proposal: CaptureProposal
@@ -192,6 +193,7 @@ export function CaptureReview({ proposal, onSettled, origin = CAPTURE_ORIGIN, lo
 
   return (
     <div className="capture-review" data-testid="capture-review">
+      <BudgetLine />
       {kept.map((row) => {
         const total = rowTotal(row)
         const share = rowShare(row)

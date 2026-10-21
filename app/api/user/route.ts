@@ -5,12 +5,31 @@ import { getDb } from '@/lib/mongodb'
 import { getWorkOSClient } from '@/lib/workosClient'
 import { ensureUserById, serializeUser, HIDEABLE_FEATURES, HEARD_FROM_SOURCES, type HideableFeature, type UserDoc } from '@/lib/users'
 import { purgesAt } from '@/lib/archive'
+import { handOffSharedBudgets } from '@/lib/spaceMembers'
 import { softDeleteAccount } from '@/lib/accountLifecycle'
 import { cancelWebSubscriptions, completeOnboarding } from '@/lib/billing/service'
 import { BillingProviderError } from '@/lib/billing/providerError'
 import { scheduleWelcomeEmail } from '@/lib/email/welcome'
+import { getBudgetCurrency } from '@/lib/userCurrency'
+import { BudgetError, updateBudget } from '@/lib/spaces'
+import type { Auth } from '@/lib/access'
 
 export const dynamic = 'force-dynamic'
+
+/**
+ * `currencyCode` describes the active budget, so every screen that formats
+ * money off the user keeps working unchanged in a budget kept in another
+ * currency. The personal budget's is the user's own, as before.
+ */
+async function forActiveBudget(auth: Auth, user: UserDoc | null) {
+  const out = serializeUser(user)
+  if (!out || auth.spaceDenied) return out
+  // Someone who only joined has no setup of their own to do: the budget they
+  // joined is already set up, so they skip onboarding.
+  const joinedOnly = user?.noPersonalBudget ? { onboardedAt: out.onboardedAt ?? new Date(user.createdAt ?? Date.now()).toISOString() } : {}
+  if (auth.spaceId === auth.userId) return { ...out, ...joinedOnly }
+  return { ...out, onboardedAt: out.onboardedAt ?? new Date(0).toISOString(), currencyCode: await getBudgetCurrency(auth) }
+}
 
 
 export async function GET(req: Request) {
@@ -28,7 +47,7 @@ export async function GET(req: Request) {
     scheduleWelcomeEmail(auth.userId)
     user = await users.findOne({ _id: auth.userId })
   }
-  return json(serializeUser(user))
+  return json(await forActiveBudget(auth, user))
 }
 
 export async function PATCH(req: Request) {
@@ -57,7 +76,17 @@ export async function PATCH(req: Request) {
   > = {}
   if ('currencyCode' in body) {
     if (!isCurrencyCode(body.currencyCode)) return error('invalid currency code')
-    updates.currencyCode = body.currencyCode
+    // In another budget the currency setting is that budget's, and only its owner may change it.
+    if (auth.spaceId !== auth.userId && !auth.spaceDenied) {
+      try {
+        await updateBudget(auth, auth.spaceId, { currencyCode: body.currencyCode })
+      } catch (err) {
+        if (err instanceof BudgetError) return error('only the owner can change this budget’s currency', 403)
+        throw err
+      }
+    } else {
+      updates.currencyCode = body.currencyCode
+    }
   }
   if ('timezone' in body) {
     if (!isValidTimezone(body.timezone)) return error('invalid timezone')
@@ -95,7 +124,8 @@ export async function PATCH(req: Request) {
   // is discarded — and routed through the same server-owned action as
   // POST /api/onboarding/complete. See lib/billing/service.ts.
   const completing = 'onboardedAt' in body
-  if (!completing && !completingGuidedTour && !seeingWeekRecap && Object.keys(updates).length === 0) return error('no valid fields')
+  const budgetCurrency = 'currencyCode' in body && !('currencyCode' in updates)
+  if (!completing && !completingGuidedTour && !seeingWeekRecap && !budgetCurrency && Object.keys(updates).length === 0) return error('no valid fields')
 
   if (name !== undefined) {
     await getWorkOSClient().userManagement.updateUser({ userId: auth.userId, name: name || undefined })
@@ -127,7 +157,7 @@ export async function PATCH(req: Request) {
     await completeOnboarding(db, auth.userId, new Date(), { requireSetup: false })
   }
   const user = await db.collection<UserDoc>('users').findOne({ _id: auth.userId })
-  return json(serializeUser(user))
+  return json(await forActiveBudget(auth, user))
 }
 
 export async function DELETE(req: Request) {
@@ -157,6 +187,13 @@ export async function DELETE(req: Request) {
     if (err instanceof BillingProviderError) return error('could not cancel your web subscription, try again shortly', 503)
     throw err
   }
+
+  // Shared budgets they own go to the member they picked, or close (and come
+  // back if the account is restored). Members are told either way.
+  const transfers = body.transfers && typeof body.transfers === 'object' && !Array.isArray(body.transfers)
+    ? Object.fromEntries(Object.entries(body.transfers as Record<string, unknown>).filter((e): e is [string, string] => typeof e[1] === 'string'))
+    : {}
+  await handOffSharedBudgets(db, auth.userId, transfers)
 
   // Soft delete, same as every other DELETE route (lib/scoped.ts) — a
   // recoverable grace window, not an immediate wipe. See lib/accountLifecycle.ts.

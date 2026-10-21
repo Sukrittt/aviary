@@ -53,7 +53,7 @@ describe('monthRange', () => {
   })
 })
 
-const AUTH = { userId: 'u1', readOnly: false, sessionId: null }
+const AUTH = { userId: 'u1', readOnly: false, sessionId: null, spaceId: 'u1', spaceOwnerId: 'u1', spaceRole: 'owner' as const }
 
 describe('editionStatus', () => {
   it('is unavailable one below the threshold', async () => {
@@ -83,7 +83,7 @@ describe('editionStatus', () => {
 })
 
 describe('readWrapped', () => {
-  const auth = { userId: 'user_a', readOnly: false, sessionId: null } as Parameters<typeof readWrapped>[0]
+  const auth = { userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const } as Parameters<typeof readWrapped>[0]
   const expense = (date: string, amount: number) => ({ date, timestamp: `${date}T12:00:00`, item: 'Lunch', amount_inr: String(amount), category: 'Food', source: 'manual' })
 
   it('sends the deck and last month, never the internal facts', async () => {

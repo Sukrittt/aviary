@@ -36,6 +36,8 @@ export interface ExpenseRow {
   has_photo?: boolean
   /** Signed, ~1h. Only on Activity feed pages (`photos: true`). */
   photo_url?: string
+  /** Who logged it, in a shared budget. null = the budget's owner (rows from before sharing). */
+  created_by?: string | null
 }
 
 /** One payment that came in. `counted: 'extra'` rows are part of their month's Ready to Assign; 'monthly' rows are a payday of the monthly income, already counted from day 1. */
@@ -83,6 +85,8 @@ export interface CategoryRow {
   group: string
   /** A Phosphor icon name from src/lib/categoryIcons.ts, once the user picks one. */
   icon?: string
+  /** A tint key from src/lib/categoryColors.ts, once the user picks one on Mobile. */
+  color?: string
   alertPcts?: number[]
 }
 

@@ -3,6 +3,7 @@ import { getAuth, readOnlyGuard } from '@/lib/access'
 import { requireAccess } from '@/lib/billing/guard'
 import { invalidate } from '@/lib/cache'
 import { isCategoryIconKey } from '@/src/lib/categoryIcons'
+import { isCategoryColor } from '@/src/lib/categoryColors'
 import { createGroup } from '@/lib/groups'
 
 export const dynamic = 'force-dynamic'
@@ -13,9 +14,13 @@ export async function GET(req: Request) {
   if (gate) return gate
   const coll = await getCollection('groups', auth)
   const docs = (await coll.find({}).sort({ order: 1 }).toArray()).filter((d) => d.name)
-  // Plain names by default (Mobile reads string[]); ?icons=1 adds each picked icon.
+  // Plain names by default (Mobile reads string[]); ?icons=1 adds each picked icon and colour.
   if (new URL(req.url).searchParams.get('icons') === '1')
-    return json(docs.map((d) => ({ name: d.name, ...(isCategoryIconKey(d.icon) ? { icon: d.icon } : {}) })))
+    return json(docs.map((d) => ({
+      name: d.name,
+      ...(isCategoryIconKey(d.icon) ? { icon: d.icon } : {}),
+      ...(isCategoryColor(d.color) ? { color: d.color } : {}),
+    })))
   return json(docs.map((d) => d.name))
 }
 
@@ -45,6 +50,7 @@ export async function PUT(req: Request) {
 
   const coll = await getCollection('groups', auth)
   if (body.icon !== undefined && !isCategoryIconKey(body.icon)) return error('unknown icon')
+  if (body.color !== undefined && !isCategoryColor(body.color)) return error('unknown color')
   const existing = await coll.findOne({ name: String(body.name) })
   if (!existing) return error('group not found', 404)
 
@@ -56,11 +62,13 @@ export async function PUT(req: Request) {
     const catColl = await getCollection('categories', auth)
     // Archived categories too, so restoring one later still finds its group.
     await catColl.updateMany({ group: String(body.name) }, { $set: { group: newName } }, {}, { includeDeleted: true })
-    invalidate('categories', auth.userId)
+    invalidate('categories', auth.spaceId)
   }
   if (body.icon !== undefined)
     await coll.updateOne({ name: String(body.newName || body.name) }, { $set: { icon: body.icon } })
-  invalidate('groups', auth.userId)
+  if (body.color !== undefined)
+    await coll.updateOne({ name: String(body.newName || body.name) }, { $set: { color: body.color } })
+  invalidate('groups', auth.spaceId)
   return json({ ok: true })
 }
 
@@ -84,7 +92,7 @@ export async function DELETE(req: Request) {
   const catColl = await getCollection('categories', auth)
   await catColl.deleteMany({ group: String(body.name) })
   await coll.deleteOne({ name: String(body.name) })
-  invalidate('categories', auth.userId)
-  invalidate('groups', auth.userId)
+  invalidate('categories', auth.spaceId)
+  invalidate('groups', auth.spaceId)
   return json({ ok: true })
 }

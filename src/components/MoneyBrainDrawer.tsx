@@ -17,6 +17,10 @@ import { useGroups } from '@/src/hooks/useGroups'
 import { useHideAmounts } from '@/src/hooks/useHideAmounts'
 import { useMoneyBrief } from '@/src/hooks/useMoneyBrief'
 import { useChatSessions, useChatSessionsCount } from '@/src/hooks/useChatSessions'
+import { useSpaces } from '@/src/hooks/useSpaces'
+import { ownerName } from '@/src/hooks/useAuthors'
+import { readOnlyBanner } from './BudgetNotices'
+import { LockIcon } from '@/src/components/icons'
 import { computeEnvelopeState, currentMonthKey } from '@/src/lib/envelope'
 
 import { CAPTURE_FAILED_MESSAGE, getChatSession, streamChat, updateProposalStatus, type ChatMessage } from '@/src/api/ai'
@@ -89,6 +93,8 @@ function timeAgo(iso: string) {
 type BrainMessage = ChatMessage & { captureFailed?: boolean }
 
 export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onLogManually, openChat, onClose }: Props) {
+  // Chat spends the owner's AI allowance, so a read-only budget takes no questions.
+  const { readOnly, active } = useSpaces()
   const { formatCurrency } = useCurrency()
   const { theme } = useAppearance()
 
@@ -215,7 +221,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onL
 
   async function send(text: string, source: 'chip' | 'typed') {
     const trimmed = text.trim()
-    if (!trimmed || sending) return
+    if (!trimmed || sending || readOnly) return
     track('money_brain_query', { source })
     const historyMessages: BrainMessage[] = [...messages, { role: 'user' as const, text: trimmed }]
     setMessages([...historyMessages, { role: 'model', text: '' }])
@@ -441,7 +447,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onL
                   })}
                 </section>
               ) : null}
-              {brief.data?.questions.length ? (
+              {brief.data?.questions.length && !readOnly ? (
                 <section>
                   <span className="brain-kicker">Ask anything</span>
                   <div className="brain-chips">
@@ -494,6 +500,12 @@ export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onL
                 </div>
               )}
             </div>
+            {readOnly ? (
+              <p className="brain-readonly" role="status">
+                <LockIcon size={14} weight="fill" aria-hidden="true" />
+                <span><strong>Ask Aviary is paused.</strong> {readOnlyBanner(ownerName(active))}</span>
+              </p>
+            ) : (
             <form className="brain-composer" onSubmit={(event) => { event.preventDefault(); void send(input, 'typed') }}>
               <textarea
                 ref={inputRef}
@@ -512,6 +524,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onL
               />
               <button type="submit" disabled={sending || !input.trim()} aria-label="Send question"><ArrowUpIcon size={18} /></button>
             </form>
+            )}
           </>
         )}
       </motion.aside>

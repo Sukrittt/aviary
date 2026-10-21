@@ -25,6 +25,12 @@ export interface TransactionalEmail {
   url: string
   secondary?: { label: string; url: string }
   reason: string
+  /** A note from a person: no badge or headline, just the greeting and paragraphs. */
+  note?: boolean
+  /** Defaults to "The Aviary team". */
+  signature?: string
+  /** Adds an Unsubscribe link to the footer. Only for emails someone can opt out of. */
+  unsubscribeUrl?: string
 }
 
 function title(raw: string) {
@@ -39,6 +45,7 @@ export function transactionalTemplate(input: TransactionalEmail) {
   const greeting = firstName ? `Hi ${firstName},` : 'Hi there,'
   const heading = input.title ?? input.subject
   const e = escapeHtml
+  const signature = input.signature ?? 'The Aviary team'
   const p = (size: number, color: string) => `margin:0 0 16px;font-family:${BODY};font-size:${size}px;line-height:${Math.round(size * 1.6)}px;color:${color};`
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light"><title>${e(input.subject)}</title></head>
 <body style="margin:0;padding:0;background:${C.bg};font-family:${BODY};color:${C.ink};">
@@ -49,8 +56,8 @@ export function transactionalTemplate(input: TransactionalEmail) {
 <td style="font-family:${DISPLAY};font-size:25px;font-weight:600;letter-spacing:-0.5px;color:${C.ink};">Aviary<span style="color:${C.accentInk};">.</span></td>
 </tr></table></td></tr>
 <tr><td>
-${input.kicker ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin-bottom:18px;"><tr><td bgcolor="${C.tint}" style="border-radius:100px;padding:5px 12px;font-family:${BODY};font-size:12px;font-weight:700;letter-spacing:0.3px;text-transform:uppercase;color:${C.accentInk};">${e(input.kicker)}</td></tr></table>` : ''}
-<h1 style="margin:0 0 20px;font-family:${DISPLAY};font-size:34px;line-height:38px;font-weight:600;letter-spacing:-0.8px;color:${C.ink};">${title(heading)}</h1>
+${input.kicker && !input.note ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin-bottom:18px;"><tr><td bgcolor="${C.tint}" style="border-radius:100px;padding:5px 12px;font-family:${BODY};font-size:12px;font-weight:700;letter-spacing:0.3px;text-transform:uppercase;color:${C.accentInk};">${e(input.kicker)}</td></tr></table>` : ''}
+${input.note ? '' : `<h1 style="margin:0 0 20px;font-family:${DISPLAY};font-size:34px;line-height:38px;font-weight:600;letter-spacing:-0.8px;color:${C.ink};">${title(heading)}</h1>`}
 <p style="${p(17, C.ink)}">${e(greeting)}</p>
 ${input.paragraphs.map(text => `<p style="${p(17, C.body)}">${e(text)}</p>`).join('\n')}
 ${input.details?.length ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:4px 0 24px;background:${C.surface};border-radius:16px;"><tr><td style="padding:6px 18px;">
@@ -58,12 +65,12 @@ ${input.details.map(([label, value]) => `<table role="presentation" width="100%"
 </td></tr></table>` : ''}
 <table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:8px;"><tr><td bgcolor="${C.ink}" style="border-radius:999px;mso-padding-alt:16px 28px;"><a href="${e(input.url)}" style="display:inline-block;padding:16px 28px;font-family:${BODY};color:#ffffff;text-decoration:none;font-size:16px;font-weight:700;">${e(input.cta)}</a></td></tr></table>
 ${input.secondary ? `<p style="margin:18px 0 0;font-family:${BODY};font-size:15px;font-weight:700;"><a href="${e(input.secondary.url)}" style="color:${C.accentInk};text-decoration:none;">${e(input.secondary.label)} &rarr;</a></p>` : ''}
-<p style="margin:32px 0 0;font-family:${BODY};font-size:15px;line-height:24px;color:${C.body};">Happy budgeting,<br><strong style="color:${C.ink};">The Aviary team</strong></p>
+<p style="margin:32px 0 0;font-family:${BODY};font-size:15px;line-height:24px;color:${C.body};">Happy budgeting,<br><strong style="color:${C.ink};">${e(signature)}</strong></p>
 </td></tr>
-<tr><td style="padding:32px 0 0;font-family:${BODY};font-size:13px;line-height:21px;color:${C.muted};">${e(input.reason)}<br>Questions? Just reply, or write to <a href="mailto:${SUPPORT_EMAIL}" style="color:${C.accentInk};">${SUPPORT_EMAIL}</a>.<br><a href="https://useaviary.com" style="color:${C.muted};">useaviary.com</a></td></tr>
+<tr><td style="padding:32px 0 0;font-family:${BODY};font-size:13px;line-height:21px;color:${C.muted};">${e(input.reason)}<br>Questions? Just reply, or write to <a href="mailto:${SUPPORT_EMAIL}" style="color:${C.accentInk};">${SUPPORT_EMAIL}</a>.<br><a href="https://useaviary.com" style="color:${C.muted};">useaviary.com</a>${input.unsubscribeUrl ? ` · <a href="${e(input.unsubscribeUrl)}" style="color:${C.muted};">Unsubscribe</a>` : ''}</td></tr>
 </table></td></tr></table></body></html>`
   const details = input.details?.length ? `\n${input.details.map(([label, value]) => `${label}: ${value}`).join('\n')}\n` : ''
   const secondary = input.secondary ? `\n${input.secondary.label}: ${input.secondary.url}` : ''
-  const text = `${greeting}\n\n${input.paragraphs.join('\n\n')}\n${details}\n${input.cta}: ${input.url}${secondary}\n\nHappy budgeting,\nThe Aviary team\n\n${input.reason}\nQuestions? Just reply, or write to ${SUPPORT_EMAIL}.\nuseaviary.com`
+  const text = `${greeting}\n\n${input.paragraphs.join('\n\n')}\n${details}\n${input.cta}: ${input.url}${secondary}\n\nHappy budgeting,\n${signature}\n\n${input.reason}\nQuestions? Just reply, or write to ${SUPPORT_EMAIL}.\nuseaviary.com${input.unsubscribeUrl ? `\nUnsubscribe: ${input.unsubscribeUrl}` : ''}`
   return { subject: input.subject, html, text }
 }

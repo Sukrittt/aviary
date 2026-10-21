@@ -26,7 +26,61 @@ export async function apiFetch(path: string, init?: RequestInit): Promise<Respon
   // for as long as the model is talking). `init?.signal ?? timeout` would hand
   // that caller the 15s timeout it was trying to avoid.
   const signal = init && 'signal' in init ? init.signal : AbortSignal.timeout(REQUEST_TIMEOUT_MS)
-  return fetch(path, { ...init, signal })
+  const resp = await fetch(path, { ...init, signal })
+  if (resp.status === 403) await leaveLostBudget(resp)
+  if (resp.status === 402) await flagReadOnly(resp)
+  return resp
+}
+
+/** Fired when a write comes back 402 BUDGET_READ_ONLY: the owner's plan lapsed. BudgetNotices shows the banner. */
+export const BUDGET_READ_ONLY_EVENT = 'aviary:budget-read-only'
+/** `{id, name}` of the open budget, kept fresh by useSpaces so a lost one can still be named after the reload. */
+export const ACTIVE_BUDGET_KEY = 'aviary-active-budget'
+/** sessionStorage: the budget we were just thrown out of, for the "You're no longer in…" notice. */
+export const LOST_BUDGET_KEY = 'aviary-lost-budget'
+
+async function flagReadOnly(resp: Response) {
+  const body = await resp.clone().json().catch(() => null)
+  if (body?.error === 'BUDGET_READ_ONLY') window.dispatchEvent(new Event(BUDGET_READ_ONLY_EVENT))
+}
+
+/**
+ * The budget cookie names one this person was removed from (or that's gone):
+ * every data route answers 403 NOT_A_MEMBER for it. Drop the cookie and
+ * reload into the personal budget. Only when the denied id is the cookie's,
+ * so a move into a lost budget doesn't throw you out of this one.
+ */
+async function leaveLostBudget(resp: Response) {
+  const cookie = budgetCookie()
+  if (!cookie) return
+  const body = await resp.clone().json().catch(() => null)
+  if (body?.error !== 'NOT_A_MEMBER' || body.spaceId !== cookie) return
+  try {
+    const last = JSON.parse(localStorage.getItem(ACTIVE_BUDGET_KEY) ?? 'null')
+    if (last?.id === cookie) sessionStorage.setItem(LOST_BUDGET_KEY, JSON.stringify(last))
+  } catch {
+    // storage blocked: reload without the notice
+  }
+  setBudgetCookie(null)
+  window.location.reload()
+}
+
+/** The budget the `aviary-budget` cookie picks, or null for the personal one. */
+export function budgetCookie(): string | null {
+  if (typeof document === 'undefined') return null
+  const raw = /(?:^|;\s*)aviary-budget=([^;]*)/.exec(document.cookie)?.[1]
+  try {
+    return raw ? decodeURIComponent(raw) : null
+  } catch {
+    return raw ?? null
+  }
+}
+
+/** Remembers the active budget on this device; the server reads it on every request. null = personal. */
+export function setBudgetCookie(id: string | null): void {
+  document.cookie = id
+    ? `aviary-budget=${encodeURIComponent(id)}; path=/; max-age=31536000; SameSite=Lax`
+    : 'aviary-budget=; path=/; max-age=0; SameSite=Lax'
 }
 
 /**

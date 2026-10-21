@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   addCategory,
@@ -9,6 +9,7 @@ import {
 } from '@/src/api/categories'
 import type { CategoryRow } from '@/src/types'
 import { track } from '@/src/lib/analytics'
+import { avatarStyleFor, splitEmoji } from '@/src/lib/emoji'
 
 const key = ['categories'] as const
 export const categoriesKey = key
@@ -52,10 +53,34 @@ export function useCategoryIcons(): Map<string, string> {
   return useMemo(() => new Map((data ?? []).flatMap((c) => (c.icon ? [[c.name, c.icon] as const] : []))), [data])
 }
 
+/**
+ * Picked category colours, keyed by both the stored name and its words, since
+ * rows pass either ("🏠 Rent" or "Rent"). Categories without one are left out.
+ */
+export function useCategoryColors(): Map<string, string> {
+  const { data } = useCategories()
+  return useMemo(() => {
+    const map = new Map<string, string>()
+    for (const c of data ?? []) {
+      if (!c.color) continue
+      map.set(splitEmoji(c.name).text, c.color)
+      map.set(c.name, c.color)
+    }
+    return map
+  }, [data])
+}
+
+/** avatarStyleFor with each category's picked colour, for rows that only carry the name. */
+export function useCategoryStyle(): (category: string) => { background: string; color: string } {
+  const colors = useCategoryColors()
+  return useCallback((category: string) => avatarStyleFor(category, colors.get(category)), [colors])
+}
+
 export function useAddCategory() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (params: { name: string; group?: string; icon?: string }) => addCategory(params.name, params.group, params.icon),
+    mutationFn: (params: { name: string; group?: string; icon?: string; color?: string }) =>
+      addCategory(params.name, params.group, params.icon, params.color),
     onSuccess: (_data, params) => {
       // Envelopes get created from two places: the setup wizard and the
       // inline "new category" row inside log-expense. $screen_name tells them
@@ -69,7 +94,7 @@ export function useAddCategory() {
 export function useUpdateCategory() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (params: { name: string; updates: { newName?: string; group?: string; icon?: string; alertPcts?: number[] | null } }) =>
+    mutationFn: (params: { name: string; updates: { newName?: string; group?: string; icon?: string; color?: string; alertPcts?: number[] | null } }) =>
       updateCategory(params.name, params.updates),
     onSuccess: () => qc.invalidateQueries({ queryKey: key }),
   })

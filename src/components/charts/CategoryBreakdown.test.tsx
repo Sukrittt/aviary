@@ -4,6 +4,8 @@ import { CategoryBreakdown } from './CategoryBreakdown'
 import type { BreakdownRow } from '@/src/lib/monthly'
 import { avatarInkFor, chartInk } from '@/src/lib/emoji'
 
+vi.mock('@/src/hooks/useCategories', () => ({ useCategoryColors: () => new Map() }))
+vi.mock('@/src/hooks/useGroups', () => ({ useGroupColors: () => new Map() }))
 vi.mock('./DonutChart', () => ({ DonutChart: ({ segments }: { segments: { key: string; color: string }[] }) => <output data-testid="donut-colors">{JSON.stringify(segments)}</output> }))
 const props = {
   rows: [], categoryRows: [], groupRows: [], categoryGroupMap: new Map<string, string>(),

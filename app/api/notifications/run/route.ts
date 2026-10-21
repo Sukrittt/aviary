@@ -3,7 +3,7 @@ import { timingSafeEqual, createHash } from 'node:crypto'
 import type { Db } from 'mongodb'
 import { json, nowIn, getCollection } from '@/lib/http'
 import { getDb } from '@/lib/mongodb'
-import type { Auth } from '@/lib/access'
+import { jobAuth, liveSpaces, spacesToRun } from '@/lib/spaces'
 import { buildExpenseContext } from '@/lib/ai/expenseContext'
 import { buildNotifications, prefsFor, weekRecapNotification, weekRecapTeaserNotification, wrappedNotification } from '@/lib/notifications/rules'
 import { claim, claimAndSend, unclaim } from '@/lib/notifications/deliver'
@@ -37,7 +37,7 @@ async function runForUser(db: Db, user: UserDoc): Promise<number> {
   const prefs = prefsFor(user)
   if (prefs.cadence === 'off') return 0
 
-  const auth: Auth = { userId: user._id, readOnly: false, sessionId: null }
+  const auth = jobAuth(user._id)
   const { facts, meta, envelopes, subscriptions, categories, highlights } = await buildExpenseContext(auth)
   const { date: today } = nowIn(user.timezone)
 
@@ -79,7 +79,7 @@ async function runWrappedForUser(db: Db, user: UserDoc): Promise<number> {
   const notification = wrappedNotification(month, prefs)
   if (!notification) return 0
 
-  const auth: Auth = { userId: user._id, readOnly: false, sessionId: null }
+  const auth = jobAuth(user._id)
   const status = await editionStatus(auth, month)
   if (!status.available) return 0
 
@@ -94,9 +94,19 @@ async function runWrappedForUser(db: Db, user: UserDoc): Promise<number> {
  * turned off the digest may still have a recurring investment running).
  * Runs for every user rather than a cadence-filtered subset for that reason.
  */
-async function runRecurringInvestmentsForUser(db: Db, user: UserDoc, today: string): Promise<number> {
+/**
+ * Claim keys live in the owner's send log, and one owner can run several
+ * budgets: a "Rent" in two of them must not share a key. The personal budget
+ * keeps the bare keys it always had, so a deploy re-sends nothing.
+ */
+function claimPrefix(userId: string, spaceId: string): string {
+  return spaceId === userId ? '' : `${spaceId}:`
+}
+
+async function runRecurringInvestmentsForSpace(db: Db, user: UserDoc, spaceId: string, today: string): Promise<number> {
   const money = (n: number) => formatMoney(Math.round(n), user.currencyCode)
-  const auth: Auth = { userId: user._id, readOnly: false, sessionId: null }
+  const auth = jobAuth(user._id, spaceId)
+  const key = claimPrefix(user._id, spaceId)
   const holdingsColl = await getCollection('holdings', auth)
   const recurring = await holdingsColl.find({ is_recurring: 'true' }).toArray()
 
@@ -115,7 +125,7 @@ async function runRecurringInvestmentsForUser(db: Db, user: UserDoc, today: stri
       const result = await applyHoldingAction(auth, { name, action: 'contribution', amount })
       if (result.ok) {
         await holdingsColl.updateOne({ name }, { $set: { recurring_last_run: today.slice(0, 7) } })
-        if (await claim(db, user._id, `invest:${name}:${today}`)) {
+        if (await claim(db, user._id, `${key}invest:${name}:${today}`)) {
           try {
             await sendPushNotification({
               userId: user._id,
@@ -126,7 +136,7 @@ async function runRecurringInvestmentsForUser(db: Db, user: UserDoc, today: stri
             sent++
           } catch (err) {
             console.error('notifications/run: investment push failed for', user._id, name, err)
-            await unclaim(db, user._id, `invest:${name}:${today}`)
+            await unclaim(db, user._id, `${key}invest:${name}:${today}`)
           }
         }
       }
@@ -134,7 +144,7 @@ async function runRecurringInvestmentsForUser(db: Db, user: UserDoc, today: stri
 
     if (isDueTomorrow(recurrence, today)) {
       const tomorrow = tomorrowOf(today)
-      if (await claim(db, user._id, `invest-reminder:${name}:${tomorrow}`)) {
+      if (await claim(db, user._id, `${key}invest-reminder:${name}:${tomorrow}`)) {
         try {
           await sendPushNotification({
             userId: user._id,
@@ -145,7 +155,7 @@ async function runRecurringInvestmentsForUser(db: Db, user: UserDoc, today: stri
           sent++
         } catch (err) {
           console.error('notifications/run: investment reminder failed for', user._id, name, err)
-          await unclaim(db, user._id, `invest-reminder:${name}:${tomorrow}`)
+          await unclaim(db, user._id, `${key}invest-reminder:${name}:${tomorrow}`)
         }
       }
     }
@@ -161,9 +171,10 @@ async function runRecurringInvestmentsForUser(db: Db, user: UserDoc, today: stri
  * cadence-filtered subset: like recurring investments, this isn't a digest
  * preference — it's the subscription's own due date.
  */
-async function runSubscriptionExpensesForUser(db: Db, user: UserDoc, today: string): Promise<number> {
+async function runSubscriptionExpensesForSpace(db: Db, user: UserDoc, spaceId: string, today: string): Promise<number> {
   const money = (n: number) => formatMoney(Math.round(n), user.currencyCode)
-  const auth: Auth = { userId: user._id, readOnly: false, sessionId: null }
+  const auth = jobAuth(user._id, spaceId)
+  const key = claimPrefix(user._id, spaceId)
   const subsColl = await getCollection('subscriptions', auth)
   const subs = await subsColl.find({}).toArray()
 
@@ -187,7 +198,7 @@ async function runSubscriptionExpensesForUser(db: Db, user: UserDoc, today: stri
     })
     if (!result.ok) continue
 
-    const claimKey = `sub-expense:${service}:${today}`
+    const claimKey = `${key}sub-expense:${service}:${today}`
     if (!(await claim(db, user._id, claimKey))) continue
 
     try {
@@ -228,9 +239,10 @@ async function runSubscriptionExpensesForUser(db: Db, user: UserDoc, today: stri
  *   means a crash just leaves the schedule unadvanced and the next run retries
  *   — which `client_id` makes safe.
  */
-async function runRecurringExpensesForUser(db: Db, user: UserDoc, today: string): Promise<number> {
+async function runRecurringExpensesForSpace(db: Db, user: UserDoc, spaceId: string, today: string): Promise<number> {
   const money = (n: number) => formatMoney(Math.round(n), user.currencyCode)
-  const auth: Auth = { userId: user._id, readOnly: false, sessionId: null }
+  const auth = jobAuth(user._id, spaceId)
+  const key = claimPrefix(user._id, spaceId)
   const coll = await getCollection('recurring_expenses', auth)
   const recurrences = await coll.find({ status: 'active' }).toArray()
 
@@ -285,7 +297,7 @@ async function runRecurringExpensesForUser(db: Db, user: UserDoc, today: string)
       if (invalid) {
         console.warn('notifications/run: pausing recurring expense', user._id, id, invalid)
         await coll.updateOne({ _id: rec._id }, { $set: { status: 'paused' } })
-        if (await claim(db, user._id, `recur-paused:${id}:${today}`)) {
+        if (await claim(db, user._id, `${key}recur-paused:${id}:${today}`)) {
           try {
             await sendPushNotification({
               userId: user._id,
@@ -296,7 +308,7 @@ async function runRecurringExpensesForUser(db: Db, user: UserDoc, today: string)
             sent++
           } catch (err) {
             console.error('notifications/run: recurring pause push failed for', user._id, id, err)
-            await unclaim(db, user._id, `recur-paused:${id}:${today}`)
+            await unclaim(db, user._id, `${key}recur-paused:${id}:${today}`)
           }
         }
         continue
@@ -323,7 +335,7 @@ async function runRecurringExpensesForUser(db: Db, user: UserDoc, today: string)
 
       await notifyThresholdCrossed(auth, category)
 
-      if (await claim(db, user._id, `recur-expense:${id}:${today}`)) {
+      if (await claim(db, user._id, `${key}recur-expense:${id}:${today}`)) {
         try {
           const label = String(rec.item ?? 'recurring expense')
           await sendPushNotification({
@@ -338,7 +350,7 @@ async function runRecurringExpensesForUser(db: Db, user: UserDoc, today: string)
           sent++
         } catch (err) {
           console.error('notifications/run: recurring expense push failed for', user._id, id, err)
-          await unclaim(db, user._id, `recur-expense:${id}:${today}`)
+          await unclaim(db, user._id, `${key}recur-expense:${id}:${today}`)
         }
       }
     } catch (err) {
@@ -363,7 +375,7 @@ async function runWeekRecapForUser(db: Db, user: UserDoc): Promise<number> {
   }
   const day = learningDay(start, today)
   if (!start || (day !== 3 && day !== 5) || !prefs.wrapped) return 0
-  const auth: Auth = { userId: user._id, readOnly: false, sessionId: null }
+  const auth = jobAuth(user._id)
   const docs = await (await getCollection('expenses', auth)).find({ date: { $gte: start, $lte: today } }).toArray()
   const { daysLogged } = computeWeekRecap(docs.map((d) => toRow(EXPENSE_HEADERS, d) as RecapRow), start)
   const notification = weekRecapTeaserNotification(day, daysLogged, prefs)
@@ -415,37 +427,36 @@ async function runAll(): Promise<{ sent: number }> {
     }
   }
 
-  // Not filtered by notifyCadence — a recurring investment is its own opt-in,
-  // set per-holding, independent of the digest.
-  const investmentUsers = await db.collection<UserDoc>('users').find({ deleted_at: null }).toArray()
-  for (const user of investmentUsers) {
+  // Not filtered by notifyCadence: a recurring investment, a subscription's
+  // or a recurrence's own due date isn't a digest preference. Money jobs run
+  // per budget, never per member, or a shared rent would log once per person.
+  const allUsers = await db.collection<UserDoc>('users').find({ deleted_at: null }).toArray()
+  const spaces = await liveSpaces(db)
+  const spaceCurrency = new Map(spaces.map((s) => [s._id, s.currencyCode]))
+  for (const { owner, spaceId } of spacesToRun(allUsers, spaces)) {
+    // A shared budget's pushes speak its own currency, not its owner's.
+    const user = spaceId === owner._id ? owner : { ...owner, currencyCode: spaceCurrency.get(spaceId) ?? owner.currencyCode }
+    const today = nowIn(user.timezone).date
     try {
-      sent += await runRecurringInvestmentsForUser(db, user, nowIn(user.timezone).date)
+      sent += await runRecurringInvestmentsForSpace(db, user, spaceId, today)
     } catch (err) {
-      console.error('notifications/run: investments failed for', user._id, err)
-    }
-  }
-
-  // Also unfiltered by notifyCadence, same reasoning as investments above —
-  // a subscription's or a recurrence's own due date isn't a digest preference.
-  // Both share this pass rather than each re-running the identical query.
-  const autoExpenseUsers = investmentUsers
-  for (const user of autoExpenseUsers) {
-    try {
-      sent += await runSubscriptionExpensesForUser(db, user, nowIn(user.timezone).date)
-    } catch (err) {
-      console.error('notifications/run: subscription expenses failed for', user._id, err)
+      console.error('notifications/run: investments failed for', spaceId, err)
     }
     try {
-      sent += await runRecurringExpensesForUser(db, user, nowIn(user.timezone).date)
+      sent += await runSubscriptionExpensesForSpace(db, user, spaceId, today)
     } catch (err) {
-      console.error('notifications/run: recurring expenses failed for', user._id, err)
+      console.error('notifications/run: subscription expenses failed for', spaceId, err)
+    }
+    try {
+      sent += await runRecurringExpensesForSpace(db, user, spaceId, today)
+    } catch (err) {
+      console.error('notifications/run: recurring expenses failed for', spaceId, err)
     }
     // Paydays post quietly: no push, the Income screen and Activity show them.
     try {
-      await runRecurringIncomes({ userId: user._id, readOnly: false, sessionId: null }, nowIn(user.timezone).date)
+      await runRecurringIncomes(jobAuth(user._id, spaceId), today)
     } catch (err) {
-      console.error('notifications/run: recurring incomes failed for', user._id, err)
+      console.error('notifications/run: recurring incomes failed for', spaceId, err)
     }
   }
 

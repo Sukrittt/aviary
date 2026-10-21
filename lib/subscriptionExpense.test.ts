@@ -13,7 +13,7 @@ vi.mock('@/lib/createExpense', () => ({ createExpense }))
 
 const { applySubscriptionExpense } = await import('./subscriptionExpense')
 
-const auth = { userId: 'user_a', readOnly: false, sessionId: null }
+const auth = { userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const }
 
 describe('applySubscriptionExpense', () => {
   beforeEach(() => {

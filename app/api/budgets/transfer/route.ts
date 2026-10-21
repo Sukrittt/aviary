@@ -144,7 +144,7 @@ export async function POST(req: Request) {
     })
   })
 
-  invalidate('budgets', auth.userId)
+  invalidate('budgets', auth.spaceId)
   await reconcileThresholdLevels(
     auth,
     [to, ...sources.map((source) => source.category)].filter((category) => category !== RTA_SENTINEL),

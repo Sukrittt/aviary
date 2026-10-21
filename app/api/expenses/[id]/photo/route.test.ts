@@ -10,7 +10,7 @@ vi.mock('@vercel/blob', () => ({
   presignUrl: vi.fn(async (_t: string, { pathname }: { pathname: string }) => ({ presignedUrl: `https://signed.example/${pathname}` })),
 }))
 
-type Auth = { userId: string; readOnly: boolean; sessionId: null }
+type Auth = { userId: string; readOnly: boolean; sessionId: null; spaceId: string; spaceOwnerId: string; spaceRole: 'owner' }
 let auth: Auth
 vi.mock('@/lib/access', () => ({
   getAuth: vi.fn(async () => auth),
@@ -63,7 +63,7 @@ function expense(extra: Record<string, unknown> = {}): Doc {
 beforeEach(() => {
   docs = []
   blocked = false
-  auth = { userId: 'user_a', readOnly: false, sessionId: null }
+  auth = { userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const }
   put.mockClear()
   del.mockClear()
 })
@@ -147,10 +147,10 @@ describe('POST /api/expenses/[id]/photo', () => {
 
   it('applies the read-only and access guards', async () => {
     const d = expense()
-    auth = { userId: 'user_a', readOnly: true, sessionId: null }
+    auth = { userId: 'user_a', readOnly: true, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const }
     expect((await POST(request('POST', jpeg), ctx(String(d._id)))).status).toBe(403)
     expect((await DELETE(request('DELETE'), ctx(String(d._id)))).status).toBe(403)
-    auth = { userId: 'user_a', readOnly: false, sessionId: null }
+    auth = { userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const }
     blocked = true
     expect((await POST(request('POST', jpeg), ctx(String(d._id)))).status).toBe(402)
     expect((await GET(request('GET'), ctx(String(d._id)))).status).toBe(402)

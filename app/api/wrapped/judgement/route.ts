@@ -53,7 +53,7 @@ export async function GET(req: Request) {
 
   const judgement = await cachedRead(
     'wrapped-judgement',
-    auth.userId,
+    auth.spaceId,
     async () => {
       if (await aiAllowanceResponse(auth)) throw new Error('over AI allowance')
       if (await rateLimited(auth)) throw new Error('rate limited')

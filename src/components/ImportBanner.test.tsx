@@ -10,6 +10,8 @@ vi.mock('@/src/api/imports', () => ({
   continueImport: (id: string, retry?: boolean) => continueImport(id, retry),
 }))
 vi.mock('@/src/lib/analytics', () => ({ track: vi.fn() }))
+const spaces = vi.hoisted(() => ({ readOnly: false }))
+vi.mock('@/src/hooks/useSpaces', () => ({ useSpaces: () => ({ readOnly: spaces.readOnly, active: undefined }) }))
 
 const { ImportBanner } = await import('./ImportBanner')
 
@@ -24,6 +26,7 @@ const show = (status: ImportStatus) => {
 beforeEach(() => {
   vi.clearAllMocks()
   window.localStorage.clear()
+  spaces.readOnly = false
 })
 
 describe('ImportBanner', () => {
@@ -78,5 +81,12 @@ describe('ImportBanner', () => {
     show({ ...base, status: 'failed' })
     fireEvent.click(await screen.findByRole('button', { name: 'Try again' }))
     await waitFor(() => expect(continueImport).toHaveBeenCalledWith('imp1', true))
+  })
+
+  it('hides the retry in a read-only budget', async () => {
+    spaces.readOnly = true
+    show({ ...base, status: 'failed' })
+    await screen.findByRole('alert')
+    expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull()
   })
 })

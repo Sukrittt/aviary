@@ -83,7 +83,7 @@ vi.mock('@/lib/http', async (importOriginal) => {
 
 const { createExpense } = await import('./createExpense')
 
-const auth = { userId: 'user_a', readOnly: false, sessionId: null }
+const auth = { userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const }
 const base = { item: 'Rent', amount_inr: '1000', category: 'Housing' }
 
 beforeEach(() => {

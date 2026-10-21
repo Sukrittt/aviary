@@ -14,6 +14,7 @@ import { accountName } from '../components/AccountChips'
 import { useDeleteIncome, useIncomes, useRecurringIncomes } from '../hooks/useIncomes'
 import { useAccounts } from '../hooks/useAccounts'
 import { useHideAmounts } from '../hooks/useHideAmounts'
+import { useSpaces } from '../hooks/useSpaces'
 import { formatDateShort } from '../lib/format'
 import { currentMonthKey, monthLabel } from '../lib/envelope'
 import { dueLabel, monthlyAmount } from './RecurringPage'
@@ -63,6 +64,7 @@ export function IncomePage() {
   const incomesQ = useIncomes()
   const accounts = useAccounts().data
   const removeIncome = useDeleteIncome()
+  const { readOnly } = useSpaces()
   // undefined: closed. '': adding. An id: editing that schedule.
   const [editing, setEditing] = useState<string | undefined>(undefined)
   const [addingOneOff, setAddingOneOff] = useState(false)
@@ -138,14 +140,18 @@ export function IncomePage() {
           <p>{active.length === 0 ? 'Nothing coming in on repeat yet.' : `${active.length} coming in on repeat. Each payday counts toward Ready to Assign.`}</p>
         </div>
         <div className="txn-page-actions">
-          <button type="button" className="action-button txn-page-duplicates-btn" onClick={() => setAddingOneOff(true)}>
-            <PlusIcon size={14} aria-hidden="true" />
-            One-off
-          </button>
-          <button type="button" className="erd-log-btn txn-page-log-btn" onClick={() => setEditing('')}>
-            <PlusIcon size={14} aria-hidden="true" />
-            Recurring
-          </button>
+          {!readOnly && (
+            <>
+              <button type="button" className="action-button txn-page-duplicates-btn" onClick={() => setAddingOneOff(true)}>
+                <PlusIcon size={14} aria-hidden="true" />
+                One-off
+              </button>
+              <button type="button" className="erd-log-btn txn-page-log-btn" onClick={() => setEditing('')}>
+                <PlusIcon size={14} aria-hidden="true" />
+                Recurring
+              </button>
+            </>
+          )}
         </div>
       </header>
 
@@ -160,7 +166,7 @@ export function IncomePage() {
           subject="recurring"
           title="What comes in?"
           description="Add your salary once and it counts toward Ready to Assign every month. Weekly gigs land on each payday."
-          action={{ label: 'Add your income', onClick: () => setEditing('') }}
+          action={readOnly ? undefined : { label: 'Add your income', onClick: () => setEditing('') }}
         />
       ) : (
         <>
@@ -239,14 +245,16 @@ export function IncomePage() {
                         </span>
                       </span>
                       <strong style={{ color: 'var(--mint)' }}>+{formatCurrency(Number(row.amount) || 0, hideAmounts)}</strong>
-                      <span className="income-row-actions">
-                        <button type="button" className="env2-icon-btn" aria-label={`Edit ${row.label}`} onClick={() => setEditingIncome(row)}>
-                          <PencilSimpleIcon size={15} aria-hidden="true" />
-                        </button>
-                        <button type="button" className="env2-icon-btn" aria-label={`Delete ${row.label}`} onClick={() => setConfirmDelete(row)}>
-                          <TrashIcon size={15} aria-hidden="true" />
-                        </button>
-                      </span>
+                      {!readOnly && (
+                        <span className="income-row-actions">
+                          <button type="button" className="env2-icon-btn" aria-label={`Edit ${row.label}`} onClick={() => setEditingIncome(row)}>
+                            <PencilSimpleIcon size={15} aria-hidden="true" />
+                          </button>
+                          <button type="button" className="env2-icon-btn" aria-label={`Delete ${row.label}`} onClick={() => setConfirmDelete(row)}>
+                            <TrashIcon size={15} aria-hidden="true" />
+                          </button>
+                        </span>
+                      )}
                     </motion.li>
                   )
                 })}

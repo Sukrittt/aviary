@@ -9,8 +9,9 @@ import { ArrowLeftIcon, CaretLeftIcon, CaretRightIcon, GearIcon, HouseIcon, Invo
 import { CategoryIcon } from "@/src/components/CategoryIcon";
 import { useAppearance } from "@/components/AppearanceProvider";
 import { ExpenseSidebar } from "@/src/components/ExpenseSidebar";
-import { LoadingCaption } from "@/src/components/LoadingCaption";
-import { EditMonthIncomeScreen } from "@/src/components/MoneyScreens";
+import { InsightsSkeleton } from "@/src/components/TabSkeleton";
+import { useForecast } from "@/src/hooks/useForecast";
+import { EditMonthIncomeScreen, MoveMoneyScreen } from "@/src/components/MoneyScreens";
 import { CategoryBreakdown } from "@/src/components/charts/CategoryBreakdown";
 import { Heatmap, type HeatmapCell } from "@/src/components/charts/Heatmap";
 import {
@@ -18,7 +19,7 @@ import {
   type TrendPoint,
 } from "@/src/components/charts/TrendChart";
 import { useBudgets } from "@/src/hooks/useBudgets";
-import { useCategories, useCategoryIcons } from "@/src/hooks/useCategories";
+import { useCategories, useCategoryIcons, useCategoryStyle } from "@/src/hooks/useCategories";
 import { useExpenses } from "@/src/hooks/useExpenses";
 import { useGroups } from "@/src/hooks/useGroups";
 import { useHideAmounts } from "@/src/hooks/useHideAmounts";
@@ -45,6 +46,7 @@ import {
 import { EMPTY } from "@/src/lib/constants";
 import { BirdEmptyState } from "@/src/components/BirdEmptyState";
 import { InsightsTab } from "@/src/components/InsightsTab";
+import { ForecastCard } from "@/src/components/Forecast";
 
 const TREND_MONTHS = 12;
 const HEATMAP_WEEKS = 12;
@@ -71,6 +73,7 @@ function missingIncomeNote(months: string[]) {
 }
 
 export function InsightsPage() {
+  const styleOf = useCategoryStyle();
   const { formatCurrency } = useCurrency();
 
   const router = useRouter();
@@ -99,6 +102,7 @@ export function InsightsPage() {
   const [heatmapView, setHeatmapView] = useState<"month" | "weeks">("month");
   const [trendView, setTrendView] = useState<"spending" | "saved">("spending");
   const [incomeMonth, setIncomeMonth] = useState<string | null>(null);
+  const [topUp, setTopUp] = useState<{ category: string; amount: number } | null>(null);
 
   const scopeRef = useRef(`${insightMonth}|${breakdownMode}`);
   const scope = `${insightMonth}|${breakdownMode}`;
@@ -107,6 +111,8 @@ export function InsightsPage() {
     if (selectedBreakdownKey != null) setSelectedBreakdownKey(null);
   }
 
+  // Same rule ForecastCard renders by, so its bones don't vanish on load.
+  const forecast = useForecast();
   const loading =
     budgetsQuery.isLoading ||
     expensesQuery.isLoading ||
@@ -460,9 +466,7 @@ export function InsightsPage() {
           </header>
 
           {loading ? (
-            <div className="ins-loading">
-              <LoadingCaption placement="page" feature="insights" />
-            </div>
+            <InsightsSkeleton forecast={isCurrent && (forecast.isPending || !!forecast.data)} />
           ) : (
             <div className="insights-grid">
               <article
@@ -551,60 +555,17 @@ export function InsightsPage() {
               </article>
 
               <div className="ins-left-col">
-                <article className="erd-card ins-card ins-top-card">
-                  <div className="ins-card-heading">
-                    <div>
-                      <h2>Biggest spends</h2>
-                      <p>
-                        {selectedRow
-                          ? selectedRow.label
-                          : monthLabel(insightMonth)}
-                      </p>
-                    </div>
-                    <Link href="/expense/transactions" className="erd-manage-btn ins-view-all">
-                      View all
-                    </Link>
-                  </div>
-                  {topSpends.length === 0 ? (
-                    <BirdEmptyState
-                      compact
-                      subject="expenses"
-                      title="Nothing logged yet"
-                      description="Your biggest spends will line up here once you start logging."
-                    />
-                  ) : (
-                    <div className="ins-top-list">
-                      {topSpends.map((spend, index) => (
-                        <button
-                          key={spend.id}
-                          type="button"
-                          className="ins-top-row"
-                          style={{ animationDelay: `${220 + index * 55}ms` }}
-                          onClick={() =>
-                            router.push(`/expense/transactions?date=${spend.date}`)
-                          }
-                        >
-                          <span
-                            className="ins-top-icon"
-                            title={spend.category}
-                            style={avatarStyleFor(spend.category)}
-                          >
-                            <CategoryIcon name={spend.fullCategory} icon={spend.icon} group={spend.group} />
-                          </span>
-                          <span className="ins-top-body">
-                            <span className="ins-top-item">{spend.item}</span>
-                            <span className="ins-top-meta">
-                              {formatShortDate(spend.date)} · {spend.category}
-                            </span>
-                          </span>
-                          <span className="ins-top-amount">
-                            {formatCurrency(spend.amount, hideAmounts)}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </article>
+                {isCurrent && (
+                  <ForecastCard
+                    hideAmounts={hideAmounts}
+                    onTopUp={(category, amount) => setTopUp({ category, amount })}
+                    icon={(category) => (
+                      <span className="ins-top-icon" title={category} style={avatarStyleFor(splitEmoji(category).text)}>
+                        <CategoryIcon name={category} icon={categoryIcons.get(category)} group={categoryGroupMap.get(category)} />
+                      </span>
+                    )}
+                  />
+                )}
 
                 <article className="erd-card ins-card ins-heatmap-card">
                   <div className="ins-card-heading ins-heatmap-heading">
@@ -660,6 +621,61 @@ export function InsightsPage() {
                   hideAmounts={hideAmounts}
                 />
               </article>
+
+              <article className="erd-card ins-card ins-top-card ins-biggest-card">
+                <div className="ins-card-heading">
+                  <div>
+                    <h2>Biggest spends</h2>
+                    <p>
+                      {selectedRow
+                        ? selectedRow.label
+                        : monthLabel(insightMonth)}
+                    </p>
+                  </div>
+                  <Link href="/expense/transactions" className="erd-manage-btn ins-view-all">
+                    View all
+                  </Link>
+                </div>
+                {topSpends.length === 0 ? (
+                  <BirdEmptyState
+                    compact
+                    subject="expenses"
+                    title="Nothing logged yet"
+                    description="Your biggest spends will line up here once you start logging."
+                  />
+                ) : (
+                  <div className="ins-top-list">
+                    {topSpends.map((spend, index) => (
+                      <button
+                        key={spend.id}
+                        type="button"
+                        className="ins-top-row"
+                        style={{ animationDelay: `${220 + index * 55}ms` }}
+                        onClick={() =>
+                          router.push(`/expense/transactions?date=${spend.date}`)
+                        }
+                      >
+                        <span
+                          className="ins-top-icon"
+                          title={spend.category}
+                          style={styleOf(spend.category)}
+                        >
+                          <CategoryIcon name={spend.fullCategory} icon={spend.icon} group={spend.group} />
+                        </span>
+                        <span className="ins-top-body">
+                          <span className="ins-top-item">{spend.item}</span>
+                          <span className="ins-top-meta">
+                            {formatShortDate(spend.date)} · {spend.category}
+                          </span>
+                        </span>
+                        <span className="ins-top-amount">
+                          {formatCurrency(spend.amount, hideAmounts)}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </article>
             </div>
           )}
         </main>
@@ -685,6 +701,15 @@ export function InsightsPage() {
           <EditMonthIncomeScreen
             month={incomeMonth}
             onClose={() => setIncomeMonth(null)}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {topUp && (
+          <MoveMoneyScreen
+            targetCategory={topUp.category}
+            amount={topUp.amount}
+            onClose={() => setTopUp(null)}
           />
         )}
       </AnimatePresence>

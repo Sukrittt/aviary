@@ -24,6 +24,7 @@ vi.mock('@/lib/mongodb', () => ({
       if (name === 'notification_log') return { insertOne: logInsertOneMock }
       if (name === 'notification_threshold_state') return { findOneAndUpdate: thresholdFindOneAndUpdateMock }
       if (name === 'expenses') return { collectionName: name, find: () => fakeCursor([]) }
+      if (name === 'spaces') return { find: () => fakeCursor([]) }
       throw new Error(`unexpected collection: ${name}`)
     },
   })),

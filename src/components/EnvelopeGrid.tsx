@@ -3,7 +3,8 @@ import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowsInLineVerticalIcon } from '@/src/components/icons'
 import { SpringChevron, SpringCollapse } from './SpringCollapse'
-import { avatarStyleFor, splitEmoji } from '../lib/emoji'
+import { splitEmoji } from '../lib/emoji'
+import { useCategoryStyle } from '../hooks/useCategories'
 import { CategoryIcon } from './CategoryIcon'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { MENU_ITEM, MENU_POPUP } from './menuStyles'
@@ -63,6 +64,7 @@ function lastSpentLabel(iso: string | undefined): string {
 }
 
 export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveMoney, onAssignFromRTA, onSetAssigned, onPayCreditCard, categoryIcons, groupIcons }: Props) {
+  const styleOf = useCategoryStyle()
   const { formatCurrency } = useCurrency()
   const money = (n: number) => (hideAmounts ? '---' : formatCurrency(n))
 
@@ -111,7 +113,7 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
           render={<button type="button" className="env2-row-main" />}
         >
           <span className="env2-row-top">
-            <span className="env2-emoji env2-category-icon" style={avatarStyleFor(name)} aria-hidden="true">
+            <span className="env2-emoji env2-category-icon" style={styleOf(name)} aria-hidden="true">
               <CategoryIcon name={e.category} icon={isCC ? 'CreditCard' : categoryIcons?.get(e.category)} group={group} />
             </span>
             <span className="env2-name">{name}</span>

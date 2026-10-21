@@ -12,6 +12,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog'
 import { SuccessButton, useButtonPhase } from '../components/SuccessButton'
 import { getArchive, purgeArchivedItem, restoreArchivedItem, type ArchivableCollection, type ArchivedItem } from '../api/account'
 import { useHideAmounts } from '../hooks/useHideAmounts'
+import { useSpaces } from '../hooks/useSpaces'
 import { daysUntil, formatDateShort } from '../lib/format'
 import { BirdEmptyState } from '../components/BirdEmptyState'
 
@@ -59,6 +60,7 @@ export function ArchivePage() {
 
   const qc = useQueryClient()
   const [hideAmounts] = useHideAmounts()
+  const { readOnly } = useSpaces()
   const archiveQuery = useQuery({ queryKey: archiveKey, queryFn: getArchive })
 
   const [filter, setFilter] = useState<Filter>('all')
@@ -192,7 +194,7 @@ export function ArchivePage() {
           <p>{items.length === 0 ? 'Nothing waiting to be purged' : `${items.length} item${items.length === 1 ? '' : 's'} · kept 7 days`}</p>
         </div>
         <div className="txn-page-actions">
-          {items.length > 0 && !selecting && (
+          {items.length > 0 && !selecting && !readOnly && (
             <>
               <button type="button" className="action-button txn-page-duplicates-btn" onClick={() => setSelecting(true)}>
                 Select
@@ -339,7 +341,7 @@ export function ArchivePage() {
                       </span>
                     </span>
                     <span className={`archive-days is-${urgency(days)}`}>{days === 1 ? '1 day left' : `${days} days left`}</span>
-                    {!selecting && (
+                    {!selecting && !readOnly && (
                       <span className="archive-row-actions">
                         <button
                           type="button"

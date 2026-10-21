@@ -13,6 +13,11 @@ export function expenseNotice(status: number | undefined, action: 'edit' | 'dele
     message: `A newer version was saved elsewhere, so we haven’t ${action === 'edit' ? 'saved your changes' : 'deleted it'}. Go back to review the transaction before trying again.`,
     backLabel,
   }
+  if (status === 402) return {
+    title: 'This budget is read-only',
+    message: `The budget owner's plan has lapsed, so nothing can be ${action === 'edit' ? 'changed' : 'deleted'} until they renew. You can still view and export everything.`,
+    backLabel,
+  }
   if (status === 428) return {
     title: 'Let’s get you up to date',
     message: 'Refresh the web page or update the app, then open this transaction again before making changes.',
