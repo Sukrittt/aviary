@@ -1925,6 +1925,10 @@
   align-items: center;
   gap: 6px;
 }
+/* App.css's mobile `.action-button { min-width: 140px }` balloons the pill. */
+.action-button.subp-add-button {
+  min-width: 0;
+}
 .subp-head-actions {
   display: flex;
   align-items: center;
