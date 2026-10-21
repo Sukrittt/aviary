@@ -84,10 +84,10 @@ async function enrichCoachNotification(userId: string, notification: Notificatio
  * `syncLevel`: did the category's level just rise above where it was last
  * recorded (see thresholdState.ts).
  */
-export async function claimAndSend(db: Db, userId: string, notification: Notification, facts: string): Promise<boolean> {
+export async function claimAndSend(db: Db, userId: string, notification: Notification, facts: string, spaceId = userId): Promise<boolean> {
   if (notification.kind === 'threshold' || notification.kind === 'overspent') {
     const { month, category, level } = notification.data as { month: string; category: string; level: number }
-    if (!(await syncLevel(db, userId, month, category, level))) return false
+    if (!(await syncLevel(db, userId, month, category, level, spaceId))) return false
   } else if (!(await claim(db, userId, notification.key))) return false
 
   const toSend = notification.kind === 'coach' ? await enrichCoachNotification(userId, notification, facts) : notification

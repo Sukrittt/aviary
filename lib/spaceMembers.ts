@@ -13,7 +13,8 @@ import { COLLECTIONS } from './models'
 import { PERSON_COLLECTIONS } from './http'
 import { SITE_URL } from './seo'
 import { sendPushNotification } from './push'
-import { formatMoney, resolveCurrency } from '@/src/lib/currencies'
+import { getBudgetCurrency } from './userCurrency'
+import { formatMoney } from '@/src/lib/currencies'
 import type { Auth } from './access'
 import {
   SPACES, SPACE_MEMBERS, SPACE_INVITES, MAX_MEMBERS, BudgetError, ensurePersonalSpace, forgetMembership, listBudgets, personName,
@@ -241,13 +242,12 @@ export async function notifyOthersOfLog(auth: Auth, entry: { item: string; amoun
   const db = await getDb()
   const others = await db.collection<SpaceMemberDoc>(SPACE_MEMBERS).find({ space_id: auth.spaceId, notify_others: true, user_id: { $ne: auth.userId } }).toArray()
   if (others.length === 0) return
-  const [space, actor, owner] = await Promise.all([
+  const [space, actor, currency] = await Promise.all([
     db.collection<SpaceDoc>(SPACES).findOne({ _id: auth.spaceId }),
     db.collection<PersonDoc>('users').findOne({ _id: auth.userId }),
-    db.collection<PersonDoc>('users').findOne({ _id: auth.spaceOwnerId }, { projection: { currencyCode: 1 } }),
+    getBudgetCurrency(auth),
   ])
   if (!space) return
-  const currency = resolveCurrency(space._id === space.owner_id ? owner?.currencyCode : space.currencyCode)
   const who = firstName(personName(actor ?? undefined)) ?? 'Someone'
   const body = [entry.item, formatMoney(entry.amount, currency), entry.category].filter(Boolean).join(' · ')
   for (const member of others) {

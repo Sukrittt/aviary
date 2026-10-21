@@ -229,6 +229,19 @@ describe('notifyOthersOfLog', () => {
     expect(pushes).toEqual([expect.objectContaining({ userId: 'user_a', title: 'Sam logged in Home', body: 'Milk · ₹60 · Groceries' })])
   })
 
+  it("speaks the budget's currency in a personal budget handed off before it carried its own", async () => {
+    const db = await getDb()
+    const now = new Date().toISOString()
+    await db.collection('users').updateOne({ _id: 'user_a' as never }, { $set: { currencyCode: 'USD' } })
+    await db.collection<SpaceDoc>('spaces').insertOne({ _id: 'user_a', name: 'Priya', emoji: '🏠', owner_id: 'user_b', onboardedAt: now, deleted_at: null, created_at: now })
+    await db.collection('space_members').insertMany([
+      { space_id: 'user_a', user_id: 'user_b', role: 'owner', joined_at: now, notify_others: true },
+      { space_id: 'user_a', user_id: 'user_c', role: 'member', joined_at: now, notify_others: false },
+    ])
+    await notifyOthersOfLog({ ...jobAuth('user_c', 'user_a'), spaceOwnerId: 'user_b' }, { item: 'Milk', amount: 60, category: 'Groceries' })
+    expect(pushes).toEqual([expect.objectContaining({ userId: 'user_b', body: 'Milk · $60 · Groceries' })])
+  })
+
   it('does nothing in a budget nobody shares', async () => {
     await notifyOthersOfLog(jobAuth('user_b'), { item: 'Tea', amount: 20, category: 'Food' })
     expect(pushes).toEqual([])

@@ -52,19 +52,20 @@ async function reconcile(
     const user = await db.collection<UserDoc>('users').findOne({ _id: auth.userId })
     if (!user) return
 
-    const prefs = prefsFor(user)
-    if (!prefs.thresholds) return
+    if (!prefsFor(user).thresholds) return
 
     const { date: today } = nowIn(user.timezone)
     const month = today.slice(0, 7)
     if (changedMonth && changedMonth !== month) return
 
     // Threshold notifications never read `facts`, so skip the 6-month AI window.
-    const { facts, meta, envelopes, subscriptions, categories } = await buildExpenseContext(auth, { monthOnly: true })
+    const { facts, meta, envelopes, subscriptions, categories, currencyCode } = await buildExpenseContext(auth, { monthOnly: true })
+    // The budget's currency, not the logger's own: a shared one can differ.
+    const prefs = { ...prefsFor(user), currencyCode }
 
     if (!sendOnRise) {
       for (const category of affected) {
-        await syncLevel(db, user._id, month, category, categoryLevel(envelopes, categories, category))
+        await syncLevel(db, user._id, month, category, categoryLevel(envelopes, categories, category), auth.spaceId)
       }
       return
     }
@@ -84,11 +85,11 @@ async function reconcile(
       if (notification) {
         // claimAndSend always syncs the level first. A downward move therefore
         // records the lower level but returns false and sends nothing.
-        await claimAndSend(db, user._id, notification, facts)
+        await claimAndSend(db, user._id, notification, facts, auth.spaceId)
       } else {
         // Below every configured threshold (or no longer an envelope): sync to
         // zero so the first threshold can fire again later.
-        await syncLevel(db, user._id, month, category, categoryLevel(envelopes, categories, category))
+        await syncLevel(db, user._id, month, category, categoryLevel(envelopes, categories, category), auth.spaceId)
       }
     }
   } catch (err) {
