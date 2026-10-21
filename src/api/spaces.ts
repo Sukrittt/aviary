@@ -120,6 +120,8 @@ export const renameBudget = (id: string, name: string) => call<BudgetSummary>(`/
 /** 400 INVALID when the typed name doesn't match. */
 export const deleteBudget = (id: string, confirmName: string) => call<unknown>(`/api/spaces/${id}`, send('DELETE', { confirmName }))
 export const restoreBudget = (id: string) => call<unknown>(`/api/spaces/${id}/restore`, send('POST'))
+/** Gone for good, data and all. Only for one that's already deleted. */
+export const purgeBudget = (id: string) => call<unknown>(`/api/spaces/${id}/purge`, send('POST'))
 /** Owner only: `to` becomes the owner (and payer); you stay as a member. 400 INVALID for the personal budget or a non-member. */
 export const transferBudget = (id: string, to: string) => call<unknown>(`/api/spaces/${id}/transfer`, send('POST', { to }))
 

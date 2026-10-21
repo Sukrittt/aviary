@@ -194,6 +194,16 @@ export async function restoreBudget(auth: Auth, spaceId: string): Promise<void> 
   forgetMembership(spaceId)
 }
 
+/** Delete a budget for good, before the 30 days are up. Only one that's already deleted, and owner only. */
+export async function purgeBudget(auth: Auth, spaceId: string): Promise<void> {
+  const db = await getDb()
+  const space = await db.collection<SpaceDoc>(SPACES).findOne({ _id: spaceId })
+  if (!space?.deleted_at || space._id === space.owner_id) throw new BudgetError('NOT_FOUND', 'nothing to delete')
+  if (space.owner_id !== auth.userId) throw new BudgetError('NOT_OWNER', 'only the owner can delete it')
+  await purgeSpace(db, spaceId)
+  forgetMembership(spaceId)
+}
+
 /** Budget data collections: everything keyed by budget rather than by person. */
 const BUDGET_COLLECTIONS = [...Object.values(COLLECTIONS).filter((c) => !PERSON_COLLECTIONS.has(c)), 'ai_brief', 'notification_threshold_state']
 

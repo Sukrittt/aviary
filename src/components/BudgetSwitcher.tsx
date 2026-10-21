@@ -5,8 +5,9 @@ import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { AnimatePresence } from 'motion/react'
 import { useQueryClient } from '@tanstack/react-query'
-import { CaretDownIcon, CaretRightIcon, CheckIcon, GearIcon, LockIcon, PlusIcon, TicketIcon } from '@/src/components/icons'
-import { createBudget, restoreBudget, switchBudget, type BudgetSummary } from '../api/spaces'
+import { ArrowCounterClockwiseIcon, CaretDownIcon, CaretRightIcon, CheckIcon, GearIcon, LockIcon, PlusIcon, TicketIcon, TrashIcon } from '@/src/components/icons'
+import { createBudget, purgeBudget, restoreBudget, switchBudget, type BudgetSummary, type DeletedBudget } from '../api/spaces'
+import { ConfirmDialog } from './ConfirmDialog'
 import { BudgetMembersDialog, MemberAvatar } from './BudgetMembers'
 import { JoinCodeDialog } from './JoinBudget'
 import { HttpError, setBudgetCookie } from '../api/client'
@@ -71,9 +72,20 @@ function BudgetSheet({ onClose }: { onClose: () => void }) {
   const [view, setView] = useState<'list' | 'create' | 'join'>('list')
   const [settings, setSettings] = useState<BudgetSummary | null>(null)
   const [restoreError, setRestoreError] = useState('')
+  const [purging, setPurging] = useState<DeletedBudget | null>(null)
+  const [purgeBusy, setPurgeBusy] = useState(false)
   if (view === 'create') return <CreateBudgetDialog onClose={onClose} />
   if (view === 'join') return <JoinCodeDialog memberOf={(id) => budgets.some((b) => b.id === id)} limit={limit} onClose={onClose} />
   if (settings) return <BudgetMembersDialog budget={settings} onClose={() => setSettings(null)} />
+  if (purging) {
+    return (
+      <ConfirmDialog title={`Delete ${purging.name} for good?`} body="Its expenses, categories and members go with it. You can't undo this." cancelLabel="Keep it" onCancel={() => setPurging(null)} busy={purgeBusy}>
+        <button type="button" className="account-danger-btn" onClick={() => void purge(purging.id)} disabled={purgeBusy} aria-busy={purgeBusy || undefined}>
+          {purgeBusy ? <span role="status">Deleting…</span> : 'Delete for good'}
+        </button>
+      </ConfirmDialog>
+    )
+  }
 
   async function restore(id: string) {
     setRestoreError('')
@@ -83,6 +95,19 @@ function BudgetSheet({ onClose }: { onClose: () => void }) {
     } catch {
       setRestoreError('Check your connection and try again.')
     }
+  }
+
+  async function purge(id: string) {
+    setRestoreError('')
+    setPurgeBusy(true)
+    try {
+      await purgeBudget(id)
+      await qc.invalidateQueries({ queryKey: spacesKey })
+    } catch {
+      setRestoreError('Check your connection and try again.')
+    }
+    setPurgeBusy(false)
+    setPurging(null)
   }
 
   const restorable = deleted.filter((d) => d.canRestore)
@@ -130,7 +155,12 @@ function BudgetSheet({ onClose }: { onClose: () => void }) {
                     <span className="budget-row-name">{d.name}</span>
                     <span className="account-row-hint">{`Restorable until ${new Date(Date.parse(d.deletedAt) + 30 * 86_400_000).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`}</span>
                   </span>
-                  <button type="button" className="account-pill-btn" onClick={() => void restore(d.id)}>Restore</button>
+                  <button type="button" className="budget-row-settings" aria-label={`Restore ${d.name}`} title="Restore" onClick={() => void restore(d.id)}>
+                    <ArrowCounterClockwiseIcon size={16} aria-hidden="true" />
+                  </button>
+                  <button type="button" className="budget-row-settings" aria-label={`Delete ${d.name} for good`} title="Delete for good" onClick={() => setPurging(d)}>
+                    <TrashIcon size={16} aria-hidden="true" />
+                  </button>
                 </li>
               ))}
             </ul>

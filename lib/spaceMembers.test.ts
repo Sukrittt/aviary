@@ -15,7 +15,7 @@ import { softDeleteAccount, restoreAccount, purgeAccountNow } from '@/lib/accoun
 import { scoped } from '@/lib/scoped'
 import { jobAuth, listBudgets, lookupMembership, resolveSpaceAccess, forgetMembership, type SpaceDoc } from '@/lib/spaces'
 import {
-  INVITE_CODE_RE, notifyOthersOfLog, transferOwnership, sharedBudgetsOwnedBy, handOffSharedBudgets, personalBudgetHandedOff, restoreAccountSpaces, createInvite, cancelInvite, invitePreview, joinBudget, removeMember, deleteBudget, restoreBudget, purgeDeletedSpaces,
+  INVITE_CODE_RE, notifyOthersOfLog, transferOwnership, sharedBudgetsOwnedBy, handOffSharedBudgets, personalBudgetHandedOff, restoreAccountSpaces, createInvite, cancelInvite, invitePreview, joinBudget, removeMember, deleteBudget, restoreBudget, purgeBudget, purgeDeletedSpaces,
 } from '@/lib/spaceMembers'
 import { BudgetError, budgetSetUp, setBudgetCurrency } from '@/lib/spaces'
 import { getBudgetCurrency } from '@/lib/userCurrency'
@@ -215,6 +215,19 @@ describe('delete and restore', () => {
     expect(await db.collection('expenses').countDocuments({ user_id: HOME })).toBe(0)
     expect(await db.collection('space_members').countDocuments({ space_id: HOME })).toBe(0)
     expect(await db.collection('spaces').countDocuments({ _id: HOME as never })).toBe(0)
+  })
+
+  it('deletes a deleted budget for good right away, owner only, and only once it is deleted', async () => {
+    const db = await getDb()
+    await scoped(db.collection('expenses'), HOME).insertOne({ item: 'Rent', amount_inr: 100, date: '2026-10-01' })
+    await expect(purgeBudget(owner, HOME)).rejects.toSatisfy((e) => code(e) === 'NOT_FOUND')
+    await expect(purgeBudget(owner, 'user_a')).rejects.toSatisfy((e) => code(e) === 'NOT_FOUND')
+    await deleteBudget(owner, HOME, 'Home')
+    await expect(purgeBudget(jobAuth('user_b'), HOME)).rejects.toSatisfy((e) => code(e) === 'NOT_OWNER')
+    await purgeBudget(owner, HOME)
+    expect(await db.collection('expenses').countDocuments({ user_id: HOME })).toBe(0)
+    expect(await db.collection('spaces').countDocuments({ _id: HOME as never })).toBe(0)
+    expect((await listBudgets('user_a')).deleted).toEqual([])
   })
 })
 
