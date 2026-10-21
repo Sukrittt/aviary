@@ -31,7 +31,8 @@ export function ImportPage() {
         onDone={() => { window.location.href = '/expense' }}
         onAlreadySetUp={() => router.push('/expense')}
       >
-        <PastImports />
+        {/* Undo is the owner's, like the import itself. */}
+        {active?.role !== 'member' && <PastImports />}
       </ImportFlow>
     </div>
   )

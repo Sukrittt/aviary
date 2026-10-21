@@ -25,6 +25,7 @@ const ERRORS: Record<string, string> = {
   busy: 'We’re still setting you up. Give it a moment and try again.',
   not_found: 'That preview’s expired. Upload your file again.',
   not_owner: 'Only the budget’s owner can bring history into it.',
+  wrong_currency: 'That file’s in a different currency from this budget. Bring it into a budget in that currency instead.',
 }
 
 /** The written message for a failure code. Anything unknown gets the generic line, never the code itself. */

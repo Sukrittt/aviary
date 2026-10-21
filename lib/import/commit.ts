@@ -122,7 +122,7 @@ async function setUp(auth: Auth, importId: string, edits: CommitEdits): Promise<
     if (doc.status === 'cancelled' || doc.status === 'undone') throw new ImportError('not_found')
     return { result: resultOf(doc), later }
   }
-  if (later) assertOwner(auth)
+  assertOwner(auth)
   const coll = await importsCollection(auth)
   // Onboarding imports once per budget; a later one waits for the one running to finish.
   const running = later ? ['importing'] : ['importing', 'done', 'failed']
@@ -308,7 +308,6 @@ async function writeLater(auth: Auth, doc: ImportDoc, edits: CommitEdits): Promi
 
   // Accounts, as setup does: one that exists by name is reused.
   const accountIds = await ensureAccounts(auth, edits.accounts)
-  await ensureIncomeMigrated(auth)
 
   const booking: BookingRow[] = kept.map((r) => ({
     kind: r.kind as 'expense' | 'income',

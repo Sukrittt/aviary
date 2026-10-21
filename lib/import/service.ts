@@ -122,7 +122,7 @@ export async function laterOf(auth: Auth): Promise<Later | null> {
   return { cutoff: dates[0] ?? null, categories: (await names('categories')).filter((n) => n !== INCOME_CATEGORY), groups: await names('groups') }
 }
 
-/** A later import into a shared budget is a bulk change for everyone in it, so only its owner may. */
+/** An import is a bulk change for everyone in a shared budget, so only its owner may run one. The personal budget's role is always owner. */
 export function assertOwner(auth: Auth): void {
   if (auth.spaceRole !== 'owner') throw new ImportError('not_owner')
 }
@@ -232,8 +232,8 @@ export async function buildReview(auth: Auth, doc: ImportDoc, today: string): Pr
 export async function previewFile(auth: Auth, buf: Buffer, filename: string): Promise<Review> {
   if (buf.length > MAX_UPLOAD_BYTES) throw new ImportError('too_big')
   const today = (await nowForUser(auth.userId)).date
+  assertOwner(auth)
   const later = await budgetSetUp(auth)
-  if (later) assertOwner(auth)
   const tables = await readTable(buf, filename).catch((e) => {
     throw new ImportError(e instanceof ZipTooLarge ? 'too_big' : 'unreadable')
   })
@@ -248,6 +248,8 @@ export async function previewFile(auth: Auth, buf: Buffer, filename: string): Pr
   // A bare "$" could be any dollar: a user already on one keeps theirs.
   const anyDollar = n.fileCurrency === 'USD' && !n.hasCurrency && currencyInfo(userCurrency).symbol.endsWith('$')
   // A later import is in the budget's money: rows in any other currency are left out, not converted.
+  // Without a currency column that can't be told row by row, so a file that reads as another currency is refused.
+  if (later && isCurrencyCode(n.fileCurrency) && n.fileCurrency !== userCurrency && !n.hasCurrency && !anyDollar) throw new ImportError('wrong_currency')
   const currency = !later && isCurrencyCode(n.fileCurrency) && !anyDollar ? n.fileCurrency : userCurrency
   const coll = await importsCollection(auth)
   // A preview is a throwaway copy of the file. A real delete, not the soft
@@ -306,7 +308,7 @@ export async function recomputePreview(auth: Auth, importId: string, change: { d
 }
 
 const ERROR_STATUS: Record<ImportError['code'], number> = {
-  too_big: 413, unreadable: 400, empty: 400, empty_file: 400, no_columns: 400, invalid: 400, not_found: 404, already_importing: 409, already_onboarded: 403, busy: 409, not_owner: 403,
+  too_big: 413, unreadable: 400, empty: 400, empty_file: 400, no_columns: 400, invalid: 400, not_found: 404, already_importing: 409, already_onboarded: 403, busy: 409, not_owner: 403, wrong_currency: 400,
 }
 
 /** `{ error: code }` for a known import failure, which the client turns into copy. Anything else rethrows. */

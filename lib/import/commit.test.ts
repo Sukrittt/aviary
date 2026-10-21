@@ -441,6 +441,10 @@ describe('into a new budget', () => {
     await db.collection('spaces').insertOne({ _id: 'sp_trip' as never, name: 'Trip', emoji: '✈️', owner_id: USER, currencyCode: 'USD', onboardedAt: null, deleted_at: null, created_at: '' })
   })
 
+  it('a member can’t import into a shared budget that isn’t set up yet either', async () => {
+    await expect(previewFile({ ...trip, spaceRole: 'member' as const }, fixture('money-manager.csv'), 'mm.csv')).rejects.toMatchObject({ code: 'not_owner' })
+  })
+
   it("sets up that budget from the file, leaving the person's own account, currency and trial alone", async () => {
     const review = await previewFile(trip, fixture('money-manager.csv'), 'mm.csv')
     await commitImport(trip, review.importId, editsFrom(review))
@@ -536,6 +540,11 @@ describe('later import, from Settings', () => {
     await expect(commitImport(auth, second.importId, editsFrom(second))).rejects.toMatchObject({ code: 'already_importing' })
     await runImportPass(auth, first.importId, Date.now() + 30_000)
     await expect(commitImport(auth, second.importId, editsFrom(second))).resolves.toMatchObject({ importId: second.importId })
+  })
+
+  it('refuses a file that reads as another currency when it has no currency column to skip rows by', async () => {
+    const csv = Buffer.from('Date,Description,Amount\n2026-09-01,Coffee,-€4.50\n2026-09-02,Lunch,-€12.00\n')
+    await expect(previewFile(auth, csv, 'euro.csv')).rejects.toMatchObject({ code: 'wrong_currency' })
   })
 
   it('only the owner of a shared budget can import into it or undo', async () => {

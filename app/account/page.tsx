@@ -25,6 +25,7 @@ import { NewBudgetEntry } from '../../src/components/BudgetSwitcher'
 import { BudgetMembersEntry } from '../../src/components/BudgetMembers'
 import { JoinCodeEntry } from '../../src/components/JoinBudget'
 import { track } from '../../src/lib/analytics'
+import { useSpaces } from '../../src/hooks/useSpaces'
 
 const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.sukrit04.envelope'
 
@@ -58,6 +59,8 @@ export default function AccountPage() {
   const [hideAmounts, setHideAmounts] = useHideAmounts()
   const hidden = useHiddenFeatures()
   const shown = (key: HideableFeature) => !hidden.includes(key)
+  // Importing is a bulk change to the budget, so the server takes it from its owner only.
+  const canImport = useSpaces().active?.role !== 'member'
   const [doc, setDoc] = useState<UserDoc | null>(null)
   const [notifyCadence, setNotifyCadence] = useState<NotifyCadence>('off')
   const [showScan, setShowScan] = useState(false)
@@ -169,7 +172,7 @@ export default function AccountPage() {
           {shown('accounts') && <FeatureCard icon={BankIcon} tone="gold" label="Accounts" blurb="Bank, card and cash" href="/account/accounts" />}
           {shown('recurring') && <FeatureCard icon={RepeatIcon} tone="violet" label="Recurring expenses" blurb="Plan upcoming payments" href="/account/recurring" />}
           <FeatureCard icon={ArchiveIcon} tone="blue" label="Archive" blurb="Restore deleted items" href="/account/archive" />
-          <FeatureCard icon={UploadSimpleIcon} tone="gold" label="Import from another app" blurb="Bring your old history in" href="/account/import" />
+          {canImport && <FeatureCard icon={UploadSimpleIcon} tone="gold" label="Import from another app" blurb="Bring your old history in" href="/account/import" />}
           {shown('subscriptions') && <FeatureCard icon={ReceiptIcon} tone="violet" label="Subscriptions" blurb="What renews and when" href="/account/subscriptions" />}
           {shown('insights') && <FeatureCard icon={ChartLineIcon} tone="blue" label="Insights" blurb="Trends and breakdowns" href="/insights" />}
         </div>
