@@ -17,7 +17,8 @@ import { jobAuth, listBudgets, lookupMembership, resolveSpaceAccess, forgetMembe
 import {
   INVITE_CODE_RE, notifyOthersOfLog, transferOwnership, sharedBudgetsOwnedBy, handOffSharedBudgets, personalBudgetHandedOff, restoreAccountSpaces, createInvite, cancelInvite, invitePreview, joinBudget, removeMember, deleteBudget, restoreBudget, purgeDeletedSpaces,
 } from '@/lib/spaceMembers'
-import { BudgetError } from '@/lib/spaces'
+import { BudgetError, budgetSetUp, setBudgetCurrency } from '@/lib/spaces'
+import { getBudgetCurrency } from '@/lib/userCurrency'
 
 let server: MongoMemoryReplSet
 beforeAll(async () => {
@@ -357,5 +358,52 @@ describe('account deletion with a budget nobody else is in', () => {
     expect(await db.collection('spaces').countDocuments({ _id: HOME as never })).toBe(0)
     expect(await db.collection('expenses').countDocuments({ user_id: SHARED })).toBe(1)
     expect(await db.collection('space_members').countDocuments({ space_id: SHARED, user_id: 'user_b' })).toBe(1)
+  })
+})
+
+describe("a shared personal budget's currency and setup (#215)", () => {
+  const member = jobAuth('user_b', 'user_a')
+  beforeEach(async () => {
+    await (await getDb()).collection('users').updateOne({ _id: 'user_a' as never }, { $set: { currencyCode: 'USD' } })
+    await joinBudget('user_b', (await createInvite(owner, 'user_a')).code)
+  })
+
+  it("shows members the owner's currency, everywhere", async () => {
+    expect(await getBudgetCurrency(member)).toBe('USD')
+    expect((await listBudgets('user_b')).budgets.find((b) => b.id === 'user_a')?.currencyCode).toBe('USD')
+  })
+
+  it('counts as set up for members, so import is blocked', async () => {
+    expect(await budgetSetUp(member)).toBe(true)
+    await (await getDb()).collection('users').updateOne({ _id: 'user_a' as never }, { $unset: { onboardedAt: '' } })
+    expect(await budgetSetUp(member)).toBe(false)
+  })
+
+  it("writes its currency to the owner's user doc, whoever sets it", async () => {
+    const db = await getDb()
+    await setBudgetCurrency(member, 'EUR')
+    expect((await db.collection('users').findOne({ _id: 'user_a' as never }))?.currencyCode).toBe('EUR')
+    expect((await db.collection('users').findOne({ _id: 'user_b' as never }))?.currencyCode).toBeUndefined()
+    await setBudgetCurrency(owner, 'GBP')
+    expect(await getBudgetCurrency(member)).toBe('GBP')
+  })
+
+  it('keeps its currency and setup once handed off, even after the old owner is purged', async () => {
+    const db = await getDb()
+    await handOffSharedBudgets(db, 'user_a', { user_a: 'user_b' })
+    await softDeleteAccount(db, 'user_a')
+    await purgeAccountNow(db, 'user_a')
+    expect(await getBudgetCurrency(member)).toBe('USD')
+    expect(await budgetSetUp(member)).toBe(true)
+    await setBudgetCurrency(member, 'EUR')
+    expect(await getBudgetCurrency(member)).toBe('EUR')
+    expect((await db.collection('users').findOne({ _id: 'user_b' as never }))?.currencyCode).toBeUndefined()
+  })
+
+  it('reads a budget handed off before it was stamped from the old owner, while they last', async () => {
+    const db = await getDb()
+    await db.collection('spaces').updateOne({ _id: 'user_a' as never }, { $set: { owner_id: 'user_b' } })
+    expect(await getBudgetCurrency(member)).toBe('USD')
+    expect(await budgetSetUp(member)).toBe(true)
   })
 })

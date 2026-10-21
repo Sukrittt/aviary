@@ -16,6 +16,7 @@ import { ObjectId, type Db } from 'mongodb'
 import { getDb } from './mongodb'
 import { scoped } from './scoped'
 import { resolveCurrency } from '@/src/lib/currencies'
+import { budgetSettings } from './userCurrency'
 import type { Auth } from './access'
 
 export const SPACES = 'spaces'
@@ -234,7 +235,7 @@ export async function listBudgets(userId: string): Promise<{ budgets: BudgetSumm
   const spaces = allSpaces.filter((s) => !s.deleted_at)
   const gone = allSpaces.filter((s) => s.deleted_at && Date.parse(s.deleted_at) > Date.now() - RESTORE_WINDOW_MS)
   const people = await db.collection<PersonDoc>('users')
-    .find({ _id: { $in: [...new Set([userId, ...members.map((m) => m.user_id), ...gone.map((s) => s.deleted_by ?? s.owner_id)])] } }, { projection: { name: 1, firstName: 1, lastName: 1, avatarUrl: 1, currencyCode: 1 } })
+    .find({ _id: { $in: [...new Set([userId, ...ids, ...members.map((m) => m.user_id), ...gone.map((s) => s.deleted_by ?? s.owner_id)])] } }, { projection: { name: 1, firstName: 1, lastName: 1, avatarUrl: 1, currencyCode: 1 } })
     .toArray()
   const personById = new Map(people.map((p) => [p._id, p]))
   const spaceById = new Map(spaces.map((s) => [s._id, s]))
@@ -255,8 +256,9 @@ export async function listBudgets(userId: string): Promise<{ budgets: BudgetSumm
       icon: budgetIconKey({ icon: space?.icon, emoji: space?.emoji ?? PERSONAL_EMOJI }),
       role,
       ownerId,
-      // The personal budget's currency is the user's own setting.
-      currencyCode: resolveCurrency(personal ? personById.get(ownerId)?.currencyCode : space?.currencyCode),
+      // A personal budget's currency is its owner's own setting, for members too
+      // (see budgetSettings); one handed off carries its own.
+      currencyCode: resolveCurrency(ownerId === id ? personById.get(id)?.currencyCode : space?.currencyCode ?? personById.get(id)?.currencyCode),
       personal,
       members: list.map((m) => ({
         userId: m.user_id,
@@ -391,23 +393,19 @@ export async function updateBudget(auth: Auth, spaceId: string, patch: { name?: 
 }
 
 /**
- * Whether the active budget is set up yet. The personal budget's mark is the
- * person's own `onboardedAt`; any other budget's is on its doc (one made to
- * import into starts without one).
+ * Whether the active budget is set up yet: the personal budget's mark is its
+ * owner's own `onboardedAt`, for members too; any other budget's is on its doc
+ * (one made to import into starts without one).
  */
 export async function budgetSetUp(auth: Auth): Promise<boolean> {
-  const db = await getDb()
-  if (auth.spaceId === auth.userId) {
-    const user = await db.collection<{ _id: string; onboardedAt?: string | null }>('users').findOne({ _id: auth.userId }, { projection: { onboardedAt: 1 } })
-    return !!user?.onboardedAt
-  }
-  const space = await db.collection<SpaceDoc>(SPACES).findOne({ _id: auth.spaceId }, { projection: { onboardedAt: 1 } })
-  return !space || !!space.onboardedAt
+  const { onboardedAt, exists } = await budgetSettings(auth)
+  return !exists || !!onboardedAt
 }
 
-/** Sets the active budget's currency: the user's own for the personal budget, else the budget doc's. */
+/** Sets the active budget's currency: its owner's own for the personal budget, else the budget doc's. */
 export async function setBudgetCurrency(auth: Auth, currencyCode: string): Promise<void> {
   const db = await getDb()
-  if (auth.spaceId === auth.userId) await db.collection('users').updateOne({ _id: auth.userId as never }, { $set: { currencyCode } })
+  const { userDocId } = await budgetSettings(auth)
+  if (userDocId) await db.collection('users').updateOne({ _id: userDocId as never }, { $set: { currencyCode } })
   else await db.collection<SpaceDoc>(SPACES).updateOne({ _id: auth.spaceId }, { $set: { currencyCode } })
 }

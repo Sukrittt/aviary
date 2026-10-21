@@ -260,8 +260,14 @@ export async function notifyOthersOfLog(auth: Auth, entry: { item: string; amoun
 
 /** Make `toUserId`, already a member, the owner (and payer) of a budget. The old owner stays as a member. */
 async function handOver(db: Db, space: SpaceDoc, toUserId: string, opts: { keepOldOwner: boolean }): Promise<void> {
+  // A personal budget's currency and setup were its owner's own settings
+  // (budgetSettings); it keeps them once theirs is gone.
+  const own = space._id === space.owner_id
+    ? await db.collection<{ _id: string; currencyCode?: string; onboardedAt?: string | null }>('users').findOne({ _id: space._id }, { projection: { currencyCode: 1, onboardedAt: 1 } })
+    : null
+  const settings = own ? { ...(own.currencyCode ? { currencyCode: own.currencyCode } : {}), onboardedAt: own.onboardedAt ?? null } : {}
   await withTx(async (session) => {
-    await db.collection<SpaceDoc>(SPACES).updateOne({ _id: space._id }, { $set: { owner_id: toUserId } }, { session })
+    await db.collection<SpaceDoc>(SPACES).updateOne({ _id: space._id }, { $set: { owner_id: toUserId, ...settings } }, { session })
     await db.collection(SPACE_MEMBERS).updateOne({ space_id: space._id, user_id: toUserId }, { $set: { role: 'owner' } }, { session })
     if (opts.keepOldOwner) await db.collection(SPACE_MEMBERS).updateOne({ space_id: space._id, user_id: space.owner_id }, { $set: { role: 'member' } }, { session })
     else await db.collection(SPACE_MEMBERS).deleteOne({ space_id: space._id, user_id: space.owner_id }, { session })
