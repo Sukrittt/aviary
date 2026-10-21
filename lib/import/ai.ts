@@ -102,5 +102,8 @@ export async function pickCategoryGroups(names: string[], groups: string[], user
     }
   })
   const answers = await runJev(state, questions, { userId, feature: 'import' })
-  return Object.fromEntries(ask.map((name, i) => [name, confident(answers[`c${i}`] as Answer, groups) ?? 'Lifestyle']))
+  // Unsure: Lifestyle where there is one, else the first group. Never a name the budget doesn't have,
+  // or a later import into "🎬 Lifestyle" would make a second, bare "Lifestyle".
+  const fallback = groups.includes('Lifestyle') ? 'Lifestyle' : groups[0]
+  return Object.fromEntries(ask.map((name, i) => [name, confident(answers[`c${i}`] as Answer, groups) ?? fallback]))
 }
