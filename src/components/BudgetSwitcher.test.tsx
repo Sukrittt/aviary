@@ -4,12 +4,14 @@ import { queryWrapper } from '../test-utils/queryWrapper'
 import { CurrencyScope } from '@/src/context/CurrencyContext'
 import type { BudgetList, BudgetSummary } from '../api/spaces'
 
-const { getBudgets, createBudget, switchBudget } = vi.hoisted(() => ({
+const { getBudgets, createBudget, switchBudget, restoreBudget, purgeBudget } = vi.hoisted(() => ({
   getBudgets: vi.fn(),
   createBudget: vi.fn(),
   switchBudget: vi.fn(),
+  restoreBudget: vi.fn(),
+  purgeBudget: vi.fn(),
 }))
-vi.mock('../api/spaces', () => ({ getBudgets, createBudget, switchBudget }))
+vi.mock('../api/spaces', () => ({ getBudgets, createBudget, switchBudget, restoreBudget, purgeBudget }))
 
 const billing = vi.hoisted(() => ({ data: undefined as { allowed: boolean; enforced: boolean } | undefined }))
 vi.mock('../hooks/useBillingStatus', () => ({ useBillingStatus: () => billing }))
@@ -62,6 +64,26 @@ describe('BudgetSwitcher', () => {
     expect(screen.queryByText('🐦')).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: /^Personal/ }))
     expect(switchBudget).toHaveBeenCalledWith(personal)
+  })
+
+  it('restores a deleted budget, or deletes it for good after a confirm', async () => {
+    const trip = { id: 's2', name: 'Trip', emoji: '✈️', icon: 'Airplane', deletedAt: new Date().toISOString(), deletedBy: null, canRestore: true }
+    getBudgets.mockResolvedValue(list([personal, home], { deleted: [trip] }))
+    restoreBudget.mockResolvedValue({})
+    purgeBudget.mockResolvedValue({})
+    renderIt(<BudgetSwitcher />)
+    fireEvent.click(await screen.findByRole('button', { name: /Switch budget/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Restore Trip' }))
+    expect(restoreBudget).toHaveBeenCalledWith('s2')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete Trip for good' }))
+    expect(screen.getByRole('alertdialog', { name: 'Delete Trip for good?' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Keep it' }))
+    expect(purgeBudget).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete Trip for good' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Delete for good' }))
+    await waitFor(() => expect(purgeBudget).toHaveBeenCalledWith('s2'))
   })
 
   it('counts the people past the first three', async () => {
