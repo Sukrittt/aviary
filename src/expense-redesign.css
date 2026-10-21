@@ -13753,13 +13753,32 @@ button.account-feature-card {
   line-height: 1.5;
 }
 
+/* Later import's mapping row: the envelope picker spans the row, and a new
+   envelope's name and group share the line under it. */
 .import-row:has(.import-row-source) {
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 148px;
+  gap: 8px;
+  padding: 4px 0;
 }
-
 .import-row-source {
-  flex: 1 1 100%;
+  grid-column: 1 / -1;
   font-weight: 600;
+}
+.import-row:has(.import-row-source) > .ui-select.import-select:nth-child(2) {
+  grid-column: 1 / -1;
+  width: auto;
+}
+.import-row:has(.import-row-source) > .ui-select.import-select {
+  width: auto;
+}
+.import-row:has(.import-row-source) > .setup-pick-input {
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--tk-border-strong);
+  border-radius: 10px;
+  background: var(--tk-input-bg);
+  font-size: 13px;
 }
 
 .import-past {
