@@ -1,5 +1,4 @@
 import { json, readBody } from '@/lib/http'
-import { budgetSetUp } from '@/lib/spaces'
 import { getAuth, readOnlyGuard } from '@/lib/access'
 import { requireAccess } from '@/lib/billing/guard'
 import { ImportError } from '@/lib/import/normalize'
@@ -12,8 +11,8 @@ export const maxDuration = 30
  * `POST /api/import/preview`. Multipart with a `file`: parses it and returns
  * the review. JSON `{ importId, direction?, currency? }`: the same review
  * recomputed from the stored rows after a flip or a currency change. Writes
- * nothing but the `imports` doc. Onboarding only, so an account that's set
- * up can't import over its own data.
+ * nothing but the `imports` doc. A budget that's already set up gets a later
+ * import: history from before its first entry, its setup left alone.
  */
 export async function POST(req: Request) {
   const auth = await getAuth(req)
@@ -22,8 +21,6 @@ export async function POST(req: Request) {
   const guard = readOnlyGuard(auth, 'POST')
   if (guard) return guard
   try {
-    if (await budgetSetUp(auth)) throw new ImportError('already_onboarded')
-
     if ((req.headers.get('content-type') ?? '').startsWith('multipart/form-data')) {
       // Checked before reading the body where the client says its size.
       if (Number(req.headers.get('content-length') ?? 0) > MAX_UPLOAD_BYTES + 64 * 1024) throw new ImportError('too_big')

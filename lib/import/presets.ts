@@ -11,7 +11,7 @@ export type Role =
 
 export type AppId = 'moneymanager' | 'monefy' | 'wallet' | 'spendee' | 'ynab' | 'goodbudget' | 'generic'
 
-export type SkipReason = 'transfer' | 'opening_balance' | 'fill' | 'other_currency' | 'unparseable' | 'zero' | 'future'
+export type SkipReason = 'transfer' | 'opening_balance' | 'fill' | 'other_currency' | 'unparseable' | 'zero' | 'future' | 'after_start'
 
 /** What a preset's bookkeeping tells decided about a row, if anything. */
 export type Tell = { skip: SkipReason } | { kind: 'expense' | 'income' } | null

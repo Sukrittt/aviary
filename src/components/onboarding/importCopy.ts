@@ -24,6 +24,8 @@ const ERRORS: Record<string, string> = {
   already_onboarded: 'You’re already set up. Head to Home to keep going.',
   busy: 'We’re still setting you up. Give it a moment and try again.',
   not_found: 'That preview’s expired. Upload your file again.',
+  not_owner: 'Only the budget’s owner can bring history into it.',
+  wrong_currency: 'That file’s in a different currency from this budget. Bring it into a budget in that currency instead.',
 }
 
 /** The written message for a failure code. Anything unknown gets the generic line, never the code itself. */
@@ -55,7 +57,7 @@ export function countsLine(counts: ImportReview['counts']): string {
  * What we left out, in up to two sentences: the bookkeeping that isn't
  * spending, then the rows we couldn't use. Empty when nothing was skipped.
  */
-export function skippedCopy(review: Pick<ImportReview, 'skipped' | 'otherCurrencies'>): string[] {
+export function skippedCopy(review: Pick<ImportReview, 'skipped' | 'otherCurrencies'> & { later?: ImportReview['later'] }): string[] {
   const s = review.skipped
   const bookkeeping = [
     s.transfer && plural(s.transfer, 'transfer between your accounts', 'transfers between your accounts'),
@@ -73,6 +75,7 @@ export function skippedCopy(review: Pick<ImportReview, 'skipped' | 'otherCurrenc
   const leftOut = (s.transfer ?? 0) + (s.opening_balance ?? 0) + (s.fill ?? 0)
   if (bookkeeping.length) out.push(`We left out ${listOf(bookkeeping)}. ${leftOut === 1 ? 'It isn’t' : 'They aren’t'} spending.`)
   if (unusable.length) out.push(`We ${bookkeeping.length ? 'also ' : ''}skipped ${listOf(unusable)}.`)
+  if (s.after_start && review.later?.cutoff) out.push(`${plural(s.after_start, 'row', 'rows')} from ${cutoffDay(review.later.cutoff)} on stay out, so nothing’s counted twice.`)
   return out
 }
 
@@ -145,4 +148,29 @@ export function commitSteps(envelopes: number, accounts: number, salary: boolean
     ...(salary ? ['Setting up your payday…'] : []),
     'Filling this month’s budget…',
   ]
+}
+
+/** "3 Oct", or "3 Oct 2025" when it isn't this year. */
+function cutoffDay(date: string, now = new Date()): string {
+  const sameYear = date.slice(0, 4) === String(now.getUTCFullYear())
+  return new Date(`${date}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', ...(sameYear ? {} : { year: 'numeric' }), timeZone: 'UTC' })
+}
+
+/** Rows a review would bring in: spends, refunds and paydays. */
+export function entryCount(counts: ImportReview['counts']): number {
+  return counts.expense + (counts.refund ?? 0) + counts.income
+}
+
+/** A later import's headline: how much comes in, and why it stops where it does. */
+export function laterLine(review: Pick<ImportReview, 'counts' | 'later'>, now = new Date()): string {
+  const entries = entryCount(review.counts)
+  const cutoff = review.later?.cutoff
+  if (!entries) return cutoff ? `Nothing in this file is from before ${cutoffDay(cutoff, now)}, when you started in Aviary.` : 'There’s nothing in this file to bring in.'
+  const what = plural(entries, 'entry', 'entries')
+  return cutoff ? `We’ll add ${what} from before ${cutoffDay(cutoff, now)}, when you started in Aviary.` : `We’ll add ${what}.`
+}
+
+/** One past import in Settings: "Money Manager · 3 Oct 2026 · 2,340 entries". */
+export function pastImportLine(app: string | null, committedAt: string | null, total: number): string {
+  return [app ?? 'Spreadsheet', committedAt && shortDate(committedAt.slice(0, 10)), plural(total, 'entry', 'entries')].filter(Boolean).join(' · ')
 }

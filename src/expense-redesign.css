@@ -13748,6 +13748,28 @@ button.account-feature-card {
   margin: 0;
   line-height: 1.5;
 }
+
+.import-row:has(.import-row-source) {
+  flex-wrap: wrap;
+}
+
+.import-row-source {
+  flex: 1 1 100%;
+  font-weight: 600;
+}
+
+.import-past {
+  display: grid;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.import-past-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--erd-text3);
+}
 .import-line,
 .import-row {
   display: flex;
