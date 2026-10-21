@@ -533,7 +533,7 @@ export function ExpensePage() {
                 </>
               )}
 
-              {envelopeState && <ForecastLine hideAmounts={hideAmounts} />}
+              {envelopeState && <ForecastLine />}
               {/* One banner at a time, same as Mobile: the leftover notice goes first,
                   and the next one waits for it to fade out. */}
               <AnimatePresence mode="wait">
