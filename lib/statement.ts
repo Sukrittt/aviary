@@ -26,6 +26,8 @@ import { isCurrencyCode } from '@/src/lib/currencies'
 
 export const MAX_STATEMENT_ROWS = 200
 export const MAX_SCREENSHOTS = 5
+/** A locked pdf's text, past which it's turned away as too big rather than sent: about 150k tokens, a long way past 200 rows. */
+export const MAX_PDF_TEXT = 500_000
 /** Jev calls per upload. Payees past this get the user's history or nothing. */
 const MAX_JEV_PAYEES = 40
 const MAX_PAYEE_LEN = 60
@@ -270,6 +272,7 @@ export async function unlockPdfText(data: Buffer, password?: string): Promise<st
     throw new StatementError('unreadable')
   }
   if (!pages.some((p) => p.trim())) throw new StatementError('pdf_no_text')
+  if (pages.reduce((n, p) => n + p.length, 0) > MAX_PDF_TEXT) throw new StatementError('too_big')
   return pages
 }
 

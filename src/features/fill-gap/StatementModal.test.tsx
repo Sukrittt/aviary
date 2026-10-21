@@ -193,6 +193,23 @@ describe('StatementModal', () => {
     expect(readStatement.mock.calls.map((c) => c[0])).toEqual([{ file: pdf }, { file: pdf, password: 'nope' }, { file: pdf, password: '01011990' }])
   })
 
+  it('stays on the password when a retry hits the rate limit, so the file is kept', async () => {
+    const { StatementFailure } = await import('@/src/api/statement')
+    readStatement
+      .mockRejectedValueOnce(new StatementFailure('locked', 'That PDF is locked', 'pdf_locked'))
+      .mockRejectedValueOnce(new StatementFailure('Give it a minute.', 'One moment', 'rate_limited'))
+    render(<StatementModal onClose={() => {}} />)
+    const pdf = new File(['%PDF /Encrypt'], 'hdfc.pdf', { type: 'application/pdf' })
+    fireEvent.change(screen.getByLabelText('Statement or screenshots'), { target: { files: [pdf] } })
+    await userEvent.type(await screen.findByLabelText('Password'), '01011990')
+    fireEvent.click(screen.getByText('Open it'))
+    expect(await screen.findByText('Give it a minute.')).toBeTruthy()
+    await userEvent.type(screen.getByLabelText('Password'), '01011990')
+    fireEvent.click(screen.getByText('Open it'))
+    await screen.findByText('Check these, then log')
+    expect(readStatement).toHaveBeenLastCalledWith({ file: pdf, password: '01011990' })
+  })
+
   it('turns away a sixth screenshot before uploading', async () => {
     render(<StatementModal onClose={() => {}} />)
     const shots = Array.from({ length: 6 }, (_, i) => new File(['x'], `s${i}.png`, { type: 'image/png' }))

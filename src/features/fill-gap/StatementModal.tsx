@@ -51,7 +51,7 @@ export function StatementModal({ onClose, onBack }: { onClose: () => void; onBac
   // Back to the sheet only from the picker; past it there's a read to lose.
   const [phase, setPhase] = useState<'pick' | 'reading' | 'password' | 'review' | 'error' | 'done'>('pick')
   // A locked pdf waiting on its password. The file stays so a wrong guess isn't a re-upload; the password lives only in the field.
-  const [locked, setLocked] = useState<{ file: File; wrong: boolean } | null>(null)
+  const [locked, setLocked] = useState<{ file: File; wrong: boolean; error: string } | null>(null)
   const [proposal, setProposal] = useState<StatementProposal | null>(null)
   const [rows, setRows] = useState<Record<string, RowState>>({})
   const [error, setError] = useState({ title: '', message: '' })
@@ -89,7 +89,11 @@ export function StatementModal({ onClose, onBack }: { onClose: () => void; onBac
       track('statement_read', { kind: doc ? 'file' : 'screenshots', rows: result.items.length, credits: result.credits })
     } catch (err) {
       if (doc && err instanceof StatementFailure && (err.code === 'pdf_locked' || err.code === 'pdf_password_wrong')) {
-        setLocked({ file: doc, wrong: err.code === 'pdf_password_wrong' })
+        setLocked({ file: doc, wrong: err.code === 'pdf_password_wrong', error: '' })
+        setPhase('password')
+      } else if (doc && password && err instanceof StatementFailure && (err.code === 'rate_limited' || err.code === 'offline')) {
+        // Worth another go with the same file, so stay on the password, not the error screen whose Try again starts over.
+        setLocked({ file: doc, wrong: false, error: err.message })
         setPhase('password')
       } else if (err instanceof StatementFailure) fail(err.message, err.title)
       else fail(UNREADABLE, 'Hard to read, that one')
@@ -179,6 +183,7 @@ export function StatementModal({ onClose, onBack }: { onClose: () => void; onBac
           <StatementPassword
             name={locked.file.name}
             wrong={locked.wrong}
+            error={locked.error}
             onSubmit={(password) => read([locked.file], password)}
             onPickAnother={() => setPhase('pick')}
           />
@@ -223,7 +228,13 @@ export function StatementModal({ onClose, onBack }: { onClose: () => void; onBac
 }
 
 /** A locked pdf's password, asked for in place. Sent once with the file, never kept. */
-function StatementPassword({ name, wrong, onSubmit, onPickAnother }: { name: string; wrong: boolean; onSubmit: (password: string) => void; onPickAnother: () => void }) {
+function StatementPassword({ name, wrong, error, onSubmit, onPickAnother }: {
+  name: string
+  wrong: boolean
+  error: string
+  onSubmit: (password: string) => void
+  onPickAnother: () => void
+}) {
   const [password, setPassword] = useState('')
   // Once per showing: a double click lands before the reading screen does. A wrong guess remounts this.
   const sent = useRef(false)
@@ -251,7 +262,7 @@ function StatementPassword({ name, wrong, onSubmit, onPickAnother }: { name: str
         aria-invalid={wrong}
         aria-describedby="statement-password-hint"
       />
-      {wrong && <p role="alert" className="statement-password-error">That didn&apos;t open it, try again.</p>}
+      {(wrong || error) && <p role="alert" className="statement-password-error">{wrong ? "That didn't open it, try again." : error}</p>}
       <p id="statement-password-hint" className="scan-subtitle">
         Usually your date of birth (DDMMYYYY), customer ID, or the format your bank&apos;s email mentions.
       </p>

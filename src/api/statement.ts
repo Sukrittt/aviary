@@ -22,7 +22,7 @@ export interface StatementProposal {
 
 /** What went wrong, already worded for the user, with a short title to sit over it. */
 export class StatementFailure extends Error {
-  /** `code` is the server's, when it sent one: pdf_locked and pdf_password_wrong ask for the password. */
+  /** The server's code when it sent one (pdf_locked and pdf_password_wrong ask for the password), or rate_limited or offline: worth trying again as is. */
   constructor(message: string, readonly title = "That didn't go through", readonly code?: string) {
     super(message)
   }
@@ -67,11 +67,11 @@ export async function readStatement(input: { images: { data: string; mimeType: s
   try {
     resp = await apiFetch('/api/expenses/statement', { method: 'POST', headers, body, signal: AbortSignal.timeout(60_000) })
   } catch {
-    throw new StatementFailure(GENERIC, "Couldn't reach Aviary")
+    throw new StatementFailure(GENERIC, "Couldn't reach Aviary", 'offline')
   }
   if (resp.ok) return resp.json()
   if (await allowanceHit(resp, 'statement')) throw new StatementFailure(ALLOWANCE, "That's this month's AI reads")
-  if (resp.status === 429) throw new StatementFailure(RATE_LIMITED, 'One moment')
+  if (resp.status === 429) throw new StatementFailure(RATE_LIMITED, 'One moment', 'rate_limited')
   // The platform turns away a body past 4.5MB before the route sees it, with no JSON code.
   if (resp.status === 413) throw new StatementFailure(COPY.too_big, TITLE.too_big)
   const code = ((await resp.json().catch(() => null)) as { error?: unknown } | null)?.error

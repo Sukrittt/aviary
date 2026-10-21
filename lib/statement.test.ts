@@ -25,6 +25,7 @@ import {
   readSource,
   unlockPdfText,
   MAX_STATEMENT_ROWS,
+  MAX_PDF_TEXT,
   StatementError,
 } from './statement'
 
@@ -223,6 +224,11 @@ describe('a password-protected pdf', () => {
   it('calls a pdf with no text in it a scan', async () => {
     extractText.mockResolvedValueOnce({ totalPages: 1, text: ['  '] })
     await expect(unlockPdfText(locked, PASSWORD)).rejects.toEqual(new StatementError('pdf_no_text'))
+  })
+
+  it('turns away a pdf whose text would overflow the prompt as too big', async () => {
+    extractText.mockResolvedValueOnce({ totalPages: 2, text: ['x'.repeat(MAX_PDF_TEXT), 'y'] })
+    await expect(unlockPdfText(locked, PASSWORD)).rejects.toEqual(new StatementError('too_big'))
   })
 
   it('sends the text to the model, never the password or the file, and never logs the password', async () => {
