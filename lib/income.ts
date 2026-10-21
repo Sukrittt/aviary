@@ -113,7 +113,7 @@ async function writeIncomeRow(
   })
 }
 
-async function bumpExtra(auth: Auth, month: string, delta: number, session: ClientSession) {
+export async function bumpExtra(auth: Auth, month: string, delta: number, session: ClientSession) {
   if (!month || delta === 0) return
   await writeIncomeRow(auth, month, (row) => ({ ...row, extra: row.extra + delta }), session)
 }

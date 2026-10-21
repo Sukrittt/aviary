@@ -15,7 +15,7 @@ import { createRecurringIncome, ensureIncomeMigrated, INCOME_CATEGORY, syncMonth
 import { ImportError, resolveRows } from './normalize'
 import type { Direction } from './parse'
 import { CATEGORY_NAME_MAX, UNCATEGORISED, detectSalary, incomeKey, incomeCounted, proposeBudgets, proposeCategories } from './propose'
-import { importsCollection, loadImport, packRows, planOf, STARTER_GROUPS, storedRows, type BookingRow, type ImportDoc, type ImportSummary } from './service'
+import { assertOwner, beforeCutoff, importsCollection, laterOf, loadImport, matchCategory, packRows, planOf, STARTER_GROUPS, storedRows, type BookingRow, type ImportDoc, type ImportSummary } from './service'
 
 export interface CommitEdits {
   currency: string
@@ -98,7 +98,9 @@ const resultOf = (doc: ImportDoc): CommitResult => ({
  * it as is. Only one import per account ever gets this far.
  */
 export async function commitImport(auth: Auth, importId: string, edits: CommitEdits): Promise<CommitResult> {
-  const result = await setUp(auth, importId, edits)
+  const { result, later } = await setUp(auth, importId, edits)
+  // A later import leaves the budget's setup and the person's trial as they were.
+  if (later) return result
   // 7. Start the trial, on every path: a retry after a failure here must still
   // onboard. Idempotent, and its setup check needs the income row and a
   // category, which steps 2 and 4 wrote.
@@ -113,19 +115,23 @@ export async function commitImport(auth: Auth, importId: string, edits: CommitEd
   return result
 }
 
-async function setUp(auth: Auth, importId: string, edits: CommitEdits): Promise<CommitResult> {
+async function setUp(auth: Auth, importId: string, edits: CommitEdits): Promise<{ result: CommitResult; later: boolean }> {
   const doc = await loadImport(auth, importId)
+  const later = !!doc.later
   if (doc.status !== 'previewed') {
-    if (doc.status === 'cancelled') throw new ImportError('not_found')
-    return resultOf(doc)
+    if (doc.status === 'cancelled' || doc.status === 'undone') throw new ImportError('not_found')
+    return { result: resultOf(doc), later }
   }
+  if (later) assertOwner(auth)
   const coll = await importsCollection(auth)
-  if (await coll.findOne({ _id: { $ne: doc._id }, status: { $in: ['importing', 'done', 'failed'] } })) throw new ImportError('already_importing')
+  // Onboarding imports once per budget; a later one waits for the one running to finish.
+  const running = later ? ['importing'] : ['importing', 'done', 'failed']
+  if (await coll.findOne({ _id: { $ne: doc._id }, status: { $in: running } })) throw new ImportError('already_importing')
   // Two uploads racing in two tabs leave two previews; only one of them may be set up at a time.
   if (await coll.findOne({ _id: { $ne: doc._id }, status: 'previewed', claimedUntil: { $gt: Date.now() } })) throw new ImportError('busy')
-  // A preview can outlive the manual setup finishing in another tab; history
-  // never lands in an account that's already set up.
-  if (await budgetSetUp(auth)) throw new ImportError('already_onboarded')
+  // A preview can outlive the manual setup finishing in another tab; a setup
+  // import never lands in an account that's already set up.
+  if (!later && (await budgetSetUp(auth))) throw new ImportError('already_onboarded')
 
   // One commit writes at a time. Accounts have no unique index (their name is
   // encrypted), so two racing commits would otherwise make every account twice.
@@ -136,11 +142,11 @@ async function setUp(auth: Auth, importId: string, edits: CommitEdits): Promise<
   )
   if (claimed.matchedCount !== 1) {
     const current = await loadImport(auth, importId)
-    if (current.status !== 'previewed') return resultOf(current)
+    if (current.status !== 'previewed') return { result: resultOf(current), later }
     throw new ImportError('busy')
   }
   try {
-    return await writeSetup(auth, doc, edits)
+    return { result: await (later ? writeLater(auth, doc, edits) : writeSetup(auth, doc, edits)), later }
   } catch (err) {
     // Let a retry claim it straight away rather than wait out the claim.
     await coll.updateOne({ _id: doc._id, status: 'previewed' }, { $set: { claimedUntil: 0 } })
@@ -189,19 +195,7 @@ async function writeSetup(auth: Auth, doc: ImportDoc, edits: CommitEdits): Promi
 
   // 3. Accounts. One that already exists by name (a retry) is reused; one past
   // the caps is left out and its rows import without an account.
-  const accountIds = new Map<string, string>()
-  const existing: { _id: unknown; name?: unknown }[] = await (await getCollection('accounts', auth)).find({ archived: { $ne: true } }).toArray()
-  for (const a of edits.accounts) {
-    // Two sources renamed to one name share an account.
-    const found = existing.find((e) => sameAccountName(e.name, a.name))
-    try {
-      const id = found ? String(found._id) : await createAccount(auth, { name: a.name, type: a.type })
-      if (!found) existing.push({ _id: id, name: a.name })
-      accountIds.set(a.source.toLowerCase(), id)
-    } catch (err) {
-      if (!(err instanceof AccountWriteError)) throw err
-    }
-  }
+  const accountIds = await ensureAccounts(auth, edits.accounts)
 
   // 4. Income. Migrate first, or a later migration mints a second salary schedule.
   await ensureIncomeMigrated(auth)
@@ -271,4 +265,91 @@ async function writeSetup(auth: Auth, doc: ImportDoc, edits: CommitEdits): Promi
     return resultOf(current)
   }
   return { importId, total: booking.length, ...summary }
+}
+
+/**
+ * A later import: history only. Currency, salary and this month's budget stay
+ * as they are; envelopes the budget already has are reused by name, and only
+ * rows from before its first entry come in, so nothing is counted twice.
+ * Months without budget rows get the spending, never an invented assignment.
+ */
+async function writeLater(auth: Auth, doc: ImportDoc, edits: CommitEdits): Promise<CommitResult> {
+  const importId = String(doc._id)
+  const coll = await importsCollection(auth)
+  const later = (await laterOf(auth))!
+  // The budget's own currency, whatever the client sent: rows in any other are skipped.
+  const resolved = resolveRows(storedRows(doc), { direction: edits.direction, currency: doc.currency, hasCurrency: doc.hasCurrency })
+  const { kept, after } = beforeCutoff(resolved.filter((r) => r.kind !== 'skipped'), later.cutoff)
+  const plan = proposeCategories(kept)
+
+  // Each source lands in the envelope the user picked: an existing one by
+  // name, or a new one in the group they chose.
+  const edited = new Map(edits.categories.map((c) => [c.source, c]))
+  const finalNames = new Map<string, string>()
+  const existing = [...later.categories]
+  const fresh = new Map<string, { name: string; group: string }>()
+  const fallbackGroup = later.groups[0] ?? STARTER_GROUPS[0]
+  for (const { source } of plan.list) {
+    const edit = edited.get(source)
+    const name = edit?.name || source
+    const match = matchCategory(name, existing)
+    if (match) {
+      finalNames.set(source, match)
+      continue
+    }
+    const group = edit?.group || fallbackGroup
+    fresh.set(normalizeItem(name) || name, { name, group })
+    existing.push(name)
+    finalNames.set(source, name)
+  }
+  for (const g of new Set([...fresh.values()].map((c) => c.group))) await createGroup(auth, g)
+  for (const c of fresh.values()) await createCategory(auth, c)
+  const categoryOf = (r: (typeof kept)[number]) => finalNames.get(plan.sourceOf(r)) ?? plan.sourceOf(r)
+
+  // Accounts, as setup does: one that exists by name is reused.
+  const accountIds = await ensureAccounts(auth, edits.accounts)
+  await ensureIncomeMigrated(auth)
+
+  const booking: BookingRow[] = kept.map((r) => ({
+    kind: r.kind as 'expense' | 'income',
+    date: r.date,
+    amount: r.amount,
+    item: r.item || categoryOf(r),
+    notes: r.notes,
+    category: r.kind === 'expense' ? categoryOf(r) : '',
+    ...(accountIds.has(r.account.toLowerCase()) ? { account_id: accountIds.get(r.account.toLowerCase()) } : {}),
+    ...(r.kind === 'income' ? { counted: 'extra' as const } : {}),
+  }))
+  const summary = { groupCount: 0, categoryCount: fresh.size, income: 0 }
+  const skipped = { ...doc.skipped, ...(after ? { after_start: after } : {}) }
+  const flipped = await coll.updateOne({ _id: doc._id, status: 'previewed' }, {
+    $set: {
+      status: 'importing', rows: packRows(booking), total: booking.length, done: 0, failed: 0, cursor: 0, skipped,
+      streak: 0, streak_start: 0, lockedUntil: 0, direction: edits.direction, summary: JSON.stringify(summary), committed_at: new Date(),
+    },
+  })
+  if (flipped.matchedCount !== 1) {
+    const current = await loadImport(auth, importId)
+    if (current.status === 'previewed') throw new ImportError('not_found')
+    return resultOf(current)
+  }
+  return { importId, total: booking.length, ...summary }
+}
+
+/** Source account (lowercased) → account id. One that already exists by name is reused; one past the caps is left out and its rows import without an account. */
+async function ensureAccounts(auth: Auth, accounts: CommitEdits['accounts']): Promise<Map<string, string>> {
+  const accountIds = new Map<string, string>()
+  const existing: { _id: unknown; name?: unknown }[] = await (await getCollection('accounts', auth)).find({ archived: { $ne: true } }).toArray()
+  for (const a of accounts) {
+    // Two sources renamed to one name share an account.
+    const found = existing.find((e) => sameAccountName(e.name, a.name))
+    try {
+      const id = found ? String(found._id) : await createAccount(auth, { name: a.name, type: a.type })
+      if (!found) existing.push({ _id: id, name: a.name })
+      accountIds.set(a.source.toLowerCase(), id)
+    } catch (err) {
+      if (!(err instanceof AccountWriteError)) throw err
+    }
+  }
+  return accountIds
 }

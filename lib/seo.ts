@@ -65,6 +65,7 @@ export const pages = {
   '/account/ideas': { title: 'Feedback Board', description: 'Post ideas and vote on what Aviary builds next.' },
   '/account/guided-tour': { title: 'Guided Tour', description: 'Learn how to assign money, log expenses, and use your budget with Aviary’s guided tour.' },
   '/account/help': { title: 'Help & Support', description: 'Learn how Aviary categories work and find help with your budget and account.' },
+  '/account/import': { title: 'Import from Another App', description: 'Bring your history from YNAB, Money Manager, Wallet and more into a budget you already use.' },
   '/account/income': { title: 'Income', description: 'Set your salary and other income so Aviary counts it toward Ready to Assign.' },
   '/account/recurring': { title: 'Recurring Expenses', description: 'Manage recurring expenses and reminders for regular purchases in your Aviary budget.' },
   '/account/security': { title: 'Account Security', description: 'Manage your sign-in methods, email, active sessions, and account security in Aviary.' },
