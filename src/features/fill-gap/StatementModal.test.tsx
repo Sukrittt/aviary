@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 const mutateAsync = vi.fn()
@@ -178,7 +178,12 @@ describe('StatementModal', () => {
     expect(screen.queryByRole('alert')).toBeNull()
 
     await userEvent.type(screen.getByLabelText('Password'), 'nope')
-    fireEvent.click(screen.getByText('Open it'))
+    // Both clicks land before the reading screen renders; only one upload goes.
+    const open = screen.getByText('Open it')
+    act(() => {
+      fireEvent.click(open)
+      fireEvent.click(open)
+    })
     expect(await screen.findByText("That didn't open it, try again.")).toBeTruthy()
     expect((screen.getByLabelText('Password') as HTMLInputElement).value).toBe('')
 

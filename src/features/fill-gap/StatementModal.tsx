@@ -225,12 +225,16 @@ export function StatementModal({ onClose, onBack }: { onClose: () => void; onBac
 /** A locked pdf's password, asked for in place. Sent once with the file, never kept. */
 function StatementPassword({ name, wrong, onSubmit, onPickAnother }: { name: string; wrong: boolean; onSubmit: (password: string) => void; onPickAnother: () => void }) {
   const [password, setPassword] = useState('')
+  // Once per showing: a double click lands before the reading screen does. A wrong guess remounts this.
+  const sent = useRef(false)
   return (
     <form
       className="statement-password"
       onSubmit={(e) => {
         e.preventDefault()
-        if (password) onSubmit(password)
+        if (!password || sent.current) return
+        sent.current = true
+        onSubmit(password)
       }}
     >
       <span className="gap-tile"><LockIcon size={20} aria-hidden="true" /></span>
