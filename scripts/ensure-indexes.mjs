@@ -234,12 +234,15 @@ async function main() {
           console.log(`${name.padEnd(24)} dropped ${index}`)
         } catch (err) {
           // 27 IndexNotFound, 26 NamespaceNotFound: already gone.
-          if (err.code !== 27 && err.code !== 26) console.error(`${name.padEnd(24)} FAILED drop ${index}: ${err.message}`)
+          if (err.code !== 27 && err.code !== 26) {
+            console.error(`${name.padEnd(24)} FAILED drop ${index}: ${err.message}`)
+            process.exitCode = 1
+          }
         }
       }
     }
-    // Hits written before `expiresAt` existed: the new TTL never sees them, and no window is longer than a day.
-    await db.collection('rate_limit_hits').deleteMany({ expiresAt: { $exists: false }, ts: { $lt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000) } })
+    // Hits written before `expiresAt` existed: give them one (no window is longer than a day) so the new TTL reaps them.
+    await db.collection('rate_limit_hits').updateMany({ expiresAt: { $exists: false } }, [{ $set: { expiresAt: { $add: ['$ts', 2 * 24 * 60 * 60 * 1000] } } }])
     for (const [name, specs] of Object.entries(INDEXES)) {
       for (const [keys, options] of specs) {
         try {

@@ -152,13 +152,16 @@ export const leadId = (email: string) => createHash('sha256').update(inboxKey(em
 export async function queueLeadPlan(db: Db, email: string, plan: LeadDoc['plan'], now = new Date()): Promise<string> {
   const _id = leadId(email)
   const leads = db.collection<LeadDoc>(LEADS)
-  // Leads before #211 were keyed on the raw address; an opt-out made then still holds.
+  // Leads before #211 were keyed on the raw address; an opt-out made then still
+  // holds. It moves onto the new key once, then the old row goes.
   const legacyId = createHash('sha256').update(email.trim().toLowerCase()).digest('hex').slice(0, 32)
   const legacy = legacyId === _id ? null : await leads.findOne({ _id: legacyId }, { projection: { optedOutAt: 1 } })
+  const optedOutAt = legacy?.optedOutAt ?? null
   await leads.updateOne({ _id }, {
-    $setOnInsert: { email, source: 'salary-planner', createdAt: now, confirmedAt: null, optedOutAt: legacy?.optedOutAt ?? null },
-    $set: { plan },
+    $setOnInsert: { email, source: 'salary-planner', createdAt: now, confirmedAt: null, ...(optedOutAt ? {} : { optedOutAt: null }) },
+    $set: { plan, ...(optedOutAt ? { optedOutAt } : {}) },
   }, { upsert: true })
+  if (optedOutAt) await leads.deleteOne({ _id: legacyId })
   const lead = (await leads.findOne({ _id }))!
   const rowId = `lead/${_id}/plan/${now.toISOString().slice(0, 10)}`
   await queueLead(db, lead, 'plan', [], now, rowId)

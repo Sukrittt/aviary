@@ -176,6 +176,18 @@ describe('salary planner leads', () => {
     expect(sendEmail).not.toHaveBeenCalled()
   })
 
+  it('applies an old-key opt-out even when the new key already has a lead, once (#211)', async () => {
+    await queueLeadPlan(db, 'jane@gmail.com', plan, ago(9))
+    await outbox().deleteMany({})
+    const legacyId = createHash('sha256').update('j.ane@gmail.com').digest('hex').slice(0, 32)
+    await db.collection(LEADS).insertOne({ _id: legacyId as never, email: 'j.ane@gmail.com', source: 'salary-planner', createdAt: ago(9), confirmedAt: null, optedOutAt: ago(9) })
+    await queueLeadPlan(db, 'j.ane@gmail.com', plan, now)
+    await retryLifecycleEmails()
+    expect(sendEmail).not.toHaveBeenCalled()
+    // Consumed, so a later re-subscribe on the new key isn't undone by it.
+    expect(await db.collection(LEADS).findOne({ _id: legacyId as never })).toBeNull()
+  })
+
   it('follows a confirmed lead on day 3, and hands an address that signed up to the account emails', async () => {
     await queueLeadPlan(db, 'lead@example.com', plan, ago(3))
     await outbox().updateMany({}, { $set: { 'delivery.state': 'sent' } })
