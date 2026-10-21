@@ -14,6 +14,8 @@ import { currencyInfo } from '@/src/lib/currencies'
 import { nextOnDay } from '@/src/lib/date'
 import { DatePicker } from '@/src/components/DatePicker'
 import { Select } from '@/src/components/Select'
+import { CategoryIcon } from '@/src/components/CategoryIcon'
+import { splitEmoji } from '@/src/lib/emoji'
 import { track } from '@/src/lib/analytics'
 import { commitImport, ImportFailure, previewImport, recomputeImport, type CommitResult, type ImportReview } from '@/src/api/imports'
 import { useImportStatus } from '@/src/components/ImportBanner'
@@ -640,7 +642,11 @@ function Review({ review, picked, budgetName, onReview, onDone, onAlreadySetUp }
                     className="import-select"
                     aria-label={`Envelope for ${c.source}`}
                     value={isNew(c) ? '' : c.name}
-                    options={[{ value: '', label: 'New envelope' }, ...later.categories.map((name) => ({ value: name, label: name }))]}
+                    options={[
+                      { value: '', label: 'New envelope' },
+                      // Our icon and the bare name, as the envelope shows everywhere else: never a name's emoji.
+                      ...later.categories.map((name) => ({ value: name, label: splitEmoji(name).text || name, icon: <CategoryIcon name={name} icon={later.icons.categories[name]} /> })),
+                    ]}
                     onChange={(name) => {
                       setCats((all) => all.map((x, j) => (j === i ? { ...x, name: name || x.source } : x)))
                       setChosenNew((prev) => {
@@ -665,7 +671,7 @@ function Review({ review, picked, budgetName, onReview, onDone, onAlreadySetUp }
                         className="import-select"
                         aria-label={`Group for ${c.source}`}
                         value={c.group}
-                        options={groups.map((g) => ({ value: g, label: g }))}
+                        options={groups.map((g) => ({ value: g, label: splitEmoji(g).text || g, icon: <CategoryIcon kind="group" name={g} icon={later.icons.groups[g]} /> }))}
                         onChange={(group) => setCats((all) => all.map((x, j) => (j === i ? { ...x, group } : x)))}
                       />
                     </>

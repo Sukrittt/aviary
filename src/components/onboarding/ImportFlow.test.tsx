@@ -280,7 +280,7 @@ describe('ImportFlow', () => {
         { source: 'Bills', name: 'Bills', group: 'Bills', monthly: 0 },
         { source: 'Gifts', name: 'Gifts', group: 'Bills', monthly: 0 },
       ],
-      later: { cutoff: '2026-10-03', categories: ['Bills', 'Groceries'] },
+      later: { cutoff: '2026-10-03', categories: ['Bills', '🛒 Groceries'], icons: { categories: { '🛒 Groceries': 'ShoppingCart' }, groups: {} } },
     }
 
     it('says what comes in and why it stops there, without the setup steps', async () => {
@@ -313,13 +313,15 @@ describe('ImportFlow', () => {
       fireEvent.change(screen.getByLabelText('Choose your export file'), { target: { files: [file()] } })
       await open(/^Envelopes/)
       await pick('Envelope for Gifts', 'Groceries')
+      // Our icon and the bare name: a stored "🛒 Groceries" never shows its emoji.
+      expect(screen.queryByText(/🛒/)).toBeNull()
       done()
       expect(screen.getByRole('button', { name: 'Envelopes All matched' })).toBeTruthy()
       fireEvent.click(screen.getByRole('button', { name: 'Bring it in' }))
       await waitFor(() => expect(commitImport).toHaveBeenCalled())
       expect(commitImport.mock.calls[0][1]).toMatchObject({
         salary: null,
-        categories: [{ source: 'Bills', name: 'Bills', group: 'Bills' }, { source: 'Gifts', name: 'Groceries', group: 'Bills' }],
+        categories: [{ source: 'Bills', name: 'Bills', group: 'Bills' }, { source: 'Gifts', name: '🛒 Groceries', group: 'Bills' }],
       })
     })
   })

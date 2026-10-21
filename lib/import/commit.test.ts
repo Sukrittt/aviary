@@ -460,7 +460,7 @@ describe('into a new budget', () => {
   it('a budget that is already set up gets a later import, its currency left alone', async () => {
     await (await getDb()).collection('spaces').updateOne({ _id: 'sp_trip' as never }, { $set: { onboardedAt: '2026-10-01T00:00:00.000Z' } })
     const review = await previewFile(trip, fixture('money-manager.csv'), 'mm.csv')
-    expect(review.later).toEqual({ cutoff: null, categories: [] })
+    expect(review.later).toEqual({ cutoff: null, categories: [], icons: { categories: {}, groups: {} } })
     await commitImport(trip, review.importId, editsFrom(review))
     expect((await (await getDb()).collection('spaces').findOne({ _id: 'sp_trip' as never }))?.currencyCode).toBe('USD')
   })
@@ -470,7 +470,7 @@ describe('later import, from Settings', () => {
   beforeEach(async () => {
     await (await getDb()).collection('users').updateOne({ _id: USER as never }, { $set: { onboardedAt: '2026-09-10T00:00:00.000Z' } })
     await (await coll('groups')).insertOne({ name: 'Bills', order: 1 })
-    await (await coll('categories')).insertOne({ name: 'Rent', group: 'Bills', order: 1 })
+    await (await coll('categories')).insertOne({ name: 'Rent', group: 'Bills', order: 1, icon: 'House' })
     await (await coll('categories')).insertOne({ name: 'groceries', group: 'Bills', order: 2 })
     // The first thing logged in Aviary: the cutoff.
     await (await coll('expenses')).insertOne({ date: '2026-09-10', item: 'Coffee', amount_inr: '100', category: 'Rent', payment_method: 'bank', timestamp: '2026-09-10T08:00:00.000Z' })
@@ -478,7 +478,7 @@ describe('later import, from Settings', () => {
 
   it('reviews only the rows from before the first entry, with the setup left out', async () => {
     const review = await previewFile(auth, fixture('money-manager.csv'), 'mm.csv')
-    expect(review.later).toEqual({ cutoff: '2026-09-10', categories: ['Rent', 'groceries'] })
+    expect(review.later).toEqual({ cutoff: '2026-09-10', categories: ['Rent', 'groceries'], icons: { categories: { Rent: 'House' }, groups: {} } })
     expect(review.counts).toMatchObject({ expense: 2, income: 1, from: '2026-09-01', to: '2026-09-05' })
     expect(review.skipped).toMatchObject({ after_start: 5 })
     expect(review.salary).toBeNull()

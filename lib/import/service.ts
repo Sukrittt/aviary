@@ -99,7 +99,7 @@ export interface Review {
   salary: { label: string; amount: number; day: number } | null
   budgetTotal: number
   /** Set for a later import: where the history stops, and the envelopes it can land in. */
-  later: { cutoff: string | null; categories: string[] } | null
+  later: { cutoff: string | null; categories: string[]; icons: Later['icons'] } | null
 }
 
 /** What a later import works against: the date of the budget's first entry and what's already there. */
@@ -108,6 +108,8 @@ export interface Later {
   cutoff: string | null
   categories: string[]
   groups: string[]
+  /** The icon each envelope and group was given, by name, so the review shows ours rather than a name's emoji. */
+  icons: { categories: Record<string, string>; groups: Record<string, string> }
 }
 
 /** The budget as a later import sees it, or null while it isn't set up (an onboarding import). */
@@ -117,9 +119,18 @@ export async function laterOf(auth: Auth): Promise<Later | null> {
     const doc = await (await getCollection(name, auth)).find({}, { projection: { date: 1 } }).sort({ date: 1 }).limit(1).next()
     return typeof doc?.date === 'string' && doc.date ? doc.date.slice(0, 10) : null
   }
-  const names = async (name: string) => (await (await getCollection(name, auth)).find({}, { projection: { name: 1 } }).sort({ order: 1 }).toArray()).map((d) => String(d.name))
+  const list = async (name: string) => (await (await getCollection(name, auth)).find({}, { projection: { name: 1, icon: 1 } }).sort({ order: 1 }).toArray())
+    .map((d) => ({ name: String(d.name), icon: typeof d.icon === 'string' ? d.icon : '' }))
+  const iconsOf = (docs: { name: string; icon: string }[]) => Object.fromEntries(docs.filter((d) => d.icon).map((d) => [d.name, d.icon]))
   const dates = (await Promise.all([first('expenses'), first('incomes')])).filter((d): d is string => !!d).sort()
-  return { cutoff: dates[0] ?? null, categories: (await names('categories')).filter((n) => n !== INCOME_CATEGORY), groups: await names('groups') }
+  const categories = (await list('categories')).filter((c) => c.name !== INCOME_CATEGORY)
+  const groups = await list('groups')
+  return {
+    cutoff: dates[0] ?? null,
+    categories: categories.map((c) => c.name),
+    groups: groups.map((g) => g.name),
+    icons: { categories: iconsOf(categories), groups: iconsOf(groups) },
+  }
 }
 
 /** An import is a bulk change for everyone in a shared budget, so only its owner may run one. The personal budget's role is always owner. */
@@ -224,7 +235,7 @@ export async function buildReview(auth: Auth, doc: ImportDoc, today: string): Pr
     droppedAccounts: dropped,
     salary: salary && { label: salary.label, amount: salary.amount, day: salary.day },
     budgetTotal: later ? 0 : Object.entries(budgets).filter(([name]) => names.includes(name)).reduce((n, [, v]) => n + v, 0),
-    later: later && { cutoff: later.cutoff, categories: later.categories },
+    later: later && { cutoff: later.cutoff, categories: later.categories, icons: later.icons },
   }
 }
 
