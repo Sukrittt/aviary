@@ -4,28 +4,38 @@ import Link from 'next/link'
 import { useState, type ReactNode } from 'react'
 import { useCurrency } from '@/src/context/CurrencyContext'
 import { useForecast } from '@/src/hooks/useForecast'
-import { forecastHeadline, nextMonthLine } from '@/src/lib/forecastCopy'
+import { runOutWarning, nextMonthLine } from '@/src/lib/forecastCopy'
+import { usePersistentState } from '@/src/hooks/usePersistentState'
 import { splitEmoji } from '@/src/lib/emoji'
 import { formatDateShort } from '@/src/lib/format'
 import { BirdEmptyState } from '@/src/components/BirdEmptyState'
 import { ForecastSkeleton } from '@/src/components/TabSkeleton'
-import { CaretRightIcon, ChartLineIcon } from '@/src/components/icons'
+import { ChartLineIcon } from '@/src/components/icons'
 import type { ForecastEnvelope } from '@/lib/forecast'
 
-/** Home's one line: "About ₹2,400 left at month end". Opens the forecast on Insights. */
-export function ForecastLine({ hideAmounts }: { hideAmounts: boolean }) {
-  const { formatCurrency } = useCurrency()
+const parseDismissed = (raw: string) => raw === '1'
+const serializeDismissed = (value: boolean) => (value ? '1' : '0')
+
+/**
+ * Home's heads-up: "Fun runs out around 24 Oct". Only shows when an envelope
+ * runs dry before month end, and stays gone once dismissed until the forecast
+ * names a different envelope or date. The full forecast lives on Insights.
+ */
+export function ForecastLine() {
   const { data } = useForecast()
-  const line = data && forecastHeadline(data, (n) => formatCurrency(n, hideAmounts))
-  if (!line) return null
+  const warning = data ? runOutWarning(data) : null
+  const [dismissed, setDismissed] = usePersistentState(
+    `rollover-dismissed-${warning?.key ?? 'forecast-none'}`, false, parseDismissed, serializeDismissed,
+  )
+  if (!warning || dismissed) return null
   return (
-    <Link href="/insights#forecast" className="erd-card erd-home-rta-slim">
-      <span>
+    <div className="erd-card erd-home-rta-slim home-forecast-warning">
+      <Link href="/insights#forecast">
         <span className="erd-rta-icon" aria-hidden="true"><ChartLineIcon size={18} /></span>
-        {line}
-      </span>
-      <CaretRightIcon size={16} aria-hidden="true" />
-    </Link>
+        {warning.text}
+      </Link>
+      <button type="button" onClick={() => setDismissed(true)}>Okay</button>
+    </div>
   )
 }
 

@@ -1,7 +1,7 @@
-import { beforeEach, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
 import type { Forecast } from '@/lib/forecast'
-import { ForecastCard } from './Forecast'
+import { ForecastCard, ForecastLine } from './Forecast'
 
 const mocks = vi.hoisted(() => ({ forecast: null as unknown as Forecast | undefined, isPending: false }))
 vi.mock('@/src/hooks/useForecast', () => ({ useForecast: () => ({ data: mocks.forecast, isPending: mocks.isPending }) }))
@@ -18,7 +18,7 @@ const base: Forecast = {
   nextMonth: { month: '2026-11', income: 0, spokenFor: 0, free: 0 },
 }
 
-beforeEach(() => { mocks.forecast = base; mocks.isPending = false })
+beforeEach(() => { mocks.forecast = base; mocks.isPending = false; localStorage.clear() })
 
 function renderCard(onTopUp = vi.fn()) {
   render(<ForecastCard hideAmounts={false} icon={() => null} onTopUp={onTopUp} />)
@@ -59,4 +59,35 @@ it('holds its place with a skeleton while loading, and steps aside if it fails',
   mocks.isPending = false
   const { container } = render(<ForecastCard hideAmounts={false} icon={() => null} onTopUp={vi.fn()} />)
   expect(container.innerHTML).toBe('')
+})
+
+describe('ForecastLine', () => {
+  it('stays off Home when nothing runs out', () => {
+    mocks.forecast = { ...base, envelopes: [env('Food', 400)] }
+    const { container } = render(<ForecastLine />)
+    expect(container.innerHTML).toBe('')
+  })
+
+  it('warns about the envelope running out, linking to the forecast', () => {
+    render(<ForecastLine />)
+    expect(screen.getByRole('link').getAttribute('href')).toBe('/insights#forecast')
+    expect(screen.getByRole('link').textContent).toBe('Food runs out around 30\u00a0Oct')
+  })
+
+  it('goes away on Okay and stays gone for that envelope and date', () => {
+    const first = render(<ForecastLine />)
+    fireEvent.click(screen.getByRole('button', { name: 'Okay' }))
+    expect(first.container.innerHTML).toBe('')
+    first.unmount()
+    expect(render(<ForecastLine />).container.innerHTML).toBe('')
+  })
+
+  it('comes back once the forecast names a new date', () => {
+    const first = render(<ForecastLine />)
+    fireEvent.click(screen.getByRole('button', { name: 'Okay' }))
+    first.unmount()
+    mocks.forecast = { ...base, envelopes: [env('Food', -200, { runsOutOn: '2026-10-27' })] }
+    render(<ForecastLine />)
+    expect(screen.getByRole('link').textContent).toBe('Food runs out around 27\u00a0Oct')
+  })
 })
