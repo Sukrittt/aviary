@@ -102,10 +102,11 @@ function BudgetSheet({ onClose }: { onClose: () => void }) {
     setPurgeBusy(true)
     try {
       await purgeBudget(id)
-      await qc.invalidateQueries({ queryKey: spacesKey })
     } catch {
       setRestoreError('Check your connection and try again.')
     }
+    // Even on a failure: a timeout can land after the server already purged it.
+    await qc.invalidateQueries({ queryKey: spacesKey })
     setPurgeBusy(false)
     setPurging(null)
   }
