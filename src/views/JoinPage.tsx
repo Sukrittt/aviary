@@ -8,7 +8,7 @@ import { previewInvite } from '../api/spaces'
 import { useSpaces } from '../hooks/useSpaces'
 import { BirdMark } from '../components/BirdMark'
 import { PLAY_STORE_URL } from '../components/billing/copy'
-import { JoinConfirm, inviteBlocked, openBudget, signInToJoin, whoIsIn } from '../components/JoinBudget'
+import { JoinConfirm, inviteBlocked, openBudget, signInToJoin, tryAgainCopy, whoIsIn } from '../components/JoinBudget'
 import { BudgetIcon } from '../components/CategoryIcon'
 
 /** `/join/<code>`: what an invite link opens. Works signed out; joining on web signs you in first. */
@@ -24,7 +24,7 @@ export function JoinPage({ code }: { code: string }) {
   if (q.isPending) headline = 'Opening your invite…'
   else if (q.isError || !preview) {
     headline = "Couldn't open this invite"
-    body = 'Check your connection and try again.'
+    body = tryAgainCopy(q.error)
   } else if (inviteBlocked(preview) || preview.status === 'not_found') {
     headline = preview.status === 'not_found' ? "That invite doesn't exist" : 'This invite has expired'
     body = inviteBlocked(preview)

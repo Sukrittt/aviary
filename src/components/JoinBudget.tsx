@@ -16,6 +16,9 @@ import { MemberAvatar } from './BudgetMembers'
 import { CodeTiles } from './CodeTiles'
 
 const GENERIC = 'Check your connection and try again.'
+const TOO_MANY = "That's a lot of tries. Give it a minute, then try again."
+/** The 429 from /api/join gets its own line; anything else is the generic one. */
+export const tryAgainCopy = (err: unknown) => (err instanceof HttpError && err.status === 429 ? TOO_MANY : GENERIC)
 export const CODE_LENGTH = 6
 
 type Previewed = Exclude<InvitePreview, { status: 'not_found' }>
@@ -34,7 +37,7 @@ export function joinError(err: unknown, preview: Previewed, limit = 5): string {
     if (err.message === 'EXPIRED') return inviteBlocked({ ...preview, status: 'expired' })!
     if (err.message === 'NOT_FOUND') return inviteBlocked({ status: 'not_found' })!
   }
-  return GENERIC
+  return tryAgainCopy(err)
 }
 
 /** How many people are already in the budget you're about to join. */
@@ -175,8 +178,8 @@ export function JoinCodeDialog({ memberOf, limit, onClose }: { memberOf: (id: st
       if (blocked) setError(blocked)
       else if (p.status !== 'not_found' && memberOf(p.budget.id)) return openBudget(p.budget.id)
       else setPreview({ code: value, invite: p as Previewed })
-    } catch {
-      setError(GENERIC)
+    } catch (err) {
+      setError(tryAgainCopy(err))
     }
     setBusy(false)
   }
