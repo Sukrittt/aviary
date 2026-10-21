@@ -26,6 +26,8 @@ still() { case "$2" in *.webp) ffmpeg -v error -y $1 -frames:v 1 -update 1 /tmp/
 last() { still "-sseof -0.2 -i $1" "$2"; }  # poster: the clip's finished state
 frame() { still "-ss $2 -i $1" "$3"; }  # <in> <t> <out>
 crop() { ffmpeg -v error -y -ss "$2" -i "$1" -frames:v 1 -update 1 -vf "crop=576:640:0:$3" "$4"; }  # <in> <t> <y> <out>: 576x640 still
+# The wrap-up card: "Plan this month" sits 8px under "Share your wrapped", so the crop stops between them and the last row is stretched into 30px of breathing room.
+streak() { ffmpeg -v error -y -ss "$2" -i "$1" -frames:v 1 -update 1 -filter_complex "[0:v]split[a][b];[a]crop=576:610:0:290[top];[b]crop=w=576:h=2:x=0:y=898,scale=576:30:flags=neighbor[pad];[top][pad]vstack" "$3"; }  # <in> <t> <out>
 
 # Both regions share one cut list; the moments (seconds into each take) are set per region below.
 build() {
@@ -50,7 +52,7 @@ build() {
   if [ -f "$src/members.mp4" ]; then joined "$src/members.mp4" "$out/clip-members.mp4" $MEMBERS; last "$out/clip-members.mp4" "$out/poster-members.webp"; fi
   # Catch-up from screenshots: pick, read, check, logged.
   joined "$src/statement-upload.mp4" "$out/clip-catchup.mp4" $CATCHUP; last "$out/clip-catchup.mp4" "$out/poster-catchup.webp"
-  crop "$src/wrapped.mp4" "$STREAK" 380 "$out/wrapped-streak.png"
+  streak "$src/wrapped.mp4" "$STREAK" "$out/wrapped-streak.png"
   crop "$src/wrapped.mp4" "$PERSONA" 390 "$out/wrapped-persona.png"
   # Store screenshot frames (slides.html reads these as *@2x.png).
   frame "$src/log-expense.mp4" "$KEYPAD" "$store/log_amount@2x.png"
@@ -64,9 +66,9 @@ build() {
   frame "$src/wrapped.mp4" "$PERSONA" "$store/wr_homebody@2x.png"
 }
 
-KEYPAD=3.9 LOG="0 3.95 4.55 99" ADDED=6.4 ADDED_Y=208 SCAN=10.5 ASK="6.5 13.5 19.2 24.9 27.4 29.2" INSIGHTS="3.0 21.0" SUBS=29.6 INVEST=3.0 STREAK=43 PERSONA=52 CARD=9.0 \
+KEYPAD=3.9 LOG="0 3.95 4.55 99" ADDED=6.4 ADDED_Y=208 SCAN=10.5 ASK="6.5 13.5 19.2 24.9 27.4 29.2" INSIGHTS="3.0 21.0" SUBS=29.6 INVEST=3.0 STREAK=51.5 PERSONA=47 CARD=9.0 \
   CREATE="3.8 5.0 7.6 9.8 11.3 12.2 14.0 18.5" CREATE_TAIL="" JOIN="2.8 3.6 6.5 10.6 11.0 99" MEMBERS="0.3 1.0 2.9 5.3 6.0 11.6" CATCHUP="4.4 6.0 7.6 9.6 10.4 11.4 12.4 15.0 23.5 99" \
   build india ""
-KEYPAD=4.8 LOG="0 5.15 5.95 99" ADDED=7.6 ADDED_Y=215 SCAN=7.4 ASK="6.5 13.0 17.0 22.6 25.0 26.8" INSIGHTS="2.5 23.0" SUBS=30.9 INVEST=17.5 STREAK=42 PERSONA=50 CARD=10.4 \
+KEYPAD=4.8 LOG="0 5.15 5.95 99" ADDED=7.6 ADDED_Y=215 SCAN=7.4 ASK="6.5 13.0 17.0 22.6 25.0 26.8" INSIGHTS="2.5 23.0" SUBS=30.9 INVEST=17.5 STREAK=52 PERSONA=47 CARD=10.4 \
   CREATE="4.4 5.2 7.4 8.6 15.2 16.4 20.0 21.0" CREATE_TAIL="14.6 18.5" JOIN="2.8 3.6 5.0 7.4 8.4 99" MEMBERS="0.3 1.0 3.2 6.0 8.6 99" CATCHUP="3.0 4.2 5.6 7.2 8.4 11.4 22.4 99" \
   build international /intl
