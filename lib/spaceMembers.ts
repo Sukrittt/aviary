@@ -200,6 +200,9 @@ export async function purgeBudget(auth: Auth, spaceId: string): Promise<void> {
   const space = await db.collection<SpaceDoc>(SPACES).findOne({ _id: spaceId })
   if (!space?.deleted_at || space._id === space.owner_id) throw new BudgetError('NOT_FOUND', 'nothing to delete')
   if (space.owner_id !== auth.userId) throw new BudgetError('NOT_OWNER', 'only the owner can delete it')
+  // Drop the doc first, still deleted, so a restore racing this can't bring back a budget whose data is going.
+  const gone = await db.collection<SpaceDoc>(SPACES).deleteOne({ _id: spaceId, deleted_at: { $ne: null } })
+  if (!gone.deletedCount) throw new BudgetError('NOT_FOUND', 'nothing to delete')
   await purgeSpace(db, spaceId)
   forgetMembership(spaceId)
 }
