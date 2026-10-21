@@ -9,7 +9,7 @@ const nextCookies = vi.hoisted(() => ({ value: null as string | null }))
 vi.mock('next/headers', () => ({ cookies: async () => ({ get: (name: string) => (name === 'aviary-budget' && nextCookies.value ? { value: nextCookies.value } : undefined) }) }))
 vi.mock('./spaces', async (original) => ({
   ...(await original<typeof import('./spaces')>()),
-  lookupMembership: vi.fn(async () => ({ space: { _id: 'sp_home', owner_id: 'user_a', deleted_at: null }, role: 'member' })),
+  lookupMembership: vi.fn(async (_userId: string, spaceId: string) => (spaceId === 'sp_home' ? { space: { _id: 'sp_home', owner_id: 'user_a', deleted_at: null }, role: 'member' } : { space: null, role: null })),
 }))
 
 const ORIGINAL_DEMO_USER_ID = process.env.DEMO_USER_ID

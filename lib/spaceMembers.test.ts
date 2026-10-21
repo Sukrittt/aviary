@@ -267,6 +267,17 @@ describe('account deletion with shared budgets', () => {
     expect(await personalBudgetHandedOff(db, 'user_a')).toBe(true)
   })
 
+  it('leaves the old owner no way back into the personal budget they handed off, even after restoring (#213)', async () => {
+    const db = await getDb()
+    await lookupMembership('user_a', 'user_a') // warm the cache, as a live session would
+    await handOffSharedBudgets(db, 'user_a', { user_a: 'user_b' })
+    await softDeleteAccount(db, 'user_a')
+    expect(await resolveSpaceAccess('user_a', 'user_a', lookupMembership)).toEqual({ spaceId: 'user_a', denied: true })
+    expect(await resolveSpaceAccess('user_a', null, lookupMembership)).toEqual({ spaceId: 'user_a', denied: true })
+    await restoreAccount(db, 'user_a')
+    expect(await resolveSpaceAccess('user_a', null, lookupMembership)).toEqual({ spaceId: 'user_a', denied: true })
+  })
+
   it('a handed-off personal budget survives the account deletion and its purge', async () => {
     const db = await getDb()
     await scoped(db.collection('expenses'), 'user_a').insertOne({ item: 'Rent', amount_inr: 100, date: '2026-10-01' })
