@@ -15023,3 +15023,79 @@ button.account-feature-card {
 .budget-covered-open { padding: 4px 10px; border-radius: 999px; background: var(--tk-accent); color: var(--tk-on-accent); font-size: 12px; font-weight: 600; flex-shrink: 0; }
 /* Switcher: an own budget shut by the person's own lapsed plan. */
 .budget-locked-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 999px; background: var(--tk-warn-soft); color: var(--tk-warn-ink); font-size: 12px; font-weight: 600; flex-shrink: 0; }
+
+/* Joining a budget. Twin of Mobile's join modal: tiles that pop, a shake on a
+   wrong code, the invitation, then a welcome your face drops into. */
+.code-tiles { position: relative; display: flex; gap: 8px; margin: 2px 0 6px; }
+.code-tile {
+  flex: 1;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  border: 1.5px solid var(--erd-border-strong);
+  background: var(--erd-input-bg);
+  color: var(--erd-text);
+  font: 600 24px/1 var(--font-display);
+  transition: border-color 0.15s ease;
+}
+.code-tile.is-active { border-color: var(--tk-accent); }
+.code-tile.is-error { border-color: var(--coral); }
+.code-tile-char { display: inline-block; animation: code-pop 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+@keyframes code-pop { from { opacity: 0; transform: scale(0.82); } to { opacity: 1; transform: none; } }
+/* Over the tiles so a click anywhere lands in it; it types, pastes and autofills, unseen. */
+.code-tiles-input { position: absolute; inset: 0; width: 100%; opacity: 0; border: 0; caret-color: transparent; cursor: text; font-size: 16px; }
+
+.join-sheet { display: flex; flex-direction: column; align-items: center; text-align: center; }
+.join-sheet .archive-confirm-actions { align-self: stretch; }
+.join-hero {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  margin: 4px 0 12px;
+  border-radius: 50%;
+  background: var(--tk-accent-soft);
+  color: var(--tk-accent-ink);
+}
+.join-who { margin: 0 0 4px; color: var(--erd-text3); font-size: 13px; font-weight: 600; }
+.join-tip { margin: 4px 0 0; padding: 8px 12px; border-radius: 12px; background: var(--erd-input-bg); color: var(--erd-text2); font-size: 13px; font-weight: 600; }
+.join-faces { display: flex; align-items: center; margin: 14px 0 10px; }
+.join-faces > * + * { margin-left: -8px; }
+.join-face.budget-avatar { width: 36px; height: 36px; border-width: 2px; font-size: 15px; }
+.join-you { position: relative; display: inline-flex; animation: join-drop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both; }
+@keyframes join-drop { from { opacity: 0; transform: translateY(-28px) scale(0.6); } to { opacity: 1; transform: none; } }
+.join-splash { position: absolute; left: 50%; top: 50%; width: 0; height: 0; pointer-events: none; }
+.join-splash::before {
+  content: '';
+  position: absolute;
+  width: 36px;
+  height: 36px;
+  margin: -18px 0 0 -18px;
+  border: 2px solid var(--tk-accent);
+  border-radius: 50%;
+  opacity: 0;
+  animation: join-halo 0.56s cubic-bezier(0.2, 0.7, 0.3, 1) 0.55s both;
+}
+.join-splash i {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px 0 0 -2.5px;
+  border-radius: 99px;
+  background: var(--tk-accent);
+  opacity: 0;
+  animation: join-particle 0.64s cubic-bezier(0.2, 0.7, 0.3, 1) calc(0.55s + var(--d)) both;
+}
+.join-splash i.is-dash { width: 3px; height: 8px; margin: -4px 0 0 -1.5px; background: var(--tk-accent-ink); }
+@keyframes join-halo { from { opacity: 0.5; transform: scale(0.9); } to { opacity: 0; transform: scale(1.7); } }
+@keyframes join-particle {
+  0% { opacity: 0; transform: rotate(var(--a)) translateY(-14px); }
+  25% { opacity: 1; }
+  60% { opacity: 1; transform: rotate(var(--a)) translateY(-28px); }
+  100% { opacity: 0; transform: rotate(var(--a)) translateY(-34px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .code-tile-char, .join-you { animation: none; }
+  .join-splash { display: none; }
+}

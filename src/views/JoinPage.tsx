@@ -8,7 +8,7 @@ import { previewInvite } from '../api/spaces'
 import { useSpaces } from '../hooks/useSpaces'
 import { BirdMark } from '../components/BirdMark'
 import { PLAY_STORE_URL } from '../components/billing/copy'
-import { JoinConfirm, inviteBlocked, openBudget, signInToJoin } from '../components/JoinBudget'
+import { JoinConfirm, inviteBlocked, openBudget, signInToJoin, whoIsIn } from '../components/JoinBudget'
 import { BudgetIcon } from '../components/CategoryIcon'
 
 /** `/join/<code>`: what an invite link opens. Works signed out; joining on web signs you in first. */
@@ -31,7 +31,8 @@ export function JoinPage({ code }: { code: string }) {
   } else {
     const where = <><BudgetIcon budget={preview.budget} className="join-budget-icon" /> {`${preview.budget.name} budget`}</>
     headline = preview.inviter ? <>{`${preview.inviter} invited you to `}{where}</> : <>{"You're invited to "}{where}</>
-    body = `${preview.members} ${preview.members === 1 ? 'person' : 'people'} in it so far. Your own budget stays exactly as it is.`
+    const who = whoIsIn(preview.members, preview.inviter)
+    body = `${who ? `${who}. ` : ''}Your own budget stays exactly as it is.`
   }
   const usable = preview && preview.status !== 'not_found' && !inviteBlocked(preview)
 
