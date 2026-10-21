@@ -79,23 +79,24 @@ export async function cancelInvite(auth: Auth, spaceId: string, code: string): P
 }
 
 export type InvitePreview =
-  | { status: 'ok' | 'expired' | 'cancelled' | 'accepted'; budget: { id: string; name: string; emoji: string; icon: CategoryIconKey }; inviter: string | null; members: number }
+  | { status: 'ok'; budget: { id: string; name: string; emoji: string; icon: CategoryIconKey }; inviter: string | null; members: number }
   | { status: 'not_found' }
 
-/** What the join page and the app show before someone joins. Public: the code is the secret. */
+/**
+ * What the join page and the app show before someone joins. Public: the code
+ * is the secret. Only a pending invite says anything; a used, cancelled or
+ * expired one looks exactly like a code that never existed (#214).
+ */
 export async function invitePreview(rawCode: string): Promise<InvitePreview> {
   const code = normalizeCode(rawCode)
   if (!INVITE_CODE_RE.test(code)) return { status: 'not_found' }
   const db = await getDb()
-  const invite = await db.collection<SpaceInviteDoc>(SPACE_INVITES).findOne({ code })
-  const space = invite && (await db.collection<SpaceDoc>(SPACES).findOne({ _id: invite.space_id }))
+  const invite = await db.collection<SpaceInviteDoc>(SPACE_INVITES).findOne({ code, status: 'pending', expires_at: { $gt: new Date().toISOString() } })
+  const space = invite && (await db.collection<SpaceDoc>(SPACES).findOne({ _id: invite.space_id, deleted_at: null }))
   if (!invite || !space) return { status: 'not_found' }
   const inviter = await db.collection<PersonDoc>('users').findOne({ _id: invite.created_by }, { projection: { name: 1, firstName: 1, lastName: 1 } })
-  const status = space.deleted_at || invite.status === 'cancelled' ? 'cancelled'
-    : invite.status === 'accepted' ? 'accepted'
-      : invite.expires_at <= new Date().toISOString() ? 'expired' : 'ok'
   const members = await db.collection(SPACE_MEMBERS).countDocuments({ space_id: space._id })
-  return { status, budget: { id: space._id, name: space.name, emoji: space.emoji, icon: budgetIconKey(space) }, inviter: firstName(personName(inviter ?? undefined)), members }
+  return { status: 'ok', budget: { id: space._id, name: space.name, emoji: space.emoji, icon: budgetIconKey(space) }, inviter: firstName(personName(inviter ?? undefined)), members }
 }
 
 const firstName = (name: string | null) => name?.split(/\s+/)[0] || null

@@ -122,6 +122,7 @@ describe('JoinPage', () => {
     ['LIMIT_REACHED', 409, "You're at 5 budgets. Leave one to join."],
     ['FULL', 409, 'Home is full. 6 people is the most a budget can have.'],
     ['EXPIRED', 410, 'This invite has expired. Ask Priya for a new one.'],
+    ['rate limited', 429, "That's a lot of tries. Give it a minute, then try again."],
   ])('explains a %s join plainly', async (code, status, message) => {
     previewInvite.mockResolvedValue(ok)
     joinBudget.mockRejectedValue(new HttpError(status, code))
@@ -130,5 +131,11 @@ describe('JoinPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Join Home' }))
     expect((await screen.findByRole('alert')).textContent).toBe(message)
     expect(assign).not.toHaveBeenCalled()
+  })
+
+  it('rate limited while opening the invite: says to wait, not to check the connection', async () => {
+    previewInvite.mockRejectedValue(new HttpError(429, 'rate limited'))
+    renderIt()
+    expect(await screen.findByText("That's a lot of tries. Give it a minute, then try again.")).toBeTruthy()
   })
 })

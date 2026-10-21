@@ -64,13 +64,23 @@ describe('invites', () => {
     expect((await invitePreview(invite.code))).toMatchObject({ status: 'ok', budget: { name: 'Personal' }, inviter: 'Priya' })
   })
 
-  it('previews without signing in, and says when one is dead', async () => {
+  it('previews without signing in, and gives nothing away once it is dead (#214)', async () => {
     const invite = await createInvite(owner, HOME)
     expect(await invitePreview(invite.code)).toMatchObject({ status: 'ok', budget: { name: 'Home', emoji: '🏠' }, inviter: 'Priya' })
     expect(await invitePreview(invite.code.toLowerCase())).toMatchObject({ status: 'ok' })
     await cancelInvite(owner, HOME, invite.code)
-    expect(await invitePreview(invite.code)).toMatchObject({ status: 'cancelled' })
-    expect(await invitePreview('ZZZZZZ')).toMatchObject({ status: 'not_found' })
+    expect(await invitePreview(invite.code)).toEqual({ status: 'not_found' })
+    expect(await invitePreview('ZZZZZZ')).toEqual({ status: 'not_found' })
+  })
+
+  it('an expired invite or a deleted budget previews as not_found, with no name, inviter or count (#214)', async () => {
+    const db = await getDb()
+    const expired = await createInvite(owner, HOME)
+    await db.collection('space_invites').updateOne({ code: expired.code }, { $set: { expires_at: new Date(Date.now() - 1000).toISOString() } })
+    expect(await invitePreview(expired.code)).toEqual({ status: 'not_found' })
+    const gone = await createInvite(owner, HOME)
+    await db.collection('spaces').updateOne({ _id: HOME as never }, { $set: { deleted_at: new Date().toISOString() } })
+    expect(await invitePreview(gone.code)).toEqual({ status: 'not_found' })
   })
 })
 
@@ -80,7 +90,7 @@ describe('joinBudget', () => {
     expect(await joinBudget('user_b', invite.code)).toMatchObject({ spaceId: HOME, already: false })
     expect(await resolveSpaceAccess('user_b', HOME, lookupMembership)).toMatchObject({ spaceId: HOME, ownerId: 'user_a', role: 'member' })
     expect(pushes).toEqual([expect.objectContaining({ userId: 'user_a', title: 'Rahul joined Home budget' })])
-    expect(await invitePreview(invite.code)).toMatchObject({ status: 'accepted' })
+    expect(await invitePreview(invite.code)).toEqual({ status: 'not_found' })
     // The joiner's own budget is untouched.
     expect((await listBudgets('user_b')).budgets.map((b) => b.id)).toEqual(['user_b', HOME])
   })
