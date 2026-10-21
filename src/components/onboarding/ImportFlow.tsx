@@ -17,7 +17,7 @@ import { Select } from '@/src/components/Select'
 import { track } from '@/src/lib/analytics'
 import { commitImport, ImportFailure, previewImport, recomputeImport, type CommitResult, type ImportReview } from '@/src/api/imports'
 import { useImportStatus } from '@/src/components/ImportBanner'
-import { commitSteps, countsLine, directionCopy, fileSize, historyDone, importErrorCopy, ordinal, precheckFile, shortDate, skippedCopy } from './importCopy'
+import { commitSteps, countsLine, directionCopy, entryCount, fileSize, historyDone, importErrorCopy, laterLine, ordinal, precheckFile, shortDate, skippedCopy } from './importCopy'
 
 /**
  * "How do you want to start?": the first onboarding step, and the import
@@ -137,10 +137,13 @@ export interface ImportDone {
   app: string | null
 }
 
+// children: under the app list, where Settings shows past imports.
+// budgetName: shown on a later import's review (one into a budget that's set
+// up), so the history visibly lands in the right budget.
 // onAlreadySetUp: the server refused because setup was finished on another
 // device. There's nothing to fix here, so the screen hands the user on.
 // skipAsk: the caller already asked (a new budget's "Bring in history"), so start at the app list.
-export function ImportFlow({ onFresh, onDone, onAlreadySetUp, skipAsk = false }: { onFresh: () => void; onDone: (done: ImportDone) => void; onAlreadySetUp: () => void; skipAsk?: boolean }) {
+export function ImportFlow({ onFresh, onDone, onAlreadySetUp, skipAsk = false, budgetName, children }: { onFresh: () => void; onDone: (done: ImportDone) => void; onAlreadySetUp: () => void; skipAsk?: boolean; budgetName?: string; children?: React.ReactNode }) {
   const first: Stage = skipAsk ? 'pick' : 'ask'
   const [stage, setStage] = useState<Stage>(first)
   const [app, setApp] = useState<AppChoice | null>(null)
@@ -239,6 +242,7 @@ export function ImportFlow({ onFresh, onDone, onAlreadySetUp, skipAsk = false }:
               ))}
             </div>
             <button type="button" className="setup-pick-own" onClick={() => pick(OTHER)}>Using something else? Upload any csv or xlsx</button>
+            {children}
           </div>
         </motion.div>
       )}
@@ -257,7 +261,7 @@ export function ImportFlow({ onFresh, onDone, onAlreadySetUp, skipAsk = false }:
 
       {stage === 'review' && review && (
         <CurrencyScope code={review.currency}>
-          <Review key="review" review={review} picked={app} onReview={setReview} onDone={onDone} onAlreadySetUp={onAlreadySetUp} />
+          <Review key="review" review={review} picked={app} budgetName={budgetName} onReview={setReview} onDone={onDone} onAlreadySetUp={onAlreadySetUp} />
         </CurrencyScope>
       )}
     </>
@@ -406,7 +410,7 @@ function Upload({ app, onPreview, onAlreadySetUp }: { app: AppChoice; onPreview:
 type CategoryEdit = { source: string; name: string; group: string; monthly: number }
 type AccountEdit = ImportReview['accounts'][number]
 
-function Review({ review, picked, onReview, onDone, onAlreadySetUp }: { review: ImportReview; picked: AppChoice | null; onReview: (r: ImportReview) => void; onDone: (done: ImportDone) => void; onAlreadySetUp: () => void }) {
+function Review({ review, picked, budgetName, onReview, onDone, onAlreadySetUp }: { review: ImportReview; picked: AppChoice | null; budgetName?: string; onReview: (r: ImportReview) => void; onDone: (done: ImportDone) => void; onAlreadySetUp: () => void }) {
   // What the server recognised, else what they said it was (axio has no preset of its own).
   const from = appName(review.app) ?? (picked && picked.id !== 'other' ? picked.name : null)
   const { formatMoney } = useCurrency()
@@ -462,13 +466,18 @@ function Review({ review, picked, onReview, onDone, onAlreadySetUp }: { review: 
     setNewGroup('')
   }
 
-  const salaryAmount = Math.round(Number(salary) * 100) / 100
+  // A later import: history only, into envelopes the budget mostly has already.
+  const later = review.later
+  const isNew = (c: CategoryEdit) => !later?.categories.includes(c.name)
+  const newCount = cats.filter(isNew).length
+  const nothing = !!later && entryCount(review.counts) === 0
+  const salaryAmount = later ? 0 : Math.round(Number(salary) * 100) / 100
   const hasSalary = salaryAmount > 0
   const budgetTotal = cats.reduce((sum, c) => sum + c.monthly, 0)
   const tooManyBanks = accounts.filter((a) => a.type === 'bank').length > MAX_BANK_ACCOUNTS
   const busy = phase.saving || phase.success || recomputing
   const saveProgress = useCreep(phase.saving)
-  const steps = commitSteps(cats.length, accounts.length, hasSalary)
+  const steps = later ? ['Getting your history ready…'] : commitSteps(cats.length, accounts.length, hasSalary)
   const saveStep = steps[Math.min(steps.length - 1, Math.floor((saveProgress / CREEP_MAX) * steps.length))]
 
   const commit = async () => {
@@ -506,9 +515,9 @@ function Review({ review, picked, onReview, onDone, onAlreadySetUp }: { review: 
   const accountCount = useCountUp(accounts.length, 700, 330)
   const incomeShown = useCountUp(hasSalary ? Math.round(salaryAmount) : 0, 900, 410)
   const summary = [
-    { key: 'envelopes' as const, icon: TagIcon, label: 'Envelopes', value: String(catCount) },
+    { key: 'envelopes' as const, icon: TagIcon, label: 'Envelopes', value: later ? (newCount ? `${newCount} new` : 'All matched') : String(catCount) },
     ...(accounts.length > 0 ? [{ key: 'accounts' as const, icon: WalletIcon, label: 'Accounts', value: String(accountCount) }] : []),
-    { key: 'income' as const, icon: CardholderIcon, label: 'Monthly income', value: hasSalary ? formatMoney(incomeShown === Math.round(salaryAmount) ? salaryAmount : incomeShown) : 'Add it later' },
+    ...(later ? [] : [{ key: 'income' as const, icon: CardholderIcon, label: 'Monthly income', value: hasSalary ? formatMoney(incomeShown === Math.round(salaryAmount) ? salaryAmount : incomeShown) : 'Add it later' }]),
   ]
   const rise = (i: number) => ({
     initial: reduce ? false : { opacity: 0, y: 10 },
@@ -533,7 +542,8 @@ function Review({ review, picked, onReview, onDone, onAlreadySetUp }: { review: 
         {from ? `${from} export` : review.filename}
       </motion.p>
       <h1 className="setup-title">Here’s what we found</h1>
-      <p className="setup-blurb">{countsLine(review.counts)}</p>
+      <p className="setup-blurb">{later ? laterLine(review) : countsLine(review.counts)}</p>
+      {later && budgetName && <p className="import-note">{`Going into ${budgetName}`}</p>}
       <div className="setup-body import-review" aria-busy={recomputing}>
         <div className="setup-done-list import-summary">
           {summary.map((s, i) => (
@@ -543,7 +553,7 @@ function Review({ review, picked, onReview, onDone, onAlreadySetUp }: { review: 
               className="setup-done-row import-summary-row"
               onClick={() => setSheet(s.key)}
               disabled={busy}
-              aria-label={`${s.label} ${s.key === 'envelopes' ? cats.length : s.key === 'accounts' ? accounts.length : hasSalary ? formatMoney(salaryAmount) : 'Add it later'}`}
+              aria-label={`${s.label} ${s.key === 'income' ? s.value : s.key === 'accounts' ? accounts.length : later ? s.value : cats.length}`}
               {...rise(i)}
               whileTap={reduce ? undefined : { scale: 0.985 }}
             >
@@ -579,16 +589,18 @@ function Review({ review, picked, onReview, onDone, onAlreadySetUp }: { review: 
         </motion.section>
 
         <motion.div className="import-notes" {...rise(summary.length + 1)}>
-          <p className="import-note">{budgetLine}</p>
+          {!later && <p className="import-note">{budgetLine}</p>}
           {cats.length === 1 && cats[0].source === UNCATEGORISED && review.counts.expense > 0 && (
             <p className="import-note">Your file doesn’t have categories, so every spend starts in one envelope. Rename it under Envelopes, or split it up later from Categories.</p>
           )}
           {skippedCopy(review).map((line) => <p key={line} className="import-note">{line}</p>)}
 
-          <div className="import-line import-note">
-            <span>Your money’s in {currencyInfo(review.currency).name} · {review.currency}</span>
-            <button type="button" className="setup-selection-action import-change" onClick={() => setSheet('currency')} disabled={busy}>Change</button>
-          </div>
+          {!later && (
+            <div className="import-line import-note">
+              <span>Your money’s in {currencyInfo(review.currency).name} · {review.currency}</span>
+              <button type="button" className="setup-selection-action import-change" onClick={() => setSheet('currency')} disabled={busy}>Change</button>
+            </div>
+          )}
         </motion.div>
       </div>
 
@@ -605,16 +617,55 @@ function Review({ review, picked, onReview, onDone, onAlreadySetUp }: { review: 
         saving={phase.saving}
         success={phase.success}
         savingLabel={saveStep}
-        successLabel="You’re set up"
-        disabled={busy || tooManyBanks}
+        successLabel={later ? 'It’s on its way' : 'You’re set up'}
+        disabled={busy || tooManyBanks || nothing}
         aria-busy={phase.saving}
         onClick={commit}
       >
-        Looks right, set me up
+        {later ? 'Bring it in' : 'Looks right, set me up'}
       </SuccessButton>
 
       <AnimatePresence>
-        {sheet === 'envelopes' && (
+        {sheet === 'envelopes' && later && (
+          <ReviewDialog title="Where should these go?" onClose={close}>
+            <p className="import-note">We matched what we could by name. Put the rest in an envelope you have, or make a new one.</p>
+            <div className="import-rows">
+              {cats.map((c, i) => (
+                <div key={c.source} className="import-row">
+                  <span className="import-row-source">{c.source}</span>
+                  <Select
+                    className="import-select"
+                    aria-label={`Envelope for ${c.source}`}
+                    value={isNew(c) ? '' : c.name}
+                    options={[{ value: '', label: 'New envelope' }, ...later.categories.map((name) => ({ value: name, label: name }))]}
+                    onChange={(name) => setCats((all) => all.map((x, j) => (j === i ? { ...x, name: name || x.source } : x)))}
+                  />
+                  {isNew(c) && (
+                    <>
+                      <input
+                        type="text"
+                        className="setup-pick-input"
+                        aria-label={`Name for ${c.source}`}
+                        value={c.name}
+                        maxLength={60}
+                        onChange={(e) => setCats((all) => all.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))}
+                      />
+                      <Select
+                        className="import-select"
+                        aria-label={`Group for ${c.source}`}
+                        value={c.group}
+                        options={groups.map((g) => ({ value: g, label: g }))}
+                        onChange={(group) => setCats((all) => all.map((x, j) => (j === i ? { ...x, group } : x)))}
+                      />
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+          </ReviewDialog>
+        )}
+
+        {sheet === 'envelopes' && !later && (
           <ReviewDialog title="Your envelopes" onClose={close}>
             <p className="import-note">Each starts at what you usually spend on it in a month.</p>
             <div className="import-rows">

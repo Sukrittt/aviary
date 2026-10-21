@@ -5,7 +5,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { AnimatePresence } from 'motion/react'
-import { WalletIcon, BankIcon, ArchiveIcon, BrainIcon, CaretRightIcon, CompassIcon, CreditCardIcon, DatabaseIcon, FileTextIcon, GiftIcon, ClockCounterClockwiseIcon, ChartLineIcon, LockIcon, ChatCircleIcon, ReceiptIcon, RepeatIcon, ScanIcon, ScrollIcon, SlidersHorizontalIcon, TrendUpIcon, UserPlusIcon, UsersIcon, TicketIcon, CheckIcon, type PhosphorIcon } from '@/src/components/icons'
+import { WalletIcon, BankIcon, ArchiveIcon, BrainIcon, CaretRightIcon, CompassIcon, CreditCardIcon, DatabaseIcon, FileTextIcon, GiftIcon, ClockCounterClockwiseIcon, ChartLineIcon, LockIcon, ChatCircleIcon, ReceiptIcon, RepeatIcon, ScanIcon, ScrollIcon, SlidersHorizontalIcon, TrendUpIcon, UserPlusIcon, UsersIcon, TicketIcon, CheckIcon, UploadSimpleIcon, type PhosphorIcon } from '@/src/components/icons'
 import { useAuth } from '@workos-inc/authkit-nextjs/components'
 import { useAppearance } from '../../components/AppearanceProvider'
 import { useHideAmounts } from '../../src/hooks/useHideAmounts'
@@ -169,6 +169,7 @@ export default function AccountPage() {
           {shown('accounts') && <FeatureCard icon={BankIcon} tone="gold" label="Accounts" blurb="Bank, card and cash" href="/account/accounts" />}
           {shown('recurring') && <FeatureCard icon={RepeatIcon} tone="violet" label="Recurring expenses" blurb="Plan upcoming payments" href="/account/recurring" />}
           <FeatureCard icon={ArchiveIcon} tone="blue" label="Archive" blurb="Restore deleted items" href="/account/archive" />
+          <FeatureCard icon={UploadSimpleIcon} tone="gold" label="Import from another app" blurb="Bring your old history in" href="/account/import" />
           {shown('subscriptions') && <FeatureCard icon={ReceiptIcon} tone="violet" label="Subscriptions" blurb="What renews and when" href="/account/subscriptions" />}
           {shown('insights') && <FeatureCard icon={ChartLineIcon} tone="blue" label="Insights" blurb="Trends and breakdowns" href="/insights" />}
         </div>
