@@ -468,7 +468,9 @@ function Review({ review, picked, budgetName, onReview, onDone, onAlreadySetUp }
 
   // A later import: history only, into envelopes the budget mostly has already.
   const later = review.later
-  const isNew = (c: CategoryEdit) => !later?.categories.includes(c.name)
+  // Picked "New envelope" on purpose: stays new even while its name still matches one they have, so it can be renamed.
+  const [chosenNew, setChosenNew] = useState<ReadonlySet<string>>(new Set())
+  const isNew = (c: CategoryEdit) => chosenNew.has(c.source) || !later?.categories.includes(c.name)
   const newCount = cats.filter(isNew).length
   const nothing = !!later && entryCount(review.counts) === 0
   const salaryAmount = later ? 0 : Math.round(Number(salary) * 100) / 100
@@ -638,7 +640,15 @@ function Review({ review, picked, budgetName, onReview, onDone, onAlreadySetUp }
                     aria-label={`Envelope for ${c.source}`}
                     value={isNew(c) ? '' : c.name}
                     options={[{ value: '', label: 'New envelope' }, ...later.categories.map((name) => ({ value: name, label: name }))]}
-                    onChange={(name) => setCats((all) => all.map((x, j) => (j === i ? { ...x, name: name || x.source } : x)))}
+                    onChange={(name) => {
+                      setCats((all) => all.map((x, j) => (j === i ? { ...x, name: name || x.source } : x)))
+                      setChosenNew((prev) => {
+                        const next = new Set(prev)
+                        if (name) next.delete(c.source)
+                        else next.add(c.source)
+                        return next
+                      })
+                    }}
                   />
                   {isNew(c) && (
                     <>

@@ -39,10 +39,19 @@ export function ImportPage() {
 
 function PastImports() {
   const queryClient = useQueryClient()
-  const { data } = useQuery({ queryKey: pastImportsKey, queryFn: getPastImports })
+  const { data, isError, refetch, isRefetching } = useQuery({ queryKey: pastImportsKey, queryFn: getPastImports })
   const [confirm, setConfirm] = useState<ImportHistoryItem | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  // A failed load mustn't look like no imports: that's where Undo lives.
+  if (isError) {
+    return (
+      <div className="import-past import-line import-note">
+        <span>We couldn’t load your past imports.</span>
+        <button type="button" className="setup-selection-action" disabled={isRefetching} onClick={() => void refetch()}>{isRefetching ? 'Trying…' : 'Try again'}</button>
+      </div>
+    )
+  }
   if (!data?.length) return null
 
   const undo = async (item: ImportHistoryItem) => {
