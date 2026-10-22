@@ -638,7 +638,6 @@ export function ExpensePage() {
                   transition={homeTransition}
                 >
                   <EnvelopeGrid
-                    month={envelopeState.month}
                     rollPlay={rollPlay}
                     categoryIcons={categoryIcons}
                     groupIcons={groupIcons}

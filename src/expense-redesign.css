@@ -904,6 +904,10 @@
 .env2-pill.is-low { color: var(--tk-pill-low); background: var(--tk-pill-low-bg); }
 .env2-pill.is-over { color: var(--tk-pill-over); background: var(--tk-pill-over-bg); }
 .env2-pill.is-empty { color: var(--erd-text3); }
+.env2-pill { transition: color 280ms ease, background-color 280ms ease; }
+/* RollingAmount mid-count: green as last month's leftover comes in, red as a shortfall comes out. */
+.env2-pill.is-rolling-up { color: var(--tk-pill-good); background: var(--tk-pill-good-bg); }
+.env2-pill.is-rolling-down { color: var(--tk-pill-over); background: var(--tk-pill-over-bg); }
 /* RollingAmount's landing: a pop and a ring in the pill's own color, once the carry has counted in. */
 .env2-pill.is-splash { animation: env2-pill-splash 520ms cubic-bezier(0.22, 1, 0.36, 1); }
 @keyframes env2-pill-splash {

@@ -33,13 +33,14 @@ describe('RollingAmount', () => {
 
   it('holds the old amount until it scrolls into view, then counts in and splashes', () => {
     const { rerender } = render(amount(1))
-    expect(screen.getByText('₹1000')).toBeInTheDocument()
+    expect(screen.getByText('₹1000')).toHaveClass('is-rolling-up')
     expect(motion.rolls).toBe(0)
 
     motion.inView = true
     rerender(amount(1))
     const pill = screen.getByText('₹3050')
     expect(pill).toHaveClass('is-splash')
+    expect(pill).not.toHaveClass('is-rolling-up')
     expect(motion.rolls).toBe(1)
   })
 
@@ -50,6 +51,11 @@ describe('RollingAmount', () => {
     expect(motion.rolls).toBe(1)
     act(() => rerender(amount(2)))
     expect(motion.rolls).toBe(2)
+  })
+
+  it('is red while a shortfall counts down', () => {
+    render(<RollingAmount from={8000} to={7450} play={1} format={money} className="env2-pill is-good" />)
+    expect(screen.getByText('₹8000')).toHaveClass('is-rolling-down')
   })
 
   it('skips the roll for reduced motion', () => {

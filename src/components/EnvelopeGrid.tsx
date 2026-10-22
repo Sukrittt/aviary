@@ -11,8 +11,6 @@ import { MENU_ITEM, MENU_POPUP } from './menuStyles'
 import type { Envelope } from '../types/expense'
 import { BirdEmptyState } from './BirdEmptyState'
 import { todayIST } from '../lib/date'
-import { currentMonthKey } from '../lib/envelope'
-import { rolledOverLine } from '../lib/rollover'
 import { RollingAmount } from './home/RollingAmount'
 
 /** Web twin of Mobile's app/(tabs)/index.tsx envelopes card (EnvelopeGroup + EnvelopeRow). */
@@ -30,8 +28,6 @@ interface Props {
   categoryIcons?: Map<string, string>
   /** Picked icons by group name, from `useGroupIcons()`. */
   groupIcons?: Map<string, string>
-  /** The month on screen, for "from October". Defaults to this month. */
-  month?: string
   /** Bump to roll last month's carry into each Left amount (see RollingAmount). 0 shows them settled. */
   rollPlay?: number
 }
@@ -70,7 +66,7 @@ function lastSpentLabel(iso: string | undefined): string {
   return new Date(spent).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'UTC' })
 }
 
-export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveMoney, onAssignFromRTA, onSetAssigned, onPayCreditCard, categoryIcons, groupIcons, month = currentMonthKey(), rollPlay = 0 }: Props) {
+export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveMoney, onAssignFromRTA, onSetAssigned, onPayCreditCard, categoryIcons, groupIcons, rollPlay = 0 }: Props) {
   const styleOf = useCategoryStyle()
   const { formatCurrency } = useCurrency()
   const money = (n: number) => (hideAmounts ? '---' : formatCurrency(n))
@@ -121,9 +117,6 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
     // Spending with nothing assigned: "of ₹0" and "Used ∞" said nothing useful.
     const unbudgeted = !e.assigned && e.spent > 0
     const isMenuOpen = menuCategory === e.category
-    // Only a shortfall keeps a line: it's the one to fix. What rolled in shows
-    // as the Left amount counting up, and the strip above has the total.
-    const short = e.rolledOver < 0 ? rolledOverLine(e.rolledOver, month, money) : null
 
     return (
       <div key={e.category} className={`env2-row ${isMenuOpen ? 'is-open' : ''}`}>
@@ -149,7 +142,6 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
               {unbudgeted ? 'Not budgeted · ' : ''}Last spent {lastSpentLabel(e.lastSpentDate)}
             </span>
           )}
-          {short && <span className="env2-meta">{short}</span>}
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className={MENU_POPUP}>
           <DropdownMenuItem className={MENU_ITEM} onClick={() => onMoveMoney(e.category)}>
@@ -183,7 +175,7 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
             from={e.available - e.rolledOver}
             to={e.available}
             play={hideAmounts ? 0 : rollPlay}
-            delayMs={Math.min(rollOrder.get(e.category) ?? 0, 5) * 80}
+            delayMs={Math.min(rollOrder.get(e.category) ?? 0, 5) * 150}
             format={money}
           />
         </span>

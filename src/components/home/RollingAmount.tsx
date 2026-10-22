@@ -6,7 +6,14 @@ import { animate, useInView, useReducedMotion } from 'motion/react'
  * shows `from` (the amount without the carry), waits until it's on screen,
  * counts to `to` and splashes. Each new `play` (above 0) runs it again, so the
  * rollover strip can replay it. With `play` at 0 it's just `to`.
+ *
+ * While it counts it's green going up and red going down (a shortfall eating
+ * into this month), then settles into its own color: an amount still above
+ * zero after a shortfall turns back green.
  */
+// Slow enough to follow: a beat on the old amount, then a long count.
+const HOLD_MS = 500
+const DURATION_S = 1.4
 export function RollingAmount({ from, to, play, delayMs = 0, format, className }: {
   from: number
   to: number
@@ -37,8 +44,8 @@ export function RollingAmount({ from, to, play, delayMs = 0, format, className }
   useEffect(() => {
     if (!armed || !inView) return
     const controls = animate(from, to, {
-      duration: 0.6,
-      delay: delayMs / 1000,
+      duration: DURATION_S,
+      delay: (HOLD_MS + delayMs) / 1000,
       ease: [0.22, 1, 0.36, 1],
       onUpdate: (n) => setShown(Math.round(n)),
       onComplete: () => {
@@ -53,7 +60,7 @@ export function RollingAmount({ from, to, play, delayMs = 0, format, className }
   return (
     <span
       ref={ref}
-      className={`${className ?? ''}${splash ? ' is-splash' : ''}`}
+      className={`${className ?? ''}${shown !== null ? (to < from ? ' is-rolling-down' : ' is-rolling-up') : ''}${splash ? ' is-splash' : ''}`}
       onAnimationEnd={() => setSplash(false)}
     >
       {format(shown ?? to)}
