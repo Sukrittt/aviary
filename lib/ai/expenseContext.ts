@@ -330,7 +330,7 @@ export function summarizeExpenses(input: SummarizeExpensesInput): SummarizeExpen
     trendLines.push(`SAVED (income minus spending)|${cells.join('|')}|${savedAvg}`)
     const from = saved.since > trendMonths[0] ? saved.since : trendMonths[0]
     const total = saved.points.filter((p) => p.date >= from && p.date < currentMonth).reduce((sum, p) => sum + p.value, 0)
-    trendLines.push(`SAVED SINCE ${from}: ${round(total)} (finished months; the running savings, since unspent category money does not carry over)`)
+    trendLines.push(`SAVED SINCE ${from}: ${round(total)} (finished months; each month's income minus its spending)`)
   }
 
   // Top 10 items this month by amount.

@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { renderHook, waitFor } from '@testing-library/react'
 import { moveCategory } from '@/src/api/categories'
 import type { CategoryRow } from '@/src/types'
-import { useMoveCategory } from './useCategories'
+import { useMoveCategory, useUpdateCategory } from './useCategories'
 
 vi.mock('@/src/api/categories', () => ({
   getCategories: vi.fn(),
@@ -69,3 +69,16 @@ it('rolls back to the previous list when the mutation errors', async () => {
 
 // Mobile's "category cache write-through" block is deliberately absent: the
 // encrypted offline category cache is mobile-only.
+
+it('busts the budget rows and the carry when a category is renamed, both keyed by its name', async () => {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const spy = vi.spyOn(queryClient, 'invalidateQueries')
+  const { result } = renderHook(() => useUpdateCategory(), { wrapper: wrapper(queryClient) })
+
+  await result.current.mutateAsync({ name: 'Food', updates: { icon: 'ForkKnife' } })
+  expect(spy).not.toHaveBeenCalledWith({ queryKey: ['budgets'] })
+
+  await result.current.mutateAsync({ name: 'Food', updates: { newName: 'Eating in' } })
+  // ['budgets'] is a prefix of the carry's ['budgets', 'carry', month].
+  expect(spy).toHaveBeenCalledWith({ queryKey: ['budgets'] })
+})
