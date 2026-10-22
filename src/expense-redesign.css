@@ -5374,12 +5374,9 @@
   border: 1px solid var(--erd-border);
 }
 
-.setup-rem-chip.is-zero {
-  /* Done state stays calm: card surface, green only in the text and a
-     faint border. A full mint fill read as a heavy slab on the cream page. */
-  color: var(--mint);
-  background: var(--erd-card);
-  border-color: color-mix(in srgb, var(--mint) 35%, transparent);
+.setup-reset-split {
+  align-self: flex-start;
+  margin: 10px 0 0;
 }
 
 .setup-rem-chip.is-over {
@@ -5402,82 +5399,6 @@
 .setup-rem-value {
   font-family: var(--font-display);
   font-size: 20px;
-}
-
-.setup-split-row {
-  display: flex;
-  gap: 7px;
-}
-
-.setup-split-why {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 12px;
-  margin: 10px 2px 0;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--erd-text2);
-}
-
-.setup-split-key {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.setup-split-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-}
-
-.setup-split-dot.is-need {
-  background: var(--tk-blue);
-}
-
-.setup-split-dot.is-want {
-  background: var(--tk-violet);
-}
-
-.setup-split-dot.is-savings {
-  background: var(--tk-mint);
-}
-
-.setup-assign-bucket.is-need {
-  background: var(--tk-blue-soft);
-  color: var(--tk-blue);
-}
-
-.setup-assign-bucket.is-want {
-  background: var(--tk-violet-soft);
-  color: var(--tk-violet);
-}
-
-.setup-assign-bucket.is-savings {
-  background: var(--tk-mint-soft);
-  color: var(--tk-mint);
-}
-
-.setup-assign-bucket {
-  flex-shrink: 0;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  border-radius: 100px;
-  padding: 2px 8px;
-}
-
-.setup-split-btn {
-  flex: 1;
-  padding: 9px 12px;
-  border-radius: 100px;
-  border: 1px solid var(--erd-border-strong);
-  background: var(--erd-input-bg);
-  color: var(--erd-text2);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
 }
 
 .setup-assign-row {

@@ -14,7 +14,7 @@ import { currentMonthKey, INCOME_CATEGORY } from '../../src/lib/envelope'
 import { getBudgets, updateBudget } from '../../src/api/budgets'
 import { addGroup } from '../../src/api/groups'
 import { addCategory, getSplitBuckets } from '../../src/api/categories'
-import { BUCKET_LABELS, BUCKET_PLURALS, bucketsOf, summarizeSplit, normName, splitEvenly, suggestSplit, unknownCategories, type BucketTags } from '../../src/lib/budgetSplit'
+import { normName, suggestSplit, unknownCategories, type BucketTags } from '../../src/lib/budgetSplit'
 import { getUser, updateUser } from '../../src/api/account'
 import { completeOnboarding } from '../../src/api/billing'
 import { DEFAULT_ALERT_PCTS } from '../../src/lib/alerts'
@@ -131,7 +131,7 @@ const TITLES: Record<number, [string, string]> = {
   1: ['What lands each month?', 'Your take-home income. This becomes the pot you assign from. Not sure yet? Skip it and add it from Home later.'],
   2: ['Group your money', 'Groups are the big buckets. Accept these or rename them to fit your life.'],
   3: ['Add your categories', 'These are the buckets you actually spend from. Pick the ones you recognize.'],
-  4: ['Assign your money', 'We suggested a split based on what each category is for. Change any amount. Anything you leave waits in Ready to Assign.'],
+  4: ['Here’s your plan', 'We split your income across your categories. Keep it, or change any amount.'],
 }
 
 export default function SetupWizardPage() {
@@ -141,7 +141,7 @@ export default function SetupWizardPage() {
 }
 
 function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: string; onCurrencyChange: (code: string) => void }) {
-  const { formatMoney } = useCurrency()
+  const { formatMoney, formatAmountInput } = useCurrency()
 
   const router = useRouter()
   const reduceMotion = useReducedMotion()
@@ -226,16 +226,14 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
   const assignedTotal = () => liveCats().reduce((n, c) => n + (amounts[c.key] ?? 0), 0)
   const remainder = () => (Number(income) || 0) - assignedTotal()
 
-  function distribute(weighted: boolean, tags: BucketTags = bucketTags): Record<string, number> {
-    const items = liveCats()
-    const incomeValue = Number(income) || 0
-    return weighted ? suggestSplit(incomeValue, items, tags) : splitEvenly(incomeValue, items.map((it) => it.key))
+  function distribute(tags: BucketTags = bucketTags): Record<string, number> {
+    return suggestSplit(Number(income) || 0, liveCats(), tags)
   }
 
   const openAssign = (tags: BucketTags) => {
     setAmounts((prev) => allocationMode.current === 'custom' && Object.keys(prev).length
       ? prev
-      : distribute(true, tags))
+      : distribute(tags))
     setStep(4)
   }
 
@@ -578,7 +576,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
     const hasIncome = Number(income) > 0
     if (step === 1 && !custom) {
       // Starter budget: the pre-checked defaults, income split the suggested way.
-      void commit(hasIncome ? distribute(true) : {})
+      void commit(hasIncome ? distribute() : {})
       return
     }
     if (step === 3 && !hasIncome) {
@@ -669,9 +667,10 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
 
   const [title, blurb] = TITLES[step]
   const rem = remainder()
-  // Need/want/savings per category, labelled on the assign step so the suggested split explains itself.
-  const buckets = bucketsOf(liveCats(), bucketTags)
-  const summary = summarizeSplit(liveCats(), bucketTags)
+  // The plan reads as a review: one way back to our split once anything's changed,
+  // no split modes or need/want theory up front.
+  const suggested = step === 4 ? distribute() : {}
+  const editedPlan = step === 4 && liveCats().some((c) => (amounts[c.key] ?? 0) !== (suggested[c.key] ?? 0))
   const hint = step === 0 ? '' :
     step === 1
       ? Number(income) > 0
@@ -686,17 +685,17 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
             ? `${selectedCatCount} categories across ${selectedGroups.length} groups`
             : 'Select at least one category to continue'
           : rem === 0
-            ? 'Everything assigned'
+            ? ''
             : rem > 0
-              ? `${formatMoney(rem)} left. It'll wait in Ready to Assign`
+              ? `${formatMoney(rem)} left. You can plan it later`
               : `${formatMoney(-rem)} over your income`
 
   const finishesHere = (step === 1 && !custom) || step === 4 || (step === 3 && !(Number(income) > 0))
   const ctaLabel = step === 1 && !(Number(income) > 0) ? 'Skip for now' : finishesHere ? 'Finish setup' : 'Continue'
   const dots = custom ? [0, 1, 2, 3, 4] : [0, 1]
 
-  const remState = rem === 0 ? 'is-zero' : rem < 0 ? 'is-over' : 'is-under'
-  const remLabel = rem === 0 ? 'All assigned' : rem < 0 ? 'Over by' : 'Left to assign'
+  const remState = rem < 0 ? 'is-over' : 'is-under'
+  const remLabel = rem < 0 ? 'Over by' : 'Left to plan'
 
   return (
     <div className="expense-redesign setup-page">
@@ -850,35 +849,20 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
 
       {step === 4 && (
         <div className="setup-body">
-          <div className={`setup-rem-chip ${remState}`}>
-            <span className="setup-rem-label">{remLabel}</span>
-            <span className="setup-rem-value">{formatMoney(Math.abs(rem))}</span>
-          </div>
-          <div className="setup-split-row">
-            <motion.button whileTap={reduceMotion ? undefined : { scale: 0.97 }} type="button" className="setup-split-btn" onClick={() => {
+          {/* Only while something's off: a fully planned income needs no banner. */}
+          {rem !== 0 && (
+            <div className={`setup-rem-chip ${remState}`}>
+              <span className="setup-rem-label">{remLabel}</span>
+              <span className="setup-rem-value">{formatMoney(Math.abs(rem))}</span>
+            </div>
+          )}
+          {editedPlan && (
+            <button type="button" className="setup-selection-action setup-reset-split" onClick={() => {
               allocationMode.current = 'suggested'
-              setAmounts(distribute(true))
+              setAmounts(distribute())
             }}>
-              Suggested split
-            </motion.button>
-            <motion.button whileTap={reduceMotion ? undefined : { scale: 0.97 }} type="button" className="setup-split-btn" onClick={() => {
-              allocationMode.current = 'custom'
-              editedSplit.current = true
-              setAmounts(distribute(false))
-            }}>
-              Split evenly
-            </motion.button>
-          </div>
-          {summary && (
-            <p className="setup-split-why">
-              <span>Suggested split:</span>
-              {summary.map((s) => (
-                <span key={s.bucket} className="setup-split-key">
-                  <span className={`setup-split-dot is-${s.bucket}`} aria-hidden="true" />
-                  {BUCKET_PLURALS[s.bucket]} {s.pct}%
-                </span>
-              ))}
-            </p>
+              Reset to our suggestion
+            </button>
           )}
           <div className="setup-section-list">
             {selectedGroups.map((g) => {
@@ -901,14 +885,15 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
                           <Icon size={18} />
                         </span>
                         <AssignName name={c.name} onCommit={(name) => renameAssigned(g.id, c, name)} />
-                        <span className={`setup-assign-bucket is-${buckets[key]}`}>{BUCKET_LABELS[buckets[key]]}</span>
                         <input
-                          type="number"
+                          type="text"
+                          inputMode="numeric"
+                          aria-label={`${c.name.trim()} amount`}
                           className="txn-entry-input setup-assign-input"
-                          placeholder="0"
-                          min={0}
-                          value={v || ''}
-                          onChange={(e) => setAmount(key, Math.round(Number(e.target.value) || 0))}
+                          placeholder={formatAmountInput('0')}
+                          value={v ? formatAmountInput(String(v)) : ''}
+                          // Whole amounts only, so every non-digit (symbol, grouping) drops out.
+                          onChange={(e) => setAmount(key, Number(e.target.value.replace(/\D/g, '')) || 0)}
                         />
                         {rem !== 0 && (
                           <button type="button" className="setup-fill-btn" onClick={() => fillRemainder(key)} title="Give this the leftover">

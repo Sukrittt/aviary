@@ -95,11 +95,11 @@ describe('flexible setup', () => {
     fireEvent.click(button(PICK_OWN))
     fireEvent.click(button('Continue')) // groups
     fireEvent.click(button('Continue')) // categories
-    await screen.findByRole('heading', { name: 'Assign your money' })
-    const inputs = screen.getAllByRole('spinbutton')
+    await screen.findByRole('heading', { name: 'Here’s your plan' })
+    const inputs = screen.getAllByRole('textbox', { name: / amount$/ })
     inputs.forEach((input) => fireEvent.change(input, { target: { value: '' } }))
     fireEvent.change(inputs[0], { target: { value: '1' } })
-    expect(screen.getByText(/left\. It'll wait in Ready to Assign$/)).toBeTruthy()
+    expect(screen.getByText(/left\. You can plan it later$/)).toBeTruthy()
     fireEvent.click(button('Finish setup'))
     await waitFor(() => expect(completed()).toHaveLength(1), { timeout: 3000 })
     expect(assigned()['Rent']).toBe(1)
