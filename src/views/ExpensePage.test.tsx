@@ -9,6 +9,7 @@ import { getRecentExpenses } from '@/src/api/expenses'
 import { ExpensePage } from './ExpensePage'
 import { getBudgets, addBudget, updateBudget, transferBudget, getCarry } from '@/src/api/budgets'
 import { getUser } from '@/src/api/account'
+import { getRecurringIncomes } from '@/src/api/incomes'
 import { currentMonthKey, prevMonthKey, monthLabel } from '@/src/lib/envelope'
 
 const { push, openLog, track } = vi.hoisted(() => ({ push: vi.fn(), openLog: vi.fn(), track: vi.fn() }))
@@ -20,6 +21,7 @@ vi.mock('@/src/api/spaces', () => ({
   switchBudget: vi.fn(),
 }))
 vi.mock('@/src/api/account', () => ({ getUser: vi.fn() }))
+vi.mock('@/src/api/incomes', async (importOriginal) => ({ ...(await importOriginal<typeof import('@/src/api/incomes')>()), getRecurringIncomes: vi.fn(async () => []) }))
 vi.mock('@/src/api/expenses', () => ({ getRecentExpenses: vi.fn(async () => ({ rows: [], lastSpent: {} })), mintExpensePayload: vi.fn(), postExpensePayload: vi.fn() }))
 vi.mock('@/src/api/categories', () => ({ getCategories: vi.fn(async () => [{ name: 'Food', group: 'Essentials' }]) }))
 vi.mock('@/src/api/groups', () => ({ getGroups: vi.fn(async () => ['Essentials']), getGroupRows: vi.fn(async () => []) }))
@@ -94,11 +96,45 @@ it('offers the manual transaction and optional tour after setup', async () => {
 })
 
 it('keeps getting started out of the way for existing or finished users', async () => {
+  vi.mocked(getBudgets).mockResolvedValue([
+    { month: previous, category: '__income__', assigned: '20000', rolled_over: '0', version: 1 },
+    { month: previous, category: 'Food', assigned: '20000', rolled_over: '0', version: 1 },
+  ])
   vi.mocked(getUser).mockResolvedValue({ ...baseUser, getStartedAt: '2026-09-01', manualTransactionCompletedAt: '2026-09-02', guidedTourCompletedAt: '2026-09-03' })
   const client = renderPage()
-  await waitFor(() => expect(screen.getByLabelText('₹15,000')).toBeInTheDocument())
+  expect(await screen.findByText('Envelope content')).toBeInTheDocument()
   await waitFor(() => expect(screen.queryByRole('heading', { name: 'Get started' })).not.toBeInTheDocument())
   client.clear()
+})
+
+// Income alone leaves every category at zero, so the next step is assigning it.
+it('asks to assign all of the income, opening the next empty category', async () => {
+  vi.mocked(getBudgets).mockResolvedValue([
+    { month, category: '__income__', assigned: '50000', rolled_over: '0', version: 1 },
+    { month, category: 'Food', assigned: '0', rolled_over: '0', version: 1 },
+  ])
+  vi.mocked(getUser).mockResolvedValue({ ...baseUser, getStartedAt: '2026-09-01', manualTransactionCompletedAt: '2026-09-02', guidedTourCompletedAt: '2026-09-03' })
+  const client = renderPage()
+  expect(await screen.findByRole('heading', { name: 'Get started' })).toBeInTheDocument()
+  expect(screen.getByRole('progressbar', { name: 'Getting started' })).toHaveAttribute('aria-valuenow', '3')
+  expect(screen.getByText('₹50,000 still to assign')).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Assign all your income' }))
+  expect(await screen.findByRole('dialog', { name: /Assign/ })).toBeInTheDocument()
+  client.clear()
+})
+
+// Signing up mid-month, the first pay lands next month and counts from then.
+it('asks for what you have now when the first pay lands next month', async () => {
+  vi.mocked(getBudgets).mockResolvedValue([{ month, category: 'Food', assigned: '0', rolled_over: '0', version: 1 }])
+  vi.mocked(getUser).mockResolvedValue({ ...baseUser, getStartedAt: '2026-09-01' })
+  const [y, m] = month.split('-').map(Number)
+  const payday = m === 12 ? `${y + 1}-01-04` : `${y}-${String(m + 1).padStart(2, '0')}-04`
+  vi.mocked(getRecurringIncomes).mockResolvedValue([{ id: 'r1', label: 'Salary', amount: '50000', frequency: 'monthly', status: 'active', start_date: payday, end_date: '', next_run_date: payday, account_id: '', created_at: '' }])
+  const client = renderPage()
+  fireEvent.click(await screen.findByRole('button', { name: 'Add what you have now' }))
+  expect(await screen.findByDisplayValue('Starting balance')).toBeInTheDocument()
+  client.clear()
+  vi.mocked(getRecurringIncomes).mockResolvedValue([])
 })
 
 // Setup can skip income, so Get started keeps asking until there's some.

@@ -43,6 +43,7 @@ import { useGroupIcons, useGroups } from "../hooks/useGroups";
 import { useSubscriptions, useCancelSubscription, useReactivateSubscription } from "../hooks/useSubscriptions";
 import { useHideAmounts } from "../hooks/useHideAmounts";
 import { GetStartedCard } from "../components/home/GetStartedCard";
+import { paydayLabel, startingBalanceIntro, upcomingMonthlyPay } from "@/src/lib/upcomingPay";
 import { useBillingStatus } from "../hooks/useBillingStatus";
 import { formatDate } from "../components/billing/copy";
 import { LearningCard } from "../components/home/LearningCard";
@@ -170,7 +171,7 @@ export function ExpensePage() {
   );
   const [assignTarget, setAssignTarget] = useState<string | null>(null);
   const [editReady, setEditReady] = useState(false);
-  const [incomeScreen, setIncomeScreen] = useState<"add" | "monthly" | null>(null);
+  const [incomeScreen, setIncomeScreen] = useState<"add" | "monthly" | "starting" | null>(null);
   // Change income edits the monthly schedule Ready to Assign counts from day 1.
   // With more than one, or before they've loaded (a create form then could
   // duplicate one), the Income page is the place to pick.
@@ -273,8 +274,14 @@ export function ExpensePage() {
     return () => clearTimeout(t);
   }, [rtaCelebrating]);
   const daysLeftLabel = daysLeftInMonth() === 0 ? "Less than 24 hrs" : `${daysLeftInMonth()} days left`;
+  // Every rupee has a job once Ready to Assign is spent down, the whole point
+  // of the method, so Get started holds out for that, not one funded category.
+  const fundDone = !envelopeState || (incomeDone && envelopeState.readyToAssign <= 0);
+  // The next empty category on screen, so each tap moves the job along.
+  const nextToFund = (envelopeState?.envelopes.find((e) => e.assigned === 0) ?? envelopeState?.envelopes[0])?.category;
+  const upcomingPay = upcomingMonthlyPay(schedulesQ.data ?? [], thisMonth);
   const showGetStarted = !getStartedSkipped && !!user?.getStartedAt &&
-    !(incomeDone && user.manualTransactionCompletedAt && user.guidedTourCompletedAt);
+    !(incomeDone && fundDone && user.manualTransactionCompletedAt && user.guidedTourCompletedAt);
   // Only fetched while the card that mentions the trial is up.
   const billing = useBillingStatus(showGetStarted).data;
   const [showFluidDemo, setShowFluidDemo] = useState(false);
@@ -613,9 +620,13 @@ export function ExpensePage() {
                   >
                     <GetStartedCard
                       incomeDone={incomeDone}
+                      fundDone={fundDone}
+                      fundHint={envelopeState && envelopeState.income > 0 ? `${formatCurrency(envelopeState.readyToAssign, hideAmounts)} still to assign` : undefined}
+                      upcomingPayHint={upcomingPay ? `Your pay lands ${paydayLabel(upcomingPay.start_date)}. Budget what you have till then.` : undefined}
                       manualTransactionDone={!!user.manualTransactionCompletedAt}
                       guidedTourDone={!!user.guidedTourCompletedAt}
-                      onAddIncome={() => setIncomeScreen("monthly")}
+                      onAddIncome={() => setIncomeScreen(upcomingPay ? "starting" : "monthly")}
+                      onFund={() => (nextToFund ? setAssignTarget(nextToFund) : router.push("/expense/envelopes"))}
                       onAddTransaction={() => setShowLogModal(true)}
                       onTakeTour={() => router.push('/account/guided-tour')}
                       onSkip={() => setGetStartedSkipped(true)}
@@ -794,6 +805,9 @@ export function ExpensePage() {
           )}
           {incomeScreen === "add" && (
             <AddIncomeScreen onClose={() => setIncomeScreen(null)} />
+          )}
+          {incomeScreen === "starting" && upcomingPay && (
+            <AddIncomeScreen onClose={() => setIncomeScreen(null)} defaultLabel="Starting balance" intro={startingBalanceIntro(upcomingPay.start_date)} />
           )}
           {incomeScreen === "monthly" && envelopeState && (
             <RecurringIncomeModal

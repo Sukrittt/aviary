@@ -964,7 +964,8 @@ function FormSheet(props: ComponentProps<typeof AmountSheet>) {
  * the income ledger; the server adds it to this month's income extra in the
  * same write (Web/lib/income.ts), so Ready to Assign goes up by exactly that
  * much and next month doesn't repeat it. */
-export function AddIncomeScreen({ onClose, existing }: { onClose: () => void; /** Present: edit this income row. */ existing?: IncomeRow }) {
+/** `defaultLabel`/`intro`: a starting balance for someone whose first pay is next month (src/lib/upcomingPay.ts). */
+export function AddIncomeScreen({ onClose, existing, defaultLabel, intro }: { onClose: () => void; /** Present: edit this income row. */ existing?: IncomeRow; defaultLabel?: string; intro?: string }) {
   const { formatCurrency } = useCurrency()
   const [hideAmounts] = useHideAmounts()
   const data = useMoneyData()
@@ -974,7 +975,7 @@ export function AddIncomeScreen({ onClose, existing }: { onClose: () => void; /*
   const phase = useButtonPhase()
   const busy = phase.saving || phase.success
   const [amountText, setAmountText] = useState(existing ? String(Number(existing.amount) || '') : '')
-  const [label, setLabel] = useState(existing?.label ?? '')
+  const [label, setLabel] = useState(existing?.label ?? defaultLabel ?? '')
   const [accountId, setAccountId] = useState(existing?.account_id ?? '')
   const [error, setError] = useState('')
   // One id per screen, so a retried save after a lost response can't count twice.
@@ -1022,7 +1023,7 @@ export function AddIncomeScreen({ onClose, existing }: { onClose: () => void; /*
       ? state
         ? `Ready to Assign ${formatCurrency(state.readyToAssign + change, hideAmounts)} · This month only`
         : 'Adds to Ready to Assign · This month only'
-      : 'What came in on top of your monthly income'
+      : intro ?? 'What came in on top of your monthly income'
 
   return (
     <FormSheet

@@ -1,12 +1,19 @@
 import Link from 'next/link'
 import { motion, useReducedMotion } from 'motion/react'
-import { CheckIcon, CaretRightIcon, PlusCircleIcon, CompassIcon, CardholderIcon } from '@/src/components/icons'
+import { CheckIcon, CaretRightIcon, PlusCircleIcon, CompassIcon, CardholderIcon, EnvelopeSimpleIcon } from '@/src/components/icons'
 
 type Props = {
   incomeDone: boolean
+  fundDone: boolean
+  /** Live remainder, e.g. "₹49,920 still to assign"; falls back to a generic hint. */
+  fundHint?: string
+  /** First pay lands next month, e.g. "Your pay lands Nov 4. Budget what you have till then."
+   * Step one then asks for what's in the account now, not an income. */
+  upcomingPayHint?: string
   manualTransactionDone: boolean
   guidedTourDone: boolean
   onAddIncome: () => void
+  onFund: () => void
   onAddTransaction: () => void
   onTakeTour: () => void
   onSkip: () => void
@@ -17,13 +24,16 @@ type Props = {
 }
 
 /** Setup is done but can skip income, so the first step stays open until the
- * envelopes have money to hold. The other two milestones are shared across devices. */
-export function GetStartedCard({ incomeDone, manualTransactionDone, guidedTourDone, onAddIncome, onAddTransaction, onTakeTour, onSkip, trialNote }: Props) {
+ * envelopes have money to hold, and the second until all of it is assigned.
+ * The last two milestones are shared across devices. Twin of Mobile's
+ * src/components/home/GetStartedCard.tsx. */
+export function GetStartedCard({ incomeDone, fundDone, fundHint, upcomingPayHint, manualTransactionDone, guidedTourDone, onAddIncome, onFund, onAddTransaction, onTakeTour, onSkip, trialNote }: Props) {
   const reduce = useReducedMotion()
   const steps = [
     incomeDone
       ? { key: 'budget', icon: CardholderIcon, label: 'Set up your budget', hint: 'Your categories are ready', done: true }
-      : { key: 'budget', icon: CardholderIcon, label: 'Add your income', hint: 'Give your categories money to hold', done: false, onClick: onAddIncome },
+      : { key: 'budget', icon: CardholderIcon, label: upcomingPayHint ? 'Add what you have now' : 'Add your income', hint: upcomingPayHint ?? 'Give your categories money to hold', done: false, onClick: onAddIncome },
+    { key: 'fund', icon: EnvelopeSimpleIcon, label: 'Assign all your income', hint: fundHint ?? 'Give all of it a category', done: fundDone, onClick: onFund },
     { key: 'transaction', icon: PlusCircleIcon, label: 'Add a manual transaction', hint: 'Log one expense by hand', done: manualTransactionDone, onClick: onAddTransaction },
     { key: 'tour', icon: CompassIcon, label: 'Take a guided tour', hint: 'See where everything lives', done: guidedTourDone, onClick: onTakeTour },
   ]
@@ -38,12 +48,12 @@ export function GetStartedCard({ incomeDone, manualTransactionDone, guidedTourDo
       <div className="get-started-heading">
         <div>
           <h2 id="get-started-heading">Get started</h2>
-          <p>Three small steps, then this card gets out of your way.</p>
+          <p>Four small steps, then this card gets out of your way.</p>
           {trialNote && <Link href="/account/trial-notice?from=more" className="get-started-trial">{trialNote}</Link>}
         </div>
         <button type="button" className="get-started-skip" aria-label="Skip getting started" onClick={onSkip}>Skip</button>
       </div>
-      <div className="get-started-progress" role="progressbar" aria-label="Getting started" aria-valuemin={0} aria-valuemax={3} aria-valuenow={count} aria-valuetext={`${count} of 3 getting started steps complete`}>
+      <div className="get-started-progress" role="progressbar" aria-label="Getting started" aria-valuemin={0} aria-valuemax={4} aria-valuenow={count} aria-valuetext={`${count} of 4 getting started steps complete`}>
         <div className="get-started-segments">
           {steps.map((step, i) => (
             <span key={step.key} className="get-started-segment">
@@ -51,7 +61,7 @@ export function GetStartedCard({ incomeDone, manualTransactionDone, guidedTourDo
             </span>
           ))}
         </div>
-        <span aria-hidden="true">{count}/3</span>
+        <span aria-hidden="true">{count}/4</span>
       </div>
       <div className="get-started-steps">
         {steps.map((step, i) => {

@@ -12042,11 +12042,8 @@ button.account-feature-card {
 .home-learning-days {
   display: flex;
   gap: 8px;
-  /* Room for today's outline, which the fold's overflow: hidden would clip.
-     The negative margin keeps the layout where it was; the top one is set
-     by the fold animation in LearningCard. */
-  margin: 0 -4px -4px;
-  padding: 4px;
+  margin: 0;
+  padding: 0;
   list-style: none;
 }
 .home-learning-days li {
