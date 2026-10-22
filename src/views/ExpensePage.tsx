@@ -29,6 +29,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { MENU_ITEM, MENU_POPUP } from "../components/menuStyles";
 import { Scrim, Sheet } from "../components/MotionSheet";
 import { HomeSkeleton } from "../components/TabSkeleton";
+import { BirdEmptyState } from "../components/BirdEmptyState";
 import {
   toExpensePanelData,
   type ExpensePanelData,
@@ -113,9 +114,10 @@ export function ExpensePage() {
     expensesQuery.isLoading ||
     categoriesQuery.isLoading ||
     groupsQuery.isLoading ||
-    // Waits so carried money doesn't land a beat after the envelopes paint. A
-    // failed load falls through to no carry rather than a stuck skeleton.
+    // Waits so carried money doesn't land a beat after the envelopes paint.
     carryQuery.isLoading;
+  // Without the carry every balance is off, so Home says so instead of guessing.
+  const carryFailed = carryQuery.isError && carryQuery.data === undefined;
 
   const panel = useMemo<ExpensePanelData | null>(
     () =>
@@ -433,8 +435,16 @@ export function ExpensePage() {
       </header>
 
       <div className="erd-main">
-        <ExpenseSidebar onBulkReturn={panel && !readOnly ? () => setShowBulkReturnConfirm(true) : undefined} />
-        {!panel ? (
+        <ExpenseSidebar onBulkReturn={panel && !readOnly && !carryFailed ? () => setShowBulkReturnConfirm(true) : undefined} />
+        {carryFailed ? (
+          <div className="erd-content">
+            <BirdEmptyState
+              title="Couldn't load your budget"
+              description="Check your connection and try again."
+              action={{ label: "Try again", onClick: () => void carryQuery.refetch() }}
+            />
+          </div>
+        ) : !panel ? (
           <div className="erd-content">
             <HomeSkeleton />
           </div>

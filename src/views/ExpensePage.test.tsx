@@ -147,6 +147,16 @@ it('preserves the cards below when getting started arrives after the dashboard a
   client.clear()
 })
 
+it('shows a retryable error, not balances without the carry, when the carry fails to load', async () => {
+  vi.mocked(getCarry).mockRejectedValueOnce(new Error('503'))
+  const client = renderPage()
+  expect(await screen.findByRole('heading', { name: "Couldn't load your budget" })).toBeInTheDocument()
+  expect(screen.queryByLabelText('₹15,000')).not.toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+  expect(await screen.findByLabelText('₹15,000')).toBeInTheDocument()
+  client.clear()
+})
+
 it('shows no rollover card when nothing carried in', async () => {
   vi.mocked(getBudgets).mockResolvedValue([])
   const client = renderPage()
