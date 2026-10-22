@@ -13,6 +13,10 @@ vi.mock('@/lib/http', async (importOriginal) => {
   }
 })
 vi.mock('@/lib/cache', () => ({ cachedRead: (_b: string, _u: string, fn: () => Promise<unknown>) => fn() }))
+let carried: Record<string, Record<string, number>> = {}
+vi.mock('@/lib/budgetCarry', () => ({
+  computeCarry: async (_auth: unknown, month: string) => ({ month, ready_to_assign: 0, rolled_over: carried[month] ?? {} }),
+}))
 
 const { currentEdition, monthRange, editionStatus, readWrapped, WRAPPED_MIN_TRANSACTIONS } = await import('./wrapped')
 
@@ -97,12 +101,14 @@ describe('readWrapped', () => {
   it('counts rolled-over money in an envelope and skips the credit card and income rows', async () => {
     docs = [expense('2026-09-03', 400)]
     budgetDocs = [
-      { month: '2026-09', category: 'Food', assigned: '600', rolled_over: '400' },
+      { month: '2026-09', category: 'Food', assigned: '600', rolled_over: '0' },
       { month: '2026-09', category: '__credit_card__', assigned: '5000', rolled_over: '0' },
       { month: '2026-09', category: '__income__', assigned: '9000', rolled_over: '0' },
       { month: '2026-09', category: '__Travel', assigned: '500', rolled_over: '0' },
       { month: '2026-08', category: 'Food', assigned: '99999', rolled_over: '0' },
     ]
+    // Rolled-over money is computed (lib/budgetCarry.ts), never read off the stored row.
+    carried = { '2026-09': { Food: 400 } }
     const stayed = (await readWrapped(auth, '2026-09')).stories.find((s) => s.type === 'stayed_put')
     expect(stayed?.facts).toEqual({ left: 1100, assigned: 1500 })
   })

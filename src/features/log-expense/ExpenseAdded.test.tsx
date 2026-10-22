@@ -21,6 +21,7 @@ vi.mock('@/src/hooks/useBudgets', () => ({
       { month, category: 'Groceries', assigned: '1000', rolled_over: '0', version: 1 },
     ],
   }),
+  useCarry: () => ({ data: undefined }),
 }))
 // The refetch hasn't landed: the new row isn't in the list yet, so the view charges it by hand.
 vi.mock('@/src/hooks/useExpenses', () => ({

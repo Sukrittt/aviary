@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { addBudget, deleteBudget, getBudgets, transferBudget, updateBudget } from '@/src/api/budgets'
+import { addBudget, deleteBudget, getBudgets, getCarry, transferBudget, updateBudget } from '@/src/api/budgets'
 import type { BudgetRow } from '@/src/types'
 import { track } from '@/src/lib/analytics'
 
@@ -11,6 +11,15 @@ const briefKey = ['ai-brief'] as const
 
 export function useBudgets() {
   return useQuery({ queryKey: key, queryFn: getBudgets, staleTime: 30_000 })
+}
+
+/** What last month left behind for `month`. Keyed under budgetsKey, so every
+ * write that already busts budgets (budget, expense and income writes alike)
+ * busts this too. */
+export const carryKey = (month: string) => [...budgetsKey, 'carry', month] as const
+
+export function useCarry(month: string) {
+  return useQuery({ queryKey: carryKey(month), queryFn: () => getCarry(month), staleTime: 30_000 })
 }
 
 /** Refetches budgets past staleTime, for a save whose value is derived from

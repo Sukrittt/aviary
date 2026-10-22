@@ -5,13 +5,14 @@ import userEvent from '@testing-library/user-event'
 import { currentMonthKey } from '../lib/envelope'
 import { BudgetWriteError } from '../lib/budgetConflict'
 
-const mocks = vi.hoisted(() => ({ fresh: vi.fn(), update: vi.fn(), add: vi.fn(), transfer: vi.fn(), addIncome: vi.fn(), updateIncome: vi.fn(), budgetsLoading: false, accounts: [] as { id: string; name: string; type: string; archived: boolean; created_at: string }[], budgets: [] as {month: string; category: string; assigned: string; rolled_over: string; extra?: string; version: number}[] }))
+const mocks = vi.hoisted(() => ({ fresh: vi.fn(), update: vi.fn(), add: vi.fn(), transfer: vi.fn(), addIncome: vi.fn(), updateIncome: vi.fn(), budgetsLoading: false, carryError: false, accounts: [] as { id: string; name: string; type: string; archived: boolean; created_at: string }[], budgets: [] as {month: string; category: string; assigned: string; rolled_over: string; extra?: string; version: number}[] }))
 vi.mock('../hooks/useBudgets', () => ({
   useBudgets: () => (mocks.budgetsLoading ? { data: undefined, isLoading: true } : { data: mocks.budgets }),
   useFreshBudgets: () => mocks.fresh,
   useUpdateBudget: () => ({ mutateAsync: mocks.update }),
   useAddBudget: () => ({ mutateAsync: mocks.add }),
   useTransferBudget: () => ({ mutateAsync: mocks.transfer }),
+  useCarry: () => (mocks.carryError ? { data: undefined, isError: true } : { data: undefined }),
 }))
 const spaces = vi.hoisted(() => ({ readOnly: false }))
 vi.mock('../hooks/useSpaces', () => ({ useSpaces: () => ({ readOnly: spaces.readOnly, active: undefined }) }))
@@ -32,6 +33,7 @@ beforeEach(() => {
   mocks.updateIncome.mockResolvedValue(2)
   mocks.accounts = []
   mocks.budgetsLoading = false
+  mocks.carryError = false
   spaces.readOnly = false
   mocks.budgets = [['__income__', '2000'], ['Food', '100'], ['Rent', '500']].map(([category, assigned]) => ({ month: currentMonthKey(), category, assigned, rolled_over: '0', version: 3 }))
 })
@@ -254,5 +256,20 @@ describe('money screens', () => {
     await waitFor(() => expect(mocks.update).toHaveBeenLastCalledWith({
       month: currentMonthKey(), category: 'Food', version: 4, updates: { assigned: '250' },
     }))
+  })
+})
+
+describe('when last month\'s carry fails to load', () => {
+  // Balances without the carry are wrong, so a screen that moves money must not act on them.
+  it.each([
+    ['Pull money', () => <MoveMoneyScreen targetCategory="Food" onClose={() => {}} />],
+    ['Assign', () => <AssignMoneyScreen category="Food" onClose={() => {}} />],
+    ['Edit', () => <EditAssignedScreen category="Food" onClose={() => {}} />],
+    ['Set Ready to Assign', () => <EditReadyToAssignScreen onClose={() => {}} />],
+  ])('%s shows a retry message instead of a form', (_name, screenEl) => {
+    mocks.carryError = true
+    render(screenEl())
+    expect(screen.getByRole('alert')).toHaveTextContent("Couldn't load your balances. Check your connection and try again.")
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
   })
 })

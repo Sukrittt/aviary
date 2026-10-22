@@ -12,7 +12,7 @@ import { formatMoney } from '@/src/lib/currencies'
  * of src/lib/ this file has no twin to stay in step with.
  */
 import type { BudgetRow, CategoryRow, ExpenseRow, SubscriptionRow } from '@/src/types'
-import { computeEnvelopeState, currentMonthKey } from './envelope'
+import { computeEnvelopeState, currentMonthKey, type Carry } from './envelope'
 import type { ExpensePanelContract } from '@/src/services/expensePanelAdapter'
 
 /** Categories that count as essential when splitting the month's spend. */
@@ -30,6 +30,8 @@ export function buildExpensePanel(input: {
   expenses: ExpenseRow[]
   // All-time last spend date per category; see computeEnvelopeState.
   lastSpent?: Record<string, string>
+  /** What last month left behind; see computeEnvelopeState. */
+  carry?: Carry
   subscriptions: SubscriptionRow[]
   categories: CategoryRow[]
   groups: string[]
@@ -67,7 +69,7 @@ export function buildExpensePanel(input: {
     .map(([date, amountInr]) => ({ date, amountInr }))
     .sort((a, b) => a.date.localeCompare(b.date))
 
-  const envelopeState = computeEnvelopeState(budgets, expenses, month, categories, groups, input.lastSpent)
+  const envelopeState = computeEnvelopeState(budgets, expenses, month, categories, groups, input.lastSpent, input.carry)
 
   const alerts: string[] = []
   if (envelopeState.isOverAssigned) {

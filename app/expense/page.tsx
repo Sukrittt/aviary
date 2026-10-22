@@ -8,7 +8,8 @@ import { callGet } from '@/lib/serverQuery'
 import { OnboardingGate } from '@/components/OnboardingGate'
 import type { UserProfile } from '@/src/api/account'
 import { CurrencyScope } from '@/src/context/CurrencyContext'
-import { budgetsKey } from '@/src/hooks/useBudgets'
+import { budgetsKey, carryKey } from '@/src/hooks/useBudgets'
+import { currentMonthKey, type Carry } from '@/src/lib/envelope'
 import { categoriesKey } from '@/src/hooks/useCategories'
 import { recentExpensesKey, recentFrom } from '@/src/hooks/useExpenses'
 import { groupsKey } from '@/src/hooks/useGroups'
@@ -18,6 +19,7 @@ import { userKey } from '@/src/hooks/useUser'
 import type { BudgetRow, CategoryRow, CsvResponse, ExpenseRow, SubscriptionRow } from '@/src/types'
 import { ExpensePage } from '../../src/views/ExpensePage'
 import { GET as budgetsGET } from '../api/budgets/route'
+import { GET as carryGET } from '../api/budgets/carry/route'
 import { GET as categoriesGET } from '../api/categories/route'
 import { GET as expensesGET } from '../api/expenses/route'
 import { GET as groupsGET } from '../api/groups/route'
@@ -46,6 +48,7 @@ export default async function ExpenseRoute() {
   const [user] = await Promise.all([
     callGet<UserProfile>(userGET, '/api/user').catch(() => null),
     prefetch && qc.prefetchQuery({ queryKey: budgetsKey, queryFn: async () => (await callGet<CsvResponse<BudgetRow>>(budgetsGET, '/api/budgets')).rows }),
+    prefetch && qc.prefetchQuery({ queryKey: carryKey(currentMonthKey()), queryFn: () => callGet<Carry>(carryGET, `/api/budgets/carry?month=${currentMonthKey()}`) }),
     prefetch && qc.prefetchQuery({
       queryKey: recentExpensesKey(from),
       queryFn: async () => {

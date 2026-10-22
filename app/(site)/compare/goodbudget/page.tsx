@@ -24,7 +24,7 @@ export default function GoodbudgetPage() {
       ['Bank sync', 'None', 'On the paid plan, for US banks only. File import (QFX, OFX) on the web'],
       ['Platforms', 'Android and web', 'Android, iPhone and web'],
       ['Sharing', 'Up to 6 people in a budget on one plan, each on their own phone, with who-logged-what on every spend', 'Share a budget across 2 devices free, 5 on the paid plan'],
-      ['Leftover money', 'Each category starts fresh; last month’s assigned amounts carry over', 'Unused money rolls over to the next month'],
+      ['Leftover money', 'Unused money rolls into the same category next month, on top of the amount you assigned', 'Unused money rolls over to the next month'],
       ['Logging help', 'Habit nudges, type several spends in one line, bill scanning, recurring expenses', 'Location-based widget, scheduled transactions, split transactions'],
     ]} />
 
@@ -42,7 +42,7 @@ export default function GoodbudgetPage() {
     <ul>
       <li><strong>A free plan that lasts.</strong> If 10 envelopes and one account are enough, you can use it free, without ads.</li>
       <li><strong>iPhone.</strong> Goodbudget has an iPhone app. Aviary doesn’t yet.</li>
-      <li><strong>Rollover.</strong> Money you didn’t spend in an envelope rolls into next month. In Aviary, each month starts fresh.</li>
+      <li><strong>Rollover.</strong> Money you didn’t spend in an envelope rolls into next month. Aviary does the same, and keeps last month’s assigned amounts too.</li>
       <li><strong>Debt tracking.</strong> It has tools for paying down debt alongside your envelopes.</li>
     </ul>
 

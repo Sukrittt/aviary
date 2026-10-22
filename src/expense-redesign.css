@@ -9150,6 +9150,10 @@ button.account-feature-card {
   color: var(--coral);
 }
 
+.tour-kicker.is-mint {
+  color: var(--mint);
+}
+
 .tour-section-label {
   font-size: 12px;
   font-weight: 600;

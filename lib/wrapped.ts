@@ -2,6 +2,7 @@ import { getCollection } from '@/lib/http'
 import { EXPENSE_HEADERS, toRow } from '@/lib/models'
 import type { Auth } from '@/lib/access'
 import { cachedRead } from '@/lib/cache'
+import { computeCarry } from '@/lib/budgetCarry'
 import { computeWrapped, type WrappedData } from '@/src/services/wrappedAdapter'
 import { pickStories, type BudgetLine, type Story } from '@/src/services/wrappedStories'
 import { CREDIT_CARD_CATEGORY, INCOME_CATEGORY } from '@/src/lib/envelope'
@@ -84,16 +85,20 @@ export async function readWrapped(auth: Auth, month: string): Promise<WrappedRes
   // currentEdition answers "the month before this date", which is exactly last month.
   const prevMonth = currentEdition(`${month}-01`)
   const budgetColl = await getCollection('budgets', auth)
-  const [recap, prevRecap, budgetDocs] = await Promise.all([
+  const [recap, prevRecap, budgetDocs, carry, prevCarry] = await Promise.all([
     readRecap(auth, month),
     readRecap(auth, prevMonth),
     budgetColl.find({ month: { $in: [month, prevMonth] } }).toArray(),
+    computeCarry(auth, month),
+    computeCarry(auth, prevMonth),
   ])
+  // What each envelope held that month: its assignment plus what rolled in.
+  const rolledIn = (m: string, category: string) => (m === month ? carry : prevCarry).rolled_over[category] ?? 0
   const linesFor = (m: string): BudgetLine[] =>
     budgetDocs
       // The credit card and income rows aren't envelopes.
       .filter((b) => b.month === m && b.category !== CREDIT_CARD_CATEGORY && b.category !== INCOME_CATEGORY)
-      .map((b) => ({ category: String(b.category), amount: (Number(b.assigned) || 0) + (Number(b.rolled_over) || 0) }))
+      .map((b) => ({ category: String(b.category), amount: (Number(b.assigned) || 0) + rolledIn(m, String(b.category)) }))
       .filter((b) => b.amount > 0)
 
   const prev = prevRecap.totalTransactions > 0 ? prevRecap : null

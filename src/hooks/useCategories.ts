@@ -9,6 +9,7 @@ import {
 } from '@/src/api/categories'
 import type { CategoryRow } from '@/src/types'
 import { track } from '@/src/lib/analytics'
+import { budgetsKey } from './useBudgets'
 import { avatarStyleFor, splitEmoji } from '@/src/lib/emoji'
 
 const key = ['categories'] as const
@@ -96,7 +97,12 @@ export function useUpdateCategory() {
   return useMutation({
     mutationFn: (params: { name: string; updates: { newName?: string; group?: string; icon?: string; color?: string; alertPcts?: number[] | null } }) =>
       updateCategory(params.name, params.updates),
-    onSuccess: () => qc.invalidateQueries({ queryKey: key }),
+    onSuccess: (_data, params) => {
+      qc.invalidateQueries({ queryKey: key })
+      // A rename moves the budget rows server-side, and the carry is keyed by
+      // category name; budgetsKey covers both (the carry sits under it).
+      if (params.updates.newName) qc.invalidateQueries({ queryKey: budgetsKey })
+    },
   })
 }
 

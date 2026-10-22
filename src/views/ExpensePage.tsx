@@ -1,14 +1,14 @@
 "use client";
 
 import { useCurrency } from "@/src/context/CurrencyContext";
-import { useEffect, useMemo, useRef, useState, type ReactElement } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactElement } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "motion/react";
 import { AmountText, CheckIcon } from "../components/landing/mobile/kit";
 import { track } from "../lib/analytics";
 import { currencyUnit } from "../lib/currencies";
-import { CaretRightIcon, GearIcon, HouseIcon, InvoiceIcon, MoneyWavyIcon, MoonIcon, PencilSimpleIcon, PlantIcon, SunIcon } from "@/src/components/icons";
+import { CaretRightIcon, GearIcon, HouseIcon, InvoiceIcon, MoneyWavyIcon, MoonIcon, PencilSimpleIcon, SunIcon } from "@/src/components/icons";
 import { useAppearance } from "../../components/AppearanceProvider";
 
 import { FluidDemo } from "../components/FluidDemo";
@@ -29,13 +29,14 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { MENU_ITEM, MENU_POPUP } from "../components/menuStyles";
 import { Scrim, Sheet } from "../components/MotionSheet";
 import { HomeSkeleton } from "../components/TabSkeleton";
+import { BirdEmptyState } from "../components/BirdEmptyState";
 import {
   toExpensePanelData,
   type ExpensePanelData,
 } from "../services/expensePanelAdapter";
 import { buildExpensePanel } from "../lib/expensePanel";
 import { EMPTY } from "../lib/constants";
-import { useBudgets, useTransferBudget, useUpdateBudget } from "../hooks/useBudgets";
+import { useBudgets, useCarry, useTransferBudget, useUpdateBudget } from "../hooks/useBudgets";
 import { useRecentExpenses, useLastSpent, useAddExpense } from "../hooks/useExpenses";
 import { useCategories, useCategoryIcons } from "../hooks/useCategories";
 import { useGroupIcons, useGroups } from "../hooks/useGroups";
@@ -48,6 +49,9 @@ import { useHiddenFeatures, useUser } from "../hooks/useUser";
 import { FeatureNudge } from "../components/home/FeatureNudge";
 import { WeekRecapGate } from "../components/wrapped/WeekRecap";
 import { usePersistentState } from "../hooks/usePersistentState";
+import { useDismissedRolloverBanner } from "../hooks/useDismissedRolloverBanner";
+import { rolloverCard } from "../lib/rollover";
+import { RolloverCard } from "../components/home/RolloverCard";
 import { LogExpenseModal } from "../components/LogExpenseModal";
 import { FillGap } from "../features/fill-gap/FillGap";
 import { RecurringIncomeModal } from "../components/RecurringIncomeModal";
@@ -58,10 +62,11 @@ import { ReadOnlyDialog } from "../components/BudgetNotices";
 import { SuccessButton, useButtonPhase } from "../components/SuccessButton";
 import { ImportBanner, useImportInProgress } from "../components/ImportBanner";
 import type { EnvelopeState } from "../types/expense";
-import { computeEnvelopeState, currentMonthKey, daysLeftInMonth, monthLabel, prevMonthKey } from "../lib/envelope";
+import { currentMonthKey, daysLeftInMonth, monthLabel } from "../lib/envelope";
 import { InsightsTab } from "@/src/components/InsightsTab";
 import { ForecastLine } from "@/src/components/Forecast";
 
+const noop = () => () => {};
 const parseDismissed = (raw: string) => raw === "1";
 const serializeDismissed = (value: boolean) => value ? "1" : "0";
 const MotionLink = motion.create(Link);
@@ -79,6 +84,8 @@ export function ExpensePage() {
   // recomputed from them. The old single SWR fetcher both fetched and derived;
   // buildExpensePanel is the derivation half, now pure.
   const budgetsQuery = useBudgets();
+  const thisMonth = currentMonthKey();
+  const carryQuery = useCarry(thisMonth);
   const expensesQuery = useRecentExpenses();
   const lastSpent = useLastSpent().data;
   const categoriesQuery = useCategories();
@@ -88,7 +95,7 @@ export function ExpensePage() {
   const subscriptionsQuery = useSubscriptions();
   const user = useUser().data;
   const hidden = useHiddenFeatures();
-  const { readOnly } = useSpaces();
+  const { readOnly, active: activeSpace } = useSpaces();
 
   const updateBudgetM = useUpdateBudget();
   const transferBudgetM = useTransferBudget();
@@ -106,7 +113,11 @@ export function ExpensePage() {
     budgetsQuery.isLoading ||
     expensesQuery.isLoading ||
     categoriesQuery.isLoading ||
-    groupsQuery.isLoading;
+    groupsQuery.isLoading ||
+    // Waits so carried money doesn't land a beat after the envelopes paint.
+    carryQuery.isLoading;
+  // Without the carry every balance is off, so Home says so instead of guessing.
+  const carryFailed = carryQuery.isError && carryQuery.data === undefined;
 
   const panel = useMemo<ExpensePanelData | null>(
     () =>
@@ -118,6 +129,7 @@ export function ExpensePage() {
               budgets: budgetRows,
               expenses: expenseRows,
               lastSpent,
+              carry: carryQuery.data,
               subscriptions: subscriptionRows,
               categories: categoryRows,
               groups: groupNames,
@@ -130,6 +142,7 @@ export function ExpensePage() {
       expenseRows,
       subscriptionRows,
       lastSpent,
+      carryQuery.data,
       categoryRows,
       groupNames,
       currencyCode,
@@ -205,18 +218,16 @@ export function ExpensePage() {
     </DropdownMenu>
   );
   const [showBulkReturnConfirm, setShowBulkReturnConfirm] = useState(false);
-  const previousMonth = prevMonthKey(panel?.month ?? currentMonthKey());
-  const [leftoverDismissed, setLeftoverDismissed] = usePersistentState(
-    `rollover-dismissed-${previousMonth}`, false, parseDismissed, serializeDismissed,
-  );
+  // Once per space and month. Held back through hydration (the server can't
+  // know it was dismissed) and until the active space is known, so it never flashes.
+  const hydrated = useSyncExternalStore(noop, () => true, () => false);
+  const [rolloverDismissed, setRolloverDismissed] = useDismissedRolloverBanner(`${activeSpace?.id ?? ""}:${thisMonth}`);
+  const rollover = hydrated && activeSpace && !rolloverDismissed && !readOnly
+    ? rolloverCard(carryQuery.data, thisMonth, (n) => formatCurrency(n, hideAmounts))
+    : null;
   const [getStartedSkipped, setGetStartedSkipped] = usePersistentState(
     'rollover-dismissed-get-started', false, parseDismissed, serializeDismissed,
   );
-  const previousState = useMemo(
-    () => computeEnvelopeState(budgetRows, expenseRows, previousMonth, categoryRows, groupNames),
-    [budgetRows, expenseRows, previousMonth, categoryRows, groupNames],
-  );
-  const previousLeftover = previousState.income - previousState.totalSpent;
   // Unknown until budgets load; counting it done avoids flashing the income step.
   const incomeDone = !envelopeState || envelopeState.income > 0;
   // Same test as Mobile's Home: income is set and nothing is left to assign.
@@ -311,8 +322,9 @@ export function ExpensePage() {
       const updated = current.envelopes.map((e) =>
         e.available > 0 ? { ...e, assigned: e.assigned - e.available, available: 0 } : e,
       );
-      const totalAssigned = updated.reduce((sum, e) => sum + e.assigned, 0);
-      const rta = current.income - totalAssigned;
+      // Credit Card Payment stays out of totalAssigned, as in computeEnvelopeState.
+      const totalAssigned = updated.filter((e) => !e.isCreditCardPayment).reduce((sum, e) => sum + e.assigned, 0);
+      const rta = current.carriedReadyToAssign + current.income - totalAssigned;
       const log = {
         type: "bulk-return-to-rta",
         month: current.month,
@@ -422,8 +434,16 @@ export function ExpensePage() {
       </header>
 
       <div className="erd-main">
-        <ExpenseSidebar onBulkReturn={panel && !readOnly ? () => setShowBulkReturnConfirm(true) : undefined} />
-        {!panel ? (
+        <ExpenseSidebar onBulkReturn={panel && !readOnly && !carryFailed ? () => setShowBulkReturnConfirm(true) : undefined} />
+        {carryFailed ? (
+          <div className="erd-content">
+            <BirdEmptyState
+              title="Couldn't load your budget"
+              description="Check your connection and try again."
+              action={{ label: "Try again", onClick: () => void carryQuery.refetch() }}
+            />
+          </div>
+        ) : !panel ? (
           <div className="erd-content">
             <HomeSkeleton />
           </div>
@@ -534,18 +554,18 @@ export function ExpensePage() {
               )}
 
               {envelopeState && <ForecastLine />}
-              {/* One banner at a time, same as Mobile: the leftover notice goes first,
+              {/* One banner at a time, same as Mobile: the rollover note goes first,
                   and the next one waits for it to fade out. */}
               <AnimatePresence mode="wait">
-                {!leftoverDismissed && previousLeftover > 0 ? (
+                {rollover ? (
                   <motion.div
-                    key="leftover"
+                    key="rollover"
                     className="home-leftover-slot"
                     initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.22, ease: "easeOut" }}
-                    // "Nice" slides it off to the right, then its height (and the
-                    // column's 20px gap) closes so the cards below glide up.
+                    // Once the check has played it slides off to the right, then its
+                    // height (and the column's 20px gap) closes so the cards below glide up.
                     exit={reduceMotion ? { opacity: 0 } : {
                       x: "100%", opacity: 0, height: 0, marginBottom: -20,
                       transition: {
@@ -556,10 +576,7 @@ export function ExpensePage() {
                       },
                     }}
                   >
-                    <article className="erd-card home-leftover-notice">
-                      <p><PlantIcon size={18} aria-hidden="true" style={{ verticalAlign: "-3px", marginRight: 6 }} />{formatCurrency(previousLeftover, hideAmounts)} went to savings last month.</p>
-                      <button type="button" onClick={() => setLeftoverDismissed(true)}>Nice</button>
-                    </article>
+                    <RolloverCard text={rollover} onDone={() => setRolloverDismissed(true)} />
                   </motion.div>
                 ) : (
                   <FeatureNudge key="nudge" />
@@ -604,6 +621,7 @@ export function ExpensePage() {
                   transition={homeTransition}
                 >
                   <EnvelopeGrid
+                    month={envelopeState.month}
                     categoryIcons={categoryIcons}
                     groupIcons={groupIcons}
                     envelopes={envelopeState.envelopes}

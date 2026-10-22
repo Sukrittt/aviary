@@ -300,3 +300,31 @@ describe('an imported history', () => {
     expect(state.income).toBe(85000)
   })
 })
+
+describe('computeEnvelopeState with a carry', () => {
+  const categories: CategoryRow[] = [{ name: 'Travel', group: '' }, { name: 'Food', group: '' }]
+  const budgets = [budget('2026-10', INCOME_CATEGORY, '1000'), budget('2026-10', 'Travel', '100'), budget('2026-10', 'Food', '300')]
+
+  it('adds each envelope\'s carry to what it has available', () => {
+    const state = computeEnvelopeState(budgets, [expense('2026-11-02', 'Food', '10')], '2026-11', categories, [], undefined, {
+      ready_to_assign: 0,
+      rolled_over: { Travel: 95, Food: -20 },
+    })
+    expect(state.envelopes.find((e) => e.category === 'Travel')).toMatchObject({ assigned: 100, rolledOver: 95, spent: 0, available: 195 })
+    expect(state.envelopes.find((e) => e.category === 'Food')).toMatchObject({ assigned: 300, rolledOver: -20, spent: 10, available: 270 })
+  })
+
+  it('adds the carried Ready to assign, and a carried deficit', () => {
+    const plus = computeEnvelopeState(budgets, [], '2026-11', categories, [], undefined, { ready_to_assign: 5000, rolled_over: {} })
+    expect(plus).toMatchObject({ readyToAssign: 5600, carriedReadyToAssign: 5000, totalAssigned: 400 })
+    const minus = computeEnvelopeState(budgets, [], '2026-11', categories, [], undefined, { ready_to_assign: -700, rolled_over: {} })
+    expect(minus).toMatchObject({ readyToAssign: -100, isOverAssigned: true })
+  })
+
+  it('carries nothing without one', () => {
+    const state = computeEnvelopeState(budgets, [], '2026-11', categories, [])
+    expect(state.readyToAssign).toBe(600)
+    expect(state.carriedReadyToAssign).toBe(0)
+    expect(state.envelopes.every((e) => e.rolledOver === 0)).toBe(true)
+  })
+})
