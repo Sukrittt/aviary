@@ -19,7 +19,8 @@ const tile = (Icon: PhosphorIcon) => <Icon />
 const INTL_MEDIA = new Set([
   'clip-log.mp4', 'poster-log.webp', 'clip-added.mp4', 'poster-added.webp', 'clip-scan.mp4', 'poster-scan.webp',
   'clip-insights.mp4', 'poster-insights.webp', 'clip-invest.mp4', 'poster-invest.webp', 'subscriptions.png',
-  'clip-ask.mp4', 'poster-ask.webp',
+  'clip-ask.mp4', 'poster-ask.webp', 'clip-create.mp4', 'poster-create.webp', 'clip-join.mp4', 'poster-join.webp',
+  'clip-catchup.mp4', 'poster-catchup.webp', 'clip-members.mp4', 'poster-members.webp', 'clip-import.mp4', 'poster-import.webp',
 ])
 
 const IN = {
@@ -70,6 +71,10 @@ const IN = {
     rows: [[tile(MopedIcon), '#d4e5ea', 'Rapido', '16 Oct ’26 · Cabs & Auto', '₹250'], [tile(TaxiIcon), '#d4e5ea', 'Namma Yatri', '15 Oct ’26 · Cabs & Auto', '₹270'], [tile(CoffeeIcon), '#f8d9cf', 'Filter coffee', '15 Oct ’26 · Coffee & snacks', '₹100'], [tile(BowlSteamIcon), '#d6e7d8', 'Vidyarthi Bhavan', '15 Oct ’26 · Eating out', '₹690'], [tile(ChartLineIcon), '#f6ecd2', 'PPF deposit', '15 Oct ’26 · Investments', '₹5,000'], [tile(LightbulbIcon), '#f6ecd2', 'BWSSB water', '12 Oct ’26 · Utilities', '₹320']] as [ReactNode, string, string, string, string][],
   },
   headsUp: '₹649 due in 3 days (Nov 12).',
+  // Mobile's "someone logged" push (space notify_others), as in demo-recordings/india/member-log-notification.jpeg.
+  together: { logged: ['Sara logged in Family', 'Puja Shopping · ₹900 · Shopping'] },
+  // What the catch-up upload reads, and the recording's finished state (demo-recordings/india/statement-upload.mp4).
+  catchUp: { from: ['GPay', 'PhonePe', 'Paytm', 'Bank app', 'CSV', 'Excel', 'PDF'], added: '5 payments', total: '₹3,490', bar: 0.42 },
   ask: {
     chips: ['What can I cut back on?', 'How does this month compare?', 'Can I afford 90k iPhone?'],
     left: '₹43,640', bar: 0.34,
@@ -123,6 +128,8 @@ const INTL: Sample = {
     rows: [[tile(BowlSteamIcon), '#d6e7d8', 'Coffee with Sam', '9 Oct ’26 · Eating out', '$6'], [tile(BusIcon), '#ead2f2', 'Bus Fare', '9 Oct ’26 · Commute', '$3'], [tile(PizzaIcon), '#f6ecd2', 'DoorDash', '9 Oct ’26 · Food Delivery', '$24.40'], [tile(ShoppingCartIcon), '#f8d9cf', 'Milk', '10 Oct ’26 · Groceries', '$3.49'], [tile(GameControllerIcon), '#d6e7d8', 'Movie tickets', '16 Oct ’26 · Entertainment', '$50'], [tile(HouseIcon), '#f8d9cf', 'Rent', '5 Oct ’26 · Rent', '$1,500']] as [ReactNode, string, string, string, string][],
   },
   headsUp: '$15.49 due in 3 days (Oct 28).',
+  together: { logged: ['Sara logged in Family', 'Whole Foods · $94.27 · Groceries'] },
+  catchUp: { from: ['Venmo', 'Cash App', 'Bank app', 'CSV', 'Excel', 'PDF'], added: '6 payments', total: '$196.96', bar: 0.36 },
   ask: {
     chips: ['What can I cut back on?', 'How does this month compare?', 'Can I afford a $900 iPhone?'],
     left: '$2,497', bar: 0.55,

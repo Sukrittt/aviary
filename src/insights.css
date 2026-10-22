@@ -1033,5 +1033,20 @@
 }
 .ins-forecast-next strong { color: var(--erd-text); font-weight: 500; }
 .ins-forecast-next span { color: var(--erd-text3); font-size: 12px; font-weight: 500; }
-/* Home's forecast line is a link styled as the slim Ready to Assign row. */
-.expense-redesign a.erd-home-rta-slim { text-decoration: none; }
+/* Home's run-out heads-up: the slim Ready to Assign row, with the line linking
+   to Insights and Okay dismissing it, like the savings strip's Nice. */
+.expense-redesign .home-forecast-warning { gap: 16px; cursor: default; }
+.expense-redesign .home-forecast-warning a { flex: 1; display: flex; align-items: center; color: inherit; text-decoration: none; }
+.expense-redesign .home-forecast-warning .erd-rta-icon { flex: none; }
+.expense-redesign .home-forecast-warning button {
+  border: 0;
+  background: transparent;
+  color: var(--tk-accent-ink);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  /* A 44px tap target that doesn't make the row taller. */
+  margin: -12px -8px;
+  padding: 12px 8px;
+}
+.expense-redesign .home-forecast-warning button:focus-visible { outline: 2px solid var(--tk-accent-ink); outline-offset: 3px; }

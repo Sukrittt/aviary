@@ -28,7 +28,7 @@ export interface NotificationPrefs {
 /** Trigger percentages applied to any category that hasn't customized its own. */
 export const DEFAULT_ALERT_PCTS = [50, 90, 100]
 
-/** Sentinel level for an overspent envelope — always above any realistic alertPct, since `spentPct` is capped at 100. */
+/** Sentinel level for an overspent envelope — always above any realistic alertPct, since the spent share is capped at 100. */
 export const OVER_LEVEL = 101
 
 export type NotificationKind = 'threshold' | 'overspent' | 'bill' | 'digest' | 'coach' | 'pace' | 'wrapped' | 'recap'
@@ -69,12 +69,24 @@ function alertPctsMap(categories: CategoryDocRow[]): Map<string, number[]> {
   return new Map(categories.filter((c) => Array.isArray(c.alertPcts)).map((c) => [c.name, c.alertPcts as number[]]))
 }
 
+/** What the envelope had to spend this month: its assigned plus whatever
+ * carried in (negative for a shortfall). `spentPct` is against assigned alone,
+ * which made saving up look like overspending. */
+function funded(env: Envelope): number {
+  return env.assigned + env.rolledOver
+}
+
+/** Spent as a share of `funded`, capped at 100 like `spentPct`. */
+function fundedPct(env: Envelope): number {
+  return Math.min(100, (env.spent / funded(env)) * 100)
+}
+
 /** Current crossed level for one envelope: 0 (nothing crossed) up to the highest crossed alertPct, or `OVER_LEVEL` if overspent. */
 function levelFor(env: Envelope, alertPctsByCategory: Map<string, number[]>): number {
   if (env.isOverspent) return OVER_LEVEL
-  if (env.assigned <= 0) return 0
+  if (funded(env) <= 0) return 0
   const pcts = alertPctsByCategory.get(env.category) ?? DEFAULT_ALERT_PCTS
-  const crossed = pcts.filter((pct) => pct > 0 && env.spentPct >= pct)
+  const crossed = pcts.filter((pct) => pct > 0 && fundedPct(env) >= pct)
   return crossed.length > 0 ? Math.max(...crossed) : 0
 }
 
@@ -114,8 +126,8 @@ function thresholdNotifications(envelopes: Envelope[], categories: CategoryDocRo
       out.push({
         key: `thr:${month}:${env.category}:${level}`,
         kind: 'threshold',
-        title: `${env.category} is at ${Math.round(env.spentPct)}%`,
-        body: `${money(env.spent)} of ${money(env.assigned)} spent in ${env.category}.`,
+        title: `${env.category} is at ${Math.round(fundedPct(env))}%`,
+        body: `${money(env.spent)} of ${money(funded(env))} spent in ${env.category}.`,
         data: { category: env.category, month, level },
       })
     }

@@ -37,6 +37,7 @@ import { scoped } from '@/lib/scoped'
 import { previewFile, recomputePreview } from './service'
 import { commitImport, parseEdits, type CommitEdits } from './commit'
 import { chainPass, passAndChain, retryImport, runImportPass } from './backfill'
+import { listImports, undoImport } from './undo'
 import type { Review } from './service'
 
 const USER = 'import-test'
@@ -440,6 +441,10 @@ describe('into a new budget', () => {
     await db.collection('spaces').insertOne({ _id: 'sp_trip' as never, name: 'Trip', emoji: '✈️', owner_id: USER, currencyCode: 'USD', onboardedAt: null, deleted_at: null, created_at: '' })
   })
 
+  it('a member can’t import into a shared budget that isn’t set up yet either', async () => {
+    await expect(previewFile({ ...trip, spaceRole: 'member' as const }, fixture('money-manager.csv'), 'mm.csv')).rejects.toMatchObject({ code: 'not_owner' })
+  })
+
   it("sets up that budget from the file, leaving the person's own account, currency and trial alone", async () => {
     const review = await previewFile(trip, fixture('money-manager.csv'), 'mm.csv')
     await commitImport(trip, review.importId, editsFrom(review))
@@ -452,9 +457,121 @@ describe('into a new budget', () => {
     expect(completeOnboarding).not.toHaveBeenCalled()
   })
 
-  it('refuses a budget that is already set up', async () => {
+  it('a budget that is already set up gets a later import, its currency left alone', async () => {
     await (await getDb()).collection('spaces').updateOne({ _id: 'sp_trip' as never }, { $set: { onboardedAt: '2026-10-01T00:00:00.000Z' } })
     const review = await previewFile(trip, fixture('money-manager.csv'), 'mm.csv')
-    await expect(commitImport(trip, review.importId, editsFrom(review))).rejects.toMatchObject({ code: 'already_onboarded' })
+    expect(review.later).toEqual({ cutoff: null, categories: [], icons: { categories: {}, groups: {} } })
+    await commitImport(trip, review.importId, editsFrom(review))
+    expect((await (await getDb()).collection('spaces').findOne({ _id: 'sp_trip' as never }))?.currencyCode).toBe('USD')
+  })
+})
+
+describe('later import, from Settings', () => {
+  beforeEach(async () => {
+    await (await getDb()).collection('users').updateOne({ _id: USER as never }, { $set: { onboardedAt: '2026-09-10T00:00:00.000Z' } })
+    await (await coll('groups')).insertOne({ name: 'Bills', order: 1 })
+    await (await coll('categories')).insertOne({ name: 'Rent', group: 'Bills', order: 1, icon: 'House' })
+    await (await coll('categories')).insertOne({ name: 'groceries', group: 'Bills', order: 2 })
+    // The first thing logged in Aviary: the cutoff.
+    await (await coll('expenses')).insertOne({ date: '2026-09-10', item: 'Coffee', amount_inr: '100', category: 'Rent', payment_method: 'bank', timestamp: '2026-09-10T08:00:00.000Z' })
+  })
+
+  it('reviews only the rows from before the first entry, with the setup left out', async () => {
+    const review = await previewFile(auth, fixture('money-manager.csv'), 'mm.csv')
+    expect(review.later).toEqual({ cutoff: '2026-09-10', categories: ['Rent', 'groceries'], icons: { categories: { Rent: 'House' }, groups: {} } })
+    expect(review.counts).toMatchObject({ expense: 2, income: 1, from: '2026-09-01', to: '2026-09-05' })
+    expect(review.skipped).toMatchObject({ after_start: 5 })
+    expect(review.salary).toBeNull()
+    expect(review.groups).toEqual(['Bills'])
+    expect(review.categories.map((c) => [c.source, c.name, c.monthly])).toEqual([['Food · Groceries', 'Food · Groceries', 0], ['Food · Eating out', 'Food · Eating out', 0]])
+  })
+
+  it('maps onto existing envelopes by name, books only the older rows, and touches no setup', async () => {
+    const review = await previewFile(auth, fixture('money-manager.csv'), 'mm.csv')
+    const result = await commitImport(auth, review.importId, editsFrom(review, { salary: { amount: 85000, day: 1 } }))
+    expect(result).toMatchObject({ total: 3, categoryCount: 1, income: 0 })
+    expect(completeOnboarding).not.toHaveBeenCalled()
+    expect((await (await getDb()).collection('users').findOne({ _id: USER as never }))?.currencyCode).toBe('USD')
+    expect(await count('recurring_incomes')).toBe(0)
+    expect(await budget('2026-10', 'Rent')).toBeNull()
+    // "Groceries" found the existing "groceries"; "Eating out" was new, in the first group.
+    expect((await (await coll('categories')).find({}).sort({ order: 1 }).toArray()).map((c) => [c.name, c.group])).toEqual([
+      ['Rent', 'Bills'], ['groceries', 'Bills'], ['Food · Eating out', 'Bills'],
+    ])
+
+    expect(await runImportPass(auth, review.importId, Date.now() + 30_000)).toBe('done')
+    const booked = await (await coll('expenses')).find({ import_id: review.importId }).sort({ date: 1 }).toArray()
+    expect(booked.map((e) => [e.date, e.category])).toEqual([['2026-09-02', 'groceries'], ['2026-09-05', 'Food · Eating out']])
+    expect(await count('incomes', { import_id: review.importId, counted: 'extra' })).toBe(1)
+    expect(await (await coll('imports')).findOne({ _id: new ObjectId(review.importId) })).toMatchObject({ status: 'done', skipped: { after_start: 5 } })
+  })
+
+  it('records a payday a monthly schedule already counts, instead of adding it to Ready to Assign again (#230)', async () => {
+    await (await coll('recurring_incomes')).insertOne({ label: 'Salary', amount: '85000', frequency: 'monthly', start_date: '2026-09-01', end_date: '', status: 'active' })
+    await (await coll('budgets')).insertOne({ month: '2026-08', category: '__income__', assigned: '85000', extra: '0' })
+    const review = await previewFile(auth, fixture('money-manager.csv'), 'mm.csv')
+    await commitImport(auth, review.importId, editsFrom(review))
+    expect(await runImportPass(auth, review.importId, Date.now() + 30_000)).toBe('done')
+    expect((await (await coll('incomes')).find({ import_id: review.importId }).toArray()).map((i) => [i.date, i.counted])).toEqual([['2026-09-01', 'monthly']])
+    expect(Number((await budget('2026-09', '__income__'))?.extra ?? 0)).toBe(0)
+  })
+
+  it('still adds pay in a month a backdated schedule never actually counted', async () => {
+    await (await coll('recurring_incomes')).insertOne({ label: 'Salary', amount: '85000', frequency: 'monthly', start_date: '2026-06-01', end_date: '', status: 'active' })
+    const review = await previewFile(auth, fixture('money-manager.csv'), 'mm.csv')
+    await commitImport(auth, review.importId, editsFrom(review))
+    expect(await runImportPass(auth, review.importId, Date.now() + 30_000)).toBe('done')
+    expect(await budget('2026-09', '__income__')).toMatchObject({ extra: '85000' })
+  })
+
+  it('undo archives only that import’s rows and backs out what they moved', async () => {
+    const review = await previewFile(auth, fixture('money-manager.csv'), 'mm.csv')
+    await commitImport(auth, review.importId, editsFrom(review))
+    await runImportPass(auth, review.importId, Date.now() + 30_000)
+    expect(await budget('2026-09', '__credit_card__')).toMatchObject({ assigned: '900' })
+    expect(await budget('2026-09', '__income__')).toMatchObject({ extra: '85000' })
+    expect((await listImports(auth)).map((i) => [i.importId, i.status, i.total])).toEqual([[review.importId, 'done', 3]])
+
+    await undoImport(auth, review.importId)
+    expect(await count('expenses', { import_id: review.importId })).toBe(0)
+    expect(await count('incomes', { import_id: review.importId })).toBe(0)
+    // Archived, not gone: restorable like any other delete.
+    expect(await (await getDb()).collection('expenses').countDocuments({ import_id: review.importId, deleted_at: { $ne: null } })).toBe(2)
+    expect((await (await coll('expenses')).find({}).toArray()).map((e) => e.item)).toEqual(['Coffee'])
+    expect(await budget('2026-09', '__credit_card__')).toMatchObject({ assigned: '0' })
+    expect(await budget('2026-09', '__income__')).toMatchObject({ extra: '0' })
+    expect(await listImports(auth)).toEqual([])
+    // A second tap changes nothing.
+    await undoImport(auth, review.importId)
+  })
+
+  it('won’t undo an import that’s still booking', async () => {
+    const review = await previewFile(auth, fixture('money-manager.csv'), 'mm.csv')
+    await commitImport(auth, review.importId, editsFrom(review))
+    await expect(undoImport(auth, review.importId)).rejects.toMatchObject({ code: 'already_importing' })
+  })
+
+  it('a second later import waits for the first to finish, then goes ahead', async () => {
+    const first = await previewFile(auth, fixture('money-manager.csv'), 'mm.csv')
+    await commitImport(auth, first.importId, editsFrom(first))
+    const second = await previewFile(auth, fixture('monefy.csv'), 'monefy.csv')
+    await expect(commitImport(auth, second.importId, editsFrom(second))).rejects.toMatchObject({ code: 'already_importing' })
+    await runImportPass(auth, first.importId, Date.now() + 30_000)
+    await expect(commitImport(auth, second.importId, editsFrom(second))).resolves.toMatchObject({ importId: second.importId })
+  })
+
+  it('refuses a file that reads as another currency when it has no currency column to skip rows by', async () => {
+    const csv = Buffer.from('Date,Description,Amount\n2026-09-01,Coffee,-€4.50\n2026-09-02,Lunch,-€12.00\n')
+    await expect(previewFile(auth, csv, 'euro.csv')).rejects.toMatchObject({ code: 'wrong_currency' })
+  })
+
+  it('only the owner of a shared budget can import into it or undo', async () => {
+    const member = { ...auth, spaceRole: 'member' as const }
+    await expect(previewFile(member, fixture('money-manager.csv'), 'mm.csv')).rejects.toMatchObject({ code: 'not_owner' })
+    const review = await previewFile(auth, fixture('money-manager.csv'), 'mm.csv')
+    await expect(commitImport(member, review.importId, editsFrom(review))).rejects.toMatchObject({ code: 'not_owner' })
+    await commitImport(auth, review.importId, editsFrom(review))
+    await runImportPass(auth, review.importId, Date.now() + 30_000)
+    await expect(undoImport(member, review.importId)).rejects.toMatchObject({ code: 'not_owner' })
   })
 })

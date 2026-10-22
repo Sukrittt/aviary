@@ -1,20 +1,27 @@
 import { beforeEach, expect, it, vi } from 'vitest'
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { renderToString } from 'react-dom/server'
 import { hydrateRoot } from 'react-dom/client'
 import { recentExpensesKey, recentFrom } from '@/src/hooks/useExpenses'
+import { getRecentExpenses } from '@/src/api/expenses'
 import { ExpensePage } from './ExpensePage'
-import { getBudgets, addBudget, updateBudget, transferBudget } from '@/src/api/budgets'
+import { getBudgets, addBudget, updateBudget, transferBudget, getCarry } from '@/src/api/budgets'
 import { getUser } from '@/src/api/account'
+import { getRecurringIncomes } from '@/src/api/incomes'
 import { currentMonthKey, prevMonthKey, monthLabel } from '@/src/lib/envelope'
 
 const { push, openLog, track } = vi.hoisted(() => ({ push: vi.fn(), openLog: vi.fn(), track: vi.fn() }))
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push }), usePathname: () => '/expense' }))
 vi.mock('../../components/AppearanceProvider', () => ({ useAppearance: () => ({ theme: 'dark', setTheme: vi.fn() }) }))
-vi.mock('@/src/api/budgets', () => ({ getBudgets: vi.fn(), addBudget: vi.fn(), updateBudget: vi.fn(), transferBudget: vi.fn() }))
+vi.mock('@/src/api/budgets', () => ({ getBudgets: vi.fn(), addBudget: vi.fn(), updateBudget: vi.fn(), transferBudget: vi.fn(), getCarry: vi.fn() }))
+vi.mock('@/src/api/spaces', () => ({
+  getBudgets: vi.fn(async () => ({ budgets: [{ id: 'space-1', name: 'Me', personal: true, members: [] }], activeId: 'space-1', deleted: [] })),
+  switchBudget: vi.fn(),
+}))
 vi.mock('@/src/api/account', () => ({ getUser: vi.fn() }))
+vi.mock('@/src/api/incomes', async (importOriginal) => ({ ...(await importOriginal<typeof import('@/src/api/incomes')>()), getRecurringIncomes: vi.fn(async () => []) }))
 vi.mock('@/src/api/expenses', () => ({ getRecentExpenses: vi.fn(async () => ({ rows: [], lastSpent: {} })), mintExpensePayload: vi.fn(), postExpensePayload: vi.fn() }))
 vi.mock('@/src/api/categories', () => ({ getCategories: vi.fn(async () => [{ name: 'Food', group: 'Essentials' }]) }))
 vi.mock('@/src/api/groups', () => ({ getGroups: vi.fn(async () => ['Essentials']), getGroupRows: vi.fn(async () => []) }))
@@ -58,17 +65,14 @@ beforeEach(() => {
     { month: previous, category: '__income__', assigned: '20000', rolled_over: '0', version: 1 },
     { month: previous, category: 'Food', assigned: '5000', rolled_over: '0', version: 1 },
   ])
+  vi.mocked(getCarry).mockResolvedValue({ ready_to_assign: 0, rolled_over: {} })
 })
 
-it('starts a new month automatically and shows only a dismissible leftover notice', async () => {
+it('starts a new month automatically, with nothing to set up', async () => {
   const client = renderPage()
-  // Last month kept ₹20,000 of income with nothing spent: framed as a win.
-  expect(await screen.findByText('₹20,000 went to savings last month.')).toBeInTheDocument()
+  expect(await screen.findByLabelText('₹15,000')).toBeInTheDocument()
   expect(screen.queryByText(`Start ${monthLabel(month)}`)).not.toBeInTheDocument()
   expect(screen.queryByText(/Copy last month/)).not.toBeInTheDocument()
-  expect(screen.getByLabelText('₹15,000')).toBeInTheDocument()
-  fireEvent.click(screen.getByRole('button', { name: 'Nice' }))
-  await waitFor(() => expect(screen.queryByText(/went to savings last month/)).not.toBeInTheDocument())
   expect(addBudget).not.toHaveBeenCalled()
   expect(updateBudget).not.toHaveBeenCalled()
   fireEvent.click(screen.getByRole('button', { name: 'Income options' }))
@@ -92,11 +96,45 @@ it('offers the manual transaction and optional tour after setup', async () => {
 })
 
 it('keeps getting started out of the way for existing or finished users', async () => {
+  vi.mocked(getBudgets).mockResolvedValue([
+    { month: previous, category: '__income__', assigned: '20000', rolled_over: '0', version: 1 },
+    { month: previous, category: 'Food', assigned: '20000', rolled_over: '0', version: 1 },
+  ])
   vi.mocked(getUser).mockResolvedValue({ ...baseUser, getStartedAt: '2026-09-01', manualTransactionCompletedAt: '2026-09-02', guidedTourCompletedAt: '2026-09-03' })
   const client = renderPage()
-  await waitFor(() => expect(screen.getByLabelText('₹15,000')).toBeInTheDocument())
+  expect(await screen.findByText('Envelope content')).toBeInTheDocument()
   await waitFor(() => expect(screen.queryByRole('heading', { name: 'Get started' })).not.toBeInTheDocument())
   client.clear()
+})
+
+// Income alone leaves every category at zero, so the next step is assigning it.
+it('asks to assign all of the income, opening the next empty category', async () => {
+  vi.mocked(getBudgets).mockResolvedValue([
+    { month, category: '__income__', assigned: '50000', rolled_over: '0', version: 1 },
+    { month, category: 'Food', assigned: '0', rolled_over: '0', version: 1 },
+  ])
+  vi.mocked(getUser).mockResolvedValue({ ...baseUser, getStartedAt: '2026-09-01', manualTransactionCompletedAt: '2026-09-02', guidedTourCompletedAt: '2026-09-03' })
+  const client = renderPage()
+  expect(await screen.findByRole('heading', { name: 'Get started' })).toBeInTheDocument()
+  expect(screen.getByRole('progressbar', { name: 'Getting started' })).toHaveAttribute('aria-valuenow', '3')
+  expect(screen.getByText('₹50,000 still to assign')).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Assign all your income' }))
+  expect(await screen.findByRole('dialog', { name: /Assign/ })).toBeInTheDocument()
+  client.clear()
+})
+
+// Signing up mid-month, the first pay lands next month and counts from then.
+it('asks for what you have now when the first pay lands next month', async () => {
+  vi.mocked(getBudgets).mockResolvedValue([{ month, category: 'Food', assigned: '0', rolled_over: '0', version: 1 }])
+  vi.mocked(getUser).mockResolvedValue({ ...baseUser, getStartedAt: '2026-09-01' })
+  const [y, m] = month.split('-').map(Number)
+  const payday = m === 12 ? `${y + 1}-01-04` : `${y}-${String(m + 1).padStart(2, '0')}-04`
+  vi.mocked(getRecurringIncomes).mockResolvedValue([{ id: 'r1', label: 'Salary', amount: '50000', frequency: 'monthly', status: 'active', start_date: payday, end_date: '', next_run_date: payday, account_id: '', created_at: '' }])
+  const client = renderPage()
+  fireEvent.click(await screen.findByRole('button', { name: 'Add what you have now' }))
+  expect(await screen.findByDisplayValue('Starting balance')).toBeInTheDocument()
+  client.clear()
+  vi.mocked(getRecurringIncomes).mockResolvedValue([])
 })
 
 // Setup can skip income, so Get started keeps asking until there's some.
@@ -144,13 +182,46 @@ it('preserves the cards below when getting started arrives after the dashboard a
   client.clear()
 })
 
-it('shows no leftover notice for a first budget with no history', async () => {
+it('shows a retryable error, not balances without the carry, when the carry fails to load', async () => {
+  vi.mocked(getCarry).mockRejectedValueOnce(new Error('503'))
+  const client = renderPage()
+  expect(await screen.findByRole('heading', { name: "Couldn't load your budget" })).toBeInTheDocument()
+  expect(screen.queryByLabelText('₹15,000')).not.toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+  expect(await screen.findByLabelText('₹15,000')).toBeInTheDocument()
+  client.clear()
+})
+
+it('shows no rollover card when nothing carried in', async () => {
   vi.mocked(getBudgets).mockResolvedValue([])
   const client = renderPage()
   await screen.findByRole('button', { name: 'Income options' })
-  expect(screen.queryByText(/went to savings last month/)).not.toBeInTheDocument()
+  expect(screen.queryByText(/rolled over/)).not.toBeInTheDocument()
   expect(screen.queryByText(/Start October/)).not.toBeInTheDocument()
   client.clear()
+})
+
+it('says once per budget and month what rolled in, and adds it to Ready to Assign', async () => {
+  vi.mocked(getCarry).mockResolvedValue({ ready_to_assign: 5000, rolled_over: { Food: 95, Rent: -20 } })
+  const title = '₹5,095 rolled over · ₹20 short'
+  const first = renderPage()
+  expect(await screen.findByText(title)).toBeInTheDocument()
+  // Last month's ₹15,000 plan carries as before; the ₹5,000 left unassigned comes on top.
+  expect(screen.getByLabelText('₹20,000')).toBeInTheDocument()
+  // The strip says it all, so the hero has no separate carried line.
+  expect(screen.queryByText(/includes ₹/)).not.toBeInTheDocument()
+
+  fireEvent.click(screen.getByRole('button', { name: 'Nice' }))
+  expect(screen.getByRole('button', { name: 'Nice' })).toBeDisabled()
+  await waitFor(() => expect(screen.queryByText(title)).not.toBeInTheDocument(), { timeout: 4000 })
+  first.clear()
+  cleanup()
+
+  // Dismissed stays dismissed for this budget and month.
+  const second = renderPage()
+  await screen.findByLabelText('₹20,000')
+  expect(screen.queryByText(title)).not.toBeInTheDocument()
+  second.clear()
 })
 
 it('shows a bulk return in Ready to Assign straight away, before the refetch lands', async () => {
@@ -171,6 +242,25 @@ it('shows a bulk return in Ready to Assign straight away, before the refetch lan
   client.clear()
 })
 
+it('leaves Credit Card Payment out of the bulk return\'s Ready to Assign, as the server does', async () => {
+  vi.mocked(getBudgets).mockResolvedValue([
+    { month, category: '__income__', assigned: '20000', rolled_over: '0', version: 1 },
+    { month, category: 'Food', assigned: '5000', rolled_over: '0', version: 1 },
+    { month, category: '__credit_card__', assigned: '1000', rolled_over: '0', version: 1 },
+  ])
+  vi.mocked(getRecentExpenses).mockResolvedValue({ rows: [{ timestamp: `${month}-02T10:00:00`, date: `${month}-02`, item: 'Card swipe', amount_inr: '400', category: '__credit_card__', notes: '', source: '', amount: '400', description: '', payment_method: '' }], lastSpent: {} } as never)
+  vi.mocked(transferBudget).mockImplementation(async () => {
+    vi.mocked(getBudgets).mockReturnValue(new Promise(() => {}))
+  })
+  const client = renderPage()
+  expect(await screen.findByLabelText('₹15,000')).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Return all to RTA' }))
+  fireEvent.click(await screen.findByRole('button', { name: /Return ₹5,600 to RTA/ }))
+  // The card's ₹400 still assigned isn't part of totalAssigned, so nothing comes off.
+  expect(await screen.findByLabelText('₹20,000')).toBeInTheDocument()
+  client.clear()
+})
+
 it('renders the finished home screen from a filled cache on the first render, and hydrates it as-is', async () => {
   // app/expense/page.tsx server-renders this page from a cache filled under
   // these keys. Anything that holds it back to a later render (an effect, a
@@ -184,6 +274,7 @@ it('renders the finished home screen from a filled cache on the first render, an
     client.setQueryData(recentExpensesKey(recentFrom()), { rows: [], lastSpent: {} })
     client.setQueryData(['categories'], [{ name: 'Food', group: 'Essentials' }])
     client.setQueryData(['groups'], ['Essentials'])
+    client.setQueryData(['budgets', 'carry', month], { ready_to_assign: 0, rolled_over: {} })
     client.setQueryData(['subscriptions'], [])
     client.setQueryData(['user'], { ...baseUser, manualTransactionCompletedAt: '2026-09-02', guidedTourCompletedAt: '2026-09-02' })
     return client

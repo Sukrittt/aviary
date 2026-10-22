@@ -537,6 +537,15 @@
     grid-template-rows: auto;
     align-items: start;
   }
+  /* Without a viewport-bound column the envelopes panel would collapse to
+     its min-height; let it grow with its rows, capped so a long list still
+     scrolls inside the card. */
+  .erd-home[data-get-started="true"] .erd-envelopes-panel {
+    flex: 0 0 auto;
+  }
+  .erd-home[data-get-started="true"] .erd-envelopes-panel .env2-list {
+    max-height: min(60vh, 600px);
+  }
   .erd-envelopes-panel {
     display: flex;
     flex-direction: column;
@@ -848,7 +857,9 @@
   gap: 8px;
   width: 100%;
 }
+/* inline-flex so the SVG centres on the label, not the text baseline. */
 .env2-emoji {
+  display: inline-flex;
   font-size: 15px;
   flex-shrink: 0;
 }
@@ -904,6 +915,35 @@
 .env2-pill.is-low { color: var(--tk-pill-low); background: var(--tk-pill-low-bg); }
 .env2-pill.is-over { color: var(--tk-pill-over); background: var(--tk-pill-over-bg); }
 .env2-pill.is-empty { color: var(--erd-text3); }
+.env2-pill { transition: color 280ms ease, background-color 280ms ease; }
+/* RollingAmount mid-count: green as last month's leftover comes in, red as a shortfall comes out. */
+.env2-pill.is-rolling-up { color: var(--tk-pill-good); background: var(--tk-pill-good-bg); }
+.env2-pill.is-rolling-down { color: var(--tk-pill-over); background: var(--tk-pill-over-bg); }
+/* RollingAmount's landing: a pop and a ring in the pill's own color, once the carry has counted in. */
+.env2-pill.is-splash { animation: env2-pill-splash 520ms cubic-bezier(0.22, 1, 0.36, 1); }
+@keyframes env2-pill-splash {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 45%, transparent); }
+  35% { transform: scale(1.12); }
+  100% { transform: scale(1); box-shadow: 0 0 0 10px color-mix(in srgb, currentColor 0%, transparent); }
+}
+@media (prefers-reduced-motion: reduce) { .env2-pill.is-splash { animation: none; } }
+.env2-pill { position: relative; }
+/* RollingAmount's burst: dots in the pill's color fly off its edge and fade. */
+.env2-splash { position: absolute; left: 50%; top: 50%; width: 0; height: 0; pointer-events: none; }
+.env2-splash i {
+  position: absolute;
+  left: -3px;
+  top: -3px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: env2-splash-dot 620ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+@keyframes env2-splash-dot {
+  0% { transform: translate(calc(var(--x) * 0.55), calc(var(--y) * 0.55)) scale(1); opacity: 1; }
+  100% { transform: translate(var(--x), var(--y)) scale(0.2); opacity: 0; }
+}
 /* Same green as a healthy "Left" pill: unassigned money is good money. */
 .erd-rta-icon {
   display: inline-grid;
@@ -1924,6 +1964,10 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
+}
+/* App.css's mobile `.action-button { min-width: 140px }` balloons the pill. */
+.action-button.subp-add-button {
+  min-width: 0;
 }
 .subp-head-actions {
   display: flex;
@@ -5329,120 +5373,73 @@
   font-weight: 600;
 }
 
-.setup-rem-chip {
+.setup-reset-split {
+  align-self: flex-start;
+  margin: 10px 0 0;
+}
+
+/* The plan's remainder, always on. Settled it's Home's plain Ready to Assign
+   row (.erd-home-rta-slim); colours fade between states. */
+.setup-plan-strip {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 12px 15px;
+  min-height: 48px;
+  box-sizing: border-box;
+  padding: 7px 16px;
   border-radius: 16px;
   border: 1px solid var(--erd-border);
-}
-
-.setup-rem-chip.is-zero {
-  /* Done state stays calm: card surface, green only in the text and a
-     faint border. A full mint fill read as a heavy slab on the cream page. */
-  color: var(--mint);
   background: var(--erd-card);
-  border-color: color-mix(in srgb, var(--mint) 35%, transparent);
+  color: var(--erd-text);
+  font-size: 15px;
+  font-weight: 500;
+  transition: background-color 0.4s ease, border-color 0.4s ease, color 0.4s ease;
 }
-
-.setup-rem-chip.is-over {
-  color: var(--coral);
-  background: var(--coral-soft);
-  border-color: var(--coral);
+.setup-plan-strip.is-celebrate {
+  border-color: transparent;
+  background: var(--tk-pill-good-bg);
 }
-
-.setup-rem-chip.is-under {
+.setup-plan-strip.is-under {
   color: var(--gold-ink);
   background: var(--gold-soft);
   border-color: var(--gold);
 }
-
-.setup-rem-label {
-  font-size: 12px;
-  font-weight: 700;
+.setup-plan-strip.is-over {
+  color: var(--coral);
+  background: var(--coral-soft);
+  border-color: var(--coral);
 }
-
-.setup-rem-value {
-  font-family: var(--font-display);
-  font-size: 20px;
-}
-
-.setup-split-row {
-  display: flex;
-  gap: 7px;
-}
-
-.setup-split-why {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 12px;
-  margin: 10px 2px 0;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--erd-text2);
-}
-
-.setup-split-key {
+.setup-plan-strip-label {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 8px;
 }
-
-.setup-split-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-}
-
-.setup-split-dot.is-need {
-  background: var(--tk-blue);
-}
-
-.setup-split-dot.is-want {
-  background: var(--tk-violet);
-}
-
-.setup-split-dot.is-savings {
-  background: var(--tk-mint);
-}
-
-.setup-assign-bucket.is-need {
-  background: var(--tk-blue-soft);
-  color: var(--tk-blue);
-}
-
-.setup-assign-bucket.is-want {
-  background: var(--tk-violet-soft);
-  color: var(--tk-violet);
-}
-
-.setup-assign-bucket.is-savings {
-  background: var(--tk-mint-soft);
-  color: var(--tk-mint);
-}
-
-.setup-assign-bucket {
-  flex-shrink: 0;
-  font-size: 12px;
+.setup-plan-strip.is-under .setup-plan-strip-label,
+.setup-plan-strip.is-over .setup-plan-strip-label {
+  font-size: 13px;
   font-weight: 700;
-  letter-spacing: 0.02em;
-  border-radius: 100px;
-  padding: 2px 8px;
 }
-
-.setup-split-btn {
-  flex: 1;
-  padding: 9px 12px;
-  border-radius: 100px;
-  border: 1px solid var(--erd-border-strong);
-  background: var(--erd-input-bg);
-  color: var(--erd-text2);
-  font-size: 12px;
+.setup-plan-strip.is-celebrate .setup-plan-strip-label {
+  color: var(--mint);
   font-weight: 600;
-  cursor: pointer;
+}
+.setup-plan-strip.is-settled .erd-rta-icon {
+  width: 26px;
+  height: 26px;
+  margin-right: 2px;
+  border-radius: 8px;
+}
+.setup-plan-strip-amount {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+}
+.setup-plan-strip.is-celebrate .setup-plan-strip-amount,
+.setup-plan-strip.is-settled .setup-plan-strip-amount {
+  color: var(--mint);
+  font-size: 17px;
+  font-weight: 700;
 }
 
 .setup-assign-row {
@@ -5455,7 +5452,8 @@
   background: var(--erd-card);
 }
 
-.setup-assign-row:focus-within {
+/* Only while renaming: the amount chip takes focus too, and opens its own sheet. */
+.setup-assign-row:has(.setup-assign-name:focus) {
   border-color: var(--gold);
   background: var(--gold-soft);
 }
@@ -5502,51 +5500,28 @@
   border-bottom: 1px solid var(--gold);
 }
 
-.expense-redesign .setup-assign-input {
-  flex: 0 0 120px;
-  width: 120px;
-  box-sizing: border-box;
-  padding: 8px 12px;
-  border: 1.5px solid var(--erd-border-strong);
-  border-radius: 12px;
-  font-family: var(--font-display);
+/* Wears Envelopes' "Left" pill (.env2-pill.is-good); this resets the button and
+   anchors the edit badge that marks it editable. */
+.expense-redesign .setup-plan-chip {
+  flex-shrink: 0;
+  position: relative;
+  padding: 7px 12px;
+  border: 0;
+  border-radius: 8px;
+  font-family: inherit;
   font-size: 15px;
-  text-align: right;
-  appearance: textfield;
-  -moz-appearance: textfield;
-}
-
-/* Hug the amount instead of a fixed 120px slab; the fixed width stays as the
-   fallback where field-sizing isn't supported. */
-@supports (field-sizing: content) {
-  .expense-redesign .setup-assign-input {
-    flex: 0 0 auto;
-    width: auto;
-    field-sizing: content;
-    min-width: 64px;
-    max-width: 140px;
-  }
-}
-
-.expense-redesign .setup-assign-input:focus {
-  border-color: var(--gold);
-}
-
-.setup-assign-input::-webkit-inner-spin-button,
-.setup-assign-input::-webkit-outer-spin-button {
-  appearance: none;
-  margin: 0;
-}
-
-.setup-fill-btn {
-  border: 1px solid var(--gold);
-  background: var(--gold-soft);
-  color: var(--gold-ink);
-  border-radius: 100px;
-  padding: 6px 10px;
-  font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
   cursor: pointer;
+}
+
+/* Where the pill trims its text box to cap height, pad for the same overall size. */
+@supports (text-box: trim-both cap alphabetic) {
+  .expense-redesign .setup-plan-chip { padding: 9px 12px; }
+}
+
+.expense-redesign .setup-plan-chip:hover {
+  filter: brightness(0.96);
 }
 
 .setup-error {
@@ -7416,7 +7391,11 @@ button.account-feature-card {
   gap: 8px;
 }
 
+/* inline-flex so a group chip's icon centres on its label, not the baseline. */
 .env-pct {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   border: 1px solid var(--erd-border-strong);
   background: var(--erd-input-bg);
   color: var(--erd-text2);
@@ -9144,6 +9123,10 @@ button.account-feature-card {
 
 .tour-kicker.is-coral {
   color: var(--coral);
+}
+
+.tour-kicker.is-mint {
+  color: var(--mint);
 }
 
 .tour-section-label {
@@ -12148,6 +12131,8 @@ button.account-feature-card {
 .expense-redesign .get-started-heading > div { flex: 1; min-width: 0; }
 .expense-redesign .get-started-heading h2 { margin: 0; font-family: var(--font-display); font-size: 17px; font-weight: 600; }
 .expense-redesign .get-started-heading p { margin: 2px 0 0; color: var(--erd-text3); font-size: 12px; font-weight: 500; line-height: 1.5; }
+.expense-redesign .get-started-trial { display: inline-block; margin-top: 2px; color: var(--tk-accent-ink); font-size: 12px; font-weight: 700; text-decoration: none; }
+.expense-redesign .get-started-trial:hover { text-decoration: underline; }
 .expense-redesign .get-started-skip {
   position: relative;
   display: inline-flex;
@@ -12174,6 +12159,8 @@ button.account-feature-card {
 .expense-redesign .get-started-segment { flex: 1; height: 6px; background: var(--erd-input-bg); border-radius: 99px; overflow: hidden; }
 .expense-redesign .get-started-segment > span { display: block; height: 100%; background: var(--gold); border-radius: inherit; }
 .expense-redesign .get-started-steps { display: grid; gap: var(--tk-space-xs); }
+/* Outlined tiles on the card, not gray slabs; the up-next step gets the
+   accent border and a warm tint so it reads as the thing to do. */
 .expense-redesign .get-started-step {
   display: flex;
   align-items: center;
@@ -12181,17 +12168,19 @@ button.account-feature-card {
   min-height: 56px;
   width: 100%;
   padding: 8px 10px;
-  background: var(--erd-input-bg);
-  border: 1px solid transparent;
+  background: transparent;
+  border: 1px solid var(--erd-border);
   border-radius: var(--tk-radius-md);
   color: var(--erd-text);
   text-align: left;
   font: inherit;
   cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
 }
-.expense-redesign .get-started-step.is-next { border-color: var(--gold-soft); }
-.expense-redesign .get-started-step.is-done { background: transparent; color: var(--erd-text3); cursor: default; }
-.expense-redesign .get-started-icon { display: grid; place-items: center; width: 32px; height: 32px; flex-shrink: 0; border-radius: 50%; background: var(--erd-card); }
+.expense-redesign .get-started-step:hover:not(.is-done) { background: var(--erd-input-bg); }
+.expense-redesign .get-started-step.is-next { border-color: var(--gold); background: var(--gold-soft); }
+.expense-redesign .get-started-step.is-done { border-color: transparent; color: var(--erd-text3); cursor: default; }
+.expense-redesign .get-started-icon { display: grid; place-items: center; width: 32px; height: 32px; flex-shrink: 0; border-radius: 50%; background: var(--erd-input-bg); }
 .expense-redesign .is-next .get-started-icon { background: var(--gold-ink); color: var(--erd-on-accent); }
 .expense-redesign .is-done .get-started-icon { background: var(--mint-soft); color: var(--mint); }
 .expense-redesign .get-started-step-copy { display: grid; gap: 1px; flex: 1; min-width: 0; }
@@ -12203,6 +12192,15 @@ button.account-feature-card {
 .expense-redesign .get-started-step:focus-visible,
 .expense-redesign .get-started-skip:focus-visible,
 .expense-redesign .home-leftover-notice button:focus-visible { outline: 2px solid var(--mint); outline-offset: 3px; }
+/* The line itself replays the categories' roll-in: reads as text, not a second green button. */
+.expense-redesign .home-leftover-notice .home-leftover-replay {
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  color: var(--erd-text);
+  font-weight: 500;
+  text-align: left;
+}
 @media (max-width: 600px) {
   .expense-redesign .home-get-started { padding: var(--tk-space-lg); }
   .expense-redesign .home-leftover-notice { padding: 16px; }
@@ -12996,6 +12994,13 @@ button.account-feature-card {
   border: 1px solid color-mix(in oklab, currentColor 15%, transparent);
   box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
 }
+.cat-icon-picker-badge.is-top {
+  top: -6px;
+  bottom: auto;
+  right: -6px;
+  width: 16px;
+  height: 16px;
+}
 .cat-icon-picker-trigger:hover:not(:disabled) {
   transform: scale(1.04);
 }
@@ -13748,6 +13753,47 @@ button.account-feature-card {
   margin: 0;
   line-height: 1.5;
 }
+
+/* Later import's mapping row: the envelope picker spans the row, and a new
+   envelope's name and group share the line under it. */
+.import-row:has(.import-row-source) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 148px;
+  gap: 8px;
+  padding: 4px 0;
+}
+.import-row-source {
+  grid-column: 1 / -1;
+  font-weight: 600;
+}
+.import-row:has(.import-row-source) > .ui-select.import-select:nth-child(2) {
+  grid-column: 1 / -1;
+  width: auto;
+}
+.import-row:has(.import-row-source) > .ui-select.import-select {
+  width: auto;
+}
+.import-row:has(.import-row-source) > .setup-pick-input {
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--tk-border-strong);
+  border-radius: 10px;
+  background: var(--tk-input-bg);
+  font-size: 13px;
+}
+
+.import-past {
+  display: grid;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.import-past-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--erd-text3);
+}
 .import-line,
 .import-row {
   display: flex;
@@ -14277,6 +14323,44 @@ button.account-feature-card {
 }
 .gap-review {
   margin-top: 14px;
+}
+/* A locked pdf's password, asked for in the same modal. */
+.statement-password {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 24px 4px 4px;
+}
+.statement-password .gap-tile {
+  align-self: center;
+}
+.statement-password .scan-drop-title {
+  text-align: center;
+}
+.statement-password .erd-log-label {
+  margin-bottom: 0;
+}
+.statement-password .erd-log-input {
+  margin-top: 0;
+}
+.statement-password-error {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--coral);
+}
+.statement-password .account-pill-btn {
+  margin-top: 10px;
+}
+.statement-password-other {
+  align-self: center;
+  background: none;
+  border: 0;
+  padding: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--erd-text2);
+  cursor: pointer;
 }
 /* Statement picker: the drop zone, then what it reads, so it isn't a blank box. */
 .statement-drop {

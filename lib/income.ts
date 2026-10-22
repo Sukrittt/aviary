@@ -66,7 +66,10 @@ function monthOf(date: string): string {
 
 /** The month's monthly income: its own row, else the latest earlier one. Mirrors the clients' carriedAssigned. */
 async function carriedIncome(month: string, budgets: Awaited<ReturnType<typeof getCollection>>, session?: ClientSession): Promise<number> {
-  const rows = await budgets.find({ category: INCOME_CATEGORY }, { session }).toArray()
+  return carriedFrom(await budgets.find({ category: INCOME_CATEGORY }, { session }).toArray(), month)
+}
+
+function carriedFrom(rows: Record<string, unknown>[], month: string): number {
   const own = rows.find((r) => r.month === month)
   if (own) return Number(own.assigned) || 0
   const prior = rows
@@ -113,7 +116,7 @@ async function writeIncomeRow(
   })
 }
 
-async function bumpExtra(auth: Auth, month: string, delta: number, session: ClientSession) {
+export async function bumpExtra(auth: Auth, month: string, delta: number, session: ClientSession) {
   if (!month || delta === 0) return
   await writeIncomeRow(auth, month, (row) => ({ ...row, extra: row.extra + delta }), session)
 }
@@ -303,6 +306,17 @@ export async function syncMonthlyIncome(auth: Auth, month: string): Promise<void
   const total = round2(monthly.reduce((sum, r) => sum + (Number(r.amount) || 0), 0))
   await withTx((session) => writeIncomeRow(auth, month, (row) => ({ ...row, assigned: total }), session))
   invalidateIncome(auth)
+}
+
+/**
+ * Which months already count a monthly income from day 1: the month's own
+ * income row, or the one it carries, says so. A payday booked into one of
+ * them is a record, not `extra`, or it counts twice. Read from the rows, not
+ * the schedules: a backdated schedule never synced the months before it.
+ */
+export async function monthlyIncomeCovers(auth: Auth): Promise<(month: string) => boolean> {
+  const rows = await (await getCollection('budgets', auth)).find({ category: INCOME_CATEGORY }).toArray()
+  return (month) => carriedFrom(rows, month) > 0
 }
 
 /**

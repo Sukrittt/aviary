@@ -192,8 +192,9 @@ export interface SavingsTrend {
 }
 
 /** What each month actually kept: its income (carried forward, top-ups
- *  included) minus its spending. Envelopes reset every month, so this is the
- *  only running record of money saved. Starts at the first month with income,
+ *  included) minus its spending. Unspent money also rolls forward inside its
+ *  envelope (lib/budgetCarry.ts), but this stays a per-month view of what each
+ *  month itself saved. Starts at the first month with income,
  *  since spending logged before that had nothing to save from. */
 export function savingsTrend(
   budgetRows: BudgetRow[],

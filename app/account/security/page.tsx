@@ -63,7 +63,7 @@ function SecurityContent() {
   const [signingOutAll, setSigningOutAll] = useState(false)
 
   const [restoring, setRestoring] = useState(false)
-  const [restoreError, setRestoreError] = useState(false)
+  const [restoreError, setRestoreError] = useState<string | null>(null)
 
   const loadUser = async () => {
     const res = await fetch('/api/user')
@@ -146,14 +146,15 @@ function SecurityContent() {
 
   async function restoreAccount() {
     setRestoring(true)
-    setRestoreError(false)
+    setRestoreError(null)
     const res = await fetch('/api/user/restore', { method: 'POST' })
     setRestoring(false)
     if (res.ok) {
       await loadUser()
       return
     }
-    setRestoreError(true)
+    // 409 is a restore that can't happen (handed-off personal budget, legacy deletion), not a network blip.
+    setRestoreError(res.status === 409 ? "This account can't be restored. Your personal budget belongs to someone else now, or it needs support to recover." : "Couldn't restore your account. Check your connection and try again.")
   }
 
   const initial = (doc?.name || doc?.email || '?').trim().charAt(0).toUpperCase()
@@ -218,7 +219,7 @@ function SecurityContent() {
           </div>
           {restoreError && (
             <div style={{ marginTop: 6, fontSize: 12, color: 'var(--coral)' }}>
-              Could not restore account. Check your connection and try again.
+              {restoreError}
             </div>
           )}
           <div style={{ marginTop: 10 }}>

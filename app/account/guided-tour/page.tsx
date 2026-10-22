@@ -280,7 +280,7 @@ function Done({
       <PopIn delay={80} className="tour-done-copy">
         <h2 className="tour-done-title">{doneCount === CHAPTERS.length ? 'You know the whole app.' : `Tour done · ${doneCount} of ${CHAPTERS.length} poked.`}</h2>
         <p className="tour-done-subtitle">
-          Fund your categories, log as you go, pull money from others when life happens, start clean on the 1st. That&apos;s the whole loop.
+          Fund your categories, log as you go, pull money from others when life happens, and let what&apos;s left roll into next month. That&apos;s the whole loop.
         </p>
       </PopIn>
 

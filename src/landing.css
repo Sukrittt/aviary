@@ -52,7 +52,9 @@ html:has(.lp) { scroll-behavior: smooth; }
 .lp-early-mobile { display: none; }
 .lp-early:hover { color: var(--ink); border-color: #cfcabe; }
 .lp-hero h1 { font-family: var(--font-display), sans-serif; font-weight: 600; font-size: clamp(46px, 6vw, 76px); line-height: 1; letter-spacing: -.035em; }
-.lp-learns { position: relative; display: inline-block; color: var(--accent-ink); }
+.lp-learns { color: var(--accent-ink); }
+@media (min-width: 761px) { .lp-learns { white-space: nowrap; } }
+.lp-learns u { position: relative; display: inline-block; text-decoration: none; }
 .lp-learns svg { position: absolute; left: -2%; right: -2%; bottom: -.08em; width: 104%; height: .2em; overflow: visible; clip-path: inset(-100% 100% -100% -5%); animation: lp-draw 900ms cubic-bezier(.65, 0, .35, 1) 350ms forwards; }
 .lp-learns path { fill: none; stroke: var(--accent); stroke-width: 5; stroke-linecap: round; vector-effect: non-scaling-stroke; }
 /* Wipe the svg in, not a dash: a pixel dash length can't know how wide the habit word renders. */

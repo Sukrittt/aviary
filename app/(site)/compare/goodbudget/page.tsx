@@ -15,7 +15,7 @@ export default function GoodbudgetPage() {
       <li><strong>No envelope caps.</strong> Make as many categories as you need. Goodbudget’s free plan stops at 10.</li>
       <li><strong>Priced in rupees.</strong> ₹199 a month, against $10 a month for Goodbudget’s paid plan.</li>
     </ul>
-    <p>Goodbudget still makes sense if 10 envelopes are enough and you want it free, if you share one budget with a partner, or if you need an iPhone app.</p>
+    <p>Goodbudget still makes sense if 10 envelopes are enough and you want it free, or if you need an iPhone app.</p>
 
     <h2>Side by side</h2>
     <CompareTable them="Goodbudget" rows={[
@@ -23,8 +23,8 @@ export default function GoodbudgetPage() {
       ['Free plan limits', 'No free plan, only the trial', '10 regular envelopes, 10 annual or goal envelopes, 1 account, 2 devices, 1 year of history'],
       ['Bank sync', 'None', 'On the paid plan, for US banks only. File import (QFX, OFX) on the web'],
       ['Platforms', 'Android and web', 'Android, iPhone and web'],
-      ['Sharing', 'One person per budget', 'Share a budget across 2 devices free, 5 on the paid plan'],
-      ['Leftover money', 'Each category starts fresh; last month’s assigned amounts carry over', 'Unused money rolls over to the next month'],
+      ['Sharing', 'Up to 6 people in a budget on one plan, each on their own phone, with who-logged-what on every spend', 'Share a budget across 2 devices free, 5 on the paid plan'],
+      ['Leftover money', 'Unused money rolls into the same category next month, on top of the amount you assigned', 'Unused money rolls over to the next month'],
       ['Logging help', 'Habit nudges, type several spends in one line, bill scanning, recurring expenses', 'Location-based widget, scheduled transactions, split transactions'],
     ]} />
 
@@ -35,14 +35,14 @@ export default function GoodbudgetPage() {
       <li><strong>Bill scanning.</strong> Snap a long bill and Aviary reads every line, and splits shared items.</li>
       <li><strong>Built in India.</strong> Priced in rupees, with amounts grouped in lakh and crore.</li>
       <li><strong>No envelope caps.</strong> Make as many categories as you need.</li>
+      <li><strong>Sharing on one plan.</strong> Invite up to 5 people with a link. They join free, and every spend shows who logged it. Goodbudget shares by signing the same account in on more devices.</li>
     </ul>
 
     <h2>Where Goodbudget is stronger</h2>
     <ul>
       <li><strong>A free plan that lasts.</strong> If 10 envelopes and one account are enough, you can use it free, without ads.</li>
-      <li><strong>Couples and families.</strong> Sharing one budget across several phones is a core feature.</li>
       <li><strong>iPhone.</strong> Goodbudget has an iPhone app. Aviary doesn’t yet.</li>
-      <li><strong>Rollover.</strong> Money you didn’t spend in an envelope rolls into next month. In Aviary, each month starts fresh.</li>
+      <li><strong>Rollover.</strong> Money you didn’t spend in an envelope rolls into next month. Aviary does the same, and keeps last month’s assigned amounts too.</li>
       <li><strong>Debt tracking.</strong> It has tools for paying down debt alongside your envelopes.</li>
     </ul>
 

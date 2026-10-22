@@ -3,6 +3,9 @@ import { ObjectId } from 'mongodb'
 import type { Auth } from '@/lib/access'
 import { getCollection, json } from '@/lib/http'
 import { getBudgetCurrency, nowForUser } from '@/lib/userCurrency'
+import { budgetSetUp } from '@/lib/spaces'
+import { normalizeItem } from '@/lib/recurringDetection'
+import { INCOME_CATEGORY } from '@/lib/income'
 import { currencyInfo, isCurrencyCode } from '@/src/lib/currencies'
 import type { AccountType } from '@/lib/accounts'
 import { readTable, ZipTooLarge } from './read'
@@ -22,7 +25,7 @@ export const MAX_UPLOAD_BYTES = 4 * 1024 * 1024
 const MAX_ROWS_BYTES = 10 * 1024 * 1024
 export const STARTER_GROUPS = ['Essentials', 'Lifestyle', 'Savings']
 
-export type ImportStatus = 'previewed' | 'importing' | 'done' | 'failed' | 'cancelled'
+export type ImportStatus = 'previewed' | 'importing' | 'done' | 'failed' | 'cancelled' | 'undone'
 
 /** One row the backfill books, decided at commit: final category, account and how income counts. */
 export type BookingRow = {
@@ -47,6 +50,8 @@ export interface ImportDoc {
   direction: Direction
   directionSource: 'column' | 'sign'
   hasCurrency: boolean
+  /** Previewed into a budget that was already set up: history only, before its first entry (`laterOf`). */
+  later?: boolean
   /** `packRows`: `StoredRow[]` while previewed, `BookingRow[]` from commit on. Encrypted (lib/encryptedFields.ts). */
   rows: string
   skipped: Partial<Record<SkipReason, number>>
@@ -93,6 +98,57 @@ export interface Review {
   droppedAccounts: string[]
   salary: { label: string; amount: number; day: number } | null
   budgetTotal: number
+  /** Set for a later import: where the history stops, and the envelopes it can land in. */
+  later: { cutoff: string | null; categories: string[]; icons: Later['icons'] } | null
+}
+
+/** What a later import works against: the date of the budget's first entry and what's already there. */
+export interface Later {
+  /** Only rows dated before this come in, so nothing is counted twice. Null for a budget with no entries yet. */
+  cutoff: string | null
+  categories: string[]
+  groups: string[]
+  /** The icon each envelope and group was given, by name, so the review shows ours rather than a name's emoji. */
+  icons: { categories: Record<string, string>; groups: Record<string, string> }
+}
+
+/** The budget as a later import sees it, or null while it isn't set up (an onboarding import). */
+export async function laterOf(auth: Auth): Promise<Later | null> {
+  if (!(await budgetSetUp(auth))) return null
+  const first = async (name: string) => {
+    const doc = await (await getCollection(name, auth)).find({}, { projection: { date: 1 } }).sort({ date: 1 }).limit(1).next()
+    return typeof doc?.date === 'string' && doc.date ? doc.date.slice(0, 10) : null
+  }
+  const list = async (name: string) => (await (await getCollection(name, auth)).find({}, { projection: { name: 1, icon: 1 } }).sort({ order: 1 }).toArray())
+    .map((d) => ({ name: String(d.name), icon: typeof d.icon === 'string' ? d.icon : '' }))
+  const iconsOf = (docs: { name: string; icon: string }[]) => Object.fromEntries(docs.filter((d) => d.icon).map((d) => [d.name, d.icon]))
+  const dates = (await Promise.all([first('expenses'), first('incomes')])).filter((d): d is string => !!d).sort()
+  const categories = (await list('categories')).filter((c) => c.name !== INCOME_CATEGORY)
+  const groups = await list('groups')
+  return {
+    cutoff: dates[0] ?? null,
+    categories: categories.map((c) => c.name),
+    groups: groups.map((g) => g.name),
+    icons: { categories: iconsOf(categories), groups: iconsOf(groups) },
+  }
+}
+
+/** An import is a bulk change for everyone in a shared budget, so only its owner may run one. The personal budget's role is always owner. */
+export function assertOwner(auth: Auth): void {
+  if (auth.spaceRole !== 'owner') throw new ImportError('not_owner')
+}
+
+/** Rows dated before the cutoff, and how many on or after it were left out. */
+export function beforeCutoff<T extends { date: string }>(rows: T[], cutoff: string | null): { kept: T[]; after: number } {
+  if (!cutoff) return { kept: rows, after: 0 }
+  const kept = rows.filter((r) => r.date < cutoff)
+  return { kept, after: rows.length - kept.length }
+}
+
+/** The existing envelope a source category lands in, matched by name the way two envelopes collide. */
+export function matchCategory(name: string, existing: string[]): string | undefined {
+  const key = normalizeItem(name) || name
+  return existing.find((e) => (normalizeItem(e) || e) === key)
 }
 
 export async function importsCollection(auth: Auth) {
@@ -129,20 +185,26 @@ function samplesOf(rows: StoredRow[]): Review['samples'] {
 
 /** The review payload, computed fresh from the stored rows so a flip or a currency change re-runs every proposal. */
 export async function buildReview(auth: Auth, doc: ImportDoc, today: string): Promise<Review> {
-  const rows = resolveRows(storedRows(doc), { direction: doc.direction, currency: doc.currency, hasCurrency: doc.hasCurrency })
-  const live = rows.filter((r) => r.kind !== 'skipped')
-  const otherCurrency = rows.length - live.length
+  const later = doc.later ? await laterOf(auth) : null
+  const resolved = resolveRows(storedRows(doc), { direction: doc.direction, currency: doc.currency, hasCurrency: doc.hasCurrency })
+  const otherCurrency = resolved.filter((r) => r.kind === 'skipped').length
+  // Other-currency rows stay counted as that, wherever they fall.
+  const { kept: live, after } = beforeCutoff(resolved.filter((r) => r.kind !== 'skipped'), later?.cutoff ?? null)
   const others = new Map<string, number>()
-  for (const r of rows) if (r.kind === 'skipped') others.set(r.currency, (others.get(r.currency) ?? 0) + 1)
+  for (const r of resolved) if (r.kind === 'skipped') others.set(r.currency, (others.get(r.currency) ?? 0) + 1)
   const categories = proposeCategories(live)
   const budgets = proposeBudgets(live, categories.sourceOf, today, doc.currency, planOf(doc))
   const names = categories.list.map((c) => c.source)
-  // AI off, over the allowance or failing: every category lands in Essentials and the user regroups.
-  const groupsBy = (await importAiAllowed(auth))
-    ? await pickCategoryGroups(names, STARTER_GROUPS, auth.userId).catch(() => ({} as Record<string, string>))
+  const groups = later?.groups.length ? later.groups : STARTER_GROUPS
+  // Envelopes a later import already has need no group.
+  const toGroup = later ? names.filter((n) => !matchCategory(n, later.categories)) : names
+  // AI off, over the allowance or failing: every category lands in the first group and the user regroups.
+  const groupsBy = toGroup.length && (await importAiAllowed(auth))
+    ? await pickCategoryGroups(toGroup, groups, auth.userId).catch(() => ({} as Record<string, string>))
     : {}
   const { accounts, dropped } = proposeAccounts(live)
-  const salary = detectSalary(live, today)
+  // A later import keeps the budget's own payday and this month's plan.
+  const salary = later ? null : detectSalary(live, today)
   const dates = live.map((r) => r.date)
   return {
     importId: String(doc._id),
@@ -159,15 +221,21 @@ export async function buildReview(auth: Auth, doc: ImportDoc, today: string): Pr
       from: dates[0] ?? '',
       to: dates.at(-1) ?? '',
     },
-    skipped: { ...doc.skipped, ...(otherCurrency ? { other_currency: otherCurrency } : {}) },
+    skipped: { ...doc.skipped, ...(otherCurrency ? { other_currency: otherCurrency } : {}), ...(after ? { after_start: after } : {}) },
     otherCurrencies: [...others].sort((a, b) => b[1] - a[1]).map(([code]) => code),
-    samples: samplesOf(rows),
-    groups: STARTER_GROUPS,
-    categories: categories.list.map((c) => ({ source: c.source, name: c.source, group: groupsBy[c.source] ?? 'Essentials', monthly: budgets[c.source] ?? 0 })),
+    samples: samplesOf(live),
+    groups,
+    categories: categories.list.map((c) => ({
+      source: c.source,
+      name: (later && matchCategory(c.source, later.categories)) || c.source,
+      group: groupsBy[c.source] ?? groups[0],
+      monthly: later ? 0 : budgets[c.source] ?? 0,
+    })),
     accounts,
     droppedAccounts: dropped,
     salary: salary && { label: salary.label, amount: salary.amount, day: salary.day },
-    budgetTotal: Object.entries(budgets).filter(([name]) => names.includes(name)).reduce((n, [, v]) => n + v, 0),
+    budgetTotal: later ? 0 : Object.entries(budgets).filter(([name]) => names.includes(name)).reduce((n, [, v]) => n + v, 0),
+    later: later && { cutoff: later.cutoff, categories: later.categories, icons: later.icons },
   }
 }
 
@@ -175,6 +243,8 @@ export async function buildReview(auth: Auth, doc: ImportDoc, today: string): Pr
 export async function previewFile(auth: Auth, buf: Buffer, filename: string): Promise<Review> {
   if (buf.length > MAX_UPLOAD_BYTES) throw new ImportError('too_big')
   const today = (await nowForUser(auth.userId)).date
+  assertOwner(auth)
+  const later = await budgetSetUp(auth)
   const tables = await readTable(buf, filename).catch((e) => {
     throw new ImportError(e instanceof ZipTooLarge ? 'too_big' : 'unreadable')
   })
@@ -188,7 +258,10 @@ export async function previewFile(auth: Auth, buf: Buffer, filename: string): Pr
   if (rows.length > MAX_ROWS_BYTES) throw new ImportError('too_big')
   // A bare "$" could be any dollar: a user already on one keeps theirs.
   const anyDollar = n.fileCurrency === 'USD' && !n.hasCurrency && currencyInfo(userCurrency).symbol.endsWith('$')
-  const currency = isCurrencyCode(n.fileCurrency) && !anyDollar ? n.fileCurrency : userCurrency
+  // A later import is in the budget's money: rows in any other currency are left out, not converted.
+  // Without a currency column that can't be told row by row, so a file that reads as another currency is refused.
+  if (later && isCurrencyCode(n.fileCurrency) && n.fileCurrency !== userCurrency && !n.hasCurrency && !anyDollar) throw new ImportError('wrong_currency')
+  const currency = !later && isCurrencyCode(n.fileCurrency) && !anyDollar ? n.fileCurrency : userCurrency
   const coll = await importsCollection(auth)
   // A preview is a throwaway copy of the file. A real delete, not the soft
   // one: `imports` isn't archivable, so a soft-deleted blob would never go.
@@ -202,6 +275,7 @@ export async function previewFile(auth: Auth, buf: Buffer, filename: string): Pr
     direction: n.defaultDirection,
     directionSource: n.directionSource,
     hasCurrency: n.hasCurrency,
+    ...(later ? { later: true } : {}),
     rows,
     skipped: n.skipped,
     plan: JSON.stringify(n.plan),
@@ -235,7 +309,7 @@ export async function recomputePreview(auth: Auth, importId: string, change: { d
     set.direction = change.direction
   }
   if (change.currency !== undefined) {
-    if (!isCurrencyCode(change.currency)) throw new ImportError('invalid')
+    if (!isCurrencyCode(change.currency) || doc.later) throw new ImportError('invalid')
     set.currency = change.currency
   }
   // A commit that got there first has moved it on: this review would no longer be what gets written.
@@ -245,7 +319,7 @@ export async function recomputePreview(auth: Auth, importId: string, change: { d
 }
 
 const ERROR_STATUS: Record<ImportError['code'], number> = {
-  too_big: 413, unreadable: 400, empty: 400, empty_file: 400, no_columns: 400, invalid: 400, not_found: 404, already_importing: 409, already_onboarded: 403, busy: 409,
+  too_big: 413, unreadable: 400, empty: 400, empty_file: 400, no_columns: 400, invalid: 400, not_found: 404, already_importing: 409, already_onboarded: 403, busy: 409, not_owner: 403, wrong_currency: 400,
 }
 
 /** `{ error: code }` for a known import failure, which the client turns into copy. Anything else rethrows. */

@@ -1,14 +1,14 @@
 "use client";
 
 import { useCurrency } from "@/src/context/CurrencyContext";
-import { useEffect, useMemo, useRef, useState, type ReactElement } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactElement } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "motion/react";
 import { AmountText, CheckIcon } from "../components/landing/mobile/kit";
 import { track } from "../lib/analytics";
 import { currencyUnit } from "../lib/currencies";
-import { CaretRightIcon, GearIcon, HouseIcon, InvoiceIcon, MoneyWavyIcon, MoonIcon, PencilSimpleIcon, PlantIcon, SunIcon } from "@/src/components/icons";
+import { CaretRightIcon, GearIcon, HouseIcon, InvoiceIcon, MoneyWavyIcon, MoonIcon, PencilSimpleIcon, SunIcon } from "@/src/components/icons";
 import { useAppearance } from "../../components/AppearanceProvider";
 
 import { FluidDemo } from "../components/FluidDemo";
@@ -29,25 +29,32 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { MENU_ITEM, MENU_POPUP } from "../components/menuStyles";
 import { Scrim, Sheet } from "../components/MotionSheet";
 import { HomeSkeleton } from "../components/TabSkeleton";
+import { BirdEmptyState } from "../components/BirdEmptyState";
 import {
   toExpensePanelData,
   type ExpensePanelData,
 } from "../services/expensePanelAdapter";
 import { buildExpensePanel } from "../lib/expensePanel";
 import { EMPTY } from "../lib/constants";
-import { useBudgets, useTransferBudget, useUpdateBudget } from "../hooks/useBudgets";
+import { useBudgets, useCarry, useTransferBudget, useUpdateBudget } from "../hooks/useBudgets";
 import { useRecentExpenses, useLastSpent, useAddExpense } from "../hooks/useExpenses";
 import { useCategories, useCategoryIcons } from "../hooks/useCategories";
 import { useGroupIcons, useGroups } from "../hooks/useGroups";
 import { useSubscriptions, useCancelSubscription, useReactivateSubscription } from "../hooks/useSubscriptions";
 import { useHideAmounts } from "../hooks/useHideAmounts";
 import { GetStartedCard } from "../components/home/GetStartedCard";
+import { paydayLabel, startingBalanceIntro, upcomingMonthlyPay } from "@/src/lib/upcomingPay";
+import { useBillingStatus } from "../hooks/useBillingStatus";
+import { formatDate } from "../components/billing/copy";
 import { LearningCard } from "../components/home/LearningCard";
 import { BALANCE_CHECK_ENABLED, BalanceCheckCard } from "../components/balance/BalanceCheckCard";
 import { useHiddenFeatures, useUser } from "../hooks/useUser";
 import { FeatureNudge } from "../components/home/FeatureNudge";
 import { WeekRecapGate } from "../components/wrapped/WeekRecap";
 import { usePersistentState } from "../hooks/usePersistentState";
+import { useDismissedRolloverBanner } from "../hooks/useDismissedRolloverBanner";
+import { rolloverCard } from "../lib/rollover";
+import { RolloverCard } from "../components/home/RolloverCard";
 import { LogExpenseModal } from "../components/LogExpenseModal";
 import { FillGap } from "../features/fill-gap/FillGap";
 import { RecurringIncomeModal } from "../components/RecurringIncomeModal";
@@ -58,10 +65,11 @@ import { ReadOnlyDialog } from "../components/BudgetNotices";
 import { SuccessButton, useButtonPhase } from "../components/SuccessButton";
 import { ImportBanner, useImportInProgress } from "../components/ImportBanner";
 import type { EnvelopeState } from "../types/expense";
-import { computeEnvelopeState, currentMonthKey, daysLeftInMonth, monthLabel, prevMonthKey } from "../lib/envelope";
+import { currentMonthKey, daysLeftInMonth, monthLabel, splitDebit } from "../lib/envelope";
 import { InsightsTab } from "@/src/components/InsightsTab";
 import { ForecastLine } from "@/src/components/Forecast";
 
+const noop = () => () => {};
 const parseDismissed = (raw: string) => raw === "1";
 const serializeDismissed = (value: boolean) => value ? "1" : "0";
 const MotionLink = motion.create(Link);
@@ -79,6 +87,8 @@ export function ExpensePage() {
   // recomputed from them. The old single SWR fetcher both fetched and derived;
   // buildExpensePanel is the derivation half, now pure.
   const budgetsQuery = useBudgets();
+  const thisMonth = currentMonthKey();
+  const carryQuery = useCarry(thisMonth);
   const expensesQuery = useRecentExpenses();
   const lastSpent = useLastSpent().data;
   const categoriesQuery = useCategories();
@@ -88,7 +98,7 @@ export function ExpensePage() {
   const subscriptionsQuery = useSubscriptions();
   const user = useUser().data;
   const hidden = useHiddenFeatures();
-  const { readOnly } = useSpaces();
+  const { readOnly, active: activeSpace } = useSpaces();
 
   const updateBudgetM = useUpdateBudget();
   const transferBudgetM = useTransferBudget();
@@ -106,7 +116,11 @@ export function ExpensePage() {
     budgetsQuery.isLoading ||
     expensesQuery.isLoading ||
     categoriesQuery.isLoading ||
-    groupsQuery.isLoading;
+    groupsQuery.isLoading ||
+    // Waits so carried money doesn't land a beat after the envelopes paint.
+    carryQuery.isLoading;
+  // Without the carry every balance is off, so Home says so instead of guessing.
+  const carryFailed = carryQuery.isError && carryQuery.data === undefined;
 
   const panel = useMemo<ExpensePanelData | null>(
     () =>
@@ -118,6 +132,7 @@ export function ExpensePage() {
               budgets: budgetRows,
               expenses: expenseRows,
               lastSpent,
+              carry: carryQuery.data,
               subscriptions: subscriptionRows,
               categories: categoryRows,
               groups: groupNames,
@@ -130,6 +145,7 @@ export function ExpensePage() {
       expenseRows,
       subscriptionRows,
       lastSpent,
+      carryQuery.data,
       categoryRows,
       groupNames,
       currencyCode,
@@ -155,7 +171,7 @@ export function ExpensePage() {
   );
   const [assignTarget, setAssignTarget] = useState<string | null>(null);
   const [editReady, setEditReady] = useState(false);
-  const [incomeScreen, setIncomeScreen] = useState<"add" | "monthly" | null>(null);
+  const [incomeScreen, setIncomeScreen] = useState<"add" | "monthly" | "starting" | null>(null);
   // Change income edits the monthly schedule Ready to Assign counts from day 1.
   // With more than one, or before they've loaded (a create form then could
   // duplicate one), the Income page is the place to pick.
@@ -205,18 +221,20 @@ export function ExpensePage() {
     </DropdownMenu>
   );
   const [showBulkReturnConfirm, setShowBulkReturnConfirm] = useState(false);
-  const previousMonth = prevMonthKey(panel?.month ?? currentMonthKey());
-  const [leftoverDismissed, setLeftoverDismissed] = usePersistentState(
-    `rollover-dismissed-${previousMonth}`, false, parseDismissed, serializeDismissed,
-  );
+  // Once per space and month. Held back through hydration (the server can't
+  // know it was dismissed) and until the active space is known, so it never flashes.
+  const hydrated = useSyncExternalStore(noop, () => true, () => false);
+  const [rolloverDismissed, setRolloverDismissed] = useDismissedRolloverBanner(`${activeSpace?.id ?? ""}:${thisMonth}`);
+  const rollover = hydrated && activeSpace && !rolloverDismissed && !readOnly
+    ? rolloverCard(carryQuery.data, thisMonth, (n) => formatCurrency(n, hideAmounts))
+    : null;
+  // Each bump rolls the carry into the category amounts: once when the strip
+  // first shows, again whenever it's tapped. Nothing to roll once it's gone.
+  const [rollReplays, setRollReplays] = useState(0);
+  const rollPlay = rollover ? rollReplays + 1 : 0;
   const [getStartedSkipped, setGetStartedSkipped] = usePersistentState(
     'rollover-dismissed-get-started', false, parseDismissed, serializeDismissed,
   );
-  const previousState = useMemo(
-    () => computeEnvelopeState(budgetRows, expenseRows, previousMonth, categoryRows, groupNames),
-    [budgetRows, expenseRows, previousMonth, categoryRows, groupNames],
-  );
-  const previousLeftover = previousState.income - previousState.totalSpent;
   // Unknown until budgets load; counting it done avoids flashing the income step.
   const incomeDone = !envelopeState || envelopeState.income > 0;
   // Same test as Mobile's Home: income is set and nothing is left to assign.
@@ -256,8 +274,16 @@ export function ExpensePage() {
     return () => clearTimeout(t);
   }, [rtaCelebrating]);
   const daysLeftLabel = daysLeftInMonth() === 0 ? "Less than 24 hrs" : `${daysLeftInMonth()} days left`;
+  // Every rupee has a job once Ready to Assign is spent down, the whole point
+  // of the method, so Get started holds out for that, not one funded category.
+  const fundDone = !envelopeState || (incomeDone && envelopeState.readyToAssign <= 0);
+  // The next empty category on screen, so each tap moves the job along.
+  const nextToFund = (envelopeState?.envelopes.find((e) => e.assigned === 0) ?? envelopeState?.envelopes[0])?.category;
+  const upcomingPay = upcomingMonthlyPay(schedulesQ.data ?? [], thisMonth);
   const showGetStarted = !getStartedSkipped && !!user?.getStartedAt &&
-    !(incomeDone && user.manualTransactionCompletedAt && user.guidedTourCompletedAt);
+    !(incomeDone && fundDone && user.manualTransactionCompletedAt && user.guidedTourCompletedAt);
+  // Only fetched while the card that mentions the trial is up.
+  const billing = useBillingStatus(showGetStarted).data;
   const [showFluidDemo, setShowFluidDemo] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   useEffect(() => {
@@ -308,11 +334,20 @@ export function ExpensePage() {
         to: "__ready_to_assign__",
         sources: positive.map((e) => ({ category: e.category, amount: e.available })),
       });
-      const updated = current.envelopes.map((e) =>
-        e.available > 0 ? { ...e, assigned: e.assigned - e.available, available: 0 } : e,
-      );
-      const totalAssigned = updated.reduce((sum, e) => sum + e.assigned, 0);
-      const rta = current.income - totalAssigned;
+      // Same split as the server: carried money first, then assigned. Carried
+      // money always lands in Ready to Assign; assigned only does outside
+      // Credit Card Payment, which stays out of totalAssigned (computeEnvelopeState).
+      let returned = 0;
+      const updated = current.envelopes.map((e) => {
+        if (e.available <= 0) return e;
+        const { fromAssigned, fromCarry } = splitDebit(e.available, e.assigned, e.rolledOver);
+        returned += fromCarry + (e.isCreditCardPayment ? 0 : fromAssigned);
+        const assigned = e.assigned - fromAssigned;
+        const spentPct = assigned > 0 ? Math.min(100, (e.spent / assigned) * 100) : e.spent > 0 ? 100 : 0;
+        return { ...e, assigned, rolledOver: e.rolledOver - fromCarry, available: 0, spentPct };
+      });
+      const totalAssigned = updated.filter((e) => !e.isCreditCardPayment).reduce((sum, e) => sum + e.assigned, 0);
+      const rta = current.readyToAssign + returned;
       const log = {
         type: "bulk-return-to-rta",
         month: current.month,
@@ -422,8 +457,16 @@ export function ExpensePage() {
       </header>
 
       <div className="erd-main">
-        <ExpenseSidebar onBulkReturn={panel && !readOnly ? () => setShowBulkReturnConfirm(true) : undefined} />
-        {!panel ? (
+        <ExpenseSidebar onBulkReturn={panel && !readOnly && !carryFailed ? () => setShowBulkReturnConfirm(true) : undefined} />
+        {carryFailed ? (
+          <div className="erd-content">
+            <BirdEmptyState
+              title="Couldn't load your budget"
+              description="Check your connection and try again."
+              action={{ label: "Try again", onClick: () => void carryQuery.refetch() }}
+            />
+          </div>
+        ) : !panel ? (
           <div className="erd-content">
             <HomeSkeleton />
           </div>
@@ -533,19 +576,19 @@ export function ExpensePage() {
                 </>
               )}
 
-              {envelopeState && <ForecastLine hideAmounts={hideAmounts} />}
-              {/* One banner at a time, same as Mobile: the leftover notice goes first,
+              {envelopeState && <ForecastLine />}
+              {/* One banner at a time, same as Mobile: the rollover note goes first,
                   and the next one waits for it to fade out. */}
               <AnimatePresence mode="wait">
-                {!leftoverDismissed && previousLeftover > 0 ? (
+                {rollover ? (
                   <motion.div
-                    key="leftover"
+                    key="rollover"
                     className="home-leftover-slot"
                     initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.22, ease: "easeOut" }}
-                    // "Nice" slides it off to the right, then its height (and the
-                    // column's 20px gap) closes so the cards below glide up.
+                    // Once the check has played it slides off to the right, then its
+                    // height (and the column's 20px gap) closes so the cards below glide up.
                     exit={reduceMotion ? { opacity: 0 } : {
                       x: "100%", opacity: 0, height: 0, marginBottom: -20,
                       transition: {
@@ -556,10 +599,7 @@ export function ExpensePage() {
                       },
                     }}
                   >
-                    <article className="erd-card home-leftover-notice">
-                      <p><PlantIcon size={18} aria-hidden="true" style={{ verticalAlign: "-3px", marginRight: 6 }} />{formatCurrency(previousLeftover, hideAmounts)} went to savings last month.</p>
-                      <button type="button" onClick={() => setLeftoverDismissed(true)}>Nice</button>
-                    </article>
+                    <RolloverCard text={rollover} onReplay={() => setRollReplays((n) => n + 1)} onDone={() => setRolloverDismissed(true)} />
                   </motion.div>
                 ) : (
                   <FeatureNudge key="nudge" />
@@ -580,12 +620,17 @@ export function ExpensePage() {
                   >
                     <GetStartedCard
                       incomeDone={incomeDone}
+                      fundDone={fundDone}
+                      fundHint={envelopeState && envelopeState.income > 0 ? `${formatCurrency(envelopeState.readyToAssign, hideAmounts)} still to assign` : undefined}
+                      upcomingPayHint={upcomingPay ? `Your pay lands ${paydayLabel(upcomingPay.start_date)}. Budget what you have till then.` : undefined}
                       manualTransactionDone={!!user.manualTransactionCompletedAt}
                       guidedTourDone={!!user.guidedTourCompletedAt}
-                      onAddIncome={() => setIncomeScreen("monthly")}
+                      onAddIncome={() => setIncomeScreen(upcomingPay ? "starting" : "monthly")}
+                      onFund={() => (nextToFund ? setAssignTarget(nextToFund) : router.push("/expense/envelopes"))}
                       onAddTransaction={() => setShowLogModal(true)}
                       onTakeTour={() => router.push('/account/guided-tour')}
                       onSkip={() => setGetStartedSkipped(true)}
+                      trialNote={billing?.mode === 'trial' && billing.trialEndsAt ? `Free until ${formatDate(billing.trialEndsAt)} · no card needed` : undefined}
                     />
                   </motion.div>
                 )}
@@ -604,6 +649,8 @@ export function ExpensePage() {
                   transition={homeTransition}
                 >
                   <EnvelopeGrid
+                    rollPlay={rollPlay}
+                    month={panel.month}
                     categoryIcons={categoryIcons}
                     groupIcons={groupIcons}
                     envelopes={envelopeState.envelopes}
@@ -758,6 +805,9 @@ export function ExpensePage() {
           )}
           {incomeScreen === "add" && (
             <AddIncomeScreen onClose={() => setIncomeScreen(null)} />
+          )}
+          {incomeScreen === "starting" && upcomingPay && (
+            <AddIncomeScreen onClose={() => setIncomeScreen(null)} defaultLabel="Starting balance" intro={startingBalanceIntro(upcomingPay.start_date)} />
           )}
           {incomeScreen === "monthly" && envelopeState && (
             <RecurringIncomeModal

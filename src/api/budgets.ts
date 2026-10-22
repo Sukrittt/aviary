@@ -1,5 +1,6 @@
 import { apiFetch } from './client'
 import type { BudgetRow, CsvResponse } from '@/src/types'
+import type { Carry } from '@/src/lib/envelope'
 import { BudgetWriteError } from '@/src/lib/budgetConflict'
 
 export async function getBudgets(): Promise<BudgetRow[]> {
@@ -7,6 +8,13 @@ export async function getBudgets(): Promise<BudgetRow[]> {
   if (!resp.ok) throw new Error(`Failed to load budgets: ${resp.status}`)
   const data: CsvResponse<BudgetRow> = await resp.json()
   return data.rows
+}
+
+/** What earlier months left behind for `month`. See lib/budgetCarry.ts. */
+export async function getCarry(month: string): Promise<Carry> {
+  const resp = await apiFetch(`/api/budgets/carry?month=${month}`)
+  if (!resp.ok) throw new Error(`Failed to load carry: ${resp.status}`)
+  return resp.json()
 }
 
 export async function addBudget(

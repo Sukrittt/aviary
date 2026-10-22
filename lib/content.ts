@@ -10,6 +10,7 @@ export const CONTENT_SECTIONS = {
     label: 'Compare',
     path: '/compare',
     pages: [
+      ['/compare/ynab-alternative', 'YNAB alternative'],
       ['/compare/ynab-alternative-india', 'YNAB alternative in India'],
       ['/compare/walnut', 'Aviary vs Walnut'],
       ['/compare/money-manager', 'Aviary vs Money Manager'],
@@ -40,7 +41,9 @@ export const CONTENT_SECTIONS = {
     label: 'Features',
     path: '/features',
     pages: [
+      ['/features/shared-budgets', 'Shared budgets'],
       ['/features/bill-scanning', 'Bill scanning'],
+      ['/features/catch-up-from-statements', 'Catch up from a statement'],
       ['/features/ask-aviary', 'Ask Aviary'],
       ['/features/recurring-expenses', 'Recurring expenses and subscriptions'],
       ['/features/budget-without-bank-linking', 'Budget without linking your bank'],

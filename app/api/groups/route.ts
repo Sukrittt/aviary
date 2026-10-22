@@ -33,8 +33,14 @@ export async function POST(req: Request) {
 
   const body = await readBody(req)
   if (!body.name) return error('name required')
+  if (body.icon !== undefined && !isCategoryIconKey(body.icon)) return error('unknown icon')
+  if (body.color !== undefined && !isCategoryColor(body.color)) return error('unknown color')
 
-  if ((await createGroup(auth, String(body.name))) === 'exists') return error('group already exists', 409)
+  const style = {
+    ...(body.icon !== undefined ? { icon: body.icon } : {}),
+    ...(body.color !== undefined ? { color: body.color } : {}),
+  }
+  if ((await createGroup(auth, String(body.name), style)) === 'exists') return error('group already exists', 409)
   return json({ ok: true })
 }
 

@@ -299,6 +299,28 @@ describe('EnvelopesPage', () => {
     }
   })
 
+  it('creates a group with the icon and color picked in the sheet', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await user.click(await screen.findByRole('button', { name: /New group/ }))
+    await user.type(screen.getByPlaceholderText('Transport, Health…'), 'Pets')
+    await user.click(screen.getByRole('button', { name: /Change icon/ }))
+    await user.type(screen.getByLabelText('Search icons'), 'paw')
+    await user.click(screen.getByRole('button', { name: 'Paw print' }))
+    await user.click(screen.getByRole('button', { name: 'Green' }))
+    await user.click(screen.getByRole('button', { name: 'Create group' }))
+    await waitFor(() => expect(addGroup).toHaveBeenCalledWith('Pets', { icon: 'PawPrint', color: 'mint' }))
+  })
+
+  it('leaves the icon and color to the server when nothing was picked', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await user.click(await screen.findByRole('button', { name: /New group/ }))
+    await user.type(screen.getByPlaceholderText('Transport, Health…'), 'Pets')
+    await user.click(screen.getByRole('button', { name: 'Create group' }))
+    await waitFor(() => expect(addGroup).toHaveBeenCalledWith('Pets', { icon: undefined, color: undefined }))
+  })
+
   it('remembers which groups were collapsed', async () => {
     const user = userEvent.setup()
     const first = renderPage()

@@ -17,6 +17,7 @@ export default function NoBankLinkPage() {
       <li><strong>Habit nudges.</strong> Log the same thing on the same weekday around the same time three times in eight weeks, and Aviary learns it. Next time, it nudges you 15 minutes after with the amount, category and payment method filled in. Tap Log on the notification and you’re done.</li>
       <li><strong>The keypad.</strong> Amount, a word or two, and the category picks itself from your history.</li>
       <li><strong>One line for missed days.</strong> Type “auto 240, lunch 150” in <Link href="/features/ask-aviary">Ask Aviary</Link> and check the spends before they’re saved.</li>
+      <li><strong>A statement for a missed week.</strong> Upload GPay or PhonePe screenshots, or a bank statement, and tick the payments to log. See <Link href="/features/catch-up-from-statements">catching up from a statement</Link>.</li>
       <li><strong>Bill scanning</strong> for long receipts, and <Link href="/features/recurring-expenses">recurring expenses</Link> for rent and subscriptions.</li>
       <li><strong>Offline.</strong> Logs wait on your phone and sync when you’re back online.</li>
     </ul>

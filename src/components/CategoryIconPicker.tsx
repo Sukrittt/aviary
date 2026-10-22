@@ -46,7 +46,8 @@ export function CategoryIconPicker({ value, onChange, tint, disabled, className,
   const panelId = useId()
   const Current = CATEGORY_ICON_COMPONENTS[value]
   const matches = searchCategoryIcons(query)
-  usePopOnChange(trigger, tint.color)
+  // Bounces when a new icon or colour lands on the tile.
+  usePopOnChange(trigger, `${value}|${tint.color}`)
 
   // Below the tile, or above it when there isn't room; kept inside the viewport.
   const measure = useCallback(() => {
@@ -107,12 +108,10 @@ export function CategoryIconPicker({ value, onChange, tint, disabled, className,
       }}
     >
       <Current size="1em" aria-hidden />
-      {/* A standalone tile has no input beside it to say it's editable. */}
-      {!children && (
-        <span className="cat-icon-picker-badge" aria-hidden="true">
-          <PencilSimpleIcon size={11} weight="bold" />
-        </span>
-      )}
+      {/* Says the tile is editable, as on Mobile. */}
+      <span className="cat-icon-picker-badge" aria-hidden="true">
+        <PencilSimpleIcon size={11} weight="bold" />
+      </span>
     </button>
   )
 

@@ -20,9 +20,9 @@ export default function BudgetSpreadsheetPage() {
     <ul>
       <li><strong>Logging that keeps up with you.</strong> Aviary learns your routine and nudges you with the amount and category filled in. One tap logs it. A spreadsheet waits for you to open it.</li>
       <li><strong>Built for your phone.</strong> Type “auto 240, lunch 150” and both spends are logged. Or scan the bill.</li>
-      <li><strong>Nothing to maintain.</strong> Each new month starts fresh with the same assigned amounts. No tabs to copy, no formulas to fix.</li>
+      <li><strong>Nothing to maintain.</strong> Each new month keeps the same assigned amounts, and what you didn’t spend rolls over. No tabs to copy, no formulas to fix.</li>
     </ul>
-    <p>A spreadsheet still makes sense if you enjoy building your own formulas, want it free, or share the budget with a partner.</p>
+    <p>A spreadsheet still makes sense if you enjoy building your own formulas or want it free.</p>
 
     <h2>Side by side</h2>
     <CompareTable them="Spreadsheet" rows={[
@@ -30,7 +30,7 @@ export default function BudgetSpreadsheetPage() {
       ['Setup', 'Pick categories and assign your take-home pay', 'Build it yourself, or start from our template below'],
       ['Logging', 'Nudges with the amount and category filled in, one tap to log. Type several spends in one line, or scan a bill', 'Open the sheet, find the row and type the spend in'],
       ['Reminders', 'Learns your routine and nudges you to log', 'You remember to open it'],
-      ['New month', 'Categories start fresh with the same assigned amounts', 'Copy last month’s tab, or clear the spends yourself'],
+      ['New month', 'Categories keep the same assigned amounts, plus what you didn’t spend', 'Copy last month’s tab, or clear the spends yourself'],
       ['Recurring costs', 'Recurring expenses with renewal warnings', 'You add them yourself'],
       ['Bank and SMS', 'Never links your bank or reads SMS', 'No bank link. It only holds what you type'],
       ['Flexibility', 'Built around categories and Ready to Assign', 'Any layout, any formula, any chart'],
@@ -49,7 +49,6 @@ export default function BudgetSpreadsheetPage() {
     <ul>
       <li><strong>It can be free.</strong> Google Sheets costs nothing with a Google account.</li>
       <li><strong>Total control.</strong> Any layout, any formula, any chart. Want your home loan next to your budget? A sheet can do that.</li>
-      <li><strong>Sharing.</strong> You can share a Google Sheet with a partner and both edit it. Aviary budgets are one person each.</li>
       <li><strong>iPhone.</strong> Sheets and Excel both have iPhone apps. Aviary is on Android and the web for now.</li>
     </ul>
 

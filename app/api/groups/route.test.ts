@@ -23,6 +23,8 @@ vi.mock('@/lib/http', async (importOriginal) => {
         if (doc) doc.deleted_at = 'now'
         return { deletedCount: doc ? 1 : 0 }
       },
+      find: () => ({ sort: () => ({ limit: () => ({ next: async () => null }) }) }),
+      insertOne: async (doc: Doc) => { stores[base].push(doc) },
       findOne: async (f: { name: string }) => stores[base].find((d) => live(d) && d.name === f.name) ?? null,
       updateOne: async (f: { name: string }, u: { $set: Doc }) => {
         const doc = stores[base].find((d) => live(d) && d.name === f.name)
@@ -40,7 +42,7 @@ vi.mock('@/lib/http', async (importOriginal) => {
   }
 })
 
-const { DELETE, PUT } = await import('./route')
+const { DELETE, POST, PUT } = await import('./route')
 
 function req(method: string, body: unknown): Request {
   return new Request('https://example.com/api/groups', {
@@ -113,5 +115,19 @@ describe('PUT /api/groups (rename)', () => {
     expect((await PUT(req('PUT', { name: 'Home', color: 'red' }))).status).toBe(400)
     expect((await PUT(req('PUT', { name: 'Home', color: 'coral' }))).status).toBe(200)
     expect(stores.groups.find((g) => g.name === 'Home')?.color).toBe('coral')
+  })
+})
+
+describe('POST /api/groups', () => {
+  it('saves a picked icon and color on the new group', async () => {
+    const res = await POST(req('POST', { name: 'Pets', icon: 'PawPrint', color: 'mint' }))
+    expect(res.status).toBe(200)
+    expect(stores.groups.find((g) => g.name === 'Pets')).toMatchObject({ icon: 'PawPrint', color: 'mint' })
+  })
+
+  it('rejects an icon or color outside the catalog without creating the group', async () => {
+    expect((await POST(req('POST', { name: 'Pets', icon: 'NotAnIcon' }))).status).toBe(400)
+    expect((await POST(req('POST', { name: 'Pets', color: 'red' }))).status).toBe(400)
+    expect(stores.groups.find((g) => g.name === 'Pets')).toBeUndefined()
   })
 })

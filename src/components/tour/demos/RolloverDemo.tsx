@@ -8,8 +8,8 @@ import { ROLLOVER_ROWS } from '@/src/components/tour/content'
 /**
  * Chapter 4: the quiz, then a September 30 / October 1 toggle showing what a
  * new month actually does. Mirrors src/lib/envelope.ts: the assigned amount
- * carries as a template, the leftover does not, and Credit Card Payment
- * restarts at zero.
+ * carries as a template, the leftover rolls in on top, and Credit Card
+ * Payment's target restarts at zero while its unspent cash still carries.
  */
 export function RolloverDemo({ onComplete }: { onComplete: () => void }) {
   const { QUIZ_OPTIONS, QUIZ_QUESTION } = useTourContent()
@@ -85,18 +85,19 @@ export function RolloverDemo({ onComplete }: { onComplete: () => void }) {
           note={
             isOctober
               ? row.creditCard
-                ? "restarts at zero · it was last month's bill"
-                : 'plan carried from September'
+                ? `target restarts at zero · ${formatCurrency(row.left)} cash carried`
+                : row.left > 0
+                  ? `${formatCurrency(row.plan)} plan · +${formatCurrency(row.left)} from September`
+                  : 'plan carried from September'
               : row.left > 0
                 ? `${formatCurrency(row.left)} still unspent`
                 : 'fully spent'
           }
-          noteClass={isOctober && row.creditCard ? 'is-warn' : ''}
           right={
             <div className="tour-source-right">
-              <span className="tour-row-name">{isOctober && row.creditCard ? formatCurrency(0) : formatCurrency(row.plan)}</span>
-              <span className={`tour-kicker ${isOctober && row.left > 0 && !row.creditCard ? 'is-coral' : ''}`}>
-                {isOctober ? (row.left > 0 && !row.creditCard ? 'LEFTOVER GONE' : 'FRESH START') : 'ASSIGNED'}
+              <span className="tour-row-name">{formatCurrency(isOctober ? (row.creditCard ? 0 : row.plan) + row.left : row.plan)}</span>
+              <span className={`tour-kicker ${isOctober && row.left > 0 ? 'is-mint' : ''}`}>
+                {isOctober ? (row.left > 0 ? 'LEFTOVER CARRIED' : 'AVAILABLE') : 'ASSIGNED'}
               </span>
             </div>
           }
@@ -105,8 +106,8 @@ export function RolloverDemo({ onComplete }: { onComplete: () => void }) {
 
       <p className="tour-result-note">
         {isOctober
-          ? 'Two exceptions: Credit Card Payment always restarts at 0, and nothing needs triggering by hand. The new month just is.'
-          : 'On the 1st, Home shows a one-time note of what you left unspent. The permanent record lives in Insights.'}
+          ? "Credit Card Payment's target restarts at 0, but its cash carries like the rest. Nothing needs triggering by hand."
+          : 'On the 1st, Home shows a one-time card saying what rolled over. Overspent? The gap rolls too, so you can cover it.'}
       </p>
     </div>
   )

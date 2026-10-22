@@ -13,7 +13,8 @@ import { COLLECTIONS } from './models'
 import { PERSON_COLLECTIONS } from './http'
 import { SITE_URL } from './seo'
 import { sendPushNotification } from './push'
-import { formatMoney, resolveCurrency } from '@/src/lib/currencies'
+import { getBudgetCurrency } from './userCurrency'
+import { formatMoney } from '@/src/lib/currencies'
 import type { Auth } from './access'
 import {
   SPACES, SPACE_MEMBERS, SPACE_INVITES, MAX_MEMBERS, BudgetError, ensurePersonalSpace, forgetMembership, listBudgets, personName,
@@ -193,6 +194,19 @@ export async function restoreBudget(auth: Auth, spaceId: string): Promise<void> 
   forgetMembership(spaceId)
 }
 
+/** Delete a budget for good, before the 30 days are up. Only one that's already deleted, and owner only. */
+export async function purgeBudget(auth: Auth, spaceId: string): Promise<void> {
+  const db = await getDb()
+  const space = await db.collection<SpaceDoc>(SPACES).findOne({ _id: spaceId })
+  if (!space?.deleted_at || space._id === space.owner_id) throw new BudgetError('NOT_FOUND', 'nothing to delete')
+  if (space.owner_id !== auth.userId) throw new BudgetError('NOT_OWNER', 'only the owner can delete it')
+  // Drop the doc first, still deleted, so a restore racing this can't bring back a budget whose data is going.
+  const gone = await db.collection<SpaceDoc>(SPACES).deleteOne({ _id: spaceId, deleted_at: { $ne: null } })
+  if (!gone.deletedCount) throw new BudgetError('NOT_FOUND', 'nothing to delete')
+  await purgeSpace(db, spaceId)
+  forgetMembership(spaceId)
+}
+
 /** Budget data collections: everything keyed by budget rather than by person. */
 const BUDGET_COLLECTIONS = [...Object.values(COLLECTIONS).filter((c) => !PERSON_COLLECTIONS.has(c)), 'ai_brief', 'notification_threshold_state']
 
@@ -241,13 +255,12 @@ export async function notifyOthersOfLog(auth: Auth, entry: { item: string; amoun
   const db = await getDb()
   const others = await db.collection<SpaceMemberDoc>(SPACE_MEMBERS).find({ space_id: auth.spaceId, notify_others: true, user_id: { $ne: auth.userId } }).toArray()
   if (others.length === 0) return
-  const [space, actor, owner] = await Promise.all([
+  const [space, actor, currency] = await Promise.all([
     db.collection<SpaceDoc>(SPACES).findOne({ _id: auth.spaceId }),
     db.collection<PersonDoc>('users').findOne({ _id: auth.userId }),
-    db.collection<PersonDoc>('users').findOne({ _id: auth.spaceOwnerId }, { projection: { currencyCode: 1 } }),
+    getBudgetCurrency(auth),
   ])
   if (!space) return
-  const currency = resolveCurrency(space._id === space.owner_id ? owner?.currencyCode : space.currencyCode)
   const who = firstName(personName(actor ?? undefined)) ?? 'Someone'
   const body = [entry.item, formatMoney(entry.amount, currency), entry.category].filter(Boolean).join(' · ')
   for (const member of others) {

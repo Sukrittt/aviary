@@ -4,8 +4,8 @@ import { CurrencyPicker } from '@/src/components/CurrencyPicker'
 import { CurrencyScope, useCurrency } from '@/src/context/CurrencyContext'
 
 import { useEffect, useId, useRef, useState } from 'react'
-import { motion, useReducedMotion } from 'motion/react'
-import { ArrowLeftIcon, CheckIcon, CopyIcon, FolderOpenIcon, PlusIcon, TagIcon, CardholderIcon } from '@/src/components/icons'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { ArrowLeftIcon, CheckIcon, CopyIcon, FolderOpenIcon, MoneyWavyIcon, PencilSimpleIcon, PlusIcon, TagIcon, CardholderIcon } from '@/src/components/icons'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import '../../src/expense-redesign.css'
@@ -14,7 +14,7 @@ import { currentMonthKey, INCOME_CATEGORY } from '../../src/lib/envelope'
 import { getBudgets, updateBudget } from '../../src/api/budgets'
 import { addGroup } from '../../src/api/groups'
 import { addCategory, getSplitBuckets } from '../../src/api/categories'
-import { BUCKET_LABELS, BUCKET_PLURALS, bucketsOf, summarizeSplit, normName, splitEvenly, suggestSplit, unknownCategories, type BucketTags } from '../../src/lib/budgetSplit'
+import { normName, suggestSplit, unknownCategories, type BucketTags } from '../../src/lib/budgetSplit'
 import { getUser, updateUser } from '../../src/api/account'
 import { completeOnboarding } from '../../src/api/billing'
 import { DEFAULT_ALERT_PCTS } from '../../src/lib/alerts'
@@ -28,7 +28,9 @@ import { LoadingCaption } from '../../src/components/LoadingCaption'
 import { Toast } from '../../src/components/Toast'
 import { CategoryIcon, CATEGORY_ICON_COMPONENTS } from '../../src/components/CategoryIcon'
 import { CategoryIconPicker } from '../../src/components/CategoryIconPicker'
-import { categoryIconKey, type CategoryIconKey } from '../../src/lib/categoryIcons'
+import { AmountField, AmountSheet } from '../../src/components/AmountSheet'
+import { currencyUnit } from '../../src/lib/currencies'
+import { categoryIconKey, groupIconKey, type CategoryIconKey } from '../../src/lib/categoryIcons'
 import { avatarStyleFor } from '../../src/lib/emoji'
 
 // Twin of Mobile's app/setup.tsx: currency → income → done on a starter
@@ -45,7 +47,7 @@ const LAST_STEP_MIN_MS = 1000
 
 interface Item {
   id: string
-  /** A category's picked icon. Unset follows its name; groups always do. */
+  /** The picked icon. Unset follows the name. */
   icon?: CategoryIconKey
   name: string
   on: boolean
@@ -131,7 +133,7 @@ const TITLES: Record<number, [string, string]> = {
   1: ['What lands each month?', 'Your take-home income. This becomes the pot you assign from. Not sure yet? Skip it and add it from Home later.'],
   2: ['Group your money', 'Groups are the big buckets. Accept these or rename them to fit your life.'],
   3: ['Add your categories', 'These are the buckets you actually spend from. Pick the ones you recognize.'],
-  4: ['Assign your money', 'We suggested a split based on what each category is for. Change any amount. Anything you leave waits in Ready to Assign.'],
+  4: ['Here’s your plan', 'We split your income across your categories. Keep it, or change any amount.'],
 }
 
 export default function SetupWizardPage() {
@@ -168,6 +170,8 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
   const [cats, setCats] = useState<Record<string, Item[]>>(defaultCats)
   const [categorySelectionUndo, setCategorySelectionUndo] = useState<{ groupIds: string[]; selectedIds: string[]; message: string } | null>(null)
   const [amounts, setAmounts] = useState<Record<string, number>>({})
+  // The plan row whose amount sheet is open.
+  const [planKey, setPlanKey] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
   // Real save progress for the Finish button: the step being written and the
   // share of writes that have landed, so a slow save visibly moves.
@@ -226,16 +230,14 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
   const assignedTotal = () => liveCats().reduce((n, c) => n + (amounts[c.key] ?? 0), 0)
   const remainder = () => (Number(income) || 0) - assignedTotal()
 
-  function distribute(weighted: boolean, tags: BucketTags = bucketTags): Record<string, number> {
-    const items = liveCats()
-    const incomeValue = Number(income) || 0
-    return weighted ? suggestSplit(incomeValue, items, tags) : splitEvenly(incomeValue, items.map((it) => it.key))
+  function distribute(tags: BucketTags = bucketTags): Record<string, number> {
+    return suggestSplit(Number(income) || 0, liveCats(), tags)
   }
 
   const openAssign = (tags: BucketTags) => {
     setAmounts((prev) => allocationMode.current === 'custom' && Object.keys(prev).length
       ? prev
-      : distribute(true, tags))
+      : distribute(tags))
     setStep(4)
   }
 
@@ -446,11 +448,6 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
     setAmounts((prev) => ({ ...prev, [key]: Math.max(0, v) }))
   }
 
-  const fillRemainder = (key: string) => {
-    const cur = amounts[key] ?? 0
-    const rest = assignedTotal() - cur
-    setAmount(key, Math.max(0, (Number(income) || 0) - rest))
-  }
 
   const changeIncome = (v: string, jump = false) => {
     const prev = Number(income) || 0
@@ -528,7 +525,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
       // together, matching mobile. Completion waits for every setup write.
       await Promise.all([
         (async () => {
-          for (const g of selectedGroups) await addGroup(g.name.trim()).catch(ignoreConflict).then(tick)
+          for (const g of selectedGroups) await addGroup(g.name.trim(), g.icon ? { icon: g.icon } : {}).catch(ignoreConflict).then(tick)
         })(),
         (async () => {
           for (const c of categories) await addCategory(c.name, c.group, c.icon).catch(ignoreConflict).then(tick)
@@ -578,7 +575,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
     const hasIncome = Number(income) > 0
     if (step === 1 && !custom) {
       // Starter budget: the pre-checked defaults, income split the suggested way.
-      void commit(hasIncome ? distribute(true) : {})
+      void commit(hasIncome ? distribute() : {})
       return
     }
     if (step === 3 && !hasIncome) {
@@ -662,16 +659,17 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
   if (step === 7) {
     return (
       <div className="expense-redesign setup-page">
-        <HeardFrom onDone={() => router.replace('/account/trial-notice')} />
+        <HeardFrom onDone={() => router.replace('/expense')} />
       </div>
     )
   }
 
   const [title, blurb] = TITLES[step]
   const rem = remainder()
-  // Need/want/savings per category, labelled on the assign step so the suggested split explains itself.
-  const buckets = bucketsOf(liveCats(), bucketTags)
-  const summary = summarizeSplit(liveCats(), bucketTags)
+  // The plan reads as a review: one way back to our split once anything's changed,
+  // no split modes or need/want theory up front.
+  const suggested = step === 4 ? distribute() : {}
+  const editedPlan = step === 4 && liveCats().some((c) => (amounts[c.key] ?? 0) !== (suggested[c.key] ?? 0))
   const hint = step === 0 ? '' :
     step === 1
       ? Number(income) > 0
@@ -686,17 +684,14 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
             ? `${selectedCatCount} categories across ${selectedGroups.length} groups`
             : 'Select at least one category to continue'
           : rem === 0
-            ? 'Everything assigned'
+            ? ''
             : rem > 0
-              ? `${formatMoney(rem)} left. It'll wait in Ready to Assign`
+              ? `${formatMoney(rem)} left. You can plan it later`
               : `${formatMoney(-rem)} over your income`
 
   const finishesHere = (step === 1 && !custom) || step === 4 || (step === 3 && !(Number(income) > 0))
   const ctaLabel = step === 1 && !(Number(income) > 0) ? 'Skip for now' : finishesHere ? 'Finish setup' : 'Continue'
   const dots = custom ? [0, 1, 2, 3, 4] : [0, 1]
-
-  const remState = rem === 0 ? 'is-zero' : rem < 0 ? 'is-over' : 'is-under'
-  const remLabel = rem === 0 ? 'All assigned' : rem < 0 ? 'Over by' : 'Left to assign'
 
   return (
     <div className="expense-redesign setup-page">
@@ -768,9 +763,11 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
             {groups.map((g) => (
               <PickRow
                 key={g.id}
+                icon={groupIconKey(g.name, g.icon)}
                 name={g.name}
                 on={g.on}
                 placeholder="Group name"
+                onPickIcon={(icon) => patchGroup(g.id, { icon })}
                 incompleteHint={!g.name.trim() ? 'Name to select' : undefined}
                 onChangeName={(name) => renameGroup(g, name)}
                 onToggle={() => toggleGroup(g)}
@@ -779,7 +776,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
             <button type="button" className="setup-add-row" onClick={addGroupRow}>
               <PlusIcon size={16} aria-hidden="true" /> Add your own group
             </button>
-            <p className="setup-micro-hint">click a name to rename it</p>
+            <p className="setup-micro-hint">click a name to rename it · click the icon to pick another</p>
           </div>
         </div>
       )}
@@ -808,7 +805,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
               return (
                 <div key={g.id} className="setup-section">
                   <div className="setup-section-header">
-                    <CategoryIcon kind="group" name={g.name} />
+                    <CategoryIcon kind="group" name={g.name} icon={g.icon} />
                     <span className="setup-section-title">{g.name.toUpperCase()}</span>
                     <span className="setup-section-count">{selection.selectedCount} picked</span>
                   </div>
@@ -848,35 +845,15 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
 
       {step === 4 && (
         <div className="setup-body">
-          <div className={`setup-rem-chip ${remState}`}>
-            <span className="setup-rem-label">{remLabel}</span>
-            <span className="setup-rem-value">{formatMoney(Math.abs(rem))}</span>
-          </div>
-          <div className="setup-split-row">
-            <motion.button whileTap={reduceMotion ? undefined : { scale: 0.97 }} type="button" className="setup-split-btn" onClick={() => {
+          {/* Only while something's off: a fully planned income needs no banner. */}
+          <PlanStrip rem={rem} />
+          {editedPlan && (
+            <button type="button" className="setup-selection-action setup-reset-split" onClick={() => {
               allocationMode.current = 'suggested'
-              setAmounts(distribute(true))
+              setAmounts(distribute())
             }}>
-              Suggested split
-            </motion.button>
-            <motion.button whileTap={reduceMotion ? undefined : { scale: 0.97 }} type="button" className="setup-split-btn" onClick={() => {
-              allocationMode.current = 'custom'
-              editedSplit.current = true
-              setAmounts(distribute(false))
-            }}>
-              Split evenly
-            </motion.button>
-          </div>
-          {summary && (
-            <p className="setup-split-why">
-              <span>Suggested split:</span>
-              {summary.map((s) => (
-                <span key={s.bucket} className="setup-split-key">
-                  <span className={`setup-split-dot is-${s.bucket}`} aria-hidden="true" />
-                  {BUCKET_PLURALS[s.bucket]} {s.pct}%
-                </span>
-              ))}
-            </p>
+              Reset to our suggestion
+            </button>
           )}
           <div className="setup-section-list">
             {selectedGroups.map((g) => {
@@ -885,7 +862,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
               return (
                 <div key={g.id} className="setup-section">
                   <div className="setup-section-header">
-                    <CategoryIcon kind="group" name={g.name} />
+                    <CategoryIcon kind="group" name={g.name} icon={g.icon} />
                     <span className="setup-section-title">{g.name.toUpperCase()}</span>
                     <span className="setup-section-subtotal">{formatMoney(subtotal)}</span>
                   </div>
@@ -899,20 +876,13 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
                           <Icon size={18} />
                         </span>
                         <AssignName name={c.name} onCommit={(name) => renameAssigned(g.id, c, name)} />
-                        <span className={`setup-assign-bucket is-${buckets[key]}`}>{BUCKET_LABELS[buckets[key]]}</span>
-                        <input
-                          type="number"
-                          className="txn-entry-input setup-assign-input"
-                          placeholder="0"
-                          min={0}
-                          value={v || ''}
-                          onChange={(e) => setAmount(key, Math.round(Number(e.target.value) || 0))}
-                        />
-                        {rem !== 0 && (
-                          <button type="button" className="setup-fill-btn" onClick={() => fillRemainder(key)} title="Give this the leftover">
-                            fill
-                          </button>
-                        )}
+                        <button type="button" className="setup-plan-chip env2-pill is-good" aria-label={`${c.name.trim()} amount`} onClick={() => setPlanKey(key)}>
+                          {formatMoney(v)}
+                          {/* The icon tiles' edit badge, pinned top right. */}
+                          <span className="cat-icon-picker-badge is-top" aria-hidden="true">
+                            <PencilSimpleIcon size={9} weight="bold" />
+                          </span>
+                        </button>
                       </div>
                     )
                   })}
@@ -924,6 +894,22 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
       )}
 
       <Toast trigger={rowToast.n} message={rowToast.message} icon={CopyIcon} />
+
+      {step === 4 && planKey && (() => {
+        const row = liveCats().find((c) => c.key === planKey)
+        if (!row) return null
+        const current = amounts[planKey] ?? 0
+        return (
+          <PlanAmountSheet
+            name={row.name.trim()}
+            current={current}
+            suggested={suggested[planKey] ?? 0}
+            leftForThis={(Number(income) || 0) - (assignedTotal() - current)}
+            onSave={(v) => { setAmount(planKey, v); setPlanKey(null) }}
+            onClose={() => setPlanKey(null)}
+          />
+        )
+      })()}
 
       {error !== '' && <p className="setup-error">{error}</p>}
 
@@ -951,6 +937,94 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
 
 // The assign step's category name: reads as a label, edits in place, and only
 // hands the new name up on blur or Enter (Esc throws the edit away).
+// Home's settled Ready to Assign row, always on: a mint "every rupee has a job"
+// beat whenever the plan lands on zero (including the suggestion it opens with),
+// then the plain row; gold while money's left, coral when over.
+function PlanStrip({ rem }: { rem: number }) {
+  const { formatMoney, currencyCode } = useCurrency()
+  const reduce = useReducedMotion()
+  const settled = rem === 0
+  const [celebrating, setCelebrating] = useState(settled)
+  const [wasSettled, setWasSettled] = useState(settled)
+  if (settled !== wasSettled) {
+    setWasSettled(settled)
+    setCelebrating(settled)
+  }
+  useEffect(() => {
+    if (!celebrating) return
+    const t = setTimeout(() => setCelebrating(false), 2500)
+    return () => clearTimeout(t)
+  }, [celebrating])
+  const state = celebrating ? 'celebrate' : settled ? 'settled' : rem < 0 ? 'over' : 'under'
+  return (
+    <div className={`setup-plan-strip is-${state}`}>
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.span
+          key={state}
+          className="setup-plan-strip-label"
+          role={celebrating ? 'status' : undefined}
+          initial={reduce ? { opacity: 0 } : { opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={reduce ? { opacity: 0 } : { opacity: 0, y: -6 }}
+          transition={{ duration: 0.22, ease: 'easeOut' }}
+        >
+          {celebrating ? (
+            <><CheckIcon color="var(--mint)" size={18} />Every {currencyUnit(currencyCode)} has a job.</>
+          ) : settled ? (
+            <><span className="erd-rta-icon" aria-hidden="true"><MoneyWavyIcon size={18} /></span>All planned</>
+          ) : rem < 0 ? 'Over by' : 'Left to plan'}
+        </motion.span>
+      </AnimatePresence>
+      <span className="setup-plan-strip-amount">{formatMoney(Math.abs(rem))}</span>
+    </div>
+  )
+}
+
+// One plan amount, in the same sheet as the money screens' amount forms.
+function PlanAmountSheet({ name, current, suggested, leftForThis, onSave, onClose }: {
+  name: string
+  current: number
+  suggested: number
+  /** Income not planned in any other category: all this one could take. */
+  leftForThis: number
+  onSave: (amount: number) => void
+  onClose: () => void
+}) {
+  const { formatMoney } = useCurrency()
+  const [text, setText] = useState(current ? String(current) : '')
+  const value = Math.round(Number(text) || 0)
+  const left = leftForThis - value
+  const picks = [
+    { label: `Our suggestion · ${formatMoney(suggested)}`, amount: suggested },
+    ...(leftForThis > 0 && leftForThis !== suggested ? [{ label: `Everything left · ${formatMoney(leftForThis)}`, amount: leftForThis }] : []),
+  ]
+  return (
+    <AmountSheet
+      title={`Plan for ${name}`}
+      onClose={onClose}
+      busy={false}
+      footer={<button type="button" className="erd-log-submit" onClick={() => onSave(value)}>Save</button>}
+    >
+      <AmountField
+        id="plan-amount"
+        value={text}
+        onChange={setText}
+        autoFocus
+        warn={left < 0}
+        hint={left < 0 ? `${formatMoney(-left)} over your income` : `${formatMoney(left)} left to plan`}
+      >
+        <div className="erd-sub-picks">
+          {picks.map((p) => (
+            <button key={p.label} type="button" className={`erd-chip ${value === p.amount ? 'is-selected' : ''}`} onClick={() => setText(String(p.amount))}>
+              {p.label}
+            </button>
+          ))}
+        </div>
+      </AmountField>
+    </AmountSheet>
+  )
+}
+
 function AssignName({ name, onCommit }: { name: string; onCommit: (name: string) => void }) {
   const [draft, setDraft] = useState<string | null>(null)
   return (
@@ -976,8 +1050,7 @@ function AssignName({ name, onCommit }: { name: string; onCommit: (name: string)
   )
 }
 
-// A group or category row. Categories get the icon picker beside their name;
-// groups have no stored icon, so theirs just follows the name.
+// A group or category row, with the icon picker beside its name.
 function PickRow({
   icon,
   name,

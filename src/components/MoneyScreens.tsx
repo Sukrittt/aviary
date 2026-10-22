@@ -3,15 +3,17 @@
 import './MoneyScreens.css'
 
 import { useCurrency } from '@/src/context/CurrencyContext'
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ComponentProps, type ReactNode } from 'react'
 import { AnimatePresence, LayoutGroup, MotionConfig, motion, useReducedMotion } from 'motion/react'
 import { ArrowLeftIcon, ArrowRightIcon, ArrowClockwiseIcon, MagnifyingGlassIcon, MoneyWavyIcon, TrashIcon, XIcon } from '@/src/components/icons'
 import { CategoryIcon } from './CategoryIcon'
-import { Scrim, Sheet } from './MotionSheet'
+import { Scrim } from './MotionSheet'
+import { AmountField, AmountSheet } from './AmountSheet'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
 import { LoadingCaption } from './LoadingCaption'
 import { AmountText, CheckIcon, ease, type as typeScale } from './landing/mobile/kit'
-import { useBudgets, useFreshBudgets, useTransferBudget, useUpdateBudget } from '../hooks/useBudgets'
+import { rolledOverLine } from '../lib/rollover'
+import { useBudgets, useCarry, useFreshBudgets, useTransferBudget, useUpdateBudget } from '../hooks/useBudgets'
 import { useCategories } from '../hooks/useCategories'
 import { useRecentExpenses } from '../hooks/useExpenses'
 import { useGroups } from '../hooks/useGroups'
@@ -63,13 +65,22 @@ function useMoneyData() {
   const expensesQ = useRecentExpenses()
   const categoriesQ = useCategories()
   const groupsQ = useGroups()
+  // Every money screen works on the current month.
+  const carryQ = useCarry(currentMonthKey())
   return {
-    isLoading: budgetsQ.isLoading || expensesQ.isLoading || categoriesQ.isLoading || groupsQ.isLoading,
+    isLoading: budgetsQ.isLoading || expensesQ.isLoading || categoriesQ.isLoading || groupsQ.isLoading || carryQ.isLoading,
+    carry: carryQ.data,
+    // Without the carry every balance is off, so money screens stop rather than guess.
+    carryFailed: !!carryQ.isError && carryQ.data === undefined,
     budgets: budgetsQ.data ?? EMPTY,
     expenses: expensesQ.data ?? EMPTY,
     categories: categoriesQ.data ?? EMPTY,
     groups: groupsQ.data ?? EMPTY,
   }
+}
+
+function CarryFailed({ title, onClose }: { title: string; onClose: () => void }) {
+  return <FormSheet title={title} onClose={onClose} busy={false}><p role="alert" className="erd-log-error">{"Couldn't load your balances. Check your connection and try again."}</p></FormSheet>
 }
 
 // ─── Shell ───────────────────────────────────────────────────────────────────
@@ -347,6 +358,7 @@ export function MoveMoneyScreen({ targetCategory, amount, onClose }: {
 }) {
   const data = useMoneyData()
   if (data.isLoading) return <FormSheet title="Pull money" onClose={onClose} busy={false}><LoadingCaption /></FormSheet>
+  if (data.carryFailed) return <CarryFailed title="Pull money" onClose={onClose} />
   return <MoveMoneyBody targetCategoryName={targetCategory} initialAmount={amount} onClose={onClose} data={data} />
 }
 
@@ -368,8 +380,8 @@ function MoveMoneyBody({
 
   const month = useMemo(() => currentMonthKey(), [])
   const envelopeState = useMemo(
-    () => computeEnvelopeState(data.budgets, data.expenses, month, data.categories, data.groups),
-    [data.budgets, data.expenses, month, data.categories, data.groups],
+    () => computeEnvelopeState(data.budgets, data.expenses, month, data.categories, data.groups, undefined, data.carry),
+    [data.budgets, data.expenses, month, data.categories, data.groups, data.carry],
   )
 
   const target = envelopeState.envelopes.find((e) => e.category === targetCategoryName)
@@ -714,9 +726,10 @@ export function EditAssignedScreen({ category, onClose, assign = false }: { cate
   const data = useMoneyData()
   // Mounted only once data has settled, so the numpad seeds from the real envelope.
   if (data.isLoading) return <FormSheet title={assign ? 'Assign money' : 'Edit amount'} onClose={onClose} busy={false}><LoadingCaption /></FormSheet>
+  if (data.carryFailed) return <CarryFailed title={assign ? 'Assign money' : 'Edit amount'} onClose={onClose} />
 
   const month = currentMonthKey()
-  const state = computeEnvelopeState(data.budgets, data.expenses, month, data.categories, data.groups)
+  const state = computeEnvelopeState(data.budgets, data.expenses, month, data.categories, data.groups, undefined, data.carry)
   const prevState = computeEnvelopeState(data.budgets, data.expenses, prevMonthKey(month), data.categories, data.groups)
   const envelope = state.envelopes.find((e) => e.category === category)
   const budget = data.budgets.find((b) => b.month === month && b.category === category)
@@ -728,6 +741,7 @@ export function EditAssignedScreen({ category, onClose, assign = false }: { cate
       month={month}
       version={budget?.version ?? 0}
       currentAssigned={envelope?.assigned ?? 0}
+      rolledOver={envelope?.rolledOver ?? 0}
       spent={envelope?.spent ?? 0}
       isCreditCardPayment={!!envelope?.isCreditCardPayment}
       lastMonthAssigned={prevState.envelopes.find((e) => e.category === category)?.assigned}
@@ -747,6 +761,7 @@ function EditAssignedBody({
   month,
   version,
   currentAssigned,
+  rolledOver,
   spent,
   isCreditCardPayment,
   lastMonthAssigned,
@@ -758,6 +773,8 @@ function EditAssignedBody({
   month: string
   version: number
   currentAssigned: number
+  /** What the envelope carried in from last month. */
+  rolledOver: number
   spent: number
   isCreditCardPayment: boolean
   lastMonthAssigned: number | undefined
@@ -826,7 +843,10 @@ function EditAssignedBody({
   const over = value > 0 && projectedRTA < 0
   const hint =
     delta === 0
-      ? `${formatCurrency(spent, hideAmounts)} spent · ${formatCurrency(baseAssigned, hideAmounts)} assigned`
+      ? rolledOver !== 0
+        // With money carried in, what's available is the number that matters, and the carry says why.
+        ? `${formatCurrency(cents(baseAssigned + rolledOver - spent), hideAmounts)} available · ${rolledOverLine(rolledOver, month, (n) => formatCurrency(n, hideAmounts))}`
+        : `${formatCurrency(spent, hideAmounts)} spent · ${formatCurrency(baseAssigned, hideAmounts)} assigned`
       : delta > 0
         ? `Pulls ${formatCurrency(delta, hideAmounts)} from Ready to Assign${over ? ` · ${formatCurrency(-projectedRTA, hideAmounts)} over` : ''}`
         : `Frees ${formatCurrency(-delta, hideAmounts)} back to Ready to Assign`
@@ -935,84 +955,17 @@ export function EditMonthIncomeScreen({ month, onClose, initial }: { month: stri
 // ─── Add income ──────────────────────────────────────────────────────────────
 
 /** The labelled-form modal the subscription and income forms share. */
-function FormSheet({ title, onClose, onBack, busy, footer, className = '', children }: {
-  title: string
-  onClose: () => void
-  /** Where Escape goes instead of closing (move money's sources step). */
-  onBack?: () => void
-  busy: boolean
-  footer?: ReactNode
-  className?: string
-  children: ReactNode
-}) {
+function FormSheet(props: ComponentProps<typeof AmountSheet>) {
   const { readOnly } = useSpaces()
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape' && !busy) (onBack ?? onClose)()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [busy, onBack, onClose])
-  return (
-    <Scrim className="erd-modal-overlay" onClick={busy ? undefined : onClose}>
-      <Sheet className={`erd-modal-card erd-sub-card erd-one-off-card ${className}`} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={title}>
-        <div className="erd-modal-head">
-          <h3>{title}</h3>
-          <button type="button" className="erd-modal-close" onClick={onClose} aria-label="Close" disabled={busy}>
-            <XIcon size={18} />
-          </button>
-        </div>
-        {readOnly ? <ReadOnlyNotice onClose={onClose} /> : <>
-          <div className="erd-sub-body">{children}</div>
-          {footer && <div className="erd-sub-footer">{footer}</div>}
-        </>}
-      </Sheet>
-    </Scrim>
-  )
-}
-
-/** "Amount" with the currency glued to the digits and a hint underneath. */
-function AmountField({ id, value, onChange, hint, warn, autoFocus, children }: {
-  id: string
-  value: string
-  onChange: (value: string) => void
-  hint: string
-  /** Over what's available: the hint goes coral. */
-  warn?: boolean
-  autoFocus?: boolean
-  /** Quick picks under the hint. */
-  children?: ReactNode
-}) {
-  const { currencySymbol } = useCurrency()
-  return (
-    <section className="erd-sub-section">
-      <label className="erd-log-label" htmlFor={id}>Amount</label>
-      <div className="erd-amount-field">
-        <span className="erd-amount-symbol" aria-hidden="true">{currencySymbol}</span>
-        <input
-          id={id}
-          className="erd-amount-input"
-          type="text"
-          inputMode="decimal"
-          placeholder="0"
-          autoFocus={autoFocus}
-          value={value}
-          onChange={(e) => {
-            if (/^\d{0,9}(\.\d{0,2})?$/.test(e.target.value)) onChange(e.target.value)
-          }}
-        />
-      </div>
-      <p className={`erd-sub-hint ${warn ? 'is-neg' : ''}`}>{hint}</p>
-      {children}
-    </section>
-  )
+  return <AmountSheet {...props} replaceBody={readOnly ? <ReadOnlyNotice onClose={props.onClose} /> : undefined} />
 }
 
 /** Opened from Home's income menu and the Income page. Records a one-off in
  * the income ledger; the server adds it to this month's income extra in the
  * same write (Web/lib/income.ts), so Ready to Assign goes up by exactly that
  * much and next month doesn't repeat it. */
-export function AddIncomeScreen({ onClose, existing }: { onClose: () => void; /** Present: edit this income row. */ existing?: IncomeRow }) {
+/** `defaultLabel`/`intro`: a starting balance for someone whose first pay is next month (src/lib/upcomingPay.ts). */
+export function AddIncomeScreen({ onClose, existing, defaultLabel, intro }: { onClose: () => void; /** Present: edit this income row. */ existing?: IncomeRow; defaultLabel?: string; intro?: string }) {
   const { formatCurrency } = useCurrency()
   const [hideAmounts] = useHideAmounts()
   const data = useMoneyData()
@@ -1022,7 +975,7 @@ export function AddIncomeScreen({ onClose, existing }: { onClose: () => void; /*
   const phase = useButtonPhase()
   const busy = phase.saving || phase.success
   const [amountText, setAmountText] = useState(existing ? String(Number(existing.amount) || '') : '')
-  const [label, setLabel] = useState(existing?.label ?? '')
+  const [label, setLabel] = useState(existing?.label ?? defaultLabel ?? '')
   const [accountId, setAccountId] = useState(existing?.account_id ?? '')
   const [error, setError] = useState('')
   // One id per screen, so a retried save after a lost response can't count twice.
@@ -1032,7 +985,7 @@ export function AddIncomeScreen({ onClose, existing }: { onClose: () => void; /*
   // Only the preview line needs the budget data; the form never waits on it.
   const state = data.isLoading
     ? null
-    : computeEnvelopeState(data.budgets, data.expenses, currentMonthKey(), data.categories, data.groups)
+    : computeEnvelopeState(data.budgets, data.expenses, currentMonthKey(), data.categories, data.groups, undefined, data.carry)
 
   async function submit() {
     if (busy || value <= 0) return
@@ -1070,7 +1023,7 @@ export function AddIncomeScreen({ onClose, existing }: { onClose: () => void; /*
       ? state
         ? `Ready to Assign ${formatCurrency(state.readyToAssign + change, hideAmounts)} · This month only`
         : 'Adds to Ready to Assign · This month only'
-      : 'What came in on top of your monthly income'
+      : intro ?? 'What came in on top of your monthly income'
 
   return (
     <FormSheet
@@ -1117,8 +1070,9 @@ export function EditReadyToAssignScreen({ onClose }: { onClose: () => void }) {
   const data = useMoneyData()
   const fetchFreshBudgets = useFreshBudgets()
   if (data.isLoading) return <FormSheet title="Set Ready to Assign" onClose={onClose} busy={false}><LoadingCaption /></FormSheet>
+  if (data.carryFailed) return <CarryFailed title="Set Ready to Assign" onClose={onClose} />
   const month = currentMonthKey()
-  const state = computeEnvelopeState(data.budgets, data.expenses, month, data.categories, data.groups)
+  const state = computeEnvelopeState(data.budgets, data.expenses, month, data.categories, data.groups, undefined, data.carry)
   const incomeBudget = data.budgets.find((b) => b.month === month && b.category === INCOME_CATEGORY)
   // The extra is saved as target RTA + what's assigned - monthly income, so the assigned total must
   // be current at save time: another device may have assigned money since load.
@@ -1134,6 +1088,7 @@ export function EditReadyToAssignScreen({ onClose }: { onClose: () => void }) {
       totalAssigned={state.totalAssigned}
       latestTotalAssigned={latestTotalAssigned}
       readyToAssign={state.readyToAssign}
+      carried={state.carriedReadyToAssign}
       version={incomeBudget?.version ?? 0}
       onClose={onClose}
     />
@@ -1147,6 +1102,7 @@ function EditReadyToAssignBody({
   totalAssigned,
   latestTotalAssigned,
   readyToAssign,
+  carried,
   version,
   onClose,
 }: {
@@ -1156,6 +1112,7 @@ function EditReadyToAssignBody({
   totalAssigned: number
   latestTotalAssigned: () => Promise<number>
   readyToAssign: number
+  carried: number
   version: number
   onClose: () => void
 }) {
@@ -1174,7 +1131,7 @@ function EditReadyToAssignBody({
   const [conflict, setConflict] = useState<BudgetRow | null>(null)
 
   const value = Number(amountText) || 0
-  const newIncome = cents(incomeBase + extraForReadyToAssign(incomeBase, totalAssigned, value))
+  const newIncome = cents(incomeBase + extraForReadyToAssign(incomeBase, totalAssigned, value, carried))
   const delta = Math.round((newIncome - baseIncome) * 100) / 100
   // The difference lands in this month's income, so say where income ends up once it moves.
   const hint = delta === 0
@@ -1187,7 +1144,7 @@ function EditReadyToAssignBody({
     setError('')
     try {
       // ponytail: a transfer landing between this read and the PUT still slips through; an atomic server-side set-RTA would close it.
-      const extra = extraForReadyToAssign(incomeBase, await latestTotalAssigned(), value)
+      const extra = extraForReadyToAssign(incomeBase, await latestTotalAssigned(), value, carried)
       // PUT upserts, so this creates the month's income row (keeping the carried monthly income) when there isn't one yet.
       await updateBudget.mutateAsync({ month, category: INCOME_CATEGORY, version: expectedVersion, updates: { extra: String(extra) } })
       phase.succeed(onClose)

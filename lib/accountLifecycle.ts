@@ -12,6 +12,7 @@ import type { UserDoc } from './users'
 import { getWorkOSClient } from './workosClient'
 import { PERSON_COLLECTIONS } from './http'
 import { personalBudgetHandedOff, purgeSpace, restoreAccountSpaces } from './spaceMembers'
+import { forgetPerson } from './spaces'
 
 /**
  * The collections an account deletion sweeps. When the person's personal
@@ -51,8 +52,19 @@ export class LegacyAccountRecoveryError extends Error {
   constructor() { super('This older account deletion needs support-assisted recovery. Your account has not been marked restored.') }
 }
 
+/**
+ * Their personal budget went to another member when they deleted. Its id is
+ * their user id, so every request without a budget header would open someone
+ * else's budget and 403: a restored account would have nothing to use.
+ */
+export class PersonalBudgetHandedOffError extends Error {
+  constructor() { super("Your personal budget belongs to someone else now, so this account can't come back. Sign up again to start fresh.") }
+}
+
 /** Restore only rows archived by this account deletion, never older archives. */
 export async function restoreAccount(db: Db, userId: string): Promise<void> {
+  // ponytail: refuses rather than giving them a new personal budget, which needs one whose id isn't their user id.
+  if (await personalBudgetHandedOff(db, userId)) throw new PersonalBudgetHandedOffError()
   await withTx(async session => {
     const users = db.collection<UserDoc>('users')
     const user = await users.findOne({ _id: userId }, { session })
@@ -72,6 +84,8 @@ export async function restoreAccount(db: Db, userId: string): Promise<void> {
 }
 
 async function invalidateAccount(userId: string): Promise<void> {
+  // ponytail: other warm instances keep the old deleted flag for up to 30s (the membership cache TTL).
+  forgetPerson(userId)
   for (const name of ['expenses', 'budgets', 'wrapped']) invalidate(name, userId)
   invalidateCategoryMap(userId)
   await invalidateBrief(userId)

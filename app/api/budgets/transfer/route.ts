@@ -1,5 +1,6 @@
 import { json, error, readBody, getCollection } from '@/lib/http'
-import { carriedAssigned } from '@/lib/budgetCarry'
+import { carriedAssigned, computeCarry } from '@/lib/budgetCarry'
+import { splitDebit } from '@/src/lib/envelope'
 import { getAuth, readOnlyGuard } from '@/lib/access'
 import { requireAccess } from '@/lib/billing/guard'
 import { invalidate } from '@/lib/cache'
@@ -71,6 +72,11 @@ export async function POST(req: Request) {
     if (!existing) return error(`no budget row for "${source.category}" in ${month}`, 404)
   }
 
+  // What each envelope carried into this month, this month's earlier moves
+  // included. Moving carried money adjusts only this month's carry (the row's
+  // `rolled_over`), so the recurring `assigned` target never absorbs it.
+  const carry = (await computeCarry(auth, month)).rolled_over
+
   await withTx(async (session) => {
     // Debit every non-RTA source. A concurrent insert for the same
     // month+category (the no-row-yet branch below) is caught via the unique
@@ -83,11 +89,16 @@ export async function POST(req: Request) {
       if (source.category === RTA_SENTINEL) continue
       await casRetry<'done'>(async () => {
         const existing = await budgetColl.findOne({ month, category: source.category }, { session })
+        const carried = carry[source.category] ?? 0
         if (existing) {
           const current = Number(existing.assigned) || 0
+          const { fromAssigned, fromCarry } = splitDebit(source.amount, current, carried)
           await budgetColl.updateOne(
             { _id: existing._id },
-            { $set: { assigned: String(current - source.amount) }, $inc: { version: 1 } } as never,
+            {
+              $set: { assigned: String(round2(current - fromAssigned)), rolled_over: String(round2((Number(existing.rolled_over) || 0) - fromCarry)) },
+              $inc: { version: 1 },
+            } as never,
             { session },
           )
           return 'done'
@@ -97,10 +108,11 @@ export async function POST(req: Request) {
         // assigned amount until it's explicitly touched (see Mobile's
         // src/lib/envelope.ts::carriedAssigned). Materialize that row now so
         // debiting it here matches what was on screen instead of 404ing.
-        const carried = await carriedAssigned(budgetColl, source.category, month, session)
+        const target = await carriedAssigned(budgetColl, source.category, month, session)
+        const { fromAssigned, fromCarry } = splitDebit(source.amount, target, carried)
         try {
           await budgetColl.insertOne(
-            { month, category: source.category, assigned: String(carried - source.amount), rolled_over: '0', version: 1 },
+            { month, category: source.category, assigned: String(round2(target - fromAssigned)), rolled_over: String(-fromCarry), version: 1 },
             { session },
           )
           return 'done'
@@ -114,14 +126,21 @@ export async function POST(req: Request) {
     // Credit the target, upserting a row if this is its first assignment. A
     // concurrent insert for the same category is caught via the unique
     // partial index and retried as an update. Ready to Assign is derived, so
-    // returning money there intentionally has no target row to credit.
+    // returning money there intentionally has no target row to credit. Money
+    // covering a shortfall carried from last month fixes this month's carry
+    // only; the rest tops up `assigned`.
+    const toCarry = round2(Math.min(totalAmount, Math.max(-(carry[to] ?? 0), 0)))
+    const toAssigned = round2(totalAmount - toCarry)
     if (to !== RTA_SENTINEL) await casRetry<'done'>(async () => {
       const existing = await budgetColl.findOne({ month, category: to }, { session })
       if (existing) {
         const current = Number(existing.assigned) || 0
         await budgetColl.updateOne(
           { _id: existing._id },
-          { $set: { assigned: String(current + totalAmount) }, $inc: { version: 1 } } as never,
+          {
+            $set: { assigned: String(round2(current + toAssigned)), rolled_over: String(round2((Number(existing.rolled_over) || 0) + toCarry)) },
+            $inc: { version: 1 },
+          } as never,
           { session },
         )
         return 'done'
@@ -133,7 +152,7 @@ export async function POST(req: Request) {
       const carried = await carriedAssigned(budgetColl, to, month, session)
       try {
         await budgetColl.insertOne(
-          { month, category: to, assigned: String(carried + totalAmount), rolled_over: '0', version: 1 },
+          { month, category: to, assigned: String(round2(carried + toAssigned)), rolled_over: String(toCarry), version: 1 },
           { session },
         )
         return 'done'
@@ -151,6 +170,10 @@ export async function POST(req: Request) {
     month,
   )
   return json({ ok: true })
+}
+
+function round2(n: number): number {
+  return Math.round(n * 100) / 100
 }
 
 function isDuplicateKeyError(err: unknown): boolean {

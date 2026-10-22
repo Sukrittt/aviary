@@ -1,9 +1,10 @@
 import { apiFetch } from './client'
 import type { Review } from '@/lib/import/service'
 import type { CommitEdits, CommitResult } from '@/lib/import/commit'
+import type { ImportHistoryItem } from '@/lib/import/undo'
 
 export type ImportReview = Review
-export type { CommitEdits, CommitResult }
+export type { CommitEdits, CommitResult, ImportHistoryItem }
 
 export type ImportStatus =
   | { status: 'none' }
@@ -68,4 +69,14 @@ export async function getImportStatus(): Promise<ImportStatus> {
 
 export function continueImport(importId: string, retry = false): Promise<unknown> {
   return call('/api/import/continue', jsonInit({ importId, ...(retry ? { retry: true } : {}) }))
+}
+
+export async function getPastImports(): Promise<ImportHistoryItem[]> {
+  const resp = await apiFetch('/api/import/history')
+  if (!resp.ok) throw new Error(`Failed to load imports: ${resp.status}`)
+  return ((await resp.json()) as { imports: ImportHistoryItem[] }).imports
+}
+
+export function undoImport(importId: string): Promise<unknown> {
+  return call('/api/import/undo', jsonInit({ importId }))
 }

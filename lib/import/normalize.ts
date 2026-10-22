@@ -7,7 +7,7 @@ const MAX_ITEM = 200
 const MAX_NOTES = 300
 const MAX_LABEL = 100
 
-export type ImportErrorCode = 'too_big' | 'unreadable' | 'empty' | 'empty_file' | 'no_columns' | 'not_found' | 'already_importing' | 'already_onboarded' | 'busy' | 'invalid'
+export type ImportErrorCode = 'too_big' | 'unreadable' | 'empty' | 'empty_file' | 'no_columns' | 'not_found' | 'already_importing' | 'already_onboarded' | 'busy' | 'invalid' | 'not_owner' | 'wrong_currency'
 
 /** A failure the client turns into written copy. The code is the whole message. */
 export class ImportError extends Error {

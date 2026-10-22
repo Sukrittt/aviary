@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { forecastHeadline, nextMonthLine, aboutAmount } from './forecastCopy'
+import { runOutWarning, nextMonthLine, aboutAmount } from './forecastCopy'
 import { formatMoney } from './currencies'
 import type { Forecast, ForecastEnvelope } from '@/lib/forecast'
 
@@ -20,22 +20,26 @@ describe('aboutAmount', () => {
   })
 })
 
-describe('forecastHeadline', () => {
-  it('says what is left at month end', () => {
-    expect(forecastHeadline(f({ totalLeft: 2387 }), money)).toBe('About ₹2,400 left at month end')
-  })
-
+describe('runOutWarning', () => {
   it('names the first envelope to run out, without its emoji', () => {
     const envelopes = [env({ category: '🍔 Food', runsOutOn: '2026-10-26' }), env({ category: 'Fun', runsOutOn: '2026-10-24' })]
-    expect(forecastHeadline(f({ totalLeft: 5000, envelopes }), money)).toBe('Fun runs out around 24 Oct')
+    expect(runOutWarning(f({ totalLeft: 5000, envelopes }))?.text).toBe('Fun runs out around 24\u00a0Oct')
   })
 
-  it('says how far over the month ends up, calmly', () => {
-    expect(forecastHeadline(f({ totalLeft: -1180 }), money)).toBe('About ₹1,200 over by month end')
+  it('stays quiet when nothing runs out', () => {
+    expect(runOutWarning(f({ totalLeft: 2387, envelopes: [env({})] }))).toBeNull()
+    expect(runOutWarning(f({ totalLeft: -1180 }))).toBeNull()
+    expect(runOutWarning(f({ basis: null, totalLeft: null }))).toBeNull()
   })
 
-  it('says nothing without a forecast', () => {
-    expect(forecastHeadline(f({ basis: null, totalLeft: null }), money)).toBeNull()
+  it('keys the dismissal to the envelope and date, the same as Mobile', () => {
+    const at = (category: string, runsOutOn: string) => runOutWarning(f({ envelopes: [env({ category, runsOutOn })] }))!.key
+    const key = at('🍔 Food & Drinks', '2026-10-26')
+    expect(key).toMatch(/^[A-Za-z0-9._-]+$/)
+    expect(at('🍔 Food & Drinks', '2026-10-26')).toBe(key)
+    expect(at('🍔 Food & Drinks', '2026-10-27')).not.toBe(key)
+    expect(at('Fun', '2026-10-26')).not.toBe(key)
+    expect(at('Aa', '2026-10-26')).not.toBe(at('BB', '2026-10-26'))
   })
 })
 

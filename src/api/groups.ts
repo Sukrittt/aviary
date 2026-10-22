@@ -15,11 +15,11 @@ export async function getGroupRows(): Promise<GroupRow[]> {
   return resp.json()
 }
 
-export async function addGroup(name: string): Promise<void> {
+export async function addGroup(name: string, style: { icon?: string; color?: string } = {}): Promise<void> {
   const resp = await apiFetch('/api/groups', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name }),
+    body: JSON.stringify({ name, ...style }),
   })
   if (!resp.ok) throw new Error(await apiErrorMessage(resp, 'Failed to add group'))
 }

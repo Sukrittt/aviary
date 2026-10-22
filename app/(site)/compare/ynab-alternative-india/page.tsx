@@ -6,7 +6,7 @@ import { CompareTable, ContentPage, SoftCta, Sources } from '@/src/components/co
 export const metadata = pageMetadata('/compare/ynab-alternative-india')
 
 export default function YnabAlternativePage() {
-  return <ContentPage section="compare" path="/compare/ynab-alternative-india" title="A YNAB alternative for India" kicker={`Compare · Facts checked ${COMPARE_CHECKED}`} lede={<>YNAB made zero-based budgeting popular: every time money comes in, you decide what it’s for. If you’re in India, you’ve probably hit two walls. It’s priced in US dollars, and its bank import doesn’t cover Indian banks.</>} related={['/compare/goodbudget', '/features/budget-without-bank-linking', '/tools/salary-budget-planner']}>
+  return <ContentPage section="compare" path="/compare/ynab-alternative-india" title="A YNAB alternative for India" kicker={`Compare · Facts checked ${COMPARE_CHECKED}`} lede={<>YNAB made zero-based budgeting popular: every time money comes in, you decide what it’s for. If you’re in India, you’ve probably hit two walls. It’s priced in US dollars, and its bank import doesn’t cover Indian banks.</>} related={['/compare/ynab-alternative', '/compare/goodbudget', '/features/budget-without-bank-linking', '/tools/salary-budget-planner']}>
     <p>Aviary uses the same idea. You give your money jobs in categories, and every spend shows what’s left for that job. It’s built for paying by UPI and logging on your phone, and it’s priced in rupees.</p>
 
     <h2>The short version</h2>
@@ -16,15 +16,15 @@ export default function YnabAlternativePage() {
       <li><strong>The same method.</strong> Every rupee gets a job before you spend it, just like YNAB. There’s nothing to relearn.</li>
       <li><strong>Built for how you’ll log in India.</strong> YNAB’s bank import doesn’t reach Indian banks, so you’d type spends in by hand there too. Aviary is designed for that, with nudges, one-line catch-up and bill scanning.</li>
     </ul>
-    <p>YNAB still makes sense if you need an iPhone app today, want to share one budget with family, or bank in the US, Canada, the UK or the EU.</p>
+    <p>YNAB still makes sense if you need an iPhone app today, or bank in the US, Canada, the UK or the EU.</p>
 
     <h2>Side by side</h2>
     <CompareTable them="YNAB" rows={[
       ['Price', '₹199 a month after a 30-day free trial, or a yearly plan', '$14.99 a month or $109 a year, in US dollars. On the App Store in India: ₹1,349 a month or ₹9,900 a year'],
       ['Free trial', '30 days, no card', '34 days on the website and Google Play, 30 days on the App Store'],
-      ['Bank import', 'None. You log spends yourself', 'Direct import for select US, Canadian, UK and EU banks. Elsewhere, file import'],
+      ['Bank import', 'No bank connection. You log spends yourself, and can catch up by uploading payment screenshots or a CSV, Excel or PDF statement', 'Direct import for select US, Canadian, UK and EU banks. Elsewhere, file import'],
       ['Platforms', 'Android and web. No iPhone app yet', 'Web, iPhone, iPad, Android and Apple Watch'],
-      ['Sharing', 'One person per budget', 'Up to six people on one subscription'],
+      ['Sharing', 'Up to 6 people in a budget on one plan, each on their own phone, with who-logged-what on every spend', 'Up to six people on one subscription'],
       ['Currency', 'Pick one currency for your budget', 'Pick one currency per plan'],
       ['Logging help', 'Habit nudges, type several spends in one line, bill scanning, recurring expenses, widget', 'Mobile widgets, goals, loan calculator'],
     ]} />
@@ -34,6 +34,7 @@ export default function YnabAlternativePage() {
       <li><strong>Price in India.</strong> ₹199 a month against $14.99 a month on YNAB’s website. Even YNAB’s App Store price in India is ₹1,349 a month.</li>
       <li><strong>Built for manual logging.</strong> Since YNAB’s direct import doesn’t reach Indian banks, you’d be entering spends by hand or importing files anyway. Aviary is designed around that. It learns your routine and nudges you while a spend is fresh, and you can catch up by typing “auto 240, lunch 150”.</li>
       <li><strong>Rupees first.</strong> Amounts are grouped in lakh and crore, and the price is in rupees.</li>
+      <li><strong>Sharing on one plan.</strong> Invite your partner or flatmates with a link. They join free, and every spend shows who logged it. See <Link href="/features/shared-budgets">shared budgets</Link>.</li>
       <li><strong>Open source.</strong> Aviary’s code is on GitHub, so you can see what it does with your data.</li>
     </ul>
 
@@ -41,7 +42,6 @@ export default function YnabAlternativePage() {
     <ul>
       <li><strong>It’s been doing this for years.</strong> YNAB’s method, guides and community are deep. If you want to learn zero-based budgeting properly, their material is good.</li>
       <li><strong>More platforms.</strong> YNAB has apps for iPhone, iPad and Apple Watch. Aviary is on Android and the web for now.</li>
-      <li><strong>Sharing.</strong> One YNAB subscription covers up to six people. Aviary budgets are one person each.</li>
       <li><strong>Bank import, if you’re in a supported country.</strong> YNAB can pull transactions from select US, Canadian, UK and EU banks.</li>
     </ul>
 

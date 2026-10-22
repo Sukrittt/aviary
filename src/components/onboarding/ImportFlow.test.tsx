@@ -48,6 +48,7 @@ const review: ImportReview = {
   droppedAccounts: [],
   salary: { label: 'Payroll', amount: 3000, day: 1 },
   budgetTotal: 140,
+  later: null,
 }
 
 const file = (bytes = 10) => new File([new Uint8Array(bytes)], 'monefy.csv', { type: 'text/csv' })
@@ -265,5 +266,63 @@ describe('ImportFlow', () => {
     fireEvent.change(screen.getByLabelText('Choose your export file'), { target: { files: [new File([noise], 'monefy.csv', { type: 'text/csv' })] } })
     expect(await screen.findByRole('alert')).toHaveTextContent('That file’s too big. Export a shorter date range and try again.')
     expect(previewImport).not.toHaveBeenCalled()
+  })
+
+  describe('later, from Settings', () => {
+    const later: ImportReview = {
+      ...review,
+      salary: null,
+      budgetTotal: 0,
+      skipped: { after_start: 4 },
+      otherCurrencies: [],
+      groups: ['Bills'],
+      categories: [
+        { source: 'Bills', name: 'Bills', group: 'Bills', monthly: 0 },
+        { source: 'Gifts', name: 'Gifts', group: 'Bills', monthly: 0 },
+      ],
+      later: { cutoff: '2026-10-03', categories: ['Bills', '🛒 Groceries'], icons: { categories: { '🛒 Groceries': 'ShoppingCart' }, groups: {} } },
+    }
+
+    it('says what comes in and why it stops there, without the setup steps', async () => {
+      previewImport.mockResolvedValue(later)
+      render(<ImportFlow skipAsk budgetName="Home" onFresh={vi.fn()} onDone={vi.fn()} onAlreadySetUp={vi.fn()} />)
+      fireEvent.click(screen.getByRole('button', { name: /Monefy/ }))
+      fireEvent.change(screen.getByLabelText('Choose your export file'), { target: { files: [file()] } })
+      expect(await screen.findByText(/^We’ll add 9 entries from before 3 Oct/)).toBeTruthy()
+      expect(screen.getByText('Going into Home')).toBeTruthy()
+      expect(screen.getByText('4 rows from 3 Oct on stay out, so nothing’s counted twice.')).toBeTruthy()
+      expect(screen.queryByRole('button', { name: /Monthly income/ })).toBeNull()
+      expect(screen.queryByText(/Your money’s in/)).toBeNull()
+      expect(screen.getByRole('button', { name: 'Envelopes 1 new' })).toBeTruthy()
+    })
+
+    it('with nothing from before the first entry, there’s nothing to place and nothing to bring in', async () => {
+      previewImport.mockResolvedValue({ ...later, counts: { expense: 0, refund: 0, income: 0, from: '', to: '' }, samples: [] })
+      render(<ImportFlow skipAsk onFresh={vi.fn()} onDone={vi.fn()} onAlreadySetUp={vi.fn()} />)
+      fireEvent.click(screen.getByRole('button', { name: /Monefy/ }))
+      fireEvent.change(screen.getByLabelText('Choose your export file'), { target: { files: [file()] } })
+      expect(await screen.findByText('Nothing in this file is from before 3 Oct, when you started in Aviary.')).toBeTruthy()
+      expect(screen.queryByRole('button', { name: /^Envelopes/ })).toBeNull()
+      expect(screen.getByRole('button', { name: 'Bring it in' })).toHaveProperty('disabled', true)
+    })
+
+    it('puts a leftover category into an existing envelope and sends no salary', async () => {
+      previewImport.mockResolvedValue(later)
+      render(<ImportFlow skipAsk onFresh={vi.fn()} onDone={vi.fn()} onAlreadySetUp={vi.fn()} />)
+      fireEvent.click(screen.getByRole('button', { name: /Monefy/ }))
+      fireEvent.change(screen.getByLabelText('Choose your export file'), { target: { files: [file()] } })
+      await open(/^Envelopes/)
+      await pick('Envelope for Gifts', 'Groceries')
+      // Our icon and the bare name: a stored "🛒 Groceries" never shows its emoji.
+      expect(screen.queryByText(/🛒/)).toBeNull()
+      done()
+      expect(screen.getByRole('button', { name: 'Envelopes All matched' })).toBeTruthy()
+      fireEvent.click(screen.getByRole('button', { name: 'Bring it in' }))
+      await waitFor(() => expect(commitImport).toHaveBeenCalled())
+      expect(commitImport.mock.calls[0][1]).toMatchObject({
+        salary: null,
+        categories: [{ source: 'Bills', name: 'Bills', group: 'Bills' }, { source: 'Gifts', name: '🛒 Groceries', group: 'Bills' }],
+      })
+    })
   })
 })

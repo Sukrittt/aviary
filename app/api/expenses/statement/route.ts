@@ -16,13 +16,15 @@ const MAX_BODY_LEN = 4_400_000
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const TABLE_FILE = /\.(csv|tsv|txt|xlsx)$/i
 
-const STATUS: Record<StatementError['code'], number> = { unreadable: 400, empty: 400, pdf_locked: 400, too_big: 413, other_currency: 400 }
+const STATUS: Record<StatementError['code'], number> = {
+  unreadable: 400, empty: 400, pdf_locked: 400, pdf_password_wrong: 400, pdf_no_text: 400, too_big: 413, other_currency: 400,
+}
 
 /**
  * `POST /api/expenses/statement`: reads the days someone didn't log from
  * what they upload, and proposes expenses. JSON `{ images: [{ data, mimeType }] }`
  * for up to five UPI or bank-app screenshots, or multipart with one `file`
- * (csv, xlsx or an unlocked pdf). Writes nothing: the app logs what the user
+ * (csv, xlsx or pdf, with a `password` for a locked pdf). Writes nothing: the app logs what the user
  * keeps through POST /api/expenses. Errors are `{ error: code }` for the app
  * to word. Gated like bill scan: access, the AI switch and allowance, a rate limit.
  */
@@ -56,7 +58,8 @@ export async function POST(req: Request) {
     if (file.size > MAX_UPLOAD_BYTES) return json({ error: 'too_big' }, { status: 413 })
     const data = Buffer.from(await file.arrayBuffer())
     const name = file.name || ''
-    if (/\.pdf$/i.test(name) || file.type === 'application/pdf') source = { kind: 'pdf', data }
+    const password = form?.get('password')
+    if (/\.pdf$/i.test(name) || file.type === 'application/pdf') source = { kind: 'pdf', data, ...(typeof password === 'string' && password ? { password } : {}) }
     else if (TABLE_FILE.test(name)) source = { kind: 'table', data, filename: name }
     else return json({ error: 'unreadable' }, { status: 400 })
   } else {

@@ -1,11 +1,10 @@
 // Every icon a category or group can wear, keyed by its Phosphor name. Drawn
-// from public/category-icons.svg (scripts/gen-category-icons.mjs) rather than
-// Phosphor's modules: those carry all six weights, ~650 KB for this catalog on
-// every page that shows a category, landing included. The sprite is regular
-// weight only, costs no JS, and is cached across pages.
+// from categoryIconPaths.ts (scripts/gen-category-icons.mjs) rather than
+// Phosphor's modules: those carry all six weights, ~650 KB for this catalog.
+// Bundled, not an external sprite, so icons draw with the first paint.
 import type { CSSProperties, SVGProps } from 'react'
 import type { IconWeight } from './icons'
-import { CATEGORY_ICON_SPRITE } from './categoryIconSprite'
+import { CATEGORY_ICON_PATHS } from './categoryIconPaths'
 import { CATEGORY_ICONS, categoryIconKey, groupIconKey, type CategoryIconKey } from '@/src/lib/categoryIcons'
 import { budgetIconKey } from '@/src/lib/budgetIcons'
 
@@ -20,7 +19,7 @@ export type CategoryGlyph = (props: GlyphProps) => React.JSX.Element
 function glyph(key: CategoryIconKey): CategoryGlyph {
   const Glyph = ({ size = '1em', weight: _weight, color, ...rest }: GlyphProps) => (
     <svg width={size} height={size} viewBox="0 0 256 256" fill={color ?? 'currentColor'} {...rest}>
-      <use href={`${CATEGORY_ICON_SPRITE}#${key}`} />
+      <path d={CATEGORY_ICON_PATHS[key]} />
     </svg>
   )
   Glyph.displayName = `${key}Glyph`

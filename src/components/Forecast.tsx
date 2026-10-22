@@ -2,30 +2,62 @@
 
 import Link from 'next/link'
 import { useState, type ReactNode } from 'react'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useCurrency } from '@/src/context/CurrencyContext'
 import { useForecast } from '@/src/hooks/useForecast'
-import { forecastHeadline, nextMonthLine } from '@/src/lib/forecastCopy'
+import { runOutWarning, nextMonthLine } from '@/src/lib/forecastCopy'
+import { usePersistentState } from '@/src/hooks/usePersistentState'
 import { splitEmoji } from '@/src/lib/emoji'
 import { formatDateShort } from '@/src/lib/format'
 import { BirdEmptyState } from '@/src/components/BirdEmptyState'
 import { ForecastSkeleton } from '@/src/components/TabSkeleton'
-import { CaretRightIcon, ChartLineIcon } from '@/src/components/icons'
+import { ChartLineIcon } from '@/src/components/icons'
 import type { ForecastEnvelope } from '@/lib/forecast'
 
-/** Home's one line: "About ₹2,400 left at month end". Opens the forecast on Insights. */
-export function ForecastLine({ hideAmounts }: { hideAmounts: boolean }) {
-  const { formatCurrency } = useCurrency()
+const parseDismissed = (raw: string) => raw === '1'
+const serializeDismissed = (value: boolean) => (value ? '1' : '0')
+
+/**
+ * Home's heads-up: "Fun runs out around 24 Oct". Only shows when an envelope
+ * runs dry before month end, and stays gone once dismissed until the forecast
+ * names a different envelope or date. The full forecast lives on Insights.
+ */
+export function ForecastLine() {
   const { data } = useForecast()
-  const line = data && forecastHeadline(data, (n) => formatCurrency(n, hideAmounts))
-  if (!line) return null
+  const warning = data ? runOutWarning(data) : null
+  const [dismissed, setDismissed] = usePersistentState(
+    `rollover-dismissed-${warning?.key ?? 'forecast-none'}`, false, parseDismissed, serializeDismissed,
+  )
+  const reduceMotion = useReducedMotion()
+  const fold = { duration: 0.32, ease: [0.22, 1, 0.36, 1] as const }
   return (
-    <Link href="/insights#forecast" className="erd-card erd-home-rta-slim">
-      <span>
-        <span className="erd-rta-icon" aria-hidden="true"><ChartLineIcon size={18} /></span>
-        {line}
-      </span>
-      <CaretRightIcon size={16} aria-hidden="true" />
-    </Link>
+    <AnimatePresence initial={false}>
+      {warning && !dismissed && (
+        // Same exit as Home's rollover strip: slides off to the right, then its
+        // height (and the column's 20px gap) closes so the cards below glide up.
+        <motion.div
+          key={warning.key}
+          style={{ flexShrink: 0, overflow: 'hidden' }}
+          exit={reduceMotion ? { opacity: 0 } : {
+            x: '100%', opacity: 0, height: 0, marginBottom: -20,
+            transition: {
+              x: { duration: 0.3, ease: [0.4, 0, 1, 1] },
+              opacity: { duration: 0.3 },
+              height: { delay: 0.22, ...fold },
+              marginBottom: { delay: 0.22, ...fold },
+            },
+          }}
+        >
+          <div className="erd-card erd-home-rta-slim home-forecast-warning">
+            <Link href="/insights#forecast">
+              <span className="erd-rta-icon" aria-hidden="true"><ChartLineIcon size={18} /></span>
+              {warning.text}
+            </Link>
+            <button type="button" onClick={() => setDismissed(true)}>Okay</button>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   )
 }
 

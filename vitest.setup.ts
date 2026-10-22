@@ -11,3 +11,14 @@ afterEach(cleanup)
 // next/font only works inside the Next compiler. Content pages load the serif
 // (src/components/content/serifFont.ts), so give tests a stand-in class name.
 vi.mock('next/font/google', () => ({ Newsreader: () => ({ variable: 'font-serif', className: 'font-serif' }) }))
+
+// jsdom has no IntersectionObserver, which motion's useInView needs
+// (RollingAmount). One that never fires: nothing in a test is "on screen".
+if (typeof globalThis.IntersectionObserver === 'undefined') {
+  globalThis.IntersectionObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+    takeRecords() { return [] }
+  } as unknown as typeof IntersectionObserver
+}

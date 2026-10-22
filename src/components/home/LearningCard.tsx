@@ -1,7 +1,7 @@
 'use client'
 
 import type { CSSProperties } from 'react'
-import { motion, useReducedMotion } from 'motion/react'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { CaretDownIcon, CaretUpIcon, CheckIcon } from '@/src/components/icons'
 import { BirdMark } from '@/src/components/BirdMark'
 import { useWeekRecap } from '@/src/components/wrapped/WeekRecap'
@@ -69,7 +69,19 @@ export function LearningCard() {
             </button>
           )}
         </div>
-        {showDays && <ol className="home-learning-days">
+        {/* Folds shut instead of snapping, so the cards below slide up. The
+            negative margin cancels the card's grid gap at zero height. The
+            clip runs 4px past the box so today's outline isn't cut off. */}
+        <AnimatePresence initial={false}>
+          {showDays && <motion.ol
+            key="days"
+            className="home-learning-days"
+            style={{ clipPath: 'inset(-4px)' }}
+            initial={{ height: 0, opacity: 0, marginTop: -16 }}
+            animate={{ height: 'auto', opacity: 1, marginTop: 0 }}
+            exit={{ height: 0, opacity: 0, marginTop: -16 }}
+            transition={{ duration: reduceMotion ? 0 : 0.3, ease: [0.22, 1, 0.36, 1] }}
+          >
           {days.map((d, i) => {
             const done = i < learning.day - 1 || (d.today && logged.has(d.date))
             return (
@@ -79,7 +91,8 @@ export function LearningCard() {
               </li>
             )
           })}
-        </ol>}
+          </motion.ol>}
+        </AnimatePresence>
       </article>
     </motion.div>
   )

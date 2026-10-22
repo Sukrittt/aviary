@@ -3,13 +3,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { ImportError } from '@/lib/import/normalize'
 
 const mockGetAuth = vi.fn()
-const mockFindUser = vi.fn()
 const previewFile = vi.fn()
 const recomputePreview = vi.fn()
 
 vi.mock('@/lib/access', () => ({ getAuth: (...a: unknown[]) => mockGetAuth(...a), readOnlyGuard: () => null }))
 vi.mock('@/lib/billing/guard', () => ({ requireAccess: vi.fn(async () => null) }))
-vi.mock('@/lib/mongodb', () => ({ getDb: async () => ({ collection: () => ({ findOne: (...a: unknown[]) => mockFindUser(...a) }) }) }))
 vi.mock('@/lib/import/service', async (original) => ({
   ...(await original<typeof import('@/lib/import/service')>()),
   previewFile: (...a: unknown[]) => previewFile(...a),
@@ -30,7 +28,6 @@ const json = (body: unknown) => new Request('https://example.com/api/import/prev
 beforeEach(() => {
   vi.clearAllMocks()
   mockGetAuth.mockResolvedValue({ userId: 'user_a', readOnly: false, sessionId: null, spaceId: 'user_a', spaceOwnerId: 'user_a', spaceRole: 'owner' as const })
-  mockFindUser.mockResolvedValue({ _id: 'user_a', onboardedAt: null })
   previewFile.mockResolvedValue({ importId: 'imp1' })
   recomputePreview.mockResolvedValue({ importId: 'imp1', direction: 'positive_spend' })
 })
@@ -63,11 +60,15 @@ describe('POST /api/import/preview', () => {
     expect(recomputePreview).toHaveBeenCalledWith(expect.anything(), 'imp1', { direction: 'positive_spend', currency: undefined })
   })
 
-  it('is onboarding only', async () => {
-    mockFindUser.mockResolvedValue({ _id: 'user_a', onboardedAt: '2026-10-01T00:00:00.000Z' })
+  it('takes a file for a budget that is already set up: that is a later import', async () => {
+    expect((await POST(upload(10))).status).toBe(200)
+  })
+
+  it('turns away a shared budget’s member with a code', async () => {
+    previewFile.mockRejectedValue(new ImportError('not_owner'))
     const res = await POST(upload(10))
     expect(res.status).toBe(403)
-    expect(await res.json()).toEqual({ error: 'already_onboarded' })
+    expect(await res.json()).toEqual({ error: 'not_owner' })
   })
 
   it('wants a file or an import id', async () => {
