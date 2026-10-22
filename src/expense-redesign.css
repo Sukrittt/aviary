@@ -7420,7 +7420,11 @@ button.account-feature-card {
   gap: 8px;
 }
 
+/* inline-flex so a group chip's icon centres on its label, not the baseline. */
 .env-pct {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   border: 1px solid var(--erd-border-strong);
   background: var(--erd-input-bg);
   color: var(--erd-text2);
