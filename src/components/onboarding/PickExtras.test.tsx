@@ -65,3 +65,11 @@ it('locks the switches once a save has started, so a late flip is never left uns
   await waitFor(() => expect(screen.getByRole('switch', { name: 'Turn on Scan a bill' })).toBeDisabled())
   expect(updateUser).toHaveBeenCalledTimes(1)
 })
+
+it('comes back with its error when Not now fails to save', async () => {
+  ;(updateUser as Mock).mockRejectedValue(new Error('offline'))
+  renderCard()
+  fireEvent.click(await screen.findByRole('button', { name: 'Not now' }))
+  expect(await screen.findByRole('alert')).toHaveTextContent("Couldn't save your extras.")
+  expect(screen.getByText('Want any extras?')).toBeInTheDocument()
+})

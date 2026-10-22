@@ -56,7 +56,10 @@ export function FirstExpense({
   const Icon = CATEGORY_ICON_COMPONENTS[env.icon]
 
   const change = (v: string) => {
-    const next = v.replace(/\D/g, '').replace(/^0+/, '').slice(0, 8)
+    // Keeps one decimal point and two places, so a pasted 12.50 stays 12.50, not 1250.
+    const [whole = '', ...frac] = v.replace(/[^\d.]/g, '').split('.')
+    const int = whole.replace(/^0+/, '').slice(0, 8)
+    const next = frac.length ? `${int || '0'}.${frac.join('').slice(0, 2)}` : int
     setDir((Number(next) || 0) >= spent ? 1 : -1)
     setTick((t) => t + 1)
     setAmount(next)
@@ -96,7 +99,7 @@ export function FirstExpense({
         <AmountTicker text={formatMoney(spent)} tick={tick} dir={dir} delta={0} dimmed={!amount} />
         <input
           type="text"
-          inputMode="numeric"
+          inputMode="decimal"
           autoFocus
           className="setup-amount-hidden"
           aria-label="Amount spent"

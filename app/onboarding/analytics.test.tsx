@@ -103,6 +103,20 @@ describe('onboarding analytics', () => {
     client.clear()
   })
 
+  it('keeps a typed decimal, and a retry after a lost response reuses the same client_id', async () => {
+    vi.mocked(postExpensePayload).mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    const client = walkToFinish()
+    fireEvent.change(await screen.findByRole('textbox', { name: 'Amount spent' }, { timeout: 3000 }), { target: { value: '12.50' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Log it' }))
+    await screen.findByRole('alert')
+    fireEvent.click(screen.getByRole('button', { name: 'Log it' }))
+    await waitFor(() => expect(postExpensePayload).toHaveBeenCalledTimes(2))
+    const [first, second] = vi.mocked(postExpensePayload).mock.calls.map(([payload]) => payload)
+    expect(first).toMatchObject({ amount_inr: '12.5' })
+    expect(second.client_id).toBe(first.client_id)
+    client.clear()
+  })
+
   it('reports a failed save without counting the last step as done', async () => {
     vi.mocked(completeOnboarding).mockRejectedValueOnce(new Error('503'))
     const client = walkToFinish()

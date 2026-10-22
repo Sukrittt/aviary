@@ -69,7 +69,8 @@ export function PickExtras() {
     setFailed(false)
     if (!chosen.size) {
       setGone(true)
-      updateUser.mutate(patch)
+      // Back with its error if the save fails, or it would stay hidden until a reload.
+      updateUser.mutate(patch, { onError: () => { setGone(false); setFailed(true) } })
       return
     }
     setHeld(true)

@@ -196,6 +196,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
   // wizard, and each step. Refs, since no render depends on them.
   const wizardTimer = useRef<() => number>(() => 0)
   const stepTimer = useRef<() => number>(() => 0)
+  const firstExpenseId = useRef<string | null>(null)
   // Whether the user touched the suggested split on the assign step.
   const editedSplit = useRef(false)
   // Refresh automatic suggestions after a classification retry, while an
@@ -669,7 +670,9 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
   const firstWant = liveCats().find((c) => bucketsOf(liveCats(), bucketTags)[c.key] === 'want')
 
   const logFirst = async (env: StarterEnvelope, amount: number) => {
-    await addExpense.mutateAsync({ item: env.name, amount_inr: String(amount), category: env.name, payment_method: 'bank', source: 'manual' })
+    // One id for every try: a retry after a lost response is the same expense, not a second one.
+    firstExpenseId.current ??= crypto.randomUUID()
+    await addExpense.mutateAsync({ item: env.name, amount_inr: String(amount), category: env.name, payment_method: 'bank', source: 'manual', client_id: firstExpenseId.current })
     trackStepCompleted({ logged: true })
     setResult((r) => (r ? { ...r, firstExpense: { amount, category: env.name } } : r))
   }
