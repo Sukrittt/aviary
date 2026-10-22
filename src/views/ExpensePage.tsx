@@ -327,7 +327,9 @@ export function ExpensePage() {
         if (e.available <= 0) return e;
         const { fromAssigned, fromCarry } = splitDebit(e.available, e.assigned, e.rolledOver);
         returned += fromCarry + (e.isCreditCardPayment ? 0 : fromAssigned);
-        return { ...e, assigned: e.assigned - fromAssigned, rolledOver: e.rolledOver - fromCarry, available: 0 };
+        const assigned = e.assigned - fromAssigned;
+        const spentPct = assigned > 0 ? Math.min(100, (e.spent / assigned) * 100) : e.spent > 0 ? 100 : 0;
+        return { ...e, assigned, rolledOver: e.rolledOver - fromCarry, available: 0, spentPct };
       });
       const totalAssigned = updated.filter((e) => !e.isCreditCardPayment).reduce((sum, e) => sum + e.assigned, 0);
       const rta = current.readyToAssign + returned;
