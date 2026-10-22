@@ -26,7 +26,7 @@ export default function YnabAlternativeGlobalPage() {
       <li>Upload the zip as it is. There’s no need to unzip it.</li>
       <li>Check what Aviary found, then tap “Looks right, set me up”.</li>
     </ol>
-    <p>Your categories, this month’s assigned amounts, your account names, your paydays and your transaction history come along. Transfers between accounts and starting balances are left out, since they aren’t spending. Past months’ budgets and goals stay in YNAB. Aviary suggests a group for each category, and you can change any of them before you confirm. Already set up? The import is in Settings too. <Link href="/sign-in">Sign in to start the import</Link>.</p>
+    <p>Your categories, this month’s assigned amounts, your account names, your paydays and your transaction history come along. Transfers between accounts and starting balances are left out, since they aren’t spending. Past months’ budgets and goals stay in YNAB. Aviary suggests a group for each category, and you can change any of them before you confirm. Already using Aviary? Import from Settings instead. That brings in your older history and leaves your current budget and payday as they are. <Link href="/sign-in">Sign in to start the import</Link>.</p>
 
     <h2>Side by side</h2>
     <CompareTable them="YNAB" rows={[
