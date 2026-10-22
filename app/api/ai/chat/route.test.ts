@@ -57,7 +57,12 @@ vi.mock('@/lib/ai/capture', async (importOriginal) => {
   return { ...actual, buildCaptureProposal: (...args: unknown[]) => buildCaptureProposalMock(...args) }
 })
 
-const routeChatMock = vi.fn<(message: string, caller?: unknown, earlier?: string[]) => Promise<{ onTopic: boolean; sections: string[]; decision?: boolean; capture?: boolean }>>(
+const recentReleasesMock = vi.fn(async () => [
+  { id: 'r1', platform: 'mobile' as const, title: 'Shared budgets', version: '2.6.1', highlights: ['Invite up to 5 people.'], body: '', otaAfter: null, publishedAt: '2026-10-12T10:00:00.000Z' },
+])
+vi.mock('@/lib/changelog', () => ({ recentReleases: () => recentReleasesMock() }))
+
+const routeChatMock = vi.fn<(message: string, caller?: unknown, earlier?: string[]) => Promise<{ onTopic: boolean; sections: string[]; decision?: boolean; capture?: boolean; product?: boolean }>>(
   async () => ({ onTopic: true, sections: ['header', 'envelopes', 'top10'] }),
 )
 vi.mock('@/lib/ai/chatRouter', () => ({
@@ -267,6 +272,35 @@ describe('POST /api/ai/chat (Jev routing)', () => {
 
     expect(streamTextMock.mock.calls[0][0]).toContain('DECISIONS:')
     expect(streamTextMock.mock.calls[0][3]).toBe(true)
+  })
+
+  it('sends the product guide and recent release notes for questions about the app', async () => {
+    routeChatMock.mockResolvedValue({ onTopic: true, sections: ['header'], product: true })
+
+    await (await POST(jsonRequest({ messages: [{ role: 'user', text: "what's new in Aviary?" }] }))).text()
+
+    const systemPrompt = streamTextMock.mock.calls[0][0]
+    expect(systemPrompt).toContain('PRODUCT GUIDE (how')
+    expect(systemPrompt).toContain('2026-10-12, Android 2.6.1: Shared budgets. Invite up to 5 people.')
+    expect(systemPrompt).not.toContain('ENVELOPES:')
+  })
+
+  it('leaves the product guide and the release read out of money questions', async () => {
+    recentReleasesMock.mockClear()
+    await (await POST(jsonRequest({ messages: [{ role: 'user', text: 'how much on food?' }] }))).text()
+
+    expect(streamTextMock.mock.calls[0][0]).not.toContain('PRODUCT GUIDE (how')
+    expect(recentReleasesMock).not.toHaveBeenCalled()
+  })
+
+  it('still answers an app question when the release notes cannot be read', async () => {
+    recentReleasesMock.mockRejectedValueOnce(new Error('db down'))
+    routeChatMock.mockResolvedValue({ onTopic: true, sections: ['header'], product: true })
+
+    await (await POST(jsonRequest({ messages: [{ role: 'user', text: 'how do I invite my partner?' }] }))).text()
+
+    expect(streamTextMock.mock.calls[0][0]).toContain('PRODUCT GUIDE (how')
+    expect(streamTextMock.mock.calls[0][0]).not.toContain('RECENT UPDATES (newest')
   })
 
   it('tells a client that can log spends that it can, so the model can offer it', async () => {

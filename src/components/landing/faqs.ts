@@ -33,3 +33,12 @@ export function landingFaqs(intl: boolean, price?: string): FaqItem[] {
 
 /** The method in one paragraph, shared by /help and the signed-in /account/help. */
 export const HOW_CATEGORIES_WORK = 'All income gets assigned to a category: rent, food, subscriptions, whatever you spend on. Money that hasn’t been assigned yet sits in Ready to Assign. Overspend a category and you move money into it from another one; the total never lies, it just moves. At the start of a new month, each category keeps the amount you assigned last month, so you don’t set it all up again. Unspent money doesn’t carry over inside a category: each month starts fresh.'
+
+/** The quick ways to log, shared by /help and the Ask Aviary product guide. */
+export const LOGGING_WAYS: Array<{ title: string; text: string }> = [
+  { title: 'Habit nudges.', text: 'Log the same thing around the same time on the same weekday a few times, and Aviary nudges you 15 minutes after, details filled in. One tap logs it.' },
+  { title: 'Catch up in one line.', text: 'Missed a day? Open Ask Aviary and type “auto 240, lunch 150”. You check the spends before they’re logged.' },
+  { title: 'Scan a bill.', text: 'Snap a receipt and Aviary reads every line, and splits it if you shared.' },
+  { title: 'Recurring expenses.', text: 'Rent and subscriptions log themselves on their due date.' },
+  { title: 'The widget.', text: 'On Android, see what’s left from your home screen and tap + to log.' },
+]

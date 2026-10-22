@@ -40,6 +40,13 @@ export async function publishedChangelog(platform: ChangelogPlatform = 'web') {
   return db.collection<ChangelogDoc>(CHANGELOG_COLLECTION).find({ status: 'published', ...platformFilter(platform) }).sort({ publishedAt: -1, _id: -1 }).limit(100).toArray()
 }
 
+/** Newest published notes from both apps, for Ask Aviary's "what's new" answers. */
+export async function recentReleases(limit = 5): Promise<ChangelogRelease[]> {
+  const db = await getDb()
+  const docs = await db.collection<ChangelogDoc>(CHANGELOG_COLLECTION).find({ status: 'published' }).sort({ publishedAt: -1, _id: -1 }).limit(limit).toArray()
+  return docs.map(serializeRelease)
+}
+
 export async function latestUnseenRelease(userId: string, platform: ChangelogPlatform = 'web'): Promise<ChangelogRelease | null> {
   const db = await getDb()
   const seenField = SEEN_FIELD[platform]

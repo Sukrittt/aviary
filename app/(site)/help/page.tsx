@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { pageMetadata } from '@/lib/seo'
-import { HOW_CATEGORIES_WORK, landingFaqs } from '@/src/components/landing/faqs'
+import { HOW_CATEGORIES_WORK, LOGGING_WAYS, landingFaqs } from '@/src/components/landing/faqs'
 
 export const metadata = pageMetadata('/help')
 
@@ -15,11 +15,7 @@ export default function PublicHelpPage() {
 
       <h2>Logging without the homework</h2>
       <ul>
-        <li><strong>Habit nudges.</strong> Log the same thing around the same time on the same weekday a few times, and Aviary nudges you 15 minutes after, details filled in. One tap logs it.</li>
-        <li><strong>Catch up in one line.</strong> Missed a day? Open Ask Aviary and type “auto 240, lunch 150”. You check the spends before they’re logged.</li>
-        <li><strong>Scan a bill.</strong> Snap a receipt and Aviary reads every line, and splits it if you shared.</li>
-        <li><strong>Recurring expenses.</strong> Rent and subscriptions log themselves on their due date.</li>
-        <li><strong>The widget.</strong> On Android, see what’s left from your home screen and tap + to log.</li>
+        {LOGGING_WAYS.map(({ title, text }) => <li key={title}><strong>{title}</strong> {text}</li>)}
       </ul>
 
       <h2>Common questions</h2>
