@@ -58,7 +58,8 @@ describe('computeEnvelopeState', () => {
 
     expect(state.envelopes.map((e) => e.category)).toEqual(['Rent'])
     expect(state.totalAssigned).toBe(18000)
-    expect(state.readyToAssign).toBe(32000)
+    // Eating out's 450 was still spent, so it leaves Ready to assign.
+    expect(state.readyToAssign).toBe(31550)
     expect(state.isOverAssigned).toBe(false)
     expect(state.totalSpent).toBe(700)
     expect(budgets).toEqual(originalBudgets)
@@ -73,7 +74,7 @@ describe('computeEnvelopeState', () => {
     )
     expect(state.envelopes).toEqual([])
     expect(state.totalAssigned).toBe(0)
-    expect(state.readyToAssign).toBe(50000)
+    expect(state.readyToAssign).toBe(49550)
     expect(state.totalSpent).toBe(450)
   })
 
