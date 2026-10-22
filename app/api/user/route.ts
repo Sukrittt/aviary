@@ -172,10 +172,13 @@ export async function DELETE(req: Request) {
   // the account's own — this re-checks it server-side, since that's the only
   // check that actually stops a direct API call (the old body.confirm===true
   // check was one curl call away from irreversible).
-  const account = await db.collection<UserDoc>('users').findOne({ _id: auth.userId }, { projection: { email: 1 } })
+  const account = await db.collection<UserDoc>('users').findOne({ _id: auth.userId }, { projection: { email: 1, deleted_at: 1 } })
   if (!account?.email || !confirmEmail || confirmEmail !== account.email.toLowerCase()) {
     return error('email confirmation required', 400)
   }
+  // Already deleted: a retry or a second tab. Handing budgets off now could
+  // race a restore that has already checked them (lib/accountLifecycle.ts).
+  if (account.deleted_at) return json({ ok: true, deletionScheduledFor: purgesAt(account.deleted_at) })
 
   // A web subscription is ours to stop, so stop it before the account goes.
   // If Razorpay can't be reached, refuse the delete rather than leave a
