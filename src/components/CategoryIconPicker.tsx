@@ -107,12 +107,10 @@ export function CategoryIconPicker({ value, onChange, tint, disabled, className,
       }}
     >
       <Current size="1em" aria-hidden />
-      {/* A standalone tile has no input beside it to say it's editable. */}
-      {!children && (
-        <span className="cat-icon-picker-badge" aria-hidden="true">
-          <PencilSimpleIcon size={11} weight="bold" />
-        </span>
-      )}
+      {/* Says the tile is editable, as on Mobile. */}
+      <span className="cat-icon-picker-badge" aria-hidden="true">
+        <PencilSimpleIcon size={11} weight="bold" />
+      </span>
     </button>
   )
 
