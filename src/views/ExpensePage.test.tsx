@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { renderToString } from 'react-dom/server'
 import { hydrateRoot } from 'react-dom/client'
 import { recentExpensesKey, recentFrom } from '@/src/hooks/useExpenses'
+import { getRecentExpenses } from '@/src/api/expenses'
 import { ExpensePage } from './ExpensePage'
 import { getBudgets, addBudget, updateBudget, transferBudget, getCarry } from '@/src/api/budgets'
 import { getUser } from '@/src/api/account'
@@ -194,6 +195,25 @@ it('shows a bulk return in Ready to Assign straight away, before the refetch lan
   fireEvent.click(await screen.findByRole('button', { name: /Return ₹5,000 to RTA/ }))
   expect(await screen.findByLabelText('₹20,000')).toBeInTheDocument()
   expect(transferBudget).toHaveBeenCalled()
+  client.clear()
+})
+
+it('leaves Credit Card Payment out of the bulk return\'s Ready to Assign, as the server does', async () => {
+  vi.mocked(getBudgets).mockResolvedValue([
+    { month, category: '__income__', assigned: '20000', rolled_over: '0', version: 1 },
+    { month, category: 'Food', assigned: '5000', rolled_over: '0', version: 1 },
+    { month, category: '__credit_card__', assigned: '1000', rolled_over: '0', version: 1 },
+  ])
+  vi.mocked(getRecentExpenses).mockResolvedValue({ rows: [{ timestamp: `${month}-02T10:00:00`, date: `${month}-02`, item: 'Card swipe', amount_inr: '400', category: '__credit_card__', notes: '', source: '', amount: '400', description: '', payment_method: '' }], lastSpent: {} } as never)
+  vi.mocked(transferBudget).mockImplementation(async () => {
+    vi.mocked(getBudgets).mockReturnValue(new Promise(() => {}))
+  })
+  const client = renderPage()
+  expect(await screen.findByLabelText('₹15,000')).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Return all to RTA' }))
+  fireEvent.click(await screen.findByRole('button', { name: /Return ₹5,600 to RTA/ }))
+  // The card's ₹400 still assigned isn't part of totalAssigned, so nothing comes off.
+  expect(await screen.findByLabelText('₹20,000')).toBeInTheDocument()
   client.clear()
 })
 

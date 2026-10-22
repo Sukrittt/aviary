@@ -68,11 +68,17 @@ function useMoneyData() {
   return {
     isLoading: budgetsQ.isLoading || expensesQ.isLoading || categoriesQ.isLoading || groupsQ.isLoading || carryQ.isLoading,
     carry: carryQ.data,
+    // Without the carry every balance is off, so money screens stop rather than guess.
+    carryFailed: !!carryQ.isError && carryQ.data === undefined,
     budgets: budgetsQ.data ?? EMPTY,
     expenses: expensesQ.data ?? EMPTY,
     categories: categoriesQ.data ?? EMPTY,
     groups: groupsQ.data ?? EMPTY,
   }
+}
+
+function CarryFailed({ title, onClose }: { title: string; onClose: () => void }) {
+  return <FormSheet title={title} onClose={onClose} busy={false}><p role="alert" className="erd-log-error">{"Couldn't load your balances. Check your connection and try again."}</p></FormSheet>
 }
 
 // ─── Shell ───────────────────────────────────────────────────────────────────
@@ -350,6 +356,7 @@ export function MoveMoneyScreen({ targetCategory, amount, onClose }: {
 }) {
   const data = useMoneyData()
   if (data.isLoading) return <FormSheet title="Pull money" onClose={onClose} busy={false}><LoadingCaption /></FormSheet>
+  if (data.carryFailed) return <CarryFailed title="Pull money" onClose={onClose} />
   return <MoveMoneyBody targetCategoryName={targetCategory} initialAmount={amount} onClose={onClose} data={data} />
 }
 
@@ -717,6 +724,7 @@ export function EditAssignedScreen({ category, onClose, assign = false }: { cate
   const data = useMoneyData()
   // Mounted only once data has settled, so the numpad seeds from the real envelope.
   if (data.isLoading) return <FormSheet title={assign ? 'Assign money' : 'Edit amount'} onClose={onClose} busy={false}><LoadingCaption /></FormSheet>
+  if (data.carryFailed) return <CarryFailed title={assign ? 'Assign money' : 'Edit amount'} onClose={onClose} />
 
   const month = currentMonthKey()
   const state = computeEnvelopeState(data.budgets, data.expenses, month, data.categories, data.groups, undefined, data.carry)
@@ -1134,6 +1142,7 @@ export function EditReadyToAssignScreen({ onClose }: { onClose: () => void }) {
   const data = useMoneyData()
   const fetchFreshBudgets = useFreshBudgets()
   if (data.isLoading) return <FormSheet title="Set Ready to Assign" onClose={onClose} busy={false}><LoadingCaption /></FormSheet>
+  if (data.carryFailed) return <CarryFailed title="Set Ready to Assign" onClose={onClose} />
   const month = currentMonthKey()
   const state = computeEnvelopeState(data.budgets, data.expenses, month, data.categories, data.groups, undefined, data.carry)
   const incomeBudget = data.budgets.find((b) => b.month === month && b.category === INCOME_CATEGORY)

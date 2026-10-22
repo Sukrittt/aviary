@@ -321,7 +321,8 @@ export function ExpensePage() {
       const updated = current.envelopes.map((e) =>
         e.available > 0 ? { ...e, assigned: e.assigned - e.available, available: 0 } : e,
       );
-      const totalAssigned = updated.reduce((sum, e) => sum + e.assigned, 0);
+      // Credit Card Payment stays out of totalAssigned, as in computeEnvelopeState.
+      const totalAssigned = updated.filter((e) => !e.isCreditCardPayment).reduce((sum, e) => sum + e.assigned, 0);
       const rta = current.carriedReadyToAssign + current.income - totalAssigned;
       const log = {
         type: "bulk-return-to-rta",
