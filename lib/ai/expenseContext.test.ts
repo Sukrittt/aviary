@@ -88,7 +88,7 @@ describe('summarizeExpenses precomputed totals', () => {
     expect(sections.trend).toContain('TOTAL|0|0|0|0|420|940|420')
   })
 
-  it('reports what each month saved and the running total, since envelopes reset monthly', () => {
+  it('reports what each month saved and the running total since', () => {
     const { sections } = summarizeExpenses({
       ...input,
       budgets: [...input.budgets, { month: '2026-08', category: '__income__', assigned: 80000, rolled_over: 0 }],
