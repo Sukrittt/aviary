@@ -53,7 +53,7 @@ const TODAY = '2026-08-15'
 describe('buildNotifications — thresholds', () => {
   it('does not fire below any configured threshold', () => {
     const notifs = buildNotifications({
-      envelopes: [envelope({ spentPct: 40 })],
+      envelopes: [envelope({ spentPct: 40, spent: 400 })],
       subscriptions: [],
       categories: [{ name: 'Food', alertPcts: [50, 90] }],
       meta: meta(),
@@ -183,7 +183,7 @@ describe('buildNotifications — thresholds', () => {
     const categories = [{ name: 'Food', alertPcts: [50, 90] }]
     expect(categoryLevel(envelopes, categories, 'Food')).toBe(90)
     expect(categoryLevel(envelopes, categories, 'Nonexistent')).toBe(0)
-    expect(categoryLevel([envelope({ spentPct: 30 })], [{ name: 'Food', alertPcts: [50, 90] }], 'Food')).toBe(0)
+    expect(categoryLevel([envelope({ spentPct: 30, spent: 300 })], [{ name: 'Food', alertPcts: [50, 90] }], 'Food')).toBe(0)
   })
 
   it('skips the credit-card sentinel envelope', () => {
@@ -197,6 +197,38 @@ describe('buildNotifications — thresholds', () => {
       month: MONTH,
     })
     expect(notifs.filter((n) => n.kind === 'threshold' || n.kind === 'overspent')).toHaveLength(0)
+  })
+})
+
+describe('buildNotifications — thresholds with carried money', () => {
+  it('measures spend against assigned plus what carried in', () => {
+    // 1000 a month with 5000 saved up: 1500 spent is 25%, not 100%.
+    const notifs = buildNotifications({
+      envelopes: [envelope({ category: 'Travel', assigned: 1000, rolledOver: 5000, spent: 1500, available: 4500, spentPct: 100 })],
+      subscriptions: [],
+      categories: [],
+      meta: meta(),
+      prefs: prefs({ bills: false, coach: false }),
+      today: TODAY,
+      month: MONTH,
+    })
+    expect(notifs.filter((n) => n.kind === 'threshold')).toHaveLength(0)
+  })
+
+  it('reports the percentage and total against assigned plus carry', () => {
+    const notifs = buildNotifications({
+      envelopes: [envelope({ category: 'Travel', assigned: 1000, rolledOver: 1000, spent: 1900, available: 100, spentPct: 100 })],
+      subscriptions: [],
+      categories: [],
+      meta: meta(),
+      prefs: prefs({ bills: false, coach: false }),
+      today: TODAY,
+      month: MONTH,
+    })
+    const thr = notifs.filter((n) => n.kind === 'threshold')
+    expect(thr).toHaveLength(1)
+    expect(thr[0].title).toBe('Travel is at 95%')
+    expect(thr[0].body).toBe('₹1,900 of ₹2,000 spent in Travel.')
   })
 })
 

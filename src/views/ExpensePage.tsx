@@ -62,7 +62,7 @@ import { ReadOnlyDialog } from "../components/BudgetNotices";
 import { SuccessButton, useButtonPhase } from "../components/SuccessButton";
 import { ImportBanner, useImportInProgress } from "../components/ImportBanner";
 import type { EnvelopeState } from "../types/expense";
-import { currentMonthKey, daysLeftInMonth, monthLabel } from "../lib/envelope";
+import { currentMonthKey, daysLeftInMonth, monthLabel, splitDebit } from "../lib/envelope";
 import { InsightsTab } from "@/src/components/InsightsTab";
 import { ForecastLine } from "@/src/components/Forecast";
 
@@ -319,12 +319,20 @@ export function ExpensePage() {
         to: "__ready_to_assign__",
         sources: positive.map((e) => ({ category: e.category, amount: e.available })),
       });
-      const updated = current.envelopes.map((e) =>
-        e.available > 0 ? { ...e, assigned: e.assigned - e.available, available: 0 } : e,
-      );
-      // Credit Card Payment stays out of totalAssigned, as in computeEnvelopeState.
+      // Same split as the server: carried money first, then assigned. Carried
+      // money always lands in Ready to Assign; assigned only does outside
+      // Credit Card Payment, which stays out of totalAssigned (computeEnvelopeState).
+      let returned = 0;
+      const updated = current.envelopes.map((e) => {
+        if (e.available <= 0) return e;
+        const { fromAssigned, fromCarry } = splitDebit(e.available, e.assigned, e.rolledOver);
+        returned += fromCarry + (e.isCreditCardPayment ? 0 : fromAssigned);
+        const assigned = e.assigned - fromAssigned;
+        const spentPct = assigned > 0 ? Math.min(100, (e.spent / assigned) * 100) : e.spent > 0 ? 100 : 0;
+        return { ...e, assigned, rolledOver: e.rolledOver - fromCarry, available: 0, spentPct };
+      });
       const totalAssigned = updated.filter((e) => !e.isCreditCardPayment).reduce((sum, e) => sum + e.assigned, 0);
-      const rta = current.carriedReadyToAssign + current.income - totalAssigned;
+      const rta = current.readyToAssign + returned;
       const log = {
         type: "bulk-return-to-rta",
         month: current.month,

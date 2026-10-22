@@ -15,6 +15,12 @@ vi.mock('@/lib/notifications/instant', () => ({
     reconcileThresholdLevelsMock(auth, categories, month),
 }))
 
+let carryRolledOver: Record<string, number> = {}
+vi.mock('@/lib/budgetCarry', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/budgetCarry')>()),
+  computeCarry: vi.fn(async (_auth: unknown, month: string) => ({ month, ready_to_assign: 0, rolled_over: carryRolledOver })),
+}))
+
 vi.mock('@/lib/mongodb', () => ({
   withTx: async (fn: (session: undefined) => Promise<unknown>) => fn(undefined),
 }))
@@ -81,6 +87,7 @@ function row(month: string, category: string) {
 beforeEach(() => {
   store = []
   nextId = 1
+  carryRolledOver = {}
   reconcileThresholdLevelsMock.mockClear()
 })
 
@@ -218,6 +225,48 @@ describe('POST /api/budgets/transfer', () => {
     const res = await POST(req({ month: '2026-03', to: 'Shopping', from: '__credit_card__', amount: 100 }))
     expect(res.status).toBe(200)
 
-    expect(row('2026-03', '__credit_card__')?.assigned).toBe('-100')
+    // Its 0 target stays 0; the 100 came out of carried cash.
+    expect(row('2026-03', '__credit_card__')?.assigned).toBe('0')
+    expect(row('2026-03', '__credit_card__')?.rolled_over).toBe('-100')
+  })
+
+  it('moving carried money takes it from this month\'s carry, never below a 0 target', async () => {
+    // Travel: 1000 a month, 1000 carried from October, so 2000 available.
+    store.push({ _id: 1, month: '2026-10', category: 'Travel', assigned: '1000', rolled_over: '0' })
+    carryRolledOver = { Travel: 1000 }
+
+    const res = await POST(req({ month: '2026-11', to: 'Food', from: 'Travel', amount: 2000 }))
+    expect(res.status).toBe(200)
+
+    expect(row('2026-11', 'Travel')).toMatchObject({ assigned: '0', rolled_over: '-1000' })
+    expect(row('2026-11', 'Food')).toMatchObject({ assigned: '2000', rolled_over: '0' })
+  })
+
+  it('a partial move of carried money leaves the monthly target alone', async () => {
+    store.push({ _id: 1, month: '2026-10', category: 'Travel', assigned: '1000', rolled_over: '0' })
+    carryRolledOver = { Travel: 1000 }
+
+    await POST(req({ month: '2026-11', to: 'Food', from: 'Travel', amount: 500 }))
+
+    expect(row('2026-11', 'Travel')).toMatchObject({ assigned: '1000', rolled_over: '-500' })
+  })
+
+  it('a second move adds to the month\'s existing adjustment', async () => {
+    store.push({ _id: 1, month: '2026-11', category: 'Travel', assigned: '0', rolled_over: '-300' })
+    carryRolledOver = { Travel: 700 }
+
+    await POST(req({ month: '2026-11', to: '__ready_to_assign__', from: 'Travel', amount: 200 }))
+
+    expect(row('2026-11', 'Travel')).toMatchObject({ assigned: '0', rolled_over: '-500' })
+  })
+
+  it('covering last month\'s shortfall fixes this month only, not the monthly target', async () => {
+    store.push({ _id: 1, month: '2026-10', category: 'Food', assigned: '300', rolled_over: '0' })
+    carryRolledOver = { Food: -20 }
+
+    await POST(req({ month: '2026-11', to: 'Food', from: '__ready_to_assign__', amount: 50 }))
+
+    // 20 covers the shortfall; the other 30 is a real top-up.
+    expect(row('2026-11', 'Food')).toMatchObject({ assigned: '330', rolled_over: '20' })
   })
 })

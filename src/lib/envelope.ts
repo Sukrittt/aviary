@@ -60,6 +60,19 @@ export interface Carry {
 export const CREDIT_CARD_CATEGORY = '__credit_card__'
 export const INCOME_CATEGORY = '__income__'
 
+/**
+ * Where `amount` moved out of an envelope comes from: carried money first (so
+ * the monthly target survives), then this month's `assigned` down to 0, and
+ * anything past that as a one-month overdraw. The carried part is written as
+ * the row's `rolled_over` adjustment, never as a lower `assigned`, because
+ * `assigned` carries forward as next month's target too.
+ */
+export function splitDebit(amount: number, assigned: number, carry: number): { fromAssigned: number; fromCarry: number } {
+  const fromCarried = Math.min(amount, Math.max(carry, 0))
+  const fromAssigned = Math.round(Math.min(amount - fromCarried, Math.max(assigned, 0)) * 100) / 100
+  return { fromAssigned, fromCarry: Math.round((amount - fromAssigned) * 100) / 100 }
+}
+
 export function currentMonthKey(date: Date = new Date()): string {
   return toLocalDateString(date).slice(0, 7)
 }
