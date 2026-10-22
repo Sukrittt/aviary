@@ -73,7 +73,7 @@ describe('onboarding analytics', () => {
     expect(eventsNamed('onboarding_step_completed').at(-1)).toMatchObject({ step: 4, step_name: 'first_expense', logged: true })
 
     expect(await screen.findByRole('heading', { name: 'Your budget is live.' }, { timeout: 3000 })).toBeInTheDocument()
-    expect(screen.getByText('Your first expense is in. Home opens right on it.')).toBeInTheDocument()
+    expect(screen.getByText('Your first expense is in. You’ll see it on Home.')).toBeInTheDocument()
     expect(screen.getByText('Your first 30 days are free. No card, nothing to cancel.')).toBeInTheDocument()
     expect(screen.getByText('$250 · Eating out')).toBeInTheDocument()
     // Straight home: no extras, no survey, no trial notice in between.

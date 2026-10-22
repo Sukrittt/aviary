@@ -1118,7 +1118,7 @@ function SetupDone({
         {imported
           ? 'Your envelopes, accounts and payday are set up from it. Change anything later from Categories.'
           : result.firstExpense
-            ? 'Your first expense is in. Home opens right on it.'
+            ? 'Your first expense is in. You’ll see it on Home.'
             : 'Everything below can be changed later from Categories.'}
       </p>
       <p className="setup-done-blurb">{`Your first ${trialDays} days are free. No card, nothing to cancel.`}</p>

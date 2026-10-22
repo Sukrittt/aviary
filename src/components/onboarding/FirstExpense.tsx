@@ -108,7 +108,8 @@ export function FirstExpense({
           }}
         />
       </label>
-      <p className="setup-amount-hint">{amount ? '' : 'Type what you spent'}</p>
+      {/* Hidden, not removed, so the envelope below doesn't jump on the first key. */}
+      <p className="setup-amount-hint" style={amount ? { visibility: 'hidden' } : undefined}>Type what you spent</p>
 
       <div className="erd-card setup-first-envelope" data-testid="first-expense-envelope">
         <div className="env2-row">
