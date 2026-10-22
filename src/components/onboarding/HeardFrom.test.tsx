@@ -1,44 +1,55 @@
 import { it, expect, vi, beforeEach } from 'vitest'
 import type { Mock } from 'vitest'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { updateUser } from '@/src/api/account'
+import { getUser, updateUser } from '@/src/api/account'
 import { track } from '@/src/lib/analytics'
 import { queryWrapper } from '@/src/test-utils/queryWrapper'
-import { HeardFrom } from './HeardFrom'
+import { HeardFrom, heardFromUnasked } from './HeardFrom'
 
 vi.mock('@/src/api/account', () => ({ getUser: vi.fn(), updateUser: vi.fn() }))
 vi.mock('@/src/lib/analytics', () => ({ track: vi.fn() }))
 
-function renderHeard(onDone = vi.fn()) {
-  render(<HeardFrom onDone={onDone} />, { wrapper: queryWrapper() })
-  return onDone
+// Extras already chosen, so Home's one-at-a-time rule lets this card through.
+const ASKABLE = { email: 'a@b.com', emailVerified: true, onboardedAt: '2026-10-20T00:00:00.000Z', createdAt: '2026-10-20T00:00:00.000Z', hiddenFeatures: [] }
+
+function renderCard() {
+  render(<HeardFrom />, { wrapper: queryWrapper() })
 }
 
 beforeEach(() => {
   vi.clearAllMocks()
-  ;(updateUser as Mock).mockImplementation(async (patch) => ({ email: 'a@b.com', emailVerified: true, ...patch }))
+  localStorage.clear()
+  ;(getUser as Mock).mockResolvedValue(ASKABLE)
+  ;(updateUser as Mock).mockImplementation(async (patch) => ({ ...ASKABLE, ...patch }))
 })
 
-it('saves and tracks the picked answer', async () => {
-  const onDone = renderHeard()
-  fireEvent.click(screen.getByRole('button', { name: 'Reddit' }))
-  fireEvent.click(screen.getByRole('button', { name: 'Start budgeting' }))
-  await waitFor(() => expect(onDone).toHaveBeenCalled())
-  expect(updateUser).toHaveBeenCalledWith({ heardFrom: 'reddit' })
+it('waits for the extras card, and never asks twice', () => {
+  expect(heardFromUnasked(ASKABLE)).toBe(true)
+  expect(heardFromUnasked({ ...ASKABLE, hiddenFeatures: undefined })).toBe(false)
+  expect(heardFromUnasked({ ...ASKABLE, heardFrom: 'reddit' })).toBe(false)
+  expect(heardFromUnasked({ ...ASKABLE, createdAt: '2026-01-01T00:00:00.000Z' })).toBe(false)
+})
+
+it('one click saves and tracks the answer, thanks you, then leaves', async () => {
+  renderCard()
+  fireEvent.click(await screen.findByRole('button', { name: 'Reddit' }))
+  await waitFor(() => expect(updateUser).toHaveBeenCalledWith({ heardFrom: 'reddit' }))
   expect(track).toHaveBeenCalledWith('onboarding_heard_from', { source: 'reddit' })
+  expect(screen.getByText('Thanks, that helps.')).toBeTruthy()
+  await waitFor(() => expect(screen.queryByText('Thanks, that helps.')).toBeNull(), { timeout: 3000 })
 })
 
-it('skips without saving anything', () => {
-  const onDone = renderHeard()
-  fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }))
-  expect(onDone).toHaveBeenCalled()
+it('Not now dismisses it without saving anything', async () => {
+  renderCard()
+  fireEvent.click(await screen.findByRole('button', { name: 'Not now' }))
+  await waitFor(() => expect(screen.queryByText('Where did you hear about us?')).toBeNull())
   expect(updateUser).not.toHaveBeenCalled()
 })
 
-it('moves on even when the save fails', async () => {
+it('a failed save still thanks you: the event already has the answer', async () => {
   ;(updateUser as Mock).mockRejectedValue(new Error('503'))
-  const onDone = renderHeard()
-  fireEvent.click(screen.getByRole('button', { name: 'A friend' }))
-  fireEvent.click(screen.getByRole('button', { name: 'Start budgeting' }))
-  await waitFor(() => expect(onDone).toHaveBeenCalled())
+  renderCard()
+  fireEvent.click(await screen.findByRole('button', { name: 'A friend' }))
+  expect(track).toHaveBeenCalledWith('onboarding_heard_from', { source: 'friend' })
+  expect(screen.getByText('Thanks, that helps.')).toBeTruthy()
 })

@@ -52,6 +52,8 @@ import { usePersistentState } from "../hooks/usePersistentState";
 import { useDismissedRolloverBanner } from "../hooks/useDismissedRolloverBanner";
 import { rolloverCard } from "../lib/rollover";
 import { RolloverCard } from "../components/home/RolloverCard";
+import { PickExtras } from "../components/onboarding/PickExtras";
+import { HeardFrom } from "../components/onboarding/HeardFrom";
 import { LogExpenseModal } from "../components/LogExpenseModal";
 import { FillGap } from "../features/fill-gap/FillGap";
 import { RecurringIncomeModal } from "../components/RecurringIncomeModal";
@@ -643,6 +645,13 @@ export function ExpensePage() {
                   />
                 </motion.article>
               )}
+
+              {/* What setup used to ask at its end, asked once the budget is
+                  running, below the envelopes so the one that just moved stays
+                  in view. Each card decides for itself whether it's needed;
+                  heard-from waits for extras. */}
+              <PickExtras />
+              <HeardFrom />
 
               {!hidden.includes("insights") && (
                 <MotionLink

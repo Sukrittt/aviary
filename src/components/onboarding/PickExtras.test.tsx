@@ -2,37 +2,57 @@ import { it, expect, vi, beforeEach } from 'vitest'
 import type { Mock } from 'vitest'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { getUser, updateUser } from '@/src/api/account'
+import { track } from '@/src/lib/analytics'
 import { queryWrapper } from '@/src/test-utils/queryWrapper'
 import { PickExtras } from './PickExtras'
 
 vi.mock('@/src/api/account', () => ({ getUser: vi.fn(), updateUser: vi.fn() }))
 vi.mock('@/src/lib/analytics', () => ({ track: vi.fn() }))
 
-function renderPick(onDone = vi.fn()) {
-  render(<PickExtras onDone={onDone} />, { wrapper: queryWrapper() })
-  return onDone
+const NEW_ACCOUNT = { email: 'a@b.com', emailVerified: true, onboardedAt: '2026-10-20T00:00:00.000Z', createdAt: '2026-10-20T00:00:00.000Z' }
+
+function renderCard() {
+  render(<PickExtras />, { wrapper: queryWrapper() })
 }
 
 beforeEach(() => {
-  ;(getUser as Mock).mockResolvedValue({ email: 'a@b.com', emailVerified: true, createdAt: '2026-10-13T00:00:00.000Z', hiddenFeatures: ['accounts'] })
-  ;(updateUser as Mock).mockImplementation(async (patch) => ({ email: 'a@b.com', emailVerified: true, ...patch }))
+  vi.clearAllMocks()
+  ;(getUser as Mock).mockResolvedValue(NEW_ACCOUNT)
+  ;(updateUser as Mock).mockImplementation(async (patch) => ({ ...NEW_ACCOUNT, ...patch }))
 })
 
-it('saves every extra left off, keeping core features already hidden', async () => {
-  const onDone = renderPick()
-  await waitFor(() => expect(getUser).toHaveBeenCalled())
-  fireEvent.click(screen.getByRole('switch', { name: 'Turn on Insights' }))
-  fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
-  await waitFor(() => expect(onDone).toHaveBeenCalled())
-  expect(updateUser).toHaveBeenCalledWith({ hiddenFeatures: ['accounts', 'askAviary', 'billScan', 'wrapped', 'investments', 'subscriptions'] })
+it('saves the extras switched on, keeping core features already hidden, then leaves', async () => {
+  ;(getUser as Mock).mockResolvedValue({ ...NEW_ACCOUNT, hiddenFeatures: undefined })
+  renderCard()
+  fireEvent.click(await screen.findByRole('switch', { name: 'Turn on Insights' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Turn on 1' }))
+  await waitFor(() => expect(updateUser).toHaveBeenCalledWith({ hiddenFeatures: ['askAviary', 'billScan', 'wrapped', 'investments', 'subscriptions'] }))
+  expect(track).toHaveBeenCalledWith('onboarding_extras_chosen', { extras: 'insights', count: 1 })
+  // The saved check holds the card up, then it goes.
+  expect(screen.getByRole('img', { name: 'Turned on' })).toBeTruthy()
+  await waitFor(() => expect(screen.queryByText('Want any extras?')).toBeNull(), { timeout: 3000 })
 })
 
-it('stays put and says so when the save fails, then lets you continue', async () => {
+it('Not now saves the defaults and the card goes', async () => {
+  renderCard()
+  fireEvent.click(await screen.findByRole('button', { name: 'Not now' }))
+  await waitFor(() => expect(updateUser).toHaveBeenCalledWith({ hiddenFeatures: ['askAviary', 'billScan', 'wrapped', 'investments', 'subscriptions', 'insights'] }))
+  expect(track).toHaveBeenCalledWith('onboarding_extras_chosen', { extras: '', count: 0 })
+  await waitFor(() => expect(screen.queryByText('Want any extras?')).toBeNull())
+})
+
+it('stays and says so when the save fails', async () => {
   ;(updateUser as Mock).mockRejectedValue(new Error('503'))
-  const onDone = renderPick()
-  fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }))
+  renderCard()
+  fireEvent.click(await screen.findByRole('switch', { name: 'Turn on Insights' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Turn on 1' }))
   expect(await screen.findByRole('alert')).toHaveTextContent("Couldn't save your extras")
-  expect(onDone).not.toHaveBeenCalled()
-  fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
-  expect(onDone).toHaveBeenCalled()
+  expect(screen.getByText('Want any extras?')).toBeTruthy()
+})
+
+it('never shows for an account that already chose', async () => {
+  ;(getUser as Mock).mockResolvedValue({ ...NEW_ACCOUNT, hiddenFeatures: ['accounts'] })
+  renderCard()
+  await waitFor(() => expect(getUser).toHaveBeenCalled())
+  expect(screen.queryByText('Want any extras?')).toBeNull()
 })

@@ -38,3 +38,12 @@ export function hiddenFeatures(user: FeatureUser | null | undefined): HideableFe
   if (user.hiddenFeatures) return user.hiddenFeatures
   return user.createdAt && new Date(user.createdAt) >= OPT_IN_SINCE ? OPT_IN_FEATURES : []
 }
+
+/**
+ * A new account that hasn't said which extras it wants, here or on Mobile.
+ * Home's extras card shows until it has. Accounts from before OPT_IN_SINCE
+ * started with everything on, so there's nothing to offer them. Same rule as Mobile.
+ */
+export function extrasUnchosen(user: (FeatureUser & { onboardedAt?: string | null }) | null | undefined): boolean {
+  return !!user?.onboardedAt && !user.hiddenFeatures && !!user.createdAt && new Date(user.createdAt) >= OPT_IN_SINCE
+}
