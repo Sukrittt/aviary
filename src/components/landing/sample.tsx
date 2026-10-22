@@ -20,7 +20,7 @@ const INTL_MEDIA = new Set([
   'clip-log.mp4', 'poster-log.webp', 'clip-added.mp4', 'poster-added.webp', 'clip-scan.mp4', 'poster-scan.webp',
   'clip-insights.mp4', 'poster-insights.webp', 'clip-invest.mp4', 'poster-invest.webp', 'subscriptions.png',
   'clip-ask.mp4', 'poster-ask.webp', 'clip-create.mp4', 'poster-create.webp', 'clip-join.mp4', 'poster-join.webp',
-  'clip-catchup.mp4', 'poster-catchup.webp', 'clip-members.mp4', 'poster-members.webp',
+  'clip-catchup.mp4', 'poster-catchup.webp', 'clip-members.mp4', 'poster-members.webp', 'clip-import.mp4', 'poster-import.webp',
 ])
 
 const IN = {

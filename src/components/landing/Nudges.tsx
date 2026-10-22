@@ -304,22 +304,14 @@ export function CatchUp() {
 
 // ─── Nothing to lose: switching in, and the phone going missing ──────────────
 
-const IMPORT_APPS = ['YNAB', 'Goodbudget', 'Wallet', 'Monefy', 'Money Manager', 'Spendee', 'axio', 'any csv']
 
 /** The two fears that keep people on an app they've outgrown: starting over, and a lost phone taking the budget with it. */
 export function KeepEverything() {
   const { ask } = useSample()
   return <div className="lp-keep">
     <figure className="lp-shot">
-      <div className="lp-keep-art" aria-hidden="true">
-        <div className="lp-stage-card">
-          <div className="lp-keep-apps">{IMPORT_APPS.map(a => <span key={a}>{a}</span>)}</div>
-          <div className="lp-envelope-line"><span>Groceries</span><strong>3 yrs<small> of history</small></strong></div>
-          <div className="lp-envelope-bar"><i style={{ transform: `scaleX(${ask.bar})` }} /></div>
-          <p className="lp-stage-note">Categories, balances and every transaction, as they were.</p>
-        </div>
-      </div>
-      <figcaption><strong>Bring everything with you.</strong><span>Upload the export from your old app when you set up Aviary. Your categories and years of history come along, in about two minutes. <a href="/sign-in">Sign in and bring it over</a></span></figcaption>
+      <div className="lp-shot-art" aria-hidden="true"><ShotClip name="import" /></div>
+      <figcaption><strong>Bring everything with you.</strong><span>Pick “I’m switching apps”, upload the export from your old app, and check what it found. Categories, balances and years of history come along, in about two minutes. Already set up? It’s in Settings too. <a href="/sign-in">Sign in and bring it over</a></span></figcaption>
     </figure>
     <figure className="lp-shot">
       <div className="lp-keep-art" aria-hidden="true">

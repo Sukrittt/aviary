@@ -50,6 +50,8 @@ build() {
   last "$out/clip-create.mp4" "$out/poster-create.webp"
   joined "$src/join-budget.mp4" "$out/clip-join.mp4" $JOIN; last "$out/clip-join.mp4" "$out/poster-join.webp"
   if [ -f "$src/members.mp4" ]; then joined "$src/members.mp4" "$out/clip-members.mp4" $MEMBERS; last "$out/clip-members.mp4" "$out/poster-members.webp"; fi
+  # Switching apps: a YNAB export picked, read, checked, and Home with the history in.
+  joined "$src/import.mp4" "$out/clip-import.mp4" $IMPORT; last "$out/clip-import.mp4" "$out/poster-import.webp"
   # Catch-up from screenshots: pick, read, check, logged.
   joined "$src/statement-upload.mp4" "$out/clip-catchup.mp4" $CATCHUP; last "$out/clip-catchup.mp4" "$out/poster-catchup.webp"
   streak "$src/wrapped.mp4" "$STREAK" "$out/wrapped-streak.png"
@@ -67,8 +69,8 @@ build() {
 }
 
 KEYPAD=3.9 LOG="0 3.95 4.55 99" ADDED=6.4 ADDED_Y=208 SCAN=10.5 ASK="6.5 13.5 19.2 24.9 27.4 29.2" INSIGHTS="3.0 21.0" SUBS=29.6 INVEST=3.0 STREAK=51.5 PERSONA=47 CARD=9.0 \
-  CREATE="3.8 5.0 7.6 9.8 11.3 12.2 14.0 18.5" CREATE_TAIL="" JOIN="2.8 3.6 6.5 10.6 11.0 99" MEMBERS="0.3 1.0 2.9 5.3 6.0 11.6" CATCHUP="4.4 6.0 7.6 9.6 10.4 11.4 12.4 15.0 23.5 99" \
+  CREATE="3.8 5.0 7.6 9.8 11.3 12.2 14.0 18.5" CREATE_TAIL="" JOIN="2.8 3.6 6.5 10.6 11.0 99" MEMBERS="0.3 1.0 2.9 5.3 6.0 11.6" CATCHUP="4.4 6.0 7.6 9.6 10.4 11.4 12.4 15.0 23.5 99" IMPORT="1.0 3.2 4.0 5.0 9.0 12.5 22.8 25.8 40.6 42.2" \
   build india ""
 KEYPAD=4.8 LOG="0 5.15 5.95 99" ADDED=7.6 ADDED_Y=215 SCAN=7.4 ASK="6.5 13.0 17.0 22.6 25.0 26.8" INSIGHTS="2.5 23.0" SUBS=30.9 INVEST=17.5 STREAK=52 PERSONA=47 CARD=10.4 \
-  CREATE="4.4 5.2 7.4 8.6 15.2 16.4 20.0 21.0" CREATE_TAIL="14.6 18.5" JOIN="2.8 3.6 5.0 7.4 8.4 99" MEMBERS="0.3 1.0 3.2 6.0 8.6 99" CATCHUP="3.0 4.2 5.6 7.2 8.4 11.4 22.4 99" \
+  CREATE="4.4 5.2 7.4 8.6 15.2 16.4 20.0 21.0" CREATE_TAIL="14.6 18.5" JOIN="2.8 3.6 5.0 7.4 8.4 99" MEMBERS="0.3 1.0 3.2 6.0 8.6 99" CATCHUP="3.0 4.2 5.6 7.2 8.4 11.4 22.4 99" IMPORT="1.0 3.4 4.4 5.4 6.2 7.0 7.4 8.0 10.0 12.5 22.4 26.0 38.0 39.5" \
   build international /intl
