@@ -241,8 +241,16 @@ export function computeEnvelopeState(
   // Rounded to paise (2dp), not whole rupees — assigned amounts can carry
   // decimals, and a coarser round here silently dropped them from the one
   // number the envelope method is about.
+  // A deleted envelope's spending this month still left the account. With no
+  // envelope to hold it, it comes out of Ready to assign, the same as
+  // lib/budgetCarry.ts's carryFrom hands it on to next month.
+  let unlistedSpent = 0
+  for (const [category, spent] of monthSpending) {
+    if (category && category !== CREDIT_CARD_CATEGORY && category !== INCOME_CATEGORY && !allCategories.has(category)) unlistedSpent += spent
+  }
+
   const carriedReadyToAssign = carry?.ready_to_assign ?? 0
-  const readyToAssign = Math.round((carriedReadyToAssign + income - totalAssigned) * 100) / 100 || 0
+  const readyToAssign = Math.round((carriedReadyToAssign + income - totalAssigned - unlistedSpent) * 100) / 100 || 0
 
   return {
     month: currentMonth,

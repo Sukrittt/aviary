@@ -43,26 +43,24 @@ export async function carriedAssigned(
  * money, so the recurring `assigned` target stays put. `month`'s own
  * adjustments are in the result, since that's what its screen shows.
  *
- * Past months replay every category with a budget row or an expense, not just
- * today's list, so deleting a category can't erase what it spent. A category
- * that's no longer in `categories` hands its final balance to Ready to assign.
+ * A month's envelopes are the categories listed now, minus any whose `since`
+ * (set when a deleted name is re-created) is later. Anything else that month
+ * is gone: its leftover moves to Ready to assign as the month starts, and its
+ * spending comes out of Ready to assign, so deleting a category can't erase
+ * what it spent and a re-created one doesn't replay its old target.
  *
  * Computed from full history on every read, never stored, so a late edit to an
  * earlier month (an expense logged on the 3rd, dated the 30th) just works.
  * ponytail: O(months × rows) per read; materialise per-month summaries if it
  * ever measurably hurts.
  */
-export function carryFrom(budgets: BudgetRow[], expenses: ExpenseRow[], categories: CategoryRow[], month: string): Carry {
-  const listed = new Set(categories.map((c) => c.name))
-  const replayed = new Set(listed)
-  for (const r of [...budgets, ...expenses]) {
-    if (r.category && r.category !== INCOME_CATEGORY && r.category !== CC_CATEGORY) replayed.add(r.category)
-  }
-  const replayCategories = [...replayed].map((name): CategoryRow => ({ name, group: '' }))
+export function carryFrom(budgets: BudgetRow[], expenses: ExpenseRow[], categories: (CategoryRow & { since?: string })[], month: string): Carry {
+  const liveIn = (m: string) => categories.filter((c) => !c.since || c.since <= m)
 
   let carry: Carry = { ready_to_assign: 0, rolled_over: {} }
   for (let m = rolloverStart(budgets); m < month; m = shiftMonthKey(m, 1)) {
-    const state = computeEnvelopeState(budgets, expenses, m, replayCategories, [], undefined, withAdjustments(carry, budgets, m))
+    const live = liveIn(m)
+    const state = computeEnvelopeState(budgets, expenses, m, live, [], undefined, settle(withAdjustments(carry, budgets, m), live))
     const rolled_over: Record<string, number> = {}
     for (const e of state.envelopes) {
       const left = round2(e.available)
@@ -70,14 +68,18 @@ export function carryFrom(budgets: BudgetRow[], expenses: ExpenseRow[], categori
     }
     carry = { ready_to_assign: state.readyToAssign, rolled_over }
   }
+  return settle(withAdjustments(carry, budgets, month), liveIn(month))
+}
 
-  carry = withAdjustments(carry, budgets, month)
+/** `carry` with every envelope that isn't in `live` folded into Ready to assign. */
+function settle(carry: Carry, live: CategoryRow[]): Carry {
+  const names = new Set(live.map((c) => c.name))
+  const out: Carry = { ready_to_assign: carry.ready_to_assign, rolled_over: {} }
   for (const [category, left] of Object.entries(carry.rolled_over)) {
-    if (listed.has(category) || category === CC_CATEGORY) continue
-    carry.ready_to_assign = round2(carry.ready_to_assign + left)
-    delete carry.rolled_over[category]
+    if (names.has(category) || category === CC_CATEGORY) out.rolled_over[category] = left
+    else out.ready_to_assign = round2(out.ready_to_assign + left)
   }
-  return carry
+  return out
 }
 
 /** The space's first month with an envelope assigned, or ROLLOVER_START if
@@ -135,7 +137,9 @@ export async function computeCarry(auth: Auth, month: string): Promise<Carry & {
     timestamp: '', date: String(d.date ?? ''), item: '', amount_inr: String(d.amount_inr ?? d.amount ?? 0),
     category: String(d.category ?? ''), notes: '', source: '', amount: '', description: '', payment_method: '',
   }))
-  const categories = categoryDocs.map((d): CategoryRow => ({ name: String(d.name ?? ''), group: '' })).filter((c) => c.name)
+  const categories = categoryDocs
+    .map((d) => ({ name: String(d.name ?? ''), group: '', ...(typeof d.since === 'string' ? { since: d.since } : {}) }))
+    .filter((c) => c.name)
   return { month, ...carryFrom(budgets, expenses, categories, month) }
 }
 

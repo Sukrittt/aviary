@@ -162,6 +162,29 @@ describe('carryFrom', () => {
     expect(carryFrom(budgets, expenses, withoutTravel, '2026-12').ready_to_assign).toBe(9200)
   })
 
+  it('takes a deleted category\'s spending out of Ready to assign the month it was deleted', () => {
+    const budgets = [budget('2026-11', INCOME_CATEGORY, '5000'), budget('2026-11', 'Food', '1000'), budget('2026-11', 'Gym', '1000')]
+    const expenses = [expense('2026-11-05', 'Gym', '800')]
+    const food = [{ name: 'Food', group: '' }]
+    // November with Gym deleted: its 800 is spent, so 3200 left, not 4000.
+    expect(computeEnvelopeState(budgets, expenses, '2026-11', food, []).readyToAssign).toBe(3200)
+    // And December inherits the same 3200, so nothing jumps when the month turns.
+    expect(carryFrom(budgets, expenses, food, '2026-12')).toEqual({ ready_to_assign: 3200, rolled_over: { Food: 1000 } })
+  })
+
+  it('doesn\'t replay an old target into the months before a re-created category\'s `since`', () => {
+    // Gym: 1000 a month, 700 left in October, deleted in November, re-created in February.
+    const budgets = [budget('2026-10', INCOME_CATEGORY, '5000'), budget('2026-10', 'Gym', '1000'), budget('2027-02', 'Gym', '0')]
+    const expenses = [expense('2026-10-05', 'Gym', '300')]
+    const gym = [{ name: 'Gym', group: '', since: '2027-02' }]
+    const carry = carryFrom(budgets, expenses, gym, '2027-02')
+    // Oct 4700 + 5000 for each of Nov, Dec, Jan. Gym starts empty.
+    expect(carry).toEqual({ ready_to_assign: 19700, rolled_over: {} })
+    const feb = computeEnvelopeState(budgets, expenses, '2027-02', gym, [], undefined, carry)
+    expect(feb.envelopes.find((e) => e.category === 'Gym')).toMatchObject({ assigned: 0, available: 0 })
+    expect(feb.readyToAssign).toBe(24700)
+  })
+
   it('starts the carry at the space\'s first budget month, so imported earlier months don\'t carry', () => {
     const budgets = [budget('2026-12', INCOME_CATEGORY, '5000'), budget('2026-12', 'Food', '300')]
     // An October statement imported later, before any budget existed.
@@ -219,5 +242,15 @@ describe('computeCarry', () => {
     await scoped(db.collection('expenses'), 'someone-else').insertOne({ date: '2026-10-13', category: 'Travel', amount_inr: '40', item: 'cab' })
 
     expect(await computeCarry(auth, '2026-11')).toEqual({ month: '2026-11', ready_to_assign: 4900, rolled_over: { Travel: 95 } })
+  })
+
+  it('reads a re-created category\'s `since`', async () => {
+    const db = await getDb()
+    const mine = (name: string) => scoped(db.collection(name), USER)
+    await mine('categories').insertOne({ name: 'Travel', group: '', since: '2026-12' })
+    await mine('budgets').insertOne({ month: '2026-10', category: 'Travel', assigned: '100', rolled_over: '0', version: 1 })
+    await mine('budgets').insertOne({ month: '2026-10', category: INCOME_CATEGORY, assigned: '5000', rolled_over: '0', version: 1 })
+    // November is before Travel's `since`, so its old 100 target isn't reserved.
+    expect(await computeCarry(auth, '2026-12')).toEqual({ month: '2026-12', ready_to_assign: 10000, rolled_over: {} })
   })
 })
