@@ -5459,12 +5459,10 @@
 }
 
 /* Wears Envelopes' "Left" pill (.env2-pill.is-good); this resets the button and
-   fits the pencil that marks it editable. */
+   anchors the edit badge that marks it editable. */
 .expense-redesign .setup-plan-chip {
   flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
+  position: relative;
   border: 0;
   font-family: inherit;
   font-size: 14px;
@@ -5475,10 +5473,6 @@
 
 .expense-redesign .setup-plan-chip:hover {
   filter: brightness(0.96);
-}
-
-.expense-redesign .setup-plan-chip svg {
-  opacity: 0.7;
 }
 
 .setup-error {
@@ -12946,6 +12940,11 @@ button.account-feature-card {
   color: var(--tk-text);
   border: 1px solid color-mix(in oklab, currentColor 15%, transparent);
   box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
+}
+.cat-icon-picker-badge.is-top {
+  top: -8px;
+  bottom: auto;
+  right: -8px;
 }
 .cat-icon-picker-trigger:hover:not(:disabled) {
   transform: scale(1.04);
