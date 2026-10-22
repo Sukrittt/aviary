@@ -5411,7 +5411,8 @@
   background: var(--erd-card);
 }
 
-.setup-assign-row:focus-within {
+/* Only while renaming: the amount chip takes focus too, and opens its own sheet. */
+.setup-assign-row:has(.setup-assign-name:focus) {
   border-color: var(--gold);
   background: var(--gold-soft);
 }
@@ -5463,12 +5464,19 @@
 .expense-redesign .setup-plan-chip {
   flex-shrink: 0;
   position: relative;
+  padding: 7px 12px;
   border: 0;
+  border-radius: 8px;
   font-family: inherit;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
   cursor: pointer;
+}
+
+/* Where the pill trims its text box to cap height, pad for the same overall size. */
+@supports (text-box: trim-both cap alphabetic) {
+  .expense-redesign .setup-plan-chip { padding: 9px 12px; }
 }
 
 .expense-redesign .setup-plan-chip:hover {
@@ -12942,9 +12950,11 @@ button.account-feature-card {
   box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
 }
 .cat-icon-picker-badge.is-top {
-  top: -8px;
+  top: -6px;
   bottom: auto;
-  right: -8px;
+  right: -6px;
+  width: 16px;
+  height: 16px;
 }
 .cat-icon-picker-trigger:hover:not(:disabled) {
   transform: scale(1.04);

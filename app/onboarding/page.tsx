@@ -887,7 +887,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
                           {formatMoney(v)}
                           {/* The icon tiles' edit badge, pinned top right. */}
                           <span className="cat-icon-picker-badge is-top" aria-hidden="true">
-                            <PencilSimpleIcon size={11} weight="bold" />
+                            <PencilSimpleIcon size={9} weight="bold" />
                           </span>
                         </button>
                       </div>
