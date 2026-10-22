@@ -306,6 +306,16 @@ export async function syncMonthlyIncome(auth: Auth, month: string): Promise<void
 }
 
 /**
+ * Which months a monthly schedule already counts pay in, from day 1. A payday
+ * booked into one of them is a record, not `extra`, or it counts twice.
+ */
+export async function monthlyIncomeCovers(auth: Auth): Promise<(month: string) => boolean> {
+  const rec = await getCollection('recurring_incomes', auth)
+  const monthly = (await rec.find({ frequency: 'monthly' }, undefined, { includeDeleted: true }).toArray()).filter((r) => (Number(r.amount) || 0) > 0)
+  return (month) => monthly.some((r) => countsIn(r, month))
+}
+
+/**
  * Accounts from before the ledger have a monthly income on the budget row and
  * no schedule. The first time anything reads schedules, that income becomes
  * one monthly recurring income paid on the 1st, so the Income screen shows

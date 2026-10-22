@@ -11,7 +11,7 @@ import { createGroup } from '@/lib/groups'
 import { createCategory } from '@/lib/categories'
 import { createBudgetRow } from '@/lib/budgets'
 import { AccountWriteError, createAccount, isAccountType, MAX_ACCOUNT_NAME, sameAccountName, type AccountType } from '@/lib/accounts'
-import { createRecurringIncome, ensureIncomeMigrated, INCOME_CATEGORY, syncMonthlyIncome, validIncomeAmount } from '@/lib/income'
+import { createRecurringIncome, ensureIncomeMigrated, INCOME_CATEGORY, monthlyIncomeCovers, syncMonthlyIncome, validIncomeAmount } from '@/lib/income'
 import { ImportError, resolveRows } from './normalize'
 import type { Direction } from './parse'
 import { CATEGORY_NAME_MAX, UNCATEGORISED, detectSalary, incomeKey, incomeCounted, proposeBudgets, proposeCategories } from './propose'
@@ -270,7 +270,8 @@ async function writeSetup(auth: Auth, doc: ImportDoc, edits: CommitEdits): Promi
 /**
  * A later import: history only. Currency, salary and this month's budget stay
  * as they are; envelopes the budget already has are reused by name, and only
- * rows from before its first entry come in, so nothing is counted twice.
+ * rows from before its first entry come in, so nothing is counted twice. Pay
+ * in a month a monthly schedule already counts is booked as a record only.
  * Months without budget rows get the spending, never an invented assignment.
  */
 async function writeLater(auth: Auth, doc: ImportDoc, edits: CommitEdits): Promise<CommitResult> {
@@ -308,6 +309,9 @@ async function writeLater(auth: Auth, doc: ImportDoc, edits: CommitEdits): Promi
 
   // Accounts, as setup does: one that exists by name is reused.
   const accountIds = await ensureAccounts(auth, edits.accounts)
+  // ponytail: every payday in a covered month is a record, bonuses too, since
+  // there's no telling which one the schedule stands for. Undercounting is the safe side.
+  const covered = await monthlyIncomeCovers(auth)
 
   const booking: BookingRow[] = kept.map((r) => ({
     kind: r.kind as 'expense' | 'income',
@@ -317,7 +321,7 @@ async function writeLater(auth: Auth, doc: ImportDoc, edits: CommitEdits): Promi
     notes: r.notes,
     category: r.kind === 'expense' ? categoryOf(r) : '',
     ...(accountIds.has(r.account.toLowerCase()) ? { account_id: accountIds.get(r.account.toLowerCase()) } : {}),
-    ...(r.kind === 'income' ? { counted: 'extra' as const } : {}),
+    ...(r.kind === 'income' ? { counted: covered(r.date.slice(0, 7)) ? 'monthly' as const : 'extra' as const } : {}),
   }))
   const summary = { groupCount: 0, categoryCount: fresh.size, income: 0 }
   const skipped = { ...doc.skipped, ...(after ? { after_start: after } : {}) }
