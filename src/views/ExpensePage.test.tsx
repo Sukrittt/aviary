@@ -10,7 +10,6 @@ import { ExpensePage } from './ExpensePage'
 import { getBudgets, addBudget, updateBudget, transferBudget, getCarry } from '@/src/api/budgets'
 import { getUser } from '@/src/api/account'
 import { currentMonthKey, prevMonthKey, monthLabel } from '@/src/lib/envelope'
-import { monthName } from '@/src/lib/rollover'
 
 const { push, openLog, track } = vi.hoisted(() => ({ push: vi.fn(), openLog: vi.fn(), track: vi.fn() }))
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push }), usePathname: () => '/expense' }))
@@ -161,31 +160,30 @@ it('shows no rollover card when nothing carried in', async () => {
   vi.mocked(getBudgets).mockResolvedValue([])
   const client = renderPage()
   await screen.findByRole('button', { name: 'Income options' })
-  expect(screen.queryByText(/rolled into/)).not.toBeInTheDocument()
+  expect(screen.queryByText(/rolled over/)).not.toBeInTheDocument()
   expect(screen.queryByText(/Start October/)).not.toBeInTheDocument()
   client.clear()
 })
 
 it('says once per budget and month what rolled in, and adds it to Ready to Assign', async () => {
   vi.mocked(getCarry).mockResolvedValue({ ready_to_assign: 5000, rolled_over: { Food: 95, Rent: -20 } })
-  const title = `${monthName(previous)} rolled into ${monthName(month)}`
+  const title = '₹5,095 rolled over · ₹20 short'
   const first = renderPage()
   expect(await screen.findByText(title)).toBeInTheDocument()
-  expect(screen.getByText('₹95 carried across 1 envelope · ₹5,000 to Ready to Assign')).toBeInTheDocument()
-  expect(screen.getByText('₹20 short in 1 envelope')).toBeInTheDocument()
   // Last month's ₹15,000 plan carries as before; the ₹5,000 left unassigned comes on top.
   expect(screen.getByLabelText('₹20,000')).toBeInTheDocument()
-  expect(screen.getByText(`includes ₹5,000 from ${monthName(previous)}`)).toBeInTheDocument()
+  // The strip says it all, so the hero has no separate carried line.
+  expect(screen.queryByText(/includes ₹/)).not.toBeInTheDocument()
 
-  fireEvent.click(screen.getByRole('button', { name: 'Got it' }))
-  expect(await screen.findByRole('img', { name: 'Got it' })).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Nice' }))
+  expect(screen.getByRole('button', { name: 'Nice' })).toBeDisabled()
   await waitFor(() => expect(screen.queryByText(title)).not.toBeInTheDocument(), { timeout: 4000 })
   first.clear()
   cleanup()
 
   // Dismissed stays dismissed for this budget and month.
   const second = renderPage()
-  await screen.findByText(`includes ₹5,000 from ${monthName(previous)}`)
+  await screen.findByLabelText('₹20,000')
   expect(screen.queryByText(title)).not.toBeInTheDocument()
   second.clear()
 })

@@ -11,6 +11,7 @@ import { Scrim, Sheet } from './MotionSheet'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
 import { LoadingCaption } from './LoadingCaption'
 import { AmountText, CheckIcon, ease, type as typeScale } from './landing/mobile/kit'
+import { rolledOverLine } from '../lib/rollover'
 import { useBudgets, useCarry, useFreshBudgets, useTransferBudget, useUpdateBudget } from '../hooks/useBudgets'
 import { useCategories } from '../hooks/useCategories'
 import { useRecentExpenses } from '../hooks/useExpenses'
@@ -839,10 +840,12 @@ function EditAssignedBody({
   }
 
   const over = value > 0 && projectedRTA < 0
-  const assignedAfter = assign ? cents(baseAssigned + value) : value
   const hint =
     delta === 0
-      ? `${formatCurrency(spent, hideAmounts)} spent · ${formatCurrency(baseAssigned, hideAmounts)} assigned`
+      ? rolledOver !== 0
+        // With money carried in, what's available is the number that matters, and the carry says why.
+        ? `${formatCurrency(cents(baseAssigned + rolledOver - spent), hideAmounts)} available · ${rolledOverLine(rolledOver, month, (n) => formatCurrency(n, hideAmounts))}`
+        : `${formatCurrency(spent, hideAmounts)} spent · ${formatCurrency(baseAssigned, hideAmounts)} assigned`
       : delta > 0
         ? `Pulls ${formatCurrency(delta, hideAmounts)} from Ready to Assign${over ? ` · ${formatCurrency(-projectedRTA, hideAmounts)} over` : ''}`
         : `Frees ${formatCurrency(-delta, hideAmounts)} back to Ready to Assign`
@@ -885,15 +888,6 @@ function EditAssignedBody({
             )}
           </div>
         </AmountField>
-      )}
-      {/* With money carried in, "assigned" alone no longer explains what's left. */}
-      {!conflict && rolledOver !== 0 && (
-        <dl className="bill-scan-breakdown">
-          <div><dt>Assigned this month</dt><dd>{formatCurrency(assignedAfter, hideAmounts)}</dd></div>
-          <div><dt>Carried from last month</dt><dd>{formatCurrency(rolledOver, hideAmounts)}</dd></div>
-          <div><dt>Spent</dt><dd>{formatCurrency(spent, hideAmounts)}</dd></div>
-          <div><dt>Available</dt><dd>{formatCurrency(cents(assignedAfter + rolledOver - spent), hideAmounts)}</dd></div>
-        </dl>
       )}
       {error !== '' && <p role="alert" className="erd-log-error">{error}</p>}
     </FormSheet>

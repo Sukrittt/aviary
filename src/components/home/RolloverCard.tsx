@@ -1,28 +1,20 @@
-import { SuccessButton, useButtonPhase } from '@/src/components/SuccessButton'
+import { PlantIcon } from '@/src/components/icons'
+import { CheckIcon } from '@/src/components/landing/mobile/kit'
+import { useButtonPhase } from '@/src/components/SuccessButton'
 
 /**
- * The month-start moment: one card saying what last month left behind. Nothing
- * to decide, so its one button just says "seen it" with the shared check beat
- * and `onDone` hides it for good once the beat has played.
+ * The month-start moment, in the same green strip the old "went to savings"
+ * note used: one line on what last month left behind. Nothing to decide, so
+ * "Nice" just plays the shared check and `onDone` hides it for good.
  */
-export function RolloverCard({ title, lines, onDone }: { title: string; lines: string[]; onDone: () => void }) {
+export function RolloverCard({ text, onDone }: { text: string; onDone: () => void }) {
   const phase = useButtonPhase()
   return (
-    <article className="erd-card home-leftover-notice home-rollover-card">
-      <div className="home-rollover-text">
-        <strong>{title}</strong>
-        {lines.map((line) => <span key={line}>{line}</span>)}
-      </div>
-      <SuccessButton
-        type="button"
-        baseClass="account-pill-btn"
-        success={phase.success}
-        successLabel="Got it"
-        disabled={phase.success}
-        onClick={() => phase.succeed(onDone)}
-      >
-        Got it
-      </SuccessButton>
+    <article className="erd-card home-leftover-notice">
+      <p><PlantIcon size={18} aria-hidden="true" style={{ verticalAlign: '-3px', marginRight: 6 }} />{text}</p>
+      <button type="button" aria-label="Nice" disabled={phase.success} onClick={() => phase.succeed(onDone)}>
+        {phase.success ? <CheckIcon color="var(--mint)" size={18} /> : 'Nice'}
+      </button>
     </article>
   )
 }

@@ -50,7 +50,7 @@ import { FeatureNudge } from "../components/home/FeatureNudge";
 import { WeekRecapGate } from "../components/wrapped/WeekRecap";
 import { usePersistentState } from "../hooks/usePersistentState";
 import { useDismissedRolloverBanner } from "../hooks/useDismissedRolloverBanner";
-import { carriedReadyLine, rolloverCard } from "../lib/rollover";
+import { rolloverCard } from "../lib/rollover";
 import { RolloverCard } from "../components/home/RolloverCard";
 import { LogExpenseModal } from "../components/LogExpenseModal";
 import { FillGap } from "../features/fill-gap/FillGap";
@@ -266,7 +266,6 @@ export function ExpensePage() {
     const t = setTimeout(() => setRtaCelebrating(false), 2500);
     return () => clearTimeout(t);
   }, [rtaCelebrating]);
-  const carriedReady = envelopeState ? carriedReadyLine(envelopeState.carriedReadyToAssign, envelopeState.month, (n) => formatCurrency(n, hideAmounts)) : null;
   const daysLeftLabel = daysLeftInMonth() === 0 ? "Less than 24 hrs" : `${daysLeftInMonth()} days left`;
   const showGetStarted = !getStartedSkipped && !!user?.getStartedAt &&
     !(incomeDone && user.manualTransactionCompletedAt && user.guidedTourCompletedAt);
@@ -454,30 +453,6 @@ export function ExpensePage() {
           <div className="erd-home" data-get-started={showGetStarted ? "true" : undefined}>
             <div className="erd-home-main">
               <ImportBanner />
-              <AnimatePresence>
-                {rollover && (
-                  <motion.div
-                    key="rollover"
-                    className="home-leftover-slot"
-                    initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.22, ease: "easeOut" }}
-                    // Once the check has played it slides off to the right, then its
-                    // height (and the column's 20px gap) closes so the cards below glide up.
-                    exit={reduceMotion ? { opacity: 0 } : {
-                      x: "100%", opacity: 0, height: 0, marginBottom: -20,
-                      transition: {
-                        x: { duration: 0.3, ease: [0.4, 0, 1, 1] },
-                        opacity: { duration: 0.3 },
-                        height: { delay: 0.22, duration: 0.32, ease: [0.22, 1, 0.36, 1] },
-                        marginBottom: { delay: 0.22, duration: 0.32, ease: [0.22, 1, 0.36, 1] },
-                      },
-                    }}
-                  >
-                    <RolloverCard title={rollover.title} lines={rollover.lines} onDone={() => setRolloverDismissed(true)} />
-                  </motion.div>
-                )}
-              </AnimatePresence>
               {/* Income is entered from the menu top-right; RTA is often ₹0,
                   so the hero alone doesn't say where money comes in. */}
               {envelopeState && !rtaSettled && (
@@ -500,7 +475,6 @@ export function ExpensePage() {
                     <span className="erd-home-hero-caption">
                       {monthLabel(panel.month)} · {daysLeftLabel}
                     </span>
-                    {carriedReady && <span className="erd-home-hero-caption">{carriedReady}</span>}
                     {/* The pencil is easy to miss, so this pill names where the
                         number comes from. With no income yet it goes straight to
                         setting it. */}
@@ -580,9 +554,34 @@ export function ExpensePage() {
               )}
 
               {envelopeState && <ForecastLine />}
-              {/* One banner at a time, same as Mobile: the rollover card (up top)
-                  goes first, and the nudge waits for it to leave. */}
-              {!rollover && <FeatureNudge />}
+              {/* One banner at a time, same as Mobile: the rollover note goes first,
+                  and the next one waits for it to fade out. */}
+              <AnimatePresence mode="wait">
+                {rollover ? (
+                  <motion.div
+                    key="rollover"
+                    className="home-leftover-slot"
+                    initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.22, ease: "easeOut" }}
+                    // Once the check has played it slides off to the right, then its
+                    // height (and the column's 20px gap) closes so the cards below glide up.
+                    exit={reduceMotion ? { opacity: 0 } : {
+                      x: "100%", opacity: 0, height: 0, marginBottom: -20,
+                      transition: {
+                        x: { duration: 0.3, ease: [0.4, 0, 1, 1] },
+                        opacity: { duration: 0.3 },
+                        height: { delay: 0.22, duration: 0.32, ease: [0.22, 1, 0.36, 1] },
+                        marginBottom: { delay: 0.22, duration: 0.32, ease: [0.22, 1, 0.36, 1] },
+                      },
+                    }}
+                  >
+                    <RolloverCard text={rollover} onDone={() => setRolloverDismissed(true)} />
+                  </motion.div>
+                ) : (
+                  <FeatureNudge key="nudge" />
+                )}
+              </AnimatePresence>
 
               <AnimatePresence mode="popLayout">
                 {showGetStarted && user && (

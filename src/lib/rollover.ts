@@ -24,36 +24,21 @@ export function rolledOverLine(rolledOver: number, month: string, money: Money):
   return rolledOver > 0 ? `+${money(rolledOver)} from ${from}` : `${money(-rolledOver)} short from ${from}`
 }
 
-/** Ready to Assign's sub-line: "includes ₹5,000 from October" or "₹1,200 short from October". */
-export function carriedReadyLine(carried: number, month: string, money: Money): string | null {
-  if (!carried) return null
-  const from = monthName(prevMonthKey(month))
-  return carried > 0 ? `includes ${money(carried)} from ${from}` : `${money(-carried)} short from ${from}`
-}
-
-function envelopes(n: number): string {
-  return n === 1 ? '1 envelope' : `${n} envelopes`
-}
-
 /**
- * The month-start card: what rolled in, non-zero parts only. Null when nothing
- * did (including every month up to the rollover start, where the server
- * returns an empty carry).
+ * The month-start strip: what rolled in, in one short line. Money left
+ * unassigned counts as rolled over too (it's in Ready to Assign), and an
+ * over-assigned month as short, so the line accounts for everything on its own.
+ * Null when nothing rolled (including every month up to the rollover start,
+ * where the server returns an empty carry).
  */
-export function rolloverCard(carry: Carry | undefined, month: string, money: Money): { title: string; lines: string[] } | null {
+export function rolloverCard(carry: Carry | undefined, month: string, money: Money): string | null {
   if (!carry) return null
-  const amounts = Object.values(carry.rolled_over).filter((n) => n !== 0)
-  const ahead = amounts.filter((n) => n > 0)
-  const short = amounts.filter((n) => n < 0)
-  if (ahead.length === 0 && short.length === 0 && !carry.ready_to_assign) return null
-
-  const sum = (ns: number[]) => Math.round(ns.reduce((s, n) => s + n, 0) * 100) / 100
-  const first: string[] = []
-  if (ahead.length) first.push(`${money(sum(ahead))} carried across ${envelopes(ahead.length)}`)
-  if (carry.ready_to_assign > 0) first.push(`${money(carry.ready_to_assign)} to Ready to Assign`)
-  if (carry.ready_to_assign < 0) first.push(`${money(-carry.ready_to_assign)} short in Ready to Assign`)
-  const lines = first.length ? [first.join(' · ')] : []
-  if (short.length) lines.push(`${money(-sum(short))} short in ${envelopes(short.length)}`)
-
-  return { title: `${monthName(prevMonthKey(month))} rolled into ${monthName(month)}`, lines }
+  const amounts = [...Object.values(carry.rolled_over), carry.ready_to_assign]
+  const round = (n: number) => Math.round(n * 100) / 100
+  const ahead = round(amounts.filter((n) => n > 0).reduce((s, n) => s + n, 0))
+  const short = round(-amounts.filter((n) => n < 0).reduce((s, n) => s + n, 0))
+  if (ahead && short) return `${money(ahead)} rolled over · ${money(short)} short`
+  if (ahead) return `${money(ahead)} rolled over`
+  if (short) return `${money(short)} short from ${monthName(prevMonthKey(month))}`
+  return null
 }
