@@ -125,7 +125,8 @@ export function EnvelopesPage() {
   const [collapsed, setCollapsed] = useCollapsedGroups("envelopes");
   const [draft, setDraft] = useState<Draft | null>(null);
   const [draftText, setDraftText] = useState("");
-  const [draftIcon, setDraftIcon] = useState<CategoryIconKey>("Wallet");
+  // Null on a new group until picked: its icon follows the name.
+  const [draftIcon, setDraftIcon] = useState<CategoryIconKey | null>(null);
   // Null until the user picks one (or the row already has one): until then
   // the colour follows the name, as everywhere else.
   const [pickedColor, setPickedColor] = useState<CategoryColor | null>(null);
@@ -191,8 +192,10 @@ export function EnvelopesPage() {
       setDraftIcon(categoryIconKey(next.name, next.icon, next.group));
     if (next.kind === "rename-group")
       setDraftIcon(groupIconKey(next.name, next.icon));
-    if (next.kind !== "new-group")
-      setPickedColor(isCategoryColor(next.color) ? next.color : null);
+    if (next.kind === "new-group") {
+      setDraftIcon(null);
+      setPickedColor(null);
+    } else setPickedColor(isCategoryColor(next.color) ? next.color : null);
   }
 
   /** The stored name for draft text: the old name's emoji, if any, then the words. */
@@ -226,10 +229,19 @@ export function EnvelopesPage() {
     setSubmitting(true);
     let ok = false;
     if (draft.kind === "new-group")
-      ok = await run(() => addGroup.mutateAsync(name), "group");
+      ok = await run(
+        () =>
+          addGroup.mutateAsync({
+            name,
+            ...(draftIcon ? { icon: draftIcon } : {}),
+            ...(pickedColor ? { color: pickedColor } : {}),
+          }),
+        "group",
+      );
     else if (draft.kind === "rename-group") {
       const newName = withOldEmoji(draft.name, name);
-      const iconChanged = draftIcon !== groupIconKey(draft.name, draft.icon);
+      const icon = draftIcon ?? groupIconKey(draft.name, draft.icon);
+      const iconChanged = icon !== groupIconKey(draft.name, draft.icon);
       const colorChanged = pickedColor !== null && pickedColor !== draft.color;
       ok =
         (newName === draft.name && !iconChanged && !colorChanged) ||
@@ -238,7 +250,7 @@ export function EnvelopesPage() {
             updateGroup.mutateAsync({
               name: draft.name,
               ...(newName !== draft.name ? { newName } : {}),
-              ...(iconChanged ? { icon: draftIcon } : {}),
+              ...(iconChanged ? { icon } : {}),
               ...(colorChanged ? { color: pickedColor } : {}),
             }),
           "group",
@@ -246,8 +258,8 @@ export function EnvelopesPage() {
     }
     else {
       const newName = withOldEmoji(draft.name, name);
-      const iconChanged =
-        draftIcon !== categoryIconKey(draft.name, draft.icon, draft.group);
+      const icon = draftIcon ?? categoryIconKey(draft.name, draft.icon, draft.group);
+      const iconChanged = icon !== categoryIconKey(draft.name, draft.icon, draft.group);
       const colorChanged = pickedColor !== null && pickedColor !== draft.color;
       ok =
         (newName === draft.name && !iconChanged && !colorChanged) ||
@@ -257,7 +269,7 @@ export function EnvelopesPage() {
               name: draft.name,
               updates: {
                 ...(newName !== draft.name ? { newName } : {}),
-                ...(iconChanged ? { icon: draftIcon } : {}),
+                ...(iconChanged ? { icon } : {}),
                 ...(colorChanged ? { color: pickedColor } : {}),
               },
             }),
@@ -310,6 +322,7 @@ export function EnvelopesPage() {
       ? categoryColor(draftText.trim(), pickedColor ?? undefined)
       : groupColor(pickedColor ?? undefined);
   const draftTint = colorStyle(draftColor);
+  const shownIcon: CategoryIconKey = draftIcon ?? groupIconKey(draftText.trim());
 
   const nameInput = (
     <input
@@ -683,7 +696,7 @@ export function EnvelopesPage() {
                 <div className="env-sheet-rename-head">
                   <CategoryIconPicker
                     className="env-sheet-rename-icon"
-                    value={draftIcon}
+                    value={shownIcon}
                     onChange={setDraftIcon}
                     tint={draftTint}
                     disabled={submitting}
@@ -724,17 +737,19 @@ export function EnvelopesPage() {
                   Name
                 </label>
               )}
-              <div className="env-sheet-name-row">
-                {draft.kind === "new-group" && (
-                  <div className="env-sheet-icon-swatch" aria-hidden="true">
-                    <CategoryIcon kind="group" name={draftText} />
-                  </div>
-                )}
-                {nameInput}
-              </div>
-              {draft.kind !== "new-group" && (
-                <ColorSwatches value={draftColor} onChange={setPickedColor} disabled={submitting} />
+              {draft.kind === "new-group" ? (
+                <CategoryIconPicker
+                  value={shownIcon}
+                  onChange={setDraftIcon}
+                  tint={draftTint}
+                  disabled={submitting}
+                >
+                  {nameInput}
+                </CategoryIconPicker>
+              ) : (
+                <div className="env-sheet-name-row">{nameInput}</div>
               )}
+              <ColorSwatches value={draftColor} onChange={setPickedColor} disabled={submitting} />
 
               {error && (
                 <p className="env-sheet-hint" role="alert">

@@ -28,7 +28,8 @@ const EMPTY = new Map<string, string>()
 export function useAddGroup() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (name: string) => addGroup(name),
+    mutationFn: (params: { name: string; icon?: string; color?: string }) =>
+      addGroup(params.name, { icon: params.icon, color: params.color }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: key })
       qc.invalidateQueries({ queryKey: categoriesKey })
