@@ -4,8 +4,8 @@ import { CurrencyPicker } from '@/src/components/CurrencyPicker'
 import { CurrencyScope, useCurrency } from '@/src/context/CurrencyContext'
 
 import { useEffect, useId, useRef, useState } from 'react'
-import { motion, useReducedMotion } from 'motion/react'
-import { ArrowLeftIcon, CheckIcon, CopyIcon, FolderOpenIcon, PencilSimpleIcon, PlusIcon, TagIcon, CardholderIcon } from '@/src/components/icons'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { ArrowLeftIcon, CheckIcon, CopyIcon, FolderOpenIcon, MoneyWavyIcon, PencilSimpleIcon, PlusIcon, TagIcon, CardholderIcon } from '@/src/components/icons'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import '../../src/expense-redesign.css'
@@ -29,6 +29,7 @@ import { Toast } from '../../src/components/Toast'
 import { CategoryIcon, CATEGORY_ICON_COMPONENTS } from '../../src/components/CategoryIcon'
 import { CategoryIconPicker } from '../../src/components/CategoryIconPicker'
 import { AmountField, AmountSheet } from '../../src/components/AmountSheet'
+import { currencyUnit } from '../../src/lib/currencies'
 import { categoryIconKey, groupIconKey, type CategoryIconKey } from '../../src/lib/categoryIcons'
 import { avatarStyleFor } from '../../src/lib/emoji'
 
@@ -692,9 +693,6 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
   const ctaLabel = step === 1 && !(Number(income) > 0) ? 'Skip for now' : finishesHere ? 'Finish setup' : 'Continue'
   const dots = custom ? [0, 1, 2, 3, 4] : [0, 1]
 
-  const remState = rem < 0 ? 'is-over' : 'is-under'
-  const remLabel = rem < 0 ? 'Over by' : 'Left to plan'
-
   return (
     <div className="expense-redesign setup-page">
       <div className="setup-top">
@@ -848,12 +846,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
       {step === 4 && (
         <div className="setup-body">
           {/* Only while something's off: a fully planned income needs no banner. */}
-          {rem !== 0 && (
-            <div className={`setup-rem-chip ${remState}`}>
-              <span className="setup-rem-label">{remLabel}</span>
-              <span className="setup-rem-value">{formatMoney(Math.abs(rem))}</span>
-            </div>
-          )}
+          <PlanStrip rem={rem} />
           {editedPlan && (
             <button type="button" className="setup-selection-action setup-reset-split" onClick={() => {
               allocationMode.current = 'suggested'
@@ -944,6 +937,49 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
 
 // The assign step's category name: reads as a label, edits in place, and only
 // hands the new name up on blur or Enter (Esc throws the edit away).
+// Home's settled Ready to Assign row, always on: a mint "every rupee has a job"
+// beat whenever the plan lands on zero (including the suggestion it opens with),
+// then the plain row; gold while money's left, coral when over.
+function PlanStrip({ rem }: { rem: number }) {
+  const { formatMoney, currencyCode } = useCurrency()
+  const reduce = useReducedMotion()
+  const settled = rem === 0
+  const [celebrating, setCelebrating] = useState(settled)
+  const [wasSettled, setWasSettled] = useState(settled)
+  if (settled !== wasSettled) {
+    setWasSettled(settled)
+    setCelebrating(settled)
+  }
+  useEffect(() => {
+    if (!celebrating) return
+    const t = setTimeout(() => setCelebrating(false), 2500)
+    return () => clearTimeout(t)
+  }, [celebrating])
+  const state = celebrating ? 'celebrate' : settled ? 'settled' : rem < 0 ? 'over' : 'under'
+  return (
+    <div className={`setup-plan-strip is-${state}`}>
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.span
+          key={state}
+          className="setup-plan-strip-label"
+          role={celebrating ? 'status' : undefined}
+          initial={reduce ? { opacity: 0 } : { opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={reduce ? { opacity: 0 } : { opacity: 0, y: -6 }}
+          transition={{ duration: 0.22, ease: 'easeOut' }}
+        >
+          {celebrating ? (
+            <><CheckIcon color="var(--mint)" size={18} />Every {currencyUnit(currencyCode)} has a job.</>
+          ) : settled ? (
+            <><span className="erd-rta-icon" aria-hidden="true"><MoneyWavyIcon size={18} /></span>All planned</>
+          ) : rem < 0 ? 'Over by' : 'Left to plan'}
+        </motion.span>
+      </AnimatePresence>
+      <span className="setup-plan-strip-amount">{formatMoney(Math.abs(rem))}</span>
+    </div>
+  )
+}
+
 // One plan amount, in the same sheet as the money screens' amount forms.
 function PlanAmountSheet({ name, current, suggested, leftForThis, onSave, onClose }: {
   name: string

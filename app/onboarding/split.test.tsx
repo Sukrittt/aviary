@@ -154,3 +154,20 @@ it('opens a plan amount in a sheet with our suggestion and the leftover as quick
   expect(amountOf('Rent')).toBe(suggested)
   client.clear()
 })
+
+it('keeps the plan strip up: a mint beat when settled, the leftover when not, the beat again once settled', async () => {
+  vi.mocked(getSplitBuckets).mockReset().mockResolvedValue({})
+  const client = walkToCategories()
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+  await screen.findByRole('button', { name: 'Finish setup' })
+  // The suggestion plans every dollar, so the step opens on the beat.
+  expect(screen.getByRole('status')).toHaveTextContent('Every dollar has a job.')
+  const suggested = amountOf('Rent')
+  setPlanAmount('Rent', String(suggested - 500))
+  expect(await screen.findByText('Left to plan')).toBeInTheDocument()
+  expect(document.querySelector('.setup-plan-strip')).toHaveClass('is-under')
+  fireEvent.click(screen.getByRole('button', { name: 'Reset to our suggestion' }))
+  expect(await screen.findByText('Every dollar has a job.')).toBeInTheDocument()
+  expect(document.querySelector('.setup-plan-strip')).toHaveClass('is-celebrate')
+  client.clear()
+})
