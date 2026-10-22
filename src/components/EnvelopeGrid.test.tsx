@@ -144,7 +144,7 @@ describe('EnvelopeGrid carry', () => {
       ]}
       onManage={vi.fn()} onMoveMoney={vi.fn()} onAssignFromRTA={vi.fn()} onSetAssigned={vi.fn()} />)
     expect(screen.queryByText(/from October|short/)).not.toBeInTheDocument()
-    expect(screen.getByText('₹2800')).toBeInTheDocument()
-    expect(screen.getByText('₹200')).toBeInTheDocument()
+    expect(screen.getByLabelText('₹2800')).toBeInTheDocument()
+    expect(screen.getByLabelText('₹200')).toBeInTheDocument()
   })
 })
