@@ -94,6 +94,14 @@ describe('DELETE /api/user', () => {
     expect(handOffMock.mock.invocationCallOrder[0]).toBeLessThan(softDeleteMock.mock.invocationCallOrder.at(-1)!)
   })
 
+  it('a repeat delete of an account already deleted hands off nothing, so it can’t race a restore', async () => {
+    usersFindOneMock.mockResolvedValue({ email: 'real-owner@example.com', deleted_at: '2026-09-20T00:00:00+05:30' } as never)
+    const res = await DELETE(deleteRequest({ email: 'real-owner@example.com', transfers: { user_a: 'user_b' } }))
+    expect(res.status).toBe(200)
+    expect(handOffMock).not.toHaveBeenCalled()
+    expect(softDeleteMock).not.toHaveBeenCalled()
+  })
+
   it('cancels any web subscription before scheduling the deletion', async () => {
     const res = await DELETE(deleteRequest({ email: 'real-owner@example.com' }))
     expect(res.status).toBe(200)
