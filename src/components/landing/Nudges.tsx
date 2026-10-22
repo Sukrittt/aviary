@@ -311,7 +311,7 @@ export function KeepEverything() {
   return <div className="lp-keep">
     <figure className="lp-shot">
       <div className="lp-shot-art" aria-hidden="true"><ShotClip name="import" /></div>
-      <figcaption><strong>Bring everything with you.</strong><span>Pick “I’m switching apps”, upload the export from your old app, and check what it found. Categories, balances and years of history come along, in about two minutes. Already set up? It’s in Settings too. <a href="/sign-in">Sign in and bring it over</a></span></figcaption>
+      <figcaption><strong>Bring everything with you.</strong><span>Pick “Switching apps? Bring your data”, upload the export from your old app, and check what it found. Categories, balances and years of history come along, in about two minutes. Already set up? It’s in Settings too. <a href="/sign-in">Sign in and bring it over</a></span></figcaption>
     </figure>
     <figure className="lp-shot">
       <div className="lp-keep-art" aria-hidden="true">

@@ -14,30 +14,32 @@ vi.mock('@/src/api/groups', () => ({ addGroup: vi.fn(async () => ({})) }))
 vi.mock('@/src/api/categories', () => ({ addCategory: vi.fn(async () => ({})) }))
 vi.mock('@/src/api/account', () => ({ updateUser: vi.fn(async patch => patch), getUser: vi.fn(async () => ({ onboardedAt: null })) }))
 vi.mock('@/src/api/billing', () => ({
+  getBillingStatus: vi.fn(async () => ({})),
   completeOnboarding: vi.fn(async () => ({ onboardedAt: '2026-09-18T12:00:00.000Z', user: { currencyCode: 'USD' }, access: {} })),
 }))
 
 function setup() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } })
   render(<QueryClientProvider client={client}><SetupWizardPage /></QueryClientProvider>)
-  fireEvent.click(screen.getByRole('radio', { name: /^I’m starting fresh/ }))
-  fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Start fresh' }))
   return client
 }
 
 describe('currency onboarding', () => {
-  it('selects currency before income, preserves it going back, and saves on completion', async () => {
+  it('puts the currency on the income step as a chip, keeps a change going back, and saves it on completion', async () => {
     const client = setup()
-    expect(screen.getByRole('heading', { name: 'Choose your currency' })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'What lands each month?' })).toBeTruthy()
+    expect(screen.queryByRole('heading', { name: 'Choose your currency' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: /^Currency, / }))
     fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'USD' } })
     fireEvent.click(screen.getByRole('button', { name: /US Dollar/ }))
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     expect(screen.getByRole('img', { name: '$0' })).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Back' }))
-    expect(screen.getByRole('button', { name: /US Dollar/ }).getAttribute('aria-pressed')).toBe('true')
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+    expect(screen.getByRole('button', { name: 'Currency, US Dollar. Change it' })).toHaveTextContent('USD · $')
     fireEvent.click(screen.getByRole('button', { name: '$50,000' }))
     fireEvent.click(screen.getByRole('button', { name: 'Pick my own groups and categories' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }))
+    expect(screen.getByRole('button', { name: 'Currency, US Dollar. Change it' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     fireEvent.click(screen.getByRole('button', { name: 'Finish setup' }))

@@ -4,8 +4,8 @@ import { CurrencyPicker } from '@/src/components/CurrencyPicker'
 import { CurrencyScope, useCurrency } from '@/src/context/CurrencyContext'
 
 import { useEffect, useId, useRef, useState } from 'react'
-import { motion, useReducedMotion } from 'motion/react'
-import { ArrowLeftIcon, CheckIcon, CopyIcon, FolderOpenIcon, PlusIcon, TagIcon, CardholderIcon } from '@/src/components/icons'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { ArrowLeftIcon, CaretDownIcon, CheckIcon, CopyIcon, FolderOpenIcon, PlusIcon, ReceiptIcon, TagIcon, CardholderIcon } from '@/src/components/icons'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import '../../src/expense-redesign.css'
@@ -21,8 +21,12 @@ import { DEFAULT_ALERT_PCTS } from '../../src/lib/alerts'
 import { startTimer, track } from '../../src/lib/analytics'
 import { AmountTicker } from '../../src/components/onboarding/AmountTicker'
 import { Confetti } from '../../src/components/onboarding/Confetti'
-import { PickExtras } from '../../src/components/onboarding/PickExtras'
-import { HeardFrom } from '../../src/components/onboarding/HeardFrom'
+import { FirstExpense, type StarterEnvelope } from '../../src/components/onboarding/FirstExpense'
+import { Scrim, Sheet } from '../../src/components/MotionSheet'
+import { useAddExpense } from '../../src/hooks/useExpenses'
+import { useBillingStatus } from '../../src/hooks/useBillingStatus'
+import { trialLengthDays } from '../../src/components/billing/copy'
+import { currencyInfo } from '../../src/lib/currencies'
 import { ImportFlow, ImportHistory, type ImportDone } from '../../src/components/onboarding/ImportFlow'
 import { LoadingCaption } from '../../src/components/LoadingCaption'
 import { Toast } from '../../src/components/Toast'
@@ -31,8 +35,10 @@ import { CategoryIconPicker } from '../../src/components/CategoryIconPicker'
 import { categoryIconKey, type CategoryIconKey } from '../../src/lib/categoryIcons'
 import { avatarStyleFor } from '../../src/lib/emoji'
 
-// Twin of Mobile's app/setup.tsx: currency → income → done on a starter
-// budget, or "Pick my own" for groups → categories → assign. Writes land on finish, same reasoning as mobile — groups/categories
+// Twin of Mobile's app/setup.tsx: income (currency is a chip on it) → first
+// expense → done on a starter budget, or "Pick my own" for groups →
+// categories → assign before the first expense. The budget's writes land once,
+// same reasoning as mobile — groups/categories
 // aren't renameable server-side until they exist. No numpad/bottom-sheet
 // here: those exist on mobile because a thumb keyboard is painful, and a
 // desktop already has a real one, so a plain input (under the ticker) and
@@ -57,6 +63,7 @@ interface LiveCat {
   catId: string
   group: string
   name: string
+  icon: CategoryIconKey
 }
 
 let nextId = 1
@@ -123,15 +130,17 @@ async function ignoreConflict(err: unknown): Promise<void> {
   throw err
 }
 
-// Analytics names for the five steps, so a funnel reads 'groups' rather than '2'.
-const STEP_NAMES = ['currency', 'income', 'groups', 'categories', 'assign'] as const
+// Analytics names for the five steps, so a funnel reads 'groups' rather than '1'.
+const STEP_NAMES = ['income', 'groups', 'categories', 'assign', 'first_expense'] as const
+const FIRST_EXPENSE = 4
+const DONE = 5
 
 const TITLES: Record<number, [string, string]> = {
-  0: ['Choose your currency', 'The currency you use for your budget. You can change it later in More.'],
-  1: ['What lands each month?', 'Your take-home income. This becomes the pot you assign from. Not sure yet? Skip it and add it from Home later.'],
-  2: ['Group your money', 'Groups are the big buckets. Accept these or rename them to fit your life.'],
-  3: ['Add your categories', 'These are the buckets you actually spend from. Pick the ones you recognize.'],
-  4: ['Assign your money', 'We suggested a split based on what each category is for. Change any amount. Anything you leave waits in Ready to Assign.'],
+  0: ['What lands each month?', 'Your take-home income. This becomes the pot you assign from. Not sure yet? Skip it and add it from Home later.'],
+  1: ['Group your money', 'Groups are the big buckets. Accept these or rename them to fit your life.'],
+  2: ['Add your categories', 'These are the buckets you actually spend from. Pick the ones you recognize.'],
+  3: ['Assign your money', 'We suggested a split based on what each category is for. Change any amount. Anything you leave waits in Ready to Assign.'],
+  4: ['Log your first expense', 'Something you spent today. Pick where it came from and watch that envelope move.'],
 }
 
 export default function SetupWizardPage() {
@@ -179,7 +188,9 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
   const [rowToast, setRowToast] = useState({ n: 0, message: '' })
   // Setup was finished on another device; this tab has nothing left to save.
   const [alreadySetUp, setAlreadySetUp] = useState(false)
-  const [result, setResult] = useState<{ income: number; groupCount: number; categoryCount: number } | null>(null)
+  const [result, setResult] = useState<SetupResult | null>(null)
+  const [pickingCurrency, setPickingCurrency] = useState(false)
+  const addExpense = useAddExpense()
 
   // Timing for the onboarding funnel, same as mobile's setup.tsx: the whole
   // wizard, and each step. Refs, since no render depends on them.
@@ -200,7 +211,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
   }, [])
 
   useEffect(() => {
-    if (step > 4 || entry !== 'fresh') return
+    if (step > FIRST_EXPENSE || entry !== 'fresh') return
     stepTimer.current = startTimer()
     track('onboarding_step_viewed', { step, step_name: STEP_NAMES[step] })
   }, [step, entry])
@@ -217,7 +228,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
     const out: LiveCat[] = []
     selectedGroups.forEach((g) => {
       ;(cats[g.id] ?? []).forEach((c) => {
-        if (c.on && c.name.trim()) out.push({ key: `${g.id}:${c.id}`, groupId: g.id, catId: c.id, group: g.name, name: c.name })
+        if (c.on && c.name.trim()) out.push({ key: `${g.id}:${c.id}`, groupId: g.id, catId: c.id, group: g.name, name: c.name, icon: catIcon(c, g.name) })
       })
     })
     return out
@@ -236,7 +247,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
     setAmounts((prev) => allocationMode.current === 'custom' && Object.keys(prev).length
       ? prev
       : distribute(true, tags))
-    setStep(4)
+    setStep(3)
   }
 
   // Cache successful tags; a failed or partial request can retry when the
@@ -258,23 +269,20 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
     openAssign(tags)
   }
 
-  const canAdvance = step === 0 ? true :
+  const canAdvance =
     step === 1
-      ? true
+      ? selectedGroups.length > 0
       : step === 2
-        ? selectedGroups.length > 0
+        ? selectedCatCount > 0
         : step === 3
-          ? selectedCatCount > 0
-          : step === 4
-            ? remainder() >= 0
-            : true
+          ? remainder() >= 0
+          : true
 
   // What each step's choice was, as counts and flags. Never the income or the
   // names typed in: those are the sensitive half of this app's data.
   const stepDetails = (): Record<string, string | number | boolean> => {
-    if (step === 0) return { currency: currencyCode }
-    if (step === 1) return { used_quick_pick: QUICK_PICKS.includes(income), skipped_income: !(Number(income) > 0), customized: custom }
-    if (step === 2) {
+    if (step === 0) return { currency: currencyCode, used_quick_pick: QUICK_PICKS.includes(income), skipped_income: !(Number(income) > 0), customized: custom }
+    if (step === 1) {
       const defaults = new Map(defaultGroups().map((g) => [g.id, g.name]))
       return {
         groups_selected: selectedGroups.length,
@@ -282,8 +290,9 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
         groups_renamed: selectedGroups.filter((g) => defaults.has(g.id) && defaults.get(g.id) !== g.name.trim()).length,
       }
     }
-    if (step === 3) return { categories_selected: selectedCatCount }
-    return { edited_split: editedSplit.current }
+    if (step === 2) return { categories_selected: selectedCatCount }
+    if (step === 3) return { edited_split: editedSplit.current }
+    return {}
   }
 
   const trackStepCompleted = (extra?: Record<string, boolean>) =>
@@ -475,6 +484,8 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
     if (pending) return
     setPending(true)
     setError('')
+    // The first-expense step reads each envelope's amount from here.
+    setAmounts(amounts)
     const incomeValue = Math.round(Number(income)) || 0
     const categories = selectedGroups.flatMap((g) =>
       (cats[g.id] ?? []).filter((c) => c.on && c.name.trim()).map((c) => ({ name: c.name.trim(), group: g.name.trim(), icon: catIcon(c, g.name) })),
@@ -492,7 +503,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
         ...(recoveredAfterError ? { recovered_after_error: true } : {}),
       })
       setResult({ income: incomeValue, groupCount: selectedGroups.length, categoryCount })
-      setStep(5)
+      setStep(FIRST_EXPENSE)
     }
     const live = liveCats()
     // Groups, categories, income, each envelope, then currency + completion.
@@ -576,22 +587,22 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
     setGroupSelectionUndo(null)
     setCategorySelectionUndo(null)
     const hasIncome = Number(income) > 0
-    if (step === 1 && !custom) {
+    if (step === 0 && !custom) {
       // Starter budget: the pre-checked defaults, income split the suggested way.
       void commit(hasIncome ? distribute(true) : {})
       return
     }
-    if (step === 3 && !hasIncome) {
+    if (step === 2 && !hasIncome) {
       // Nothing to assign, so there's no assign step to show.
       void commit({})
       return
     }
-    if (step === 4) {
+    if (step === 3) {
       void commit(amounts)
       return
     }
     trackStepCompleted()
-    if (step === 3) {
+    if (step === 2) {
       void tagThenOpenAssign()
       return
     }
@@ -602,7 +613,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
     if (pending) return
     setCustom(true)
     trackStepCompleted({ customized: true })
-    setStep(2)
+    setStep(1)
   }
 
   // An import sets the account up on the server in one call, then lands on the same celebration.
@@ -619,7 +630,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
     void qc.invalidateQueries()
     setResult({ income: r.income, groupCount: r.groupCount, categoryCount: r.categoryCount })
     setImported({ app, total: r.total })
-    setStep(5)
+    setStep(DONE)
   }
 
   if (alreadySetUp) {
@@ -635,7 +646,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
     )
   }
 
-  if (entry === 'ask' && step < 5) {
+  if (entry === 'ask' && step < DONE) {
     return (
       <div className="expense-redesign setup-page">
         <ImportFlow onFresh={() => setEntry('fresh')} onDone={onImported} onAlreadySetUp={() => setAlreadySetUp(true)} />
@@ -643,28 +654,29 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
     )
   }
 
-  if (step === 5 && result) {
+  if (step === DONE && result) {
     return (
       <div className="expense-redesign setup-page">
-        <SetupDone result={result} imported={imported} onFinish={() => setStep(6)} />
+        <SetupDone result={result} imported={imported} onFinish={() => router.replace('/expense')} />
       </div>
     )
   }
 
-  if (step === 6) {
-    return (
-      <div className="expense-redesign setup-page">
-        <PickExtras onDone={() => setStep(7)} />
-      </div>
-    )
+  // Every envelope just made, with what it was given, for the first-expense step.
+  const starterEnvelopes: StarterEnvelope[] = liveCats().map((c) => ({ key: c.key, name: c.name.trim(), icon: c.icon, assigned: amounts[c.key] ?? 0 }))
+  // Opens on the first want (Eating out on the starter budget): an everyday
+  // spend reads truer than paying rent as the very first thing you log.
+  const firstWant = liveCats().find((c) => bucketsOf(liveCats(), bucketTags)[c.key] === 'want')
+
+  const logFirst = async (env: StarterEnvelope, amount: number) => {
+    await addExpense.mutateAsync({ item: env.name, amount_inr: String(amount), category: env.name, payment_method: 'bank', source: 'manual' })
+    trackStepCompleted({ logged: true })
+    setResult((r) => (r ? { ...r, firstExpense: { amount, category: env.name } } : r))
   }
 
-  if (step === 7) {
-    return (
-      <div className="expense-redesign setup-page">
-        <HeardFrom onDone={() => router.replace('/account/trial-notice')} />
-      </div>
-    )
+  const skipFirst = () => {
+    trackStepCompleted({ logged: false })
+    setStep(DONE)
   }
 
   const [title, blurb] = TITLES[step]
@@ -672,16 +684,16 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
   // Need/want/savings per category, labelled on the assign step so the suggested split explains itself.
   const buckets = bucketsOf(liveCats(), bucketTags)
   const summary = summarizeSplit(liveCats(), bucketTags)
-  const hint = step === 0 ? '' :
-    step === 1
+  const hint = step === FIRST_EXPENSE ? '' :
+    step === 0
       ? Number(income) > 0
         ? ''
         : 'You can add it from Home any time'
-      : step === 2
+      : step === 1
         ? canAdvance
           ? `${selectedGroups.length} groups selected`
           : 'Select at least one group to continue'
-        : step === 3
+        : step === 2
           ? canAdvance
             ? `${selectedCatCount} categories across ${selectedGroups.length} groups`
             : 'Select at least one category to continue'
@@ -691,9 +703,11 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
               ? `${formatMoney(rem)} left. It'll wait in Ready to Assign`
               : `${formatMoney(-rem)} over your income`
 
-  const finishesHere = (step === 1 && !custom) || step === 4 || (step === 3 && !(Number(income) > 0))
-  const ctaLabel = step === 1 && !(Number(income) > 0) ? 'Skip for now' : finishesHere ? 'Finish setup' : 'Continue'
-  const dots = custom ? [0, 1, 2, 3, 4] : [0, 1]
+  const finishesHere = (step === 0 && !custom) || step === 3 || (step === 2 && !(Number(income) > 0))
+  const ctaLabel = step === 0 && !(Number(income) > 0) ? 'Skip for now' : finishesHere ? 'Finish setup' : 'Continue'
+  // No assign step without income to assign.
+  const dots = custom ? [0, 1, 2, ...(Number(income) > 0 ? [3] : []), FIRST_EXPENSE] : [0, FIRST_EXPENSE]
+  const currency = currencyInfo(currencyCode)
 
   const remState = rem === 0 ? 'is-zero' : rem < 0 ? 'is-over' : 'is-under'
   const remLabel = rem === 0 ? 'All assigned' : rem < 0 ? 'Over by' : 'Left to assign'
@@ -701,10 +715,11 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
   return (
     <div className="expense-redesign setup-page">
       <div className="setup-top">
-        <button type="button" className="setup-back" onClick={back} aria-label="Back">
+        {/* Once the budget is saved there's nothing to go back and change. */}
+        <button type="button" className="setup-back" onClick={back} disabled={step === FIRST_EXPENSE} aria-label="Back">
           <ArrowLeftIcon size={16} aria-hidden="true" />
         </button>
-        <div className="setup-dots" role="img" aria-label={`Step ${step + 1} of ${dots.length}`}>
+        <div className="setup-dots" role="img" aria-label={`Step ${dots.filter((n) => n <= step).length} of ${dots.length}`}>
           {dots.map((n) => (
             <span key={n} className={`setup-dot ${n <= step ? 'is-active' : ''}`} />
           ))}
@@ -714,10 +729,13 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
       <h1 className="setup-title">{title}</h1>
       <p className="setup-blurb">{blurb}</p>
 
-      {step === 0 && (<div className="setup-body"><CurrencyPicker value={currencyCode} onChange={onCurrencyChange} /></div>)}
-
-      {step === 1 && (
+      {step === 0 && (
         <div className="setup-body setup-income-body">
+          {/* Starts on the profile's currency; one click to change, no step of its own. */}
+          <button type="button" className="setup-currency-chip" onClick={() => setPickingCurrency(true)} aria-label={`Currency, ${currency.name}. Change it`}>
+            {currency.symbol !== currency.code ? `${currency.code} · ${currency.symbol}` : currency.code}
+            <CaretDownIcon size={12} weight="bold" aria-hidden="true" />
+          </button>
           <label className="setup-amount-field">
             <AmountTicker text={formatMoney(Number(income) || 0)} tick={tick} dir={dir} delta={delta} dimmed={!income} />
             <input
@@ -747,7 +765,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
         </div>
       )}
 
-      {step === 2 && (
+      {step === 1 && (
         <div className="setup-body setup-groups-body">
           <div className="setup-selection-toolbar" role="group" aria-label="Group selection">
             <p className="setup-selection-count" aria-live="polite" aria-atomic="true">
@@ -784,7 +802,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
         </div>
       )}
 
-      {step === 3 && (
+      {step === 2 && (
         <div className="setup-body setup-groups-body">
           <div className="setup-selection-toolbar" role="group" aria-label="Category selection">
             <p className="setup-selection-count" aria-live="polite" aria-atomic="true">
@@ -846,7 +864,11 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
         </div>
       )}
 
-      {step === 4 && (
+      {step === FIRST_EXPENSE && (
+        <FirstExpense envelopes={starterEnvelopes} initialKey={firstWant?.key} onLog={logFirst} onSkip={skipFirst} onDone={() => setStep(DONE)} />
+      )}
+
+      {step === 3 && (
         <div className="setup-body">
           <div className={`setup-rem-chip ${remState}`}>
             <span className="setup-rem-label">{remLabel}</span>
@@ -927,6 +949,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
 
       {error !== '' && <p className="setup-error">{error}</p>}
 
+      {step !== FIRST_EXPENSE && (<>
       <button
         type="button"
         className={`setup-cta${pending ? ' is-saving' : ''}`}
@@ -940,11 +963,28 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
         ) : ctaLabel}
       </button>
       {error === '' && <p className="setup-cta-hint">{hint}</p>}
-      {step === 1 && !custom && (
+      </>)}
+      {step === 0 && !custom && (
         <button type="button" className="setup-pick-own" onClick={pickOwn} disabled={pending}>
           Pick my own groups and categories
         </button>
       )}
+
+      <AnimatePresence>
+        {pickingCurrency && (
+          <Scrim className="erd-modal-overlay" onClick={() => setPickingCurrency(false)}>
+            <Sheet className="erd-modal-card currency-modal" role="dialog" aria-modal="true" aria-label="Your currency" onClick={(e) => e.stopPropagation()}>
+              <div className="erd-modal-head">
+                <h3>Your currency</h3>
+                <button type="button" className="erd-modal-close" onClick={() => setPickingCurrency(false)} aria-label="Close">✕</button>
+              </div>
+              <div style={{ marginTop: 16 }}>
+                <CurrencyPicker value={currencyCode} autoFocus onChange={(code) => { onCurrencyChange(code); setPickingCurrency(false) }} />
+              </div>
+            </Sheet>
+          </Scrim>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
@@ -1040,32 +1080,48 @@ function PickRow({
   )
 }
 
+interface SetupResult {
+  income: number
+  groupCount: number
+  categoryCount: number
+  /** The expense logged on setup's last step, if one was. */
+  firstExpense?: { amount: number; category: string }
+}
+
 function SetupDone({
   result,
   imported = null,
   onFinish,
 }: {
-  result: { income: number; groupCount: number; categoryCount: number }
+  result: SetupResult
   /** Set after an import: its transactions are still being booked behind the celebration. */
   imported?: { app: string | null; total: number } | null
   onFinish: () => void
 }) {
   const { formatMoney } = useCurrency()
+  // The trial notice used to be its own page after setup; now it's a line here.
+  const trialDays = trialLengthDays(useBillingStatus().data)
 
   const summary = [
     { icon: CardholderIcon, label: 'Monthly income', value: result.income > 0 ? formatMoney(result.income) : 'Add it later' },
     { icon: FolderOpenIcon, label: 'Groups', value: String(result.groupCount) },
     { icon: TagIcon, label: 'Categories', value: String(result.categoryCount) },
+    ...(result.firstExpense ? [{ icon: ReceiptIcon, label: 'First expense', value: `${formatMoney(result.firstExpense.amount)} · ${result.firstExpense.category}` }] : []),
   ]
 
   return (
     <div className="setup-done">
       <Confetti />
       <div className="setup-done-badge"><CheckIcon size={30} weight="bold" aria-hidden="true" /></div>
-      <h1 className="setup-done-title">{imported?.app ? `Welcome over from ${imported.app}.` : imported ? 'Your history has moved in.' : 'Your budget is ready to go.'}</h1>
+      <h1 className="setup-done-title">{imported?.app ? `Welcome over from ${imported.app}.` : imported ? 'Your history has moved in.' : 'Your budget is live.'}</h1>
       <p className="setup-done-blurb">
-        {imported ? 'Your envelopes, accounts and payday are set up from it. Change anything later from Categories.' : 'Everything below can be changed later from Categories.'}
+        {imported
+          ? 'Your envelopes, accounts and payday are set up from it. Change anything later from Categories.'
+          : result.firstExpense
+            ? 'Your first expense is in. Home opens right on it.'
+            : 'Everything below can be changed later from Categories.'}
       </p>
+      <p className="setup-done-blurb">{`Your first ${trialDays} days are free. No card, nothing to cancel.`}</p>
       {imported && imported.total > 0 && <ImportHistory total={imported.total} />}
       <p className="setup-done-promise">Your first-week recap lands in 7 days</p>
       <div className="setup-done-list">

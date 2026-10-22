@@ -124,12 +124,6 @@ function useEnter(delay = 0) {
   } as const
 }
 
-type StartChoice = 'fresh' | 'switch'
-const START_CHOICES: { id: StartChoice; title: string; detail: string }[] = [
-  { id: 'fresh', title: 'I’m starting fresh', detail: 'We’ll guide you through it in about a minute.' },
-  { id: 'switch', title: 'I’m switching apps', detail: 'Bring your envelopes and history from YNAB, Wallet and more.' },
-]
-
 type Stage = 'ask' | 'pick' | 'upload' | 'review'
 
 export interface ImportDone {
@@ -150,7 +144,6 @@ export function ImportFlow({ onFresh, onDone, onAlreadySetUp, skipAsk = false, b
   const [stage, setStage] = useState<Stage>(first)
   const [app, setApp] = useState<AppChoice | null>(null)
   const [review, setReview] = useState<ImportReview | null>(null)
-  const [start, setStart] = useState<StartChoice>('fresh')
   const dots: Stage[] = skipAsk ? ['pick', 'upload', 'review'] : ['ask', 'pick', 'upload', 'review']
   const reduce = useReducedMotion()
   const enter = useEnter()
@@ -175,46 +168,16 @@ export function ImportFlow({ onFresh, onDone, onAlreadySetUp, skipAsk = false, b
       </div>
 
       {stage === 'ask' && (
-        // Two equal ways in, as radio cards: starting fresh is as good a start as
-        // switching. Fresh is picked to begin with, since most people won't have an export.
+        // Fresh is the big button: most people have no export, and the budget
+        // is a minute away. Switching stays one click off, as a link.
         <motion.div key="ask" className="import-ask" {...enter}>
           <h1 className="setup-title">How do you want to start?</h1>
-          <p className="setup-blurb">Both get you a budget in a few minutes.</p>
-          <div className="import-choices" role="radiogroup" aria-label="How do you want to start?">
-            {START_CHOICES.map((c, i) => (
-              <motion.button
-                key={c.id}
-                type="button"
-                role="radio"
-                aria-checked={start === c.id}
-                className={`import-choice${start === c.id ? ' is-on' : ''}`}
-                onClick={() => setStart(c.id)}
-                initial={reduce ? false : { opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, ease: EASE, delay: 0.08 + i * 0.06 }}
-                whileTap={reduce ? undefined : { scale: 0.98 }}
-              >
-                <span className="import-choice-radio" aria-hidden="true">
-                  <motion.span
-                    className="import-choice-dot"
-                    initial={false}
-                    animate={{ scale: start === c.id ? 1 : 0.4, opacity: start === c.id ? 1 : 0 }}
-                    transition={reduce ? { duration: 0 } : { type: 'spring', stiffness: 520, damping: 26 }}
-                  />
-                </span>
-                <span className="import-choice-text">
-                  <span className="import-choice-title">{c.title}</span>
-                  <span className="import-choice-detail">{c.detail}</span>
-                </span>
-              </motion.button>
-            ))}
-          </div>
-          <button
-            type="button"
-            className="setup-cta import-ask-cta"
-            onClick={() => (start === 'fresh' ? onFresh() : setStage('pick'))}
-          >
-            Continue
+          <p className="setup-blurb">You’ll have a budget in about a minute.</p>
+          <button type="button" className="setup-cta import-ask-cta" onClick={onFresh}>
+            Start fresh
+          </button>
+          <button type="button" className="import-switch-link" onClick={() => setStage('pick')}>
+            Switching apps? Bring your data
           </button>
           <p className="import-ask-trust">Change phones, lose nothing. Export free, always.</p>
         </motion.div>

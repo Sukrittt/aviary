@@ -35,16 +35,24 @@ interface Props {
 
 const UNGROUPED_LABEL = 'Other'
 
-function usedPct(e: Envelope): number {
+type Spend = Pick<Envelope, 'assigned' | 'spent' | 'isOverspent'>
+
+function usedPct(e: Spend): number {
   if (e.assigned > 0) return Math.round((e.spent / e.assigned) * 100)
   return e.spent > 0 ? Infinity : 0
 }
 
 /** Mobile's availablePill(): red only when overspent, no pill at all for an envelope spent exactly to zero. */
-function pillClass(e: Envelope): string {
+export function pillClass(e: Spend): string {
   if (e.isOverspent) return 'is-over'
   if (usedPct(e) === 100) return 'is-empty'
   return usedPct(e) > 75 ? 'is-low' : 'is-good'
+}
+
+/** The bar's colour. Matches Mobile's ProgressBar: coral only when overspent, muted at exactly 100%, warn past 75%. */
+export function fillClass(e: Spend): string {
+  const rawPct = usedPct(e)
+  return e.isOverspent ? 'is-coral' : (!e.assigned && !e.spent) || rawPct === 100 ? 'is-done' : rawPct > 75 ? 'is-warn' : 'is-mint'
 }
 
 const DAY_MS = 86_400_000
@@ -102,10 +110,7 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
     const isCC = e.isCreditCardPayment
     const name = isCC ? 'Credit Card Payment' : splitEmoji(e.category).text
     const pct = Math.max(0, Math.min(100, e.spentPct))
-    // Unclamped, for color only. Matches Mobile's ProgressBar: coral only when
-    // overspent, muted at exactly 100%, warn past 75%.
-    const rawPct = usedPct(e)
-    const fill = e.isOverspent ? 'is-coral' : (!e.assigned && !e.spent) || rawPct === 100 ? 'is-done' : rawPct > 75 ? 'is-warn' : 'is-mint'
+    const fill = fillClass(e)
     // Spending with nothing assigned: "of ₹0" and "Used ∞" said nothing useful.
     const unbudgeted = !e.assigned && e.spent > 0
     const isMenuOpen = menuCategory === e.category

@@ -16,11 +16,14 @@ export function defersFirstCharge(trialEndsAt: string | Date | null | undefined,
  * "30 days on us", with the trial's real length: early accounts got 45, and
  * an admin can extend one. 30 when the dates aren't known.
  */
-export function daysOnUs(status: { trialStartedAt?: string | null; trialEndsAt?: string | null } | undefined): string {
+export function trialLengthDays(status: { trialStartedAt?: string | null; trialEndsAt?: string | null } | undefined): number {
   const start = Date.parse(status?.trialStartedAt ?? '')
   const end = Date.parse(status?.trialEndsAt ?? '')
-  const days = Number.isFinite(start) && Number.isFinite(end) && end > start ? Math.round((end - start) / 86_400_000) : 30
-  return `${days} days on us`
+  return Number.isFinite(start) && Number.isFinite(end) && end > start ? Math.round((end - start) / 86_400_000) : 30
+}
+
+export function daysOnUs(status: { trialStartedAt?: string | null; trialEndsAt?: string | null } | undefined): string {
+  return `${trialLengthDays(status)} days on us`
 }
 
 /** Reminder thresholds, in days remaining. Matches payment-subscriptions-plan.md. */

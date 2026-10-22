@@ -4,9 +4,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import SetupWizardPage from './page'
 import { completeOnboarding } from '@/src/api/billing'
 import { getUser } from '@/src/api/account'
-import { track } from '@/src/lib/analytics'
+import { track, trackFirst } from '@/src/lib/analytics'
+import { postExpensePayload } from '@/src/api/expenses'
 
-vi.mock('@/src/lib/analytics', () => ({ track: vi.fn(), startTimer: () => () => 7 }))
+vi.mock('@/src/lib/analytics', () => ({ track: vi.fn(), trackFirst: vi.fn(), startTimer: () => () => 7 }))
+vi.mock('@/src/api/expenses', async (orig) => ({ ...(await orig<object>()), postExpensePayload: vi.fn(async () => ({ id: 'e1' })) }))
 const { replace } = vi.hoisted(() => ({ replace: vi.fn() }))
 vi.mock('next/navigation', () => ({ useRouter: () => ({ replace }) }))
 vi.mock('@/src/api/budgets', () => ({
@@ -17,6 +19,7 @@ vi.mock('@/src/api/groups', () => ({ addGroup: vi.fn(async () => ({})) }))
 vi.mock('@/src/api/categories', () => ({ addCategory: vi.fn(async () => ({})) }))
 vi.mock('@/src/api/account', () => ({ updateUser: vi.fn(async (patch) => patch), getUser: vi.fn(async () => ({ onboardedAt: null })) }))
 vi.mock('@/src/api/billing', () => ({
+  getBillingStatus: vi.fn(async () => ({})),
   completeOnboarding: vi.fn(async () => ({ onboardedAt: '2026-09-18T12:00:00.000Z', user: { currencyCode: 'USD' }, access: {} })),
 }))
 
@@ -26,11 +29,10 @@ const eventsNamed = (name: string) => mockTrack.mock.calls.filter(([event]) => e
 function walkToFinish() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } })
   render(<QueryClientProvider client={client}><SetupWizardPage /></QueryClientProvider>)
-  fireEvent.click(screen.getByRole('radio', { name: /^I’m starting fresh/ }))
-  fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Start fresh' }))
+  fireEvent.click(screen.getByRole('button', { name: /^Currency, / }))
   fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'USD' } })
   fireEvent.click(screen.getByRole('button', { name: /US Dollar/ }))
-  fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
   fireEvent.click(screen.getByRole('button', { name: '$50,000' }))
   fireEvent.click(screen.getByRole('button', { name: 'Pick my own groups and categories' }))
   fireEvent.click(screen.getByRole('button', { name: 'Back' }))
@@ -50,24 +52,54 @@ describe('onboarding analytics', () => {
 
     expect(eventsNamed('onboarding_started')).toHaveLength(1)
     expect(eventsNamed('onboarding_step_viewed').map((p) => p?.step_name)).toEqual([
-      'currency', 'income', 'groups', 'income', 'groups', 'categories', 'assign',
+      'income', 'groups', 'income', 'groups', 'categories', 'assign', 'first_expense',
     ])
-    expect(eventsNamed('onboarding_back_tapped')).toEqual([{ from_step: 2, step_name: 'groups' }])
+    expect(eventsNamed('onboarding_back_tapped')).toEqual([{ from_step: 1, step_name: 'groups' }])
     const completed = eventsNamed('onboarding_step_completed')
-    expect(completed.map((p) => p?.step_name)).toEqual(['currency', 'income', 'income', 'groups', 'categories', 'assign'])
-    expect(completed[0]).toEqual({ step: 0, step_name: 'currency', seconds_on_step: 7, currency: 'USD' })
-    expect(completed[1]).toMatchObject({ used_quick_pick: true, skipped_income: false, customized: true })
-    expect(completed[5]).toMatchObject({ step_name: 'assign', edited_split: false })
+    expect(completed.map((p) => p?.step_name)).toEqual(['income', 'income', 'groups', 'categories', 'assign'])
+    expect(completed[0]).toEqual({ step: 0, step_name: 'income', seconds_on_step: 7, currency: 'USD', used_quick_pick: true, skipped_income: false, customized: true })
+    expect(completed[4]).toMatchObject({ step_name: 'assign', edited_split: false })
     expect(eventsNamed('onboarding_completed')[0]).toMatchObject({ total_seconds: 7, groups_count: 2, currency: 'USD', customized: true, skipped_income: false })
-    expect(screen.queryByText('Assigned')).not.toBeInTheDocument()
+
+    // The budget's saved, so the last step logs a real expense against it.
+    expect(await screen.findByRole('heading', { name: 'Log your first expense' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Back' })).toBeDisabled()
+    // Opens on a want, not the rent.
+    expect(screen.getByRole('button', { name: 'Eating out' })).toHaveAttribute('aria-pressed', 'true')
+    fireEvent.change(screen.getByRole('textbox', { name: 'Amount spent' }), { target: { value: '250' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Log it' }))
+    await waitFor(() => expect(postExpensePayload).toHaveBeenCalledWith(expect.objectContaining({ item: 'Eating out', category: 'Eating out', amount_inr: '250', payment_method: 'bank', source: 'manual' })))
+    await waitFor(() => expect(trackFirst).toHaveBeenCalledWith('expense_logged', 'first_expense_at', expect.anything()))
+    expect(eventsNamed('onboarding_step_completed').at(-1)).toMatchObject({ step: 4, step_name: 'first_expense', logged: true })
+
+    expect(await screen.findByRole('heading', { name: 'Your budget is live.' }, { timeout: 3000 })).toBeInTheDocument()
+    expect(screen.getByText('Your first expense is in. Home opens right on it.')).toBeInTheDocument()
+    expect(screen.getByText('Your first 30 days are free. No card, nothing to cancel.')).toBeInTheDocument()
+    expect(screen.getByText('$250 · Eating out')).toBeInTheDocument()
+    // Straight home: no extras, no survey, no trial notice in between.
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
-    // Extras, then where you heard about us, then the trial notice.
-    fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }))
-    fireEvent.click(await screen.findByRole('button', { name: 'Reddit' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Start budgeting' }))
-    await waitFor(() => expect(replace).toHaveBeenCalledWith('/account/trial-notice'))
-    expect(eventsNamed('onboarding_extras_chosen')).toEqual([{ extras: '', count: 0 }])
-    expect(eventsNamed('onboarding_heard_from')).toEqual([{ source: 'reddit' }])
+    expect(replace).toHaveBeenCalledWith('/expense')
+    expect(eventsNamed('onboarding_extras_chosen')).toHaveLength(0)
+    client.clear()
+  })
+
+  it('a skipped first expense still lands on the celebration, without saving one', async () => {
+    const client = walkToFinish()
+    fireEvent.click(await screen.findByRole('button', { name: 'Skip for now' }, { timeout: 3000 }))
+    expect(screen.getByRole('heading', { name: 'Your budget is live.' })).toBeInTheDocument()
+    expect(screen.queryByText('First expense')).not.toBeInTheDocument()
+    expect(postExpensePayload).not.toHaveBeenCalled()
+    expect(eventsNamed('onboarding_step_completed').at(-1)).toMatchObject({ step_name: 'first_expense', logged: false })
+    client.clear()
+  })
+
+  it('keeps the first expense on screen with a message when it fails to save', async () => {
+    vi.mocked(postExpensePayload).mockRejectedValueOnce(new Error('Failed to add expense: 503'))
+    const client = walkToFinish()
+    fireEvent.change(await screen.findByRole('textbox', { name: 'Amount spent' }, { timeout: 3000 }), { target: { value: '90' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Log it' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Couldn’t save that. Check your connection and try again.')
+    expect(screen.getByRole('heading', { name: 'Log your first expense' })).toBeInTheDocument()
     client.clear()
   })
 
@@ -86,7 +118,7 @@ describe('onboarding analytics', () => {
       .mockResolvedValueOnce({ email: 'test@example.com', emailVerified: true, onboardedAt: null })
       .mockResolvedValueOnce({ email: 'test@example.com', emailVerified: true, onboardedAt: '2026-10-01', currencyCode: 'USD' })
     const client = walkToFinish()
-    expect(await screen.findByRole('heading', { name: 'Your budget is ready to go.' }, { timeout: 3000 })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Log your first expense' }, { timeout: 3000 })).toBeInTheDocument()
     expect(eventsNamed('onboarding_failed')).toHaveLength(0)
     expect(eventsNamed('onboarding_completed')).toEqual([expect.objectContaining({ recovered_after_error: true })])
     client.clear()
@@ -101,7 +133,7 @@ describe('onboarding analytics', () => {
     expect(screen.getByText('Creating your categories…')).toBeInTheDocument()
     expect(await screen.findByText('Starting your budget…')).toBeInTheDocument()
     finish()
-    expect(await screen.findByRole('heading', { name: 'Your budget is ready to go.' }, { timeout: 3000 })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Log your first expense' }, { timeout: 3000 })).toBeInTheDocument()
     client.clear()
   })
 })

@@ -21,6 +21,7 @@ vi.mock('@/src/api/categories', () => ({
 }))
 vi.mock('@/src/api/account', () => ({ updateUser: vi.fn(async (patch) => patch), getUser: vi.fn(async () => ({ onboardedAt: null })) }))
 vi.mock('@/src/api/billing', () => ({
+  getBillingStatus: vi.fn(async () => ({})),
   completeOnboarding: vi.fn(async () => ({ onboardedAt: '2026-10-08T12:00:00.000Z', user: {}, access: {} })),
 }))
 
@@ -34,9 +35,7 @@ const completed = () => vi.mocked(track).mock.calls.filter(([e]) => e === 'onboa
 function start() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } })
   render(<QueryClientProvider client={client}><SetupWizardPage /></QueryClientProvider>)
-  fireEvent.click(screen.getByRole('radio', { name: /^I’m starting fresh/ }))
-  fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
-  fireEvent.click(button('Continue')) // currency
+  fireEvent.click(screen.getByRole('button', { name: 'Start fresh' }))
   return client
 }
 
@@ -69,7 +68,11 @@ describe('flexible setup', () => {
     const client = start()
     expect(screen.getByText('You can add it from Home any time')).toBeTruthy()
     fireEvent.click(button('Skip for now'))
-    expect(await screen.findByText('Add it later', {}, { timeout: 3000 })).toBeTruthy()
+    // Nothing was assigned, so the first expense has no budget to eat into.
+    expect(await screen.findByRole('heading', { name: 'Log your first expense' }, { timeout: 3000 })).toBeTruthy()
+    expect(screen.getByText('Nothing budgeted here yet')).toBeTruthy()
+    fireEvent.click(button('Skip for now'))
+    expect(screen.getByText('Add it later')).toBeTruthy()
 
     const rows = assigned()
     expect(Object.keys(rows)).toHaveLength(6)

@@ -18,16 +18,17 @@ vi.mock('@/src/api/budgets', () => ({ getBudgets: vi.fn(async () => []), updateB
 vi.mock('@/src/api/groups', () => ({ addGroup: vi.fn(async () => ({})) }))
 vi.mock('@/src/api/categories', () => ({ addCategory: vi.fn(async () => ({})) }))
 vi.mock('@/src/api/account', () => ({ updateUser: vi.fn(async (patch) => patch), getUser: vi.fn() }))
-vi.mock('@/src/api/billing', () => ({ completeOnboarding: vi.fn(async () => ({ onboardedAt: '2026-10-19T09:00:00.000Z', user: {}, access: {} })) }))
+vi.mock('@/src/api/billing', () => ({
+  getBillingStatus: vi.fn(async () => ({})),
+  completeOnboarding: vi.fn(async () => ({ onboardedAt: '2026-10-19T09:00:00.000Z', user: {}, access: {} })) }))
 
 function walkToFinish() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   render(<QueryClientProvider client={client}><SetupWizardPage /></QueryClientProvider>)
-  fireEvent.click(screen.getByRole('radio', { name: /^I’m starting fresh/ }))
-  fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Start fresh' }))
+  fireEvent.click(screen.getByRole('button', { name: /^Currency, / }))
   fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'USD' } })
   fireEvent.click(screen.getByRole('button', { name: /US Dollar/ }))
-  fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
   fireEvent.click(screen.getByRole('button', { name: '$50,000' }))
   fireEvent.click(screen.getByRole('button', { name: 'Finish setup' }))
 }
