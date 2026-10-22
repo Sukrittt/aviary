@@ -180,8 +180,8 @@ export function LandingPage({ monthlyPrice, ios = false, android = false, intl =
           <h3>A streak worth keeping.</h3>
           <p>Expense Wrapped turns your month into a recap, longest logging streak included.</p>
           <div className="lp-win-shots">
-            <Image src={`/landing/${intl ? 'intl/' : ''}wrapped-streak.png`} alt={intl ? 'That\'s a wrap: 27 active days, $3,495.27 spent, longest streak 23 days.' : 'That\'s a wrap: 27 active days, ₹1,08,659 spent, longest streak 15 days.'} width={576} height={640} sizes="(max-width: 760px) 45vw, 250px" />
-            <Image src={`/landing/${intl ? 'intl/' : ''}wrapped-persona.png`} alt={intl ? 'Your spending personality: The Daily Tracker.' : 'Your spending personality: The Quiet Investor.'} width={576} height={640} sizes="(max-width: 760px) 45vw, 250px" />
+            <Image src={`/landing/${intl ? 'intl/' : ''}wrapped-streak.png`} alt={intl ? 'That\'s a wrap: 27 active days, $3,495.27 spent, longest streak 23 days.' : 'That\'s a wrap: 27 active days, ₹1,08,659 spent, longest streak 15 days.'} width={576} height={640} quality={90} sizes="(max-width: 760px) 45vw, 250px" />
+            <Image src={`/landing/${intl ? 'intl/' : ''}wrapped-persona.png`} alt={intl ? 'Your spending personality: The Daily Tracker.' : 'Your spending personality: The Quiet Investor.'} width={567} height={630} quality={90} sizes="(max-width: 760px) 45vw, 250px" />
           </div>
         </article>
       </div>
