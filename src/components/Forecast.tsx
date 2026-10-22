@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useState, type ReactNode } from 'react'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useCurrency } from '@/src/context/CurrencyContext'
 import { useForecast } from '@/src/hooks/useForecast'
 import { runOutWarning, nextMonthLine } from '@/src/lib/forecastCopy'
@@ -27,15 +28,36 @@ export function ForecastLine() {
   const [dismissed, setDismissed] = usePersistentState(
     `rollover-dismissed-${warning?.key ?? 'forecast-none'}`, false, parseDismissed, serializeDismissed,
   )
-  if (!warning || dismissed) return null
+  const reduceMotion = useReducedMotion()
+  const fold = { duration: 0.32, ease: [0.22, 1, 0.36, 1] as const }
   return (
-    <div className="erd-card erd-home-rta-slim home-forecast-warning">
-      <Link href="/insights#forecast">
-        <span className="erd-rta-icon" aria-hidden="true"><ChartLineIcon size={18} /></span>
-        {warning.text}
-      </Link>
-      <button type="button" onClick={() => setDismissed(true)}>Okay</button>
-    </div>
+    <AnimatePresence initial={false}>
+      {warning && !dismissed && (
+        // Same exit as Home's rollover strip: slides off to the right, then its
+        // height (and the column's 20px gap) closes so the cards below glide up.
+        <motion.div
+          key={warning.key}
+          style={{ flexShrink: 0, overflow: 'hidden' }}
+          exit={reduceMotion ? { opacity: 0 } : {
+            x: '100%', opacity: 0, height: 0, marginBottom: -20,
+            transition: {
+              x: { duration: 0.3, ease: [0.4, 0, 1, 1] },
+              opacity: { duration: 0.3 },
+              height: { delay: 0.22, ...fold },
+              marginBottom: { delay: 0.22, ...fold },
+            },
+          }}
+        >
+          <div className="erd-card erd-home-rta-slim home-forecast-warning">
+            <Link href="/insights#forecast">
+              <span className="erd-rta-icon" aria-hidden="true"><ChartLineIcon size={18} /></span>
+              {warning.text}
+            </Link>
+            <button type="button" onClick={() => setDismissed(true)}>Okay</button>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   )
 }
 

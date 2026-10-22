@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { Forecast } from '@/lib/forecast'
 import { ForecastCard, ForecastLine } from './Forecast'
 
@@ -74,10 +74,11 @@ describe('ForecastLine', () => {
     expect(screen.getByRole('link').textContent).toBe('Food runs out around 30\u00a0Oct')
   })
 
-  it('goes away on Okay and stays gone for that envelope and date', () => {
+  it('goes away on Okay and stays gone for that envelope and date', async () => {
     const first = render(<ForecastLine />)
     fireEvent.click(screen.getByRole('button', { name: 'Okay' }))
-    expect(first.container.innerHTML).toBe('')
+    // Leaves through its fold-up exit rather than snapping out.
+    await waitFor(() => expect(first.container.innerHTML).toBe(''))
     first.unmount()
     expect(render(<ForecastLine />).container.innerHTML).toBe('')
   })
