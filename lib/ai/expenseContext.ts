@@ -4,7 +4,8 @@ import { computeEnvelopeState } from '@/src/lib/envelope'
 import { savingsTrend } from '@/src/lib/monthly'
 import { getCollection } from '@/lib/http'
 import type { Auth } from '@/lib/access'
-import type { Envelope } from '@/src/lib/envelope'
+import type { Carry, Envelope } from '@/src/lib/envelope'
+import { computeCarry } from '@/lib/budgetCarry'
 import { paceOutlier, type PaceOutlier } from '@/lib/notifications/pace'
 import type { BudgetRow as WireBudgetRow, ExpenseRow as WireExpenseRow } from '@/src/types'
 
@@ -92,6 +93,8 @@ export interface SummarizeExpensesInput {
   holdings: HoldingDocRow[]
   currentMonth: string // 'YYYY-MM'
   today: string // 'YYYY-MM-DD'
+  /** What earlier months left behind (lib/budgetCarry.ts). Omitted: nothing carries. */
+  carry?: Carry
 }
 
 export interface SummarizeExpensesMeta {
@@ -200,7 +203,7 @@ function pickRiser(
 }
 
 export function summarizeExpenses(input: SummarizeExpensesInput): SummarizeExpensesResult {
-  const { expenses, budgets, categories, groups, subscriptions, holdings, currentMonth, today } = input
+  const { expenses, budgets, categories, groups, subscriptions, holdings, currentMonth, today, carry } = input
 
   const [cy, cm] = currentMonth.split('-').map(Number)
   const totalDaysInMonth = daysInMonth(cy, cm)
@@ -242,7 +245,7 @@ export function summarizeExpenses(input: SummarizeExpensesInput): SummarizeExpen
 
   const groupNames = groups.map((g) => g.name)
 
-  const envelopeState = computeEnvelopeState(budgetRows, envelopeExpenseRows, currentMonth, realCategories, groupNames)
+  const envelopeState = computeEnvelopeState(budgetRows, envelopeExpenseRows, currentMonth, realCategories, groupNames, undefined, carry)
 
   const income = envelopeState.income
   const ccEnvelope = envelopeState.envelopes.find((e) => e.isCreditCardPayment)
@@ -260,17 +263,17 @@ export function summarizeExpenses(input: SummarizeExpensesInput): SummarizeExpen
       ? `INCOME: ${round(income)}`
       : `INCOME: ${round(income)} (monthly ${round(envelopeState.incomeBase)}, recurs; plus one-off ${round(envelopeState.incomeExtra)} this month only)`,
     `ASSIGNED THIS MONTH: ${round(envelopeState.totalAssigned)}`,
-    `READY TO ASSIGN: ${round(envelopeState.readyToAssign)} (income not given to any category yet; recurs every month unless assignments change)`,
+    `READY TO ASSIGN: ${round(envelopeState.readyToAssign)} (income not given to any category yet, including ${round(envelopeState.carriedReadyToAssign)} carried from last month; whatever is left carries into next month)`,
     ccEnvelope
       ? `CREDIT CARD: assigned ${round(ccEnvelope.assigned)}, charged ${round(ccEnvelope.spent)} this month, available ${round(ccEnvelope.available)}`
       : 'CREDIT CARD: no activity',
   ]
 
-  const envelopeLines = ['CATEGORIES (category|group|assigned|spent|available|overspent):']
+  const envelopeLines = ['CATEGORIES (category|group|assigned|carried from last month|spent|available|overspent; available = assigned + carried - spent, and carries into next month):']
   for (const e of envelopeState.envelopes) {
     if (e.isCreditCardPayment) continue // reported separately in the header, not a spending envelope
     envelopeLines.push(
-      `${e.category}|${e.group ?? ''}|${round(e.assigned)}|${round(e.spent)}|${round(e.available)}|${e.isOverspent ? 'yes' : 'no'}`,
+      `${e.category}|${e.group ?? ''}|${round(e.assigned)}|${round(e.rolledOver)}|${round(e.spent)}|${round(e.available)}|${e.isOverspent ? 'yes' : 'no'}`,
     )
   }
   // Stated, not left to the model: flash-lite got these sums wrong.
@@ -534,7 +537,7 @@ export async function buildExpenseContext(
 
   const currentMonth = today.slice(0, 7)
 
-  const currencyCode = await getBudgetCurrency(auth)
-  const result = summarizeExpenses({ expenses, budgets, categories, groups, subscriptions, holdings, currentMonth, today })
+  const [currencyCode, carry] = await Promise.all([getBudgetCurrency(auth), computeCarry(auth, currentMonth)])
+  const result = summarizeExpenses({ expenses, budgets, categories, groups, subscriptions, holdings, currentMonth, today, carry })
   return { ...result, facts: `${currencyInstruction(currencyCode)}\n${result.facts}`, currencyCode }
 }

@@ -30,6 +30,8 @@ export interface EnvelopeState {
   totalAssigned: number
   totalSpent: number
   readyToAssign: number
+  /** The part of readyToAssign last month left unassigned. Negative when it was over-assigned. */
+  carriedReadyToAssign: number
   isOverAssigned: boolean
   envelopes: Envelope[]
   groups: string[]
@@ -45,6 +47,14 @@ interface ExpenseNum {
   date: string
   amountInr: number
   category: string
+}
+
+/** What earlier months left behind, from `GET /api/budgets/carry` (the server
+ * computes it: see lib/budgetCarry.ts). `ready_to_assign` is only the carried
+ * part, not the month's whole Ready to assign. */
+export interface Carry {
+  ready_to_assign: number
+  rolled_over: Record<string, number>
 }
 
 export const CREDIT_CARD_CATEGORY = '__credit_card__'
@@ -122,6 +132,9 @@ export function computeEnvelopeState(
   // All-time last spend date per category, from `GET /api/expenses?from=`. Needed
   // because `expenseRows` may only cover recent months.
   lastSpent?: Record<string, string>,
+  // Last month's leftovers. Omitted means nothing carries (a client that
+  // hasn't loaded it yet, or a month before rollover started).
+  carry?: Carry,
 ): EnvelopeState {
   const budgets: BudgetNum[] = budgetRows.map((b) => ({
     month: b.month,
@@ -187,9 +200,8 @@ export function computeEnvelopeState(
   for (const category of allCategories) {
     const isCC = category === CREDIT_CARD_CATEGORY
     const assigned = carriedAssigned(category)
-    // Clean slate every month: unspent money does not carry forward. Prior
-    // months' own assigned/spent stay untouched in their own rows.
-    const computedRollover = 0
+    // Unspent (or overspent) money from earlier months stays in its envelope.
+    const computedRollover = carry?.rolled_over[category] ?? 0
 
     const spent = monthSpending.get(category) ?? 0
     const available = assigned + computedRollover - spent
@@ -215,7 +227,8 @@ export function computeEnvelopeState(
   // Rounded to paise (2dp), not whole rupees — assigned amounts can carry
   // decimals, and a coarser round here silently dropped them from the one
   // number the envelope method is about.
-  const readyToAssign = Math.round((income - totalAssigned) * 100) / 100 || 0
+  const carriedReadyToAssign = carry?.ready_to_assign ?? 0
+  const readyToAssign = Math.round((carriedReadyToAssign + income - totalAssigned) * 100) / 100 || 0
 
   return {
     month: currentMonth,
@@ -225,6 +238,7 @@ export function computeEnvelopeState(
     totalAssigned,
     totalSpent,
     readyToAssign,
+    carriedReadyToAssign,
     envelopes,
     isOverAssigned: readyToAssign < 0,
     groups: groupNames.filter((g) => envelopes.some((e) => e.group === g)),
