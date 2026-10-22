@@ -105,6 +105,8 @@ export function PickExtras() {
                     className="account-switch"
                     aria-label={`Turn on ${FEATURE_LABELS[key].label}`}
                     checked={on.has(key)}
+                    // Locked once a save starts: a later flip would show but never be saved.
+                    disabled={phase.saving || phase.success}
                     onChange={() => flip(key)}
                   />
                 </label>

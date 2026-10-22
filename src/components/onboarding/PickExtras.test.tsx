@@ -56,3 +56,12 @@ it('never shows for an account that already chose', async () => {
   await waitFor(() => expect(getUser).toHaveBeenCalled())
   expect(screen.queryByText('Want any extras?')).toBeNull()
 })
+
+it('locks the switches once a save has started, so a late flip is never left unsaved', async () => {
+  ;(updateUser as Mock).mockReturnValue(new Promise(() => {}))
+  renderCard()
+  fireEvent.click(await screen.findByRole('switch', { name: 'Turn on Insights' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Turn on 1' }))
+  await waitFor(() => expect(screen.getByRole('switch', { name: 'Turn on Scan a bill' })).toBeDisabled())
+  expect(updateUser).toHaveBeenCalledTimes(1)
+})
