@@ -26,6 +26,8 @@ export interface EnvelopeState {
   totalAssigned: number
   totalSpent: number
   readyToAssign: number
+  /** The part of readyToAssign carried from last month. See src/lib/envelope.ts. */
+  carriedReadyToAssign: number
   envelopes: Envelope[]
   isOverAssigned: boolean
   groups: string[]

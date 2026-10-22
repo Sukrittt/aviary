@@ -11,7 +11,7 @@ import { Scrim, Sheet } from './MotionSheet'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
 import { LoadingCaption } from './LoadingCaption'
 import { AmountText, CheckIcon, ease, type as typeScale } from './landing/mobile/kit'
-import { useBudgets, useFreshBudgets, useTransferBudget, useUpdateBudget } from '../hooks/useBudgets'
+import { useBudgets, useCarry, useFreshBudgets, useTransferBudget, useUpdateBudget } from '../hooks/useBudgets'
 import { useCategories } from '../hooks/useCategories'
 import { useRecentExpenses } from '../hooks/useExpenses'
 import { useGroups } from '../hooks/useGroups'
@@ -63,8 +63,11 @@ function useMoneyData() {
   const expensesQ = useRecentExpenses()
   const categoriesQ = useCategories()
   const groupsQ = useGroups()
+  // Every money screen works on the current month.
+  const carryQ = useCarry(currentMonthKey())
   return {
-    isLoading: budgetsQ.isLoading || expensesQ.isLoading || categoriesQ.isLoading || groupsQ.isLoading,
+    isLoading: budgetsQ.isLoading || expensesQ.isLoading || categoriesQ.isLoading || groupsQ.isLoading || carryQ.isLoading,
+    carry: carryQ.data,
     budgets: budgetsQ.data ?? EMPTY,
     expenses: expensesQ.data ?? EMPTY,
     categories: categoriesQ.data ?? EMPTY,
@@ -368,8 +371,8 @@ function MoveMoneyBody({
 
   const month = useMemo(() => currentMonthKey(), [])
   const envelopeState = useMemo(
-    () => computeEnvelopeState(data.budgets, data.expenses, month, data.categories, data.groups),
-    [data.budgets, data.expenses, month, data.categories, data.groups],
+    () => computeEnvelopeState(data.budgets, data.expenses, month, data.categories, data.groups, undefined, data.carry),
+    [data.budgets, data.expenses, month, data.categories, data.groups, data.carry],
   )
 
   const target = envelopeState.envelopes.find((e) => e.category === targetCategoryName)
@@ -716,7 +719,7 @@ export function EditAssignedScreen({ category, onClose, assign = false }: { cate
   if (data.isLoading) return <FormSheet title={assign ? 'Assign money' : 'Edit amount'} onClose={onClose} busy={false}><LoadingCaption /></FormSheet>
 
   const month = currentMonthKey()
-  const state = computeEnvelopeState(data.budgets, data.expenses, month, data.categories, data.groups)
+  const state = computeEnvelopeState(data.budgets, data.expenses, month, data.categories, data.groups, undefined, data.carry)
   const prevState = computeEnvelopeState(data.budgets, data.expenses, prevMonthKey(month), data.categories, data.groups)
   const envelope = state.envelopes.find((e) => e.category === category)
   const budget = data.budgets.find((b) => b.month === month && b.category === category)
@@ -728,6 +731,7 @@ export function EditAssignedScreen({ category, onClose, assign = false }: { cate
       month={month}
       version={budget?.version ?? 0}
       currentAssigned={envelope?.assigned ?? 0}
+      rolledOver={envelope?.rolledOver ?? 0}
       spent={envelope?.spent ?? 0}
       isCreditCardPayment={!!envelope?.isCreditCardPayment}
       lastMonthAssigned={prevState.envelopes.find((e) => e.category === category)?.assigned}
@@ -747,6 +751,7 @@ function EditAssignedBody({
   month,
   version,
   currentAssigned,
+  rolledOver,
   spent,
   isCreditCardPayment,
   lastMonthAssigned,
@@ -758,6 +763,8 @@ function EditAssignedBody({
   month: string
   version: number
   currentAssigned: number
+  /** What the envelope carried in from last month. */
+  rolledOver: number
   spent: number
   isCreditCardPayment: boolean
   lastMonthAssigned: number | undefined
@@ -824,6 +831,7 @@ function EditAssignedBody({
   }
 
   const over = value > 0 && projectedRTA < 0
+  const assignedAfter = assign ? cents(baseAssigned + value) : value
   const hint =
     delta === 0
       ? `${formatCurrency(spent, hideAmounts)} spent · ${formatCurrency(baseAssigned, hideAmounts)} assigned`
@@ -869,6 +877,15 @@ function EditAssignedBody({
             )}
           </div>
         </AmountField>
+      )}
+      {/* With money carried in, "assigned" alone no longer explains what's left. */}
+      {!conflict && rolledOver !== 0 && (
+        <dl className="bill-scan-breakdown">
+          <div><dt>Assigned this month</dt><dd>{formatCurrency(assignedAfter, hideAmounts)}</dd></div>
+          <div><dt>Carried from last month</dt><dd>{formatCurrency(rolledOver, hideAmounts)}</dd></div>
+          <div><dt>Spent</dt><dd>{formatCurrency(spent, hideAmounts)}</dd></div>
+          <div><dt>Available</dt><dd>{formatCurrency(cents(assignedAfter + rolledOver - spent), hideAmounts)}</dd></div>
+        </dl>
       )}
       {error !== '' && <p role="alert" className="erd-log-error">{error}</p>}
     </FormSheet>
@@ -1032,7 +1049,7 @@ export function AddIncomeScreen({ onClose, existing }: { onClose: () => void; /*
   // Only the preview line needs the budget data; the form never waits on it.
   const state = data.isLoading
     ? null
-    : computeEnvelopeState(data.budgets, data.expenses, currentMonthKey(), data.categories, data.groups)
+    : computeEnvelopeState(data.budgets, data.expenses, currentMonthKey(), data.categories, data.groups, undefined, data.carry)
 
   async function submit() {
     if (busy || value <= 0) return
@@ -1118,7 +1135,7 @@ export function EditReadyToAssignScreen({ onClose }: { onClose: () => void }) {
   const fetchFreshBudgets = useFreshBudgets()
   if (data.isLoading) return <FormSheet title="Set Ready to Assign" onClose={onClose} busy={false}><LoadingCaption /></FormSheet>
   const month = currentMonthKey()
-  const state = computeEnvelopeState(data.budgets, data.expenses, month, data.categories, data.groups)
+  const state = computeEnvelopeState(data.budgets, data.expenses, month, data.categories, data.groups, undefined, data.carry)
   const incomeBudget = data.budgets.find((b) => b.month === month && b.category === INCOME_CATEGORY)
   // The extra is saved as target RTA + what's assigned - monthly income, so the assigned total must
   // be current at save time: another device may have assigned money since load.
@@ -1134,6 +1151,7 @@ export function EditReadyToAssignScreen({ onClose }: { onClose: () => void }) {
       totalAssigned={state.totalAssigned}
       latestTotalAssigned={latestTotalAssigned}
       readyToAssign={state.readyToAssign}
+      carried={state.carriedReadyToAssign}
       version={incomeBudget?.version ?? 0}
       onClose={onClose}
     />
@@ -1147,6 +1165,7 @@ function EditReadyToAssignBody({
   totalAssigned,
   latestTotalAssigned,
   readyToAssign,
+  carried,
   version,
   onClose,
 }: {
@@ -1156,6 +1175,7 @@ function EditReadyToAssignBody({
   totalAssigned: number
   latestTotalAssigned: () => Promise<number>
   readyToAssign: number
+  carried: number
   version: number
   onClose: () => void
 }) {
@@ -1174,7 +1194,7 @@ function EditReadyToAssignBody({
   const [conflict, setConflict] = useState<BudgetRow | null>(null)
 
   const value = Number(amountText) || 0
-  const newIncome = cents(incomeBase + extraForReadyToAssign(incomeBase, totalAssigned, value))
+  const newIncome = cents(incomeBase + extraForReadyToAssign(incomeBase, totalAssigned, value, carried))
   const delta = Math.round((newIncome - baseIncome) * 100) / 100
   // The difference lands in this month's income, so say where income ends up once it moves.
   const hint = delta === 0
@@ -1187,7 +1207,7 @@ function EditReadyToAssignBody({
     setError('')
     try {
       // ponytail: a transfer landing between this read and the PUT still slips through; an atomic server-side set-RTA would close it.
-      const extra = extraForReadyToAssign(incomeBase, await latestTotalAssigned(), value)
+      const extra = extraForReadyToAssign(incomeBase, await latestTotalAssigned(), value, carried)
       // PUT upserts, so this creates the month's income row (keeping the carried monthly income) when there isn't one yet.
       await updateBudget.mutateAsync({ month, category: INCOME_CATEGORY, version: expectedVersion, updates: { extra: String(extra) } })
       phase.succeed(onClose)

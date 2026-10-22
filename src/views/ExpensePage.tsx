@@ -1,14 +1,14 @@
 "use client";
 
 import { useCurrency } from "@/src/context/CurrencyContext";
-import { useEffect, useMemo, useRef, useState, type ReactElement } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactElement } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "motion/react";
 import { AmountText, CheckIcon } from "../components/landing/mobile/kit";
 import { track } from "../lib/analytics";
 import { currencyUnit } from "../lib/currencies";
-import { CaretRightIcon, GearIcon, HouseIcon, InvoiceIcon, MoneyWavyIcon, MoonIcon, PencilSimpleIcon, PlantIcon, SunIcon } from "@/src/components/icons";
+import { CaretRightIcon, GearIcon, HouseIcon, InvoiceIcon, MoneyWavyIcon, MoonIcon, PencilSimpleIcon, SunIcon } from "@/src/components/icons";
 import { useAppearance } from "../../components/AppearanceProvider";
 
 import { FluidDemo } from "../components/FluidDemo";
@@ -35,7 +35,7 @@ import {
 } from "../services/expensePanelAdapter";
 import { buildExpensePanel } from "../lib/expensePanel";
 import { EMPTY } from "../lib/constants";
-import { useBudgets, useTransferBudget, useUpdateBudget } from "../hooks/useBudgets";
+import { useBudgets, useCarry, useTransferBudget, useUpdateBudget } from "../hooks/useBudgets";
 import { useRecentExpenses, useLastSpent, useAddExpense } from "../hooks/useExpenses";
 import { useCategories, useCategoryIcons } from "../hooks/useCategories";
 import { useGroupIcons, useGroups } from "../hooks/useGroups";
@@ -48,6 +48,9 @@ import { useHiddenFeatures, useUser } from "../hooks/useUser";
 import { FeatureNudge } from "../components/home/FeatureNudge";
 import { WeekRecapGate } from "../components/wrapped/WeekRecap";
 import { usePersistentState } from "../hooks/usePersistentState";
+import { useDismissedRolloverBanner } from "../hooks/useDismissedRolloverBanner";
+import { carriedReadyLine, rolloverCard } from "../lib/rollover";
+import { RolloverCard } from "../components/home/RolloverCard";
 import { LogExpenseModal } from "../components/LogExpenseModal";
 import { FillGap } from "../features/fill-gap/FillGap";
 import { RecurringIncomeModal } from "../components/RecurringIncomeModal";
@@ -58,10 +61,11 @@ import { ReadOnlyDialog } from "../components/BudgetNotices";
 import { SuccessButton, useButtonPhase } from "../components/SuccessButton";
 import { ImportBanner, useImportInProgress } from "../components/ImportBanner";
 import type { EnvelopeState } from "../types/expense";
-import { computeEnvelopeState, currentMonthKey, daysLeftInMonth, monthLabel, prevMonthKey } from "../lib/envelope";
+import { currentMonthKey, daysLeftInMonth, monthLabel } from "../lib/envelope";
 import { InsightsTab } from "@/src/components/InsightsTab";
 import { ForecastLine } from "@/src/components/Forecast";
 
+const noop = () => () => {};
 const parseDismissed = (raw: string) => raw === "1";
 const serializeDismissed = (value: boolean) => value ? "1" : "0";
 const MotionLink = motion.create(Link);
@@ -79,6 +83,8 @@ export function ExpensePage() {
   // recomputed from them. The old single SWR fetcher both fetched and derived;
   // buildExpensePanel is the derivation half, now pure.
   const budgetsQuery = useBudgets();
+  const thisMonth = currentMonthKey();
+  const carryQuery = useCarry(thisMonth);
   const expensesQuery = useRecentExpenses();
   const lastSpent = useLastSpent().data;
   const categoriesQuery = useCategories();
@@ -88,7 +94,7 @@ export function ExpensePage() {
   const subscriptionsQuery = useSubscriptions();
   const user = useUser().data;
   const hidden = useHiddenFeatures();
-  const { readOnly } = useSpaces();
+  const { readOnly, active: activeSpace } = useSpaces();
 
   const updateBudgetM = useUpdateBudget();
   const transferBudgetM = useTransferBudget();
@@ -106,7 +112,10 @@ export function ExpensePage() {
     budgetsQuery.isLoading ||
     expensesQuery.isLoading ||
     categoriesQuery.isLoading ||
-    groupsQuery.isLoading;
+    groupsQuery.isLoading ||
+    // Waits so carried money doesn't land a beat after the envelopes paint. A
+    // failed load falls through to no carry rather than a stuck skeleton.
+    carryQuery.isLoading;
 
   const panel = useMemo<ExpensePanelData | null>(
     () =>
@@ -118,6 +127,7 @@ export function ExpensePage() {
               budgets: budgetRows,
               expenses: expenseRows,
               lastSpent,
+              carry: carryQuery.data,
               subscriptions: subscriptionRows,
               categories: categoryRows,
               groups: groupNames,
@@ -130,6 +140,7 @@ export function ExpensePage() {
       expenseRows,
       subscriptionRows,
       lastSpent,
+      carryQuery.data,
       categoryRows,
       groupNames,
       currencyCode,
@@ -205,18 +216,16 @@ export function ExpensePage() {
     </DropdownMenu>
   );
   const [showBulkReturnConfirm, setShowBulkReturnConfirm] = useState(false);
-  const previousMonth = prevMonthKey(panel?.month ?? currentMonthKey());
-  const [leftoverDismissed, setLeftoverDismissed] = usePersistentState(
-    `rollover-dismissed-${previousMonth}`, false, parseDismissed, serializeDismissed,
-  );
+  // Once per space and month. Held back through hydration (the server can't
+  // know it was dismissed) and until the active space is known, so it never flashes.
+  const hydrated = useSyncExternalStore(noop, () => true, () => false);
+  const [rolloverDismissed, setRolloverDismissed] = useDismissedRolloverBanner(`${activeSpace?.id ?? ""}:${thisMonth}`);
+  const rollover = hydrated && activeSpace && !rolloverDismissed && !readOnly
+    ? rolloverCard(carryQuery.data, thisMonth, (n) => formatCurrency(n, hideAmounts))
+    : null;
   const [getStartedSkipped, setGetStartedSkipped] = usePersistentState(
     'rollover-dismissed-get-started', false, parseDismissed, serializeDismissed,
   );
-  const previousState = useMemo(
-    () => computeEnvelopeState(budgetRows, expenseRows, previousMonth, categoryRows, groupNames),
-    [budgetRows, expenseRows, previousMonth, categoryRows, groupNames],
-  );
-  const previousLeftover = previousState.income - previousState.totalSpent;
   // Unknown until budgets load; counting it done avoids flashing the income step.
   const incomeDone = !envelopeState || envelopeState.income > 0;
   // Same test as Mobile's Home: income is set and nothing is left to assign.
@@ -255,6 +264,7 @@ export function ExpensePage() {
     const t = setTimeout(() => setRtaCelebrating(false), 2500);
     return () => clearTimeout(t);
   }, [rtaCelebrating]);
+  const carriedReady = envelopeState ? carriedReadyLine(envelopeState.carriedReadyToAssign, envelopeState.month, (n) => formatCurrency(n, hideAmounts)) : null;
   const daysLeftLabel = daysLeftInMonth() === 0 ? "Less than 24 hrs" : `${daysLeftInMonth()} days left`;
   const showGetStarted = !getStartedSkipped && !!user?.getStartedAt &&
     !(incomeDone && user.manualTransactionCompletedAt && user.guidedTourCompletedAt);
@@ -312,7 +322,7 @@ export function ExpensePage() {
         e.available > 0 ? { ...e, assigned: e.assigned - e.available, available: 0 } : e,
       );
       const totalAssigned = updated.reduce((sum, e) => sum + e.assigned, 0);
-      const rta = current.income - totalAssigned;
+      const rta = current.carriedReadyToAssign + current.income - totalAssigned;
       const log = {
         type: "bulk-return-to-rta",
         month: current.month,
@@ -433,6 +443,30 @@ export function ExpensePage() {
           <div className="erd-home" data-get-started={showGetStarted ? "true" : undefined}>
             <div className="erd-home-main">
               <ImportBanner />
+              <AnimatePresence>
+                {rollover && (
+                  <motion.div
+                    key="rollover"
+                    className="home-leftover-slot"
+                    initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.22, ease: "easeOut" }}
+                    // Once the check has played it slides off to the right, then its
+                    // height (and the column's 20px gap) closes so the cards below glide up.
+                    exit={reduceMotion ? { opacity: 0 } : {
+                      x: "100%", opacity: 0, height: 0, marginBottom: -20,
+                      transition: {
+                        x: { duration: 0.3, ease: [0.4, 0, 1, 1] },
+                        opacity: { duration: 0.3 },
+                        height: { delay: 0.22, duration: 0.32, ease: [0.22, 1, 0.36, 1] },
+                        marginBottom: { delay: 0.22, duration: 0.32, ease: [0.22, 1, 0.36, 1] },
+                      },
+                    }}
+                  >
+                    <RolloverCard title={rollover.title} lines={rollover.lines} onDone={() => setRolloverDismissed(true)} />
+                  </motion.div>
+                )}
+              </AnimatePresence>
               {/* Income is entered from the menu top-right; RTA is often ₹0,
                   so the hero alone doesn't say where money comes in. */}
               {envelopeState && !rtaSettled && (
@@ -455,6 +489,7 @@ export function ExpensePage() {
                     <span className="erd-home-hero-caption">
                       {monthLabel(panel.month)} · {daysLeftLabel}
                     </span>
+                    {carriedReady && <span className="erd-home-hero-caption">{carriedReady}</span>}
                     {/* The pencil is easy to miss, so this pill names where the
                         number comes from. With no income yet it goes straight to
                         setting it. */}
@@ -534,37 +569,9 @@ export function ExpensePage() {
               )}
 
               {envelopeState && <ForecastLine />}
-              {/* One banner at a time, same as Mobile: the leftover notice goes first,
-                  and the next one waits for it to fade out. */}
-              <AnimatePresence mode="wait">
-                {!leftoverDismissed && previousLeftover > 0 ? (
-                  <motion.div
-                    key="leftover"
-                    className="home-leftover-slot"
-                    initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.22, ease: "easeOut" }}
-                    // "Nice" slides it off to the right, then its height (and the
-                    // column's 20px gap) closes so the cards below glide up.
-                    exit={reduceMotion ? { opacity: 0 } : {
-                      x: "100%", opacity: 0, height: 0, marginBottom: -20,
-                      transition: {
-                        x: { duration: 0.3, ease: [0.4, 0, 1, 1] },
-                        opacity: { duration: 0.3 },
-                        height: { delay: 0.22, duration: 0.32, ease: [0.22, 1, 0.36, 1] },
-                        marginBottom: { delay: 0.22, duration: 0.32, ease: [0.22, 1, 0.36, 1] },
-                      },
-                    }}
-                  >
-                    <article className="erd-card home-leftover-notice">
-                      <p><PlantIcon size={18} aria-hidden="true" style={{ verticalAlign: "-3px", marginRight: 6 }} />{formatCurrency(previousLeftover, hideAmounts)} went to savings last month.</p>
-                      <button type="button" onClick={() => setLeftoverDismissed(true)}>Nice</button>
-                    </article>
-                  </motion.div>
-                ) : (
-                  <FeatureNudge key="nudge" />
-                )}
-              </AnimatePresence>
+              {/* One banner at a time, same as Mobile: the rollover card (up top)
+                  goes first, and the nudge waits for it to leave. */}
+              {!rollover && <FeatureNudge />}
 
               <AnimatePresence mode="popLayout">
                 {showGetStarted && user && (
@@ -604,6 +611,7 @@ export function ExpensePage() {
                   transition={homeTransition}
                 >
                   <EnvelopeGrid
+                    month={envelopeState.month}
                     categoryIcons={categoryIcons}
                     groupIcons={groupIcons}
                     envelopes={envelopeState.envelopes}

@@ -12,6 +12,7 @@ vi.mock('../hooks/useBudgets', () => ({
   useUpdateBudget: () => ({ mutateAsync: mocks.update }),
   useAddBudget: () => ({ mutateAsync: mocks.add }),
   useTransferBudget: () => ({ mutateAsync: mocks.transfer }),
+  useCarry: () => ({ data: undefined }),
 }))
 const spaces = vi.hoisted(() => ({ readOnly: false }))
 vi.mock('../hooks/useSpaces', () => ({ useSpaces: () => ({ readOnly: spaces.readOnly, active: undefined }) }))

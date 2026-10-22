@@ -9150,6 +9150,10 @@ button.account-feature-card {
   color: var(--coral);
 }
 
+.tour-kicker.is-mint {
+  color: var(--mint);
+}
+
 .tour-section-label {
   font-size: 12px;
   font-weight: 600;
@@ -15189,3 +15193,12 @@ button.account-feature-card {
   .code-tile-char, .join-you { animation: none; }
   .join-splash { display: none; }
 }
+
+/* Month-start rollover card: the leftover strip with a title, its lines, and
+   the shared success pill. The pill rules outrank the strip's text button. */
+.expense-redesign .home-rollover-card { align-items: center; }
+.expense-redesign .home-rollover-card .home-rollover-text { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.expense-redesign .home-rollover-card .home-rollover-text strong { font-weight: 600; color: var(--erd-text); }
+.expense-redesign .home-rollover-card .home-rollover-text span { font-size: 13px; color: var(--erd-text2); }
+.expense-redesign .home-rollover-card .account-pill-btn { flex-shrink: 0; margin: 0; padding: 9px 16px; min-width: 76px; background: var(--erd-input-bg); color: var(--erd-text); font-size: 13px; font-weight: 600; }
+.expense-redesign .home-rollover-card .account-pill-btn.is-success { background: var(--tk-success-bg); border-color: var(--tk-success-bg); color: var(--tk-on-success); }

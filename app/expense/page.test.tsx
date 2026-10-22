@@ -19,9 +19,11 @@ const handlers = {
   categories: vi.fn(json([{ name: 'Rent' }])),
   groups: vi.fn(json(['Essentials'])),
   subscriptions: vi.fn(json({ headers: [], rows: [] })),
+  carry: vi.fn(json({ month: '2026-11', ready_to_assign: 5000, rolled_over: { Rent: 95 } })),
 }
 vi.mock('../api/user/route', () => ({ GET: () => handlers.user() }))
 vi.mock('../api/budgets/route', () => ({ GET: () => handlers.budgets() }))
+vi.mock('../api/budgets/carry/route', () => ({ GET: () => handlers.carry() }))
 vi.mock('../api/expenses/route', () => ({ GET: () => handlers.expenses() }))
 vi.mock('../api/categories/route', () => ({ GET: () => handlers.categories() }))
 vi.mock('../api/groups/route', () => ({ GET: () => handlers.groups() }))
@@ -48,6 +50,8 @@ describe('/expense server render', () => {
     expect(queries['["categories"]']).toEqual([{ name: 'Rent' }])
     expect(queries['["groups"]']).toEqual(['Essentials'])
     expect(queries['["subscriptions"]']).toEqual([])
+    const carry = Object.entries(queries).find(([k]) => k.startsWith('["budgets","carry"'))
+    expect(carry?.[1]).toMatchObject({ ready_to_assign: 5000, rolled_over: { Rent: 95 } })
     expect(queries['["user"]']).toMatchObject({ _id: 'user_1' })
     const recent = Object.entries(queries).find(([k]) => k.startsWith('["expenses","recent"'))
     expect(recent?.[1]).toEqual({ rows: [{ item: 'Chai' }], lastSpent: { Food: '2026-10-01' } })

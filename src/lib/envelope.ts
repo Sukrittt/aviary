@@ -99,9 +99,10 @@ export function daysLeftInMonth(): number {
 }
 
 /** This month's income extra that makes Ready to Assign land on
- * `targetReadyToAssign` while leaving the monthly income alone. */
-export function extraForReadyToAssign(incomeBase: number, totalAssigned: number, targetReadyToAssign: number): number {
-  return Math.round((targetReadyToAssign + totalAssigned - incomeBase) * 100) / 100
+ * `targetReadyToAssign` while leaving the monthly income alone. `carried` is
+ * what Ready to assign already brought in from last month. */
+export function extraForReadyToAssign(incomeBase: number, totalAssigned: number, targetReadyToAssign: number, carried = 0): number {
+  return Math.round((targetReadyToAssign + totalAssigned - incomeBase - carried) * 100) / 100
 }
 
 function monthSpendingByCategory(expenses: ExpenseNum[], month: string): Map<string, number> {

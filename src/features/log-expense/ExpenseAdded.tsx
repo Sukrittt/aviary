@@ -6,7 +6,7 @@ import { motion } from 'motion/react'
 import dynamic from 'next/dynamic'
 import { useCurrency } from '@/src/context/CurrencyContext'
 import { useAppearance } from '@/components/AppearanceProvider'
-import { useBudgets } from '@/src/hooks/useBudgets'
+import { useBudgets, useCarry } from '@/src/hooks/useBudgets'
 import { useCategories } from '@/src/hooks/useCategories'
 import { useRecentExpenses } from '@/src/hooks/useExpenses'
 import { useGroups } from '@/src/hooks/useGroups'
@@ -106,6 +106,7 @@ export function ExpenseAdded({
   const { theme } = useAppearance()
   const tokens = theme === 'light' ? lightTokens : darkTokens
   const budgetsQ = useBudgets()
+  const carryQ = useCarry(currentMonthKey())
   const expensesQ = useRecentExpenses()
   const categoriesQ = useCategories()
   const groupsQ = useGroups()
@@ -120,9 +121,11 @@ export function ExpenseAdded({
         ? [...(categoriesQ.data ?? EMPTY), expense.categorySnapshot]
         : categoriesQ.data ?? EMPTY,
       groupsQ.data ?? EMPTY,
+      undefined,
+      carryQ.data,
     )
     return { envelope: state.envelopes.find((e) => e.category === category), readyToAssign: state.readyToAssign }
-  }, [budgetsQ.data, expensesQ.data, categoriesQ.data, groupsQ.data, category, expense.categorySnapshot])
+  }, [budgetsQ.data, carryQ.data, expensesQ.data, categoriesQ.data, groupsQ.data, category, expense.categorySnapshot])
 
   // The refetch this add triggered may not have landed yet. Until the new row
   // is in the list, charge it by hand so the numbers are right on first paint.

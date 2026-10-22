@@ -61,7 +61,7 @@ export const CHAPTERS: Chapter[] = [
   },
   {
     title: 'The new month',
-    blurb: "Your plan carries. Your leftovers don't.",
+    blurb: 'Your plan carries. So does whatever you didn\'t spend.',
     kicker: 'CHAPTER 4 OF 7',
     lede: 'This is the bit everyone gets wrong, so we made it a quiz.',
     nudge: 'Answer, then flip to October 1.',
@@ -146,22 +146,22 @@ export const QUIZ_OPTIONS = [
   {
     id: 'a',
     label: "It rolls into October's Fun. ₹7,600 to play with",
-    correct: false,
-    feedback: "Nope, that's the other budgeting apps. Leftovers don't compound here.",
+    correct: true,
+    feedback:
+      "Exactly. Your ₹5,000 plan carries, and the ₹2,600 you didn't spend comes along on top. Want it somewhere else? Move it.",
   },
   {
     id: 'b',
     label: 'It is gone. October starts fresh, with the same ₹5,000 plan',
-    correct: true,
-    feedback:
-      "Exactly. Clean slate on the 1st: the leftover disappears, but your ₹5,000 plan is already sitting there waiting, so you're not budgeting from zero.",
+    correct: false,
+    feedback: "Not here. Money you don't spend stays in its category, so nothing you saved up disappears on the 1st.",
   },
   {
     id: 'c',
     label: 'It goes back to Ready to Assign to redistribute',
     correct: false,
     feedback:
-      'Close, but no. A month just starts fresh. Nothing gets handed back, and there\'s no "start new month" button to press.',
+      'Close, but no. It stays in Fun. You can move it to Ready to Assign yourself, and there\'s no "start new month" button to press.',
   },
 ] as const
 

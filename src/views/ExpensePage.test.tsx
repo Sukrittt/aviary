@@ -1,19 +1,24 @@
 import { beforeEach, expect, it, vi } from 'vitest'
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { renderToString } from 'react-dom/server'
 import { hydrateRoot } from 'react-dom/client'
 import { recentExpensesKey, recentFrom } from '@/src/hooks/useExpenses'
 import { ExpensePage } from './ExpensePage'
-import { getBudgets, addBudget, updateBudget, transferBudget } from '@/src/api/budgets'
+import { getBudgets, addBudget, updateBudget, transferBudget, getCarry } from '@/src/api/budgets'
 import { getUser } from '@/src/api/account'
 import { currentMonthKey, prevMonthKey, monthLabel } from '@/src/lib/envelope'
+import { monthName } from '@/src/lib/rollover'
 
 const { push, openLog, track } = vi.hoisted(() => ({ push: vi.fn(), openLog: vi.fn(), track: vi.fn() }))
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push }), usePathname: () => '/expense' }))
 vi.mock('../../components/AppearanceProvider', () => ({ useAppearance: () => ({ theme: 'dark', setTheme: vi.fn() }) }))
-vi.mock('@/src/api/budgets', () => ({ getBudgets: vi.fn(), addBudget: vi.fn(), updateBudget: vi.fn(), transferBudget: vi.fn() }))
+vi.mock('@/src/api/budgets', () => ({ getBudgets: vi.fn(), addBudget: vi.fn(), updateBudget: vi.fn(), transferBudget: vi.fn(), getCarry: vi.fn() }))
+vi.mock('@/src/api/spaces', () => ({
+  getBudgets: vi.fn(async () => ({ budgets: [{ id: 'space-1', name: 'Me', personal: true, members: [] }], activeId: 'space-1', deleted: [] })),
+  switchBudget: vi.fn(),
+}))
 vi.mock('@/src/api/account', () => ({ getUser: vi.fn() }))
 vi.mock('@/src/api/expenses', () => ({ getRecentExpenses: vi.fn(async () => ({ rows: [], lastSpent: {} })), mintExpensePayload: vi.fn(), postExpensePayload: vi.fn() }))
 vi.mock('@/src/api/categories', () => ({ getCategories: vi.fn(async () => [{ name: 'Food', group: 'Essentials' }]) }))
@@ -58,17 +63,14 @@ beforeEach(() => {
     { month: previous, category: '__income__', assigned: '20000', rolled_over: '0', version: 1 },
     { month: previous, category: 'Food', assigned: '5000', rolled_over: '0', version: 1 },
   ])
+  vi.mocked(getCarry).mockResolvedValue({ ready_to_assign: 0, rolled_over: {} })
 })
 
-it('starts a new month automatically and shows only a dismissible leftover notice', async () => {
+it('starts a new month automatically, with nothing to set up', async () => {
   const client = renderPage()
-  // Last month kept ₹20,000 of income with nothing spent: framed as a win.
-  expect(await screen.findByText('₹20,000 went to savings last month.')).toBeInTheDocument()
+  expect(await screen.findByLabelText('₹15,000')).toBeInTheDocument()
   expect(screen.queryByText(`Start ${monthLabel(month)}`)).not.toBeInTheDocument()
   expect(screen.queryByText(/Copy last month/)).not.toBeInTheDocument()
-  expect(screen.getByLabelText('₹15,000')).toBeInTheDocument()
-  fireEvent.click(screen.getByRole('button', { name: 'Nice' }))
-  await waitFor(() => expect(screen.queryByText(/went to savings last month/)).not.toBeInTheDocument())
   expect(addBudget).not.toHaveBeenCalled()
   expect(updateBudget).not.toHaveBeenCalled()
   fireEvent.click(screen.getByRole('button', { name: 'Income options' }))
@@ -144,13 +146,37 @@ it('preserves the cards below when getting started arrives after the dashboard a
   client.clear()
 })
 
-it('shows no leftover notice for a first budget with no history', async () => {
+it('shows no rollover card when nothing carried in', async () => {
   vi.mocked(getBudgets).mockResolvedValue([])
   const client = renderPage()
   await screen.findByRole('button', { name: 'Income options' })
-  expect(screen.queryByText(/went to savings last month/)).not.toBeInTheDocument()
+  expect(screen.queryByText(/rolled into/)).not.toBeInTheDocument()
   expect(screen.queryByText(/Start October/)).not.toBeInTheDocument()
   client.clear()
+})
+
+it('says once per budget and month what rolled in, and adds it to Ready to Assign', async () => {
+  vi.mocked(getCarry).mockResolvedValue({ ready_to_assign: 5000, rolled_over: { Food: 95, Rent: -20 } })
+  const title = `${monthName(previous)} rolled into ${monthName(month)}`
+  const first = renderPage()
+  expect(await screen.findByText(title)).toBeInTheDocument()
+  expect(screen.getByText('₹95 carried across 1 envelope · ₹5,000 to Ready to Assign')).toBeInTheDocument()
+  expect(screen.getByText('₹20 short in 1 envelope')).toBeInTheDocument()
+  // Last month's ₹15,000 plan carries as before; the ₹5,000 left unassigned comes on top.
+  expect(screen.getByLabelText('₹20,000')).toBeInTheDocument()
+  expect(screen.getByText(`includes ₹5,000 from ${monthName(previous)}`)).toBeInTheDocument()
+
+  fireEvent.click(screen.getByRole('button', { name: 'Got it' }))
+  expect(await screen.findByRole('img', { name: 'Got it' })).toBeInTheDocument()
+  await waitFor(() => expect(screen.queryByText(title)).not.toBeInTheDocument(), { timeout: 4000 })
+  first.clear()
+  cleanup()
+
+  // Dismissed stays dismissed for this budget and month.
+  const second = renderPage()
+  await screen.findByText(`includes ₹5,000 from ${monthName(previous)}`)
+  expect(screen.queryByText(title)).not.toBeInTheDocument()
+  second.clear()
 })
 
 it('shows a bulk return in Ready to Assign straight away, before the refetch lands', async () => {
@@ -184,6 +210,7 @@ it('renders the finished home screen from a filled cache on the first render, an
     client.setQueryData(recentExpensesKey(recentFrom()), { rows: [], lastSpent: {} })
     client.setQueryData(['categories'], [{ name: 'Food', group: 'Essentials' }])
     client.setQueryData(['groups'], ['Essentials'])
+    client.setQueryData(['budgets', 'carry', month], { ready_to_assign: 0, rolled_over: {} })
     client.setQueryData(['subscriptions'], [])
     client.setQueryData(['user'], { ...baseUser, manualTransactionCompletedAt: '2026-09-02', guidedTourCompletedAt: '2026-09-02' })
     return client
