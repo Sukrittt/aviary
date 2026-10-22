@@ -639,6 +639,7 @@ export function ExpensePage() {
                 >
                   <EnvelopeGrid
                     rollPlay={rollPlay}
+                    month={panel.month}
                     categoryIcons={categoryIcons}
                     groupIcons={groupIcons}
                     envelopes={envelopeState.envelopes}

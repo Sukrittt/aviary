@@ -12,6 +12,8 @@ import type { Envelope } from '../types/expense'
 import { BirdEmptyState } from './BirdEmptyState'
 import { todayIST } from '../lib/date'
 import { RollingAmount } from './home/RollingAmount'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { rolledOverLine } from '../lib/rollover'
 
 /** Web twin of Mobile's app/(tabs)/index.tsx envelopes card (EnvelopeGroup + EnvelopeRow). */
 
@@ -30,6 +32,8 @@ interface Props {
   groupIcons?: Map<string, string>
   /** Bump to roll last month's carry into each Left amount (see RollingAmount). 0 shows them settled. */
   rollPlay?: number
+  /** The month on screen ("2026-11"), for the chips' "+₹95 from October" tooltip. */
+  month?: string
 }
 
 const UNGROUPED_LABEL = 'Other'
@@ -66,7 +70,7 @@ function lastSpentLabel(iso: string | undefined): string {
   return new Date(spent).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'UTC' })
 }
 
-export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveMoney, onAssignFromRTA, onSetAssigned, onPayCreditCard, categoryIcons, groupIcons, rollPlay = 0 }: Props) {
+export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveMoney, onAssignFromRTA, onSetAssigned, onPayCreditCard, categoryIcons, groupIcons, rollPlay = 0, month }: Props) {
   const styleOf = useCategoryStyle()
   const { formatCurrency } = useCurrency()
   const money = (n: number) => (hideAmounts ? '---' : formatCurrency(n))
@@ -170,14 +174,27 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
         </DropdownMenu>
         <span className="env2-available">
           <span className="env2-balance-label">{e.isOverspent ? 'Overspent' : 'Left'}</span>
-          <RollingAmount
-            className={`env2-pill ${pillClass(e)}`}
-            from={e.available - e.rolledOver}
-            to={e.available}
-            play={hideAmounts ? 0 : rollPlay}
-            delayMs={Math.min(rollOrder.get(e.category) ?? 0, 5) * 150}
-            format={money}
-          />
+          {(() => {
+            const pill = (
+              <RollingAmount
+                className={`env2-pill ${pillClass(e)}`}
+                from={e.available - e.rolledOver}
+                to={e.available}
+                play={hideAmounts ? 0 : rollPlay}
+                delayMs={Math.min(rollOrder.get(e.category) ?? 0, 5) * 150}
+                format={money}
+              />
+            )
+            // What carried in, on hover or focus, since the row no longer says it.
+            const tip = month && !hideAmounts ? rolledOverLine(e.rolledOver, month, formatCurrency) : null
+            if (!tip) return pill
+            return (
+              <Tooltip>
+                <TooltipTrigger render={<span tabIndex={0} />}>{pill}</TooltipTrigger>
+                <TooltipContent>{tip}</TooltipContent>
+              </Tooltip>
+            )
+          })()}
         </span>
 
       </div>

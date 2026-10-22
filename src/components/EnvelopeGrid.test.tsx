@@ -147,4 +147,21 @@ describe('EnvelopeGrid carry', () => {
     expect(screen.getByLabelText('₹2800')).toBeInTheDocument()
     expect(screen.getByLabelText('₹200')).toBeInTheDocument()
   })
+
+  it('explains the carry in a tooltip on the chip', async () => {
+    render(<EnvelopeGrid groups={['Essentials']} hideAmounts={false} month="2026-11"
+      envelopes={[
+        { ...envelope, category: 'Groceries', available: 2800, rolledOver: 2050 },
+        { ...envelope, category: 'Eating out', available: 200, rolledOver: -550 },
+        { ...envelope, category: 'Rent', available: 750, rolledOver: 0 },
+      ]}
+      onManage={vi.fn()} onMoveMoney={vi.fn()} onAssignFromRTA={vi.fn()} onSetAssigned={vi.fn()} />)
+    const user = userEvent.setup()
+    await user.hover(screen.getByLabelText('₹2800'))
+    expect(await screen.findByText('+₹2050 from October')).toBeInTheDocument()
+    await user.hover(screen.getByLabelText('₹200'))
+    expect(await screen.findByText('₹550 short from October')).toBeInTheDocument()
+    // Nothing carried, nothing to explain.
+    expect(screen.getByLabelText('₹750').closest('[tabindex]')).toBeNull()
+  })
 })
