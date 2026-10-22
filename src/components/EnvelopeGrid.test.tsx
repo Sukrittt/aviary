@@ -134,3 +134,16 @@ describe('EnvelopeGrid row status', () => {
     expect(screen.getByText('₹200')).toBeInTheDocument()
   })
 })
+
+describe('EnvelopeGrid carry', () => {
+  it('keeps a line only for a shortfall; what rolled in is already in Left', () => {
+    render(<EnvelopeGrid month="2026-11" groups={['Essentials']} hideAmounts={false}
+      envelopes={[
+        { ...envelope, category: 'Groceries', available: 2800, rolledOver: 2050 },
+        { ...envelope, category: 'Eating out', available: 200, rolledOver: -550 },
+      ]}
+      onManage={vi.fn()} onMoveMoney={vi.fn()} onAssignFromRTA={vi.fn()} onSetAssigned={vi.fn()} />)
+    expect(screen.queryByText(/from October/)).toHaveTextContent('₹550 short from October')
+    expect(screen.getByText('₹2800')).toBeInTheDocument()
+  })
+})
