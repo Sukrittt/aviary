@@ -19,7 +19,7 @@ vi.mock('./adminAudit', () => ({ audit: (...args: unknown[]) => audit(...args) }
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
 vi.mock('next/navigation', () => ({ redirect: vi.fn() }))
 
-const { CHANGELOG_COLLECTION, latestUnseenRelease, claimRelease, publishedChangelog } = await import('./changelog')
+const { CHANGELOG_COLLECTION, latestUnseenRelease, claimRelease, publishedChangelog, recentReleases } = await import('./changelog')
 const { saveChangelogAction, publishChangelogAction, unpublishChangelogAction } = await import('@/app/admin/changelog/actions')
 const { GET } = await import('@/app/api/changelog/latest/route')
 const { POST } = await import('@/app/api/changelog/[id]/seen/route')
@@ -208,5 +208,17 @@ describe('web and mobile releases', () => {
     await db.collection('users').updateOne({ _id: 'fresh' as never }, { $set: { createdAt: new Date(Date.now() - 60_000) } })
     expect((await latestUnseenRelease('fresh', 'mobile'))?.id).toBe(id)
     expect(await claimRelease('fresh', id)).not.toBeNull()
+  })
+})
+
+describe('recentReleases', () => {
+  it('gives Ask Aviary the newest notes from both apps, minus ones waiting on an OTA', async () => {
+    await published({ title: 'Web notes' })
+    await published({ platform: 'mobile', title: 'Shipped OTA', otaAfter: '2026-10-01T09:30' })
+    await published({ platform: 'mobile', title: 'Pending OTA', otaAfter: '2026-10-30T09:30' })
+    await saveChangelogAction(null, form({ title: 'Still a draft' }))
+
+    const titles = (await recentReleases(5, new Date('2026-10-22T00:00:00Z'))).map((r) => r.title)
+    expect(titles.sort()).toEqual(['Shipped OTA', 'Web notes'])
   })
 })
