@@ -5376,9 +5376,9 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  min-height: 62px;
+  min-height: 48px;
   box-sizing: border-box;
-  padding: 12px 20px;
+  padding: 7px 16px;
   border-radius: 16px;
   border: 1px solid var(--erd-border);
   background: var(--erd-card);
@@ -5416,11 +5416,14 @@
   font-weight: 600;
 }
 .setup-plan-strip.is-settled .erd-rta-icon {
+  width: 26px;
+  height: 26px;
   margin-right: 2px;
+  border-radius: 8px;
 }
 .setup-plan-strip-amount {
   font-family: var(--font-display);
-  font-size: 20px;
+  font-size: 17px;
   font-variant-numeric: tabular-nums;
 }
 .setup-plan-strip.is-celebrate .setup-plan-strip-amount,
