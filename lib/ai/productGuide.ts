@@ -28,6 +28,7 @@ const PLACES = [
   'Categories: the Categories tab, then Add category, or New group for a group. Tap a category to Edit or Delete it. Web: Categories in the sidebar, or Manage on Home.',
   "Change how much a category gets: on Home tap the category, then Edit assigned amount. Web: the category's menu on Home, then Edit assigned amount, or Assign from Ready to Assign.",
   "Edit or delete a spend: on Activity tap it, then Edit or Delete (or long-press it). Web: the row's menu on Activity, then Edit transaction or Delete transaction. Deleted spends sit in More, then Archive (web: Account, then Archive) for seven days, where you can restore them.",
+  'Current prices: the Pricing page on the website, or More, then Plan & billing. Web prices depend on your country and Google Play sets its own, so there is no single number to quote.',
   "Aviary's own plan: More, then Plan & billing. On Android the plan is a Google Play subscription: cancel it with Manage in Google Play. Web: Account, then Plan & billing, then Cancel subscription. The Subscriptions screen is for tracking your own subscriptions, not Aviary's plan.",
   'Dark mode: More, then Appearance (Light, Dark or Auto). Web: Account, then Appearance, or Dark mode in the sidebar.',
   'Widget (Android only): More, then Add widget to home screen.',
