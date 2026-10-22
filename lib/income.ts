@@ -66,7 +66,10 @@ function monthOf(date: string): string {
 
 /** The month's monthly income: its own row, else the latest earlier one. Mirrors the clients' carriedAssigned. */
 async function carriedIncome(month: string, budgets: Awaited<ReturnType<typeof getCollection>>, session?: ClientSession): Promise<number> {
-  const rows = await budgets.find({ category: INCOME_CATEGORY }, { session }).toArray()
+  return carriedFrom(await budgets.find({ category: INCOME_CATEGORY }, { session }).toArray(), month)
+}
+
+function carriedFrom(rows: Record<string, unknown>[], month: string): number {
   const own = rows.find((r) => r.month === month)
   if (own) return Number(own.assigned) || 0
   const prior = rows
@@ -306,13 +309,14 @@ export async function syncMonthlyIncome(auth: Auth, month: string): Promise<void
 }
 
 /**
- * Which months a monthly schedule already counts pay in, from day 1. A payday
- * booked into one of them is a record, not `extra`, or it counts twice.
+ * Which months already count a monthly income from day 1: the month's own
+ * income row, or the one it carries, says so. A payday booked into one of
+ * them is a record, not `extra`, or it counts twice. Read from the rows, not
+ * the schedules: a backdated schedule never synced the months before it.
  */
 export async function monthlyIncomeCovers(auth: Auth): Promise<(month: string) => boolean> {
-  const rec = await getCollection('recurring_incomes', auth)
-  const monthly = (await rec.find({ frequency: 'monthly' }, undefined, { includeDeleted: true }).toArray()).filter((r) => (Number(r.amount) || 0) > 0)
-  return (month) => monthly.some((r) => countsIn(r, month))
+  const rows = await (await getCollection('budgets', auth)).find({ category: INCOME_CATEGORY }).toArray()
+  return (month) => carriedFrom(rows, month) > 0
 }
 
 /**

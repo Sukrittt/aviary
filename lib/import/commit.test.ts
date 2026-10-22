@@ -508,11 +508,20 @@ describe('later import, from Settings', () => {
 
   it('records a payday a monthly schedule already counts, instead of adding it to Ready to Assign again (#230)', async () => {
     await (await coll('recurring_incomes')).insertOne({ label: 'Salary', amount: '85000', frequency: 'monthly', start_date: '2026-09-01', end_date: '', status: 'active' })
+    await (await coll('budgets')).insertOne({ month: '2026-08', category: '__income__', assigned: '85000', extra: '0' })
     const review = await previewFile(auth, fixture('money-manager.csv'), 'mm.csv')
     await commitImport(auth, review.importId, editsFrom(review))
     expect(await runImportPass(auth, review.importId, Date.now() + 30_000)).toBe('done')
     expect((await (await coll('incomes')).find({ import_id: review.importId }).toArray()).map((i) => [i.date, i.counted])).toEqual([['2026-09-01', 'monthly']])
     expect(Number((await budget('2026-09', '__income__'))?.extra ?? 0)).toBe(0)
+  })
+
+  it('still adds pay in a month a backdated schedule never actually counted', async () => {
+    await (await coll('recurring_incomes')).insertOne({ label: 'Salary', amount: '85000', frequency: 'monthly', start_date: '2026-06-01', end_date: '', status: 'active' })
+    const review = await previewFile(auth, fixture('money-manager.csv'), 'mm.csv')
+    await commitImport(auth, review.importId, editsFrom(review))
+    expect(await runImportPass(auth, review.importId, Date.now() + 30_000)).toBe('done')
+    expect(await budget('2026-09', '__income__')).toMatchObject({ extra: '85000' })
   })
 
   it('undo archives only that import’s rows and backs out what they moved', async () => {

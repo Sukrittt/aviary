@@ -111,6 +111,8 @@ export async function resolveSpaceAccess(userId: string, requested: string | nul
 const MEMBERSHIP_TTL_MS = 30_000
 const MEMBERSHIP_CACHE_MAX = 10_000
 const membershipCache = new Map<string, { at: number; value: Awaited<ReturnType<SpaceLookup>> }>()
+// Bumped by every forget, so a lookup that was already reading can't cache what was just cleared.
+let membershipGeneration = 0
 
 /**
  * Membership is checked on every request that names a shared budget, so it's
@@ -121,6 +123,7 @@ export const lookupMembership: SpaceLookup = async (userId, spaceId) => {
   const key = `${userId}:${spaceId}`
   const hit = membershipCache.get(key)
   if (hit && Date.now() - hit.at < MEMBERSHIP_TTL_MS) return hit.value
+  const generation = membershipGeneration
   const db = await getDb()
   const [space, member, user] = await Promise.all([
     db.collection<SpaceDoc>(SPACES).findOne({ _id: spaceId }),
@@ -131,11 +134,12 @@ export const lookupMembership: SpaceLookup = async (userId, spaceId) => {
   // ponytail: the key is client-chosen, so bound it. Dropping everything at
   // the cap only costs a re-read; an LRU would keep the hot ones.
   if (membershipCache.size >= MEMBERSHIP_CACHE_MAX) membershipCache.clear()
-  membershipCache.set(key, { at: Date.now(), value })
+  if (generation === membershipGeneration) membershipCache.set(key, { at: Date.now(), value })
   return value
 }
 
 export function forgetMembership(spaceId: string, userId?: string): void {
+  membershipGeneration++
   for (const key of membershipCache.keys()) {
     if (key.endsWith(`:${spaceId}`) && (!userId || key.startsWith(`${userId}:`))) membershipCache.delete(key)
   }
@@ -143,6 +147,7 @@ export function forgetMembership(spaceId: string, userId?: string): void {
 
 /** Every cached lookup for one person, for when their account is deleted or restored. */
 export function forgetPerson(userId: string): void {
+  membershipGeneration++
   for (const key of membershipCache.keys()) if (key.startsWith(`${userId}:`)) membershipCache.delete(key)
 }
 

@@ -323,6 +323,15 @@ describe('account deletion with shared budgets', () => {
     expect(await resolveSpaceAccess('user_a', null, lookupMembership)).toMatchObject({ accountDeleted: false })
   })
 
+  it("doesn't cache a lookup that was in flight when the person was forgotten (#232)", async () => {
+    const db = await getDb()
+    const inFlight = lookupMembership('user_a', 'user_a')
+    forgetPerson('user_a')
+    await inFlight
+    await db.collection('users').updateOne({ _id: 'user_a' as never }, { $set: { deleted_at: '2026-10-22T00:00:00.000Z' } })
+    expect(await resolveSpaceAccess('user_a', null, lookupMembership)).toMatchObject({ accountDeleted: true })
+  })
+
   it("won't restore an account whose personal budget went to someone else, since it'd have no budget to open (#231)", async () => {
     const db = await getDb()
     await handOffSharedBudgets(db, 'user_a', { user_a: 'user_b' })
