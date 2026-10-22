@@ -129,8 +129,15 @@ describe('routeChat', () => {
     expect(route.product).toBe(true)
   })
 
+  it('flags an app question Jev is only lukewarm about', async () => {
+    // Measured: "how do I track money I lent to a friend?" scores 0.21-0.31.
+    runJev.mockResolvedValue(answers({ ...onTopicOnly, onTopic: 0.37, isProductHelp: 0.25 }))
+    expect((await routeChat('how do I track money I lent to a friend?', caller)).product).toBe(true)
+  })
+
   it('does not flag a money question as product help', async () => {
-    runJev.mockResolvedValue(answers(onTopicOnly))
+    // Money questions measured 0.02-0.13.
+    runJev.mockResolvedValue(answers({ ...onTopicOnly, isProductHelp: 0.13 }))
     expect((await routeChat('how much on food?', caller)).product).toBe(false)
   })
 

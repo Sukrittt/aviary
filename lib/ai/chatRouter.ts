@@ -63,7 +63,7 @@ const QUESTIONS = {
   isProductHelp: {
     type: 'boolean',
     instructions:
-      'Is the user asking about the Aviary app itself: what a feature does, how to do something in the app (including how to record a refund, an EMI, a loan, income or a shared bill), whether the app can do something, what changed or is new in the app, or how its budgeting method works? Asking about their own numbers is not.',
+      "Is the message about the Aviary app or service itself rather than the user's own numbers? That includes: what a feature does or where to find it; how to do something in the app (including recording a refund, an EMI, a loan, income, money lent or a shared bill); whether the app can do something (connect to their bank or card, read SMS, track loans or money owed to them, run on iPhone, work offline, use other currencies, import data); its price, plans or trial; privacy, security or what happens to their data; new releases or updates to the app; or how its budgeting method works. A change in their own spending is not about the app.",
   },
   isCapture: {
     type: 'boolean',
@@ -95,8 +95,13 @@ const FULL_ROUTE: ChatRoute = { onTopic: true, sections: [...FACT_SECTIONS], dec
 // ponytail: not yet measured against live Jev. Start at the same bar as the
 // section questions and tune it with the capture scenarios in brainEval.test.ts.
 const CAPTURE_AT = 0.5
-// ponytail: not yet measured against live Jev either; tune with the product scenarios in brainEval.test.ts.
-const PRODUCT_AT = 0.5
+// Measured against Jev, 2026-10-22: money questions score 0.02-0.13, while app
+// questions bottom out at 0.21-0.31 ("how do I track money I lent to a friend?",
+// which swings run to run). Off-topic ones reach 0.38 ("write me a poem about
+// Aviary"). A missed app question gets refused or "I don't know", while a false
+// hit only costs the guide's tokens (the SCOPE LOCK still refuses the poem), so
+// the bar sits just above the money cluster.
+const PRODUCT_AT = 0.2
 
 /** `earlierMessages`: the user's previous turns in this chat, oldest first. */
 export async function routeChat(message: string, caller: AiCaller, earlierMessages: string[] = []): Promise<ChatRoute> {
