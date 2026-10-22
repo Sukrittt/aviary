@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { CONTENT_SECTIONS } from '@/lib/content'
 import { LandingFooter } from '@/src/components/landing/Chrome'
 import YnabPage from '@/app/(site)/compare/ynab-alternative-india/page'
+import YnabGlobalPage from '@/app/(site)/compare/ynab-alternative/page'
 import SpreadsheetPage from '@/app/(site)/compare/budget-spreadsheet/page'
 import Budget25kPage from '@/app/(site)/tools/budget-for-25000-salary/page'
 import Budget30kPage from '@/app/(site)/tools/budget-for-30000-salary/page'
@@ -37,6 +38,16 @@ describe('content pages', () => {
     })
   })
 
+  it('give the global YNAB page dollar prices, the YNAB import steps and a link to the India page', () => {
+    const html = renderToStaticMarkup(<YnabGlobalPage />)
+    expect(html).toContain('$14.99 a month or $109 a year')
+    expect(html).toContain('Export plan')
+    expect(html).toContain('href="/sign-in"')
+    expect(html).toContain('href="/compare/ynab-alternative-india"')
+    expect(html.split('lp-related')[0]).not.toMatch(/₹|UPI|rupee/i)
+    expect(renderToStaticMarkup(<YnabPage />)).toContain('href="/compare/ynab-alternative"')
+  })
+
   it('pre-fill salary pages so crawlers see the worked plan', () => {
     const html = renderToStaticMarkup(<Budget25kPage />)
     expect(html).toContain('How to budget a ₹25k salary')
@@ -45,7 +56,7 @@ describe('content pages', () => {
   })
 
   it('have em-dash-free copy', () => {
-    for (const Page of [YnabPage, SpreadsheetPage, Budget25kPage, Budget30kPage, Budget50kPage, Budget80kPage, SinkingFundPage]) expect(renderToStaticMarkup(<Page />)).not.toContain('—')
+    for (const Page of [YnabPage, YnabGlobalPage, SpreadsheetPage, Budget25kPage, Budget30kPage, Budget50kPage, Budget80kPage, SinkingFundPage]) expect(renderToStaticMarkup(<Page />)).not.toContain('—')
   })
 
   it('link a spreadsheet template whose envelopes add up to the ₹45,000 salary', () => {

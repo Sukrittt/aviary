@@ -10,6 +10,7 @@ export const CONTENT_SECTIONS = {
     label: 'Compare',
     path: '/compare',
     pages: [
+      ['/compare/ynab-alternative', 'YNAB alternative'],
       ['/compare/ynab-alternative-india', 'YNAB alternative in India'],
       ['/compare/walnut', 'Aviary vs Walnut'],
       ['/compare/money-manager', 'Aviary vs Money Manager'],
