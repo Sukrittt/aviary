@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { motion, useReducedMotion } from 'motion/react'
 import { CheckIcon, CaretRightIcon, PlusCircleIcon, CompassIcon, CardholderIcon } from '@/src/components/icons'
 
@@ -9,11 +10,15 @@ type Props = {
   onAddTransaction: () => void
   onTakeTour: () => void
   onSkip: () => void
+  /** e.g. "Free until 21 November 2026 · no card needed". Replaces the old
+   * full-screen trial notice after onboarding, so the trial is mentioned
+   * without standing between a new user and their first expense. */
+  trialNote?: string
 }
 
 /** Setup is done but can skip income, so the first step stays open until the
  * envelopes have money to hold. The other two milestones are shared across devices. */
-export function GetStartedCard({ incomeDone, manualTransactionDone, guidedTourDone, onAddIncome, onAddTransaction, onTakeTour, onSkip }: Props) {
+export function GetStartedCard({ incomeDone, manualTransactionDone, guidedTourDone, onAddIncome, onAddTransaction, onTakeTour, onSkip, trialNote }: Props) {
   const reduce = useReducedMotion()
   const steps = [
     incomeDone
@@ -34,6 +39,7 @@ export function GetStartedCard({ incomeDone, manualTransactionDone, guidedTourDo
         <div>
           <h2 id="get-started-heading">Get started</h2>
           <p>Three small steps, then this card gets out of your way.</p>
+          {trialNote && <Link href="/account/trial-notice?from=more" className="get-started-trial">{trialNote}</Link>}
         </div>
         <button type="button" className="get-started-skip" aria-label="Skip getting started" onClick={onSkip}>Skip</button>
       </div>

@@ -8,7 +8,8 @@ import { useBillingStatus } from '@/src/hooks/useBillingStatus'
 import { formatDate } from '@/src/components/billing/copy'
 
 /**
- * Shown once, right after budget setup finishes onboarding, and again from the account page's Plan & billing row. Twin of
+ * Opened from the account page's Plan & billing row and from Home's Get
+ * Started card (no longer forced after onboarding). Twin of
  * Mobile's app/account/trial-notice.tsx: sets expectations about the trial
  * instead of leaving the new user to find out on day 30.
  */

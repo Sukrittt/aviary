@@ -662,7 +662,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
   if (step === 7) {
     return (
       <div className="expense-redesign setup-page">
-        <HeardFrom onDone={() => router.replace('/account/trial-notice')} />
+        <HeardFrom onDone={() => router.replace('/expense')} />
       </div>
     )
   }

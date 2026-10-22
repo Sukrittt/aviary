@@ -43,6 +43,8 @@ import { useGroupIcons, useGroups } from "../hooks/useGroups";
 import { useSubscriptions, useCancelSubscription, useReactivateSubscription } from "../hooks/useSubscriptions";
 import { useHideAmounts } from "../hooks/useHideAmounts";
 import { GetStartedCard } from "../components/home/GetStartedCard";
+import { useBillingStatus } from "../hooks/useBillingStatus";
+import { formatDate } from "../components/billing/copy";
 import { LearningCard } from "../components/home/LearningCard";
 import { BALANCE_CHECK_ENABLED, BalanceCheckCard } from "../components/balance/BalanceCheckCard";
 import { useHiddenFeatures, useUser } from "../hooks/useUser";
@@ -269,6 +271,8 @@ export function ExpensePage() {
   const daysLeftLabel = daysLeftInMonth() === 0 ? "Less than 24 hrs" : `${daysLeftInMonth()} days left`;
   const showGetStarted = !getStartedSkipped && !!user?.getStartedAt &&
     !(incomeDone && user.manualTransactionCompletedAt && user.guidedTourCompletedAt);
+  // Only fetched while the card that mentions the trial is up.
+  const billing = useBillingStatus(showGetStarted).data;
   const [showFluidDemo, setShowFluidDemo] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   useEffect(() => {
@@ -611,6 +615,7 @@ export function ExpensePage() {
                       onAddTransaction={() => setShowLogModal(true)}
                       onTakeTour={() => router.push('/account/guided-tour')}
                       onSkip={() => setGetStartedSkipped(true)}
+                      trialNote={billing?.mode === 'trial' && billing.trialEndsAt ? `Free until ${formatDate(billing.trialEndsAt)} · no card needed` : undefined}
                     />
                   </motion.div>
                 )}

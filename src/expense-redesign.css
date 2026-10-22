@@ -12160,6 +12160,8 @@ button.account-feature-card {
 .expense-redesign .get-started-heading > div { flex: 1; min-width: 0; }
 .expense-redesign .get-started-heading h2 { margin: 0; font-family: var(--font-display); font-size: 17px; font-weight: 600; }
 .expense-redesign .get-started-heading p { margin: 2px 0 0; color: var(--erd-text3); font-size: 12px; font-weight: 500; line-height: 1.5; }
+.expense-redesign .get-started-trial { display: inline-block; margin-top: 2px; color: var(--tk-accent-ink); font-size: 12px; font-weight: 700; text-decoration: none; }
+.expense-redesign .get-started-trial:hover { text-decoration: underline; }
 .expense-redesign .get-started-skip {
   position: relative;
   display: inline-flex;
