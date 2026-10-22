@@ -7,7 +7,11 @@ import { createBudgetRow } from '@/lib/budgets'
 import { currentMonthKey } from '@/src/lib/envelope'
 
 /** The one way a category is created: last in order. Lifted out of `app/api/categories` so the import commit shares it. */
-export async function createCategory(auth: Auth, input: { name: string; group: string; icon?: CategoryIconKey; color?: CategoryColor }): Promise<'created' | 'exists'> {
+export async function createCategory(auth: Auth, input: { name: string; group: string; icon?: CategoryIconKey; color?: CategoryColor },
+  // Setup import writes this month's target for every category itself, so the
+  // fresh 0 below would make its insert-only write report 'exists'.
+  opts: { writesTarget?: boolean } = {},
+): Promise<'created' | 'exists'> {
   const coll = await getCollection('categories', auth)
   if (await coll.findOne({ name: input.name })) return 'exists'
   const maxDoc = await coll.find({}).sort({ order: -1 }).limit(1).next()
@@ -26,7 +30,7 @@ export async function createCategory(auth: Auth, input: { name: string; group: s
     if ((err as { code?: number }).code === 11000) return 'exists'
     throw err
   }
-  if (since) await createBudgetRow(auth, { month: since, category: input.name, assigned: '0' })
+  if (since && !opts.writesTarget) await createBudgetRow(auth, { month: since, category: input.name, assigned: '0' })
   invalidate('categories', auth.spaceId)
   return 'created'
 }

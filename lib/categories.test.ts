@@ -39,6 +39,13 @@ describe('createCategory', () => {
     expect(createBudgetRow).toHaveBeenCalledWith(auth, { month: '2027-02', category: 'Gym', assigned: '0' })
   })
 
+  it('leaves the target to a caller that writes this month\'s own, like setup import', async () => {
+    history.mockResolvedValue({ category: 'Gym' })
+    expect(await createCategory(auth, { name: 'Gym', group: '' }, { writesTarget: true })).toBe('created')
+    expect(insertOne).toHaveBeenCalledWith({ name: 'Gym', group: '', order: 5, since: '2027-02' })
+    expect(createBudgetRow).not.toHaveBeenCalled()
+  })
+
   it('reports an existing name without writing', async () => {
     findOne.mockResolvedValue({ name: 'Groceries' })
     expect(await createCategory(auth, { name: 'Groceries', group: 'Essentials' })).toBe('exists')

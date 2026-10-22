@@ -191,7 +191,7 @@ async function writeSetup(auth: Auth, doc: ImportDoc, edits: CommitEdits): Promi
   // 2. Groups, then categories.
   const usedGroups = groups.filter((g) => [...categories.values()].some((c) => c.group === g))
   for (const g of usedGroups) await createGroup(auth, g)
-  for (const c of categories.values()) await createCategory(auth, c)
+  for (const c of categories.values()) await createCategory(auth, c, { writesTarget: true })
 
   // 3. Accounts. One that already exists by name (a retry) is reused; one past
   // the caps is left out and its rows import without an account.
