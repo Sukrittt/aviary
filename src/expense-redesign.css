@@ -848,7 +848,9 @@
   gap: 8px;
   width: 100%;
 }
+/* inline-flex so the SVG centres on the label, not the text baseline. */
 .env2-emoji {
+  display: inline-flex;
   font-size: 15px;
   flex-shrink: 0;
 }
