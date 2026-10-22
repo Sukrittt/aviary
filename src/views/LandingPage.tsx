@@ -80,7 +80,7 @@ export function LandingPage({ monthlyPrice, ios = false, android = false, intl =
         ? <p className="lp-market">In India? <Link href="/">See the India page</Link></p>
         : <p className="lp-market">Outside India? <Link href="/intl">See the page for your region</Link></p>)}
       <Link className="lp-early" href={FEEDBACK_BOARD_PATH}><b>Early access</b><span className="lp-early-desktop">Your feedback shapes what we build next</span><span className="lp-early-mobile">Help shape Aviary</span><ArrowRightIcon size={14} aria-hidden="true" /></Link>
-      <h1 id="landing-title">The budget app that <span className="lp-learns">learns your habits<svg viewBox="0 0 200 14" preserveAspectRatio="none" aria-hidden="true"><path d="M3 10 C 40 3, 70 3, 100 8 S 160 13, 197 5" /></svg></span>.</h1>
+      <h1 id="landing-title">The budget app that <span className="lp-learns"><u>learns<svg viewBox="0 0 200 14" preserveAspectRatio="none" aria-hidden="true"><path d="M3 10 C 50 3, 120 2, 197 7" /></svg></u> your habits</span>.</h1>
       <p>It notices your <FirstHabit /> and nudges you to log it in one tap.<br className="lp-desktop-break" /> Miss a day? Type what you remember and you’re caught up.</p>
       {/* On iPhone the web app is the one thing they can use today, so it takes the ink pill and sits above the waitlist. */}
       <div className="lp-hero-actions">
