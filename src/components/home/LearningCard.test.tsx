@@ -1,5 +1,5 @@
 import { beforeEach, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { LearningCard } from './LearningCard'
 
 const mocks = vi.hoisted(() => ({ day: 2 }))
@@ -15,11 +15,11 @@ beforeEach(() => {
   mocks.day = 2
 })
 
-it('folds the week away and keeps it folded', () => {
+it('folds the week away and keeps it folded', async () => {
   const { unmount } = render(<LearningCard />)
   expect(week()).toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: 'Hide the week' }))
-  expect(week()).not.toBeInTheDocument()
+  await waitFor(() => expect(week()).not.toBeInTheDocument())
 
   unmount()
   render(<LearningCard />)
