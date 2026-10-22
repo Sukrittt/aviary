@@ -883,7 +883,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
                           <Icon size={18} />
                         </span>
                         <AssignName name={c.name} onCommit={(name) => renameAssigned(g.id, c, name)} />
-                        <button type="button" className="setup-plan-chip" aria-label={`${c.name.trim()} amount`} onClick={() => setPlanKey(key)}>
+                        <button type="button" className="setup-plan-chip env2-pill is-good" aria-label={`${c.name.trim()} amount`} onClick={() => setPlanKey(key)}>
                           {formatMoney(v)}
                         </button>
                       </div>

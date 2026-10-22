@@ -5458,26 +5458,19 @@
   border-bottom: 1px solid var(--gold);
 }
 
+/* Wears Envelopes' "Left" pill (.env2-pill.is-good); this only resets the button. */
 .expense-redesign .setup-plan-chip {
   flex-shrink: 0;
-  padding: 7px 14px;
   border: 0;
-  border-radius: 100px;
-  background: var(--tk-mint-soft);
-  color: var(--tk-mint);
-  font-family: var(--font-display);
-  font-size: 15px;
-  font-weight: 600;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
   cursor: pointer;
-  transition: scale var(--dur-press) var(--ease-press);
 }
 
 .expense-redesign .setup-plan-chip:hover {
-  background: color-mix(in srgb, var(--tk-mint) 22%, var(--tk-mint-soft));
-}
-
-.expense-redesign .setup-plan-chip:active {
-  scale: 0.96;
+  filter: brightness(0.96);
 }
 
 .setup-error {
