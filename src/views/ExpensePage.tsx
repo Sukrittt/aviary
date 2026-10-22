@@ -227,6 +227,10 @@ export function ExpensePage() {
   const rollover = hydrated && activeSpace && !rolloverDismissed && !readOnly
     ? rolloverCard(carryQuery.data, thisMonth, (n) => formatCurrency(n, hideAmounts))
     : null;
+  // Each bump rolls the carry into the category amounts: once when the strip
+  // first shows, again whenever it's tapped. Nothing to roll once it's gone.
+  const [rollReplays, setRollReplays] = useState(0);
+  const rollPlay = rollover ? rollReplays + 1 : 0;
   const [getStartedSkipped, setGetStartedSkipped] = usePersistentState(
     'rollover-dismissed-get-started', false, parseDismissed, serializeDismissed,
   );
@@ -588,7 +592,7 @@ export function ExpensePage() {
                       },
                     }}
                   >
-                    <RolloverCard text={rollover} onDone={() => setRolloverDismissed(true)} />
+                    <RolloverCard text={rollover} onReplay={() => setRollReplays((n) => n + 1)} onDone={() => setRolloverDismissed(true)} />
                   </motion.div>
                 ) : (
                   <FeatureNudge key="nudge" />
@@ -635,6 +639,7 @@ export function ExpensePage() {
                 >
                   <EnvelopeGrid
                     month={envelopeState.month}
+                    rollPlay={rollPlay}
                     categoryIcons={categoryIcons}
                     groupIcons={groupIcons}
                     envelopes={envelopeState.envelopes}
