@@ -110,7 +110,11 @@ export function useDeleteCategory() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (name: string) => deleteCategory(name),
-    onSuccess: () => qc.invalidateQueries({ queryKey: key }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: key })
+      // The deleted envelope's balance moves to Ready to Assign in the carry.
+      qc.invalidateQueries({ queryKey: budgetsKey })
+    },
   })
 }
 
