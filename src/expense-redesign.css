@@ -5458,9 +5458,13 @@
   border-bottom: 1px solid var(--gold);
 }
 
-/* Wears Envelopes' "Left" pill (.env2-pill.is-good); this only resets the button. */
+/* Wears Envelopes' "Left" pill (.env2-pill.is-good); this resets the button and
+   fits the pencil that marks it editable. */
 .expense-redesign .setup-plan-chip {
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   border: 0;
   font-family: inherit;
   font-size: 14px;
@@ -5471,6 +5475,10 @@
 
 .expense-redesign .setup-plan-chip:hover {
   filter: brightness(0.96);
+}
+
+.expense-redesign .setup-plan-chip svg {
+  opacity: 0.7;
 }
 
 .setup-error {

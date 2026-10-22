@@ -5,7 +5,7 @@ import { CurrencyScope, useCurrency } from '@/src/context/CurrencyContext'
 
 import { useEffect, useId, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
-import { ArrowLeftIcon, CheckIcon, CopyIcon, FolderOpenIcon, PlusIcon, TagIcon, CardholderIcon } from '@/src/components/icons'
+import { ArrowLeftIcon, CheckIcon, CopyIcon, FolderOpenIcon, PencilSimpleIcon, PlusIcon, TagIcon, CardholderIcon } from '@/src/components/icons'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import '../../src/expense-redesign.css'
@@ -885,6 +885,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
                         <AssignName name={c.name} onCommit={(name) => renameAssigned(g.id, c, name)} />
                         <button type="button" className="setup-plan-chip env2-pill is-good" aria-label={`${c.name.trim()} amount`} onClick={() => setPlanKey(key)}>
                           {formatMoney(v)}
+                          <PencilSimpleIcon size={11} weight="bold" aria-hidden="true" />
                         </button>
                       </div>
                     )
