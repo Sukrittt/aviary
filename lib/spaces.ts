@@ -62,9 +62,10 @@ export interface SpaceInviteDoc {
   status: 'pending' | 'accepted' | 'cancelled'
 }
 
-export type SpaceAccess =
+export type SpaceAccess = (
   | { spaceId: string; ownerId: string; role: SpaceRole; denied?: undefined }
   | { spaceId: string; denied: true }
+) & { accountDeleted?: boolean }
 
 // Budget ids are user ids (`user_…`) or ObjectId hex. Anything else is junk
 // and never reaches a query.
@@ -88,22 +89,23 @@ export function requestedSpaceId(req: Request): string | null {
   }
 }
 
-export type SpaceLookup = (userId: string, spaceId: string) => Promise<{ space: SpaceDoc | null; role: SpaceRole | null }>
+export type SpaceLookup = (userId: string, spaceId: string) => Promise<{ space: SpaceDoc | null; role: SpaceRole | null; accountDeleted?: boolean }>
 
 /**
  * Which budget a request runs against, and who pays for it. No budget asked
  * for, or one's own id, is the personal budget, unless its owner's account
  * deletion handed it to someone else (`handOffSharedBudgets`): then it's
- * theirs only if they're still a member. That check rides the cached lookup.
+ * theirs only if they're still a member. That check rides the cached lookup,
+ * as does whether the requester's own account is in its deletion window.
  */
 export async function resolveSpaceAccess(userId: string, requested: string | null, lookup: SpaceLookup): Promise<SpaceAccess> {
   const spaceId = requested || userId
   const own = spaceId === userId
   if (!own && !SPACE_ID_RE.test(spaceId)) return { spaceId: 'invalid', denied: true }
-  const { space, role } = await lookup(userId, spaceId)
-  if (own && (!space || space.owner_id === userId)) return { spaceId, ownerId: userId, role: 'owner' }
-  if (!space || space.deleted_at || !role) return { spaceId, denied: true }
-  return { spaceId: space._id, ownerId: space.owner_id, role }
+  const { space, role, accountDeleted } = await lookup(userId, spaceId)
+  if (own && (!space || space.owner_id === userId)) return { spaceId, ownerId: userId, role: 'owner', accountDeleted }
+  if (!space || space.deleted_at || !role) return { spaceId, denied: true, accountDeleted }
+  return { spaceId: space._id, ownerId: space.owner_id, role, accountDeleted }
 }
 
 const MEMBERSHIP_TTL_MS = 30_000
@@ -120,11 +122,12 @@ export const lookupMembership: SpaceLookup = async (userId, spaceId) => {
   const hit = membershipCache.get(key)
   if (hit && Date.now() - hit.at < MEMBERSHIP_TTL_MS) return hit.value
   const db = await getDb()
-  const [space, member] = await Promise.all([
+  const [space, member, user] = await Promise.all([
     db.collection<SpaceDoc>(SPACES).findOne({ _id: spaceId }),
     db.collection<SpaceMemberDoc>(SPACE_MEMBERS).findOne({ space_id: spaceId, user_id: userId }),
+    db.collection<{ _id: string; deleted_at?: string | null }>('users').findOne({ _id: userId }, { projection: { deleted_at: 1 } }),
   ])
-  const value = { space, role: member?.role ?? null }
+  const value = { space, role: member?.role ?? null, accountDeleted: !!user?.deleted_at }
   // ponytail: the key is client-chosen, so bound it. Dropping everything at
   // the cap only costs a re-read; an LRU would keep the hot ones.
   if (membershipCache.size >= MEMBERSHIP_CACHE_MAX) membershipCache.clear()
@@ -136,6 +139,11 @@ export function forgetMembership(spaceId: string, userId?: string): void {
   for (const key of membershipCache.keys()) {
     if (key.endsWith(`:${spaceId}`) && (!userId || key.startsWith(`${userId}:`))) membershipCache.delete(key)
   }
+}
+
+/** Every cached lookup for one person, for when their account is deleted or restored. */
+export function forgetPerson(userId: string): void {
+  for (const key of membershipCache.keys()) if (key.startsWith(`${userId}:`)) membershipCache.delete(key)
 }
 
 /**

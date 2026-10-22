@@ -13,7 +13,7 @@ vi.mock('@/lib/workosClient', () => ({ getWorkOSClient: () => ({ userManagement:
 import { getDb, getClient } from '@/lib/mongodb'
 import { softDeleteAccount, restoreAccount, purgeAccountNow, PersonalBudgetHandedOffError } from '@/lib/accountLifecycle'
 import { scoped } from '@/lib/scoped'
-import { jobAuth, listBudgets, lookupMembership, resolveSpaceAccess, forgetMembership, type SpaceDoc } from '@/lib/spaces'
+import { jobAuth, listBudgets, lookupMembership, resolveSpaceAccess, forgetPerson, type SpaceDoc } from '@/lib/spaces'
 import {
   INVITE_CODE_RE, notifyOthersOfLog, transferOwnership, sharedBudgetsOwnedBy, handOffSharedBudgets, personalBudgetHandedOff, restoreAccountSpaces, createInvite, cancelInvite, invitePreview, joinBudget, removeMember, deleteBudget, restoreBudget, purgeBudget, purgeDeletedSpaces,
 } from '@/lib/spaceMembers'
@@ -38,7 +38,7 @@ beforeEach(async () => {
   const db = await getDb()
   for (const name of ['users', 'spaces', 'space_members', 'space_invites', 'expenses', 'categories']) await db.collection(name).deleteMany({})
   pushes.length = 0
-  for (const id of ['user_a', 'user_b', 'user_c']) forgetMembership(HOME, id)
+  for (const id of ['user_a', 'user_b', 'user_c']) forgetPerson(id)
   const now = new Date().toISOString()
   await db.collection('users').insertMany([
     { _id: 'user_a' as never, name: 'Priya', onboardedAt: now },
@@ -309,8 +309,18 @@ describe('account deletion with shared budgets', () => {
     await lookupMembership('user_a', 'user_a') // warm the cache, as a live session would
     await handOffSharedBudgets(db, 'user_a', { user_a: 'user_b' })
     await softDeleteAccount(db, 'user_a')
-    expect(await resolveSpaceAccess('user_a', 'user_a', lookupMembership)).toEqual({ spaceId: 'user_a', denied: true })
-    expect(await resolveSpaceAccess('user_a', null, lookupMembership)).toEqual({ spaceId: 'user_a', denied: true })
+    expect(await resolveSpaceAccess('user_a', 'user_a', lookupMembership)).toMatchObject({ spaceId: 'user_a', denied: true })
+    expect(await resolveSpaceAccess('user_a', null, lookupMembership)).toMatchObject({ spaceId: 'user_a', denied: true })
+  })
+
+  it('flags a deleted account on its auth from the cached lookup, and clears it on restore (#232)', async () => {
+    const db = await getDb()
+    expect(await resolveSpaceAccess('user_a', null, lookupMembership)).toMatchObject({ accountDeleted: false })
+    await softDeleteAccount(db, 'user_a')
+    expect(await resolveSpaceAccess('user_a', null, lookupMembership)).toMatchObject({ accountDeleted: true })
+    expect(await resolveSpaceAccess('user_a', HOME, lookupMembership)).toMatchObject({ accountDeleted: true })
+    await restoreAccount(db, 'user_a')
+    expect(await resolveSpaceAccess('user_a', null, lookupMembership)).toMatchObject({ accountDeleted: false })
   })
 
   it("won't restore an account whose personal budget went to someone else, since it'd have no budget to open (#231)", async () => {

@@ -29,14 +29,17 @@ export interface Auth {
   spaceDenied?: true
   /** The request's method, so a lapsed shared budget can stay readable. Unset for jobs. */
   method?: string
+  /** The account is in its deletion grace window. requireAccess 401s its writes. */
+  accountDeleted?: true
 }
 
 /** Adds the budget the request names to a resolved identity. */
 async function withSpace(req: Request, base: Pick<Auth, 'userId' | 'readOnly' | 'sessionId'>, cookieFallback = false): Promise<Auth> {
   const requested = requestedSpaceId(req) ?? (cookieFallback ? await pageBudgetCookie() : null)
   const access = await resolveSpaceAccess(base.userId, base.readOnly ? null : requested, lookupMembership)
-  if (access.denied) return { ...base, method: req.method, spaceId: access.spaceId, spaceOwnerId: base.userId, spaceRole: 'member', spaceDenied: true }
-  return { ...base, method: req.method, spaceId: access.spaceId, spaceOwnerId: access.ownerId, spaceRole: access.role }
+  const deleted = access.accountDeleted ? { accountDeleted: true as const } : {}
+  if (access.denied) return { ...base, ...deleted, method: req.method, spaceId: access.spaceId, spaceOwnerId: base.userId, spaceRole: 'member', spaceDenied: true }
+  return { ...base, ...deleted, method: req.method, spaceId: access.spaceId, spaceOwnerId: access.ownerId, spaceRole: access.role }
 }
 
 /**

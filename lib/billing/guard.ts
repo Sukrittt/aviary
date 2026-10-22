@@ -14,7 +14,6 @@ import { NextResponse } from 'next/server'
 import type { Auth } from '../access'
 import { billingFlagsFor } from './flags'
 import { getAccess } from './service'
-import { getDb } from '../mongodb'
 
 /**
  * Stable, distinct error code. Not 401 (the session is fine) and not a
@@ -53,11 +52,8 @@ export const ACCOUNT_DELETED = 'ACCOUNT_DELETED'
 export async function requireAccess(auth: Auth, opts: { setup?: boolean } = {}): Promise<NextResponse | null> {
   if (auth.readOnly) return null
   if (auth.spaceDenied) return NextResponse.json({ error: NOT_A_MEMBER, spaceId: auth.spaceId }, { status: 403 })
-  // `method` is unset only for jobs, which never come from a deleted account's session.
-  const write = !!auth.method && auth.method !== 'GET' && auth.method !== 'HEAD'
-  if (write && (await (await getDb()).collection<{ _id: string }>('users').findOne({ _id: auth.userId, deleted_at: { $ne: null } }, { projection: { _id: 1 } }))) {
-    return NextResponse.json({ error: ACCOUNT_DELETED }, { status: 401 })
-  }
+  // Read with the cached membership lookup (lib/spaces.ts), so it costs no round trip here.
+  if (auth.accountDeleted && auth.method !== 'GET' && auth.method !== 'HEAD') return NextResponse.json({ error: ACCOUNT_DELETED }, { status: 401 })
 
   // The budget's owner pays for everyone in it, so it's their plan that decides.
   const payer = auth.spaceOwnerId

@@ -106,25 +106,23 @@ describe('requireAccess', () => {
   })
 
   describe('a soft-deleted account (#213)', () => {
-    it('answers 401 to its writes, even with billing switched off', async () => {
+    it('answers 401 to its writes, even with billing switched off, without a database read (#232)', async () => {
       getSystemSettingsMock.mockResolvedValue({ billing: { enforced: false, purchaseEnabled: false, audience: 'everyone' } })
-      usersFindOne.mockResolvedValue({ _id: 'user_a' })
-      const res = await requireAccess({ ...user, method: 'POST' })
+      const res = await requireAccess({ ...user, method: 'POST', accountDeleted: true })
       expect(res?.status).toBe(401)
       expect(await res!.json()).toMatchObject({ error: ACCOUNT_DELETED })
-      expect(usersFindOne).toHaveBeenCalledWith({ _id: 'user_a', deleted_at: { $ne: null } }, expect.anything())
+      expect(usersFindOne).not.toHaveBeenCalled()
     })
 
     it('keeps reads open, so the mobile app stays signed in long enough to restore', async () => {
       getAccessMock.mockResolvedValue({ allowed: true, mode: 'paid' })
-      usersFindOne.mockResolvedValue({ _id: 'user_a' })
-      expect(await requireAccess({ ...user, method: 'GET' })).toBeNull()
-      expect(usersFindOne).not.toHaveBeenCalled()
+      expect(await requireAccess({ ...user, method: 'GET', accountDeleted: true })).toBeNull()
     })
 
-    it('lets a live account write', async () => {
+    it('lets a live account write without a database read (#232)', async () => {
       getAccessMock.mockResolvedValue({ allowed: true, mode: 'paid' })
       expect(await requireAccess({ ...user, method: 'POST' })).toBeNull()
+      expect(usersFindOne).not.toHaveBeenCalled()
     })
   })
 

@@ -12,6 +12,7 @@ import type { UserDoc } from './users'
 import { getWorkOSClient } from './workosClient'
 import { PERSON_COLLECTIONS } from './http'
 import { personalBudgetHandedOff, purgeSpace, restoreAccountSpaces } from './spaceMembers'
+import { forgetPerson } from './spaces'
 
 /**
  * The collections an account deletion sweeps. When the person's personal
@@ -83,6 +84,8 @@ export async function restoreAccount(db: Db, userId: string): Promise<void> {
 }
 
 async function invalidateAccount(userId: string): Promise<void> {
+  // ponytail: other warm instances keep the old deleted flag for up to 30s (the membership cache TTL).
+  forgetPerson(userId)
   for (const name of ['expenses', 'budgets', 'wrapped']) invalidate(name, userId)
   invalidateCategoryMap(userId)
   await invalidateBrief(userId)
