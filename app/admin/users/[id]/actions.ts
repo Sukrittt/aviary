@@ -6,7 +6,7 @@ import { isCurrencyCode, resolveCurrency } from '@/src/lib/currencies'
 import { prefsFor } from '@/lib/notifications/rules'
 import { requireAdmin } from '@/lib/admin'
 import { audit } from '@/lib/adminAudit'
-import { purgeAccountNow, restoreAccount, softDeleteAccount } from '@/lib/accountLifecycle'
+import { PersonalBudgetHandedOffError, purgeAccountNow, restoreAccount, softDeleteAccount } from '@/lib/accountLifecycle'
 import { getDb } from '@/lib/mongodb'
 import { cancelWebSubscriptions } from '@/lib/billing/service'
 import type { UserDoc } from '@/lib/users'
@@ -109,7 +109,12 @@ export async function restoreAction(userId: string): Promise<ActionResult> {
   const { db, user } = await target(userId)
   if (!user?.deleted_at) return { ok: false, message: 'Account is not scheduled for deletion' }
 
-  await restoreAccount(db, userId)
+  try {
+    await restoreAccount(db, userId)
+  } catch (err) {
+    if (err instanceof PersonalBudgetHandedOffError) return { ok: false, message: 'Their personal budget was handed to another member, so the account has nothing to restore into' }
+    throw err
+  }
   await audit(adminId, 'user.restore', userId, { email: user.email })
   return done(userId, 'Account restored')
 }

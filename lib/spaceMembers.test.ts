@@ -11,7 +11,7 @@ vi.mock('@/lib/ai/briefCache', async (original) => ({ ...(await original<typeof 
 vi.mock('@/lib/workosClient', () => ({ getWorkOSClient: () => ({ userManagement: { deleteUser: async () => {} } }) }))
 
 import { getDb, getClient } from '@/lib/mongodb'
-import { softDeleteAccount, restoreAccount, purgeAccountNow } from '@/lib/accountLifecycle'
+import { softDeleteAccount, restoreAccount, purgeAccountNow, PersonalBudgetHandedOffError } from '@/lib/accountLifecycle'
 import { scoped } from '@/lib/scoped'
 import { jobAuth, listBudgets, lookupMembership, resolveSpaceAccess, forgetMembership, type SpaceDoc } from '@/lib/spaces'
 import {
@@ -304,15 +304,21 @@ describe('account deletion with shared budgets', () => {
     expect(await personalBudgetHandedOff(db, 'user_a')).toBe(true)
   })
 
-  it('leaves the old owner no way back into the personal budget they handed off, even after restoring (#213)', async () => {
+  it('leaves the old owner no way back into the personal budget they handed off, even while deleted (#213)', async () => {
     const db = await getDb()
     await lookupMembership('user_a', 'user_a') // warm the cache, as a live session would
     await handOffSharedBudgets(db, 'user_a', { user_a: 'user_b' })
     await softDeleteAccount(db, 'user_a')
     expect(await resolveSpaceAccess('user_a', 'user_a', lookupMembership)).toEqual({ spaceId: 'user_a', denied: true })
     expect(await resolveSpaceAccess('user_a', null, lookupMembership)).toEqual({ spaceId: 'user_a', denied: true })
-    await restoreAccount(db, 'user_a')
-    expect(await resolveSpaceAccess('user_a', null, lookupMembership)).toEqual({ spaceId: 'user_a', denied: true })
+  })
+
+  it("won't restore an account whose personal budget went to someone else, since it'd have no budget to open (#231)", async () => {
+    const db = await getDb()
+    await handOffSharedBudgets(db, 'user_a', { user_a: 'user_b' })
+    await softDeleteAccount(db, 'user_a')
+    await expect(restoreAccount(db, 'user_a')).rejects.toBeInstanceOf(PersonalBudgetHandedOffError)
+    expect((await db.collection('users').findOne({ _id: 'user_a' as never }))?.deleted_at).not.toBeNull()
   })
 
   it('a handed-off personal budget survives the account deletion and its purge', async () => {

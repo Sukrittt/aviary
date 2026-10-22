@@ -1,7 +1,7 @@
 import { json, error } from '@/lib/http'
 import { getAuth } from '@/lib/access'
 import { getDb } from '@/lib/mongodb'
-import { restoreAccount, LegacyAccountRecoveryError } from '@/lib/accountLifecycle'
+import { restoreAccount, LegacyAccountRecoveryError, PersonalBudgetHandedOffError } from '@/lib/accountLifecycle'
 import type { UserDoc } from '@/lib/users'
 
 export const dynamic = 'force-dynamic'
@@ -24,7 +24,7 @@ export async function POST(req: Request) {
   try {
     await restoreAccount(db, auth.userId)
   } catch (err) {
-    if (err instanceof LegacyAccountRecoveryError) return error(err.message, 409)
+    if (err instanceof LegacyAccountRecoveryError || err instanceof PersonalBudgetHandedOffError) return error(err.message, 409)
     throw err
   }
 
