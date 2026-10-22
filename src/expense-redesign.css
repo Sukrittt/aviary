@@ -537,6 +537,15 @@
     grid-template-rows: auto;
     align-items: start;
   }
+  /* Without a viewport-bound column the envelopes panel would collapse to
+     its min-height; let it grow with its rows, capped so a long list still
+     scrolls inside the card. */
+  .erd-home[data-get-started="true"] .erd-envelopes-panel {
+    flex: 0 0 auto;
+  }
+  .erd-home[data-get-started="true"] .erd-envelopes-panel .env2-list {
+    max-height: min(60vh, 600px);
+  }
   .erd-envelopes-panel {
     display: flex;
     flex-direction: column;
@@ -12033,8 +12042,11 @@ button.account-feature-card {
 .home-learning-days {
   display: flex;
   gap: 8px;
-  margin: 0;
-  padding: 0;
+  /* Room for today's outline, which the fold's overflow: hidden would clip.
+     The negative margin keeps the layout where it was; the top one is set
+     by the fold animation in LearningCard. */
+  margin: 0 -4px -4px;
+  padding: 4px;
   list-style: none;
 }
 .home-learning-days li {
@@ -12150,6 +12162,8 @@ button.account-feature-card {
 .expense-redesign .get-started-segment { flex: 1; height: 6px; background: var(--erd-input-bg); border-radius: 99px; overflow: hidden; }
 .expense-redesign .get-started-segment > span { display: block; height: 100%; background: var(--gold); border-radius: inherit; }
 .expense-redesign .get-started-steps { display: grid; gap: var(--tk-space-xs); }
+/* Outlined tiles on the card, not gray slabs; the up-next step gets the
+   accent border and a warm tint so it reads as the thing to do. */
 .expense-redesign .get-started-step {
   display: flex;
   align-items: center;
@@ -12157,17 +12171,19 @@ button.account-feature-card {
   min-height: 56px;
   width: 100%;
   padding: 8px 10px;
-  background: var(--erd-input-bg);
-  border: 1px solid transparent;
+  background: transparent;
+  border: 1px solid var(--erd-border);
   border-radius: var(--tk-radius-md);
   color: var(--erd-text);
   text-align: left;
   font: inherit;
   cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
 }
-.expense-redesign .get-started-step.is-next { border-color: var(--gold-soft); }
-.expense-redesign .get-started-step.is-done { background: transparent; color: var(--erd-text3); cursor: default; }
-.expense-redesign .get-started-icon { display: grid; place-items: center; width: 32px; height: 32px; flex-shrink: 0; border-radius: 50%; background: var(--erd-card); }
+.expense-redesign .get-started-step:hover:not(.is-done) { background: var(--erd-input-bg); }
+.expense-redesign .get-started-step.is-next { border-color: var(--gold); background: var(--gold-soft); }
+.expense-redesign .get-started-step.is-done { border-color: transparent; color: var(--erd-text3); cursor: default; }
+.expense-redesign .get-started-icon { display: grid; place-items: center; width: 32px; height: 32px; flex-shrink: 0; border-radius: 50%; background: var(--erd-input-bg); }
 .expense-redesign .is-next .get-started-icon { background: var(--gold-ink); color: var(--erd-on-accent); }
 .expense-redesign .is-done .get-started-icon { background: var(--mint-soft); color: var(--mint); }
 .expense-redesign .get-started-step-copy { display: grid; gap: 1px; flex: 1; min-width: 0; }

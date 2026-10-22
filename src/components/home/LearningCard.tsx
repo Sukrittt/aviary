@@ -70,15 +70,16 @@ export function LearningCard() {
           )}
         </div>
         {/* Folds shut instead of snapping, so the cards below slide up. The
-            negative margin cancels the card's grid gap at zero height. */}
+            negative margin cancels the card's grid gap at zero height, plus the
+            4px padding that keeps today's outline unclipped. */}
         <AnimatePresence initial={false}>
           {showDays && <motion.ol
             key="days"
             className="home-learning-days"
             style={{ overflow: 'hidden' }}
-            initial={{ height: 0, opacity: 0, marginTop: -16 }}
-            animate={{ height: 'auto', opacity: 1, marginTop: 0 }}
-            exit={{ height: 0, opacity: 0, marginTop: -16 }}
+            initial={{ height: 0, opacity: 0, marginTop: -20 }}
+            animate={{ height: 'auto', opacity: 1, marginTop: -4 }}
+            exit={{ height: 0, opacity: 0, marginTop: -20 }}
             transition={{ duration: reduceMotion ? 0 : 0.3, ease: [0.22, 1, 0.36, 1] }}
           >
           {days.map((d, i) => {
