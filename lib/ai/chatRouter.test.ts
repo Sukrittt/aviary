@@ -10,7 +10,7 @@ function answers(probabilities: Record<string, number>) {
   return Object.fromEntries(Object.entries(probabilities).map(([k, probability]) => [k, { type: 'boolean', probability }]))
 }
 
-const onTopicOnly = { onTopic: 0.98, needsTransactions: 0.02, needsTrend: 0.05, needsSubscriptions: 0.01, needsInvestments: 0.01, isDecision: 0.03, isCapture: 0.02 }
+const onTopicOnly = { onTopic: 0.98, needsTransactions: 0.02, needsTrend: 0.05, needsSubscriptions: 0.01, needsInvestments: 0.01, isDecision: 0.03, isCapture: 0.02, isProductHelp: 0.02 }
 
 beforeEach(() => vi.clearAllMocks())
 
@@ -82,7 +82,7 @@ describe('routeChat', () => {
   it('routes a list of spends to capture', async () => {
     runJev.mockResolvedValue(answers({ ...onTopicOnly, isCapture: 0.94 }))
     const route = await routeChat('auto 240, lunch 150, sneakers 5k', caller)
-    expect(route).toEqual({ onTopic: true, sections: [], decision: false, capture: true })
+    expect(route).toEqual({ onTopic: true, sections: [], decision: false, capture: true, product: false })
   })
 
   it('captures a log even when Jev scores it low as a money question', async () => {
@@ -106,6 +106,32 @@ describe('routeChat', () => {
   it('never captures when Jev is unavailable', async () => {
     runJev.mockRejectedValue(new Error('gateway down'))
     expect((await routeChat('auto 240', caller)).capture).toBe(false)
+  })
+
+  it('answers a question about the app from the guide instead of refusing it', async () => {
+    // How-to questions aren't about the user's money, so onTopic can score them low.
+    runJev.mockResolvedValue(answers({ ...onTopicOnly, onTopic: 0.03, isProductHelp: 0.9 }))
+    const route = await routeChat('how do I invite my partner?', caller)
+    expect(route).toEqual({ onTopic: true, sections: ['header'], decision: false, capture: false, product: true })
+  })
+
+  it('keeps the usual sections when an app question is also about their money', async () => {
+    runJev.mockResolvedValue(answers({ ...onTopicOnly, isProductHelp: 0.8 }))
+    const route = await routeChat('how do I move money into groceries? I overspent', caller)
+    expect(route.product).toBe(true)
+    expect(route.sections).toEqual([...ALWAYS_SECTIONS])
+  })
+
+  it('carries the product flag into a decision', async () => {
+    runJev.mockResolvedValue(answers({ ...onTopicOnly, isDecision: 0.9, isProductHelp: 0.7 }))
+    const route = await routeChat('can I afford the yearly plan?', caller)
+    expect(route.decision).toBe(true)
+    expect(route.product).toBe(true)
+  })
+
+  it('does not flag a money question as product help', async () => {
+    runJev.mockResolvedValue(answers(onTopicOnly))
+    expect((await routeChat('how much on food?', caller)).product).toBe(false)
   })
 
   it('sends everything when Jev fails, matching the old behaviour', async () => {

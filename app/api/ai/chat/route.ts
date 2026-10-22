@@ -5,6 +5,8 @@ import { requireAccess } from '@/lib/billing/guard'
 import { buildExpenseContext, factsFor } from '@/lib/ai/expenseContext'
 import { buildSystemPrompt, SCOPE_REFUSAL } from '@/lib/ai/moneyBrainPrompt'
 import { routeChat, type ChatRoute } from '@/lib/ai/chatRouter'
+import { buildProductGuide } from '@/lib/ai/productGuide'
+import { recentReleases } from '@/lib/changelog'
 import { createEmDashScrubber } from '@/lib/ai/emDash'
 import { streamText } from '@/lib/ai/gemini'
 import { MAX_SESSION_MESSAGES, captureMessage, makeTitle, type StoredChatMessage } from '@/lib/ai/chatSessions'
@@ -149,7 +151,11 @@ function streamReply(
           return
         }
 
-        const ctx = await (contextRead ?? buildExpenseContext(auth))
+        // Release notes are only read for app questions; a failed read just leaves "what's new" out.
+        const [ctx, releases] = await Promise.all([
+          contextRead ?? buildExpenseContext(auth),
+          route.product ? recentReleases().catch(() => []) : [],
+        ])
 
         if (!route.onTopic) {
           full = SCOPE_REFUSAL
@@ -159,7 +165,8 @@ function streamReply(
           return
         }
 
-        const systemPrompt = buildSystemPrompt(factsFor(ctx.sections, route.sections), ctx.currencyCode, route.decision, options.captureCapable && !auth.readOnly)
+        const productGuide = route.product ? buildProductGuide(ctx.currencyCode, releases) : ''
+        const systemPrompt = buildSystemPrompt(factsFor(ctx.sections, route.sections), ctx.currencyCode, route.decision, options.captureCapable && !auth.readOnly, productGuide)
         const geminiStream = await streamText(systemPrompt, contents, caller, route.decision)
 
         const scrub = createEmDashScrubber()

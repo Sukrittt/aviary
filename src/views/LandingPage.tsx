@@ -127,6 +127,7 @@ export function LandingPage({ monthlyPrice, ios = false, android = false, intl =
           <span><strong>{title}</strong><span>{body}</span></span>
         </li>)}
       </ul>
+      <Link className="lp-link" href="/features/catch-up-from-statements">Catch up from a statement or screenshots<ArrowRightIcon size={14} aria-hidden="true" /></Link>
       <p className="lp-lede">And on a normal day, it’s one tap.</p>
       <div className="lp-shots">
         <figure className="lp-shot">
@@ -195,6 +196,7 @@ export function LandingPage({ monthlyPrice, ios = false, android = false, intl =
       <dl className="lp-rules">
         {together(intl).map((r) => <div key={r.title}><dt>{r.title}</dt><dd>{r.body}</dd></div>)}
       </dl>
+      <Link className="lp-link" href="/features/shared-budgets">How shared budgets work<ArrowRightIcon size={14} aria-hidden="true" /></Link>
     </section>
 
     <Playground />

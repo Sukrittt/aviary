@@ -319,7 +319,7 @@ export function summarizeExpenses(input: SummarizeExpensesInput): SummarizeExpen
   trendLines.push(
     trendRow('TOTAL', (m) => [...trendCategoryTotals.values()].reduce((sum, monthMap) => sum + (monthMap.get(m) ?? 0), 0)).line,
   )
-  // Envelopes reset every month, so this is the only record of money kept.
+  // Per-month income minus spending: what each month itself kept (leftovers also roll inside envelopes).
   // Expenses are loaded for the trend window only, so the total starts there at the earliest.
   const saved = savingsTrend(budgetRows, envelopeExpenseRows, realCategories, groupNames, currentMonth)
   if (saved.since) {
