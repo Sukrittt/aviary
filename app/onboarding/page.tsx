@@ -28,6 +28,7 @@ import { LoadingCaption } from '../../src/components/LoadingCaption'
 import { Toast } from '../../src/components/Toast'
 import { CategoryIcon, CATEGORY_ICON_COMPONENTS } from '../../src/components/CategoryIcon'
 import { CategoryIconPicker } from '../../src/components/CategoryIconPicker'
+import { AmountField, AmountSheet } from '../../src/components/AmountSheet'
 import { categoryIconKey, groupIconKey, type CategoryIconKey } from '../../src/lib/categoryIcons'
 import { avatarStyleFor } from '../../src/lib/emoji'
 
@@ -141,7 +142,7 @@ export default function SetupWizardPage() {
 }
 
 function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: string; onCurrencyChange: (code: string) => void }) {
-  const { formatMoney, formatAmountInput } = useCurrency()
+  const { formatMoney } = useCurrency()
 
   const router = useRouter()
   const reduceMotion = useReducedMotion()
@@ -168,6 +169,8 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
   const [cats, setCats] = useState<Record<string, Item[]>>(defaultCats)
   const [categorySelectionUndo, setCategorySelectionUndo] = useState<{ groupIds: string[]; selectedIds: string[]; message: string } | null>(null)
   const [amounts, setAmounts] = useState<Record<string, number>>({})
+  // The plan row whose amount sheet is open.
+  const [planKey, setPlanKey] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
   // Real save progress for the Finish button: the step being written and the
   // share of writes that have landed, so a slow save visibly moves.
@@ -444,11 +447,6 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
     setAmounts((prev) => ({ ...prev, [key]: Math.max(0, v) }))
   }
 
-  const fillRemainder = (key: string) => {
-    const cur = amounts[key] ?? 0
-    const rest = assignedTotal() - cur
-    setAmount(key, Math.max(0, (Number(income) || 0) - rest))
-  }
 
   const changeIncome = (v: string, jump = false) => {
     const prev = Number(income) || 0
@@ -885,21 +883,9 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
                           <Icon size={18} />
                         </span>
                         <AssignName name={c.name} onCommit={(name) => renameAssigned(g.id, c, name)} />
-                        <input
-                          type="text"
-                          inputMode="numeric"
-                          aria-label={`${c.name.trim()} amount`}
-                          className="txn-entry-input setup-assign-input"
-                          placeholder={formatAmountInput('0')}
-                          value={v ? formatAmountInput(String(v)) : ''}
-                          // Whole amounts only, so every non-digit (symbol, grouping) drops out.
-                          onChange={(e) => setAmount(key, Number(e.target.value.replace(/\D/g, '')) || 0)}
-                        />
-                        {rem !== 0 && (
-                          <button type="button" className="setup-fill-btn" onClick={() => fillRemainder(key)} title="Give this the leftover">
-                            fill
-                          </button>
-                        )}
+                        <button type="button" className="setup-plan-chip" aria-label={`${c.name.trim()} amount`} onClick={() => setPlanKey(key)}>
+                          {formatMoney(v)}
+                        </button>
                       </div>
                     )
                   })}
@@ -911,6 +897,22 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
       )}
 
       <Toast trigger={rowToast.n} message={rowToast.message} icon={CopyIcon} />
+
+      {step === 4 && planKey && (() => {
+        const row = liveCats().find((c) => c.key === planKey)
+        if (!row) return null
+        const current = amounts[planKey] ?? 0
+        return (
+          <PlanAmountSheet
+            name={row.name.trim()}
+            current={current}
+            suggested={suggested[planKey] ?? 0}
+            leftForThis={(Number(income) || 0) - (assignedTotal() - current)}
+            onSave={(v) => { setAmount(planKey, v); setPlanKey(null) }}
+            onClose={() => setPlanKey(null)}
+          />
+        )
+      })()}
 
       {error !== '' && <p className="setup-error">{error}</p>}
 
@@ -938,6 +940,51 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
 
 // The assign step's category name: reads as a label, edits in place, and only
 // hands the new name up on blur or Enter (Esc throws the edit away).
+// One plan amount, in the same sheet as the money screens' amount forms.
+function PlanAmountSheet({ name, current, suggested, leftForThis, onSave, onClose }: {
+  name: string
+  current: number
+  suggested: number
+  /** Income not planned in any other category: all this one could take. */
+  leftForThis: number
+  onSave: (amount: number) => void
+  onClose: () => void
+}) {
+  const { formatMoney } = useCurrency()
+  const [text, setText] = useState(current ? String(current) : '')
+  const value = Math.round(Number(text) || 0)
+  const left = leftForThis - value
+  const picks = [
+    { label: `Our suggestion · ${formatMoney(suggested)}`, amount: suggested },
+    ...(leftForThis > 0 && leftForThis !== suggested ? [{ label: `Everything left · ${formatMoney(leftForThis)}`, amount: leftForThis }] : []),
+  ]
+  return (
+    <AmountSheet
+      title={`Plan for ${name}`}
+      onClose={onClose}
+      busy={false}
+      footer={<button type="button" className="erd-log-submit" onClick={() => onSave(value)}>Save</button>}
+    >
+      <AmountField
+        id="plan-amount"
+        value={text}
+        onChange={setText}
+        autoFocus
+        warn={left < 0}
+        hint={left < 0 ? `${formatMoney(-left)} over your income` : `${formatMoney(left)} left to plan`}
+      >
+        <div className="erd-sub-picks">
+          {picks.map((p) => (
+            <button key={p.label} type="button" className={`erd-chip ${value === p.amount ? 'is-selected' : ''}`} onClick={() => setText(String(p.amount))}>
+              {p.label}
+            </button>
+          ))}
+        </div>
+      </AmountField>
+    </AmountSheet>
+  )
+}
+
 function AssignName({ name, onCommit }: { name: string; onCommit: (name: string) => void }) {
   const [draft, setDraft] = useState<string | null>(null)
   return (

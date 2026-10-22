@@ -26,8 +26,13 @@ function walkToCategories() {
   return client
 }
 
-const amountInput = (name: string) => screen.getByRole('textbox', { name: `${name} amount` }) as HTMLInputElement
-const amountOf = (name: string) => Number(amountInput(name).value.replace(/\D/g, ''))
+const amountChip = (name: string) => screen.getByRole('button', { name: `${name} amount` })
+const amountOf = (name: string) => Number(amountChip(name).textContent!.replace(/\D/g, ''))
+function setPlanAmount(name: string, value: string) {
+  fireEvent.click(amountChip(name))
+  fireEvent.change(screen.getByRole('textbox', { name: 'Amount' }), { target: { value } })
+  fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+}
 
 describe('onboarding suggested split', () => {
   beforeEach(() => vi.clearAllMocks())
@@ -45,7 +50,7 @@ describe('onboarding suggested split', () => {
     expect(Math.abs(needs - 31250)).toBeLessThanOrEqual(500)
     expect(amountOf('Rent')).toBeGreaterThan(amountOf('Utilities'))
     // A review, not a worksheet: amounts read as money, no split modes or need/want tags.
-    expect(amountInput('Rent').value).toMatch(/^\$\d{1,3}(,\d{3})*$/)
+    expect(amountChip('Rent').textContent).toMatch(/^\$\d{1,3}(,\d{3})*$/)
     expect(screen.queryByRole('button', { name: 'Split evenly' })).toBeNull()
     expect(screen.queryByText('Need')).toBeNull()
     expect(screen.queryByRole('button', { name: 'Reset to our suggestion' })).toBeNull()
@@ -90,8 +95,8 @@ it('offers a reset only once the plan is edited, and it restores our suggestion'
   await screen.findByRole('button', { name: 'Finish setup' })
   const suggested = amountOf('Rent')
   expect(screen.queryByRole('button', { name: 'Reset to our suggestion' })).toBeNull()
-  fireEvent.change(amountInput('Rent'), { target: { value: '$12,0005' } })
-  expect(amountOf('Rent')).toBe(120005)
+  setPlanAmount('Rent', '12000')
+  expect(amountOf('Rent')).toBe(12000)
   fireEvent.click(screen.getByRole('button', { name: 'Reset to our suggestion' }))
   expect(amountOf('Rent')).toBe(suggested)
   expect(screen.queryByRole('button', { name: 'Reset to our suggestion' })).toBeNull()
@@ -106,7 +111,7 @@ it('preserves an edited plan when classification succeeds on retry', async () =>
   fireEvent.click(screen.getByRole('checkbox', { name: /Select Index fund/ }))
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
   await screen.findByRole('button', { name: 'Finish setup' })
-  fireEvent.change(amountInput('Index fund'), { target: { value: '12000' } })
+  setPlanAmount('Index fund', '12000')
   const names = ['Rent', 'Groceries', 'Utilities', 'Eating out', 'Entertainment', 'Index fund']
   const before = names.map(amountOf)
   fireEvent.click(screen.getByRole('button', { name: 'Back' }))
@@ -124,10 +129,28 @@ it('accepts refreshed classifications after resetting an edited plan', async () 
   fireEvent.click(screen.getByRole('checkbox', { name: /Select Index fund/ }))
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
   await screen.findByRole('button', { name: 'Finish setup' })
-  fireEvent.change(amountInput('Rent'), { target: { value: '12000' } })
+  setPlanAmount('Rent', '12000')
   fireEvent.click(screen.getByRole('button', { name: 'Reset to our suggestion' }))
   fireEvent.click(screen.getByRole('button', { name: 'Back' }))
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
   await waitFor(() => expect(amountOf('Index fund')).toBe(10000))
+  client.clear()
+})
+
+it('opens a plan amount in a sheet with our suggestion and the leftover as quick picks', async () => {
+  vi.mocked(getSplitBuckets).mockReset().mockResolvedValue({})
+  const client = walkToCategories()
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+  await screen.findByRole('button', { name: 'Finish setup' })
+  const suggested = amountOf('Rent')
+  setPlanAmount('Rent', '0')
+  fireEvent.click(amountChip('Rent'))
+  expect(screen.getByRole('dialog', { name: 'Plan for Rent' })).toBeInTheDocument()
+  // Nothing else changed, so everything left is exactly our suggestion: one pick.
+  expect(screen.queryByRole('button', { name: /^Everything left/ })).toBeNull()
+  fireEvent.click(screen.getByRole('button', { name: /^Our suggestion/ }))
+  fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+  expect(screen.queryByRole('dialog')).toBeNull()
+  expect(amountOf('Rent')).toBe(suggested)
   client.clear()
 })

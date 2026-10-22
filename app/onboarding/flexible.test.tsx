@@ -96,9 +96,13 @@ describe('flexible setup', () => {
     fireEvent.click(button('Continue')) // groups
     fireEvent.click(button('Continue')) // categories
     await screen.findByRole('heading', { name: 'Here’s your plan' })
-    const inputs = screen.getAllByRole('textbox', { name: / amount$/ })
-    inputs.forEach((input) => fireEvent.change(input, { target: { value: '' } }))
-    fireEvent.change(inputs[0], { target: { value: '1' } })
+    const setPlan = (chip: HTMLElement, value: string) => {
+      fireEvent.click(chip)
+      fireEvent.change(screen.getByRole('textbox', { name: 'Amount' }), { target: { value } })
+      fireEvent.click(button('Save'))
+    }
+    const chips = screen.getAllByRole('button', { name: / amount$/ })
+    chips.forEach((chip, i) => setPlan(chip, i === 0 ? '1' : ''))
     expect(screen.getByText(/left\. You can plan it later$/)).toBeTruthy()
     fireEvent.click(button('Finish setup'))
     await waitFor(() => expect(completed()).toHaveLength(1), { timeout: 3000 })

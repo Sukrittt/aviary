@@ -5458,51 +5458,26 @@
   border-bottom: 1px solid var(--gold);
 }
 
-.expense-redesign .setup-assign-input {
-  flex: 0 0 120px;
-  width: 120px;
-  box-sizing: border-box;
-  padding: 8px 12px;
-  border: 1.5px solid var(--erd-border-strong);
-  border-radius: 12px;
+.expense-redesign .setup-plan-chip {
+  flex-shrink: 0;
+  padding: 7px 14px;
+  border: 0;
+  border-radius: 100px;
+  background: var(--tk-mint-soft);
+  color: var(--tk-mint);
   font-family: var(--font-display);
   font-size: 15px;
-  text-align: right;
-  appearance: textfield;
-  -moz-appearance: textfield;
-}
-
-/* Hug the amount instead of a fixed 120px slab; the fixed width stays as the
-   fallback where field-sizing isn't supported. */
-@supports (field-sizing: content) {
-  .expense-redesign .setup-assign-input {
-    flex: 0 0 auto;
-    width: auto;
-    field-sizing: content;
-    min-width: 64px;
-    max-width: 140px;
-  }
-}
-
-.expense-redesign .setup-assign-input:focus {
-  border-color: var(--gold);
-}
-
-.setup-assign-input::-webkit-inner-spin-button,
-.setup-assign-input::-webkit-outer-spin-button {
-  appearance: none;
-  margin: 0;
-}
-
-.setup-fill-btn {
-  border: 1px solid var(--gold);
-  background: var(--gold-soft);
-  color: var(--gold-ink);
-  border-radius: 100px;
-  padding: 6px 10px;
-  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
+  transition: scale var(--dur-press) var(--ease-press);
+}
+
+.expense-redesign .setup-plan-chip:hover {
+  background: color-mix(in srgb, var(--tk-mint) 22%, var(--tk-mint-soft));
+}
+
+.expense-redesign .setup-plan-chip:active {
+  scale: 0.96;
 }
 
 .setup-error {
