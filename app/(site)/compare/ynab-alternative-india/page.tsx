@@ -16,7 +16,7 @@ export default function YnabAlternativePage() {
       <li><strong>The same method.</strong> Every rupee gets a job before you spend it, just like YNAB. There’s nothing to relearn.</li>
       <li><strong>Built for how you’ll log in India.</strong> YNAB’s bank import doesn’t reach Indian banks, so you’d type spends in by hand there too. Aviary is designed for that, with nudges, one-line catch-up and bill scanning.</li>
     </ul>
-    <p>YNAB still makes sense if you need an iPhone app today, want to share one budget with family, or bank in the US, Canada, the UK or the EU.</p>
+    <p>YNAB still makes sense if you need an iPhone app today, or bank in the US, Canada, the UK or the EU.</p>
 
     <h2>Side by side</h2>
     <CompareTable them="YNAB" rows={[
