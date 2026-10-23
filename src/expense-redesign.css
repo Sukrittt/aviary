@@ -690,6 +690,29 @@
   font-weight: 500;
   color: var(--erd-text2);
 }
+.erd-home-overplanned {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--coral);
+}
+.erd-home-trim {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--erd-text);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
 .erd-home-income-pill {
   display: inline-flex;
   align-items: center;

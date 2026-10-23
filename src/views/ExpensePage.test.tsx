@@ -390,3 +390,24 @@ it('keeps a sidebar dialog opened while loading open once the dashboard arrives'
   expect(screen.getByText('statement-dialog')).toBeInTheDocument()
   client.clear()
 })
+
+it('says how far the plan is over what comes in, and offers the biggest plans to trim', async () => {
+  vi.mocked(getBudgets).mockResolvedValue([
+    { month, category: '__income__', assigned: '20000', rolled_over: '0', version: 1 },
+    { month, category: 'Food', assigned: '25000', rolled_over: '0', version: 1 },
+  ])
+  const client = renderPage()
+  expect(await screen.findByText('₹5,000 more planned than coming in')).toBeInTheDocument()
+  const user = userEvent.setup()
+  await user.click(screen.getByRole('button', { name: 'Trim' }))
+  await user.click(await screen.findByRole('menuitem', { name: 'Food · ₹25,000' }))
+  expect(await screen.findByRole('dialog')).toBeInTheDocument()
+  client.clear()
+})
+
+it('says nothing about trimming when the plan fits', async () => {
+  const client = renderPage()
+  await screen.findByRole('button', { name: 'Income · ₹20,000' })
+  expect(screen.queryByText(/more planned than coming in/)).not.toBeInTheDocument()
+  client.clear()
+})
