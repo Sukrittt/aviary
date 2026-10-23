@@ -4,7 +4,7 @@ import Image from 'next/image'
 import { DeviceMobileIcon, MonitorIcon } from '@/src/components/icons'
 import { CONTENT_SECTIONS, contentLabel, type ContentSection } from '@/lib/content'
 import { pages, SITE_URL, type PagePath } from '@/lib/seo'
-import { PLAY_STORE_URL } from '@/src/components/billing/copy'
+import { GET_ANDROID_URL } from '@/src/components/billing/copy'
 import { TrackedLink } from '@/src/components/TrackedLink'
 import { jsonLd } from '@/src/components/JsonLd'
 import { serifFont } from './serifFont'
@@ -61,7 +61,7 @@ export function SoftCta({ title, children, placement }: { title: string; childre
     <h2>{title}</h2>
     <p>{children}</p>
     <div className="lp-hero-actions">
-      <TrackedLink className="lp-button lp-button--dark" href={PLAY_STORE_URL} event="store_cta_clicked" properties={{ placement }}><DeviceMobileIcon size={18} aria-hidden="true" />Get it on Android</TrackedLink>
+      <TrackedLink className="lp-button lp-button--dark" href={GET_ANDROID_URL} event="store_cta_clicked" properties={{ placement }}><DeviceMobileIcon size={18} aria-hidden="true" />Get it on Android</TrackedLink>
       <Link href="/expense" className="lp-button lp-button--ghost"><MonitorIcon size={18} aria-hidden="true" />Use it on the web</Link>
     </div>
     <span className="lp-hero-note">Free for 30 days · No card needed · No bank link</span>

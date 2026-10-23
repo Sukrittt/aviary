@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { BellIcon, BrainIcon, GiftIcon, BankIcon, EnvelopeSimpleIcon, MonitorIcon, ChartPieIcon, RepeatIcon, ScanIcon, DeviceMobileIcon, UsersIcon, WalletIcon, WifiSlashIcon } from '@/src/components/icons'
 import { pageMetadata } from '@/lib/seo'
 import { visitorCheckoutProvider, visitorPlanPrices } from '@/lib/billing/prices'
-import { formatPrice, PLAY_STORE_URL, yearlySavingsPercent } from '@/src/components/billing/copy'
+import { formatPrice, GET_ANDROID_URL, yearlySavingsPercent } from '@/src/components/billing/copy'
 import { BirdLanding } from '@/src/components/BirdMark'
 import { TrackedLink } from '@/src/components/TrackedLink'
 import { Faq, LandingMotion } from '@/src/components/landing/LandingClient'
@@ -57,7 +57,7 @@ export default async function PricingPage() {
       <h1 id="pricing-title">Try it for 30 days.<br />Then one simple plan.</h1>
       <p>Every account starts with a free trial of the whole app. When it ends, pick monthly or yearly. One plan covers up to 6 people in a shared budget. Cancel any time.</p>
       <div className="lp-hero-actions">
-        <TrackedLink className="lp-button lp-button--dark" href={PLAY_STORE_URL} event="store_cta_clicked" properties={{ placement: 'pricing_hero' }}><DeviceMobileIcon size={18} aria-hidden="true" />Start your free trial</TrackedLink>
+        <TrackedLink className="lp-button lp-button--dark" href={GET_ANDROID_URL} event="store_cta_clicked" properties={{ placement: 'pricing_hero' }}><DeviceMobileIcon size={18} aria-hidden="true" />Start your free trial</TrackedLink>
         <Link href="/expense" className="lp-button lp-button--ghost"><MonitorIcon size={18} aria-hidden="true" />Open web app</Link>
       </div>
       <span className="lp-hero-note">Prices are set for your country and include taxes · Pay on the web or through Google Play</span>
@@ -124,7 +124,7 @@ export default async function PricingPage() {
       <span className="lp-close-bird"><BirdLanding size={120} alive /></span>
       <h2 id="get-title" className="lp-h2">Start with the free 30 days.</h2>
       <div className="lp-hero-actions">
-        <TrackedLink className="lp-button lp-button--dark" href={PLAY_STORE_URL} event="store_cta_clicked" properties={{ placement: 'pricing_footer' }}><DeviceMobileIcon size={18} aria-hidden="true" />Get it on Google Play</TrackedLink>
+        <TrackedLink className="lp-button lp-button--dark" href={GET_ANDROID_URL} event="store_cta_clicked" properties={{ placement: 'pricing_footer' }}><DeviceMobileIcon size={18} aria-hidden="true" />Get it on Google Play</TrackedLink>
         <Link href="/expense" className="lp-button lp-button--ghost"><MonitorIcon size={18} aria-hidden="true" />Open web app</Link>
       </div>
       <span className="lp-hero-note">No card needed · Cancel any time · <Link href="/legal/contact"><EnvelopeSimpleIcon size={13} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 4 }} />Questions? Write to us</Link></span>

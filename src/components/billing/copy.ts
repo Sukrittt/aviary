@@ -1,6 +1,8 @@
 import type { BillingStatus } from '@/src/api/billing'
 
 export const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.sukrit04.envelope'
+/** Public "get the app" links: redirects to Play with the visitor's source in the install referrer (app/get/android). */
+export const GET_ANDROID_URL = '/get/android'
 
 /**
  * Whether subscribing now defers the first charge to the trial's end. Inside

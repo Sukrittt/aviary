@@ -298,7 +298,7 @@ describe('GET /api/user', () => {
       .mockResolvedValueOnce({ _id: 'user_a', email: 'new@example.com', onboardedAt: null } as never)
     const res = await GET(new Request('https://example.com/api/user'))
     const body = await res.json()
-    expect(ensureUserByIdMock).toHaveBeenCalledWith('user_a')
+    expect(ensureUserByIdMock).toHaveBeenCalledWith('user_a', expect.objectContaining({ platform: expect.any(String) }))
     expect(scheduleWelcomeEmailMock).toHaveBeenCalledWith('user_a')
     expect(body).not.toBeNull()
     expect(body.email).toBe('new@example.com')

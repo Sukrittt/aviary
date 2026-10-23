@@ -4,6 +4,7 @@ import { getAuth } from '@/lib/access'
 import { getDb } from '@/lib/mongodb'
 import { getWorkOSClient } from '@/lib/workosClient'
 import { ensureUserById, serializeUser, HIDEABLE_FEATURES, HEARD_FROM_SOURCES, type HideableFeature, type UserDoc } from '@/lib/users'
+import { readAttribution } from '@/lib/attribution'
 import { purgesAt } from '@/lib/archive'
 import { handOffSharedBudgets } from '@/lib/spaceMembers'
 import { softDeleteAccount } from '@/lib/accountLifecycle'
@@ -43,7 +44,7 @@ export async function GET(req: Request) {
     // Mobile's Google sign-in goes straight to WorkOS and never calls
     // /api/auth/verify, so this can be the first request that knows the
     // account exists. Answering null here made the app skip setup.
-    await ensureUserById(auth.userId)
+    await ensureUserById(auth.userId, readAttribution(req))
     scheduleWelcomeEmail(auth.userId)
     user = await users.findOne({ _id: auth.userId })
   }

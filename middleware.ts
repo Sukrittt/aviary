@@ -1,6 +1,7 @@
 import { authkit, authkitMiddleware, handleAuthkitProxy } from '@workos-inc/authkit-nextjs'
 import { NextResponse, type NextFetchEvent, type NextRequest } from 'next/server'
 import { bearerToken, verifyBearerToken } from '@/lib/bearer'
+import { ATTRIBUTION_COOKIE, ATTRIBUTION_MAX_AGE, attributionFromRequest, nextAttribution, parseAttribution, type Attribution } from '@/lib/attribution'
 
 const refreshSession = authkitMiddleware()
 
@@ -56,6 +57,27 @@ function isAppPath(pathname: string): boolean {
  * paths are exempt from that gate — see `CRON_PATHS` above.
  */
 export default async function middleware(request: NextRequest, event: NextFetchEvent) {
+  return remember(request, await route(request, event))
+}
+
+/**
+ * Notes where a visitor came from in `aviary_attr` on page loads, so the
+ * account they create later (after a WorkOS round trip, or on Android via the
+ * Play link) knows its source. See lib/attribution.ts.
+ */
+function remember(request: NextRequest, response: Response | null | undefined | void): Response | null | undefined | void {
+  const { pathname } = request.nextUrl
+  if (!(response instanceof NextResponse)) return response
+  // Page loads only: not API calls, and not the client router's RSC fetches.
+  if (request.method !== 'GET' || pathname.startsWith('/api/') || request.headers.has('rsc')) return response
+  const raw = request.cookies.get(ATTRIBUTION_COOKIE)?.value
+  const current: Attribution | null = raw ? parseAttribution(raw) : null
+  const next = nextAttribution(current, attributionFromRequest(request.nextUrl, request.headers.get('referer')))
+  if (next) response.cookies.set(ATTRIBUTION_COOKIE, JSON.stringify(next), { path: '/', maxAge: ATTRIBUTION_MAX_AGE, sameSite: 'lax' })
+  return response
+}
+
+async function route(request: NextRequest, event: NextFetchEvent) {
   const { pathname } = request.nextUrl
 
   // authkit() is the same session refresh authkitMiddleware runs, but hands back

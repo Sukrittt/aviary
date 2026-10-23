@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { saveSession } from '@workos-inc/authkit-nextjs'
 import { getWorkOSClient } from '@/lib/workosClient'
 import { ensureUser } from '@/lib/users'
+import { readAttribution } from '@/lib/attribution'
 import { scheduleWelcomeEmail } from '@/lib/email/welcome'
 import { readBody, EMAIL_RE } from '@/lib/http'
 import { isRateLimited, clientIp } from '@/lib/rateLimit'
@@ -68,7 +69,9 @@ export async function POST(req: Request) {
       code: realCode,
       userAgent,
     })
-    await ensureUser(user)
+    // The app labels itself with `device`; an older build that predates the
+    // attribution header is still an Android signup.
+    await ensureUser(user, readAttribution(req, typeof device === 'string' && device ? 'android' : undefined), 'email')
     await saveSession({ accessToken, refreshToken, user }, req.url)
     scheduleWelcomeEmail(user.id)
     return NextResponse.json(typeof device === 'string' && device.trim() ? { ok: true, accessToken, refreshToken } : { ok: true })
