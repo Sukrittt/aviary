@@ -424,3 +424,12 @@ it('in a read-only budget, explains an over plan but offers no Trim', async () =
   await waitFor(() => expect(screen.queryByRole('button', { name: 'Trim' })).not.toBeInTheDocument())
   client.clear()
 })
+
+it('says nothing about over-planning when nothing is planned', async () => {
+  vi.mocked(getBudgets).mockResolvedValue([{ month, category: '__income__', assigned: '20000', rolled_over: '0', version: 1 }])
+  vi.mocked(getCarry).mockResolvedValue({ ready_to_assign: -25000, rolled_over: {} })
+  const client = renderPage()
+  await screen.findByRole('button', { name: 'Income · ₹20,000' })
+  expect(screen.queryByText(/more planned than coming in/)).not.toBeInTheDocument()
+  client.clear()
+})

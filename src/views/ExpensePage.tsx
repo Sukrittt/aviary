@@ -520,8 +520,9 @@ export function ExpensePage() {
                       )}
                     </div>
                     {/* Usually a new month copying a plan last month's one-off
-                        extra paid for. Says so, and offers the biggest plans to trim. */}
-                    {!hideAmounts && overPlannedLine(envelopeState.readyToAssign, (n) => formatCurrency(n)) && (
+                        extra paid for. Says so, and offers the biggest plans to trim.
+                        No plan at all (a carried deficit alone): nothing to trim, so no line. */}
+                    {!hideAmounts && trimCandidates(envelopeState.envelopes).length > 0 && overPlannedLine(envelopeState.readyToAssign, (n) => formatCurrency(n)) && (
                       <div className="erd-home-overplanned">
                         <span>{overPlannedLine(envelopeState.readyToAssign, (n) => formatCurrency(n))}</span>
                         {!readOnly && (
