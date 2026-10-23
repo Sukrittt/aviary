@@ -83,6 +83,8 @@ describe('ImportFlow', () => {
     const onFresh = vi.fn()
     render(<ImportFlow onFresh={onFresh} onDone={vi.fn()} onAlreadySetUp={vi.fn()} />)
     expect(screen.getByRole('heading', { name: 'How do you want to start?' })).toBeTruthy()
+    // A fork, not a step: no dots here for the fresh path's own to replace.
+    expect(screen.queryByRole('img', { name: /^Step \d of \d$/ })).toBeNull()
     fireEvent.click(screen.getByRole('radio', { name: /^I’m starting fresh/ }))
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     expect(onFresh).toHaveBeenCalled()

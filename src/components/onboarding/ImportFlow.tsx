@@ -151,7 +151,9 @@ export function ImportFlow({ onFresh, onDone, onAlreadySetUp, skipAsk = false, b
   const [app, setApp] = useState<AppChoice | null>(null)
   const [review, setReview] = useState<ImportReview | null>(null)
   const [start, setStart] = useState<StartChoice>('fresh')
-  const dots: Stage[] = skipAsk ? ['pick', 'upload', 'review'] : ['ask', 'pick', 'upload', 'review']
+  // "How do you want to start?" is a fork, not a step, so it gets no dots: the
+  // fresh path's own dots take over from there without a count that shrinks.
+  const dots: Stage[] = ['pick', 'upload', 'review']
   const reduce = useReducedMotion()
   const enter = useEnter()
 
@@ -169,9 +171,11 @@ export function ImportFlow({ onFresh, onDone, onAlreadySetUp, skipAsk = false, b
         <button type="button" className="setup-back" onClick={back} disabled={stage === first} aria-label="Back">
           <ArrowLeftIcon size={16} aria-hidden="true" />
         </button>
-        <div className="setup-dots" role="img" aria-label={`Step ${dots.indexOf(stage) + 1} of ${dots.length}`}>
-          {dots.map((d, i) => <span key={d} className={`setup-dot ${i <= dots.indexOf(stage) ? 'is-active' : ''}`} />)}
-        </div>
+        {stage !== 'ask' && (
+          <div className="setup-dots" role="img" aria-label={`Step ${dots.indexOf(stage) + 1} of ${dots.length}`}>
+            {dots.map((d, i) => <span key={d} className={`setup-dot ${i <= dots.indexOf(stage) ? 'is-active' : ''}`} />)}
+          </div>
+        )}
       </div>
 
       {stage === 'ask' && (

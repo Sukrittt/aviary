@@ -43,12 +43,9 @@ describe('onboarding suggested split', () => {
     expect(await screen.findByRole('button', { name: 'Finish setup' })).toBeInTheDocument()
     expect(getSplitBuckets).not.toHaveBeenCalled()
     // Only needs and wants are picked by default, so they keep their 50:30
-    // ratio (31,250 and 18,750), give or take the rounding leftover on Rent.
-    const needs = amountOf('Rent') + amountOf('Groceries') + amountOf('Utilities')
-    const wants = amountOf('Eating out') + amountOf('Entertainment')
-    expect(needs + wants).toBe(50000)
-    expect(Math.abs(needs - 31250)).toBeLessThanOrEqual(500)
-    expect(amountOf('Rent')).toBeGreaterThan(amountOf('Utilities'))
+    // ratio (31,250 and 18,750), the rounding leftover on Rent. Mobile's
+    // app/setup.split.test.tsx pins the same five amounts.
+    expect(['Rent', 'Groceries', 'Utilities', 'Eating out', 'Entertainment'].map(amountOf)).toEqual([18100, 8900, 4400, 9300, 9300])
     // A review, not a worksheet: amounts read as money, no split modes or need/want tags.
     expect(amountChip('Rent').textContent).toMatch(/^\$\d{1,3}(,\d{3})*$/)
     expect(screen.queryByRole('button', { name: 'Split evenly' })).toBeNull()
