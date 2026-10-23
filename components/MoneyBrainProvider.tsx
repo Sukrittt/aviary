@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useContext, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { AnimatePresence } from 'motion/react'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@workos-inc/authkit-nextjs/components'
@@ -29,6 +29,14 @@ export function MoneyBrainProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth()
   const pathname = usePathname() ?? ''
   useMoneyBrief({ enabled: Boolean(user) && isAppPage(pathname) })
+  // Fetch the lazy overlays ahead of first open, so neither shows a blank beat
+  // while its chunk downloads. App pages only: the landing page stays light.
+  const inApp = Boolean(user) && isAppPage(pathname)
+  useEffect(() => {
+    if (!inApp) return
+    void import('@/src/components/MoneyBrainDrawer')
+    void import('@/src/components/LogExpenseModal')
+  }, [inApp])
 
   // Outlives the drawer, so closing and reopening it lands back in the same chat.
   const openChat = useRef<OpenChat>({ sessionId: null, messages: [] })
