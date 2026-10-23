@@ -5,7 +5,11 @@ import { SalaryBudget } from '@/src/components/content/SalaryBudget'
 export const metadata = pageMetadata('/tools/budget-for-25000-salary')
 
 export default function Budget25kPage() {
-  return <SalaryBudget salary={25000} path="/tools/budget-for-25000-salary" intro="₹25,000 a month is a common first salary, and it’s tight. It works best when you decide where it goes on day one, not on day twenty.">
+  return <SalaryBudget salary={25000} path="/tools/budget-for-25000-salary" faqs={[
+    { q: 'How much should I save from a ₹25,000 salary?', a: '₹5,000 a month, which is 20%. Put ₹2,500 in a separate savings account as an emergency fund and ₹2,500 in a SIP or recurring deposit. In a year that’s ₹30,000 put aside for emergencies.' },
+    { q: 'How much rent can I afford on ₹25,000?', a: 'About ₹6,000 is comfortable and ₹7,500 is a stretch. At ₹10,000 rent, wants drop to ₹5,000 and savings stay at ₹5,000. At ₹12,500, wants fall to ₹2,500.' },
+    { q: 'Where does a ₹25,000 salary usually go?', a: 'Mostly rent and food. The usual leaks are small food orders, daily autos or cabs, and subscriptions you forgot. Four ₹250 orders a week is ₹4,000 a month, more than the ₹3,000 eating out budget.' },
+  ]} intro="₹25,000 a month is a common first salary, and it’s tight. It works best when you decide where it goes on day one, not on day twenty.">
     <h2>Rent is the whole game</h2>
     <p>The plan above puts rent at ₹7,500. In most metros that means a shared flat or a PG. If your rent is ₹10,000, type it in: wants drop from ₹7,500 to ₹5,000, and savings stay at ₹5,000. At ₹12,500 rent, wants get squeezed to ₹2,500. That’s the line where the month starts to feel stressful.</p>
     <p>If you live with family and pay nothing, put 0. The plan moves the ₹7,500 into savings. At this salary, that’s the fastest way to build a cushion you’ll ever get.</p>

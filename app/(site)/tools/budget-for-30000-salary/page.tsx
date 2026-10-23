@@ -5,7 +5,11 @@ import { SalaryBudget } from '@/src/components/content/SalaryBudget'
 export const metadata = pageMetadata('/tools/budget-for-30000-salary')
 
 export default function Budget30kPage() {
-  return <SalaryBudget salary={30000} path="/tools/budget-for-30000-salary" intro="₹30,000 a month is where a lot of first jobs land after a raise or two. It covers the basics, but only if you plan the month before it starts.">
+  return <SalaryBudget salary={30000} path="/tools/budget-for-30000-salary" faqs={[
+    { q: 'How much should I save from a ₹30,000 salary?', a: '₹6,000 a month, which is 20%. Living with family and paying no rent? Then the rent money goes to savings too, and you can save ₹15,000 a month.' },
+    { q: 'How much rent can I afford on ₹30,000?', a: 'About ₹7,500 is comfortable and ₹9,000 is a stretch. At ₹12,000 rent, wants drop to ₹6,000 and savings stay at ₹6,000.' },
+    { q: 'How long does an emergency fund take on ₹30,000?', a: 'Essentials on this plan come to ₹15,000 a month, so three months is ₹45,000. At ₹3,000 a month that’s 15 months. Send the full ₹6,000 there and it’s 8.' },
+  ]} intro="₹30,000 a month is where a lot of first jobs land after a raise or two. It covers the basics, but only if you plan the month before it starts.">
     <h2>Rent: keep it near ₹9,000</h2>
     <p>The plan above puts rent at ₹9,000, which is 30%. In a metro that’s usually a shared flat or a PG. If your rent is ₹12,000, type it in. Wants drop from ₹9,000 to ₹6,000, and savings stay at ₹6,000. That’s about as far as it stretches.</p>
     <p>Living with family? Put 0. The ₹9,000 moves to savings, and you’d put away ₹15,000 a month.</p>
