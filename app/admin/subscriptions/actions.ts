@@ -6,9 +6,9 @@ import { audit } from '@/lib/adminAudit'
 import { getDb } from '@/lib/mongodb'
 import type { UserDoc } from '@/lib/users'
 import { extendTrialEnd } from '@/lib/billing/access'
-import { addMonthsUtc } from '@/lib/billing/lifecycle'
 import { BILLING_ACCOUNTS, type BillingAccountDoc } from '@/lib/billing/records'
 import { refreshFromProvider } from '@/lib/billing/service'
+import { grantComp } from '@/lib/billing/reward'
 import type { ActionResult } from '../ActionForm'
 
 const MAX_EXTEND_DAYS = 365
@@ -53,17 +53,12 @@ export async function grantGiftAction(userId: string, _prev: ActionResult, form:
   if (!Number.isInteger(months) || months < 1 || months > MAX_GIFT_MONTHS) return { ok: false, message: `Months must be a whole number between 1 and ${MAX_GIFT_MONTHS}` }
   if (!reason) return { ok: false, message: 'Say why this plan is being gifted — the audit entry is the only record of it' }
 
-  const coll = await accounts()
-  const account = await coll.findOne({ _id: userId })
-  if (!account) return { ok: false, message: NO_ACCOUNT }
-
-  const now = new Date()
   // Gifting twice stacks rather than replaces, same as extending a live
   // trial: "another 3 months" means three more, not three from today.
-  const live = account.comp && account.comp.until.getTime() > now.getTime() ? account.comp.until : now
-  const until = addMonthsUtc(live, months)
-  await coll.updateOne({ _id: userId }, { $set: { comp: { until, reason, grantedBy: adminId, grantedAt: now }, retentionDeadline: null } })
-  await audit(adminId, 'billing.gift_grant', userId, { months, until, reason, stacked: live !== now })
+  const before = (await (await accounts()).findOne({ _id: userId }))?.comp?.until
+  const until = await grantComp(userId, months, reason, adminId)
+  if (!until) return { ok: false, message: NO_ACCOUNT }
+  await audit(adminId, 'billing.gift_grant', userId, { months, until, reason, stacked: !!before && before.getTime() > Date.now() })
   return done(userId, `Gifted plan until ${until.toISOString().slice(0, 10)}`)
 }
 

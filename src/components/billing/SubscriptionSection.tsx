@@ -6,7 +6,7 @@ import { ArrowSquareOutIcon, ArrowsClockwiseIcon, CaretRightIcon, XCircleIcon, X
 import { ConfirmDialog } from '@/src/components/ConfirmDialog'
 import { Scrim, Sheet } from '@/src/components/MotionSheet'
 import { useBillingStatus, useCancelWebSubscription, usePayPalReturn, useSyncBilling, type PayPalReturn } from '@/src/hooks/useBillingStatus'
-import { billingVisible, daysOnUs, formatDate, PLAY_STORE_URL, trialRemainingLabel } from './copy'
+import { billingVisible, daysOnUs, formatDate, freeUntil, PLAY_STORE_URL, trialRemainingLabel } from './copy'
 import { WebPlanPicker } from './WebPlanPicker'
 
 /**
@@ -177,7 +177,7 @@ export function SubscriptionSection() {
               <button type="button" className="account-pill-btn" autoFocus onClick={closePlans} aria-label="Close" style={{ position: 'absolute', top: 14, right: 14, width: 34, height: 34, padding: 0, display: 'grid', placeItems: 'center' }}>
                 <XIcon size={16} />
               </button>
-              <WebPlanPicker trialEndsAt={data.mode === 'trial' ? data.trialEndsAt : null} />
+              <WebPlanPicker trialEndsAt={freeUntil(data)} />
             </Sheet>
           </Scrim>
         )}

@@ -10,6 +10,17 @@ export const GET_ANDROID_URL = '/get/android'
  * server charges straight away. The subscribe route and the picker's copy
  * share this so the promise matches the charge.
  */
+/**
+ * When the free time this account already has ends: the trial's end mid-trial,
+ * or a gift's end. Subscribing now starts charging from then, so a referral
+ * month isn't thrown away by buying early.
+ */
+export function freeUntil(status: Pick<BillingStatus, 'mode' | 'trialEndsAt' | 'gifted' | 'paidExpiresAt'>): string | null {
+  if (status.mode === 'trial') return status.trialEndsAt
+  if (status.mode === 'paid' && status.gifted) return status.paidExpiresAt
+  return null
+}
+
 export function defersFirstCharge(trialEndsAt: string | Date | null | undefined, now: number = Date.now()): boolean {
   return !!trialEndsAt && new Date(trialEndsAt).getTime() > now + 15 * 60_000
 }
