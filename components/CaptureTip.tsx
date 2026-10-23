@@ -38,11 +38,13 @@ export function CaptureTip() {
   const { user } = useAuth()
   const pathname = usePathname() ?? ''
   const brain = useMoneyBrain()
-  const askHidden = useHiddenFeatures().includes('askAviary')
+  const onApp = pathname === '/expense' || pathname.startsWith('/expense/')
+  // Mounted on every page by AppShell: only ask the API where the tip can show.
+  const enabled = Boolean(user) && onApp
+  const askHidden = useHiddenFeatures({ enabled }).includes('askAviary')
   const reduceMotion = useReducedMotion()
   const blocked = useSyncExternalStore(subscribeInterruptions, blockedNow, () => true)
-  const onApp = pathname === '/expense' || pathname.startsWith('/expense/')
-  const rows = useRecentExpenses().data
+  const rows = useRecentExpenses({ enabled }).data
   const [state, setState] = usePersistentState('capture-tip', NO_TIP_STATE, parseTipState, JSON.stringify)
   // Its own key, so it can't race the show count's write.
   const [tried, setTried] = usePersistentState('capture-tip-tried', false, (v) => v === 'true', String)
@@ -56,7 +58,7 @@ export function CaptureTip() {
     return () => window.removeEventListener(MANUAL_LOG_EVENT, onLog)
   }, [])
 
-  const ready = Boolean(user && !askHidden && onApp && rows && !blocked && !brain.isMoneyBrainOpen)
+  const ready = Boolean(enabled && !askHidden && rows && !blocked && !brain.isMoneyBrainOpen)
   if (ready && shown === null) {
     // eslint-disable-next-line react-hooks/purity -- read once, when deciding whether to latch
     const reason = captureTipReason({ rows: rows!, today: todayLocal(), now: Date.now(), manualLogs, state: { ...state, done: tried } })
