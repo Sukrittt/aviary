@@ -28,6 +28,18 @@ import { OPERATORS, pushAmountKey } from '@/src/lib/calcAmount'
  * what the landing's phone shows; app callers pass `var(--tk-*)` colours instead.
  */
 
+/** What the log screen tells the nav's + button. Here, not in LogExpense, so Playground can hold it without loading the screens. */
+export interface SubmitState {
+  canSubmit: boolean
+  /** An amount is in, so + does something: logs it, or asks for the category first. */
+  hasAmount: boolean
+  saving: boolean
+  success: boolean
+  submit: () => void
+}
+
+export const EMPTY_SUBMIT: SubmitState = { canSubmit: false, hasAmount: false, saving: false, success: false, submit: () => {} }
+
 export const T = lightTokens
 
 // Mobile/src/theme/scale.ts
