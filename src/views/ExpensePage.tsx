@@ -524,6 +524,7 @@ export function ExpensePage() {
                     {!hideAmounts && overPlannedLine(envelopeState.readyToAssign, (n) => formatCurrency(n)) && (
                       <div className="erd-home-overplanned">
                         <span>{overPlannedLine(envelopeState.readyToAssign, (n) => formatCurrency(n))}</span>
+                        {!readOnly && (
                         <DropdownMenu>
                           <DropdownMenuTrigger render={<button type="button" className="erd-home-trim" />}>
                             Trim
@@ -537,6 +538,7 @@ export function ExpensePage() {
                             ))}
                           </DropdownMenuContent>
                         </DropdownMenu>
+                        )}
                       </div>
                     )}
                   </div>

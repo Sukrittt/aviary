@@ -9,6 +9,7 @@ import { getRecentExpenses } from '@/src/api/expenses'
 import { ExpensePage } from './ExpensePage'
 import { getBudgets, addBudget, updateBudget, transferBudget, getCarry } from '@/src/api/budgets'
 import { getUser } from '@/src/api/account'
+import { getBudgets as getSpaces } from '@/src/api/spaces'
 import { getRecurringIncomes } from '@/src/api/incomes'
 import { currentMonthKey, prevMonthKey, monthLabel } from '@/src/lib/envelope'
 
@@ -409,5 +410,17 @@ it('says nothing about trimming when the plan fits', async () => {
   const client = renderPage()
   await screen.findByRole('button', { name: 'Income · ₹20,000' })
   expect(screen.queryByText(/more planned than coming in/)).not.toBeInTheDocument()
+  client.clear()
+})
+
+it('in a read-only budget, explains an over plan but offers no Trim', async () => {
+  vi.mocked(getSpaces).mockResolvedValue({ budgets: [{ id: 'space-1', name: 'Studio', personal: false, readOnly: true, members: [] }], activeId: 'space-1', deleted: [] } as never)
+  vi.mocked(getBudgets).mockResolvedValue([
+    { month, category: '__income__', assigned: '20000', rolled_over: '0', version: 1 },
+    { month, category: 'Food', assigned: '25000', rolled_over: '0', version: 1 },
+  ])
+  const client = renderPage()
+  expect(await screen.findByText('₹5,000 more planned than coming in')).toBeInTheDocument()
+  await waitFor(() => expect(screen.queryByRole('button', { name: 'Trim' })).not.toBeInTheDocument())
   client.clear()
 })
