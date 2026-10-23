@@ -88,6 +88,9 @@ export function useAddCategory() {
       // apart, and `grouped` says whether people use groups at all.
       track('envelope_created', { grouped: !!params.group })
       qc.invalidateQueries({ queryKey: key })
+      // A re-created name gets a fresh 0 budget row server-side (lib/categories.ts).
+      qc.invalidateQueries({ queryKey: budgetsKey })
+      qc.invalidateQueries({ queryKey: ['ai-brief'] })
     },
   })
 }

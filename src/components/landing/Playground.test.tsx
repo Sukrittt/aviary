@@ -142,11 +142,11 @@ describe('log playground', () => {
     expect(screen.getByText('Added')).toBeInTheDocument()
   })
 
-  it('has the app’s header buttons, which say the demo only logs', () => {
+  it('has the app’s header buttons, which say the demo only logs', async () => {
     render(<Playground />)
     fireEvent.click(screen.getByRole('button', { name: 'Try it yourself' }))
     for (const name of ['Log several spends at once', 'Add income']) {
-      fireEvent.click(screen.getAllByRole('button', { name }).at(-1)!)
+      fireEvent.click((await screen.findAllByRole('button', { name })).at(-1)!)
       expect(screen.getByText(/This demo only logs/)).toBeInTheDocument()
     }
   })

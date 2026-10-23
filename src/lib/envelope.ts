@@ -198,7 +198,8 @@ export function computeEnvelopeState(
   // on record after deletion, but must not recreate an envelope or reserve
   // its old assignment. The credit-card payment envelope is a system category
   // and can exist without a category row.
-  const allCategories = new Set(categoryRows.map((c) => c.name).filter((name) => name !== INCOME_CATEGORY))
+  // A re-created category (`since`) isn't one in the months before it came back.
+  const allCategories = new Set(categoryRows.filter((c) => !c.since || c.since <= currentMonth).map((c) => c.name).filter((name) => name !== INCOME_CATEGORY))
   if (budgets.some((b) => b.category === CREDIT_CARD_CATEGORY && b.month <= currentMonth)) {
     allCategories.add(CREDIT_CARD_CATEGORY)
   }

@@ -35,6 +35,7 @@ export async function GET(req: Request) {
         ...(isCategoryIconKey(d.icon) ? { icon: d.icon } : {}),
         ...(isCategoryColor(d.color) ? { color: d.color } : {}),
         ...(Array.isArray(d.alertPcts) ? { alertPcts: d.alertPcts } : {}),
+        ...(typeof d.since === 'string' ? { since: d.since } : {}),
       }))
       .filter((c) => c.name),
   )

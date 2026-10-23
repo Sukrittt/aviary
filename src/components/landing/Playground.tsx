@@ -4,9 +4,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { PauseIcon, PlayIcon, ArrowCounterClockwiseIcon } from '@/src/components/icons'
 
-import { PHONE, PhoneScreenContext, T } from './mobile/kit'
+import { EMPTY_SUBMIT, PHONE, PhoneScreenContext, T, type SubmitState } from './mobile/kit'
 import { FloatingNav } from './mobile/nav'
-import { EMPTY_SUBMIT, ExpenseAddedScreen, LogExpenseScreen, type LoggedExpense, type SubmitState } from './mobile/LogExpense'
+import type { LoggedExpense } from './mobile/LogExpense'
 import { GROUPS, type DemoCategory } from './mobile/demo'
 import { useSample } from './sample'
 import { useOnScreen } from './useOnScreen'
@@ -43,6 +43,12 @@ export function Playground() {
   const [paused, setPaused] = useState(false)
   const [tookOver, setTookOver] = useState(false)
   const { ref: sectionRef, visible } = useOnScreen<HTMLElement>(0.35)
+  // The screens draw from the full category icon map (~68 KB gzipped), so they
+  // load once the section scrolls into view instead of with the landing page.
+  const [screens, setScreens] = useState<typeof import('./mobile/LogExpense') | null>(null)
+  useEffect(() => {
+    if (visible && !screens) import('./mobile/LogExpense').then(setScreens, () => {})
+  }, [visible, screens])
   const [run, setRun] = useState(0)
   const [screen, setScreen] = useState<'log' | 'added'>('log')
   const [categories, setCategories] = useState<DemoCategory[]>(sampleCategories)
@@ -57,7 +63,7 @@ export function Playground() {
 
   // With reduced motion nothing plays itself, so the phone is the visitor's from the start.
   const mine = tookOver || !!reduced
-  const playing = visible && !paused && !mine
+  const playing = !!screens && visible && !paused && !mine
 
   // The visitor's own logs, for the + hint on their first.
   const [logs, setLogs] = useState(0)
@@ -183,9 +189,9 @@ export function Playground() {
                 <AnimatePresence initial={false}>
                   <motion.div key={screen === 'log' ? `log:${run}` : 'added'} style={{ position: 'absolute', inset: 0 }}
                     initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { duration: 0.25 } }} exit={{ opacity: 0, transition: { duration: 0.25 } }}>
-                    {screen === 'log'
-                      ? <LogExpenseScreen categories={categories} groups={GROUPS} prefill={prefill} publish={setSubmit} onAdded={onAdded} onElsewhere={() => say(ELSEWHERE)} />
-                      : added && <ExpenseAddedScreen expense={added.expense} before={added.before} muted={!mine}
+                    {!screens ? null : screen === 'log'
+                      ? <screens.LogExpenseScreen categories={categories} groups={GROUPS} prefill={prefill} publish={setSubmit} onAdded={onAdded} onElsewhere={() => say(ELSEWHERE)} />
+                      : added && <screens.ExpenseAddedScreen expense={added.expense} before={added.before} muted={!mine}
                           onDone={() => fresh(true)}
                           onUndo={() => {
                             const { expense } = added

@@ -78,6 +78,15 @@ describe('computeEnvelopeState', () => {
     expect(state.totalSpent).toBe(450)
   })
 
+  it('leaves a re-created category out of the months before its `since`', () => {
+    const budgets = [budget('2026-12', INCOME_CATEGORY, '20000'), budget('2026-12', 'Gym', '1000'), budget('2027-02', 'Gym', '0')]
+    const cats: CategoryRow[] = [{ name: 'Gym', group: '', since: '2027-02' }]
+    const jan = computeEnvelopeState(budgets, [], '2027-01', cats, [])
+    expect(jan.envelopes).toEqual([])
+    expect(jan.readyToAssign).toBe(20000)
+    expect(computeEnvelopeState(budgets, [], '2027-02', cats, []).envelopes.map((e) => e.category)).toEqual(['Gym'])
+  })
+
   it('does not carry unspent money into the next month', () => {
     const budgets = [budget('2026-07', 'Rent', '1000'), budget('2026-08', 'Rent', '1000')]
     const expenses = [expense('2026-07-05', 'Rent', '400')]
