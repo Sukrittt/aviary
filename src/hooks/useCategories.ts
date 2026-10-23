@@ -44,8 +44,8 @@ function reorderWithinGroup(categories: CategoryRow[], name: string, toIndex: nu
   return result
 }
 
-export function useCategories() {
-  return useQuery({ queryKey: key, queryFn: getCategories, staleTime: 30_000 })
+export function useCategories({ enabled = true }: { enabled?: boolean } = {}) {
+  return useQuery({ queryKey: key, queryFn: getCategories, staleTime: 30_000, enabled })
 }
 
 /** Each category's picked icon by name, for rows that only carry the name. */
@@ -88,6 +88,9 @@ export function useAddCategory() {
       // apart, and `grouped` says whether people use groups at all.
       track('envelope_created', { grouped: !!params.group })
       qc.invalidateQueries({ queryKey: key })
+      // A re-created name gets a fresh 0 budget row server-side (lib/categories.ts).
+      qc.invalidateQueries({ queryKey: budgetsKey })
+      qc.invalidateQueries({ queryKey: ['ai-brief'] })
     },
   })
 }

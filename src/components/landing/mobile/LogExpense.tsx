@@ -28,6 +28,8 @@ import {
   space,
   type,
   useAmountEntry,
+  EMPTY_SUBMIT,
+  type SubmitState,
 } from './kit'
 import { DAYS_LEFT, GROUP_ICONS, WORDS, toEnvelope, type DemoCategory } from './demo'
 import { AutoCategoryPill } from './AutoCategoryPill'
@@ -35,17 +37,6 @@ import { chime } from '../LandingClient'
 import { evaluateAmount, formatExpression, hasOperator } from '@/src/lib/calcAmount'
 
 /** Twins of Mobile's app/modals/log-expense.tsx, expense-added.tsx, CategoryPickerSheet and DeltaBar. */
-
-export interface SubmitState {
-  canSubmit: boolean
-  /** An amount is in, so + does something: logs it, or asks for the category first. */
-  hasAmount: boolean
-  saving: boolean
-  success: boolean
-  submit: () => void
-}
-
-export const EMPTY_SUBMIT: SubmitState = { canSubmit: false, hasAmount: false, saving: false, success: false, submit: () => {} }
 
 export interface LoggedExpense {
   item: string

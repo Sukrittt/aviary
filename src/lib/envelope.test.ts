@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { computeEnvelopeState, currentMonthKey, prevMonthKey, extraForReadyToAssign, CREDIT_CARD_CATEGORY, INCOME_CATEGORY } from './envelope'
+import { computeEnvelopeState, currentMonthKey, prevMonthKey, extraForReadyToAssign, overPlannedLine, trimCandidates, CREDIT_CARD_CATEGORY, INCOME_CATEGORY } from './envelope'
 import type { BudgetRow, CategoryRow, ExpenseRow } from '@/src/types'
 
 function budget(month: string, category: string, assigned: string, rolled_over = '0'): BudgetRow {
@@ -76,6 +76,15 @@ describe('computeEnvelopeState', () => {
     expect(state.totalAssigned).toBe(0)
     expect(state.readyToAssign).toBe(49550)
     expect(state.totalSpent).toBe(450)
+  })
+
+  it('leaves a re-created category out of the months before its `since`', () => {
+    const budgets = [budget('2026-12', INCOME_CATEGORY, '20000'), budget('2026-12', 'Gym', '1000'), budget('2027-02', 'Gym', '0')]
+    const cats: CategoryRow[] = [{ name: 'Gym', group: '', since: '2027-02' }]
+    const jan = computeEnvelopeState(budgets, [], '2027-01', cats, [])
+    expect(jan.envelopes).toEqual([])
+    expect(jan.readyToAssign).toBe(20000)
+    expect(computeEnvelopeState(budgets, [], '2027-02', cats, []).envelopes.map((e) => e.category)).toEqual(['Gym'])
   })
 
   it('does not carry unspent money into the next month', () => {
@@ -327,5 +336,21 @@ describe('computeEnvelopeState with a carry', () => {
     expect(state.readyToAssign).toBe(600)
     expect(state.carriedReadyToAssign).toBe(0)
     expect(state.envelopes.every((e) => e.rolledOver === 0)).toBe(true)
+  })
+})
+
+describe('over-planned month', () => {
+  const money = (n: number) => `₹${n.toLocaleString('en-IN')}`
+
+  it('says how far the plan is over what comes in, only when it is', () => {
+    expect(overPlannedLine(-5000, money)).toBe('₹5,000 more planned than coming in')
+    expect(overPlannedLine(0, money)).toBeNull()
+    expect(overPlannedLine(1200, money)).toBeNull()
+  })
+
+  it('suggests trimming the biggest plans first, never the card payoff', () => {
+    const e = (category: string, assigned: number, isCreditCardPayment = false) => ({ category, assigned, isCreditCardPayment })
+    const picks = trimCandidates([e('Rent', 9500), e('Card', 40000, true), e('Aviary', 18000), e('Haircut', 100), e('Investments', 22000), e('Unplanned', 0)])
+    expect(picks.map((p) => p.category)).toEqual(['Investments', 'Aviary', 'Rent'])
   })
 })

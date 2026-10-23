@@ -55,8 +55,8 @@ function recentQuery() {
 }
 
 /** Recent rows only. Use instead of `useExpenses()` unless you need all history. */
-export function useRecentExpenses() {
-  return useQuery({ ...recentQuery(), select: selectRows })
+export function useRecentExpenses({ enabled = true }: { enabled?: boolean } = {}) {
+  return useQuery({ ...recentQuery(), select: selectRows, enabled })
 }
 
 /** All-time last spend date per category, from the same fetch as `useRecentExpenses`. */

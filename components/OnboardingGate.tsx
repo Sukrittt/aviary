@@ -51,9 +51,14 @@ function writeOnboarded(onboarded: boolean): void {
 // under them are still client pages that rely on this gate.
 const SERVER_CHECKED_PATHS = ['/expense']
 
+/** The signed-in, onboarded app's pages: not public pages, sign-in or /onboarding. */
+export function isAppPage(pathname: string): boolean {
+  return GATED_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))
+}
+
 function isExempt(pathname: string): boolean {
   if (SERVER_CHECKED_PATHS.includes(pathname)) return true
-  return !GATED_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))
+  return !isAppPage(pathname)
 }
 
 /**

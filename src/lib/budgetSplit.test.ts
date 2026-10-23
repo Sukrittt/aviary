@@ -12,6 +12,20 @@ const defaults: SplitItem[] = [
   { key: 'ef', name: 'Emergency fund', group: 'Savings' },
 ]
 
+// Setup's starter budget: the pre-checked defaults (Savings starts off). Mobile's
+// src/lib/budgetSplit.test.ts pins the same amounts, so both platforms agree.
+describe('the starter budget', () => {
+  const starter = defaults.filter((d) => d.group !== 'Savings')
+  it.each([
+    [30000, { rent: 10900, groc: 5300, util: 2600, eat: 5600, ent: 5600 }],
+    [50000, { rent: 18100, groc: 8900, util: 4400, eat: 9300, ent: 9300 }],
+    [75000, { rent: 27100, groc: 13300, util: 6600, eat: 14000, ent: 14000 }],
+    [100000, { rent: 39000, groc: 17000, util: 8000, eat: 18000, ent: 18000 }],
+  ])('splits %i the same way as mobile', (income, expected) => {
+    expect(suggestSplit(income, starter, {})).toEqual(expected)
+  })
+})
+
 describe('knownBucket', () => {
   it('tags the default categories by name, ignoring case and spaces', () => {
     expect(knownBucket(' rent ')).toBe('need')

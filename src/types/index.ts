@@ -88,6 +88,8 @@ export interface CategoryRow {
   /** A tint key from src/lib/categoryColors.ts, once the user picks one on Mobile. */
   color?: string
   alertPcts?: number[]
+  /** First month (YYYY-MM) of a re-created category; earlier months leave it out. */
+  since?: string
 }
 
 export interface CategoryMap {

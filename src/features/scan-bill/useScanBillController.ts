@@ -19,14 +19,16 @@ type Phase = 'pick' | 'scanning' | 'review' | 'confirm' | 'error'
 const READ_FAILED = "Couldn't read that image. Try another one, or enter this expense manually."
 
 export function useScanBillController({ onDone }: { onDone: () => void }) {
-  const categoriesQ = useCategories()
+  const [phase, setPhase] = useState<Phase>('pick')
+  // The root layout owns this, so it's mounted on every page. Fetch once a scan
+  // starts; scan() below refetches if nothing's cached yet.
+  const categoriesQ = useCategories({ enabled: phase !== 'pick' })
   const categories = useMemo(() => categoriesQ.data ?? EMPTY, [categoriesQ.data])
   const scanBill = useScanBill()
   const addExpense = useAddExpense()
   const saveBillScan = useSaveBillScan()
   const confirmButton = useButtonPhase()
 
-  const [phase, setPhase] = useState<Phase>('pick')
   const [errorMsg, setErrorMsg] = useState('')
   const [confirmError, setConfirmError] = useState('')
   const [imageUrl, setImageUrl] = useState('')

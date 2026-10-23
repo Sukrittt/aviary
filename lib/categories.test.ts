@@ -6,7 +6,8 @@ const history = vi.fn()
 const createBudgetRow = vi.fn()
 vi.mock('@/lib/cache', () => ({ invalidate: vi.fn() }))
 vi.mock('@/lib/budgets', () => ({ createBudgetRow: (...args: unknown[]) => createBudgetRow(...args) }))
-vi.mock('@/src/lib/envelope', () => ({ currentMonthKey: () => '2027-02' }))
+const nowForUser = vi.fn()
+vi.mock('@/lib/userCurrency', () => ({ nowForUser: (...args: unknown[]) => nowForUser(...args) }))
 vi.mock('@/lib/http', () => ({
   getCollection: async (name: string) => ({
     findOne: (...args: unknown[]) => (name === 'categories' ? findOne(...args) : history(name, ...args)),
@@ -23,6 +24,7 @@ beforeEach(() => {
   findOne.mockResolvedValue(null)
   insertOne.mockResolvedValue({ insertedId: 'x' })
   history.mockResolvedValue(null)
+  nowForUser.mockResolvedValue({ date: '2027-02-14', timestamp: '' })
 })
 
 describe('createCategory', () => {
@@ -44,6 +46,16 @@ describe('createCategory', () => {
     expect(await createCategory(auth, { name: 'Gym', group: '' }, { writesTarget: true })).toBe('created')
     expect(insertOne).toHaveBeenCalledWith({ name: 'Gym', group: '', order: 5, since: '2027-02' })
     expect(createBudgetRow).not.toHaveBeenCalled()
+  })
+
+  it('dates `since` by the user\'s own calendar, not the server\'s UTC month', async () => {
+    // Nov 1, 02:00 IST is still Oct 31 in UTC.
+    nowForUser.mockResolvedValue({ date: '2026-11-01', timestamp: '2026-11-01T02:00:00+05:30' })
+    history.mockResolvedValue({ category: 'Gym' })
+    await createCategory(auth, { name: 'Gym', group: '' })
+    expect(nowForUser).toHaveBeenCalledWith('user_a')
+    expect(insertOne).toHaveBeenCalledWith({ name: 'Gym', group: '', order: 5, since: '2026-11' })
+    expect(createBudgetRow).toHaveBeenCalledWith(auth, { month: '2026-11', category: 'Gym', assigned: '0' })
   })
 
   it('reports an existing name without writing', async () => {

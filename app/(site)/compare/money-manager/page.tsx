@@ -5,7 +5,7 @@ import { CompareTable, ContentPage, SoftCta, Sources } from '@/src/components/co
 export const metadata = pageMetadata('/compare/money-manager')
 
 export default function MoneyManagerPage() {
-  return <ContentPage section="compare" path="/compare/money-manager" title="Aviary vs Money Manager" kicker={`Compare · Facts checked ${COMPARE_CHECKED}`} lede={<>Money Manager by Realbyte is one of the most downloaded expense trackers on Google Play in India. It’s a ledger: you record income, spends and transfers between accounts, and it charts them for you. Aviary is a budget: you plan where money goes first, then log against that plan.</>} related={['/compare/goodbudget', '/features/ask-aviary', '/tools/50-30-20-calculator']}>
+  return <ContentPage section="compare" path="/compare/money-manager" title="Aviary vs Money Manager" kicker={`Compare · Facts checked ${COMPARE_CHECKED}`} lede={<>Money Manager by Realbyte is one of the most downloaded expense trackers on Google Play in India. It’s a ledger: you record income, spends and transfers between accounts, and it charts them for you. Aviary is a budget: you plan where money goes first, then log against that plan.</>} related={['/compare/monefy', '/compare/goodbudget', '/features/ask-aviary']}>
     <p>Both are manual. Neither one reads your SMS. The difference is what you get back for the typing.</p>
 
     <h2>The short version</h2>

@@ -4,7 +4,7 @@ import { invalidate } from '@/lib/cache'
 import type { CategoryIconKey } from '@/src/lib/categoryIcons'
 import type { CategoryColor } from '@/src/lib/categoryColors'
 import { createBudgetRow } from '@/lib/budgets'
-import { currentMonthKey } from '@/src/lib/envelope'
+import { nowForUser } from '@/lib/userCurrency'
 
 /** The one way a category is created: last in order. Lifted out of `app/api/categories` so the import commit shares it. */
 export async function createCategory(auth: Auth, input: { name: string; group: string; icon?: CategoryIconKey; color?: CategoryColor },
@@ -21,7 +21,9 @@ export async function createCategory(auth: Auth, input: { name: string; group: s
   // the months it was gone, and an explicit 0 stops that target carrying in now.
   const history = await (await getCollection('budgets', auth)).findOne({ category: input.name })
     ?? await (await getCollection('expenses', auth)).findOne({ category: input.name })
-  const since = history ? currentMonthKey() : undefined
+  // The user's own month, not the server's UTC one: early on the 1st in IST is
+  // still last month in UTC, and the 0 row below would land on the old target.
+  const since = history ? (await nowForUser(auth.userId)).date.slice(0, 7) : undefined
   // The pre-check above loses to a concurrent create of the same name; the
   // unique index is what actually decides, so report its verdict the same way.
   try {
