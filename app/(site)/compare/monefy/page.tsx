@@ -26,7 +26,7 @@ export default function MonefyPage() {
       <li>Start Aviary, pick “I’m switching apps”, then Monefy, and upload the csv.</li>
       <li>Check what Aviary found, then tap “Looks right, set me up”.</li>
     </ol>
-    <p>Your Monefy categories become envelopes, each with a starting amount based on a typical month of your spending. Your accounts, your salary day and your full history come along too. Transfers between accounts and initial balances are left out, since they aren’t spending, and so are records in a currency other than your budget’s. You can rename or change anything before you confirm. Already using Aviary? Import from Settings instead. That adds your older history and leaves your current budget as it is. <Link href="/sign-in">Sign in to start the import</Link>.</p>
+    <p>Your Monefy categories become envelopes, each with a starting amount based on a typical month of your spending. If you have more than 40, the smallest are grouped into one. Your transaction history comes along, and so do your accounts, up to 10. If your salary lands on a regular monthly pattern, Aviary spots your payday too. Transfers between accounts and initial balances are left out, since they aren’t spending, and so are records in a currency other than your budget’s. You can rename or change anything before you confirm. Already using Aviary? Import from Settings instead. That adds your older history and leaves your current budget as it is. <Link href="/sign-in">Sign in to start the import</Link>.</p>
 
     <h2>Side by side</h2>
     <CompareTable them="Monefy" rows={[
