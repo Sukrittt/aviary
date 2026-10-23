@@ -22,6 +22,7 @@ interface Doc {
   alertPcts?: number[]
   icon?: string
   color?: string
+  since?: string
 }
 
 let docs: Doc[]
@@ -76,6 +77,12 @@ describe('GET /api/categories', () => {
       { name: 'Food', group: '', alertPcts: [50, 90] },
       { name: 'Rent', group: '' },
     ])
+  })
+
+  it('returns `since` so clients can drop a re-created category from earlier months', async () => {
+    docs = [{ name: 'Gym', since: '2027-02' }, { name: 'Rent' }]
+    const body = await (await GET(new Request('https://example.com/api/categories'))).json()
+    expect(body).toEqual([{ name: 'Gym', group: '', since: '2027-02' }, { name: 'Rent', group: '' }])
   })
 })
 
