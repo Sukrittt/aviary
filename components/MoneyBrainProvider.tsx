@@ -2,11 +2,13 @@
 
 import { useCallback, useContext, useMemo, useRef, useState, type ReactNode } from 'react'
 import { AnimatePresence } from 'motion/react'
+import { usePathname } from 'next/navigation'
 import { useAuth } from '@workos-inc/authkit-nextjs/components'
 import { MoneyBrainDrawer, type OpenChat } from '@/src/components/MoneyBrainDrawer'
 import { LogExpenseModal } from '@/src/components/LogExpenseModal'
 import { useAppearance } from '@/components/AppearanceProvider'
 import { useMoneyBrief } from '@/src/hooks/useMoneyBrief'
+import { isAppPage } from './OnboardingGate'
 
 import { MoneyBrainContext } from './moneyBrainContext'
 
@@ -16,11 +18,12 @@ export function MoneyBrainProvider({ children }: { children: ReactNode }) {
   const [manual, setManual] = useState(false)
   const { theme } = useAppearance()
   // Warms the brief while the user reads the page, so opening the drawer shows
-  // it straight away instead of waiting on two model calls. Signed-in only:
-  // every signed-out visitor shares the demo account, and they should not all
-  // be rebuilding its brief.
+  // it straight away instead of waiting on two model calls. Signed in and on
+  // an app page only: public pages never open the drawer, and before
+  // onboarding there's no trial yet, so the brief answers 402.
   const { user } = useAuth()
-  useMoneyBrief({ enabled: Boolean(user) })
+  const pathname = usePathname() ?? ''
+  useMoneyBrief({ enabled: Boolean(user) && isAppPage(pathname) })
 
   // Outlives the drawer, so closing and reopening it lands back in the same chat.
   const openChat = useRef<OpenChat>({ sessionId: null, messages: [] })

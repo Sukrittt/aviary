@@ -7,13 +7,13 @@ const sessionsKey = ['user', 'sessions'] as const
 const identitiesKey = ['user', 'identities'] as const
 const privacyProofKey = ['user', 'privacy-proof'] as const
 
-export function useUser() {
-  return useQuery({ queryKey: userKey, queryFn: getUser, staleTime: 30_000 })
+export function useUser({ enabled = true }: { enabled?: boolean } = {}) {
+  return useQuery({ queryKey: userKey, queryFn: getUser, staleTime: 30_000, enabled })
 }
 
 /** Features this user has hidden. The opt-in extras until the profile loads. */
-export function useHiddenFeatures() {
-  return hiddenFeatures(useUser().data)
+export function useHiddenFeatures({ enabled = true }: { enabled?: boolean } = {}) {
+  return hiddenFeatures(useUser({ enabled }).data)
 }
 
 export function useCompleteGuidedTour() {

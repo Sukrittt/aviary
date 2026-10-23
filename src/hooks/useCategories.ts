@@ -44,8 +44,8 @@ function reorderWithinGroup(categories: CategoryRow[], name: string, toIndex: nu
   return result
 }
 
-export function useCategories() {
-  return useQuery({ queryKey: key, queryFn: getCategories, staleTime: 30_000 })
+export function useCategories({ enabled = true }: { enabled?: boolean } = {}) {
+  return useQuery({ queryKey: key, queryFn: getCategories, staleTime: 30_000, enabled })
 }
 
 /** Each category's picked icon by name, for rows that only carry the name. */
