@@ -90,6 +90,7 @@ export function useAddCategory() {
       qc.invalidateQueries({ queryKey: key })
       // A re-created name gets a fresh 0 budget row server-side (lib/categories.ts).
       qc.invalidateQueries({ queryKey: budgetsKey })
+      qc.invalidateQueries({ queryKey: ['ai-brief'] })
     },
   })
 }
