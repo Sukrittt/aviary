@@ -441,6 +441,23 @@ describe('POST /api/ai/chat (capture)', () => {
     expect(sessionUpdateOneMock).not.toHaveBeenCalled()
   })
 
+  it('skips routing when the capture screen sent the message', async () => {
+    routeChatMock.mockResolvedValue({ onTopic: true, sections: ['header'], decision: false, capture: false })
+    const res = await POST(jsonRequest({ messages: [{ role: 'user', text: 'Bike to turf 42, football 150' }], capture: true }, CAPTURE))
+
+    expect(frames(await res.text()).some((f) => f.proposal)).toBe(true)
+    expect(routeChatMock).not.toHaveBeenCalled()
+    expect(streamTextMock).not.toHaveBeenCalled()
+  })
+
+  it('ignores the capture flag from a client that cannot show the card', async () => {
+    routeChatMock.mockResolvedValue({ onTopic: true, sections: ['header'], decision: false, capture: false })
+    await (await POST(jsonRequest({ messages: [{ role: 'user', text: 'auto 240' }], capture: true }))).text()
+
+    expect(routeChatMock).toHaveBeenCalled()
+    expect(buildCaptureProposalMock).not.toHaveBeenCalled()
+  })
+
   it('answers the allowance 429 straight away for clients that cannot capture', async () => {
     allowanceMock.mockResolvedValue(overAllowance())
     const res = await POST(jsonRequest({ messages: [{ role: 'user', text: 'auto 240' }] }))
