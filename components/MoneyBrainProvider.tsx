@@ -4,13 +4,18 @@ import { useCallback, useContext, useMemo, useRef, useState, type ReactNode } fr
 import { AnimatePresence } from 'motion/react'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@workos-inc/authkit-nextjs/components'
-import { MoneyBrainDrawer, type OpenChat } from '@/src/components/MoneyBrainDrawer'
-import { LogExpenseModal } from '@/src/components/LogExpenseModal'
+import dynamic from 'next/dynamic'
+import type { OpenChat } from '@/src/components/MoneyBrainDrawer'
 import { useAppearance } from '@/components/AppearanceProvider'
 import { useMoneyBrief } from '@/src/hooks/useMoneyBrief'
 import { isAppPage } from './OnboardingGate'
 
 import { MoneyBrainContext } from './moneyBrainContext'
+
+// Lazy: both pull in the category icon map, and this provider wraps every page,
+// the landing page included. They only mount once the user opens one.
+const MoneyBrainDrawer = dynamic(() => import('@/src/components/MoneyBrainDrawer').then((m) => m.MoneyBrainDrawer))
+const LogExpenseModal = dynamic(() => import('@/src/components/LogExpenseModal').then((m) => m.LogExpenseModal))
 
 export function MoneyBrainProvider({ children }: { children: ReactNode }) {
   const [request, setRequest] = useState<{ key: number; sessionId: string | null; capture?: boolean } | null>(null)

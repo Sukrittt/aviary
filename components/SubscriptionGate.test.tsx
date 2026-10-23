@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { beforeAll, describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 
 const usePathnameMock = vi.fn(() => '/expense')
@@ -28,18 +28,22 @@ function renderAt(pathname: string, status: unknown) {
 }
 
 describe('SubscriptionGate', () => {
-  it('replaces a budgeting screen when access has lapsed', () => {
+  // The lock screen loads through next/dynamic. Warm it so a cold import under
+  // a busy test run can't outlast findByText.
+  beforeAll(() => import('@/src/components/billing/RestrictedNotice'))
+
+  it('replaces a budgeting screen when access has lapsed', async () => {
     renderAt('/expense', expired)
     expect(screen.queryByText('budgeting app')).toBeNull()
-    expect(screen.getByText('Subscription needed')).toBeTruthy()
+    expect(await screen.findByText('Subscription needed')).toBeTruthy()
   })
 
   it.each(['/account', '/account/recurring', '/account/archive', '/account/bill-scans'])(
     'locks %s too: the account hub and its budgeting features',
-    (pathname) => {
+    async (pathname) => {
       renderAt(pathname, expired)
       expect(screen.queryByText('budgeting app')).toBeNull()
-      expect(screen.getByText('Subscription needed')).toBeTruthy()
+      expect(await screen.findByText('Subscription needed')).toBeTruthy()
     },
   )
 

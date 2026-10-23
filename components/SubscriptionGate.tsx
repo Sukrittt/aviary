@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, type ReactNode } from 'react'
+import dynamic from 'next/dynamic'
 import { usePathname, useRouter } from 'next/navigation'
 import { useBillingStatus } from '@/src/hooks/useBillingStatus'
-import { RestrictedNotice } from '@/src/components/billing/RestrictedNotice'
 import { TrialBanner } from '@/src/components/billing/TrialBanner'
 
 /**
@@ -22,6 +22,9 @@ import { TrialBanner } from '@/src/components/billing/TrialBanner'
  * The /account hub itself is gated: it's a menu into budgeting features, and
  * the lock screen lists those exit routes instead.
  */
+// Lazy: it pulls in the category icon map, and this gate wraps every page.
+const RestrictedNotice = dynamic(() => import('@/src/components/billing/RestrictedNotice').then((m) => m.RestrictedNotice))
+
 const GATED_PREFIXES = [
   '/expense',
   '/insights',
