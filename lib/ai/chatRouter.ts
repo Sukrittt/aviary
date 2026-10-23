@@ -68,7 +68,7 @@ const QUESTIONS = {
   isCapture: {
     type: 'boolean',
     instructions:
-      'Is the user telling the app about money they already spent so it can be recorded, for example a list of purchases with amounts like "auto 240, lunch 150" or "paid 1200 for turf, split 6"? A question about their spending, a plan, or a purchase they are only considering is not.',
+      'Is the user telling the app about money they already spent so it can be recorded, for example "auto 240, lunch 150" or "paid 1200 for turf, split 6"? Any item or list of items with an amount and no question counts, whatever the items are: a ride, an activity, a gift, a bill. A question about their spending, a plan, a budget change, or a purchase they are only considering is not.',
   },
 } satisfies Record<string, Experimental_EvaluationQuestion>
 
@@ -92,8 +92,10 @@ export interface ChatRoute {
 /** Everything, i.e. exactly what the chat sent before routing existed. */
 const FULL_ROUTE: ChatRoute = { onTopic: true, sections: [...FACT_SECTIONS], decision: false, capture: false, product: false }
 
-// ponytail: not yet measured against live Jev. Start at the same bar as the
-// section questions and tune it with the capture scenarios in brainEval.test.ts.
+// Measured against Jev, 2026-10-24: logs score 0.72-0.97 ("Bike to turf 42,
+// football 150" lowest), questions 0.02-0.16 ("spent 800 on dinner, is that a
+// lot?" highest). Before the question named non-food items, a ride or a gift
+// scored 0.22-0.29 and went to the chat model instead.
 const CAPTURE_AT = 0.5
 // Measured against Jev, 2026-10-22: money questions score 0.02-0.13, while app
 // questions bottom out at 0.21-0.31 ("how do I track money I lent to a friend?",

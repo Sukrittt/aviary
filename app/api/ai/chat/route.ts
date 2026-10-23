@@ -63,6 +63,8 @@ interface ReplyOptions {
   route?: ChatRoute
 }
 
+const CAPTURE_ROUTE: ChatRoute = { onTopic: true, sections: [], decision: false, capture: true, product: false }
+
 /** What a reply ended as: its text, plus the proposal it carried when the user was logging spends. */
 interface SettledReply {
   text: string
@@ -291,11 +293,13 @@ async function handlePersisted(
     }
   }
 
+  // `capture: true` comes from a screen that only logs spends (the app's "Log a few
+  // spends"), so the user already said what this is: Jev isn't asked, and can't misread it.
+  let route: ChatRoute | undefined = captureCapable && body.capture === true ? CAPTURE_ROUTE : undefined
   // Over the allowance, only logging spends still goes through. Routed here,
   // before anything is stored, so every other message gets the same 429 as
   // before and leaves no trace in the session.
-  let route: ChatRoute | undefined
-  if (overAllowance) {
+  if (overAllowance && !route) {
     const earlier = history.filter((m) => m.role === 'user').map((m) => m.text).slice(-ROUTING_CONTEXT_TURNS)
     route = await routeChat(message, { userId: auth.userId, feature: 'chat' }, earlier)
     if (!route.capture) return overAllowance
