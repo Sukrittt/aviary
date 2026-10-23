@@ -8,6 +8,7 @@ import { LandingFooter } from '@/src/components/landing/Chrome'
 import YnabPage from '@/app/(site)/compare/ynab-alternative-india/page'
 import YnabGlobalPage from '@/app/(site)/compare/ynab-alternative/page'
 import SpreadsheetPage from '@/app/(site)/compare/budget-spreadsheet/page'
+import Budget15kPage from '@/app/(site)/tools/budget-for-15000-salary/page'
 import Budget25kPage from '@/app/(site)/tools/budget-for-25000-salary/page'
 import Budget30kPage from '@/app/(site)/tools/budget-for-30000-salary/page'
 import Budget50kPage from '@/app/(site)/tools/budget-for-50000-salary/page'
@@ -55,8 +56,20 @@ describe('content pages', () => {
     expect(html).toContain('href="/tools/budget-for-1-lakh-salary"')
   })
 
+  it('show salary FAQs word for word in FAQPage JSON-LD', () => {
+    const html = renderToStaticMarkup(<Budget15kPage />)
+    const ld = [...html.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/g)].map(([, json]) => JSON.parse(json))
+    const faq = ld.find((d) => d['@type'] === 'FAQPage')
+    expect(faq.mainEntity.length).toBeGreaterThanOrEqual(3)
+    for (const { name, acceptedAnswer } of faq.mainEntity) {
+      expect(html).toContain(`<h3>${name}</h3>`)
+      expect(html).toContain(`<p>${acceptedAnswer.text}</p>`)
+    }
+    expect(html.match(/<h1/g)).toHaveLength(1)
+  })
+
   it('have em-dash-free copy', () => {
-    for (const Page of [YnabPage, YnabGlobalPage, SpreadsheetPage, Budget25kPage, Budget30kPage, Budget50kPage, Budget80kPage, SinkingFundPage]) expect(renderToStaticMarkup(<Page />)).not.toContain('—')
+    for (const Page of [YnabPage, YnabGlobalPage, SpreadsheetPage, Budget15kPage, Budget25kPage, Budget30kPage, Budget50kPage, Budget80kPage, SinkingFundPage]) expect(renderToStaticMarkup(<Page />)).not.toContain('—')
   })
 
   it('link a spreadsheet template whose envelopes add up to the ₹45,000 salary', () => {
