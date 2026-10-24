@@ -11,7 +11,8 @@ export const dynamic = 'force-dynamic'
  */
 export async function POST(req: Request) {
   const auth = await getAuth(req)
-  if (auth.readOnly) return error('unauthorized', 401)
+  // Open to lapsed accounts (see enforcement), but not to one being deleted.
+  if (auth.readOnly || auth.accountDeleted) return error('unauthorized', 401)
   // Guessing codes would otherwise be free.
   if (await isRateLimited(`referral-apply:${auth.userId}`, [{ windowMs: 3_600_000, limit: 10 }])) return error('rate_limited', 429)
   const body = await readBody(req)

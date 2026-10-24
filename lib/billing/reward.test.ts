@@ -36,6 +36,11 @@ describe('planReward', () => {
     expect(plan(account({ trialEndsAt: day(-5), comp }))).toEqual({ kind: 'comp', from: day(40), until: new Date('2027-01-03T12:00:00.000Z') })
   })
 
+  it('starts a gift after a trial that outlasts the running gift', () => {
+    const comp = { until: day(5), reason: 'x', grantedBy: 'a', grantedAt: NOW }
+    expect(plan(account({ trialEndsAt: day(20), comp }))).toEqual({ kind: 'comp', from: day(20), until: new Date('2026-12-13T12:00:00.000Z') })
+  })
+
   it('gives a lapsed account a month from today', () => {
     expect(plan(account({ trialEndsAt: day(-5) }))).toEqual({ kind: 'comp', from: NOW, until: new Date('2026-11-24T12:00:00.000Z') })
   })

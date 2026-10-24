@@ -44,6 +44,11 @@ describe('nextAttribution', () => {
     expect(nextAttribution({ utm_source: 'reddit', landing_path: '/a' }, tagged)).toEqual(tagged)
   })
 
+  it('counts a link tagged with only a medium or campaign as tagged', () => {
+    const campaign = { utm_campaign: 'launch', landing_path: '/' }
+    expect(nextAttribution(tagged, campaign)).toEqual(campaign)
+  })
+
   it('keeps the first untagged touch', () => {
     expect(nextAttribution(tagged, plain)).toBeNull()
     expect(nextAttribution(null, plain)).toEqual(plain)

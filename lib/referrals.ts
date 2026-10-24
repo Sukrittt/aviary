@@ -169,9 +169,10 @@ async function loggedDays(db: Db, userId: string, since: Date, timezone: string 
     {
       $or: [{ created_by: userId }, { user_id: userId, created_by: { $exists: false } }],
       deleted_at: null,
-      // An import writes years of history in seconds, and recurring rows and
-      // subscriptions log themselves; none of it says anything about a habit.
-      source: { $nin: ['import', 'recurring', 'subscription'] },
+      // An import or a bank statement writes history in seconds, recurring rows
+      // and subscriptions log themselves, and balance gaps and fresh starts are
+      // bookkeeping; none of it says anything about a habit.
+      source: { $nin: ['import', 'statement', 'recurring', 'subscription', 'balance_gap', 'fresh_start'] },
       _id: { $gte: ObjectId.createFromTime(Math.floor(since.getTime() / 1000)) },
     },
     { projection: { _id: 1 } },
