@@ -81,6 +81,7 @@ export const pages = {
   '/admin/audit': { title: 'Admin Audit Log', description: 'Review audited administrative actions in Aviary.' },
   '/admin/feedback': { title: 'Admin Feedback Inbox', description: 'Review and triage Aviary bug reports.' },
   '/admin/ideas': { title: 'Admin Ideas', description: 'Moderate the Aviary feedback board.' },
+  '/admin/referrals': { title: 'Admin Referrals', description: 'Manage Aviary creator codes and review referrals.' },
   '/admin/jobs': { title: 'Admin Jobs', description: 'Review scheduled Aviary jobs and their recent runs.' },
   '/admin/revenue': { title: 'Admin Revenue', description: 'Review Aviary revenue, subscribers, churn, and trial conversion.' },
   '/admin/subscriptions': { title: 'Admin Billing & Subscriptions', description: 'Manage Aviary billing accounts and subscription access.' },
