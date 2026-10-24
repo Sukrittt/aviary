@@ -57,7 +57,15 @@ export function attributionFromRequest(url: URL, referer: string | null): Attrib
   const from = domainOf(referer)
   if (from && from !== url.hostname.replace(/^www\./, '')) a.referrer_domain = from
 
-  const ref = q.get('ref')?.trim().toUpperCase()
+  // A share link, /r/CODE: the code is the source.
+  const shared = /^\/r\/([A-Za-z0-9]{3,16})\/?$/.exec(url.pathname)?.[1]?.toUpperCase()
+  if (shared) {
+    a.utm_source ??= 'referral'
+    a.utm_campaign ??= shared
+    a.referral_code = shared
+  }
+
+  const ref = shared ?? q.get('ref')?.trim().toUpperCase()
   // The pre-referral "Invite a friend" link shares `/?ref=invite`.
   if (ref === 'INVITE') {
     a.utm_source ??= 'invite'
