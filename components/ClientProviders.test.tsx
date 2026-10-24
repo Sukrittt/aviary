@@ -22,6 +22,9 @@ vi.mock('@/src/lib/analytics', () => ({
 }))
 
 const { ClientProviders } = await import('./ClientProviders')
+// MoneyBrainProvider prefetches these fire-and-forget on app pages. Load them
+// now, or that import can outlive the test env and fail with EnvironmentTeardownError.
+await Promise.all([import('@/src/components/MoneyBrainDrawer'), import('@/src/components/LogExpenseModal')])
 
 const fetchMock = vi.fn((_url: string, _init?: RequestInit) => new Promise<Response>(() => {}))
 beforeEach(() => {
