@@ -17,7 +17,7 @@ import { GITHUB, LandingFooter, LandingHeader } from '../components/landing/Chro
 import { SampleScope } from '../components/landing/sample'
 import '../landing.css'
 
-const PLAY_STORE = 'https://play.google.com/store/apps/details?id=com.sukrit04.envelope'
+import { GET_ANDROID_URL as PLAY_STORE } from '../components/billing/copy'
 
 const anywhere = (intl: boolean) => [
   { icon: ChatTextIcon, tone: 'rent', title: 'Catch up in one line', body: intl ? 'Type “bus 3, lunch 15”. Both logged, each in the right category.' : 'Type “auto 240, lunch 150”. Both logged, each in the right category.' },

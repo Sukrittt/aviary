@@ -41,3 +41,11 @@ it.each([
  expect(createMagicAuth).not.toHaveBeenCalled()
  expect(authenticateWithMagicAuth).toHaveBeenCalledWith(expect.objectContaining({code:body.code}))
 })
+
+it('marks a code sign-in from the app as an Android signup, with its install referrer', async () => {
+ const { ensureUser } = await import('@/lib/users')
+ await verify({email:'a@example.com',code:'123456',device:'Pixel 8'})
+ expect(ensureUser).toHaveBeenLastCalledWith({id:'user_test'}, {platform:'android'}, 'email')
+ await POST(new Request('https://example.com/api/auth/magic-auth/verify',{method:'POST',headers:{'x-aviary-attribution':'{"utm_source":"reddit"}'},body:JSON.stringify({email:'a@example.com',code:'123456',device:'Pixel 8'})}))
+ expect(ensureUser).toHaveBeenLastCalledWith({id:'user_test'}, {utm_source:'reddit',platform:'android'}, 'email')
+})

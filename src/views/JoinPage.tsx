@@ -7,7 +7,7 @@ import { useAuth } from '@workos-inc/authkit-nextjs/components'
 import { previewInvite } from '../api/spaces'
 import { useSpaces } from '../hooks/useSpaces'
 import { BirdMark } from '../components/BirdMark'
-import { PLAY_STORE_URL } from '../components/billing/copy'
+import { GET_ANDROID_URL } from '../components/billing/copy'
 import { JoinConfirm, inviteBlocked, openBudget, signInToJoin, tryAgainCopy, whoIsIn } from '../components/JoinBudget'
 import { BudgetIcon } from '../components/CategoryIcon'
 
@@ -53,7 +53,7 @@ export function JoinPage({ code }: { code: string }) {
       {usable && (
         <div className="auth-actions">
           <a href={`envelope://join/${code}`} className="auth-btn auth-btn--primary">Open in app</a>
-          <a href={PLAY_STORE_URL} className="auth-btn auth-btn--outline" target="_blank" rel="noreferrer">Get it on Google Play</a>
+          <a href={GET_ANDROID_URL} className="auth-btn auth-btn--outline" target="_blank" rel="noreferrer">Get it on Google Play</a>
           <button type="button" className="auth-btn auth-btn--outline" onClick={continueOnWeb} disabled={authLoading}>
             Continue on web
           </button>

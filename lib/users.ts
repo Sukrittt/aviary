@@ -3,6 +3,8 @@ import { getWorkOSClient } from './workosClient'
 import { resolveCurrency } from '@/src/lib/currencies'
 import { purgesAt } from './archive'
 import { queueWelcomeEmail, type WelcomeDelivery } from './email/welcome'
+import { sourceOf, type SignupSource } from './attribution'
+import { captureLater } from './posthogServer'
 
 /** Features a user can hide from Mobile's More page for a simpler app. Hiding removes entry points only; data is untouched. */
 export const HIDEABLE_FEATURES = ['askAviary', 'investments', 'billScan', 'recurring', 'subscriptions', 'insights', 'wrapped', 'income', 'accounts'] as const
@@ -56,6 +58,8 @@ export interface UserDoc {
   activityFeed?: boolean
   /** Setup's "Where did you hear about us?" answer. Absent = skipped or signed up before it was asked. */
   heardFrom?: HeardFrom
+  /** Where the account came from (UTM tags, referrer, code, platform). Server-set once, on insert. See lib/attribution.ts. */
+  signupSource?: SignupSource
   /** Legacy fields from before the flat `name` field — read via `displayName`, never written. */
   firstName?: string | null
   lastName?: string | null
@@ -96,10 +100,18 @@ export function displayName(doc: Pick<UserDoc, 'name' | 'firstName' | 'lastName'
   return legacy || null
 }
 
-/** Upsert from a WorkOS user object already in hand — e.g. a fresh authenticate response. */
-export async function ensureUser(user: WorkOSUserLike): Promise<void> {
+/** How the account was created, for the signup event: web Google callback, magic code (web or app), or the app's first request after Google. */
+export type SignupMethod = 'google' | 'email' | 'jit'
+
+/**
+ * Upsert from a WorkOS user object already in hand — e.g. a fresh authenticate
+ * response. When this creates the row it stores `source` and reports the
+ * signup to PostHog (`user_signed_up`), the one place every new account passes.
+ */
+export async function ensureUser(user: WorkOSUserLike, source?: SignupSource, method: SignupMethod = 'jit'): Promise<{ inserted: boolean }> {
   const db = await getDb()
-  await db.collection<UserDoc>('users').updateOne(
+  const name = user.name || [user.firstName, user.lastName].filter(Boolean).join(' ').trim() || null
+  const res = await db.collection<UserDoc>('users').updateOne(
     { _id: user.id },
     {
       // Email, its verified state, and avatar are authoritative in WorkOS, so
@@ -109,28 +121,40 @@ export async function ensureUser(user: WorkOSUserLike): Promise<void> {
       // a rename the user made here, so it's only ever seeded on first insert.
       $setOnInsert: {
         _id: user.id,
-        name: user.name || [user.firstName, user.lastName].filter(Boolean).join(' ').trim() || null,
+        name,
         createdAt: new Date(),
-        welcomeEmail: queueWelcomeEmail({ email: user.email, name: user.name || [user.firstName, user.lastName].filter(Boolean).join(' ').trim() || null }),
+        welcomeEmail: queueWelcomeEmail({ email: user.email, name }),
         currencyCode: 'INR',
         // Digest is opt-out, not opt-in: a new account with notifications off
         // never hears from the app again. Seeded only on insert, so an existing
         // user who chose 'off' stays off.
         notifyCadence: 'daily',
+        ...(source ? { signupSource: source } : {}),
       },
     },
     { upsert: true },
   )
+  const inserted = res.upsertedCount > 0
+  if (inserted) {
+    const s = source ?? { platform: 'web' as const }
+    captureLater(user.id, 'user_signed_up', {
+      ...s,
+      source: sourceOf(s),
+      method,
+      $set_once: { signup_source: sourceOf(s), signup_utm_source: s.utm_source ?? null, signup_platform: s.platform, signup_referral_code: s.referral_code ?? null },
+    })
+  }
+  return { inserted }
 }
 
 /** Upsert by id alone — fetches the WorkOS user only when the local row doesn't exist yet. */
-export async function ensureUserById(userId: string): Promise<void> {
+export async function ensureUserById(userId: string, source?: SignupSource): Promise<void> {
   const db = await getDb()
   const existing = await db.collection<UserDoc>('users').findOne({ _id: userId }, { projection: { _id: 1 } })
   if (existing) return
 
   const user = await getWorkOSClient().userManagement.getUser(userId)
-  await ensureUser(user)
+  await ensureUser(user, source, 'jit')
 }
 
 /** Idempotently records the first expense explicitly created in the manual-entry flow. */

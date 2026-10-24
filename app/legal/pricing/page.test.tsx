@@ -81,7 +81,7 @@ describe('public pricing', () => {
     render(await PricingPage())
 
     expect(screen.getByRole('link', { name: 'Aviary home' })).toHaveAttribute('href', '/')
-    expect(screen.getByRole('link', { name: /Start your free trial/ })).toHaveAttribute('href', expect.stringContaining('play.google.com'))
+    expect(screen.getByRole('link', { name: /Start your free trial/ })).toHaveAttribute('href', '/get/android')
     expect(screen.getByRole('heading', { name: 'Everything’s included.' })).toBeInTheDocument()
     expect(screen.getByText('Money Brain')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /What happens when my trial ends\?/ })).toBeInTheDocument()

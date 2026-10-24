@@ -51,3 +51,33 @@ it('keeps public legal pages accessible to signed-in visitors', async () => {
  expect(response?.status).toBe(200)
  expect(response?.headers.get('location')).toBeNull()
 })
+
+const attr = (response: Response | null | undefined | void) => {
+  const set = response instanceof NextResponse ? response.cookies.get('aviary_attr')?.value : undefined
+  return set === undefined ? undefined : JSON.parse(set)
+}
+
+it('remembers a tagged landing for the signup that follows', async () => {
+  const response = await middleware(new NextRequest('https://example.com/compare/ynab?utm_source=reddit&utm_campaign=r%2Fx'), {} as NextFetchEvent)
+  expect(attr(response)).toEqual({ utm_source: 'reddit', utm_campaign: 'r/x', landing_path: '/compare/ynab' })
+})
+
+it('remembers an external referrer on a first untagged visit only', async () => {
+  const first = await middleware(new NextRequest('https://example.com/', { headers: { referer: 'https://www.google.com/' } }), {} as NextFetchEvent)
+  expect(attr(first)).toEqual({ referrer_domain: 'google.com', landing_path: '/' })
+  const again = new NextRequest('https://example.com/pricing', { headers: { referer: 'https://x.com/', cookie: 'aviary_attr=%7B%22utm_source%22%3A%22reddit%22%7D' } })
+  expect(attr(await middleware(again, {} as NextFetchEvent))).toBeUndefined()
+})
+
+it('leaves API calls and client-side navigations alone', async () => {
+  signedIn.value = true
+  expect(attr(await middleware(new NextRequest('https://example.com/api/user?utm_source=x'), {} as NextFetchEvent))).toBeUndefined()
+  expect(attr(await middleware(new NextRequest('https://example.com/pricing?utm_source=x', { headers: { rsc: '1' } }), {} as NextFetchEvent))).toBeUndefined()
+})
+
+it('still tags the redirect when a signed-in visitor follows a link home', async () => {
+  signedIn.value = true
+  const response = await middleware(new NextRequest('https://example.com/?utm_source=email'), {} as NextFetchEvent)
+  expect(response?.headers.get('location')).toBe('https://example.com/expense')
+  expect(attr(response)).toMatchObject({ utm_source: 'email' })
+})

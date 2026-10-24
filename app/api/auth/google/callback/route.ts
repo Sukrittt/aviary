@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { saveSession } from '@workos-inc/authkit-nextjs'
 import { getWorkOSClient } from '@/lib/workosClient'
 import { ensureUser } from '@/lib/users'
+import { readAttribution } from '@/lib/attribution'
 import { scheduleWelcomeEmail } from '@/lib/email/welcome'
 import { getAuth } from '@/lib/access'
 import { verifyState, clearStateCookie } from '@/lib/oauthState'
@@ -61,7 +62,7 @@ export async function GET(req: Request) {
     return res
   }
 
-  await ensureUser(user)
+  await ensureUser(user, readAttribution(req), 'google')
   await saveSession({ accessToken, refreshToken, user }, req.url)
   scheduleWelcomeEmail(user.id)
   // A page that sent you to sign in (the join page) gets you back.
