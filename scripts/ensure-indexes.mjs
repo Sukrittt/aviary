@@ -216,6 +216,17 @@ const INDEXES = {
     [{ code: 1 }, { unique: true }],
     [{ space_id: 1, status: 1 }, {}],
   ],
+  // `_id` is the code itself, so codes can't clash. One personal code per user.
+  referral_codes: [
+    [{ ownerId: 1 }, { unique: true, partialFilterExpression: { ownerId: { $type: 'string' } } }],
+    [{ kind: 1, createdAt: -1 }, {}],
+  ],
+  // `_id` is the referred account, so it can have only one referrer.
+  referrals: [
+    [{ referrerId: 1, 'referrer.at': 1 }, {}],
+    [{ code: 1, status: 1 }, {}],
+    [{ appliedAt: -1 }, {}],
+  ],
 }
 
 async function main() {

@@ -135,6 +135,12 @@ export async function ensureUser(user: WorkOSUserLike, source?: SignupSource, me
     { upsert: true },
   )
   const inserted = res.upsertedCount > 0
+  if (inserted && source?.referral_code) {
+    // Imported here, not at the top: lib/users is everywhere, referrals pulls in billing.
+    const { applyReferral } = await import('./referrals')
+    await applyReferral(user.id, source.referral_code, source.platform === 'android' ? 'install' : 'link')
+      .catch((err) => console.error('referrals: applying the signup code failed', user.id, err))
+  }
   if (inserted) {
     const s = source ?? { platform: 'web' as const }
     captureLater(user.id, 'user_signed_up', {
