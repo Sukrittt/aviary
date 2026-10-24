@@ -65,6 +65,14 @@ describe('accessEndedAt', () => {
   it('ignores a purchase that ended before the trial did', () => {
     expect(accessEndedAt({ trialEndsAt }, [{ expiresAt: new Date('2026-01-01T00:00:00Z') }])).toEqual(trialEndsAt)
   })
+  it('counts a gift that ran past the trial and every purchase', () => {
+    // A long gift used to be ignored, so the deletion deadline landed in the
+    // past and the 30/7/1-day notices were skipped.
+    const until = new Date('2026-12-01T00:00:00Z')
+    const comp = { until, reason: 'referral', grantedBy: 'system:referral', grantedAt: trialEndsAt }
+    expect(accessEndedAt({ trialEndsAt, comp }, [{ expiresAt: new Date('2026-09-01T00:00:00Z') }])).toEqual(until)
+    expect(accessEndedAt({ trialEndsAt, comp: null }, [])).toEqual(trialEndsAt)
+  })
 })
 
 /** Minimal Mongo: each collection is an array, queried by the handful of operators the jobs use. */
