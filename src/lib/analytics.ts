@@ -133,6 +133,9 @@ export type AppEvent =
   | 'idea_voted'
   // "Invite a friend": the link was shared or copied (`method`).
   | 'invite_shared'
+  // Refer a friend: the referral link was shared or copied (`method`).
+  // referral_code_applied / _activated / _rewarded are sent by the server.
+  | 'referral_link_shared'
   // Web only: the landing page's way into the app store
   | 'store_cta_clicked'
   // Web only: the landing page's iPhone waitlist form. `waitlist_platform` is

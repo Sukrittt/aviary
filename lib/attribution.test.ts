@@ -23,6 +23,12 @@ describe('attributionFromRequest', () => {
     expect(at('/?ref=<script>')).not.toHaveProperty('referral_code')
   })
 
+  it('reads a share link\'s code as a referral', () => {
+    expect(at('/r/k7qm4p')).toEqual({ utm_source: 'referral', utm_campaign: 'K7QM4P', referral_code: 'K7QM4P', landing_path: '/r/k7qm4p' })
+    expect(at('/r/PRIYA?utm_source=instagram')).toMatchObject({ utm_source: 'instagram', referral_code: 'PRIYA' })
+    expect(at('/r/no-dashes')).not.toHaveProperty('referral_code')
+  })
+
   it('drops characters that have no business in a tag and clips long values', () => {
     const a = at(`/?utm_source=${encodeURIComponent('red"dit<>')}&utm_campaign=${'x'.repeat(200)}`)
     expect(a.utm_source).toBe('reddit')
