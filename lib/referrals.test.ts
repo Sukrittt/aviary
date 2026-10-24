@@ -124,6 +124,14 @@ describe('maybeActivate', () => {
     expect(grantReward).not.toHaveBeenCalled()
   })
 
+  it('ignores rows written for them: statements, balance gaps and fresh starts', async () => {
+    await pending()
+    await logAt('bob', new Date(NOW.getTime() - 3 * DAY), { source: 'statement' })
+    await logAt('bob', new Date(NOW.getTime() - 2 * DAY), { source: 'balance_gap' })
+    await logAt('bob', new Date(NOW.getTime() - 1 * DAY), { source: 'fresh_start' })
+    expect(await R.maybeActivate('bob', NOW)).toBe(false)
+  })
+
   it('does not count days before setup is finished', async () => {
     const code = await codeFor('alice')
     await addUser('bob', { createdAt: new Date(NOW.getTime() - 5 * DAY) })

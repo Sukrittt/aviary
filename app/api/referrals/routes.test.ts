@@ -1,6 +1,6 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 
-const auth = { value: { userId: 'bob', readOnly: false } as { userId: string; readOnly: boolean } }
+const auth = { value: { userId: 'bob', readOnly: false } as { userId: string; readOnly: boolean; accountDeleted?: true } }
 vi.mock('@/lib/access', () => ({ getAuth: async () => auth.value }))
 vi.mock('@/lib/rateLimit', () => ({ isRateLimited: vi.fn(async () => false) }))
 const applyReferral = vi.fn()
@@ -31,6 +31,12 @@ it('refuses the signed-out demo', async () => {
   auth.value = { userId: 'demo', readOnly: true }
   expect((await post({ code: 'K7QM4P' })).status).toBe(401)
   expect((await GET(new Request('https://x.test/api/referrals/me'))).status).toBe(401)
+})
+
+it('refuses an account in its deletion grace window', async () => {
+  auth.value = { userId: 'bob', readOnly: false, accountDeleted: true }
+  expect((await post({ code: 'K7QM4P' })).status).toBe(401)
+  expect(applyReferral).not.toHaveBeenCalled()
 })
 
 it('shares a link on the site the request came to, outside production', async () => {

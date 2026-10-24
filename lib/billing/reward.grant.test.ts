@@ -77,3 +77,11 @@ it('gifts the month after the paid period when Play refuses the deferral', async
   expect(comp.until.getTime()).toBeGreaterThan(now + 38 * DAY)
   expect(comp.grantedBy).toBe('system:referral')
 })
+
+it('stacks two gifts granted at the same moment instead of losing one', async () => {
+  const { grantComp } = await import('./reward')
+  await addAccount({ trialEndsAt: new Date(now - DAY) })
+  await Promise.all([grantComp('u', 1, 'a', 'x'), grantComp('u', 1, 'b', 'x')])
+  const acc = await accounts().findOne({ _id: 'u' as never })
+  expect(acc?.comp.until.getTime()).toBeGreaterThan(now + 58 * DAY)
+})

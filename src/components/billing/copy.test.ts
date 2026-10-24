@@ -136,6 +136,9 @@ describe('freeUntil', () => {
     expect(freeUntil({ mode: 'trial', trialEndsAt: '2026-11-01T00:00:00.000Z', gifted: false, paidExpiresAt: null })).toBe('2026-11-01T00:00:00.000Z')
     expect(freeUntil({ mode: 'paid', trialEndsAt: '2026-10-01T00:00:00.000Z', gifted: true, paidExpiresAt: '2026-12-01T00:00:00.000Z' })).toBe('2026-12-01T00:00:00.000Z')
   })
+  it('waits for whichever runs longer, the gift or the trial', () => {
+    expect(freeUntil({ mode: 'paid', trialEndsAt: '2027-01-01T00:00:00.000Z', gifted: true, paidExpiresAt: '2026-12-01T00:00:00.000Z' })).toBe('2027-01-01T00:00:00.000Z')
+  })
   it('is nothing for a paying or lapsed account', () => {
     expect(freeUntil({ mode: 'paid', trialEndsAt: null, gifted: false, paidExpiresAt: '2026-12-01T00:00:00.000Z' })).toBeNull()
     expect(freeUntil({ mode: 'expired', trialEndsAt: '2026-09-01T00:00:00.000Z', gifted: false, paidExpiresAt: null })).toBeNull()
