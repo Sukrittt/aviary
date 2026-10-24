@@ -142,6 +142,9 @@ export async function completeOnboarding(
     { $set: { onboardedAt, getStartedAt: onboardedAt } },
   )
   const user = await users.findOne({ _id: userId }, { projection: { onboardedAt: 1 } })
+  // Imported here: lib/referrals depends on billing, not the other way round.
+  const { activateLater } = await import('../referrals')
+  activateLater(userId, { onboarded: true })
 
   return { ok: true, onboardedAt: user?.onboardedAt ?? onboardedAt, account }
 }

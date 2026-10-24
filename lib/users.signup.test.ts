@@ -11,6 +11,8 @@ let client: MongoClient
 vi.mock('@/lib/mongodb', () => ({ getDb: async () => db }))
 vi.mock('@/lib/workosClient', () => ({ getWorkOSClient: () => ({ userManagement: { getUser: async (id: string) => ({ id, email: `${id}@example.com` }) } }) }))
 vi.mock('@/lib/posthogServer', () => ({ captureLater: vi.fn() }))
+const applyReferral = vi.fn(async () => 'applied')
+vi.mock('@/lib/referrals', () => ({ applyReferral: (...a: unknown[]) => applyReferral(...(a as [])) }))
 
 const { ensureUser, ensureUserById } = await import('@/lib/users')
 const { captureLater } = await import('@/lib/posthogServer')
@@ -48,4 +50,11 @@ it('reports a signup with no source as direct', async () => {
 it('passes the source through the app\'s first-request path', async () => {
   await ensureUserById('u3', { utm_source: 'google-play', utm_medium: 'organic', platform: 'android' })
   expect((await users().findOne({ _id: 'u3' }))?.signupSource).toMatchObject({ utm_source: 'google-play', platform: 'android' })
+})
+
+it('applies the code a new account arrived with, once', async () => {
+  await ensureUser({ id: 'u4', email: 'd@example.com' }, { referral_code: 'K7QM4P', platform: 'android' }, 'email')
+  expect(applyReferral).toHaveBeenCalledWith('u4', 'K7QM4P', 'install')
+  await ensureUser({ id: 'u4', email: 'd@example.com' }, { referral_code: 'K7QM4P', platform: 'web' }, 'google')
+  expect(applyReferral).toHaveBeenCalledTimes(1)
 })

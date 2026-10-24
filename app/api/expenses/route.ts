@@ -1,4 +1,5 @@
 import { expenseInputError } from '@/lib/inputValidation'
+import { activateLater } from '@/lib/referrals'
 import { ObjectId } from 'mongodb'
 import { json, error, readBody, getCollection, parsePageParams, pageMeta } from '@/lib/http'
 import { getAuth, readOnlyGuard, type Auth } from '@/lib/access'
@@ -264,6 +265,8 @@ export async function POST(req: Request) {
   // entry screen sends this source marker; scans and recurring charges do not
   // accidentally complete the step. Idempotent replays keep the first instant.
   if (body.source === 'manual') await markManualTransactionComplete(auth.userId)
+  // A referred account becomes "activated" by logging on 3 different days.
+  if (!result.duplicate) activateLater(auth.userId)
   if (!result.duplicate) await learnFromSave(auth, mapBefore, String(body.item), result.category)
   if (!result.duplicate) {
     await notifyOthersOfLog(auth, { item: String(body.item), amount: Number(body.amount_inr), category: result.category })
