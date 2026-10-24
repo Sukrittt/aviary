@@ -28,12 +28,17 @@ it.each([
   [{ code: 'AB' }, /3 to 16/],
   [{ label: '' }, /who this code is for/],
   [{ refereeMonths: '0' }, /whole numbers/],
-  [{ referrerMonths: '13' }, /whole numbers/],
+  [{ refereeMonths: '13' }, /whole numbers/],
 ])('refuses %o', async (bad, message) => {
   const res = await createCodeAction(null, form({ ...good, ...bad }))
   expect(res?.ok).toBe(false)
   expect(res?.message).toMatch(message)
   expect(insertOne).not.toHaveBeenCalled()
+})
+
+it('never promises the creator months: a creator code has no account to give them to', async () => {
+  await createCodeAction(null, form({ ...good, referrerMonths: '3' }))
+  expect(insertOne).toHaveBeenCalledWith(expect.objectContaining({ referrerMonths: 0 }))
 })
 
 it('says when a code is taken', async () => {
