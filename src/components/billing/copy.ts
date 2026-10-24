@@ -17,7 +17,11 @@ export const GET_ANDROID_URL = '/get/android'
  */
 export function freeUntil(status: Pick<BillingStatus, 'mode' | 'trialEndsAt' | 'gifted' | 'paidExpiresAt'>): string | null {
   if (status.mode === 'trial') return status.trialEndsAt
-  if (status.mode === 'paid' && status.gifted) return status.paidExpiresAt
+  if (status.mode === 'paid' && status.gifted) {
+    // A trial can outlast the gift (a gift granted mid-trial); wait for the later one.
+    const { trialEndsAt: t, paidExpiresAt: g } = status
+    return t && (!g || new Date(t) > new Date(g)) ? t : g
+  }
   return null
 }
 

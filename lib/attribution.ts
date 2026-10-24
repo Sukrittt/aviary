@@ -68,9 +68,9 @@ export function attributionFromRequest(url: URL, referer: string | null): Attrib
   return compact(a)
 }
 
-/** A visit that names its source in the link. An untagged visit only says where the browser was before. */
+/** A visit whose link carries any utm tag or a code. An untagged visit only says where the browser was before. */
 function isTagged(a: Attribution): boolean {
-  return !!(a.utm_source || a.referral_code)
+  return !!(a.utm_source || a.utm_medium || a.utm_campaign || a.referral_code)
 }
 
 /**
