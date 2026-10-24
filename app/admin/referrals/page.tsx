@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { pageMetadata } from '@/lib/seo'
 import { getDb } from '@/lib/mongodb'
 import { REFERRAL_CODES, REFERRALS, type ReferralCodeDoc, type ReferralDoc } from '@/lib/referrals'
 import type { UserDoc } from '@/lib/users'
@@ -7,6 +8,7 @@ import { fmtDate, num, timeAgo } from '../format'
 import { createCodeAction, toggleCodeAction } from './actions'
 
 export const dynamic = 'force-dynamic'
+export const metadata = pageMetadata('/admin/referrals')
 
 type Funnel = { _id: string; applied: number; activated: number; rewarded: number; blocked: number; last: Date }
 
