@@ -49,10 +49,14 @@ export function planReward({ now, account, subscription, months }: {
       // RevenueCat wants the Play subscription id, not `id:basePlan`.
       return { kind: 'play_defer', subscriptionId: paid.productId.split(':')[0], from: paid.expiresAt!, until: addMonthsUtc(paid.expiresAt!, months) }
     }
-    const from = later(now, paid.expiresAt, giftUntil)
+    const from = later(now, paid.expiresAt, giftUntil, account.trialEndsAt)
     return { kind: 'comp', from, until: addMonthsUtc(from, months) }
   }
-  if (giftUntil) return { kind: 'comp', from: giftUntil, until: addMonthsUtc(giftUntil, months) }
+  if (giftUntil) {
+    // A trial can outlast the gift; a month that overlapped it would be lost.
+    const from = later(giftUntil, account.trialEndsAt)
+    return { kind: 'comp', from, until: addMonthsUtc(from, months) }
+  }
   if (account.trialEndsAt > now) return { kind: 'extend_trial', until: addMonthsUtc(account.trialEndsAt, months) }
   return { kind: 'comp', from: now, until: addMonthsUtc(now, months) }
 }
@@ -65,14 +69,21 @@ export function planReward({ now, account, subscription, months }: {
 export async function grantComp(userId: string, months: number, reason: string, grantedBy: string, from?: Date): Promise<Date | null> {
   const db = await getDb()
   const coll = db.collection<BillingAccountDoc>(BILLING_ACCOUNTS)
-  const account = await coll.findOne({ _id: userId })
-  if (!account) return null
-  const now = new Date()
-  const live = account.comp && account.comp.until > now ? account.comp.until : now
-  const start = from && from > live ? from : live
-  const until = addMonthsUtc(start, months)
-  await coll.updateOne({ _id: userId }, { $set: { comp: { until, reason, grantedBy, grantedAt: now }, retentionDeadline: null } })
-  return until
+  // Compare-and-set on the gift we read, so two grants at once both stack.
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const account = await coll.findOne({ _id: userId })
+    if (!account) return null
+    const now = new Date()
+    const live = account.comp && account.comp.until > now ? account.comp.until : now
+    const start = from && from > live ? from : live
+    const until = addMonthsUtc(start, months)
+    const res = await coll.updateOne(
+      { _id: userId, 'comp.until': account.comp?.until ?? { $exists: false } },
+      { $set: { comp: { until, reason, grantedBy, grantedAt: now }, retentionDeadline: null } },
+    )
+    if (res.modifiedCount) return until
+  }
+  throw new Error(`grantComp: gave up on ${userId} after concurrent updates`)
 }
 
 export type RewardResult = { kind: 'hold' } | { kind: 'extend_trial' | 'comp' | 'play_defer'; until: Date }
