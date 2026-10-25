@@ -1,6 +1,5 @@
 import type { Db } from 'mongodb'
 import { del, list } from '@vercel/blob'
-import { nowIST } from './http'
 import { withTx } from './mongodb'
 import { invalidate } from './cache'
 import { invalidateCategoryMap } from './categoryMap'
@@ -29,7 +28,8 @@ async function accountCollections(db: Db, userId: string, all: string[]): Promis
  * WorkOS user, once `GRACE_DAYS` pass. Returns the deletion timestamp.
  */
 export async function softDeleteAccount(db: Db, userId: string): Promise<string> {
-  const deletedAt = nowIST().timestamp
+  // UTC, same format as lib/scoped.ts so the GC cron's string cutoff is exact.
+  const deletedAt = new Date().toISOString()
   const result = await withTx(async session => {
     const users = db.collection<UserDoc>('users')
     const user = await users.findOne({ _id: userId }, { session })

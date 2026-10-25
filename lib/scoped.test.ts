@@ -242,6 +242,18 @@ describe('scoped() soft delete', () => {
     expect(await view.findOne({ name: 'Groceries' })).toBeNull() // hidden from the live view
   })
 
+  it('stamps deleted_at with the real UTC instant, not IST clock digits labelled Z', async () => {
+    const coll = fakeMongoCollection('categories')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const view = scoped(coll as any, 'user_alice')
+    await view.insertOne({ name: 'Groceries' })
+    const before = Date.now()
+    await view.deleteOne({ name: 'Groceries' })
+    const stamped = Date.parse(String(coll.store[0].deleted_at))
+    expect(stamped).toBeGreaterThanOrEqual(before)
+    expect(stamped).toBeLessThanOrEqual(Date.now())
+  })
+
   it('restore clears deleted_at, making the document live again', async () => {
     const coll = fakeMongoCollection('categories')
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

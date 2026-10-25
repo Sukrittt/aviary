@@ -16,9 +16,13 @@ function safeEqual(a: string, b: string): boolean {
   return timingSafeEqual(ah, bh)
 }
 
-/** Rows/accounts archived before this instant (IST) are past their grace window. */
+/**
+ * Rows/accounts archived before this UTC instant are past their grace window.
+ * `deleted_at` is compared as a string, so legacy values (IST digits labelled Z,
+ * or `+05:30` account stamps) sort 5.5h late: they purge late, never early.
+ */
 function cutoffIso(): string {
-  return new Date(Date.now() + 5.5 * 60 * 60 * 1000 - GRACE_DAYS * 24 * 60 * 60 * 1000).toISOString()
+  return new Date(Date.now() - GRACE_DAYS * 24 * 60 * 60 * 1000).toISOString()
 }
 
 /**

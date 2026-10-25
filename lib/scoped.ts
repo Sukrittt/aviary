@@ -193,7 +193,8 @@ export function scoped(coll: Collection<Doc>, userId: string, { actorId }: { act
   const collectionName = coll.collectionName
   const createdBy = actorId && CREATED_BY.has(collectionName) ? actorId : null
   const fields = fieldsFor(collectionName)
-  const nowIso = () => new Date(Date.now() + 5.5 * 60 * 60 * 1000).toISOString()
+  // Real UTC instant: GC compares these as strings against a UTC cutoff.
+  const nowIso = () => new Date().toISOString()
 
   const own = (filter: Filter<Doc> = {}, opts: ScopeOpts = {}): Filter<Doc> => {
     assertFilterSafe(filter as Doc, fields)
