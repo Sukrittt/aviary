@@ -24,3 +24,16 @@ it("says the resend didn't go out when the server refuses", async () => {
   fireEvent.click(screen.getByRole('button', { name: /Resend code/ }))
   expect(await screen.findByRole('alert')).toHaveTextContent("Couldn't resend the code. Try again in a moment.")
 })
+
+it('sends one resend at a time', async () => {
+  let finish!: (r: Response) => void
+  const fetchMock = vi.fn(() => new Promise<Response>((r) => { finish = r }))
+  vi.stubGlobal('fetch', fetchMock)
+  render(<CodePage />)
+  const button = screen.getByRole('button', { name: /Resend code/ })
+  fireEvent.click(button)
+  fireEvent.click(button)
+  expect(fetchMock).toHaveBeenCalledTimes(1)
+  finish(new Response('{}', { status: 200 }))
+  expect(await screen.findByText('Code resent.')).toBeInTheDocument()
+})
