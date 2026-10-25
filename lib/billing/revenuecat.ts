@@ -85,3 +85,26 @@ export async function fetchSubscriber(appUserId: string): Promise<RcSubscriber |
   if (!body.subscriber) throw new RevenueCatError('RevenueCat response had no subscriber', resp.status)
   return body.subscriber
 }
+
+/**
+ * Move a renewing Google Play subscription's next charge to `expiry`.
+ * RevenueCat calls Google's `subscriptions.defer`; the subscriber keeps access
+ * and isn't charged until then. `subscriptionId` is the Play subscription id
+ * (without the `:basePlan` suffix). Throws on any failure, since the caller
+ * falls back to a gift.
+ */
+export async function deferGoogleSubscription(appUserId: string, subscriptionId: string, expiry: Date): Promise<void> {
+  let resp: Response
+  try {
+    resp = await fetch(`${API_BASE}/subscribers/${encodeURIComponent(appUserId)}/subscriptions/${encodeURIComponent(subscriptionId)}/defer`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${secretKey()}`, Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ expiry_time_ms: expiry.getTime() }),
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+      cache: 'no-store',
+    })
+  } catch (err) {
+    throw new RevenueCatError(`RevenueCat defer failed: ${(err as Error).message}`, 0)
+  }
+  if (!resp.ok) throw new RevenueCatError(`RevenueCat defer responded ${resp.status}`, resp.status)
+}

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { daysOnUs, lockedReason, shouldWarnAboutTrial, trialRemainingLabel, formatDate, formatPrice, planSummary, storeLabel, yearlySavingsPercent } from './copy'
+import { freeUntil } from './copy'
 import type { BillingStatus } from '@/src/api/billing'
 
 const base: BillingStatus = {
@@ -127,5 +128,19 @@ describe('daysOnUs', () => {
     expect(daysOnUs({ trialStartedAt: '2026-08-01T00:00:00Z', trialEndsAt: '2026-08-31T00:00:00Z' })).toBe('30 days on us')
     expect(daysOnUs({ trialStartedAt: '2026-08-01T00:00:00Z', trialEndsAt: '2026-09-15T00:00:00Z' })).toBe('45 days on us')
     expect(daysOnUs({ trialStartedAt: null, trialEndsAt: null })).toBe('30 days on us')
+  })
+})
+
+describe('freeUntil', () => {
+  it('is the trial end mid-trial and the gift end on a gift, so the first charge waits for it', () => {
+    expect(freeUntil({ mode: 'trial', trialEndsAt: '2026-11-01T00:00:00.000Z', gifted: false, paidExpiresAt: null })).toBe('2026-11-01T00:00:00.000Z')
+    expect(freeUntil({ mode: 'paid', trialEndsAt: '2026-10-01T00:00:00.000Z', gifted: true, paidExpiresAt: '2026-12-01T00:00:00.000Z' })).toBe('2026-12-01T00:00:00.000Z')
+  })
+  it('waits for whichever runs longer, the gift or the trial', () => {
+    expect(freeUntil({ mode: 'paid', trialEndsAt: '2027-01-01T00:00:00.000Z', gifted: true, paidExpiresAt: '2026-12-01T00:00:00.000Z' })).toBe('2027-01-01T00:00:00.000Z')
+  })
+  it('is nothing for a paying or lapsed account', () => {
+    expect(freeUntil({ mode: 'paid', trialEndsAt: null, gifted: false, paidExpiresAt: '2026-12-01T00:00:00.000Z' })).toBeNull()
+    expect(freeUntil({ mode: 'expired', trialEndsAt: '2026-09-01T00:00:00.000Z', gifted: false, paidExpiresAt: null })).toBeNull()
   })
 })
