@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { PulseIcon, ArrowLeftIcon, CreditCardIcon, CpuIcon, CurrencyInrIcon, SquaresFourIcon, LightbulbIcon, ChatCenteredTextIcon, ScrollIcon, SlidersIcon, UsersIcon, type PhosphorIcon } from '@/src/components/icons'
+import { PulseIcon, ArrowLeftIcon, CreditCardIcon, CpuIcon, CurrencyInrIcon, SquaresFourIcon, LightbulbIcon, ChatCenteredTextIcon, ScrollIcon, SlidersIcon, UsersIcon, UserPlusIcon, type PhosphorIcon } from '@/src/components/icons'
 import { BirdMark } from '@/src/components/BirdMark'
 
 const NAV: Array<{ href: string; label: string; icon: PhosphorIcon }> = [
@@ -10,6 +10,7 @@ const NAV: Array<{ href: string; label: string; icon: PhosphorIcon }> = [
   { href: '/admin/users', label: 'Users', icon: UsersIcon },
   { href: '/admin/revenue', label: 'Revenue', icon: CurrencyInrIcon },
   { href: '/admin/subscriptions', label: 'Subscriptions', icon: CreditCardIcon },
+  { href: '/admin/referrals', label: 'Referrals', icon: UserPlusIcon },
   { href: '/admin/jobs', label: 'Jobs', icon: PulseIcon },
   { href: '/admin/feedback', label: 'Bug reports', icon: ChatCenteredTextIcon },
   { href: '/admin/ideas', label: 'Ideas', icon: LightbulbIcon },

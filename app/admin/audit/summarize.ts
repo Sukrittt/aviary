@@ -24,6 +24,9 @@ export const ACTIONS: Record<string, { label: string; tone: Tone }> = {
   'billing.gift_revoke': { label: 'Gift revoked', tone: 'warn' },
   'billing.tester': { label: 'Billing tester', tone: undefined },
   'billing.resync': { label: 'Purchases re-synced', tone: undefined },
+  'billing.reward': { label: 'Reward granted', tone: 'good' },
+  'referral.code_create': { label: 'Referral code created', tone: 'good' },
+  'referral.code_toggle': { label: 'Referral code toggled', tone: undefined },
 }
 
 const LABELS: Record<string, string> = {
