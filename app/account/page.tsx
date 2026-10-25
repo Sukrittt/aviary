@@ -5,7 +5,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { AnimatePresence } from 'motion/react'
-import { WalletIcon, BankIcon, ArchiveIcon, BrainIcon, CaretRightIcon, CompassIcon, CreditCardIcon, DatabaseIcon, FileTextIcon, GiftIcon, ClockCounterClockwiseIcon, ChartLineIcon, LockIcon, ChatCircleIcon, ReceiptIcon, RepeatIcon, ScanIcon, ScrollIcon, SlidersHorizontalIcon, TrendUpIcon, UserPlusIcon, UsersIcon, TicketIcon, CheckIcon, UploadSimpleIcon, type PhosphorIcon } from '@/src/components/icons'
+import { WalletIcon, BankIcon, ArchiveIcon, BrainIcon, CaretRightIcon, CompassIcon, CreditCardIcon, DatabaseIcon, FileTextIcon, GiftIcon, ClockCounterClockwiseIcon, ChartLineIcon, LockIcon, ChatCircleIcon, ReceiptIcon, RepeatIcon, ScanIcon, ScrollIcon, SlidersHorizontalIcon, TrendUpIcon, UserPlusIcon, UsersIcon, TicketIcon, UploadSimpleIcon, type PhosphorIcon } from '@/src/components/icons'
 import { useAuth } from '@workos-inc/authkit-nextjs/components'
 import { useAppearance } from '../../components/AppearanceProvider'
 import { useHideAmounts } from '../../src/hooks/useHideAmounts'
@@ -20,11 +20,9 @@ import { useBillingStatus } from '../../src/hooks/useBillingStatus'
 import { useHiddenFeatures } from '../../src/hooks/useUser'
 import type { HideableFeature } from '../../src/lib/features'
 import { FEEDBACK_BOARD_PATH } from '../../lib/links'
-import { Toast } from '../../src/components/Toast'
 import { NewBudgetEntry } from '../../src/components/BudgetSwitcher'
 import { BudgetMembersEntry } from '../../src/components/BudgetMembers'
 import { JoinCodeEntry } from '../../src/components/JoinBudget'
-import { track } from '../../src/lib/analytics'
 import { useSpaces } from '../../src/hooks/useSpaces'
 
 const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.sukrit04.envelope'
@@ -66,28 +64,7 @@ export default function AccountPage() {
   const [showScan, setShowScan] = useState(false)
   const [showLog, setShowLog] = useState(false)
   const [confirmSignOut, setConfirmSignOut] = useState(false)
-  const [copiedToast, setCopiedToast] = useState(0)
 
-  const inviteFriend = async () => {
-    const url = `${window.location.origin}/?ref=invite`
-    const text = "I've been budgeting with Aviary. Give it a try:"
-    if (navigator.share) {
-      try {
-        await navigator.share({ text, url })
-        track('invite_shared', { method: 'share' })
-      } catch {
-        // Dismissed the share sheet.
-      }
-      return
-    }
-    try {
-      await navigator.clipboard.writeText(`${text} ${url}`)
-    } catch {
-      return
-    }
-    track('invite_shared', { method: 'copy' })
-    setCopiedToast((n) => n + 1)
-  }
   const [showGetApp, setShowGetApp] = useState(false)
 
   useEffect(() => {
@@ -291,13 +268,12 @@ export default function AccountPage() {
           </div>
           <AccountRow icon={CompassIcon} label="How this works" href="/account/guided-tour" />
           <AccountRow icon={ScrollIcon} label="Changelog" href="/account/changelog" />
-          <AccountRow icon={UserPlusIcon} label="Invite a friend" hint="Share Aviary with someone" onClick={inviteFriend} />
+          <AccountRow icon={UserPlusIcon} label="Refer a friend" hint="Give a month of Pro, get a month" href="/account/refer" />
           <AccountRow icon={ChatCircleIcon} label="Help & feedback" hint="We read every one" href="/account/help" />
           <AccountRow icon={FileTextIcon} label="Terms & privacy" href="/legal/privacy" />
         </div>
       </div>
 
-      <Toast trigger={copiedToast} message="Invite link copied" icon={CheckIcon} />
 
       <button type="button" className="account-signout-btn" onClick={() => setConfirmSignOut(true)}>
         Sign out

@@ -25,7 +25,6 @@ export const REFERRALS = 'referrals'
 /** No 0/O, 1/I/L: a code read off a screen or said out loud survives. */
 const ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
 const CODE_LENGTH = 6
-export const APPLY_WINDOW_DAYS = 7
 export const ACTIVATION_DAYS = 3
 export const ACTIVATION_WINDOW_DAYS = 30
 /** Months a referrer can earn per calendar month (UTC). */
@@ -55,14 +54,14 @@ export interface ReferralDoc {
   referrerId: string | null
   status: 'pending' | 'activated' | 'blocked' | 'expired'
   reason?: 'self' | 'unverified' | 'disposable'
-  via: 'link' | 'install' | 'manual'
+  via: 'link' | 'install'
   appliedAt: Date
   activatedAt?: Date
   referee?: SideReward
   referrer?: SideReward
 }
 
-export type ApplyOutcome = 'applied' | 'not_found' | 'inactive' | 'own_code' | 'already_referred' | 'too_late' | 'blocked'
+export type ApplyOutcome = 'applied' | 'not_found' | 'inactive' | 'own_code' | 'already_referred' | 'blocked'
 
 export function normalizeCode(raw: unknown): string | null {
   if (typeof raw !== 'string') return null
@@ -125,9 +124,9 @@ export async function findCode(raw: unknown): Promise<ReferralCodeDoc | null> {
 }
 
 /**
- * Tie a new account to a code. `link`/`install` come from signup; `manual` is
- * a code typed in, allowed for the first 7 days. Blocked referrals are kept
- * (admin sees them) but never rewarded.
+ * Tie a new account to a code, at signup only: `link` from the web cookie,
+ * `install` from the Play install referrer. A code can't be typed in later.
+ * Blocked referrals are kept (admin sees them) but never rewarded.
  */
 export async function applyReferral(userId: string, raw: unknown, via: ReferralDoc['via'], now = new Date()): Promise<ApplyOutcome> {
   const db = await getDb()
@@ -136,13 +135,12 @@ export async function applyReferral(userId: string, raw: unknown, via: ReferralD
   if (!code.active) return 'inactive'
   if (code.ownerId === userId) return 'own_code'
   const [user, owner, existing] = await Promise.all([
-    db.collection<UserDoc>('users').findOne({ _id: userId }, { projection: { email: 1, emailVerified: 1, createdAt: 1 } }),
+    db.collection<UserDoc>('users').findOne({ _id: userId }, { projection: { email: 1, emailVerified: 1 } }),
     code.ownerId ? db.collection<UserDoc>('users').findOne({ _id: code.ownerId }, { projection: { email: 1 } }) : null,
     referrals(db).findOne({ _id: userId }, { projection: { _id: 1 } }),
   ])
   if (!user) return 'not_found'
   if (existing) return 'already_referred'
-  if (via === 'manual' && now.getTime() - user.createdAt.getTime() > APPLY_WINDOW_DAYS * DAY_MS) return 'too_late'
 
   const reason: ReferralDoc['reason'] | undefined =
     owner && canonicalEmail(owner.email) === canonicalEmail(user.email) ? 'self'
@@ -157,10 +155,7 @@ export async function applyReferral(userId: string, raw: unknown, via: ReferralD
     throw err
   }
   await captureServer(userId, 'referral_code_applied', { code: code._id, kind: code.kind, via, blocked: reason ?? null })
-  if (reason) return 'blocked'
-  // A code typed in on day 6 may find the account already active.
-  await maybeActivate(userId, now)
-  return 'applied'
+  return reason ? 'blocked' : 'applied'
 }
 
 /** Distinct local days (the user's zone) with an expense they logged themselves since signup. */
@@ -274,17 +269,15 @@ export interface ReferralSummary {
   joined: number
   activated: number
   monthsEarned: number
-  canEnterCode: boolean
   referredBy: string | null
 }
 
-export async function referralSummary(userId: string, origin: string, now = new Date()): Promise<ReferralSummary> {
+export async function referralSummary(userId: string, origin: string): Promise<ReferralSummary> {
   const db = await getDb()
   const code = await userCode(userId)
-  const [mine, own, user] = await Promise.all([
+  const [mine, own] = await Promise.all([
     referrals(db).find({ referrerId: userId, status: { $ne: 'blocked' } }, { projection: { status: 1, referrer: 1 } }).toArray(),
     referrals(db).findOne({ _id: userId }, { projection: { code: 1 } }),
-    db.collection<UserDoc>('users').findOne({ _id: userId }, { projection: { createdAt: 1 } }),
   ])
   const earned = mine.filter((r) => r.referrer && r.referrer.kind !== 'capped' && r.referrer.kind !== 'hold').length
   return {
@@ -293,7 +286,6 @@ export async function referralSummary(userId: string, origin: string, now = new 
     joined: mine.length,
     activated: mine.filter((r) => r.status === 'activated').length,
     monthsEarned: earned,
-    canEnterCode: !own && !!user && now.getTime() - user.createdAt.getTime() <= APPLY_WINDOW_DAYS * DAY_MS,
     referredBy: own?.code ?? null,
   }
 }

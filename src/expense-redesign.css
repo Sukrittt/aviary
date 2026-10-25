@@ -15213,3 +15213,83 @@ button.account-feature-card {
   .code-tile-char, .join-you { animation: none; }
   .join-splash { display: none; }
 }
+
+/* Refer a friend (/account/refer) and the "Got a code?" entry it shares with setup. */
+.referral-page {
+  display: grid;
+  gap: 16px;
+}
+
+.referral-hero {
+  display: grid;
+  gap: 14px;
+  padding: 22px 20px;
+}
+
+.referral-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--erd-text);
+}
+
+.referral-code {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 18px;
+  border-radius: 16px;
+  background: var(--gold-soft);
+}
+
+.referral-code-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.referral-code-value {
+  font-family: var(--font-display);
+  font-size: 32px;
+  letter-spacing: 0.18em;
+  color: var(--gold-ink);
+}
+
+.referral-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.referral-actions .auth-btn--outline {
+  border: 1px solid var(--erd-border-strong);
+  background: transparent;
+  color: var(--erd-text);
+}
+
+.referral-stats {
+  margin: 0;
+  font-weight: 600;
+  color: var(--erd-text);
+  text-align: center;
+}
+
+.referral-fine {
+  margin: 0;
+  font-size: 12px;
+  color: var(--erd-text2);
+  text-align: center;
+}
+
+.referral-error {
+  margin: 0;
+  font-size: 13px;
+  color: var(--tk-warn-ink);
+}
+
+.referral-landing-code {
+  font-weight: 600;
+}

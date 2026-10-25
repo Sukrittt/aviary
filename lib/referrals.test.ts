@@ -75,21 +75,15 @@ describe('applyReferral', () => {
   it('refuses unknown, inactive and own codes, and a second code', async () => {
     const code = await codeFor('alice')
     await addUser('bob')
-    expect(await R.applyReferral('bob', 'ZZZZZZ', 'manual', NOW)).toBe('not_found')
-    expect(await R.applyReferral('alice', code, 'manual', NOW)).toBe('own_code')
+    expect(await R.applyReferral('bob', 'ZZZZZZ', 'link', NOW)).toBe('not_found')
+    expect(await R.applyReferral('alice', code, 'link', NOW)).toBe('own_code')
     await db.collection('referral_codes').insertOne({ _id: 'PAUSED' as never, kind: 'creator', ownerId: null, active: false })
-    expect(await R.applyReferral('bob', 'PAUSED', 'manual', NOW)).toBe('inactive')
-    expect(await R.applyReferral('bob', code, 'manual', NOW)).toBe('applied')
+    expect(await R.applyReferral('bob', 'PAUSED', 'link', NOW)).toBe('inactive')
+    expect(await R.applyReferral('bob', code, 'link', NOW)).toBe('applied')
     await codeFor('carol')
-    expect(await R.applyReferral('bob', await R.userCode('carol'), 'manual', NOW)).toBe('already_referred')
+    expect(await R.applyReferral('bob', await R.userCode('carol'), 'link', NOW)).toBe('already_referred')
   })
 
-  it('takes a typed code only in the first 7 days', async () => {
-    const code = await codeFor('alice')
-    await addUser('bob', { createdAt: new Date(NOW.getTime() - 8 * DAY) })
-    expect(await R.applyReferral('bob', code, 'manual', NOW)).toBe('too_late')
-    expect(await referral('bob')).toBeNull()
-  })
 
   it.each([
     ['self', { email: 'a.lice+2@gmail.com' }, { email: 'alice@gmail.com' }],
@@ -153,13 +147,6 @@ describe('maybeActivate', () => {
     expect(captureServer).toHaveBeenCalledWith('alice', 'referral_rewarded', expect.objectContaining({ side: 'referrer' }))
   })
 
-  it('activates straight away when the code is typed in after the habit is there', async () => {
-    const code = await codeFor('alice')
-    await addUser('bob', { createdAt: new Date(NOW.getTime() - 5 * DAY), onboardedAt: NOW.toISOString() })
-    for (const d of [4, 3, 2]) await logAt('bob', new Date(NOW.getTime() - d * DAY))
-    expect(await R.applyReferral('bob', code, 'manual', NOW)).toBe('applied')
-    expect((await referral('bob'))?.status).toBe('activated')
-  })
 
   it('caps a referrer at three months a month but still rewards the friend', async () => {
     const code = await codeFor('alice')
@@ -212,8 +199,8 @@ describe('held rewards and the summary', () => {
       { _id: 'b2' as never, code, referrerId: 'alice', status: 'pending' },
       { _id: 'b3' as never, code, referrerId: 'alice', status: 'blocked' },
     ])
-    expect(await R.referralSummary('alice', 'https://www.useaviary.com', NOW)).toEqual({
-      code, link: `https://www.useaviary.com/r/${code}`, joined: 2, activated: 1, monthsEarned: 1, canEnterCode: true, referredBy: null,
+    expect(await R.referralSummary('alice', 'https://www.useaviary.com')).toEqual({
+      code, link: `https://www.useaviary.com/r/${code}`, joined: 2, activated: 1, monthsEarned: 1, referredBy: null,
     })
   })
 })

@@ -81,7 +81,7 @@
 10. **Both sides are rewarded at activation, not at signup.** Signups that never use the app cost nothing.
 11. **Redemption rules:**
     - One referrer per account (`referrals._id` = referee id).
-    - Apply window: at account creation (link or install referrer), or manual entry within 7 days of `users.createdAt`.
+    - Applied only at account creation (link or install referrer). There's no manual code entry: the link is the only way in.
     - Blocked when:
       - the code owner is the referee;
       - the referee and owner emails match after `+tag` and dot normalisation for Gmail;
@@ -220,7 +220,6 @@ No script file is needed; the snippet in the doc is enough.
 - Create:
   - `lib/referrals/{codes,apply,activate,disposable}.ts` + tests
   - `app/api/referrals/me/route.ts` (GET code + stats)
-  - `app/api/referrals/apply/route.ts` (POST `{code}`)
 - Modify:
   - `lib/models.ts` (`referral_codes`, `referrals`)
   - `scripts/ensure-indexes.mjs`: `referral_codes` gets `ownerId` unique sparse; `referrals` gets `referrerId+rewardedAt` and `code+status`
@@ -234,13 +233,13 @@ No script file is needed; the snippet in the doc is enough.
 - `ReferralDoc = { _id: refereeId, code, referrerId: string|null, kind, status: 'pending'|'activated'|'blocked', reason?, appliedVia: 'link'|'install'|'manual', appliedAt, activatedAt?, referee: { kind, until, at }?, referrer: { kind, until, at } | { capped: true }? }`
 
 **Rules:**
-- `applyReferral(userId, code, via)` returns `'applied' | 'not_found' | 'inactive' | 'own_code' | 'already_referred' | 'too_late' | 'blocked'` (blocked is stored, the others are not).
+- `applyReferral(userId, code, via)` returns `'applied' | 'not_found' | 'inactive' | 'own_code' | 'already_referred' | 'blocked'` (blocked is stored, the others are not).
 - `maybeActivate(userId)`:
   - Runs only when the referral is pending, the user is onboarded, and there are 3 distinct days of qualifying expense `createdAt` (in the user's timezone) within 30 days.
   - Activation is a conditional `updateOne({_id, status:'pending'}, {$set:{status:'activated'}})`; only the winner grants.
   - Then `grantReward` for the referee and, under the cap, for the referrer.
 - Server events: `referral_code_applied {code, kind, via}`, `referral_activated`, `referral_rewarded {side, kind}`.
-- `GET /api/referrals/me` returns `{ code, link, joined, activated, monthsEarned, canEnterCode, referredBy? }`.
+- `GET /api/referrals/me` returns `{ code, link, joined, activated, monthsEarned, referredBy? }`.
 
 - [ ] Tests first (memory replset):
   - Each apply outcome, including Gmail dot/`+tag` self-match and a disposable domain.
@@ -281,7 +280,6 @@ Ordered before the user-facing UI so creator codes exist for the Product Hunt la
 - Modify:
   - `middleware.ts`: on `/r/CODE`, set `aviary_attr` with `utm_source=referral|creator`, `utm_campaign=CODE`, `referral_code=CODE`
   - `app/account/page.tsx`: the Refer row replaces Invite a friend
-  - `src/components/onboarding/HeardFrom.tsx`: when "A friend" is picked, an optional code field calls `/api/referrals/apply`
   - `src/lib/analytics.ts`: `referral_link_shared {method}`
   - `app/sitemap.ts` excludes `/r/`
 
