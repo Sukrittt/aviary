@@ -26,8 +26,18 @@ function CodeForm() {
     }).catch(() => null)
     setPending(false)
     if (!res?.ok) {
-      track('sign_in_failed', { method: 'email', reason: res ? 'wrong_code' : 'network' })
-      setError('Wrong or expired code.')
+      // sign_in_failed: the code was right but we failed after WorkOS used it up.
+      // Any other 5xx failed before that, so the code still works.
+      const spent = res?.status === 503 && (await res.json().catch(() => null))?.error === 'sign_in_failed'
+      const ours = !!res && res.status >= 500
+      track('sign_in_failed', { method: 'email', reason: ours ? 'server' : res ? 'wrong_code' : 'network' })
+      setError(
+        spent
+          ? 'Something went wrong on our side. Send a new code and try again.'
+          : ours
+            ? "Couldn't check the code. Try again in a moment."
+            : 'Wrong or expired code.',
+      )
       setCode('')
       // New key on the boxes row replays the shake/drop on every failure.
       setAttempt((a) => a + 1)

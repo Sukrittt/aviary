@@ -5,7 +5,11 @@ import { SalaryBudget } from '@/src/components/content/SalaryBudget'
 export const metadata = pageMetadata('/tools/budget-for-1-lakh-salary')
 
 export default function Budget1LakhPage() {
-  return <SalaryBudget salary={100000} path="/tools/budget-for-1-lakh-salary" intro="A ₹1 lakh monthly salary should make money easy. For a lot of people it doesn’t, because spending rises to meet it. A budget at this level is less about cutting back and more about choosing on purpose.">
+  return <SalaryBudget salary={100000} path="/tools/budget-for-1-lakh-salary" faqs={[
+    { q: 'How much should I save from a ₹1 lakh salary?', a: 'At least ₹20,000 a month, which is 20%. Pay ₹20,000 in rent instead of ₹30,000 and you’d save ₹30,000 a month, or ₹3.6 lakh a year.' },
+    { q: 'How much rent can I afford on ₹1 lakh?', a: '₹25,000 is comfortable and ₹30,000 is a stretch, as long as rent and EMIs together stay within ₹40,000.' },
+    { q: 'How do I stop lifestyle creep on a ₹1 lakh salary?', a: 'Cap wants at a fixed number, ₹30,000 in this plan, and send each raise to savings instead of spending it. Give big goals like a home down payment their own categories so the money isn’t spent by accident.' },
+  ]} intro="A ₹1 lakh monthly salary should make money easy. For a lot of people it doesn’t, because spending rises to meet it. A budget at this level is less about cutting back and more about choosing on purpose.">
     <h2>Lifestyle creep is the real risk</h2>
     <p>Every raise brings a slightly nicer flat, a slightly better car, more dinners out. None of it feels like much. Then you’re earning ₹1 lakh and saving the same ₹5,000 you saved at ₹40,000. The plan above caps wants at ₹30,000. That’s generous, and it puts a ceiling on the creep.</p>
 

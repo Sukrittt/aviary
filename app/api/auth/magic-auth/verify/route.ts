@@ -59,23 +59,33 @@ export async function POST(req: Request) {
   // far better than the generic RN fetch user-agent string would.
   const userAgent = typeof device === 'string' && device ? device : req.headers.get('user-agent') ?? undefined
 
+  let authed
   try {
     const workos = getWorkOSClient().userManagement
     // WorkOS still issues the session: mint a real code and redeem it at once.
     const realCode = isReviewLogin(email, code) ? (await workos.createMagicAuth({ email })).code : code
-    const { user, accessToken, refreshToken } = await workos.authenticateWithMagicAuth({
+    authed = await workos.authenticateWithMagicAuth({
       clientId: process.env.WORKOS_CLIENT_ID!,
       email,
       code: realCode,
       userAgent,
     })
+  } catch {
+    return NextResponse.json({ error: 'invalid or expired code' }, { status: 401 })
+  }
+  const { user, accessToken, refreshToken } = authed
+
+  // WorkOS has consumed the code by now, so a failure here is ours, not a bad
+  // code: say so, or the user retries a code that can never work again.
+  try {
     // The app labels itself with `device`; an older build that predates the
     // attribution header is still an Android signup.
     await ensureUser(user, readAttribution(req, typeof device === 'string' && device ? 'android' : undefined), 'email')
     await saveSession({ accessToken, refreshToken, user }, req.url)
     scheduleWelcomeEmail(user.id)
-    return NextResponse.json(typeof device === 'string' && device.trim() ? { ok: true, accessToken, refreshToken } : { ok: true })
-  } catch {
-    return NextResponse.json({ error: 'invalid or expired code' }, { status: 401 })
+  } catch (err) {
+    console.error('magic-auth verify: sign-in failed after WorkOS accepted the code', err)
+    return NextResponse.json({ error: 'sign_in_failed' }, { status: 503 })
   }
+  return NextResponse.json(typeof device === 'string' && device.trim() ? { ok: true, accessToken, refreshToken } : { ok: true })
 }

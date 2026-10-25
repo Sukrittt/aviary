@@ -5,7 +5,11 @@ import { SalaryBudget } from '@/src/components/content/SalaryBudget'
 export const metadata = pageMetadata('/tools/budget-for-60000-salary')
 
 export default function Budget60kPage() {
-  return <SalaryBudget salary={60000} path="/tools/budget-for-60000-salary" intro="₹60,000 a month take-home is a solid salary almost anywhere in India. The challenge isn’t covering the basics. It’s making sure the extra actually builds something.">
+  return <SalaryBudget salary={60000} path="/tools/budget-for-60000-salary" faqs={[
+    { q: 'How much should I save from a ₹60,000 salary?', a: '₹12,000 a month, which is 20%. That’s ₹1.44 lakh a year before returns. If your rent is under ₹18,000, the difference goes to savings too.' },
+    { q: 'How big should my emergency fund be on ₹60,000?', a: 'Six months of essentials. Essentials on this plan are ₹30,000 a month, so that’s ₹1.8 lakh. With all ₹12,000 going there, it takes 15 months.' },
+    { q: 'How much rent can I afford on ₹60,000?', a: '₹15,000 is comfortable and ₹18,000 is a stretch. At ₹22,000 rent, wants drop to ₹14,000 and savings stay at ₹12,000.' },
+  ]} intro="₹60,000 a month take-home is a solid salary almost anywhere in India. The challenge isn’t covering the basics. It’s making sure the extra actually builds something.">
     <h2>Metro rent at ₹60k</h2>
     <p>The plan gives rent ₹18,000. In Bengaluru, Pune or Hyderabad that’s a decent 1BHK. In Mumbai it may not stretch that far. Say your rent is ₹22,000: type it in and wants drop from ₹18,000 to ₹14,000, while savings stay at ₹12,000. That’s still a comfortable month.</p>
 

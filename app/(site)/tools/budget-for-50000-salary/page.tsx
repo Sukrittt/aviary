@@ -5,7 +5,11 @@ import { SalaryBudget } from '@/src/components/content/SalaryBudget'
 export const metadata = pageMetadata('/tools/budget-for-50000-salary')
 
 export default function Budget50kPage() {
-  return <SalaryBudget salary={50000} path="/tools/budget-for-50000-salary" intro="₹50,000 a month take-home is comfortable in most Indian cities. You can rent your own place, eat out and still save. The trick is deciding how much goes where before the month starts.">
+  return <SalaryBudget salary={50000} path="/tools/budget-for-50000-salary" faqs={[
+    { q: 'How much should I save from a ₹50,000 salary?', a: '₹10,000 a month, which is 20%. If it all goes to the emergency fund first, a six-month fund of ₹1.5 lakh is built in 15 months. After that it’s ₹1.2 lakh a year into investments.' },
+    { q: 'How much rent can I afford on ₹50,000?', a: '₹12,500 is comfortable and ₹15,000 is a stretch. At ₹20,000 rent, wants drop to ₹10,000 and savings stay at ₹10,000.' },
+    { q: 'What is the 50/30/20 split of ₹50,000?', a: '₹25,000 for needs, ₹15,000 for wants and ₹10,000 for savings. In this plan, needs are ₹15,000 of rent plus ₹10,000 for groceries, bills and transport.' },
+  ]} intro="₹50,000 a month take-home is comfortable in most Indian cities. You can rent your own place, eat out and still save. The trick is deciding how much goes where before the month starts.">
     <h2>Rent: ₹15,000 is the line</h2>
     <p>The plan gives rent ₹15,000, which is 30% of take-home. The <Link href="/tools/rent-affordability-calculator">rent calculator</Link> calls ₹12,500 comfortable and ₹15,000 a stretch at this salary. Found a place for ₹20,000? Type it in. Wants drop from ₹15,000 to ₹10,000, and savings stay at ₹10,000. It still works, but there’s not much slack.</p>
 
