@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { saveSession } from '@workos-inc/authkit-nextjs'
 import { getWorkOSClient } from '@/lib/workosClient'
 import { ensureUser } from '@/lib/users'
+import { readAttribution } from '@/lib/attribution'
 import { scheduleWelcomeEmail } from '@/lib/email/welcome'
 import { readBody, EMAIL_RE } from '@/lib/http'
 import { isRateLimited, clientIp } from '@/lib/rateLimit'
@@ -77,7 +78,9 @@ export async function POST(req: Request) {
   // WorkOS has consumed the code by now, so a failure here is ours, not a bad
   // code: say so, or the user retries a code that can never work again.
   try {
-    await ensureUser(user)
+    // The app labels itself with `device`; an older build that predates the
+    // attribution header is still an Android signup.
+    await ensureUser(user, readAttribution(req, typeof device === 'string' && device ? 'android' : undefined), 'email')
     await saveSession({ accessToken, refreshToken, user }, req.url)
     scheduleWelcomeEmail(user.id)
   } catch (err) {

@@ -59,3 +59,10 @@ it('leaves no sign-in outcome when an account-link attempt fails its state check
   const res = await GET(new Request('https://example.com/api/auth/google/callback?code=abc&state=link:nonce'))
   expect(outcomeCookie(res)).toBeUndefined()
 })
+
+it('hands the landing cookie to the new account as a web signup', async () => {
+  const { ensureUser } = await import('@/lib/users')
+  authenticateWithCode.mockResolvedValue({ user: { id: 'u1' }, accessToken: 'a', refreshToken: 'r' })
+  await GET(new Request('https://example.com/api/auth/google/callback?code=abc&state=nonce', { headers: { cookie: 'aviary_attr=%7B%22utm_source%22%3A%22reddit%22%7D' } }))
+  expect(ensureUser).toHaveBeenLastCalledWith({ id: 'u1' }, { utm_source: 'reddit', platform: 'web' }, 'google')
+})
