@@ -60,9 +60,9 @@ function CodeForm() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email }),
-    })
-    if (res.ok) setResent(true)
-    else setError('Could not resend the code. Try again in a moment.')
+    }).catch(() => null)
+    if (res?.ok) setResent(true)
+    else setError(res ? "Couldn't resend the code. Try again in a moment." : "Couldn't resend the code. Check your connection and try again.")
   }
 
   return (
