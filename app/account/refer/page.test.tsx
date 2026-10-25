@@ -20,3 +20,13 @@ it('shows the code, the stats, and shares the link with the message', async () =
   await waitFor(() => expect(track).toHaveBeenCalledWith('referral_link_shared', { method: 'share' }))
   expect(share).toHaveBeenCalledWith({ text: expect.stringContaining('https://www.useaviary.com/r/K7QM4P') })
 })
+
+it('copies the share link, since a code on its own has nowhere to go', async () => {
+  const writeText = vi.fn(async () => {})
+  Object.assign(navigator, { clipboard: { writeText } })
+  render(<QueryClientProvider client={new QueryClient()}><ReferPage /></QueryClientProvider>)
+  await screen.findByText('K7QM4P')
+  fireEvent.click(screen.getByRole('button', { name: /Copy link/ }))
+  await waitFor(() => expect(writeText).toHaveBeenCalledWith('https://www.useaviary.com/r/K7QM4P'))
+  expect(track).toHaveBeenCalledWith('referral_link_shared', { method: 'copy' })
+})
