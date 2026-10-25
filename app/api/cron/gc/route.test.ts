@@ -76,6 +76,10 @@ describe('GET /api/cron/gc', () => {
     const [filter] = collectionDeleteMany('expenses').mock.calls[0]
     expect(filter.deleted_at.$ne).toBeNull()
     expect(typeof filter.deleted_at.$lt).toBe('string')
+    // Cutoff is a real UTC instant exactly GRACE_DAYS ago, no IST shift.
+    const ageMs = Date.now() - Date.parse(filter.deleted_at.$lt)
+    expect(ageMs).toBeGreaterThanOrEqual(7 * 24 * 60 * 60 * 1000)
+    expect(ageMs).toBeLessThan(7 * 24 * 60 * 60 * 1000 + 60 * 1000)
   })
 
   it('finishes an account deletion: removes the WorkOS user before the local row, then counts it', async () => {
