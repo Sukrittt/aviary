@@ -15,6 +15,8 @@ function CodeForm() {
   const [done, setDone] = useState(false)
   const [attempt, setAttempt] = useState(0)
   const [resent, setResent] = useState(false)
+  // One resend at a time, so a slow failure can't land after a later success.
+  const [resending, setResending] = useState(false)
 
   async function verifyCode(codeToVerify: string) {
     setPending(true)
@@ -54,15 +56,18 @@ function CodeForm() {
   }
 
   async function resend() {
+    if (resending) return
+    setResending(true)
     setResent(false)
     setError('')
     const res = await fetch('/api/auth/magic-auth/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email }),
-    })
-    if (res.ok) setResent(true)
-    else setError('Could not resend the code. Try again in a moment.')
+    }).catch(() => null)
+    setResending(false)
+    if (res?.ok) setResent(true)
+    else setError(res ? "Couldn't resend the code. Try again in a moment." : "Couldn't resend the code. Check your connection and try again.")
   }
 
   return (
@@ -138,7 +143,7 @@ function CodeForm() {
         ) : (
           <>
             {error ? <div className="auth-field-error" role="alert">{error}</div> : null}
-            <button type="button" className="auth-resend" onClick={resend}>
+            <button type="button" className="auth-resend" onClick={resend} disabled={resending}>
               {resent ? 'Code resent.' : "Didn't get it? Resend code"}
             </button>
             <button type="submit" className="auth-btn auth-btn--primary" disabled={pending || code.length < 6}>

@@ -1,6 +1,6 @@
 /**
  * Referrals: every user gets a short code; a new account that arrives with
- * one (link, install referrer, or typed in during its first 7 days) is
+ * one (the /r/CODE link or the Play install referrer, at signup only) is
  * "pending" until it's activated (setup finished plus expenses logged on 3
  * different days within 30 days of signup). Then both sides get their months
  * of Pro through lib/billing/reward.ts. Creator codes are the same thing made

@@ -25,16 +25,16 @@ export default function ReferPage() {
       }
       return
     }
-    await copy(text, 'link')
+    await copy(text)
   }
 
-  async function copy(text: string, what: 'link' | 'code') {
+  async function copy(text: string) {
     try {
       await navigator.clipboard.writeText(text)
     } catch {
       return
     }
-    track('referral_link_shared', { method: what === 'code' ? 'copy_code' : 'copy' })
+    track('referral_link_shared', { method: 'copy' })
     setCopied((n) => n + 1)
   }
 
@@ -54,8 +54,9 @@ export default function ReferPage() {
           <button type="button" className="auth-btn auth-btn--primary" onClick={share} disabled={!data}>
             <ShareNetworkIcon size={18} aria-hidden="true" /> Share link
           </button>
-          <button type="button" className="auth-btn auth-btn--outline" onClick={() => data && copy(data.code, 'code')} disabled={!data}>
-            <CopyIcon size={18} aria-hidden="true" /> Copy code
+          {/* The link, not the code: a code can't be typed in anywhere, it only works inside /r/CODE. */}
+          <button type="button" className="auth-btn auth-btn--outline" onClick={() => data && copy(data.link)} disabled={!data}>
+            <CopyIcon size={18} aria-hidden="true" /> Copy link
           </button>
         </div>
         {data && (
