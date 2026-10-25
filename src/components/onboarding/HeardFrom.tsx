@@ -1,9 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { getReferrals } from '@/src/api/referrals'
-import { ReferralCodeEntry } from '@/src/components/ReferralCodeEntry'
 import { useUpdateUser } from '@/src/hooks/useUser'
 import { track } from '@/src/lib/analytics'
 import type { HeardFrom as Source } from '@/lib/users'
@@ -25,8 +22,6 @@ export function HeardFrom({ onDone }: { onDone: () => void }) {
   const updateUser = useUpdateUser()
   const [picked, setPicked] = useState<Source | null>(null)
   const [saving, setSaving] = useState(false)
-  // Someone who came through a friend's link already has the code; only ask the rest.
-  const referrals = useQuery({ queryKey: ['referrals'], queryFn: getReferrals, enabled: picked === 'friend', retry: false })
 
   async function finish() {
     if (saving) return
@@ -55,7 +50,6 @@ export function HeardFrom({ onDone }: { onDone: () => void }) {
           </button>
         ))}
       </div>
-      {picked === 'friend' && referrals.data?.canEnterCode && <ReferralCodeEntry />}
       <button type="button" className="setup-cta" onClick={finish} disabled={saving}>
         {saving ? 'Saving…' : picked ? 'Start budgeting' : 'Skip for now'}
       </button>

@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { CheckIcon, CopyIcon, ShareNetworkIcon } from '@/src/components/icons'
 import { getReferrals, shareMessage } from '@/src/api/referrals'
-import { ReferralCodeEntry } from '@/src/components/ReferralCodeEntry'
 import { Toast } from '@/src/components/Toast'
 import { track } from '@/src/lib/analytics'
 
@@ -46,7 +45,7 @@ export default function ReferPage() {
         <p className="account-help-copy">
           Share your link. When a friend sets up Aviary and logs expenses on three different days, you both get a month of Pro.
         </p>
-        {q.isError && <p className="referral-entry-msg is-error">Couldn&apos;t load your code. Check your connection and try again.</p>}
+        {q.isError && <p className="referral-error">Couldn&apos;t load your code. Check your connection and try again.</p>}
         <div className="referral-code" aria-busy={!data}>
           <span className="adm-muted referral-code-label">Your code</span>
           <strong className="referral-code-value">{data?.code ?? '······'}</strong>
@@ -66,11 +65,6 @@ export default function ReferPage() {
         )}
         <p className="referral-fine">You can earn up to 3 months each calendar month. On a paid web plan, the free month is added after your current paid period.</p>
       </div>
-      {data?.canEnterCode && (
-        <div className="account-card referral-hero">
-          <ReferralCodeEntry />
-        </div>
-      )}
       {data?.referredBy && <p className="referral-fine">You joined with code {data.referredBy}.</p>}
       <Toast trigger={copied} message="Copied" icon={CheckIcon} />
     </div>

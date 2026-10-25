@@ -15284,49 +15284,10 @@ button.account-feature-card {
   text-align: center;
 }
 
-.referral-entry {
-  display: grid;
-  gap: 8px;
-  width: 100%;
-  max-width: 360px;
-  margin: 0 auto;
-}
-
-.referral-entry-label {
-  font-weight: 600;
-  color: var(--erd-text);
-}
-
-.referral-entry-row {
-  display: flex;
-  gap: 8px;
-}
-
-.referral-entry-input {
-  flex: 1;
-  min-width: 0;
-  padding: 10px 14px;
-  border-radius: 12px;
-  border: 1px solid var(--erd-border-strong);
-  background: var(--erd-input-bg);
-  color: var(--erd-text);
-  font-size: 16px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-}
-
-.referral-entry-msg {
+.referral-error {
   margin: 0;
   font-size: 13px;
-}
-
-.referral-entry-msg.is-error {
   color: var(--tk-warn-ink);
-}
-
-.referral-entry-msg.is-ok {
-  color: var(--erd-text);
-  text-align: center;
 }
 
 .referral-landing-code {
