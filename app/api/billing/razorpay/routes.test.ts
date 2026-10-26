@@ -97,6 +97,13 @@ describe('POST /api/billing/razorpay/subscribe', () => {
     expect((await subscribe(post({ period: 'monthly' }))).status).toBe(200)
   })
 
+  it('starts charging when a gift ends, so a free month isn\'t lost by buying early', async () => {
+    const paidExpiresAt = new Date(Date.now() + 20 * 24 * 60 * 60 * 1000).toISOString()
+    getAccessMock.mockResolvedValueOnce({ mode: 'paid', gifted: true, store: null, paidExpiresAt })
+    expect((await subscribe(post({ period: 'monthly' }))).status).toBe(200)
+    expect(createMock).toHaveBeenLastCalledWith('plan_month', 'monthly', 'user_a', new Date(paidExpiresAt))
+  })
+
   it('is unavailable when web checkout is not configured', async () => {
     vi.stubEnv('RAZORPAY_KEY_ID', '')
     expect((await subscribe(post({ period: 'monthly' }))).status).toBe(503)

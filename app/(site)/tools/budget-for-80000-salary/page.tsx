@@ -5,7 +5,11 @@ import { SalaryBudget } from '@/src/components/content/SalaryBudget'
 export const metadata = pageMetadata('/tools/budget-for-80000-salary')
 
 export default function Budget80kPage() {
-  return <SalaryBudget salary={80000} path="/tools/budget-for-80000-salary" intro="At ₹80,000 a month take-home, the basics are covered and there’s real money left over. What you do with it decides whether you’re building something or just spending more.">
+  return <SalaryBudget salary={80000} path="/tools/budget-for-80000-salary" faqs={[
+    { q: 'How much should I save from an ₹80,000 salary?', a: 'At least ₹16,000 a month, which is 20%. That’s ₹1.92 lakh a year before returns. Pay less than ₹24,000 in rent and the difference goes to savings too.' },
+    { q: 'How much rent can I afford on ₹80,000?', a: '₹20,000 is comfortable and ₹24,000 is a stretch. At ₹28,000 rent, wants drop to ₹20,000 and savings stay at ₹16,000.' },
+    { q: 'How big should my emergency fund be on ₹80,000?', a: 'Six months of essentials, which is ₹2.4 lakh on this plan. At ₹16,000 a month that takes 15 months.' },
+  ]} intro="At ₹80,000 a month take-home, the basics are covered and there’s real money left over. What you do with it decides whether you’re building something or just spending more.">
     <h2>Metro rent at ₹80k</h2>
     <p>The plan sets rent at ₹24,000. In most big cities that’s a good 1BHK. In Mumbai it may not stretch as far. If yours is ₹28,000, type it in. Wants drop from ₹24,000 to ₹20,000, and savings stay at ₹16,000.</p>
     <p>Paying less, say ₹20,000? The ₹4,000 you save on rent goes to savings, not wants. You’d put away ₹20,000 a month.</p>

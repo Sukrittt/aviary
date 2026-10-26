@@ -15,6 +15,7 @@ import { join } from 'node:path'
 
 /** Routes with no subscription gate, and why each one stays reachable. */
 const OPEN: Record<string, string> = {
+  'referrals/me': 'Referring earns free months, so a lapsed account must still see its code and link.',
   // Server-to-server. No user session at all; each does its own secret check.
   'cron/billing': 'cron, CRON_SECRET',
   'cron/gc': 'cron, CRON_SECRET',

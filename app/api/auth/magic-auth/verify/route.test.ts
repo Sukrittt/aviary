@@ -41,3 +41,28 @@ it.each([
  expect(createMagicAuth).not.toHaveBeenCalled()
  expect(authenticateWithMagicAuth).toHaveBeenCalledWith(expect.objectContaining({code:body.code}))
 })
+
+it('marks a code sign-in from the app as an Android signup, with its install referrer', async () => {
+ const { ensureUser } = await import('@/lib/users')
+ await verify({email:'a@example.com',code:'123456',device:'Pixel 8'})
+ expect(ensureUser).toHaveBeenLastCalledWith({id:'user_test'}, {platform:'android'}, 'email')
+ await POST(new Request('https://example.com/api/auth/magic-auth/verify',{method:'POST',headers:{'x-aviary-attribution':'{"utm_source":"reddit"}'},body:JSON.stringify({email:'a@example.com',code:'123456',device:'Pixel 8'})}))
+ expect(ensureUser).toHaveBeenLastCalledWith({id:'user_test'}, {utm_source:'reddit',platform:'android'}, 'email')
+})
+
+it('keeps a rejected code a 401', async () => {
+ authenticateWithMagicAuth.mockRejectedValueOnce(new Error('invalid code'))
+ const response = await verify({email:'a@example.com',code:'000000'})
+ expect(response.status).toBe(401)
+ expect(await response.json()).toEqual({error:'invalid or expired code'})
+})
+
+it('does not blame the code when our side fails after WorkOS accepted it', async () => {
+ const {ensureUser} = await import('@/lib/users')
+ vi.mocked(ensureUser).mockRejectedValueOnce(new Error('mongo down'))
+ vi.spyOn(console, 'error').mockImplementation(() => {})
+ const response = await verify({email:'a@example.com',code:'123456'})
+ expect(response.status).toBe(503)
+ expect(await response.json()).toEqual({error:'sign_in_failed'})
+ expect(console.error).toHaveBeenCalled()
+})

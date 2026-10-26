@@ -48,9 +48,10 @@ export function addMonthsUtc(date: Date, months: number): Date {
   )
 }
 
-/** When continuous access last ended: the later of the trial's end and any purchase's paid-through date. */
-export function accessEndedAt(account: Pick<BillingAccountDoc, 'trialEndsAt'>, subs: Pick<BillingSubscriptionDoc, 'expiresAt'>[]): Date {
-  return subs.reduce((end, s) => (s.expiresAt && s.expiresAt > end ? s.expiresAt : end), account.trialEndsAt)
+/** When continuous access last ended: the latest of the trial's end, a gift's end, and any purchase's paid-through date. */
+export function accessEndedAt(account: Pick<BillingAccountDoc, 'trialEndsAt' | 'comp'>, subs: Pick<BillingSubscriptionDoc, 'expiresAt'>[]): Date {
+  const start = account.comp && account.comp.until > account.trialEndsAt ? account.comp.until : account.trialEndsAt
+  return subs.reduce((end, s) => (s.expiresAt && s.expiresAt > end ? s.expiresAt : end), start)
 }
 
 const plural = (n: number) => `${n} day${n === 1 ? '' : 's'}`

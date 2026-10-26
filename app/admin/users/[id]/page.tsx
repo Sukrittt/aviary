@@ -1,4 +1,5 @@
 import { pageMetadata } from '@/lib/seo'
+import { sourceOf } from '@/lib/attribution'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { CURRENCIES, resolveCurrency } from '@/src/lib/currencies'
@@ -84,6 +85,8 @@ export default async function AdminUserDetail({ params }: { params: Promise<{ id
             <dd>{user.emailVerified === false ? 'No' : 'Yes'}</dd>
             <dt>Joined</dt>
             <dd>{fmtDateTime(user.createdAt)}</dd>
+            <dt>Came from</dt>
+            <dd>{user.signupSource ? <>{sourceOf(user.signupSource)} <span className="adm-muted">{[user.signupSource.platform, user.signupSource.utm_medium, user.signupSource.utm_campaign, user.signupSource.referral_code, user.signupSource.landing_path].filter(Boolean).join(' · ')}</span></> : <span className="adm-muted">Not recorded</span>}</dd>
             <dt>Last active</dt>
             <dd>
               {timeAgo(user.lastSeenAt)} <span className="adm-muted">{fmtDateTime(user.lastSeenAt)}</span>

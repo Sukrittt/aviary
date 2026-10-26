@@ -7,7 +7,7 @@ import { BillingProviderError } from '@/lib/billing/providerError'
 import { createPayPalSubscription, paypalConfig } from '@/lib/billing/paypal'
 import { checkoutProviderFor } from '@/lib/billing/prices'
 import type { PlanPeriod } from '@/lib/billing/razorpay'
-import { defersFirstCharge } from '@/src/components/billing/copy'
+import { defersFirstCharge, freeUntil } from '@/src/components/billing/copy'
 
 export const dynamic = 'force-dynamic'
 
@@ -44,7 +44,8 @@ export async function POST(req: Request) {
     return json({ error: 'already_subscribed', store: access.store, paidExpiresAt: access.paidExpiresAt }, { status: 409 })
   }
 
-  const startAt = access.mode === 'trial' && access.trialEndsAt && defersFirstCharge(access.trialEndsAt) ? new Date(access.trialEndsAt) : null
+  const free = freeUntil(access)
+  const startAt = free && defersFirstCharge(free) ? new Date(free) : null
   const origin = new URL(req.url).origin
 
   try {

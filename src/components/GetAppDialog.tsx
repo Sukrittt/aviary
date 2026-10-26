@@ -3,7 +3,7 @@
 import { DeviceMobileIcon } from '@/src/components/icons'
 import { Scrim, Sheet } from './MotionSheet'
 import { IosWaitlist } from './landing/IosWaitlist'
-import { PLAY_STORE_URL } from './billing/copy'
+import { GET_ANDROID_URL } from './billing/copy'
 import { track } from '../lib/analytics'
 
 /** Where the web app sends people for the phone app: Google Play, or the iPhone waitlist. Render inside <AnimatePresence>. */
@@ -15,7 +15,7 @@ export function GetAppDialog({ email, onClose }: { email?: string; onClose: () =
         <h3 className="archive-confirm-title">Get the app</h3>
         <p className="account-row-meta">Alerts, the home-screen widget and Wrapped all live in the phone app.</p>
         <div className="archive-confirm-actions">
-          <a className="action-button get-app-play" href={PLAY_STORE_URL} target="_blank" rel="noreferrer"
+          <a className="action-button get-app-play" href={GET_ANDROID_URL} target="_blank" rel="noreferrer"
             onClick={() => track('store_cta_clicked', { placement: 'account_notifications' })}>
             <DeviceMobileIcon size={16} aria-hidden="true" />Open Google Play
           </a>

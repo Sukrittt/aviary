@@ -12,7 +12,7 @@ it('schedules welcome delivery after Mobile’s first authenticated user creatio
   vi.mocked(getAuth).mockResolvedValue({ userId: 'user_mobile', readOnly: false, sessionId: null, spaceId: 'user_mobile', spaceOwnerId: 'user_mobile', spaceRole: 'owner' as const })
   const response = await GET(new Request('https://example.com/api/auth/verify'))
   expect(await response.json()).toEqual({ ok: true, userId: 'user_mobile' })
-  expect(ensureUserById).toHaveBeenCalledWith('user_mobile')
+  expect(ensureUserById).toHaveBeenCalledWith('user_mobile', expect.objectContaining({ platform: expect.any(String) }))
   expect(scheduleWelcomeEmail).toHaveBeenCalledWith('user_mobile')
 })
 

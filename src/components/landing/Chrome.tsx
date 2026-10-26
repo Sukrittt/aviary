@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { BirdMark } from '../BirdMark'
 import { TrackedLink } from '../TrackedLink'
-import { PLAY_STORE_URL } from '../billing/copy'
+import { GET_ANDROID_URL } from '../billing/copy'
 import { FEEDBACK_BOARD_PATH } from '@/lib/links'
 import { CONTENT_SECTIONS } from '@/lib/content'
 
@@ -21,14 +21,14 @@ export function LandingHeader({ base = '', faq = `${base}#faq`, ios = false }: {
       <Link href="/sign-in" className="lp-header-signin">Sign in</Link>
       {ios
         ? <a className="lp-header-cta" href={`${base}#top`}>Join waitlist</a>
-        : <TrackedLink className="lp-header-cta" href={PLAY_STORE_URL} event="store_cta_clicked" properties={{ placement: 'header' }}>Get the app</TrackedLink>}
+        : <TrackedLink className="lp-header-cta" href={GET_ANDROID_URL} event="store_cta_clicked" properties={{ placement: 'header' }}>Get the app</TrackedLink>}
     </div>
   </div></header>
 }
 
 export function LandingFooter({ base = '', faq = `${base}#faq` }: { base?: string; faq?: string }) {
   return <footer className="lp-footer"><div><a href={base || '#top'} className="lp-logo"><BirdMark size={26} perched /><span>Aviary<b aria-hidden="true">.</b></span></a><p>Learns your spending. Never touches your bank.</p></div><nav aria-label="Footer">
-    <div><h2>Product</h2><a href={PLAY_STORE_URL}>Android app</a><Link href="/expense">Web app</Link><a href={`${base}#get`}>iPhone waitlist</a><Link href="/legal/pricing">Pricing</Link></div>
+    <div><h2>Product</h2><a href={GET_ANDROID_URL}>Android app</a><Link href="/expense">Web app</Link><a href={`${base}#get`}>iPhone waitlist</a><Link href="/legal/pricing">Pricing</Link></div>
     <div><h2>Learn</h2><Link href="/help">Help</Link><a href={faq}>FAQ</a><Link href="/changelog">Changelog</Link><Link href="/blog">Blog</Link></div>
     {Object.values(CONTENT_SECTIONS).filter((section) => section.pages.length).map((section) => <div key={section.path}><h2><Link href={section.path}>{section.label}</Link></h2>{section.pages.map(([href, label]) => <Link key={href} href={href}>{label}</Link>)}</div>)}
     <div><h2>Community</h2><Link href={FEEDBACK_BOARD_PATH}>Feedback board</Link><a href={GITHUB}>GitHub</a><Link href="/legal/contact">Contact</Link></div>

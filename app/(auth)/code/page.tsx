@@ -15,6 +15,8 @@ function CodeForm() {
   const [done, setDone] = useState(false)
   const [attempt, setAttempt] = useState(0)
   const [resent, setResent] = useState(false)
+  // One resend at a time, so a slow failure can't land after a later success.
+  const [resending, setResending] = useState(false)
 
   async function verifyCode(codeToVerify: string) {
     setPending(true)
@@ -26,8 +28,18 @@ function CodeForm() {
     }).catch(() => null)
     setPending(false)
     if (!res?.ok) {
-      track('sign_in_failed', { method: 'email', reason: res ? 'wrong_code' : 'network' })
-      setError('Wrong or expired code.')
+      // sign_in_failed: the code was right but we failed after WorkOS used it up.
+      // Any other 5xx failed before that, so the code still works.
+      const spent = res?.status === 503 && (await res.json().catch(() => null))?.error === 'sign_in_failed'
+      const ours = !!res && res.status >= 500
+      track('sign_in_failed', { method: 'email', reason: ours ? 'server' : res ? 'wrong_code' : 'network' })
+      setError(
+        spent
+          ? 'Something went wrong on our side. Send a new code and try again.'
+          : ours
+            ? "Couldn't check the code. Try again in a moment."
+            : 'Wrong or expired code.',
+      )
       setCode('')
       // New key on the boxes row replays the shake/drop on every failure.
       setAttempt((a) => a + 1)
@@ -44,15 +56,18 @@ function CodeForm() {
   }
 
   async function resend() {
+    if (resending) return
+    setResending(true)
     setResent(false)
     setError('')
     const res = await fetch('/api/auth/magic-auth/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email }),
-    })
-    if (res.ok) setResent(true)
-    else setError('Could not resend the code. Try again in a moment.')
+    }).catch(() => null)
+    setResending(false)
+    if (res?.ok) setResent(true)
+    else setError(res ? "Couldn't resend the code. Try again in a moment." : "Couldn't resend the code. Check your connection and try again.")
   }
 
   return (
@@ -128,7 +143,7 @@ function CodeForm() {
         ) : (
           <>
             {error ? <div className="auth-field-error" role="alert">{error}</div> : null}
-            <button type="button" className="auth-resend" onClick={resend}>
+            <button type="button" className="auth-resend" onClick={resend} disabled={resending}>
               {resent ? 'Code resent.' : "Didn't get it? Resend code"}
             </button>
             <button type="submit" className="auth-btn auth-btn--primary" disabled={pending || code.length < 6}>
