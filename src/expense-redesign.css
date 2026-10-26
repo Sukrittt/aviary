@@ -913,6 +913,86 @@
   font-weight: 500;
   color: var(--erd-text2);
 }
+/* Weekly pacing (src/lib/weekly.ts). The track clips, so the tick sits on a
+   wrapper and can stand taller than the bar: "where you should be by today".
+   Global tokens (--tk-*), not --erd-*: the week list renders in the row menu,
+   which is portaled outside .expense-redesign. */
+.env2-bar-wrap {
+  position: relative;
+  display: block;
+}
+.env2-tick {
+  position: absolute;
+  top: -4px;
+  width: 4px;
+  height: 13px;
+  margin-left: -2px;
+  border-radius: 2px;
+  background: var(--tk-text);
+  border: 1px solid var(--tk-card-solid);
+}
+.env2-pace {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.env2-pace.is-over > span:first-child { color: var(--tk-pill-over); }
+.env2-reset { color: var(--tk-text); white-space: nowrap; }
+.env2-weeks {
+  display: grid;
+  gap: 2px;
+  padding: 6px 10px 10px;
+  min-width: 300px;
+}
+.env2-weeks-month {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--tk-text2);
+  margin-bottom: 4px;
+}
+.env2-week {
+  display: grid;
+  grid-template-columns: 72px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--tk-text2);
+}
+.env2-week.is-now { color: var(--tk-text); font-weight: 600; }
+.env2-week .env-bar-track {
+  display: block;
+  height: 5px;
+  border-radius: 100px;
+  background: var(--tk-border-strong);
+  overflow: hidden;
+}
+.env2-week .env-bar-fill { height: 100%; border-radius: 100px; }
+.env2-week .env-bar-fill.is-mint { background: var(--tk-mint); }
+.env2-week .env-bar-fill.is-warn { background: var(--tk-warn); }
+.env2-week .env-bar-fill.is-coral { background: var(--tk-coral); }
+.env2-week .env2-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  justify-self: end;
+}
+.env2-week .env2-pill.is-good { color: var(--tk-pill-good); background: var(--tk-pill-good-bg); }
+.env2-week .env2-pill.is-low { color: var(--tk-pill-low); background: var(--tk-pill-low-bg); }
+.env2-week .env2-pill.is-over { color: var(--tk-pill-over); background: var(--tk-pill-over-bg); }
+.env2-weeks-note {
+  margin: 6px 0 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--tk-text2);
+  background: var(--tk-chip-active-bg);
+  max-width: 300px;
+}
 .env2-available {
   /* Fixed width so every row's bar ends at the same x, whatever the amount. */
   flex: 0 0 104px;
@@ -12005,6 +12085,11 @@ button.account-feature-card {
   font-weight: 500;
 }
 .expense-redesign .home-leftover-notice p { flex: 1; margin: 0; color: var(--erd-text); }
+/* Monday's weekly recap: the rollover strip with a title and one short line. */
+.expense-redesign .home-weekly-recap-text { flex: 1; display: grid; gap: 2px; color: var(--erd-text); }
+.expense-redesign .home-weekly-recap-text > span { font-size: 13px; color: var(--erd-text2); }
+.expense-redesign .home-weekly-recap.is-calm { background: var(--erd-card); border-color: var(--erd-border); }
+.expense-redesign .home-weekly-recap.is-calm button { color: var(--accent-ink, var(--erd-text)); }
 .expense-redesign .home-leftover-notice button {
   border: 0;
   background: transparent;
