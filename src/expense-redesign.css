@@ -11811,8 +11811,7 @@ button.account-feature-card {
   margin-top: 16px;
   padding: 6px 14px;
   border-radius: 999px;
-  background: var(--mint-soft);
-  color: var(--erd-text);
+  /* Background and text come from tokens.successBg / onSuccess inline, like Mobile. */
   font: 600 14px/1.3 var(--font-body);
   text-align: center;
 }

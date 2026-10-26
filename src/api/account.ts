@@ -12,6 +12,8 @@ import type { HeardFrom } from '@/lib/users'
 
 export interface UserProfile {
   _id?: string
+  /** A phone of theirs is registered for push, so habit nudges can reach them. Only on GET. */
+  hasPhonePush?: boolean
   currencyCode?: string
   email: string
   emailVerified: boolean

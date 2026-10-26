@@ -2,6 +2,7 @@ import { isCurrencyCode } from '@/src/lib/currencies'
 import { json, error, readBody, isValidTimezone } from '@/lib/http'
 import { getAuth } from '@/lib/access'
 import { getDb } from '@/lib/mongodb'
+import { COLLECTIONS } from '@/lib/models'
 import { getWorkOSClient } from '@/lib/workosClient'
 import { ensureUserById, serializeUser, HIDEABLE_FEATURES, HEARD_FROM_SOURCES, type HideableFeature, type UserDoc } from '@/lib/users'
 import { readAttribution } from '@/lib/attribution'
@@ -48,7 +49,12 @@ export async function GET(req: Request) {
     scheduleWelcomeEmail(auth.userId)
     user = await users.findOne({ _id: auth.userId })
   }
-  return json(await forActiveBudget(auth, user))
+  const profile = await forActiveBudget(auth, user)
+  if (!profile) return json(profile)
+  // Habit nudges are scheduled on the phone, so Web only promises one when a
+  // phone of theirs can receive push (a token is only sent once it's allowed).
+  const hasPhonePush = (await db.collection(COLLECTIONS.pushTokens).countDocuments({ user_id: auth.userId }, { limit: 1 })) > 0
+  return json({ ...profile, hasPhonePush })
 }
 
 export async function PATCH(req: Request) {
