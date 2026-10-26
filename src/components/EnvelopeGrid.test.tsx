@@ -200,7 +200,7 @@ describe('EnvelopeGrid weekly pacing', () => {
     await user.click(screen.getByRole('button', { name: /Groceries/ }))
     expect(await screen.findByText('Week 1')).toBeInTheDocument()
     expect(screen.getByText('This week')).toBeInTheDocument()
-    await user.click(screen.getByRole('menuitemcheckbox', { name: 'Track weekly' }))
+    await user.click(screen.getByRole('menuitemcheckbox', { name: /Track weekly/ }))
     expect(onToggleWeekly).toHaveBeenCalledWith('Groceries', false)
   })
 })
