@@ -37,6 +37,9 @@ export type AppEvent =
   | 'statement_read'
   | 'statement_logged'
   | 'fresh_start_logged'
+  // Weekly pacing: a category's switch flipped ({ on }), and Monday's recap card shown ({ under, total }).
+  | 'weekly_pacing_toggled'
+  | 'weekly_recap_shown'
   // Sign-in. `method` is 'google' or 'email'; `reason` is a fixed slug, never
   // the raw error text.
   | 'sign_in_started'
@@ -143,6 +146,8 @@ export type AppEvent =
   | 'waitlist_joined'
   // Web only: the salary planner's "Email me this plan" form was sent.
   | 'plan_emailed'
+  // Web only: the "get your split by email" line (LeadPitch) on landing and content pages.
+  | 'lead_pitch_clicked'
 
 export type EventProperties = Record<string, string | number | boolean>
 

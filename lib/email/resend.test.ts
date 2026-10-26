@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { EmailSendError, sendEmail, type EmailMessage } from './resend'
+import { EmailSendError, emailFrom, sendEmail, type EmailMessage } from './resend'
 
 const message: EmailMessage = { from: 'Aviary <hello@useaviary.com>', to: ['person@example.com'], subject: 'Welcome', html: '<p>Hello</p>', text: 'Hello' }
 const fetchMock = vi.fn()
@@ -28,4 +28,11 @@ it('does not attempt an unauthenticated request', async () => {
   vi.stubEnv('RESEND_API_KEY', '')
   await expect(sendEmail(message, 'welcome/test')).rejects.toBeInstanceOf(EmailSendError)
   expect(fetchMock).not.toHaveBeenCalled()
+})
+
+it('sends from Sukrit by default, and RESEND_FROM_EMAIL wins when set', () => {
+  vi.stubEnv('RESEND_FROM_EMAIL', '')
+  expect(emailFrom()).toBe('Sukrit from Aviary <hello@useaviary.com>')
+  vi.stubEnv('RESEND_FROM_EMAIL', 'Aviary <team@useaviary.com>')
+  expect(emailFrom()).toBe('Aviary <team@useaviary.com>')
 })

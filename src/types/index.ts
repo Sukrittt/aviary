@@ -90,6 +90,8 @@ export interface CategoryRow {
   alertPcts?: number[]
   /** First month (YYYY-MM) of a re-created category; earlier months leave it out. */
   since?: string
+  /** Day (YYYY-MM-DD) weekly pacing was switched on. Absent means off. */
+  weeklySince?: string
 }
 
 export interface CategoryMap {

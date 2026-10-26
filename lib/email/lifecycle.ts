@@ -7,7 +7,7 @@ import { getAccess } from '@/lib/billing/service'
 import { getPlanPrices } from '@/lib/billing/razorpay'
 import { getSystemSettings } from '@/lib/systemSettings'
 import { formatPrice } from '@/src/components/billing/copy'
-import type { EmailMessage } from './resend'
+import { emailFrom, type EmailMessage } from './resend'
 import { SUPPORT_EMAIL } from './transactionalTemplate'
 import { EMAIL_OUTBOX, LEADS, sendOutbox, type LeadDoc, type OutboxEmail } from './outbox'
 import { EVERGREEN, nextLeadStep, nextUserStep, type LeadStep } from './lifecycleSteps'
@@ -23,15 +23,8 @@ import { confirmUrl, preferencesUrl, unsubscribeHeaders } from './links'
 
 const DAY = 86_400_000
 
-/** "Sukrit from Aviary <hello@…>": same address as every other email, a person's name on it. */
-function lifecycleFrom(): string {
-  const from = process.env.RESEND_FROM_EMAIL?.trim() || 'Aviary <hello@useaviary.com>'
-  const address = from.match(/<([^>]+)>/)?.[1] ?? from
-  return `Sukrit from Aviary <${address}>`
-}
-
 function message(to: string, content: { subject: string; html: string; text: string }, headers?: Record<string, string>): EmailMessage {
-  return { from: lifecycleFrom(), to: [to], reply_to: process.env.RESEND_REPLY_TO?.trim() || SUPPORT_EMAIL, ...content, ...(headers && { headers }) }
+  return { from: emailFrom(), to: [to], reply_to: process.env.RESEND_REPLY_TO?.trim() || SUPPORT_EMAIL, ...content, ...(headers && { headers }) }
 }
 
 async function queue(db: Db, { _id, ...row }: Omit<OutboxEmail, 'delivery' | 'kind'>, msg: EmailMessage, now: Date) {
@@ -115,7 +108,7 @@ export async function prepareLifecycleEmails(db: Db, now: Date, limit: number): 
   for (const lead of leads) {
     if (accounts.has(lead.email)) continue
     const { sent, lastAt } = past(`lead:${lead._id}`)
-    const step = nextLeadStep({ now, createdAt: lead.createdAt, confirmed: true, optedOut: false, sent, lastAt })
+    const step = nextLeadStep({ now, createdAt: lead.createdAt, confirmed: true, optedOut: false, sent, lastAt, intl: lead.plan?.intl })
     if (!step) continue
     due.push({ priority: isTip(step) ? 2 : 1, build: () => queueLead(db, lead, step, sent, now) })
   }
@@ -145,7 +138,7 @@ function inboxKey(email: string): string {
 export const leadId = (email: string) => createHash('sha256').update(inboxKey(email.trim().toLowerCase())).digest('hex').slice(0, 32)
 
 /**
- * Record a salary-planner lead and queue the plan they asked for. At most one
+ * Record a salary or paycheck planner lead and queue the plan they asked for. At most one
  * plan email per address per day, so the public form can't be used to flood
  * someone. Nothing else follows until they click the link inside it.
  */

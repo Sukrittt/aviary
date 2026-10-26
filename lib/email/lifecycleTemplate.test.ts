@@ -21,6 +21,14 @@ describe('lifecycle copy', () => {
     }
   })
 
+  it('sends a paycheck-planner lead its split with no rupees and nothing India-only', () => {
+    const plan = { salary: 4000, rows: [['Rent', 1200], ['Groceries', 400]] as [string, number][], intl: true }
+    const emails = (['plan', 'lead-d3', 'lead-d7'] as const).map(step => leadEmail(step, { plan, firstTip: false, confirmUrl: 'c', unsubscribeUrl: 'u' }))
+    expect(emails[0].subject).toBe('Your 4,000 paycheck split')
+    expect(emails[0].text).toContain('1,200')
+    for (const { subject, text, html } of emails) expect(subject + text + html).not.toMatch(/₹|rupee|UPI|Diwali|swiggy/i)
+  })
+
   it('counts the week’s spends and changes the main link with the reader’s plan', () => {
     expect(userEmail('trial-d7', { ...ctx, spends: 1 }).text).toContain('You’ve logged 1 spend so far')
     expect(userEmail(EVERGREEN[0], { ...ctx, mode: 'expired' }).text).toContain('Pick a plan: https://useaviary.com/account?')

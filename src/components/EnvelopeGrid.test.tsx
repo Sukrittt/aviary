@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { EnvelopeGrid } from './EnvelopeGrid'
 import { avatarStyleFor } from '../lib/emoji'
+import { weekPace } from '../lib/weekly'
 vi.mock('../hooks/useCategories', () => ({ useCategoryStyle: () => (name: string) => avatarStyleFor(name), useCategoryColors: () => new Map() }))
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }))
@@ -163,5 +164,43 @@ describe('EnvelopeGrid carry', () => {
     expect(await screen.findByText('₹550 short from October')).toBeInTheDocument()
     // Nothing carried, nothing to explain.
     expect(screen.getByLabelText('₹750').closest('[tabindex]')).toBeNull()
+  })
+})
+
+describe('EnvelopeGrid weekly pacing', () => {
+  // Groceries in October 2026, checked on Thursday the 29th.
+  const days = new Array(31).fill(0)
+  days[0] = 400
+  days[5] = 1050
+  days[12] = 880
+  days[19] = 1130
+  days[28] = 380
+  const pace = weekPace(4121.4, days, '2026-10', 29)
+  const groceries = { category: 'Groceries', group: 'Essentials', assigned: 4121.4, spent: 3840, available: 281.4, rolledOver: 0, isOverspent: false, spentPct: 93 }
+
+  function weeklySetup(onToggleWeekly = vi.fn()) {
+    const { container } = render(<EnvelopeGrid envelopes={[groceries, envelope]} groups={['Essentials']}
+      hideAmounts={false} onManage={vi.fn()} onMoveMoney={vi.fn()} onAssignFromRTA={vi.fn()} onSetAssigned={vi.fn()}
+      paces={new Map([['Groceries', pace]])} weekly={new Map([['Groceries', '2026-10-01']])} onToggleWeekly={onToggleWeekly} />)
+    return { container, onToggleWeekly }
+  }
+
+  it('keeps the month bar, adds one pace tick, and says how this week is going', () => {
+    const { container } = weeklySetup()
+    expect(screen.getByText('On track this week')).toBeInTheDocument()
+    expect(screen.getByText('2d left')).toBeInTheDocument()
+    expect(container.querySelectorAll('.env2-tick')).toHaveLength(1)
+    // The plain row next to it is unchanged.
+    expect(screen.getByText(/Last spent/)).toBeInTheDocument()
+  })
+
+  it('lists the weeks in the row menu and flips the switch', async () => {
+    const { onToggleWeekly } = weeklySetup()
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: /Groceries/ }))
+    expect(await screen.findByText('Week 1')).toBeInTheDocument()
+    expect(screen.getByText('This week')).toBeInTheDocument()
+    await user.click(screen.getByRole('menuitemcheckbox', { name: /Track weekly/ }))
+    expect(onToggleWeekly).toHaveBeenCalledWith('Groceries', false)
   })
 })

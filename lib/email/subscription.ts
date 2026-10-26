@@ -4,6 +4,7 @@ import type { Db } from 'mongodb'
 import { getDb } from '@/lib/mongodb'
 import type { UserDoc } from '@/lib/users'
 import { BILLING_EVENTS, BILLING_SUBSCRIPTIONS, type BillingEventDoc, type BillingSubscriptionDoc } from '@/lib/billing/records'
+import { emailFrom } from './resend'
 import { EMAIL_OUTBOX, sendOutbox, type OutboxEmail } from './outbox'
 import { SUPPORT_EMAIL } from './transactionalTemplate'
 import { subscriptionTemplate } from './subscriptionTemplate'
@@ -60,7 +61,7 @@ export async function prepareSubscriptionEmails(db: Db): Promise<void> {
     await db.collection<OutboxEmail>(EMAIL_OUTBOX).updateOne({ _id: id }, { $setOnInsert: {
       user_id: event.userId,
       delivery: { state: 'pending', queuedAt: now, nextAttemptAt: now, attempts: 0, message: {
-        from: process.env.RESEND_FROM_EMAIL?.trim() || 'Aviary <hello@useaviary.com>', to: [user.email],
+        from: emailFrom(), to: [user.email],
         reply_to: process.env.RESEND_REPLY_TO?.trim() || SUPPORT_EMAIL,
         ...subscriptionTemplate(event.emailKind, user.name, row.store, expiresAt, row.provider),
       } },

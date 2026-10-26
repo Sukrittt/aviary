@@ -1,12 +1,12 @@
 import { useCurrency } from '@/src/context/CurrencyContext'
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowsInLineVerticalIcon } from '@/src/components/icons'
 import { SpringChevron, SpringCollapse } from './SpringCollapse'
 import { splitEmoji } from '../lib/emoji'
 import { useCategoryStyle } from '../hooks/useCategories'
 import { CategoryIcon } from './CategoryIcon'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { MENU_ITEM, MENU_POPUP } from './menuStyles'
 import type { Envelope } from '../types/expense'
 import { BirdEmptyState } from './BirdEmptyState'
@@ -14,6 +14,7 @@ import { todayIST } from '../lib/date'
 import { RollingAmount } from './home/RollingAmount'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { rolledOverLine } from '../lib/rollover'
+import { allowanceNote, paceLine, resetChip, weekResult, type PaceStatus, type WeekPace } from '../lib/weekly'
 
 /** Web twin of Mobile's app/(tabs)/index.tsx envelopes card (EnvelopeGroup + EnvelopeRow). */
 
@@ -34,6 +35,11 @@ interface Props {
   rollPlay?: number
   /** The month on screen ("2026-11"), for the chips' "+₹95 from October" tooltip. */
   month?: string
+  /** This week's pace for each weekly-tracked category (src/lib/weekly.ts). */
+  paces?: Map<string, WeekPace>
+  /** Categories with Track weekly on. Omit to hide the switch (another month on screen). */
+  weekly?: Map<string, string>
+  onToggleWeekly?: (category: string, on: boolean) => void
 }
 
 const UNGROUPED_LABEL = 'Other'
@@ -49,6 +55,50 @@ function pillClass(e: Envelope): string {
   if (usedPct(e) === 100) return 'is-empty'
   return usedPct(e) > 75 ? 'is-low' : 'is-good'
 }
+
+/** Mobile's weeklyPill(): pace, not fullness. Green on track, amber ahead of the tick, red over. */
+const PACE_PILL: Record<PaceStatus, string> = { onTrack: 'is-good', ahead: 'is-low', over: 'is-over' }
+const PACE_FILL: Record<PaceStatus, string> = { onTrack: 'is-mint', ahead: 'is-warn', over: 'is-coral' }
+
+/** The menu's week-by-week list: the weeks you spent in so far, and this one. Mobile's WeekBreakdown. */
+function WeekBreakdown({ pace, e, money }: { pace: WeekPace; e: Envelope; money: (n: number) => string }) {
+  const note = allowanceNote(pace, money)
+  const last = pace.weeks.length - 1
+  return (
+    <div className="env2-weeks">
+      <div className="env2-weeks-month">{money(e.spent)} of {money(e.assigned + e.rolledOver)} this month</div>
+      {pace.weeks.map((w, i) => ({ w, i })).filter(({ w, i }) => w.spent !== 0 || i === last).map(({ w, i }) => {
+        const isNow = i === last
+        const result = weekResult(w, isNow, pace.left, money)
+        const tone = isNow ? PACE_PILL[pace.status] : result.over ? 'is-over' : 'is-good'
+        const pct = isNow ? pace.spentPct : w.allowance > 0 ? Math.min(100, (w.spent / w.allowance) * 100) : w.spent > 0 ? 100 : 0
+        const fill = isNow ? PACE_FILL[pace.status] : w.spent > w.allowance ? 'is-coral' : 'is-mint'
+        return (
+          <div key={w.from} className={`env2-week ${isNow ? 'is-now' : ''}`}>
+            <span className="env2-week-label">{isNow ? 'This week' : `Week ${i + 1}`}</span>
+            <span className="env2-bar-wrap">
+              <span className="env-bar-track env2-bar">
+                <span className={`env-bar-fill ${fill}`} style={{ display: 'block', width: `${pct}%` }} />
+              </span>
+              {isNow && pace.tickPct < 100 && <span className="env2-tick" style={{ left: `${pace.tickPct}%` }} />}
+            </span>
+            <span className={`env2-pill ${tone}`}>{result.text}</span>
+          </div>
+        )
+      })}
+      {note && <p className="env2-weeks-note">{note}</p>}
+    </div>
+  )
+}
+
+/**
+ * Room a row menu needs with its week list open. The side is picked once, on
+ * open, against this, and the menu doesn't flip after: switching Track weekly
+ * on mustn't jump the menu (and the switch under the cursor) to the row's
+ * other side. On a phone neither side may have the room, so the menu slides
+ * over the row instead (side: 'shift') rather than squeeze and hide its actions.
+ */
+const MENU_ROOM = 480
 
 const DAY_MS = 86_400_000
 
@@ -70,7 +120,7 @@ function lastSpentLabel(iso: string | undefined): string {
   return new Date(spent).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'UTC' })
 }
 
-export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveMoney, onAssignFromRTA, onSetAssigned, onPayCreditCard, categoryIcons, groupIcons, rollPlay = 0, month }: Props) {
+export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveMoney, onAssignFromRTA, onSetAssigned, onPayCreditCard, categoryIcons, groupIcons, rollPlay = 0, month, paces, weekly, onToggleWeekly }: Props) {
   const styleOf = useCategoryStyle()
   const { formatCurrency } = useCurrency()
   const money = (n: number) => (hideAmounts ? '---' : formatCurrency(n))
@@ -78,6 +128,8 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
   const router = useRouter()
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [menuCategory, setMenuCategory] = useState<string | null>(null)
+  const [menuSide, setMenuSide] = useState<'top' | 'bottom'>('bottom')
+  const triggers = useRef(new Map<string, HTMLElement>())
   const ccEnvelope = useMemo(() => envelopes.find((e) => e.isCreditCardPayment) ?? null, [envelopes])
 
   const grouped = useMemo(() => {
@@ -121,12 +173,33 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
     // Spending with nothing assigned: "of ₹0" and "Used ∞" said nothing useful.
     const unbudgeted = !e.assigned && e.spent > 0
     const isMenuOpen = menuCategory === e.category
+    // Home keeps the month for every row; a weekly row adds a pace tick and
+    // tones bar and pill by month pace. The weeks live in the row's menu.
+    const pace = isCC ? undefined : paces?.get(e.category)
 
     return (
       <div key={e.category} className={`env2-row ${isMenuOpen ? 'is-open' : ''}`}>
-        <DropdownMenu open={isMenuOpen} onOpenChange={(open) => setMenuCategory(open ? e.category : null)}>
+        <DropdownMenu
+          open={isMenuOpen}
+          onOpenChange={(open) => {
+            if (open) {
+              const rect = triggers.current.get(e.category)?.getBoundingClientRect()
+              setMenuSide(rect && window.innerHeight - rect.bottom < MENU_ROOM && rect.top > window.innerHeight - rect.bottom ? 'top' : 'bottom')
+            }
+            setMenuCategory(open ? e.category : null)
+          }}
+        >
         <DropdownMenuTrigger
-          render={<button type="button" className="env2-row-main" />}
+          render={
+            <button
+              type="button"
+              className="env2-row-main"
+              ref={(el) => {
+                if (el) triggers.current.set(e.category, el)
+                else triggers.current.delete(e.category)
+              }}
+            />
+          }
         >
           <span className="env2-row-top">
             <span className="env2-emoji env2-category-icon" style={styleOf(name)} aria-hidden="true">
@@ -138,16 +211,55 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
               {!unbudgeted && <> <span className="env2-spent-label">of</span> {money(e.assigned)}</>}
             </span>
           </span>
-          <span className="env-bar-track env2-bar">
-            <span className={`env-bar-fill ${fill}`} style={{ display: 'block', width: `${pct}%` }} />
-          </span>
-          {!isCC && (
+          {pace ? (
+            <>
+              <span className="env2-bar-wrap">
+                <span className="env-bar-track env2-bar">
+                  <span className={`env-bar-fill ${PACE_FILL[pace.monthStatus]}`} style={{ display: 'block', width: `${pace.monthSpentPct}%` }} />
+                </span>
+                {pace.monthTickPct < 100 && <span className="env2-tick" style={{ left: `${pace.monthTickPct}%` }} />}
+              </span>
+              <span className={`env2-meta env2-pace ${pace.status === 'over' ? 'is-over' : ''}`}>
+                <span>{paceLine(pace, money)}</span>
+                <span className="env2-reset">{resetChip(pace)}</span>
+              </span>
+            </>
+          ) : (
+            <span className="env-bar-track env2-bar">
+              <span className={`env-bar-fill ${fill}`} style={{ display: 'block', width: `${pct}%` }} />
+            </span>
+          )}
+          {!isCC && !pace && (
             <span className="env2-meta">
               {unbudgeted ? 'Not budgeted · ' : ''}Last spent {lastSpentLabel(e.lastSpentDate)}
             </span>
           )}
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className={MENU_POPUP}>
+        <DropdownMenuContent align="end" side={menuSide} collisionAvoidance={{ side: 'shift', fallbackAxisSide: 'none' }} className={`${MENU_POPUP} max-w-[calc(100vw-10px)]`}>
+          {/* The weeks grow away from the switch: below it when the menu
+              hangs under the row, above it when it sits over the row. They
+              spring open and shut like a group, not snap. */}
+          <SpringCollapse open={!!pace && menuSide === 'top'}>{pace && <WeekBreakdown pace={pace} e={e} money={money} />}</SpringCollapse>
+          {!isCC && weekly && onToggleWeekly && (
+            <>
+              {/* A switch, like Mobile's Toggle. Still a checkbox item underneath,
+                  so keyboard and screen readers get the on/off state. */}
+              <DropdownMenuCheckboxItem
+                className={`${MENU_ITEM} env2-weekly-item [&_[data-slot=dropdown-menu-checkbox-item-indicator]]:hidden`}
+                checked={weekly.has(e.category)}
+                onCheckedChange={(on) => onToggleWeekly(e.category, on)}
+              >
+                <span className="env2-weekly-label">
+                  Track weekly
+                  {/* Shown either way: the item keeps its height, so the switch doesn't move when it flips. */}
+                  <span className="env2-weekly-hint">{"Split the month into weeks and see if you're on pace."}</span>
+                </span>
+                <span className="env2-switch" data-on={weekly.has(e.category) || undefined} aria-hidden="true" />
+              </DropdownMenuCheckboxItem>
+              <SpringCollapse open={!!pace && menuSide === 'bottom'}>{pace && <WeekBreakdown pace={pace} e={e} money={money} />}</SpringCollapse>
+              <DropdownMenuSeparator />
+            </>
+          )}
           <DropdownMenuItem className={MENU_ITEM} onClick={() => onMoveMoney(e.category)}>
             Pull money from categories
           </DropdownMenuItem>
@@ -177,7 +289,7 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
           {(() => {
             const pill = (
               <RollingAmount
-                className={`env2-pill ${pillClass(e)}`}
+                className={`env2-pill ${pace ? PACE_PILL[pace.monthStatus] : pillClass(e)}`}
                 from={e.available - e.rolledOver}
                 to={e.available}
                 play={hideAmounts ? 0 : rollPlay}

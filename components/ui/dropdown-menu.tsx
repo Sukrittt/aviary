@@ -24,12 +24,13 @@ function DropdownMenuContent({
   side = "bottom",
   sideOffset = 4,
   collisionBoundary,
+  collisionAvoidance,
   className,
   ...props
 }: MenuPrimitive.Popup.Props &
   Pick<
     MenuPrimitive.Positioner.Props,
-    "align" | "alignOffset" | "side" | "sideOffset" | "collisionBoundary"
+    "align" | "alignOffset" | "side" | "sideOffset" | "collisionBoundary" | "collisionAvoidance"
   >) {
   const container = useThemedPortal()
   return (
@@ -41,6 +42,7 @@ function DropdownMenuContent({
         side={side}
         sideOffset={sideOffset}
         collisionBoundary={collisionBoundary}
+        collisionAvoidance={collisionAvoidance}
       >
         <MenuPrimitive.Popup
           data-slot="dropdown-menu-content"

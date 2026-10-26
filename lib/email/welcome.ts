@@ -3,7 +3,7 @@ import { after } from 'next/server'
 import type { Filter } from 'mongodb'
 import { getDb } from '@/lib/mongodb'
 import type { UserDoc } from '@/lib/users'
-import type { EmailMessage } from './resend'
+import { emailFrom, type EmailMessage } from './resend'
 import { deliverClaimedEmail } from './delivery'
 import { SUPPORT_EMAIL, welcomeTemplate } from './welcomeTemplate'
 
@@ -27,7 +27,7 @@ export function queueWelcomeEmail(user: { email: string; name: string | null }):
   return {
     state: 'pending', queuedAt: now, nextAttemptAt: now, attempts: 0,
     message: {
-      from: process.env.RESEND_FROM_EMAIL?.trim() || 'Aviary <hello@useaviary.com>',
+      from: emailFrom(),
       to: [user.email],
       reply_to: process.env.RESEND_REPLY_TO?.trim() || SUPPORT_EMAIL,
       ...welcomeTemplate(user.name),

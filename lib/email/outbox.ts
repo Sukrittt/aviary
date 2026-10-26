@@ -27,7 +27,8 @@ export interface LeadDoc {
   _id: string
   email: string
   source: 'salary-planner'
-  plan: { salary: number; rows: [string, number][] }
+  /** `intl`: from the paycheck planner, so amounts carry no currency and the India-only tips are skipped. */
+  plan: { salary: number; rows: [string, number][]; intl?: boolean }
   createdAt: Date
   confirmedAt: Date | null
   optedOutAt: Date | null

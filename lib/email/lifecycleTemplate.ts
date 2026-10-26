@@ -5,7 +5,7 @@ import type { LeadStep, UserStep } from './lifecycleSteps'
 /**
  * Copy for the trial, lead and evergreen ("let it run") emails. These read as
  * a note from Sukrit, not a product announcement: no badge, no headline, one
- * link. Welcome and billing emails stay with the team signature.
+ * link. Welcome and billing emails are signed by him too.
  */
 
 const SITE = 'https://useaviary.com'
@@ -186,24 +186,29 @@ export function userEmail(step: UserStep, c: UserEmailContext) {
 
 export interface LeadEmailContext {
   /** The planner's rows, frozen when the lead asked for them. */
-  plan?: { salary: number; rows: [string, number][] }
+  plan?: { salary: number; rows: [string, number][]; intl?: boolean }
   firstTip: boolean
   confirmUrl: string
   unsubscribeUrl: string
 }
 
 const rupees = (n: number) => `₹${Math.round(n).toLocaleString('en-IN')}`
+/** The paycheck planner has no currency, so neither do its numbers. */
+const plain = (n: number) => Math.round(n).toLocaleString('en-US')
 
 function leadCopy(step: LeadStep, c: LeadEmailContext): Copy | null {
+  const intl = Boolean(c.plan?.intl)
+  const money = intl ? plain : rupees
   switch (step) {
     case 'plan': return {
-      subject: `Your ${rupees(c.plan!.salary)} salary split`,
+      subject: intl ? `Your ${plain(c.plan!.salary)} paycheck split` : `Your ${rupees(c.plan!.salary)} salary split`,
       paragraphs: [
-        'Here’s the plan you made on Aviary. Every rupee has a job.',
+        intl ? 'Here’s the plan you made on Aviary. Every bit of your pay has a job.' : 'Here’s the plan you made on Aviary. Every rupee has a job.',
         'A plan you make once and never check is a wish. The useful part is seeing what’s left as you spend.',
-        'Want a few short tips on making it stick? Tap below and I’ll send one every few days. Nothing else.',
+        intl ? 'Want two short notes on making it stick? Tap below and they’ll arrive over the next week. Nothing else.' : 'Want a few short tips on making it stick? Tap below and I’ll send one every few days. Nothing else.',
+        'P.S. If one of these numbers looks way off for your life, reply and tell me which. I read every one.',
       ],
-      details: c.plan!.rows.map(([label, amount]) => [label, rupees(amount)]),
+      details: c.plan!.rows.map(([label, amount]) => [label, money(amount)]),
       cta: 'Send me the tips', url: c.confirmUrl,
       secondary: { label: 'Or try it with a real month, free', url: go('/sign-in', step) },
     }
@@ -211,10 +216,11 @@ function leadCopy(step: LeadStep, c: LeadEmailContext): Copy | null {
       subject: 'The category most first budgets skip',
       paragraphs: [
         'Your plan covers the monthly stuff. The month that wrecks a budget is usually the one with a yearly bill in it.',
-        'Health insurance, Diwali, a new phone. They’re not surprises. They’re on the calendar, you just don’t pay them monthly.',
+        intl ? 'Car insurance, the holidays, a new phone. They’re not surprises. They’re on the calendar, you just don’t pay them monthly.' : 'Health insurance, Diwali, a new phone. They’re not surprises. They’re on the calendar, you just don’t pay them monthly.',
         'So make them monthly. Add up your yearly costs, divide by 12, and set that aside as its own category.',
       ],
-      cta: 'Work out yours', url: go('/tools/sinking-fund-calculator', step),
+      // The calculator is in rupees, so paycheck leads set it up in Aviary instead.
+      ...(intl ? { cta: 'Set one up free', url: go('/sign-in', step) } : { cta: 'Work out yours', url: go('/tools/sinking-fund-calculator', step) }),
     }
     case 'lead-d7': return {
       subject: 'Try it with a real month',
@@ -234,7 +240,7 @@ export function leadEmail(step: LeadStep, c: LeadEmailContext) {
   if (!copy) throw new Error(`No copy for lead step ${step}`)
   return transactionalTemplate({
     ...copy, ...NOTE, name: null,
-    reason: 'You’re getting this because you asked for your salary plan at useaviary.com.',
+    reason: `You’re getting this because you asked for your ${c.plan?.intl ? 'paycheck' : 'salary'} plan at useaviary.com.`,
     unsubscribeUrl: c.unsubscribeUrl,
   })
 }

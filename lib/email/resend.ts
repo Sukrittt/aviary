@@ -9,6 +9,12 @@ export interface EmailMessage {
   headers?: Record<string, string>
 }
 
+/**
+ * Every email comes from a person: replies to "Sukrit" beat replies to "the team".
+ * RESEND_FROM_EMAIL, when set, wins as-is.
+ */
+export const emailFrom = () => process.env.RESEND_FROM_EMAIL?.trim() || 'Sukrit from Aviary <hello@useaviary.com>'
+
 /** Ambiguous failures may have been accepted by Resend; only retry inside its 24-hour dedupe window. */
 export class EmailSendError extends Error {
   constructor(message: string, readonly ambiguous: boolean) { super(message) }

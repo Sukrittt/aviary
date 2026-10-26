@@ -509,7 +509,8 @@
   min-width: 0;
 }
 .erd-home-main { position: relative; }
-.erd-home-main > .home-get-started-slot { flex-shrink: 0; overflow: hidden; }
+.erd-home-main > .home-get-started-slot,
+.erd-home-rail > .home-get-started-slot { flex-shrink: 0; overflow: hidden; }
 .erd-home-main > .home-learning-slot { flex-shrink: 0; overflow: hidden; }
 @media (min-width: 1280px) {
   .erd-home {
@@ -913,6 +914,120 @@
   font-weight: 500;
   color: var(--erd-text2);
 }
+/* Weekly pacing (src/lib/weekly.ts). The track clips, so the tick sits on a
+   wrapper and can stand taller than the bar: "where you should be by today".
+   Global tokens (--tk-*), not --erd-*: the week list renders in the row menu,
+   which is portaled outside .expense-redesign. */
+.env2-bar-wrap {
+  position: relative;
+  display: block;
+}
+/* The base track's margin-top (App.css) would push the bar below the tick;
+   the row's spacing moves onto the wrapper instead. */
+.env2-bar-wrap > .env-bar-track { margin-top: 0; }
+.env2-row-main > .env2-bar-wrap { margin-top: 5px; }
+.env2-tick {
+  position: absolute;
+  top: -4px;
+  width: 4px;
+  height: 13px;
+  margin-left: -2px;
+  border-radius: 2px;
+  background: var(--tk-text);
+  border: 1px solid var(--tk-card-solid);
+}
+.env2-pace {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.env2-pace.is-over > span:first-child { color: var(--tk-pill-over); }
+.env2-reset { color: var(--tk-text); white-space: nowrap; }
+.env2-weeks {
+  display: grid;
+  gap: 2px;
+  padding: 6px 10px 10px;
+  /* 32px: the menu's 5px screen inset and its own padding, so a 320px phone fits. */
+  min-width: min(300px, calc(100vw - 32px));
+}
+.env2-weeks-month {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--tk-text2);
+  margin-bottom: 4px;
+}
+.env2-week {
+  display: grid;
+  /* Fixed pill column, like Mobile's, so every week's bar ends at the same x. */
+  grid-template-columns: 72px 1fr 88px;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--tk-text2);
+}
+.env2-week.is-now { color: var(--tk-text); font-weight: 600; }
+.env2-week .env-bar-track {
+  display: block;
+  height: 5px;
+  border-radius: 100px;
+  background: var(--tk-border-strong);
+  overflow: hidden;
+}
+.env2-week .env-bar-fill { height: 100%; border-radius: 100px; }
+.env2-week .env-bar-fill.is-mint { background: var(--tk-mint); }
+.env2-week .env-bar-fill.is-warn { background: var(--tk-warn); }
+.env2-week .env-bar-fill.is-coral { background: var(--tk-coral); }
+.env2-week .env2-pill {
+  /* Padding comes from the base .env2-pill rules, which pair it with the
+     cap-height trim; overriding one without the other squashed the pill. */
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  justify-self: end;
+}
+.env2-week .env2-pill.is-good { color: var(--tk-pill-good); background: var(--tk-pill-good-bg); }
+.env2-week .env2-pill.is-low { color: var(--tk-pill-low); background: var(--tk-pill-low-bg); }
+.env2-week .env2-pill.is-over { color: var(--tk-pill-over); background: var(--tk-pill-over-bg); }
+.env2-weekly-item { justify-content: space-between; gap: 16px; }
+.env2-weekly-label { display: grid; gap: 2px; }
+.env2-weekly-hint { font-size: 12px; font-weight: 500; color: var(--tk-text3); max-width: 240px; }
+/* .account-switch's look, on global tokens: the menu is portaled outside .expense-redesign. */
+.env2-switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 34px;
+  height: 20px;
+  border-radius: 100px;
+  background: var(--tk-border-strong);
+  transition: background 0.15s ease;
+}
+.env2-switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--tk-on-accent);
+  transition: transform 0.15s ease;
+}
+.env2-switch[data-on] { background: var(--tk-accent); }
+.env2-switch[data-on]::after { transform: translateX(14px); }
+@media (prefers-reduced-motion: reduce) {
+  .env2-switch, .env2-switch::after { transition: none; }
+}
+.env2-weeks-note {
+  margin: 6px 0 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--tk-text2);
+  background: color-mix(in oklab, var(--tk-input-bg) 60%, transparent);
+  max-width: 300px;
+}
 .env2-available {
   /* Fixed width so every row's bar ends at the same x, whatever the amount. */
   flex: 0 0 104px;
@@ -1064,6 +1179,7 @@
 /* Motion owns these transforms so the onboarding insert/remove can move
    its siblings without the dashboard entrance animation fighting it. */
 .erd-home-main > .home-get-started-slot,
+.erd-home-rail > .home-get-started-slot,
 .erd-home-main > .home-learning-slot,
 .erd-home-main > .erd-envelopes-panel,
 .erd-home-main > .erd-home-insights-link {
@@ -11811,8 +11927,7 @@ button.account-feature-card {
   margin-top: 16px;
   padding: 6px 14px;
   border-radius: 999px;
-  background: var(--mint-soft);
-  color: var(--erd-text);
+  /* Background and text come from tokens.successBg / onSuccess inline, like Mobile. */
   font: 600 14px/1.3 var(--font-body);
   text-align: center;
 }
@@ -12006,6 +12121,11 @@ button.account-feature-card {
   font-weight: 500;
 }
 .expense-redesign .home-leftover-notice p { flex: 1; margin: 0; color: var(--erd-text); }
+/* Monday's weekly recap: the rollover strip with a title and one short line. */
+.expense-redesign .home-weekly-recap-text { flex: 1; display: grid; gap: 2px; color: var(--erd-text); }
+.expense-redesign .home-weekly-recap-text > span { font-size: 13px; color: var(--erd-text2); }
+.expense-redesign .home-weekly-recap.is-calm { background: var(--erd-card); border-color: var(--erd-border); }
+.expense-redesign .home-weekly-recap.is-calm button { color: var(--accent-ink, var(--erd-text)); }
 .expense-redesign .home-leftover-notice button {
   border: 0;
   background: transparent;

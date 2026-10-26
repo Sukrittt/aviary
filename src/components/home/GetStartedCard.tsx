@@ -21,20 +21,22 @@ type Props = {
    * full-screen trial notice after onboarding, so the trial is mentioned
    * without standing between a new user and their first expense. */
   trialNote?: string
+  /** Shorter copy for the narrow Home rail, so lines don't wrap. */
+  compact?: boolean
 }
 
 /** Setup is done but can skip income, so the first step stays open until the
  * envelopes have money to hold, and the second until all of it is assigned.
  * The last two milestones are shared across devices. Twin of Mobile's
  * src/components/home/GetStartedCard.tsx. */
-export function GetStartedCard({ incomeDone, fundDone, fundHint, upcomingPayHint, manualTransactionDone, guidedTourDone, onAddIncome, onFund, onAddTransaction, onTakeTour, onSkip, trialNote }: Props) {
+export function GetStartedCard({ incomeDone, fundDone, fundHint, upcomingPayHint, manualTransactionDone, guidedTourDone, onAddIncome, onFund, onAddTransaction, onTakeTour, onSkip, trialNote, compact }: Props) {
   const reduce = useReducedMotion()
   const steps = [
     incomeDone
       ? { key: 'budget', icon: CardholderIcon, label: 'Set up your budget', hint: 'Your categories are ready', done: true }
       : { key: 'budget', icon: CardholderIcon, label: upcomingPayHint ? 'Add what you have now' : 'Add your income', hint: upcomingPayHint ?? 'Give your categories money to hold', done: false, onClick: onAddIncome },
     { key: 'fund', icon: EnvelopeSimpleIcon, label: 'Assign all your income', hint: fundHint ?? 'Give all of it a category', done: fundDone, onClick: onFund },
-    { key: 'transaction', icon: PlusCircleIcon, label: 'Add a manual transaction', hint: 'Log one expense by hand', done: manualTransactionDone, onClick: onAddTransaction },
+    { key: 'transaction', icon: PlusCircleIcon, label: compact ? 'Add a transaction' : 'Add a manual transaction', hint: 'Log one expense by hand', done: manualTransactionDone, onClick: onAddTransaction },
     { key: 'tour', icon: CompassIcon, label: 'Take a guided tour', hint: 'See where everything lives', done: guidedTourDone, onClick: onTakeTour },
   ]
   const count = steps.filter((step) => step.done).length
@@ -48,7 +50,7 @@ export function GetStartedCard({ incomeDone, fundDone, fundHint, upcomingPayHint
       <div className="get-started-heading">
         <div>
           <h2 id="get-started-heading">Get started</h2>
-          <p>Four small steps, then this card gets out of your way.</p>
+          <p>{compact ? 'Four small steps to set you up.' : 'Four small steps, then this card gets out of your way.'}</p>
           {trialNote && <Link href="/account/trial-notice?from=more" className="get-started-trial">{trialNote}</Link>}
         </div>
         <button type="button" className="get-started-skip" aria-label="Skip getting started" onClick={onSkip}>Skip</button>

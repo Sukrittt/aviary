@@ -7,12 +7,13 @@ import { EmailPlan } from './EmailPlan'
 
 /** A rupee amount field. Keeps digits only and shows the amount the Indian way under it. */
 /** `onChange` gets null when the field is emptied, so callers can tell "0" from "not entered". */
-function MoneyField({ label, value, onChange, hint }: { label: string; value: number | null; onChange: (n: number | null) => void; hint?: string }) {
+/** `intl` drops the ₹ and the lakh grouping, so any currency reads right. */
+function MoneyField({ label, value, onChange, hint, intl = false }: { label: string; value: number | null; onChange: (n: number | null) => void; hint?: string; intl?: boolean }) {
   const id = useId()
   return <div className="lp-calc-item">
     <label htmlFor={id}>{label}</label>
-    <span className="lp-calc-field"><span aria-hidden="true">₹</span><input id={id} inputMode="numeric" autoComplete="off" aria-describedby={`${id}-hint`} value={value === null ? '' : value.toLocaleString('en-IN')} placeholder="0" onChange={(e) => { const digits = e.target.value.replace(/\D/g, '').slice(0, 10); onChange(digits ? Number(digits) : null) }} /></span>
-    <span className="lp-calc-hint" id={`${id}-hint`}>{hint ?? (value ? lakhs(value) : '\u00a0')}</span>
+    <span className="lp-calc-field">{!intl && <span aria-hidden="true">₹</span>}<input id={id} inputMode="numeric" autoComplete="off" aria-describedby={`${id}-hint`} value={value === null ? '' : value.toLocaleString(intl ? 'en-US' : 'en-IN')} placeholder="0" onChange={(e) => { const digits = e.target.value.replace(/\D/g, '').slice(0, 10); onChange(digits ? Number(digits) : null) }} /></span>
+    <span className="lp-calc-hint" id={`${id}-hint`}>{hint ?? (value && !intl ? lakhs(value) : '\u00a0')}</span>
   </div>
 }
 
@@ -29,18 +30,19 @@ export function Calculator503020({ initial = 50000 }: { initial?: number }) {
   </div>
 }
 
-export function SalaryPlanner({ initial = 40000 }: { initial?: number }) {
+/** `intl` is the currency-free version (/tools/paycheck-budget-planner): plain numbers in whatever money you're paid in. */
+export function SalaryPlanner({ initial = 40000, intl = false }: { initial?: number; intl?: boolean }) {
   const [salary, setSalary] = useState<number | null>(initial)
   const [rent, setRent] = useState<number | null>(null)
   const plan = salaryPlan(salary ?? 0, rent === null ? {} : { rent })
   return <div className="lp-calc">
-    <MoneyField label="Monthly take-home salary" value={salary} onChange={setSalary} />
-    <MoneyField label="Your rent (leave empty to use 30%)" value={rent} onChange={setRent} hint={rent ? lakhs(rent) : 'Living with family? Put 0 and the rent goes to savings.'} />
+    <MoneyField intl={intl} label={intl ? 'Monthly take-home pay' : 'Monthly take-home salary'} value={salary} onChange={setSalary} />
+    <MoneyField intl={intl} label="Your rent (leave empty to use 30%)" value={rent} onChange={setRent} hint={rent && !intl ? lakhs(rent) : 'Living with family? Put 0 and the rent goes to savings.'} />
     <div className="table-scroll"><table>
       <thead><tr><th scope="col">Category</th><th scope="col">Per month</th><th scope="col">Share</th></tr></thead>
-      <tbody>{plan.map((c) => <tr key={c.name}><th scope="row">{c.name}</th><td>{formatINR(c.amount)}</td><td>{salary ? `${Math.round((c.amount / salary) * 100)}%` : '0%'}</td></tr>)}</tbody>
+      <tbody>{plan.map((c) => <tr key={c.name}><th scope="row">{c.name}</th><td>{intl ? c.amount.toLocaleString('en-US') : formatINR(c.amount)}</td><td>{salary ? `${Math.round((c.amount / salary) * 100)}%` : '0%'}</td></tr>)}</tbody>
     </table></div>
-    <EmailPlan salary={salary ?? 0} rent={rent} />
+    <EmailPlan salary={salary ?? 0} rent={rent} intl={intl} />
   </div>
 }
 
