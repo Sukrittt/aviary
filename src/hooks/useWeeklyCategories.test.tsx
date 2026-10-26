@@ -49,3 +49,21 @@ describe('useWeeklyCategories', () => {
     await waitFor(() => expect(result.current.weekly.has('Rent')).toBe(false))
   })
 })
+
+describe('useWeeklyCategories ordering', () => {
+  it('saves quick taps one after another, in tap order', async () => {
+    ;(getCategories as Mock).mockResolvedValue([{ name: 'Rent', group: '' }])
+    const calls: string[] = []
+    let releaseFirst!: () => void
+    ;(updateCategory as Mock)
+      .mockImplementationOnce(() => { calls.push('on:start'); return new Promise<void>((r) => (releaseFirst = () => { calls.push('on:end'); r() })) })
+      .mockImplementationOnce(async () => { calls.push('off') })
+    const { result } = setup()
+    await waitFor(() => expect(result.current.weekly).toBeDefined())
+    act(() => result.current.setWeekly('Rent', true))
+    act(() => result.current.setWeekly('Rent', false))
+    await waitFor(() => expect(calls).toEqual(['on:start']))
+    await act(async () => releaseFirst())
+    await waitFor(() => expect(calls).toEqual(['on:start', 'on:end', 'off']))
+  })
+})

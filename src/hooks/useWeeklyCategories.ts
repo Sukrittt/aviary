@@ -23,6 +23,9 @@ export function useWeeklyCategories() {
   // Optimistic: the switch and the row change on tap, and roll back if the
   // save fails, since the switch flipping back is the error the user sees.
   const mutation = useMutation({
+    // One queue for every flip: a quick on-then-off saves in tap order, so the
+    // last tap is what the server keeps.
+    scope: { id: 'weekly-categories' },
     mutationFn: ({ category, since }: { category: string; since: string | null }) => updateCategory(category, { weeklySince: since }),
     onMutate: async ({ category, since }) => {
       await qc.cancelQueries({ queryKey: categoriesKey })
