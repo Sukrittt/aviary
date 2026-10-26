@@ -1,5 +1,5 @@
 import { useCurrency } from '@/src/context/CurrencyContext'
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowsInLineVerticalIcon } from '@/src/components/icons'
 import { SpringChevron, SpringCollapse } from './SpringCollapse'
@@ -91,6 +91,14 @@ function WeekBreakdown({ pace, e, money }: { pace: WeekPace; e: Envelope; money:
   )
 }
 
+/**
+ * Room a row menu needs with its week list open. The side is picked once, on
+ * open, against this, and the menu doesn't flip after: switching Track weekly
+ * on mustn't jump the menu (and the switch under the cursor) to the row's
+ * other side.
+ */
+const MENU_ROOM = 480
+
 const DAY_MS = 86_400_000
 
 /**
@@ -119,6 +127,8 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
   const router = useRouter()
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [menuCategory, setMenuCategory] = useState<string | null>(null)
+  const [menuSide, setMenuSide] = useState<'top' | 'bottom'>('bottom')
+  const triggers = useRef(new Map<string, HTMLElement>())
   const ccEnvelope = useMemo(() => envelopes.find((e) => e.isCreditCardPayment) ?? null, [envelopes])
 
   const grouped = useMemo(() => {
@@ -168,9 +178,27 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
 
     return (
       <div key={e.category} className={`env2-row ${isMenuOpen ? 'is-open' : ''}`}>
-        <DropdownMenu open={isMenuOpen} onOpenChange={(open) => setMenuCategory(open ? e.category : null)}>
+        <DropdownMenu
+          open={isMenuOpen}
+          onOpenChange={(open) => {
+            if (open) {
+              const rect = triggers.current.get(e.category)?.getBoundingClientRect()
+              setMenuSide(rect && window.innerHeight - rect.bottom < MENU_ROOM && rect.top > window.innerHeight - rect.bottom ? 'top' : 'bottom')
+            }
+            setMenuCategory(open ? e.category : null)
+          }}
+        >
         <DropdownMenuTrigger
-          render={<button type="button" className="env2-row-main" />}
+          render={
+            <button
+              type="button"
+              className="env2-row-main"
+              ref={(el) => {
+                if (el) triggers.current.set(e.category, el)
+                else triggers.current.delete(e.category)
+              }}
+            />
+          }
         >
           <span className="env2-row-top">
             <span className="env2-emoji env2-category-icon" style={styleOf(name)} aria-hidden="true">
@@ -206,8 +234,10 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
             </span>
           )}
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className={MENU_POPUP}>
-          {pace && <WeekBreakdown pace={pace} e={e} money={money} />}
+        <DropdownMenuContent align="end" side={menuSide} collisionAvoidance={{ side: 'none' }} className={MENU_POPUP}>
+          {/* The weeks grow away from the switch: below it when the menu
+              hangs under the row, above it when it sits over the row. */}
+          {pace && menuSide === 'top' && <WeekBreakdown pace={pace} e={e} money={money} />}
           {!isCC && weekly && onToggleWeekly && (
             <>
               {/* A switch, like Mobile's Toggle. Still a checkbox item underneath,
@@ -219,10 +249,12 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
               >
                 <span className="env2-weekly-label">
                   Track weekly
-                  {!pace && <span className="env2-weekly-hint">{"Split the month into weeks and see if you're on pace."}</span>}
+                  {/* Shown either way: the item keeps its height, so the switch doesn't move when it flips. */}
+                  <span className="env2-weekly-hint">{"Split the month into weeks and see if you're on pace."}</span>
                 </span>
                 <span className="env2-switch" data-on={weekly.has(e.category) || undefined} aria-hidden="true" />
               </DropdownMenuCheckboxItem>
+              {pace && menuSide === 'bottom' && <WeekBreakdown pace={pace} e={e} money={money} />}
               <DropdownMenuSeparator />
             </>
           )}

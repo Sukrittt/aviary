@@ -979,9 +979,8 @@
 .env2-week .env-bar-fill.is-warn { background: var(--tk-warn); }
 .env2-week .env-bar-fill.is-coral { background: var(--tk-coral); }
 .env2-week .env2-pill {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 6px;
+  /* Padding comes from the base .env2-pill rules, which pair it with the
+     cap-height trim; overriding one without the other squashed the pill. */
   font-size: 12px;
   font-variant-numeric: tabular-nums;
   justify-self: end;
@@ -1025,7 +1024,7 @@
   font-size: 12px;
   line-height: 1.4;
   color: var(--tk-text2);
-  background: var(--tk-chip-active-bg);
+  background: color-mix(in oklab, var(--tk-input-bg) 60%, transparent);
   max-width: 300px;
 }
 .env2-available {
