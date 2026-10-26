@@ -131,6 +131,10 @@
     {
       "path": "/api/cron/evening-check",
       "schedule": "0 23 * * *"
+    },
+    {
+      "path": "/api/cron/publish",
+      "schedule": "35 18 * * *"
     }
   ]
 }
