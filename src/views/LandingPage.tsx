@@ -8,6 +8,7 @@ import { AddedClip, Faq, LandingMotion } from '../components/landing/LandingClie
 import { landingFaqs } from '../components/landing/faqs'
 import { TrackedLink } from '../components/TrackedLink'
 import { IosWaitlist } from '../components/landing/IosWaitlist'
+import { LeadPitch } from '../components/content/LeadPitch'
 // Parked while the page leads with habit nudges; see the commented section below.
 // import { MoneyLesson } from '../components/landing/MoneyLesson'
 import { BirdLanding, BirdMark } from '../components/BirdMark'
@@ -88,6 +89,7 @@ export function LandingPage({ monthlyPrice, ios = false, android = false, intl =
         <Link href="/expense" className={`lp-button ${ios ? 'lp-button--dark' : 'lp-button--ghost'}`}><MonitorIcon size={18} aria-hidden="true" />Try it on the web</Link>
       </div>
       <span className="lp-hero-note">Free for 30 days{afterTrial} · No card, no bank link</span>
+      <LeadPitch intl={intl} placement="hero" />
       {ios && <IosWaitlist placement="hero" className="lp-waitlist--hero" />}
       {/* Desktop only: plenty of iPhone owners browse on a Mac and would miss the waitlist at the bottom. */}
       {!ios && !android && <span className="lp-hero-note lp-hero-note--tight">Not on iPhone yet. <a href="#get">Join the waitlist</a></span>}
@@ -243,10 +245,9 @@ export function LandingPage({ monthlyPrice, ios = false, android = false, intl =
       <h2 id="get-title" className="lp-h2">Your money, noticed.</h2>
       <div className="lp-hero-actions">{!ios && <StoreLink placement="footer_cta" />}<Link href="/expense" className="lp-button lp-button--ghost"><MonitorIcon size={18} aria-hidden="true" />Open web app</Link></div>
       <span className="lp-hero-note">Free for 30 days{afterTrial} · No card needed · <a href={GITHUB} target="_blank" rel="noreferrer">Open source</a></span>
-      {/* The planner is in rupees, so the India page only. */}
-      {!intl && <span className="lp-hero-note lp-hero-note--tight">Not ready yet? <Link href="/tools/salary-budget-planner">Get your salary split by email</Link></span>}
+      <LeadPitch intl={intl} placement="footer_cta" />
       {!android && <IosWaitlist />}
     </section>
-    <LandingFooter />
+    <LandingFooter intl={intl} />
   </div></SampleScope></LandingMotion>
 }

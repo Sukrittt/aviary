@@ -8,6 +8,7 @@ import { GET_ANDROID_URL } from '@/src/components/billing/copy'
 import { TrackedLink } from '@/src/components/TrackedLink'
 import { jsonLd } from '@/src/components/JsonLd'
 import { serifFont } from './serifFont'
+import { LeadPitch } from './LeadPitch'
 
 const KICKERS: Record<ContentSection, string> = { compare: 'Compare', tools: 'Free tool', features: 'Feature', blog: 'Blog' }
 
@@ -55,8 +56,8 @@ export function RelatedPages({ paths, title = 'Keep reading' }: { paths: Related
   </section>
 }
 
-/** The soft close every content page ends on. */
-export function SoftCta({ title, children, placement }: { title: string; children: ReactNode; placement: string }) {
+/** The soft close every content page ends on, with the email signup pitch under it (`pitch={false}` on the planners themselves; `intl` for pages written for everywhere). */
+export function SoftCta({ title, children, placement, intl = false, pitch = true }: { title: string; children: ReactNode; placement: string; intl?: boolean; pitch?: boolean }) {
   return <aside className="lp-softcta" aria-label="Try Aviary">
     <h2>{title}</h2>
     <p>{children}</p>
@@ -65,6 +66,7 @@ export function SoftCta({ title, children, placement }: { title: string; childre
       <Link href="/expense" className="lp-button lp-button--ghost"><MonitorIcon size={18} aria-hidden="true" />Use it on the web</Link>
     </div>
     <span className="lp-hero-note">Free for 30 days · No card needed · No bank link</span>
+    {pitch && <LeadPitch intl={intl} placement={placement} />}
   </aside>
 }
 

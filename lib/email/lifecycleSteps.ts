@@ -50,6 +50,8 @@ export interface LeadState {
   optedOut: boolean
   sent: string[]
   lastAt: Date | null
+  /** From the paycheck planner. The evergreen tips are written for India (UPI, rupees), so these leads stop after lead-d7. */
+  intl?: boolean
 }
 
 const since = (now: Date, at: Date | null) => (at ? now.getTime() - at.getTime() : Infinity)
@@ -91,6 +93,6 @@ export function nextLeadStep(s: LeadState): LeadStep | null {
   const age = since(s.now, s.createdAt)
   if (within(age, 7, 14) && !has('lead-d7')) return 'lead-d7'
   if (within(age, 3, 7) && !has('lead-d3')) return 'lead-d3'
-  if (age < 7 * DAY) return null
+  if (age < 7 * DAY || s.intl) return null
   return nextEvergreen(s.now, s.sent, s.lastAt)
 }

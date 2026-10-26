@@ -891,6 +891,7 @@ html:has(.lp) { scroll-behavior: smooth; }
 .lp-softcta p { margin: 10px auto 0; max-width: 520px; color: var(--muted); font-size: 16px !important; }
 .lp-softcta .lp-hero-actions { margin-top: 20px; justify-content: center; }
 .lp-softcta .lp-hero-note { display: block; margin-top: 14px; }
+.lp-softcta .lp-hero-note--tight { margin-top: 6px; }
 /* Calculators */
 .lp-calc { display: grid; gap: 16px; margin-top: 24px; padding: 24px; border-radius: 24px; background: var(--bg); border: 1px solid var(--line); }
 .lp-calc-item { display: flex; flex-direction: column; gap: 6px; }

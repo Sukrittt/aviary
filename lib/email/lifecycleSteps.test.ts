@@ -94,6 +94,10 @@ describe('lead sequence', () => {
     expect(nextLeadStep(lead({ createdAt: ago(10), sent: ['plan', 'lead-d3', 'lead-d7'], lastAt: ago(3) }))).toBeNull()
     expect(nextLeadStep(lead({ createdAt: ago(13), sent: ['plan', 'lead-d3', 'lead-d7'], lastAt: ago(6) }))).toBe(EVERGREEN[0])
   })
+  it('stops a paycheck-planner lead after day 7, since the tips are written for India', () => {
+    expect(nextLeadStep(lead({ createdAt: ago(7), sent: ['plan', 'lead-d3'], lastAt: ago(4), intl: true }))).toBe('lead-d7')
+    expect(nextLeadStep(lead({ createdAt: ago(20), sent: ['plan', 'lead-d3', 'lead-d7'], lastAt: ago(10), intl: true }))).toBeNull()
+  })
   it('skips a step whose window passed, and stops on opt-out', () => {
     expect(nextLeadStep(lead({ createdAt: ago(8), lastAt: ago(8) }))).toBe('lead-d7')
     expect(nextLeadStep(lead({ createdAt: ago(20), lastAt: ago(20) }))).toBe(EVERGREEN[0])

@@ -24,6 +24,13 @@ describe('POST /api/leads', () => {
     expect(scheduleOutboxSend).toHaveBeenCalledWith('lead/x/plan/2026-10-19')
   })
 
+  it('marks a paycheck-planner plan so its email carries no currency', async () => {
+    await post({ email: 'a@b.co', salary: 4000, rent: null, intl: true })
+    expect(queueLeadPlan.mock.calls[0]).toContainEqual(expect.objectContaining({ salary: 4000, intl: true }))
+    await post({ email: 'a@b.co', salary: 4000, intl: 'yes' })
+    expect(queueLeadPlan.mock.calls[1]).not.toContainEqual(expect.objectContaining({ intl: expect.anything() }))
+  })
+
   it.each([
     [{ email: 'nope', salary: 50000 }],
     [{ email: 'a@b.co', salary: 0 }],

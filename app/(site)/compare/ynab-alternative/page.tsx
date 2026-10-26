@@ -64,6 +64,6 @@ export default function YnabAlternativeGlobalPage() {
       ['https://www.ynab.com/ynab-method', 'The YNAB method'],
       ['https://support.ynab.com/en_us/how-to-export-plan-data-Sy_CouWA9', 'How to export your YNAB plan'],
     ]} />
-    <SoftCta title="Keep the method, drop the bill" placement="compare_ynab_global">Aviary’s free for 30 days with no card. Bring your YNAB plan, log a week, and see if it clicks.</SoftCta>
+    <SoftCta title="Keep the method, drop the bill" placement="compare_ynab_global" intl>Aviary’s free for 30 days with no card. Bring your YNAB plan, log a week, and see if it clicks.</SoftCta>
   </ContentPage>
 }
