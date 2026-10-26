@@ -1,6 +1,7 @@
 import { authkit, authkitMiddleware, handleAuthkitProxy } from '@workos-inc/authkit-nextjs'
 import { NextResponse, type NextFetchEvent, type NextRequest } from 'next/server'
 import { bearerToken, verifyBearerToken } from '@/lib/bearer'
+import { isIntlCountry, MARKET_COOKIE } from '@/lib/market'
 import { ATTRIBUTION_COOKIE, ATTRIBUTION_MAX_AGE, attributionFromRequest, nextAttribution, parseAttribution, type Attribution } from '@/lib/attribution'
 
 const refreshSession = authkitMiddleware()
@@ -63,7 +64,8 @@ export default async function middleware(request: NextRequest, event: NextFetchE
 /**
  * Notes where a visitor came from in `aviary_attr` on page loads, so the
  * account they create later (after a WorkOS round trip, or on Android via the
- * Play link) knows its source. See lib/attribution.ts.
+ * Play link) knows its source. See lib/attribution.ts. Also notes the
+ * visitor's market (India or not) in `aviary_market` for static footers.
  */
 function remember(request: NextRequest, response: Response | null | undefined | void): Response | null | undefined | void {
   const { pathname } = request.nextUrl
@@ -74,6 +76,10 @@ function remember(request: NextRequest, response: Response | null | undefined | 
   const current: Attribution | null = raw ? parseAttribution(raw) : null
   const next = nextAttribution(current, attributionFromRequest(request.nextUrl, request.headers.get('referer')))
   if (next) response.cookies.set(ATTRIBUTION_COOKIE, JSON.stringify(next), { path: '/', maxAge: ATTRIBUTION_MAX_AGE, sameSite: 'lax' })
+  // The landing page's India-or-not answer, for static pages' footers (lib/market.ts). Readable by the page, so not httpOnly.
+  const country = request.headers.get('x-vercel-ip-country')
+  const market = country ? (isIntlCountry(country) ? 'intl' : 'in') : null
+  if (market && request.cookies.get(MARKET_COOKIE)?.value !== market) response.cookies.set(MARKET_COOKIE, market, { path: '/', maxAge: 30 * 24 * 60 * 60, sameSite: 'lax' })
   return response
 }
 

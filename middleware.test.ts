@@ -81,3 +81,13 @@ it('still tags the redirect when a signed-in visitor follows a link home', async
   expect(response?.headers.get('location')).toBe('https://example.com/expense')
   expect(attr(response)).toMatchObject({ utm_source: 'email' })
 })
+
+const market = (response: Response | null | undefined | void) => response instanceof NextResponse ? response.cookies.get('aviary_market')?.value : undefined
+
+it('notes the visitor’s market from the same geo header the landing page reads', async () => {
+  const page = (country: string, cookie = '') => middleware(new NextRequest('https://example.com/compare/goodbudget', { headers: { 'x-vercel-ip-country': country, ...(cookie && { cookie }) } }), {} as NextFetchEvent)
+  expect(market(await page('US'))).toBe('intl')
+  expect(market(await page('IN'))).toBe('in')
+  expect(market(await page('US', 'aviary_market=intl'))).toBeUndefined()
+  expect(market(await middleware(new NextRequest('https://example.com/compare/goodbudget'), {} as NextFetchEvent))).toBeUndefined()
+})

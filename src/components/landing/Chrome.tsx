@@ -4,6 +4,7 @@ import { TrackedLink } from '../TrackedLink'
 import { GET_ANDROID_URL } from '../billing/copy'
 import { FEEDBACK_BOARD_PATH } from '@/lib/links'
 import { CONTENT_SECTIONS } from '@/lib/content'
+import { FooterSection } from './FooterSection'
 
 export const GITHUB = 'https://github.com/Sukrittt/aviary-mobile'
 
@@ -26,12 +27,12 @@ export function LandingHeader({ base = '', faq = `${base}#faq`, ios = false }: {
   </div></header>
 }
 
-/** `intl` (the /intl page) keeps only the paycheck planner from the tools, which are all in rupees otherwise. */
+/** `intl` (the /intl page) hides the rupee-only tools; elsewhere FooterSection reads the market cookie. */
 export function LandingFooter({ base = '', faq = `${base}#faq`, intl = false }: { base?: string; faq?: string; intl?: boolean }) {
   return <footer className="lp-footer"><div><a href={base || '#top'} className="lp-logo"><BirdMark size={26} perched /><span>Aviary<b aria-hidden="true">.</b></span></a><p>Learns your spending. Never touches your bank.</p></div><nav aria-label="Footer">
     <div><h2>Product</h2><a href={GET_ANDROID_URL}>Android app</a><Link href="/expense">Web app</Link><a href={`${base}#get`}>iPhone waitlist</a><Link href="/legal/pricing">Pricing</Link></div>
     <div><h2>Learn</h2><Link href="/help">Help</Link><a href={faq}>FAQ</a><Link href="/changelog">Changelog</Link><Link href="/blog">Blog</Link></div>
-    {Object.values(CONTENT_SECTIONS).filter((section) => section.pages.length).map((section) => <div key={section.path}><h2><Link href={section.path}>{section.label}</Link></h2>{section.pages.filter(([href]) => !intl || !href.startsWith('/tools/') || href === '/tools/paycheck-budget-planner').map(([href, label]) => <Link key={href} href={href}>{label}</Link>)}</div>)}
+    {Object.values(CONTENT_SECTIONS).filter((section) => section.pages.length).map((section) => <FooterSection key={section.path} path={section.path} label={section.label} pages={section.pages} intl={intl} />)}
     <div><h2>Community</h2><Link href={FEEDBACK_BOARD_PATH}>Feedback board</Link><a href={GITHUB}>GitHub</a><Link href="/legal/contact">Contact</Link></div>
     <div><h2>Legal</h2><Link href="/legal/privacy">Privacy</Link><Link href="/legal/terms">Terms</Link><Link href="/legal/refunds">Refunds</Link><Link href="/legal/delete-account">Delete account</Link></div>
   </nav></footer>
