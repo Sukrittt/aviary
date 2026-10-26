@@ -2,7 +2,7 @@
 
 **The budget app that learns your habits.** It notices your 4pm chai and nudges you to log it in one tap. Miss a day? Type what you remember and you're caught up. No bank link, no card needed.
 
-[Get it on Google Play](https://play.google.com/store/apps/details?id=com.sukrit04.envelope) · [Web app](https://useaviary.com) · [Mobile repo](https://github.com/Sukrittt/aviary-mobile)
+[Get it on Google Play](https://play.google.com/store/apps/details?id=com.sukrit04.envelope) · [Website & web app](https://www.useaviary.com) · [Mobile repo](https://github.com/Sukrittt/aviary-mobile)
 
 <p align="center">
   <img src="docs/screenshots/log-expense.jpg" width="180" alt="Log a spend in two taps" />
@@ -28,7 +28,7 @@ Every budgeting app starts the same way, and so does the ending. You stop loggin
 - **Give every rupee a job.** The envelope method YNAB made popular: Ready to Assign, categories, and moving money when you overspend. Rupees by default, or pick your own currency.
 - **More in the nest.** Ask Aviary answers "can I afford it?" from your own budget, Insights shows where it all went, and every subscription gets a heads-up before it renews.
 
-Free for 30 days, no card needed. Android and web today, with an iPhone waitlist on [useaviary.com](https://useaviary.com). No ads, and your data is never sold.
+Free for 30 days, no card needed. Android and web today, with an iPhone waitlist on [useaviary.com](https://www.useaviary.com). No ads, and your data is never sold.
 
 ## About this repo
 
