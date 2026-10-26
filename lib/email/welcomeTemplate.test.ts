@@ -19,10 +19,17 @@ describe('welcomeTemplate', () => {
     expect(welcomeTemplate(name).html).toContain('Hi there,')
   })
 
+  it('reads as a note from Sukrit, with a P.S. asking for a reply', () => {
+    const { html, text } = welcomeTemplate('Alex')
+    expect(new DOMParser().parseFromString(html, 'text/html').querySelector('h1')).toBeNull()
+    expect(text).toContain('Sukrit')
+    expect(text).toMatch(/P\.S\. Hit reply/)
+    expect(text).not.toContain('The Aviary team')
+  })
+
   it('includes a working CTA, support link and plain-text equivalent', () => {
     const { html, text } = welcomeTemplate('Alex Smith')
     const doc = new DOMParser().parseFromString(html, 'text/html')
-    expect(doc.querySelector('h1')?.textContent).toBe('Welcome to Aviary')
     expect([...doc.querySelectorAll('a')].find(a => a.textContent?.includes('Open Aviary'))?.href).toBe('https://useaviary.com/')
     expect(doc.querySelector('a[href^="mailto:"]')).not.toBeNull()
     expect(doc.querySelector('script')).toBeNull()

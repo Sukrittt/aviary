@@ -26,6 +26,7 @@ export const CONTENT_SECTIONS = {
     pages: [
       ['/tools/50-30-20-calculator', '50/30/20 calculator'],
       ['/tools/salary-budget-planner', 'Salary budget planner'],
+      ['/tools/paycheck-budget-planner', 'Paycheck budget planner'],
       ['/tools/budget-for-15000-salary', 'Budget for a ₹15k salary'],
       ['/tools/budget-for-20000-salary', 'Budget for a ₹20k salary'],
       ['/tools/budget-for-25000-salary', 'Budget for a ₹25k salary'],

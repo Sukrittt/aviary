@@ -12,7 +12,7 @@ const MAX_SALARY = 9_999_999_999
 const MAX_PLANS_PER_DAY = 50
 
 /**
- * Public, unauthenticated: the salary planner's "Email me this plan". The plan
+ * Public, unauthenticated: the salary and paycheck planners' "Email me this plan". The plan
  * is rebuilt here from salary and rent rather than trusted from the page, so
  * the email can only ever carry the planner's own numbers. New and repeat
  * addresses get the same answer, so the form can't be used to probe the list.
@@ -35,7 +35,9 @@ export async function POST(req: Request) {
   if (await isRateLimited('leads:global', { windowMs: 24 * 60 * 60 * 1000, limit: MAX_PLANS_PER_DAY })) return error('rate limited', 429)
 
   const rows = salaryPlan(salary, rent === undefined ? {} : { rent }).map((c): [string, number] => [c.name, c.amount])
-  const rowId = await queueLeadPlan(await getDb(), email, { salary: Math.floor(salary), rows })
+  // The paycheck planner (/tools/paycheck-budget-planner) has no currency, so its email has none either.
+  const intl = body.intl === true
+  const rowId = await queueLeadPlan(await getDb(), email, { salary: Math.floor(salary), rows, ...(intl && { intl }) })
   scheduleOutboxSend(rowId)
   return json({ ok: true })
 }

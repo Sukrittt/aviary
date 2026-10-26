@@ -39,6 +39,7 @@ beforeEach(async () => {
   vi.clearAllMocks()
   vi.stubEnv('RESEND_API_KEY', 'test-key')
   vi.stubEnv('CRON_SECRET', 'test-secret')
+  vi.stubEnv('RESEND_FROM_EMAIL', '')
   vi.mocked(sendEmail).mockResolvedValue('email_test')
 })
 afterEach(() => vi.unstubAllEnvs())

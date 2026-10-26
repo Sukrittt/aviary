@@ -7,7 +7,7 @@ import { track } from '../../lib/analytics'
 type Status = 'idle' | 'sending' | 'sent' | 'failed'
 
 /** The salary planner's lead capture: emails the current plan, nothing more unless they ask for tips inside it. */
-export function EmailPlan({ salary, rent }: { salary: number; rent: number | null }) {
+export function EmailPlan({ salary, rent, intl = false }: { salary: number; rent: number | null; intl?: boolean }) {
   const [email, setEmail] = useState('')
   const [status, setStatus] = useState<Status>('idle')
   const button = useButtonPhase()
@@ -21,12 +21,12 @@ export function EmailPlan({ salary, rent }: { salary: number; rent: number | nul
       const res = await fetch('/api/leads', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ email, salary, rent }),
+        body: JSON.stringify({ email, salary, rent, ...(intl && { intl }) }),
       })
       if (!res.ok) throw new Error(String(res.status))
       setStatus('sent')
       button.succeed()
-      track('plan_emailed', { placement: 'tool_salary_planner' })
+      track('plan_emailed', { placement: intl ? 'tool_paycheck_planner' : 'tool_salary_planner' })
     } catch {
       setStatus('failed')
       button.fail()

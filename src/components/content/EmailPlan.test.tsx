@@ -21,6 +21,16 @@ it('posts the salary and rent, not the rows, and confirms', async () => {
   expect(track).toHaveBeenCalledWith('plan_emailed', { placement: 'tool_salary_planner' })
 })
 
+it('flags a paycheck plan so the email has no rupees', async () => {
+  const fetchMock = vi.fn(async () => new Response('{"ok":true}'))
+  vi.stubGlobal('fetch', fetchMock)
+  render(<EmailPlan salary={4000} rent={null} intl />)
+  send('me@example.com')
+  await screen.findByText('Check your inbox. Tips only follow if you ask for them in that email.')
+  expect(fetchMock).toHaveBeenCalledWith('/api/leads', expect.objectContaining({ body: JSON.stringify({ email: 'me@example.com', salary: 4000, rent: null, intl: true }) }))
+  expect(track).toHaveBeenCalledWith('plan_emailed', { placement: 'tool_paycheck_planner' })
+})
+
 it('writes its own error instead of showing the server’s', async () => {
   vi.stubGlobal('fetch', vi.fn(async () => new Response('{"error":"rate limited"}', { status: 429 })))
   render(<EmailPlan salary={50000} rent={12000} />)

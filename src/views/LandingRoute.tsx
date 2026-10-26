@@ -4,6 +4,7 @@ import { planPricesFor } from '@/lib/billing/prices'
 import { formatPrice, PLAY_STORE_URL } from '@/src/components/billing/copy'
 import { landingFaqs } from '@/src/components/landing/faqs'
 import { jsonLd } from '@/src/components/JsonLd'
+import { isIntlCountry } from '@/lib/market'
 import { LandingPage } from './LandingPage'
 
 /**
@@ -21,7 +22,7 @@ export async function LandingRoute({ intl }: { intl: boolean }) {
   // iPadOS Safari sends a Mac user agent, so iPads still see the Android CTA.
   const ua = h.get('user-agent') ?? ''
   const country = h.get('x-vercel-ip-country')
-  const otherMarket = intl ? country === 'IN' : !!country && country !== 'IN'
+  const otherMarket = intl ? country === 'IN' : isIntlCountry(country)
   const url = new URL(intl ? '/intl' : '/', SITE_URL).href
   const structuredData = {
     '@context': 'https://schema.org',

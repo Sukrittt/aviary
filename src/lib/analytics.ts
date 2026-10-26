@@ -146,6 +146,8 @@ export type AppEvent =
   | 'waitlist_joined'
   // Web only: the salary planner's "Email me this plan" form was sent.
   | 'plan_emailed'
+  // Web only: the "get your split by email" line (LeadPitch) on landing and content pages.
+  | 'lead_pitch_clicked'
 
 export type EventProperties = Record<string, string | number | boolean>
 
