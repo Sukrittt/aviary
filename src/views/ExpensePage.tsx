@@ -75,6 +75,12 @@ import { InsightsTab } from "@/src/components/InsightsTab";
 import { ForecastLine } from "@/src/components/Forecast";
 
 const noop = () => () => {};
+const WIDE_HOME = "(min-width: 1280px)"; // matches the two-column .erd-home breakpoint
+function subscribeWideHome(onChange: () => void) {
+  const media = window.matchMedia?.(WIDE_HOME);
+  media?.addEventListener("change", onChange);
+  return () => media?.removeEventListener("change", onChange);
+}
 const parseDismissed = (raw: string) => raw === "1";
 const serializeDismissed = (value: boolean) => value ? "1" : "0";
 const MotionLink = motion.create(Link);
@@ -324,6 +330,10 @@ export function ExpensePage() {
   const upcomingPay = upcomingMonthlyPay(schedulesQ.data ?? [], thisMonth);
   const showGetStarted = !getStartedSkipped && !!user?.getStartedAt &&
     !(incomeDone && fundDone && user.manualTransactionCompletedAt && user.guidedTourCompletedAt);
+  // On wide screens with Subscriptions hidden the rail holds only Recent
+  // activity, so Get started fills that space instead of pushing the budget down.
+  const wideHome = useSyncExternalStore(subscribeWideHome, () => !!window.matchMedia?.(WIDE_HOME).matches, () => false);
+  const getStartedInRail = wideHome && hidden.includes("subscriptions");
   // Only fetched while the card that mentions the trial is up.
   const billing = useBillingStatus(showGetStarted).data;
   const [showFluidDemo, setShowFluidDemo] = useState(false);
@@ -469,6 +479,39 @@ export function ExpensePage() {
     // only re-run this for no gain.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [panel]);
+
+  const getStartedCard = (
+    <AnimatePresence mode="popLayout">
+      {showGetStarted && user && (
+        <motion.div
+          key="get-started"
+          className="home-get-started-slot"
+          // Cancel the column's 20px gap at zero height, then open
+          // it with the card so even the first reveal moves smoothly.
+          initial={reduceMotion ? false : { height: 0, opacity: 0, marginBottom: -20 }}
+          animate={{ height: "auto", opacity: 1, marginBottom: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: reduceMotion ? 0 : 0.32, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <GetStartedCard
+            incomeDone={incomeDone}
+            fundDone={fundDone}
+            fundHint={envelopeState && envelopeState.income > 0 ? `${formatCurrency(envelopeState.readyToAssign, hideAmounts)} still to assign` : undefined}
+            upcomingPayHint={upcomingPay ? `Your pay lands ${paydayLabel(upcomingPay.start_date)}. Budget what you have till then.` : undefined}
+            manualTransactionDone={!!user.manualTransactionCompletedAt}
+            guidedTourDone={!!user.guidedTourCompletedAt}
+            onAddIncome={() => setIncomeScreen(upcomingPay ? "starting" : "monthly")}
+            onFund={() => (nextToFund ? setAssignTarget(nextToFund) : router.push("/expense/envelopes"))}
+            onAddTransaction={() => setShowLogModal(true)}
+            onTakeTour={() => router.push('/account/guided-tour')}
+            onSkip={() => setGetStartedSkipped(true)}
+            trialNote={billing?.mode === 'trial' && billing.trialEndsAt ? `Free until ${formatDate(billing.trialEndsAt)}${getStartedInRail ? '' : ' · no card needed'}` : undefined}
+            compact={getStartedInRail}
+          />
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
 
   // Loading and loaded share one tree, so the sidebar stays mounted when the
   // data lands and a dialog opened from it (mid-upload, say) stays open.
@@ -690,35 +733,7 @@ export function ExpensePage() {
                 )}
               </AnimatePresence>
 
-              <AnimatePresence mode="popLayout">
-                {showGetStarted && user && (
-                  <motion.div
-                    key="get-started"
-                    className="home-get-started-slot"
-                    // Cancel the column's 20px gap at zero height, then open
-                    // it with the card so even the first reveal moves smoothly.
-                    initial={reduceMotion ? false : { height: 0, opacity: 0, marginBottom: -20 }}
-                    animate={{ height: "auto", opacity: 1, marginBottom: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    transition={{ duration: reduceMotion ? 0 : 0.32, ease: [0.22, 1, 0.36, 1] }}
-                  >
-                    <GetStartedCard
-                      incomeDone={incomeDone}
-                      fundDone={fundDone}
-                      fundHint={envelopeState && envelopeState.income > 0 ? `${formatCurrency(envelopeState.readyToAssign, hideAmounts)} still to assign` : undefined}
-                      upcomingPayHint={upcomingPay ? `Your pay lands ${paydayLabel(upcomingPay.start_date)}. Budget what you have till then.` : undefined}
-                      manualTransactionDone={!!user.manualTransactionCompletedAt}
-                      guidedTourDone={!!user.guidedTourCompletedAt}
-                      onAddIncome={() => setIncomeScreen(upcomingPay ? "starting" : "monthly")}
-                      onFund={() => (nextToFund ? setAssignTarget(nextToFund) : router.push("/expense/envelopes"))}
-                      onAddTransaction={() => setShowLogModal(true)}
-                      onTakeTour={() => router.push('/account/guided-tour')}
-                      onSkip={() => setGetStartedSkipped(true)}
-                      trialNote={billing?.mode === 'trial' && billing.trialEndsAt ? `Free until ${formatDate(billing.trialEndsAt)} · no card needed` : undefined}
-                    />
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              {!getStartedInRail && getStartedCard}
 
               <LearningCard />
 
@@ -764,6 +779,7 @@ export function ExpensePage() {
               )}
             </div>
             <aside className="erd-home-rail" aria-label="Subscriptions and recent activity">
+              {getStartedInRail && getStartedCard}
               {!hidden.includes("subscriptions") && (
                 <SubscriptionsPanel
                   active={panel.subscriptions.active}

@@ -509,7 +509,8 @@
   min-width: 0;
 }
 .erd-home-main { position: relative; }
-.erd-home-main > .home-get-started-slot { flex-shrink: 0; overflow: hidden; }
+.erd-home-main > .home-get-started-slot,
+.erd-home-rail > .home-get-started-slot { flex-shrink: 0; overflow: hidden; }
 .erd-home-main > .home-learning-slot { flex-shrink: 0; overflow: hidden; }
 @media (min-width: 1280px) {
   .erd-home {
@@ -1178,6 +1179,7 @@
 /* Motion owns these transforms so the onboarding insert/remove can move
    its siblings without the dashboard entrance animation fighting it. */
 .erd-home-main > .home-get-started-slot,
+.erd-home-rail > .home-get-started-slot,
 .erd-home-main > .home-learning-slot,
 .erd-home-main > .erd-envelopes-panel,
 .erd-home-main > .erd-home-insights-link {
