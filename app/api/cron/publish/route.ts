@@ -14,7 +14,7 @@ function safeEqual(a: string, b: string): boolean {
 }
 
 /**
- * Daily cron, 00:05 IST: puts the posts going live today online. A scheduled
+ * Daily cron, 00:30 to 01:29 IST (Hobby picks the minute): puts the posts going live today online. A scheduled
  * post's 404 is cached like any ISR page, so without this the first visitor
  * after midnight, often Googlebot following the sitemap, got the stale 404
  * (sinking-funds-india, 26 Oct). Revalidates the post, the blog index, RSS and
