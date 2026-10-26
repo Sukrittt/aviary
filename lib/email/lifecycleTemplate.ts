@@ -203,7 +203,7 @@ function leadCopy(step: LeadStep, c: LeadEmailContext): Copy | null {
     case 'plan': return {
       subject: intl ? `Your ${plain(c.plan!.salary)} paycheck split` : `Your ${rupees(c.plan!.salary)} salary split`,
       paragraphs: [
-        `Here’s the plan you made on Aviary. Every ${intl ? 'dollar, euro or pound' : 'rupee'} has a job.`,
+        intl ? 'Here’s the plan you made on Aviary. Every bit of your pay has a job.' : 'Here’s the plan you made on Aviary. Every rupee has a job.',
         'A plan you make once and never check is a wish. The useful part is seeing what’s left as you spend.',
         intl ? 'Want two short notes on making it stick? Tap below and they’ll arrive over the next week. Nothing else.' : 'Want a few short tips on making it stick? Tap below and I’ll send one every few days. Nothing else.',
         'P.S. If one of these numbers looks way off for your life, reply and tell me which. I read every one.',
