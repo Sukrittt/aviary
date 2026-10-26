@@ -46,7 +46,7 @@ describe('welcome signup and delivery', () => {
     const again = (await db.collection<UserDoc>('users').findOne({ _id: first._id }))!
     expect(again.welcomeEmail).toEqual(first.welcomeEmail)
     expect(again.email).toBe('changed@example.com')
-    expect(first.welcomeEmail?.message.from).toBe('Aviary <hello@useaviary.com>')
+    expect(first.welcomeEmail?.message.from).toBe('Sukrit from Aviary <hello@useaviary.com>')
     expect(first.welcomeEmail?.message.html).toContain('Hi Alex,')
     expect(sendEmail).not.toHaveBeenCalled()
   })

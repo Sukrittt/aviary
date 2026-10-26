@@ -23,6 +23,7 @@ beforeEach(async () => {
   await db.collection(BILLING_EVENTS).createIndex({ provider: 1, environment: 1, eventId: 1 }, { unique: true })
   vi.clearAllMocks()
   vi.stubEnv('RESEND_API_KEY', 'test-key')
+  vi.stubEnv('RESEND_FROM_EMAIL', '')
   vi.mocked(sendEmail).mockResolvedValue('email_test')
   await db.collection('users').insertOne({ _id: 'user_a' as never, email: 'person@example.com', name: 'Alex', emailVerified: true, deleted_at: null })
   await db.collection<BillingSubscriptionDoc>(BILLING_SUBSCRIPTIONS).insertOne({
@@ -47,7 +48,7 @@ describe('durable subscription delivery', () => {
     const results = await Promise.all([retrySubscriptionEmails(), retrySubscriptionEmails()])
     expect(results.reduce((n, r) => n + r.sent, 0)).toBe(1)
     expect(sendEmail).toHaveBeenCalledOnce()
-    expect(vi.mocked(sendEmail).mock.calls[0][0]).toMatchObject({ to: ['person@example.com'], subject: 'Payment received for Aviary' })
+    expect(vi.mocked(sendEmail).mock.calls[0][0]).toMatchObject({ from: 'Sukrit from Aviary <hello@useaviary.com>', to: ['person@example.com'], subject: 'Payment received for Aviary' })
     expect((await retrySubscriptionEmails()).sent).toBe(0)
   })
   it('waits for provider verification and never retrofits historical events or sandbox purchases', async () => {
