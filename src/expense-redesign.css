@@ -921,6 +921,10 @@
   position: relative;
   display: block;
 }
+/* The base track's margin-top (App.css) would push the bar below the tick;
+   the row's spacing moves onto the wrapper instead. */
+.env2-bar-wrap > .env-bar-track { margin-top: 0; }
+.env2-row-main > .env2-bar-wrap { margin-top: 5px; }
 .env2-tick {
   position: absolute;
   top: -4px;
