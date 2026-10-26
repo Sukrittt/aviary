@@ -80,6 +80,12 @@ describe('content pages', () => {
     rows.forEach((r, i) => expect(r[3]).toBe(`=B${i + 2}-C${i + 2}`))
   })
 
+  it('share a footer that shows the LaunchStall badge as a followed link', () => {
+    const html = renderToStaticMarkup(<LandingFooter />)
+    expect(html).toContain('<a href="https://launchstall.com" target="_blank" rel="noopener"')
+    expect(html).toContain('src="https://launchstall.com/badge.svg"')
+  })
+
   it('are all linked from the footer', () => {
     const html = renderToStaticMarkup(<LandingFooter />)
     for (const section of Object.values(CONTENT_SECTIONS)) {
