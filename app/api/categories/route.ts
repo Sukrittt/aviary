@@ -18,7 +18,9 @@ class CategoryWriteError extends Error {
 
 /** `weeklySince`: the day weekly pacing was switched on (src/lib/weekly.ts). Absent means off. */
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/
-const isDay = (v: unknown): v is string => typeof v === 'string' && DAY_RE.test(v)
+// A real calendar day: the round trip turns 2026-02-31 into 2026-03-03.
+const isDay = (v: unknown): v is string =>
+  typeof v === 'string' && DAY_RE.test(v) && new Date(`${v}T00:00:00Z`).toISOString().slice(0, 10) === v
 
 /** True for Mongo's duplicate-key error — the unique `(user_id, name)` index firing on a race. */
 function isDuplicateName(err: unknown): boolean {

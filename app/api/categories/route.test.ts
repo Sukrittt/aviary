@@ -193,6 +193,7 @@ describe('/api/categories — weeklySince', () => {
   it('rejects anything that is not a YYYY-MM-DD day', async () => {
     expect((await putBody({ name: 'Food', weeklySince: true })).status).toBe(400)
     expect((await putBody({ name: 'Food', weeklySince: '26/10/2026' })).status).toBe(400)
+    expect((await putBody({ name: 'Food', weeklySince: '2026-02-31' })).status).toBe(400)
     expect(docs[0].weeklySince).toBeUndefined()
   })
 })
