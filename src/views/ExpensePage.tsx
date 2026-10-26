@@ -57,6 +57,9 @@ import { rolloverCard } from "../lib/rollover";
 import { splitEmoji } from "../lib/emoji";
 import { overPlannedLine, trimCandidates } from "../lib/envelope";
 import { RolloverCard } from "../components/home/RolloverCard";
+import { WeeklyRecapCard } from "../components/home/WeeklyRecapCard";
+import { useWeeklyCategories } from "../hooks/useWeeklyCategories";
+import { lastWeekResults, spendByDay, weekPace, weeklyRecap, type WeekPace } from "../lib/weekly";
 import { LogExpenseModal } from "../components/LogExpenseModal";
 import { FillGap } from "../features/fill-gap/FillGap";
 import { RecurringIncomeModal } from "../components/RecurringIncomeModal";
@@ -234,6 +237,43 @@ export function ExpensePage() {
   // first shows, again whenever it's tapped. Nothing to roll once it's gone.
   const [rollReplays, setRollReplays] = useState(0);
   const rollPlay = rollover ? rollReplays + 1 : 0;
+
+  // Weekly-tracked categories keep the month bar and add a pace tick; their
+  // weeks live in the row's menu. Same rules as Mobile (src/lib/weekly.ts).
+  const { weekly, setWeekly } = useWeeklyCategories(activeSpace?.id);
+  // Held until the budget is known: the switch is stored per budget, and a
+  // flip before then would land under the wrong key and be lost.
+  const onThisMonth = panel?.month === thisMonth && !!activeSpace;
+  const paces = useMemo(() => {
+    const map = new Map<string, WeekPace>();
+    if (!envelopeState || !onThisMonth) return map;
+    const today = new Date().getDate();
+    for (const e of envelopeState.envelopes) {
+      // Nothing to pace with no money in it: the month's own bar says it better.
+      const pot = e.assigned + e.rolledOver;
+      if (!weekly.has(e.category) || e.isCreditCardPayment || pot <= 0) continue;
+      map.set(e.category, weekPace(pot, spendByDay(expenseRows, e.category, thisMonth), thisMonth, today));
+    }
+    return map;
+  }, [envelopeState, onThisMonth, weekly, expenseRows, thisMonth]);
+  const firstPace = paces.values().next().value;
+  // Only categories already tracked when last week began get judged on it.
+  const lastWeekFrom = firstPace?.weeks.at(-2)?.from ?? 0;
+  const lastWeek = lastWeekResults(
+    [...paces]
+      .filter(([category]) => (weekly.get(category) ?? "") <= `${thisMonth}-${String(lastWeekFrom).padStart(2, "0")}`)
+      .map(([category, pace]) => ({ category, pace })),
+  );
+  // Once per space and week: the next Monday starts undismissed on its own.
+  const [recapDismissed, setRecapDismissed] = useDismissedRolloverBanner(`weekly-${activeSpace?.id ?? ""}:${thisMonth}-${firstPace?.current.from ?? 0}`);
+  const recap = hydrated && lastWeek && !recapDismissed && !readOnly
+    ? weeklyRecap(lastWeek, (n) => formatCurrency(n, hideAmounts), (c) => splitEmoji(c).text)
+    : null;
+  useEffect(() => {
+    if (recap && lastWeek && !rollover) track("weekly_recap_shown", { under: lastWeek.under, total: lastWeek.total });
+    // Once per showing, not on every render while it's up.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [!!recap && !rollover]);
   const [getStartedSkipped, setGetStartedSkipped] = usePersistentState(
     'rollover-dismissed-get-started', false, parseDismissed, serializeDismissed,
   );
@@ -626,6 +666,25 @@ export function ExpensePage() {
                   >
                     <RolloverCard text={rollover} onReplay={() => setRollReplays((n) => n + 1)} onDone={() => setRolloverDismissed(true)} />
                   </motion.div>
+                ) : recap ? (
+                  <motion.div
+                    key="weekly-recap"
+                    className="home-leftover-slot"
+                    initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.22, ease: "easeOut" }}
+                    exit={reduceMotion ? { opacity: 0 } : {
+                      x: "100%", opacity: 0, height: 0, marginBottom: -20,
+                      transition: {
+                        x: { duration: 0.3, ease: [0.4, 0, 1, 1] },
+                        opacity: { duration: 0.3 },
+                        height: { delay: 0.22, duration: 0.32, ease: [0.22, 1, 0.36, 1] },
+                        marginBottom: { delay: 0.22, duration: 0.32, ease: [0.22, 1, 0.36, 1] },
+                      },
+                    }}
+                  >
+                    <WeeklyRecapCard {...recap} onDone={() => setRecapDismissed(true)} />
+                  </motion.div>
                 ) : (
                   <FeatureNudge key="nudge" />
                 )}
@@ -686,6 +745,9 @@ export function ExpensePage() {
                     onAssignFromRTA={setAssignTarget}
                     onSetAssigned={setEditAssignedTarget}
                     onPayCreditCard={handlePayCreditCard}
+                    paces={paces}
+                    weekly={onThisMonth ? weekly : undefined}
+                    onToggleWeekly={readOnly ? undefined : setWeekly}
                   />
                 </motion.article>
               )}
