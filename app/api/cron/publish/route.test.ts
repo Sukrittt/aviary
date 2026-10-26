@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import vercel from '../../../../vercel.json'
 
 const revalidatePath = vi.fn()
 vi.mock('next/cache', () => ({ revalidatePath }))
@@ -40,4 +41,13 @@ describe('GET /api/cron/publish', () => {
     expect(revalidatePath).not.toHaveBeenCalled()
     expect(fetchMock).not.toHaveBeenCalled()
   })
+})
+
+// Hobby fires a daily cron at a random minute inside its hour, so the whole
+// hour has to land after midnight IST or todayInIndia() is still yesterday.
+it('the cron hour falls entirely after midnight IST', () => {
+  const [, hour] = vercel.crons.find((c) => c.path === '/api/cron/publish')!.schedule.split(' ')
+  const istStart = (Number(hour) * 60 + 330) % 1440
+  expect(istStart + 59).toBeLessThan(1440)
+  expect(istStart).toBeLessThan(120)
 })

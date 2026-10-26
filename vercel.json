@@ -134,7 +134,7 @@
     },
     {
       "path": "/api/cron/publish",
-      "schedule": "35 18 * * *"
+      "schedule": "0 19 * * *"
     }
   ]
 }
