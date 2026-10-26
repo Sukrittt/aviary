@@ -95,7 +95,8 @@ function WeekBreakdown({ pace, e, money }: { pace: WeekPace; e: Envelope; money:
  * Room a row menu needs with its week list open. The side is picked once, on
  * open, against this, and the menu doesn't flip after: switching Track weekly
  * on mustn't jump the menu (and the switch under the cursor) to the row's
- * other side.
+ * other side. On a phone neither side may have the room, so the menu slides
+ * over the row instead (side: 'shift') rather than squeeze and hide its actions.
  */
 const MENU_ROOM = 480
 
@@ -234,7 +235,7 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
             </span>
           )}
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" side={menuSide} collisionAvoidance={{ side: 'none' }} className={MENU_POPUP}>
+        <DropdownMenuContent align="end" side={menuSide} collisionAvoidance={{ side: 'shift', fallbackAxisSide: 'none' }} className={`${MENU_POPUP} max-w-[calc(100vw-10px)]`}>
           {/* The weeks grow away from the switch: below it when the menu
               hangs under the row, above it when it sits over the row. They
               spring open and shut like a group, not snap. */}

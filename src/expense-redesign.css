@@ -947,7 +947,8 @@
   display: grid;
   gap: 2px;
   padding: 6px 10px 10px;
-  min-width: 300px;
+  /* 32px: the menu's 5px screen inset and its own padding, so a 320px phone fits. */
+  min-width: min(300px, calc(100vw - 32px));
 }
 .env2-weeks-month {
   font-size: 12px;
