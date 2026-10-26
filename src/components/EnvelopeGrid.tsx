@@ -210,12 +210,18 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
           {pace && <WeekBreakdown pace={pace} e={e} money={money} />}
           {!isCC && weekly && onToggleWeekly && (
             <>
+              {/* A switch, like Mobile's Toggle. Still a checkbox item underneath,
+                  so keyboard and screen readers get the on/off state. */}
               <DropdownMenuCheckboxItem
-                className={`${MENU_ITEM} pr-8`}
+                className={`${MENU_ITEM} env2-weekly-item [&_[data-slot=dropdown-menu-checkbox-item-indicator]]:hidden`}
                 checked={weekly.has(e.category)}
                 onCheckedChange={(on) => onToggleWeekly(e.category, on)}
               >
-                Track weekly
+                <span className="env2-weekly-label">
+                  Track weekly
+                  {!pace && <span className="env2-weekly-hint">{"Split the month into weeks and see if you're on pace."}</span>}
+                </span>
+                <span className="env2-switch" data-on={weekly.has(e.category) || undefined} aria-hidden="true" />
               </DropdownMenuCheckboxItem>
               <DropdownMenuSeparator />
             </>
