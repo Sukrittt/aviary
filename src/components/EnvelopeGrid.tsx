@@ -236,8 +236,9 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" side={menuSide} collisionAvoidance={{ side: 'none' }} className={MENU_POPUP}>
           {/* The weeks grow away from the switch: below it when the menu
-              hangs under the row, above it when it sits over the row. */}
-          {pace && menuSide === 'top' && <WeekBreakdown pace={pace} e={e} money={money} />}
+              hangs under the row, above it when it sits over the row. They
+              spring open and shut like a group, not snap. */}
+          <SpringCollapse open={!!pace && menuSide === 'top'}>{pace && <WeekBreakdown pace={pace} e={e} money={money} />}</SpringCollapse>
           {!isCC && weekly && onToggleWeekly && (
             <>
               {/* A switch, like Mobile's Toggle. Still a checkbox item underneath,
@@ -254,7 +255,7 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
                 </span>
                 <span className="env2-switch" data-on={weekly.has(e.category) || undefined} aria-hidden="true" />
               </DropdownMenuCheckboxItem>
-              {pace && menuSide === 'bottom' && <WeekBreakdown pace={pace} e={e} money={money} />}
+              <SpringCollapse open={!!pace && menuSide === 'bottom'}>{pace && <WeekBreakdown pace={pace} e={e} money={money} />}</SpringCollapse>
               <DropdownMenuSeparator />
             </>
           )}
