@@ -5,7 +5,7 @@ import type { LeadStep, UserStep } from './lifecycleSteps'
 /**
  * Copy for the trial, lead and evergreen ("let it run") emails. These read as
  * a note from Sukrit, not a product announcement: no badge, no headline, one
- * link. The welcome email does too; billing emails stay with the team signature.
+ * link. Welcome and billing emails are signed by him too.
  */
 
 const SITE = 'https://useaviary.com'

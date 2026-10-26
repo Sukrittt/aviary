@@ -21,4 +21,13 @@ describe('subscription email mapping', () => {
     expect(email.text).toContain('your current access is shown in Aviary')
     expect(subscriptionTemplate('paid', null, 'web', null).text).toContain('https://useaviary.com/account')
   })
+  it('reads as a note from Sukrit and keeps the receipt details', () => {
+    for (const kind of ['paid', 'failed', 'cancelled'] as const) {
+      const { html, text } = subscriptionTemplate(kind, 'Alex', 'web', new Date('2027-01-01'))
+      expect(new DOMParser().parseFromString(html, 'text/html').querySelector('h1')).toBeNull()
+      expect(text).toContain('Sukrit')
+      expect(text).not.toContain('The Aviary team')
+    }
+    expect(subscriptionTemplate('paid', null, 'web', new Date('2027-01-01')).text).toContain('2027-01-01')
+  })
 })
