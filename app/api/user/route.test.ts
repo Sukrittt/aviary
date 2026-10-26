@@ -18,6 +18,7 @@ vi.mock('@/lib/workosClient', () => ({
 const usersDeleteOneMock = vi.fn(async () => ({ deletedCount: 1 }))
 const usersFindOneMock = vi.fn(async () => ({ email: 'real-owner@example.com' }))
 const usersUpdateOneMock = vi.fn(async () => ({ modifiedCount: 1 }))
+const countDocumentsMock = vi.fn(async (_filter: unknown, _opts?: unknown) => 0)
 
 vi.mock('@/lib/mongodb', () => ({
   getDb: vi.fn(async () => ({
@@ -25,6 +26,7 @@ vi.mock('@/lib/mongodb', () => ({
       findOne: usersFindOneMock,
       deleteOne: usersDeleteOneMock,
       updateOne: usersUpdateOneMock,
+      countDocuments: countDocumentsMock,
     })),
   })),
 }))
@@ -287,6 +289,15 @@ describe('GET /api/user', () => {
     const res = await GET(new Request('https://example.com/api/user'))
     expect((await res.json()).email).toBe('a@example.com')
     expect(ensureUserByIdMock).not.toHaveBeenCalled()
+  })
+
+  it('says whether a phone can get habit nudges', async () => {
+    usersFindOneMock.mockResolvedValueOnce({ _id: 'user_a', email: 'a@example.com', onboardedAt: null } as never)
+    expect((await (await GET(new Request('https://example.com/api/user'))).json()).hasPhonePush).toBe(false)
+    usersFindOneMock.mockResolvedValueOnce({ _id: 'user_a', email: 'a@example.com', onboardedAt: null } as never)
+    countDocumentsMock.mockResolvedValueOnce(1)
+    expect((await (await GET(new Request('https://example.com/api/user'))).json()).hasPhonePush).toBe(true)
+    expect(countDocumentsMock).toHaveBeenLastCalledWith({ user_id: 'user_a' }, { limit: 1 })
   })
 
   it('creates the row for a first-time Mobile Google sign-in instead of answering null', async () => {

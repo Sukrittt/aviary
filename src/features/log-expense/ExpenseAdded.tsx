@@ -2,6 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { noticedLine, weeklyRepeat } from '@/src/lib/noticed'
+import { habitProgress, type HabitProgress } from '@/src/lib/habits'
+import { toLocalDateString } from '@/src/lib/date'
+import { useUser } from '@/src/hooks/useUser'
+import { useAuthors } from '@/src/hooks/useAuthors'
 import { motion } from 'motion/react'
 import dynamic from 'next/dynamic'
 import { useCurrency } from '@/src/context/CurrencyContext'
@@ -59,6 +63,14 @@ export interface AddedExpense {
 }
 
 const TICK_SRC = '/landing/success-tick.lottie'
+
+/** Nothing after a first log, so a one-off never promises a nudge. Same copy as Mobile. */
+function progressLine(progress: HabitProgress | null, item: string): string | null {
+  if (!progress) return null
+  if (progress.habit) return "Noted. You'll get a nudge next time."
+  if (progress.seen < 2) return null
+  return `Seen your ${item.trim().toLowerCase()} ${progress.seen} times. Nudges start after ${progress.left === 1 ? 'one more' : `${progress.left} more`}.`
+}
 
 /**
  * Mounted hidden under the log form so the tick's player (wasm from the CDN)
@@ -163,11 +175,23 @@ export function ExpenseAdded({
   const categoryName = splitEmoji(category).text
   const categoryRow = (categoriesQ.data ?? EMPTY).find((c) => c.name === category) ?? expense.categorySnapshot
   const subtitle = item || categoryName
-  // A small "we're learning you" moment: only once the item is a habit this week.
-  const noticed = useMemo(
-    () => noticedLine(weeklyRepeat(expensesQ.data ?? EMPTY, { id: expense.id, timestamp, item, date, amount }).count),
-    [expensesQ.data, expense.id, timestamp, item, date, amount],
-  )
+  // A small "we're learning you" moment. Nudges land on the phone, so with one
+  // registered for push it's how close this spend is to getting one, counted
+  // over your own logs like the phone does; otherwise the weekly regulars line.
+  const hasPhonePush = useUser().data?.hasPhonePush === true
+  const authors = useAuthors()
+  const noticed = useMemo(() => {
+    const rows = expensesQ.data ?? EMPTY
+    const own = authors ? rows.filter((r) => authors.authorId(r.created_by) === authors.me) : rows
+    const progress = hasPhonePush
+      ? habitProgress(
+          own,
+          { id: expense.id, timestamp, date, item, category, amount_inr: String(amount), amount: String(amount), notes: '', source: 'manual', description: '', payment_method: '' },
+          toLocalDateString(),
+        )
+      : null
+    return progressLine(progress, item) ?? noticedLine(weeklyRepeat(rows, { id: expense.id, timestamp, item, date, amount }).count)
+  }, [hasPhonePush, authors, expensesQ.data, expense.id, timestamp, item, category, date, amount])
 
   return (
     <div className="erd-added">
@@ -188,7 +212,7 @@ export function ExpenseAdded({
           </FadeInDown>
         )}
         {noticed && (
-          <FadeInDown delay={at(STAGGER.detail + 120)} duration={at(420)} className="erd-added-noticed">
+          <FadeInDown delay={at(STAGGER.detail + 120)} duration={at(420)} className="erd-added-noticed" style={{ background: tokens.successBg, color: tokens.onSuccess }}>
             {noticed}
           </FadeInDown>
         )}

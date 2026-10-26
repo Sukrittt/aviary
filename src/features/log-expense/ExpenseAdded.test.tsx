@@ -1,4 +1,6 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { toLocalDateString } from '@/src/lib/date'
+import { darkTokens } from '@/src/theme/tokens'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { currentMonthKey } from '@/src/lib/envelope'
 import { ExpenseAdded, type AddedExpense } from './ExpenseAdded'
@@ -24,9 +26,13 @@ vi.mock('@/src/hooks/useBudgets', () => ({
   useCarry: () => ({ data: undefined }),
 }))
 // The refetch hasn't landed: the new row isn't in the list yet, so the view charges it by hand.
+const rows = vi.hoisted(() => ({ extra: [] as object[] }))
 vi.mock('@/src/hooks/useExpenses', () => ({
-  useRecentExpenses: () => ({ data: [{ timestamp: 'old', date: `${month}-01`, item: 'Eggs', amount_inr: '200', category: 'Groceries' }] }),
+  useRecentExpenses: () => ({ data: [{ timestamp: 'old', date: `${month}-01`, item: 'Eggs', amount_inr: '200', category: 'Groceries' }, ...rows.extra] }),
 }))
+const user = vi.hoisted(() => ({ hasPhonePush: false }))
+vi.mock('@/src/hooks/useUser', () => ({ useUser: () => ({ data: { _id: 'me', hasPhonePush: user.hasPhonePush } }) }))
+vi.mock('@/src/hooks/useAuthors', () => ({ useAuthors: () => null }))
 vi.mock('@/src/hooks/useCategories', () => ({ useCategories: () => ({ data: [{ name: 'Groceries', group: 'Needs' }] }) }))
 vi.mock('@/src/hooks/useGroups', () => ({ useGroups: () => ({ data: ['Needs'] }), useGroupIcons: () => new Map() }))
 
@@ -128,4 +134,46 @@ it('reserves the tick area and renders the full receipt while the animation chun
   expect(screen.getByText('left of ₹1000')).toBeInTheDocument()
   expect(screen.getByRole('button', { name: 'Done' })).toBeInTheDocument()
   expect(screen.getByRole('button', { name: 'Undo' })).toBeInTheDocument()
+})
+
+describe('habit progress', () => {
+  // Pooled habits look back from the real today, so these dates move with the clock.
+  const daysAgo = (n: number) => toLocalDateString(new Date(Date.now() - n * 86_400_000))
+  const milk = (date: string) => ({ id: `m-${date}`, date, item: 'Milk', timestamp: `${date}T09:00:00+05:30`, amount_inr: '50', category: 'Groceries', source: 'manual' })
+  const now = () => expense({ date: daysAgo(0), timestamp: `${daysAgo(0)}T09:30:00+05:30` })
+
+  beforeEach(() => {
+    user.hasPhonePush = true
+    rows.extra = []
+  })
+  afterEach(() => {
+    user.hasPhonePush = false
+    rows.extra = []
+  })
+
+  it('counts toward a nudge from the second day, on the mint pill', () => {
+    rows.extra = [milk(daysAgo(1))]
+    renderAdded(now())
+    const line = screen.getByText('Seen your milk 2 times. Nudges start after one more.')
+    // The theme is mocked to dark.
+    expect(line).toHaveStyle({ background: darkTokens.successBg, color: darkTokens.onSuccess })
+  })
+
+  it('promises a nudge once it is a habit', () => {
+    rows.extra = [milk(daysAgo(1)), milk(daysAgo(2))]
+    renderAdded(now())
+    expect(screen.getByText("Noted. You'll get a nudge next time.")).toBeInTheDocument()
+  })
+
+  it('says nothing after a first log', () => {
+    renderAdded(now())
+    expect(screen.queryByText(/Seen your|nudge/)).toBeNull()
+  })
+
+  it("doesn't promise nudges without a phone that can get them", () => {
+    user.hasPhonePush = false
+    rows.extra = [milk(daysAgo(1)), milk(daysAgo(2))]
+    renderAdded(now())
+    expect(screen.queryByText(/nudge/)).toBeNull()
+  })
 })
