@@ -22,6 +22,7 @@ const OPEN: Record<string, string> = {
   'cron/emails': 'transactional email retry cron, CRON_SECRET',
   'cron/evening-check': 'evening check push cron, CRON_SECRET',
   'cron/import-pass': 'next history import pass, called by this deployment with CRON_SECRET',
+  'cron/publish': 'puts scheduled blog posts online at midnight IST, CRON_SECRET',
   'cron/warm': 'keep-warm ping from GitHub Actions, reads and returns nothing',
   'notifications/run': 'cron, CRON_SECRET',
   'billing/webhooks/revenuecat': 'provider webhook, shared secret',
