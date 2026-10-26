@@ -23,6 +23,7 @@ interface Doc {
   icon?: string
   color?: string
   since?: string
+  weeklySince?: string
 }
 
 let docs: Doc[]
@@ -172,5 +173,26 @@ describe('/api/categories — color', () => {
     expect(docs[0].color).toBeUndefined()
     expect((await putBody({ name: 'Food', color: 'mint' })).status).toBe(200)
     expect(docs[0].color).toBe('mint')
+  })
+})
+
+describe('/api/categories — weeklySince', () => {
+  it('returns the day weekly tracking started, and leaves it off otherwise', async () => {
+    docs = [{ name: 'Food', weeklySince: '2026-10-05' }, { name: 'Rent' }, { name: 'Odd', weeklySince: 'yesterday' }]
+    const body = await (await GET(new Request('https://example.com/api/categories'))).json()
+    expect(body).toEqual([{ name: 'Food', group: '', weeklySince: '2026-10-05' }, { name: 'Rent', group: '' }, { name: 'Odd', group: '' }])
+  })
+
+  it('stores the day it was switched on, and unsets it when switched off', async () => {
+    expect((await putBody({ name: 'Food', weeklySince: '2026-10-26' })).status).toBe(200)
+    expect(docs[0].weeklySince).toBe('2026-10-26')
+    expect((await putBody({ name: 'Food', weeklySince: null })).status).toBe(200)
+    expect(docs[0].weeklySince).toBeUndefined()
+  })
+
+  it('rejects anything that is not a YYYY-MM-DD day', async () => {
+    expect((await putBody({ name: 'Food', weeklySince: true })).status).toBe(400)
+    expect((await putBody({ name: 'Food', weeklySince: '26/10/2026' })).status).toBe(400)
+    expect(docs[0].weeklySince).toBeUndefined()
   })
 })

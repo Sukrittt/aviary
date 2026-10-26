@@ -16,6 +16,10 @@ class CategoryWriteError extends Error {
   }
 }
 
+/** `weeklySince`: the day weekly pacing was switched on (src/lib/weekly.ts). Absent means off. */
+const DAY_RE = /^\d{4}-\d{2}-\d{2}$/
+const isDay = (v: unknown): v is string => typeof v === 'string' && DAY_RE.test(v)
+
 /** True for Mongo's duplicate-key error — the unique `(user_id, name)` index firing on a race. */
 function isDuplicateName(err: unknown): boolean {
   return typeof err === 'object' && err !== null && (err as { code?: number }).code === 11000
@@ -36,6 +40,7 @@ export async function GET(req: Request) {
         ...(isCategoryColor(d.color) ? { color: d.color } : {}),
         ...(Array.isArray(d.alertPcts) ? { alertPcts: d.alertPcts } : {}),
         ...(typeof d.since === 'string' ? { since: d.since } : {}),
+        ...(isDay(d.weeklySince) ? { weeklySince: d.weeklySince } : {}),
       }))
       .filter((c) => c.name),
   )
@@ -87,6 +92,8 @@ export async function PUT(req: Request) {
   }
   if (body.icon !== undefined && !isCategoryIconKey(body.icon)) return error('unknown icon')
   if (body.color !== undefined && !isCategoryColor(body.color)) return error('unknown color')
+  // The client's own calendar day, so Monday's recap counts weeks in its time zone.
+  if (body.weeklySince !== undefined && body.weeklySince !== null && !isDay(body.weeklySince)) return error('weeklySince must be a YYYY-MM-DD day or null')
 
   const coll = await getCollection('categories', auth)
   const budgetColl = await getCollection('budgets', auth)
@@ -144,6 +151,12 @@ export async function PUT(req: Request) {
 
       if (body.color !== undefined) {
         await coll.updateOne({ name: effectiveName }, { $set: { color: body.color } }, { session })
+      }
+
+      if (body.weeklySince === null) {
+        await coll.updateOne({ name: effectiveName }, { $unset: { weeklySince: '' } }, { session })
+      } else if (body.weeklySince !== undefined) {
+        await coll.updateOne({ name: effectiveName }, { $set: { weeklySince: body.weeklySince } }, { session })
       }
 
       if (body.alertPcts === null) {

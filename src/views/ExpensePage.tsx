@@ -246,7 +246,7 @@ export function ExpensePage() {
 
   // Weekly-tracked categories keep the month bar and add a pace tick; their
   // weeks live in the row's menu. Same rules as Mobile (src/lib/weekly.ts).
-  const { weekly, setWeekly } = useWeeklyCategories(activeSpace?.id);
+  const { weekly, setWeekly } = useWeeklyCategories();
   // Held until the budget is known: the switch is stored per budget, and a
   // flip before then would land under the wrong key and be lost.
   const onThisMonth = panel?.month === thisMonth && !!activeSpace;
