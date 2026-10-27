@@ -194,9 +194,9 @@ describe('EnvelopesPage', () => {
   it('edits a goal through the edit dialog', async () => {
     const user = userEvent.setup()
     renderPage()
-    // Goal rows keep their spending alerts; the goal lives in the edit dialog.
-    expect(await screen.findByRole('button', { name: /Spending alerts for Diwali/ })).toBeInTheDocument()
-    await user.click(screen.getByLabelText('Edit Diwali'))
+    // Goal rows offer no spending alerts (they'd never fire); the goal lives in the edit dialog.
+    await user.click(await screen.findByLabelText('Edit Diwali'))
+    expect(screen.queryByRole('button', { name: /Spending alerts for Diwali/ })).not.toBeInTheDocument()
     const dialog = screen.getByRole('dialog', { name: 'Edit category' })
     expect(within(dialog).getByRole('button', { name: 'Goal' })).toHaveAttribute('aria-pressed', 'true')
     expect(within(dialog).getByLabelText('By')).toHaveTextContent('Oct 2027')
