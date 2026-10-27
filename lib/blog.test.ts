@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { pages } from './seo'
-import { allPosts, articleJsonLd, getPost, isLive, postMetadata, postSlugs, readingMinutes, todayInIndia, wordCount } from './blog'
+import { allPosts, articleJsonLd, getPost, isLive, postLinks, postMetadata, postSlugs, readingMinutes, todayInIndia, wordCount } from './blog'
 import { GET as rss } from '@/app/(site)/blog/rss.xml/route'
 import BlogPostPage from '@/app/(site)/blog/[slug]/page'
 
@@ -16,6 +16,13 @@ describe('blog posts', () => {
       await expect(BlogPostPage({ params: Promise.resolve({ slug: post.slug }) })).rejects.toThrow(/NEXT_HTTP_ERROR_FALLBACK;404|NEXT_NOT_FOUND/)
     }
     await expect(BlogPostPage({ params: Promise.resolve({ slug: 'no-such-post' }) })).rejects.toThrow(/NEXT_HTTP_ERROR_FALLBACK;404|NEXT_NOT_FOUND/)
+  })
+
+  it('link from other pages with their real title and description, only once they are live', async () => {
+    const posts = await allPosts({ scheduled: true })
+    const live = posts.filter((p) => isLive(p))
+    expect(postLinks(...posts.map((p) => p.slug))).toEqual(live.map((p) => ({ href: p.path, label: p.title, description: p.description })))
+    expect(live.length).toBeLessThan(posts.length)
   })
 
   it('each have complete frontmatter, 1,200 to 2,000 words, and related links that exist', async () => {

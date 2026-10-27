@@ -1,11 +1,12 @@
 import Link from 'next/link'
 import { pageMetadata } from '@/lib/seo'
 import { ContentPage, Screen, SoftCta } from '@/src/components/content/ContentPage'
+import { postLinks } from '@/lib/blog'
 
 export const metadata = pageMetadata('/features/catch-up-from-statements')
 
 export default function CatchUpFromStatementsPage() {
-  return <ContentPage section="features" path="/features/catch-up-from-statements" title="Fell behind? Upload a statement and catch up" lede={<>A week of spends you didn’t log is the moment most budgets die. In Aviary you upload screenshots of your payments app, or a bank statement, and it reads the payments for you to check.</>} related={['/features/ask-aviary', '/features/budget-without-bank-linking', '/features/shared-budgets']}>
+  return <ContentPage section="features" path="/features/catch-up-from-statements" title="Fell behind? Upload a statement and catch up" lede={<>A week of spends you didn’t log is the moment most budgets die. In Aviary you upload screenshots of your payments app, or a bank statement, and it reads the payments for you to check.</>} related={[...postLinks('track-upi-spending-without-bank-linking'), '/features/ask-aviary', '/features/budget-without-bank-linking', '/features/shared-budgets']}>
     <Screen src="/landing/poster-catchup.webp" alt="Aviary’s You’re caught up screen: 5 payments added, ₹3,490.50 across Groceries, Subscriptions, Food delivery, Mobile & internet and Cabs & Auto." caption="Five payments read off two screenshots, logged in the right categories." />
 
     <h2>How it works</h2>

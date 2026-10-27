@@ -59,6 +59,19 @@ export async function allPosts({ scheduled = false } = {}): Promise<Post[]> {
   return posts.sort((a, b) => b.published.localeCompare(a.published) || a.title.localeCompare(b.title))
 }
 
+/**
+ * Posts as "Keep reading" links for pages outside the blog, read straight from each post's `meta`
+ * so the page stays synchronous. A scheduled post is left out until it's live.
+ * ponytail: liveness is checked when the page is built, so a newly live post shows up after the next deploy.
+ */
+export function postLinks(...slugs: string[]): { href: string; label: string; description: string }[] {
+  return slugs.flatMap((slug) => {
+    const source = readFileSync(join(DIR, `${slug}.mdx`), 'utf8')
+    const field = (key: string) => source.match(new RegExp(`^  ${key}: '(.*)',$`, 'm'))?.[1] ?? ''
+    return isLive({ published: field('published') } as PostMeta) ? [{ href: `/blog/${slug}`, label: field('title'), description: field('description') }] : []
+  })
+}
+
 export function postMetadata(post: Post) {
   return seoMetadata({
     path: post.path,
