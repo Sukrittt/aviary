@@ -27,7 +27,8 @@ interface Props {
   groups: string[]
   hideAmounts: boolean
   onManage: () => void
-  onMoveMoney: (category: string) => void
+  /** With an amount: a goal's Set, which opens on the sources for that much. */
+  onMoveMoney: (category: string, amount?: number) => void
   onAssignFromRTA: (category: string) => void
   onSetAssigned: (category: string) => void
   onPayCreditCard?: () => void
@@ -45,9 +46,8 @@ interface Props {
   weekly?: Map<string, string>
   onToggleWeekly?: (category: string, on: boolean) => void
   /** Sets this month's assigned to a goal's monthly amount. Omit where goals can't be changed (read-only, another month). */
+  /** Present where goals can be changed (this month, writable); its Set pulls money rather than calling this. */
   onSetMonthly?: (category: string, amount: number) => Promise<void>
-  /** What a goal's Set draws on; its confirm says how much is there. */
-  readyToAssign?: number
 }
 
 const UNGROUPED_LABEL = 'Other'
@@ -128,7 +128,7 @@ function lastSpentLabel(iso: string | undefined): string {
   return new Date(spent).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'UTC' })
 }
 
-export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveMoney, onAssignFromRTA, onSetAssigned, onPayCreditCard, categoryIcons, groupIcons, rollPlay = 0, month, paces, weekly, onToggleWeekly, onSetMonthly, readyToAssign }: Props) {
+export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveMoney, onAssignFromRTA, onSetAssigned, onPayCreditCard, categoryIcons, groupIcons, rollPlay = 0, month, paces, weekly, onToggleWeekly, onSetMonthly }: Props) {
   const styleOf = useCategoryStyle()
   const { formatCurrency } = useCurrency()
   const money = (n: number) => (hideAmounts ? '---' : formatCurrency(n))
@@ -342,7 +342,7 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
         </span>
         {/* Outside the trigger button, so its actions can be buttons too. */}
         {goal && row?.goal && (
-          <GoalLine category={e.category} goal={row.goal} progress={goal} month={goalMonth} money={money} assigned={e.assigned} readyToAssign={readyToAssign} onSetMonthly={onSetMonthly} />
+          <GoalLine category={e.category} goal={row.goal} progress={goal} month={goalMonth} money={money} onPull={onSetMonthly ? onMoveMoney : undefined} />
         )}
       </div>
     )

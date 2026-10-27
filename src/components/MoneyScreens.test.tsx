@@ -79,6 +79,23 @@ describe('money screens', () => {
     expect((screen.getByRole('textbox', { name: 'Amount' }) as HTMLInputElement).value).toContain('750')
   })
 
+  it('quick-opens on the sources with Ready to Assign picked for the amount', async () => {
+    render(<MoveMoneyScreen targetCategory="Food" amount={100} quick onClose={vi.fn()} />)
+    // Straight to the sources, Ready to Assign already covering it.
+    expect(screen.queryByRole('textbox', { name: 'Amount' })).not.toBeInTheDocument()
+    expect(screen.getByText('From')).toBeInTheDocument()
+    expect(screen.getByText(/You're all covered/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /^Move ₹/ }))
+    await waitFor(() => expect(mocks.transfer).toHaveBeenCalledWith({ month: currentMonthKey(), to: 'Food', sources: [{ category: '__ready_to_assign__', amount: 100 }] }))
+  })
+
+  it('quick-opens with the rest still to pick when Ready to Assign is short', () => {
+    render(<MoveMoneyScreen targetCategory="Food" amount={1500} quick onClose={vi.fn()} />)
+    // 1,400 ready: picked in full, 100 left to find elsewhere.
+    expect(screen.getByRole('button', { name: '₹100 more to allocate' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /Rent.*Available/ })).toBeInTheDocument()
+  })
+
   it('submits a decimal transfer from multiple sources exactly', async () => {
     openSources('1500.25')
     fireEvent.click(screen.getByRole('button', { name: 'Auto-fill' }))
@@ -90,16 +107,16 @@ describe('money screens', () => {
 
   it('hides the other sources once the transfer is fully covered', async () => {
     openSources('100')
-    fireEvent.click(screen.getByRole('button', { name: /Ready to Assign.*AVAILABLE/ }))
-    await waitFor(() => expect(screen.queryByRole('button', { name: /Rent.*AVAILABLE/ })).not.toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: /Ready to Assign.*Available/ }))
+    await waitFor(() => expect(screen.queryByRole('button', { name: /Rent.*Available/ })).not.toBeInTheDocument())
     expect(screen.getByText(/You're all covered/)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Remove' }))
-    expect(screen.getByRole('button', { name: /Rent.*AVAILABLE/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Rent.*Available/ })).toBeInTheDocument()
   })
 
   it('preserves cents when editing a source allocation', async () => {
     openSources('100.25')
-    fireEvent.click(screen.getByRole('button', { name: /Ready to Assign.*AVAILABLE/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Ready to Assign.*Available/ }))
     fireEvent.change(screen.getByLabelText('Amount from Ready to Assign'), { target: { value: '50.25' } })
     expect(screen.getByLabelText('Amount from Ready to Assign')).toHaveValue('50.25')
     fireEvent.change(screen.getByLabelText('Amount from Ready to Assign'), { target: { value: '100.25' } })
@@ -110,7 +127,7 @@ describe('money screens', () => {
   it('allows typing a decimal source amount character by character', async () => {
     const user = userEvent.setup()
     openSources('100.25')
-    fireEvent.click(screen.getByRole('button', { name: /Ready to Assign.*AVAILABLE/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Ready to Assign.*Available/ }))
     const input = screen.getByLabelText('Amount from Ready to Assign')
     await user.clear(input)
     await user.type(input, '50.25')

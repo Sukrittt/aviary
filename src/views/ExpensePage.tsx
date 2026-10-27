@@ -176,7 +176,7 @@ export function ExpensePage() {
       ? envelopeOverride.state
       : panel.envelopeState
     : null;
-  const [moveMoneyTarget, setMoveMoneyTarget] = useState<string | null>(null);
+  const [moveMoneyTarget, setMoveMoneyTarget] = useState<{ category: string; amount?: number } | null>(null);
   const [editAssignedTarget, setEditAssignedTarget] = useState<string | null>(
     null,
   );
@@ -766,7 +766,7 @@ export function ExpensePage() {
                     groups={envelopeState.groups}
                     hideAmounts={hideAmounts}
                     onManage={() => router.push("/expense/envelopes")}
-                    onMoveMoney={(cat) => setMoveMoneyTarget(cat)}
+                    onMoveMoney={(category, amount) => setMoveMoneyTarget({ category, amount })}
                     onAssignFromRTA={setAssignTarget}
                     onSetAssigned={setEditAssignedTarget}
                     onPayCreditCard={handlePayCreditCard}
@@ -774,7 +774,6 @@ export function ExpensePage() {
                     weekly={onThisMonth ? weekly : undefined}
                     onToggleWeekly={readOnly ? undefined : setWeekly}
                     onSetMonthly={onThisMonth && !readOnly ? setMonthly : undefined}
-                    readyToAssign={envelopeState.readyToAssign}
                   />
                 </motion.article>
               )}
@@ -897,7 +896,9 @@ export function ExpensePage() {
         <AnimatePresence>
           {moveMoneyTarget && envelopeState && (
             <MoveMoneyScreen
-              targetCategory={moveMoneyTarget}
+              targetCategory={moveMoneyTarget.category}
+              amount={moveMoneyTarget.amount}
+              quick={moveMoneyTarget.amount !== undefined}
               onClose={() => setMoveMoneyTarget(null)}
             />
           )}

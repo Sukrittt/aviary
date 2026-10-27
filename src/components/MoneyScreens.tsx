@@ -351,26 +351,30 @@ interface SourceItem {
   score: number
 }
 
-export function MoveMoneyScreen({ targetCategory, amount, onClose }: {
+export function MoveMoneyScreen({ targetCategory, amount, quick, onClose }: {
   targetCategory: string
   /** Opening amount, e.g. the shortfall Insights' forecast offered to top up. */
   amount?: number
+  /** With an amount: open on the sources, Ready to Assign already picked (a goal's Set). */
+  quick?: boolean
   onClose: () => void
 }) {
   const data = useMoneyData()
-  if (data.isLoading) return <FormSheet title="Pull money" onClose={onClose} busy={false}><LoadingCaption /></FormSheet>
+  if (data.isLoading) return <FormSheet title="Pull money" onClose={onClose} busy={false} className="money-wide"><LoadingCaption /></FormSheet>
   if (data.carryFailed) return <CarryFailed title="Pull money" onClose={onClose} />
-  return <MoveMoneyBody targetCategoryName={targetCategory} initialAmount={amount} onClose={onClose} data={data} />
+  return <MoveMoneyBody targetCategoryName={targetCategory} initialAmount={amount} quick={quick} onClose={onClose} data={data} />
 }
 
 function MoveMoneyBody({
   targetCategoryName,
   initialAmount,
+  quick,
   onClose,
   data,
 }: {
   targetCategoryName: string
   initialAmount?: number
+  quick?: boolean
   onClose: () => void
   data: ReturnType<typeof useMoneyData>
 }) {
@@ -396,8 +400,11 @@ function MoveMoneyBody({
     (e) => e.available > 0 && e.category !== targetCategoryName && !e.isCreditCardPayment,
   )
 
-  const [step, setStep] = useState<'amount' | 'sources'>('amount')
-  const [allocs, setAllocs] = useState<Record<string, number>>({})
+  const quickStart = !!quick && !!initialAmount && initialAmount > 0
+  const [step, setStep] = useState<'amount' | 'sources'>(quickStart ? 'sources' : 'amount')
+  const [allocs, setAllocs] = useState<Record<string, number>>(
+    quickStart && readyToAssign > 0 ? { [RTA_SENTINEL]: Math.min(readyToAssign, cents(initialAmount)) } : {},
+  )
   const [amountStr, setAmountStr] = useState(
     initialAmount && initialAmount > 0 ? String(cents(initialAmount)) : isOverspent ? String(cents(shortfall)) : '',
   )
@@ -494,6 +501,7 @@ function MoveMoneyBody({
         title="Pull money"
         onClose={onClose}
         busy={false}
+        className="money-wide"
         footer={<button type="button" className="erd-log-submit" onClick={onClose}>Close</button>}
       >
         <div className="erd-sub-empty">
@@ -514,6 +522,7 @@ function MoveMoneyBody({
         title={title}
         onClose={onClose}
         busy={busy}
+        className="money-wide"
         footer={
           <button type="button" className="erd-log-submit" disabled={amount <= 0} onClick={() => setStep('sources')}>
             {amount > 0 ? 'Pick sources →' : 'Add an amount'}
@@ -573,7 +582,7 @@ function MoveMoneyBody({
       onClose={onClose}
       onBack={() => setStep('amount')}
       busy={busy}
-      className="money-form"
+      className="money-form money-wide"
       footer={
         <>
           {error !== '' && <p role="alert" className="erd-log-error money-form-error">{error}</p>}
@@ -687,7 +696,7 @@ function MoveMoneyBody({
                     <span className="money-source-name">{item.name}</span>
                     <span className="money-source-avail">
                       <span>{formatCurrency(item.available, hideAmounts)}</span>
-                      <small>AVAILABLE</small>
+                      <small>Available</small>
                     </span>
                   </motion.button>
                 ))}

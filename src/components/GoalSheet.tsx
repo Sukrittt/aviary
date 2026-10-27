@@ -1,8 +1,6 @@
 'use client'
 
 import { useId, useState, type ReactNode } from 'react'
-import { AnimatePresence } from 'motion/react'
-import { ConfirmDialog } from './ConfirmDialog'
 import { AmountField, AmountSheet } from './AmountSheet'
 import { MonthPicker } from './DatePicker'
 import { useCurrency } from '@/src/context/CurrencyContext'
@@ -136,23 +134,18 @@ export function GoalSheet({ category, goal, onClose }: { category: string; goal?
  * monthly amount a behind goal needs, or repeat or remove a done one. Nothing
  * changes without the tap; without onSetMonthly it's the plain line.
  */
-export function GoalLine({ category, goal, progress, month, money, assigned, readyToAssign, onSetMonthly }: {
+export function GoalLine({ category, goal, progress, money, month, onPull }: {
   category: string
   goal: CategoryGoal
   progress: GoalProgress
   month: string
   money: (n: number) => string
-  /** This month's assigned, for the confirm's before and after. */
-  assigned: number
-  /** Where the extra comes from; omitted, the confirm doesn't say how much is there. */
-  readyToAssign?: number
-  onSetMonthly?: (category: string, amount: number) => Promise<void>
+  /** Opens Pull money into this category for the amount it's behind by. Omitted: no actions (read-only, another month). */
+  onPull?: (category: string, amount: number) => void
 }) {
   const update = useUpdateCategory()
-  const [busy, setBusy] = useState<'set' | 'repeat' | 'remove' | null>(null)
+  const [busy, setBusy] = useState<'repeat' | 'remove' | null>(null)
   const [error, setError] = useState('')
-  // The Set link asks first: it moves money, and the line alone doesn't say from where.
-  const [confirming, setConfirming] = useState(false)
 
   async function run(key: NonNullable<typeof busy>, action: () => Promise<unknown>) {
     if (busy) return
@@ -173,31 +166,10 @@ export function GoalLine({ category, goal, progress, month, money, assigned, rea
   )
 
   let line: ReactNode = goalLine(progress, money)
-  let confirm: ReactNode = null
-  if (onSetMonthly && progress.status === 'behind' && progress.monthlyNeed !== undefined && progress.by) {
-    const need = progress.monthlyNeed
-    line = <>Behind by {money(progress.behindBy ?? 0)} · <button type="button" className="env2-goal-link" disabled={!!busy} onClick={() => setConfirming(true)}>{busy === 'set' ? 'Setting…' : `Set ${money(need)}/mo`}</button> to make it by {shortMonth(progress.by)}</>
-    const extra = need - assigned
-    const after = readyToAssign === undefined ? undefined : readyToAssign - extra
-    confirm = confirming && (
-      <ConfirmDialog title={`Set ${money(need)}/mo for ${category}`} cancelLabel="Not now" onCancel={() => setConfirming(false)} busy={busy === 'set'}
-        body={
-          <dl className="goal-confirm">
-            <div className="goal-confirm-row"><dt>Assigned this month</dt><dd><s>{money(assigned)}</s> {money(need)}</dd></div>
-            <div className="goal-confirm-row"><dt>From Ready to Assign</dt><dd>− {money(extra)}</dd></div>
-            {after !== undefined && (
-              <div className="goal-confirm-row is-total"><dt>Ready to Assign after</dt><dd className={after < 0 ? 'is-over' : ''}>{after < 0 ? `− ${money(-after)}` : money(after)}</dd></div>
-            )}
-            {after !== undefined && after < 0 && <p className="goal-confirm-warn">Short by {money(-after)}. You&apos;d be over-assigned.</p>}
-          </dl>
-        }>
-        <button type="button" className="action-button" disabled={!!busy}
-          onClick={() => void run('set', () => onSetMonthly(category, need)).then(() => setConfirming(false))}>
-          {busy === 'set' ? 'Setting…' : `Set ${money(need)}/mo`}
-        </button>
-      </ConfirmDialog>
-    )
-  } else if (onSetMonthly && progress.status === 'done') {
+  if (onPull && progress.status === 'behind' && progress.monthlyNeed !== undefined && progress.by && progress.behindBy) {
+    const short = progress.behindBy
+    line = <>Behind by {money(short)} · <button type="button" className="env2-goal-link" disabled={!!busy} onClick={() => onPull(category, short)}>Set {money(progress.monthlyNeed)}/mo</button> to make it by {shortMonth(progress.by)}</>
+  } else if (onPull && progress.status === 'done') {
     line = <>
       Done
       {goal.by && <> · {link('repeat', 'Repeat next year', 'Saving…', () => update.mutateAsync({ name: category, updates: { goal: { ...goal, by: nextGoalMonth(progress.by ?? goal.by!, month) } } }))}</>}
@@ -205,12 +177,9 @@ export function GoalLine({ category, goal, progress, month, money, assigned, rea
     </>
   }
   return (
-    <>
-      <span className={`env2-meta env2-goal-line is-${progress.status}`}>
-        {line}
-        {error && <span role="alert" className="env2-goal-error"> {error}</span>}
-      </span>
-      <AnimatePresence>{confirm}</AnimatePresence>
-    </>
+    <span className={`env2-meta env2-goal-line is-${progress.status}`}>
+      {line}
+      {error && <span role="alert" className="env2-goal-error"> {error}</span>}
+    </span>
   )
 }

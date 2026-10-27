@@ -15539,26 +15539,6 @@ span.env-cat-alerts:hover {
 }
 .env2-goal-link:hover:not(:disabled) { text-decoration-color: currentColor; }
 .env2-goal-link:disabled { cursor: default; opacity: 0.6; }
-/* The Set confirm: a three-line receipt instead of a sentence. */
-.goal-confirm {
-  margin: 4px 0 0;
-  font-size: 13px;
-}
-.goal-confirm-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 12px;
-  padding: 9px 0;
-  border-bottom: 1px solid var(--erd-border);
-}
-.goal-confirm-row dt { margin: 0; color: var(--erd-text2); }
-.goal-confirm-row dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.goal-confirm-row dd s { margin-right: 4px; font-weight: 400; color: var(--erd-text3); }
-.goal-confirm-row.is-total { border-bottom: 0; padding-top: 11px; }
-.goal-confirm-row.is-total dt { color: var(--erd-text); font-weight: 600; }
-.goal-confirm-row dd.is-over { color: var(--tk-pill-over); }
-.goal-confirm-warn { margin: 0; font-size: 12px; color: var(--tk-pill-over); }
 .env2-goal-error { font-size: 12px; color: var(--tk-pill-over); }
 .goal-sheet-actions {
   display: flex;

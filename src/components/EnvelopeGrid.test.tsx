@@ -218,13 +218,14 @@ describe('EnvelopeGrid weekly pacing', () => {
 describe('EnvelopeGrid goals', () => {
   // October 2026: 6,000 carried in, nothing assigned yet. 18,000 to go over Oct..Jan.
   const saver = { ...envelope, category: 'Diwali', assigned: 0, spent: 0, available: 6000, spentPct: 0 }
-  function goalSetup(goal: CategoryRow['goal'], e = saver, onSetMonthly: ((c: string, n: number) => Promise<void>) | null = vi.fn(async () => undefined), rta = 20000) {
+  function goalSetup(goal: CategoryRow['goal'], e = saver, onSetMonthly: ((c: string, n: number) => Promise<void>) | null = vi.fn(async () => undefined)) {
     cats.rows = [{ name: e.category, group: 'Essentials', goal }]
     cats.update.mockClear()
+    const onMoveMoney = vi.fn()
     render(<EnvelopeGrid envelopes={[e]} groups={['Essentials']} month="2026-10"
-      hideAmounts={false} onManage={vi.fn()} onMoveMoney={vi.fn()}
-      onAssignFromRTA={vi.fn()} onSetAssigned={vi.fn()} onSetMonthly={onSetMonthly ?? undefined} readyToAssign={rta} />)
-    return { onSetMonthly }
+      hideAmounts={false} onManage={vi.fn()} onMoveMoney={onMoveMoney}
+      onAssignFromRTA={vi.fn()} onSetAssigned={vi.fn()} onSetMonthly={onSetMonthly ?? undefined} />)
+    return { onSetMonthly, onMoveMoney }
   }
 
   it('shows progress to the target and what a month makes the deadline', () => {
@@ -234,31 +235,20 @@ describe('EnvelopeGrid goals', () => {
     expect(screen.queryByText(/Last spent/)).not.toBeInTheDocument()
   })
 
-  it('sets the monthly amount only after a confirm that says where it comes from', async () => {
-    const { onSetMonthly } = goalSetup({ amount: 24000, by: '2027-01' })
-    const user = userEvent.setup()
-    await user.click(screen.getByRole('button', { name: 'Set ₹4500/mo' }))
-    const dialog = screen.getByRole('alertdialog', { name: 'Set ₹4500/mo for Diwali' })
-    expect(dialog).toHaveTextContent('Assigned this month₹0 ₹4500')
-    expect(dialog).toHaveTextContent('From Ready to Assign− ₹4500')
-    expect(dialog).toHaveTextContent('Ready to Assign after₹15500')
+  it('Set opens Pull money for the amount the month is behind by', async () => {
+    // 1,000 of the 4,500 in: the pull is for the other 3,500, not the whole share.
+    const { onMoveMoney, onSetMonthly } = goalSetup({ amount: 24000, by: '2027-01' }, { ...saver, assigned: 1000, available: 7000 })
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Set ₹4500/mo' }))
+    expect(onMoveMoney).toHaveBeenCalledWith('Diwali', 3500)
     expect(onSetMonthly).not.toHaveBeenCalled()
-    await user.click(within(dialog).getByRole('button', { name: 'Set ₹4500/mo' }))
-    expect(onSetMonthly).toHaveBeenCalledWith('Diwali', 4500)
-    await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument())
   })
 
-  it('rolls the Left pill from the old balance to the new one once a Set lands, then splashes', async () => {
+  it('rolls the Left pill from the old balance to the new one once money lands, then splashes', async () => {
     motion.inView = true
     cats.rows = [{ name: 'Diwali', group: 'Essentials', goal: { amount: 24000, by: '2027-01' } }]
-    const onSetMonthly = vi.fn(async () => undefined)
-    const props = { groups: ['Essentials'], month: '2026-10', hideAmounts: false, onManage: vi.fn(), onMoveMoney: vi.fn(), onAssignFromRTA: vi.fn(), onSetAssigned: vi.fn(), onSetMonthly, readyToAssign: 20000 }
+    const props = { groups: ['Essentials'], month: '2026-10', hideAmounts: false, onManage: vi.fn(), onMoveMoney: vi.fn(), onAssignFromRTA: vi.fn(), onSetAssigned: vi.fn() }
     const { container, rerender } = render(<EnvelopeGrid {...props} envelopes={[saver]} />)
-    const user = userEvent.setup()
-    await user.click(screen.getByRole('button', { name: 'Set ₹4500/mo' }))
-    await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Set ₹4500/mo' }))
     const pill = () => container.querySelector('.env2-pill')!
-    // Saved, but the new balance isn't in yet: the pill sits still.
     expect(pill()).not.toHaveClass('is-rolling-up')
     rerender(<EnvelopeGrid {...props} envelopes={[{ ...saver, assigned: 4500, available: 10500 }]} />)
     // Ticks up from the old 6,000, then lands and splashes.
@@ -266,16 +256,6 @@ describe('EnvelopeGrid goals', () => {
     await waitFor(() => expect(pill()).toHaveClass('is-splash'), { timeout: 3000 })
     expect(container.querySelectorAll('.env2-splash i').length).toBeGreaterThan(0)
     motion.inView = false
-  })
-
-  it('warns when Ready to Assign is short of the monthly amount', async () => {
-    goalSetup({ amount: 24000, by: '2027-01' }, { ...saver, assigned: 1000, available: 7000 }, vi.fn(async () => undefined), 2000)
-    await userEvent.setup().click(screen.getByRole('button', { name: 'Set ₹4500/mo' }))
-    const dialog = screen.getByRole('alertdialog')
-    expect(dialog).toHaveTextContent('Assigned this month₹1000 ₹4500')
-    expect(dialog).toHaveTextContent('From Ready to Assign− ₹3500')
-    expect(dialog).toHaveTextContent('Ready to Assign after− ₹1500')
-    expect(dialog).toHaveTextContent("Short by ₹1500. You'd be over-assigned.")
   })
 
   it('offers no changes where goals are read-only', () => {

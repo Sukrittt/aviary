@@ -208,9 +208,14 @@
   border: 1px solid var(--tk-border);
   color: var(--tk-text);
 }
+/* The pull-money sheets, a step wider than the one-off income card they share. */
+.expense-redesign .erd-modal-card.erd-sub-card.erd-one-off-card.money-wide {
+  width: 560px;
+}
 .money-cover-row {
   display: flex;
-  align-items: center;
+  /* The big number and the small "to" sit on one baseline, not optically off-centre. */
+  align-items: baseline;
   justify-content: space-between;
   gap: 12px;
 }
@@ -254,10 +259,20 @@
 .money-search input {
   width: 100%;
   min-width: 0;
+  height: 100%;
+  margin: 0;
+  padding: 0;
   border: 0;
   background: transparent;
   color: var(--tk-text);
   font-size: 13px;
+  line-height: 1;
+}
+.money-search input::placeholder {
+  color: var(--tk-text3);
+}
+.money-search > svg {
+  flex: 0 0 auto;
 }
 .money-autofill {
   padding: 0 12px;
@@ -292,7 +307,13 @@
   gap: 12px;
 }
 .money-source-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
   font-size: 22px;
+  line-height: 1;
 }
 .money-source-text,
 .money-source-name {
