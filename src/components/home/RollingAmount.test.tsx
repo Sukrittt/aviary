@@ -73,6 +73,25 @@ describe('RollingAmount', () => {
     expect(label(container)).toBe('₹1000')
   })
 
+  it('with rise, rolls up on its own when the amount goes up, and only up', () => {
+    motion.inView = true
+    const rising = (to: number) => <RollingAmount from={to} to={to} play={0} rise format={money} className="env2-pill" />
+    const { container, rerender } = render(rising(3000))
+    expect(label(container)).toBe('₹3000')
+    rerender(rising(5000))
+    // Holds the old amount first, so the new one never flashes in.
+    expect(label(container)).toBe('₹3000')
+    expect(pill(container)).toHaveClass('is-rolling-up')
+    act(() => vi.advanceTimersByTime(500 + 300 * 5))
+    expect(label(container)).toBe('₹5000')
+    expect(pill(container)).toHaveClass('is-splash')
+    act(() => vi.advanceTimersByTime(1000))
+    // Spending it just updates.
+    rerender(rising(4200))
+    expect(label(container)).toBe('₹4200')
+    expect(pill(container)).not.toHaveClass('is-rolling-down')
+  })
+
   it('skips the roll for reduced motion', () => {
     motion.reduce = true
     const { container } = render(amount(1))

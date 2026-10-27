@@ -248,7 +248,7 @@ describe('EnvelopeGrid goals', () => {
     await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument())
   })
 
-  it('rolls the Left pill from the old balance to the new one after a Set, then splashes', async () => {
+  it('rolls the Left pill from the old balance to the new one once a Set lands, then splashes', async () => {
     motion.inView = true
     cats.rows = [{ name: 'Diwali', group: 'Essentials', goal: { amount: 24000, by: '2027-01' } }]
     const onSetMonthly = vi.fn(async () => undefined)

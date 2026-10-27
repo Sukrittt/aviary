@@ -139,16 +139,6 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
   const [menuSide, setMenuSide] = useState<'top' | 'bottom'>('bottom')
   const triggers = useRef(new Map<string, HTMLElement>())
   const [goalFor, setGoalFor] = useState<string | null>(null)
-  // Goals whose Set just saved, with the balance before: once the new one
-  // lands, the Left pill rolls from the old to it and splashes (RollingAmount).
-  // Stamped with the grid's replay and month, so a later replay or another
-  // month ignores it and rolls as usual.
-  const [celebrate, setCelebrate] = useState(() => new Map<string, { from: number; play: number; rollPlay: number; month?: string }>())
-  const setMonthly = onSetMonthly && (async (category: string, amount: number) => {
-    const from = envelopes.find((x) => x.category === category)?.available ?? 0
-    await onSetMonthly(category, amount)
-    setCelebrate((m) => new Map(m).set(category, { from, play: Date.now(), rollPlay, month }))
-  })
   const categoryRows = useCategories().data
   const categoryByName = useMemo(() => new Map((categoryRows ?? []).map((c) => [c.name, c])), [categoryRows])
   const goalMonth = month ?? currentMonthKey()
@@ -326,15 +316,15 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
         <span className="env2-available">
           <span className="env2-balance-label">{e.isOverspent ? 'Overspent' : 'Left'}</span>
           {(() => {
-            // A celebration plays only once the balance has moved; before that the pill sits still.
-            const party = celebrate.get(e.category)
-            const partying = !!party && party.rollPlay === rollPlay && party.month === month && party.from !== e.available && !hideAmounts
+            // Keyed by month: a month switch swaps the amount, it doesn't raise it.
             const pill = (
               <RollingAmount
+                key={month}
                 className={`env2-pill ${pace ? PACE_PILL[pace.monthStatus] : pillClass(e)}`}
-                from={partying ? party.from : e.available - e.rolledOver}
+                from={e.available - e.rolledOver}
                 to={e.available}
-                play={partying ? party.play : hideAmounts ? 0 : rollPlay}
+                rise={!hideAmounts}
+                play={hideAmounts ? 0 : rollPlay}
                 delayMs={Math.min(rollOrder.get(e.category) ?? 0, 5) * 150}
                 format={money}
               />
@@ -352,7 +342,7 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
         </span>
         {/* Outside the trigger button, so its actions can be buttons too. */}
         {goal && row?.goal && (
-          <GoalLine category={e.category} goal={row.goal} progress={goal} month={goalMonth} money={money} assigned={e.assigned} readyToAssign={readyToAssign} onSetMonthly={setMonthly} />
+          <GoalLine category={e.category} goal={row.goal} progress={goal} month={goalMonth} money={money} assigned={e.assigned} readyToAssign={readyToAssign} onSetMonthly={onSetMonthly} />
         )}
       </div>
     )
