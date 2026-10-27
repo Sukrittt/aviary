@@ -12284,6 +12284,7 @@ span.env-cat-alerts:hover {
 .home-learning-days li.is-on span {
   border-color: var(--gold);
   background: var(--gold);
+  color: #fff;
 }
 .home-learning-days li.is-today span {
   outline: 2px solid var(--gold);
