@@ -20,10 +20,10 @@ export interface GoalDraft {
 
 export const draftOf = (goal?: CategoryGoal): GoalDraft => ({ amount: goal ? String(goal.amount) : '', by: goal?.by ?? '', yearly: goal?.repeat === 'yearly' })
 
-/** The goal a draft describes, or null while it has no amount or its month is already over. */
+/** The goal a draft describes, or null while it has no amount or it's a one-off whose month is over. A yearly one just rolls on. */
 export function goalOf(d: GoalDraft): CategoryGoal | null {
   const amount = Number(d.amount)
-  if (!(amount > 0) || (d.by && d.by < currentMonthKey())) return null
+  if (!(amount > 0) || (d.by && !d.yearly && d.by < currentMonthKey())) return null
   return { amount, ...(d.by ? { by: d.by } : {}), ...(d.by && d.yearly ? { repeat: 'yearly' as const } : {}) }
 }
 
@@ -34,13 +34,14 @@ export function GoalFields({ draft, onChange, autoFocus }: { draft: GoalDraft; o
   const amountId = useId()
   const byId = useId()
   const thisMonth = currentMonthKey()
+  const over = !!draft.by && !draft.yearly && draft.by < thisMonth
   return (
     <>
       <AmountField id={amountId} value={draft.amount} onChange={(amount) => onChange({ ...draft, amount })} hint="What you're saving up to." autoFocus={autoFocus} />
       <section className="erd-sub-section">
         <label className="erd-log-label" htmlFor={byId}>By</label>
-        <input id={byId} type="month" min={thisMonth} className="env-input goal-month" value={draft.by} onChange={(e) => onChange({ ...draft, by: e.target.value })} />
-        <p className="erd-sub-hint">{draft.by && draft.by < thisMonth ? "That month's over. Pick this one or later." : draft.by ? 'Need it again next year? Repeat it.' : 'Leave it empty to save at your own pace.'}</p>
+        <input id={byId} type="month" min={draft.yearly ? undefined : thisMonth} className="env-input goal-month" value={draft.by} onChange={(e) => onChange({ ...draft, by: e.target.value })} />
+        <p className="erd-sub-hint">{over ? "That month's over. Pick this one or later." : draft.by ? 'Need it again next year? Repeat it.' : 'Leave it empty to save at your own pace.'}</p>
         {draft.by && (
           <div className="erd-sub-picks">
             <button type="button" className={`erd-chip ${draft.yearly ? '' : 'is-selected'}`} aria-pressed={!draft.yearly} onClick={() => onChange({ ...draft, yearly: false })}>Just once</button>

@@ -66,6 +66,8 @@ describe('goalOf', () => {
       expect(goalOf({ amount: '10000', by: '2026-05', yearly: false })).toBeNull()
       expect(goalOf({ amount: '10000', by: '2026-10', yearly: true })).toEqual({ amount: 10000, by: '2026-10', repeat: 'yearly' })
       expect(goalOf({ amount: '10000', by: '', yearly: false })).toEqual({ amount: 10000 })
+      // A yearly goal's stored month never moves; it rolls on when shown. Editing one a year on still saves.
+      expect(goalOf({ amount: '10000', by: '2025-10', yearly: true })).toEqual({ amount: 10000, by: '2025-10', repeat: 'yearly' })
     } finally {
       vi.useRealTimers()
     }
