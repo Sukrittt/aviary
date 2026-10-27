@@ -1,4 +1,4 @@
-import type { TextareaHTMLAttributes } from 'react'
+import type { ComponentProps } from 'react'
 
 /**
  * A fixed-size textarea with a character count in its bottom-right corner,
@@ -6,7 +6,7 @@ import type { TextareaHTMLAttributes } from 'react'
  * which reserves a strip under the text for the count, so scrolled text never
  * runs under it.
  */
-export function CountedTextarea({ maxLength, value, className, ...rest }: TextareaHTMLAttributes<HTMLTextAreaElement> & { maxLength: number; value: string }) {
+export function CountedTextarea({ maxLength, value, className, ...rest }: ComponentProps<'textarea'> & { maxLength: number; value: string }) {
   return (
     <div className={`counted-textarea ${className ?? ''}`}>
       <textarea className="counted-textarea-input" maxLength={maxLength} value={value} {...rest} />

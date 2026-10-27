@@ -15575,3 +15575,4 @@ span.env-cat-alerts:hover {
 .note-link { color: var(--gold-ink); text-decoration: underline; text-underline-offset: 2px; }
 .note-sum { margin: 8px 0 0; font-size: 13px; font-weight: 500; color: var(--erd-text2); }
 .note-sum.is-match { color: var(--mint); }
+.note-todo-chip { align-self: flex-start; margin-top: 10px; }

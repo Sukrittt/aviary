@@ -1,15 +1,16 @@
 'use client'
 
-import { useId, useState, type MouseEvent } from 'react'
+import { useId, useLayoutEffect, useRef, useState, type MouseEvent } from 'react'
 import { AmountSheet } from './AmountSheet'
 import { CountedTextarea } from './CountedTextarea'
+import { CheckSquareIcon } from '@/src/components/icons'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
 import { useCurrency } from '@/src/context/CurrencyContext'
 import { useSpaces } from '../hooks/useSpaces'
 import { useUpdateCategory } from '../hooks/useCategories'
 import { splitEmoji } from '../lib/emoji'
 import { todayIST } from '../lib/date'
-import { dayLabel, goalFit, parseNote, toggleLine, type Segment } from '../lib/noteRender'
+import { addTodo, dayLabel, goalFit, parseNote, toggleLine, type Segment } from '../lib/noteRender'
 import type { CategoryRow } from '../types'
 
 export const NOTE_MAX = 2000
@@ -43,6 +44,8 @@ export function NoteSheet({ row, onClose }: { row: CategoryRow; onClose: () => v
   const update = useUpdateCategory()
   const save = useButtonPhase()
   const id = useId()
+  const box = useRef<HTMLTextAreaElement>(null)
+  const caretAfter = useRef<number | null>(null)
   const [note, setNote] = useState(row.note ?? '')
   // Derived, so a budget that turns out read-only once spaces load closes the editor.
   const [wantsEdit, setEditing] = useState(!row.note)
@@ -87,6 +90,21 @@ export function NoteSheet({ row, onClose }: { row: CategoryRow; onClose: () => v
     }
   }
 
+  // The chip shows checklists exist by writing one: the syntax is right there in the box.
+  function onAddTodo() {
+    const next = addTodo(draft, box.current?.selectionStart ?? draft.length, NOTE_MAX)
+    if (!next) return
+    caretAfter.current = next.caret
+    setDraft(next.text)
+  }
+  // Same commit as the new text, so a keystroke right after the tap lands at the caret, not where it was.
+  useLayoutEffect(() => {
+    if (caretAfter.current === null) return
+    box.current?.focus()
+    box.current?.setSelectionRange(caretAfter.current, caretAfter.current)
+    caretAfter.current = null
+  }, [draft])
+
   // A click on the note's text edits it; its checkboxes and links do their own thing.
   function onReadClick(e: MouseEvent) {
     // Not mid-tick: the tick writes the whole note, and an edit saved after it would race it.
@@ -120,8 +138,12 @@ export function NoteSheet({ row, onClose }: { row: CategoryRow; onClose: () => v
       {editing ? (
         <section className="erd-sub-section">
           <label className="erd-log-label" htmlFor={id}>Note</label>
-          <CountedTextarea id={id} className="erd-log-input note-textarea" maxLength={NOTE_MAX} rows={7} autoFocus readOnly={busy} placeholder={placeholderFor(row)} value={draft} onChange={(e) => setDraft(e.target.value)} />
-          <p className="erd-sub-hint">Only people in this budget can see it.</p>
+          <CountedTextarea ref={box} id={id} className="erd-log-input note-textarea" maxLength={NOTE_MAX} rows={7} autoFocus readOnly={busy} placeholder={placeholderFor(row)} value={draft} onChange={(e) => setDraft(e.target.value)} />
+          {/* mousedown kept off the button, so the box keeps its caret and focus. */}
+          <button type="button" className="erd-chip note-todo-chip" disabled={busy} onMouseDown={(e) => e.preventDefault()} onClick={onAddTodo}>
+            <CheckSquareIcon size={14} aria-hidden="true" /> Add to-do
+          </button>
+          <p className="erd-sub-hint">Start a line with - for a checkbox. Dates and amounts light up on their own. Only people in this budget can see it.</p>
         </section>
       ) : (
         <div className={`note-read ${readOnly ? '' : 'is-editable'}`} onClick={onReadClick}>
