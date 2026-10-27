@@ -58,6 +58,7 @@ beforeEach(() => {
     { name: '🏠 Rent', group: 'Home' },
     { name: '🚿 Water', group: 'Home', alertPcts: [25, 50] },
     { name: 'Odds' },
+    { name: 'Diwali', goal: { amount: 30000, by: '2027-10', repeat: 'yearly' } },
   ])
   ;(getGroups as Mock).mockResolvedValue(['Home'])
   ;(addCategory as Mock).mockResolvedValue(undefined)
@@ -188,6 +189,34 @@ describe('EnvelopesPage', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Save' }))
     // The legacy emoji stays on the stored name; Mobile still reads it.
     await waitFor(() => expect(updateCategory).toHaveBeenCalledWith('🏠 Rent', { newName: '🏠 Mortgage' }))
+  })
+
+  it('edits a goal through the edit dialog', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    // Goal rows keep their spending alerts; the goal lives in the edit dialog.
+    expect(await screen.findByRole('button', { name: /Spending alerts for Diwali/ })).toBeInTheDocument()
+    await user.click(screen.getByLabelText('Edit Diwali'))
+    const dialog = screen.getByRole('dialog', { name: 'Edit category' })
+    expect(within(dialog).getByRole('button', { name: 'Goal' })).toHaveAttribute('aria-pressed', 'true')
+    expect(within(dialog).getByLabelText('By')).toHaveTextContent('Oct 2027')
+    const amount = within(dialog).getByLabelText('Amount')
+    expect(amount).toHaveValue('30000')
+    await user.clear(amount)
+    await user.type(amount, '45000')
+    await user.click(within(dialog).getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(updateCategory).toHaveBeenCalledWith('Diwali', { goal: { amount: 45000, by: '2027-10', repeat: 'yearly' } }))
+  })
+
+  it('turns a goal back into a spending category from the edit dialog', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await user.click(await screen.findByLabelText('Edit Diwali'))
+    const dialog = screen.getByRole('dialog', { name: 'Edit category' })
+    await user.click(within(dialog).getByRole('button', { name: 'No goal' }))
+    await user.click(within(dialog).getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(updateCategory).toHaveBeenCalledWith('Diwali', { goal: null }))
+    // Untouched otherwise: a plain rename still sends only the name.
   })
 
   it('picks a new icon from the searchable grid', async () => {

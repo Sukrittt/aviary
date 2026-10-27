@@ -774,6 +774,7 @@ export function ExpensePage() {
                     weekly={onThisMonth ? weekly : undefined}
                     onToggleWeekly={readOnly ? undefined : setWeekly}
                     onSetMonthly={onThisMonth && !readOnly ? setMonthly : undefined}
+                    readyToAssign={envelopeState.readyToAssign}
                   />
                 </motion.article>
               )}

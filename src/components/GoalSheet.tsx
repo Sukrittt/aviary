@@ -1,13 +1,17 @@
 'use client'
 
-import { useId, useState } from 'react'
+import { useId, useState, type ReactNode } from 'react'
+import { AnimatePresence } from 'motion/react'
+import { ConfirmDialog } from './ConfirmDialog'
 import { AmountField, AmountSheet } from './AmountSheet'
+import { MonthPicker } from './DatePicker'
+import { useCurrency } from '@/src/context/CurrencyContext'
 import { ReadOnlyNotice } from './BudgetNotices'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
 import { useSpaces } from '../hooks/useSpaces'
 import { useUpdateCategory } from '../hooks/useCategories'
 import { splitEmoji } from '../lib/emoji'
-import { nextGoalMonth, type GoalProgress } from '../lib/goal'
+import { goalLine, nextGoalMonth, shortMonth, type GoalProgress } from '../lib/goal'
 import { currentMonthKey } from '../lib/envelope'
 import type { CategoryGoal } from '../types'
 
@@ -29,25 +33,50 @@ export function goalOf(d: GoalDraft): CategoryGoal | null {
 
 const SAVE_FAILED = "Couldn't save. Check your connection and try again."
 
-/** Target, optional month, and once or every year. Shared by this sheet and Add category. */
-export function GoalFields({ draft, onChange, autoFocus }: { draft: GoalDraft; onChange: (d: GoalDraft) => void; autoFocus?: boolean }) {
+/**
+ * Target, optional month, and once or every year. Shared by this sheet and Add
+ * category; `compact` dresses it in the envelope sheet's smaller labels and chips.
+ */
+export function GoalFields({ draft, onChange, autoFocus, compact }: { draft: GoalDraft; onChange: (d: GoalDraft) => void; autoFocus?: boolean; compact?: boolean }) {
   const amountId = useId()
   const byId = useId()
   const thisMonth = currentMonthKey()
   const over = !!draft.by && !draft.yearly && draft.by < thisMonth
+  const { currencySymbol } = useCurrency()
+  const chip = compact ? 'env-pct' : 'erd-chip'
+  const on = compact ? 'is-on' : 'is-selected'
+  const by = (
+    <>
+      <MonthPicker id={byId} value={draft.by} onChange={(by) => onChange({ ...draft, by })} />
+      <p className={compact ? 'env-sheet-hint' : 'erd-sub-hint'}>{over ? "That month's over. Pick this one or later." : draft.by ? 'Need it again next year? Repeat it.' : 'Leave it empty to save at your own pace.'}</p>
+      {draft.by && (
+        <div className={compact ? 'env-pct-row' : 'erd-sub-picks'}>
+          <button type="button" className={`${chip} ${draft.yearly ? '' : on}`} aria-pressed={!draft.yearly} onClick={() => onChange({ ...draft, yearly: false })}>Just once</button>
+          <button type="button" className={`${chip} ${draft.yearly ? on : ''}`} aria-pressed={draft.yearly} onClick={() => onChange({ ...draft, yearly: true })}>Every year</button>
+        </div>
+      )}
+    </>
+  )
+  if (compact) {
+    return (
+      <>
+        <label className="env-sheet-section-label" htmlFor={amountId}>Amount</label>
+        <div className="env-amount">
+          <span className="env-amount-symbol" aria-hidden="true">{currencySymbol}</span>
+          <input id={amountId} className="env-input" type="text" inputMode="decimal" placeholder="0" autoFocus={autoFocus} value={draft.amount}
+            onChange={(e) => { if (/^\d{0,9}(\.\d{0,2})?$/.test(e.target.value)) onChange({ ...draft, amount: e.target.value }) }} />
+        </div>
+        <label className="env-sheet-section-label" htmlFor={byId}>By</label>
+        {by}
+      </>
+    )
+  }
   return (
     <>
       <AmountField id={amountId} value={draft.amount} onChange={(amount) => onChange({ ...draft, amount })} hint="What you're saving up to." autoFocus={autoFocus} />
       <section className="erd-sub-section">
         <label className="erd-log-label" htmlFor={byId}>By</label>
-        <input id={byId} type="month" min={draft.yearly ? undefined : thisMonth} className="env-input goal-month" value={draft.by} onChange={(e) => onChange({ ...draft, by: e.target.value })} />
-        <p className="erd-sub-hint">{over ? "That month's over. Pick this one or later." : draft.by ? 'Need it again next year? Repeat it.' : 'Leave it empty to save at your own pace.'}</p>
-        {draft.by && (
-          <div className="erd-sub-picks">
-            <button type="button" className={`erd-chip ${draft.yearly ? '' : 'is-selected'}`} aria-pressed={!draft.yearly} onClick={() => onChange({ ...draft, yearly: false })}>Just once</button>
-            <button type="button" className={`erd-chip ${draft.yearly ? 'is-selected' : ''}`} aria-pressed={draft.yearly} onClick={() => onChange({ ...draft, yearly: true })}>Every year</button>
-          </div>
-        )}
+        {by}
       </section>
     </>
   )
@@ -103,68 +132,85 @@ export function GoalSheet({ category, goal, onClose }: { category: string; goal?
 }
 
 /**
- * The row's one-tap actions under a goal: set the monthly amount it needs, or
- * repeat or remove a done one. Never changes anything without the tap.
+ * The row's one line under a goal's bar, with its actions inline: set the
+ * monthly amount a behind goal needs, or repeat or remove a done one. Nothing
+ * changes without the tap; without onSetMonthly it's the plain line.
  */
-export function GoalActions({ category, goal, progress, month, money, onSetMonthly }: {
+export function GoalLine({ category, goal, progress, month, money, assigned, readyToAssign, onSetMonthly }: {
   category: string
   goal: CategoryGoal
   progress: GoalProgress
   month: string
   money: (n: number) => string
-  onSetMonthly: (category: string, amount: number) => Promise<void>
+  /** This month's assigned, for the confirm's before and after. */
+  assigned: number
+  /** Where the extra comes from; omitted, the confirm doesn't say how much is there. */
+  readyToAssign?: number
+  onSetMonthly?: (category: string, amount: number) => Promise<void>
 }) {
   const update = useUpdateCategory()
-  const set = useButtonPhase()
-  const repeat = useButtonPhase()
-  const remove = useButtonPhase()
+  const [busy, setBusy] = useState<'set' | 'repeat' | 'remove' | null>(null)
   const [error, setError] = useState('')
-  // Held while the tick plays: the write itself flips the row to On track.
-  const [need, setNeed] = useState<number | null>(null)
-  const busy = [set, repeat, remove].some((p) => p.saving || p.success)
+  // The Set link asks first: it moves money, and the line alone doesn't say from where.
+  const [confirming, setConfirming] = useState(false)
 
-  async function run(phase: ReturnType<typeof useButtonPhase>, action: () => Promise<unknown>) {
+  async function run(key: NonNullable<typeof busy>, action: () => Promise<unknown>) {
     if (busy) return
-    phase.start()
+    setBusy(key)
     setError('')
     try {
       await action()
-      phase.succeed(() => setNeed(null))
     } catch {
-      phase.fail()
-      setNeed(null)
       setError(SAVE_FAILED)
+    } finally {
+      setBusy(null)
     }
   }
+  const link = (key: NonNullable<typeof busy>, label: string, busyLabel: string, action: () => Promise<unknown>) => (
+    <button type="button" className="env2-goal-link" disabled={!!busy} onClick={() => void run(key, action)}>
+      {busy === key ? busyLabel : label}
+    </button>
+  )
 
-  const shownNeed = need ?? progress.monthlyNeed
-  const showSet = (progress.status === 'behind' || set.saving || set.success) && shownNeed !== undefined
-  const showDone = progress.status === 'done' || repeat.saving || repeat.success
-  if (!showSet && !showDone && !error) return null
-
+  let line: ReactNode = goalLine(progress, money)
+  let confirm: ReactNode = null
+  if (onSetMonthly && progress.status === 'behind' && progress.monthlyNeed !== undefined && progress.by) {
+    const need = progress.monthlyNeed
+    line = <>Behind by {money(progress.behindBy ?? 0)} · <button type="button" className="env2-goal-link" disabled={!!busy} onClick={() => setConfirming(true)}>{busy === 'set' ? 'Setting…' : `Set ${money(need)}/mo`}</button> to make it by {shortMonth(progress.by)}</>
+    const extra = need - assigned
+    const after = readyToAssign === undefined ? undefined : readyToAssign - extra
+    confirm = confirming && (
+      <ConfirmDialog title={`Set ${money(need)}/mo for ${category}`} cancelLabel="Not now" onCancel={() => setConfirming(false)} busy={busy === 'set'}
+        body={
+          <dl className="goal-confirm">
+            <div className="goal-confirm-row"><dt>Assigned this month</dt><dd><s>{money(assigned)}</s> {money(need)}</dd></div>
+            <div className="goal-confirm-row"><dt>From Ready to Assign</dt><dd>− {money(extra)}</dd></div>
+            {after !== undefined && (
+              <div className="goal-confirm-row is-total"><dt>Ready to Assign after</dt><dd className={after < 0 ? 'is-over' : ''}>{after < 0 ? `− ${money(-after)}` : money(after)}</dd></div>
+            )}
+            {after !== undefined && after < 0 && <p className="goal-confirm-warn">Short by {money(-after)}. You&apos;d be over-assigned.</p>}
+          </dl>
+        }>
+        <button type="button" className="action-button" disabled={!!busy}
+          onClick={() => void run('set', () => onSetMonthly(category, need)).then(() => setConfirming(false))}>
+          {busy === 'set' ? 'Setting…' : `Set ${money(need)}/mo`}
+        </button>
+      </ConfirmDialog>
+    )
+  } else if (onSetMonthly && progress.status === 'done') {
+    line = <>
+      Done
+      {goal.by && <> · {link('repeat', 'Repeat next year', 'Saving…', () => update.mutateAsync({ name: category, updates: { goal: { ...goal, by: nextGoalMonth(progress.by ?? goal.by!, month) } } }))}</>}
+      {' · '}{link('remove', 'Back to spending', 'Saving…', () => update.mutateAsync({ name: category, updates: { goal: null } }))}
+    </>
+  }
   return (
-    <div className="env2-goal-actions">
-      {showSet && (
-        <SuccessButton type="button" baseClass="account-pill-btn" saving={set.saving} success={set.success} savingLabel="Setting…" successLabel="Set" disabled={busy}
-          onClick={() => { setNeed(shownNeed); void run(set, () => onSetMonthly(category, shownNeed)) }}>
-          Set {money(shownNeed)}/mo
-        </SuccessButton>
-      )}
-      {showDone && (
-        <>
-          {goal.by && (
-            <SuccessButton type="button" baseClass="account-pill-btn" saving={repeat.saving} success={repeat.success} savingLabel="Saving…" successLabel="Repeated" disabled={busy}
-              onClick={() => void run(repeat, () => update.mutateAsync({ name: category, updates: { goal: { ...goal, by: nextGoalMonth(progress.by ?? goal.by!, month) } } }))}>
-              Repeat next year
-            </SuccessButton>
-          )}
-          <SuccessButton type="button" baseClass="account-pill-btn" saving={remove.saving} success={remove.success} savingLabel="Saving…" successLabel="Done" disabled={busy}
-            onClick={() => void run(remove, () => update.mutateAsync({ name: category, updates: { goal: null } }))}>
-            Back to spending
-          </SuccessButton>
-        </>
-      )}
-      {error && <span role="alert" className="env2-goal-error">{error}</span>}
-    </div>
+    <>
+      <span className={`env2-meta env2-goal-line is-${progress.status}`}>
+        {line}
+        {error && <span role="alert" className="env2-goal-error"> {error}</span>}
+      </span>
+      <AnimatePresence>{confirm}</AnimatePresence>
+    </>
   )
 }

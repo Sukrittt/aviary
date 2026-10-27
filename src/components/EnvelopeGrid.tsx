@@ -15,10 +15,10 @@ import { RollingAmount } from './home/RollingAmount'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { rolledOverLine } from '../lib/rollover'
 import { allowanceNote, paceLine, resetChip, weekResult, type PaceStatus, type WeekPace } from '../lib/weekly'
-import { goalLine, goalProgress } from '../lib/goal'
+import { goalProgress } from '../lib/goal'
 import { currentMonthKey } from '../lib/envelope'
 import { AnimatePresence } from 'motion/react'
-import { GoalActions, GoalSheet } from './GoalSheet'
+import { GoalLine, GoalSheet } from './GoalSheet'
 
 /** Web twin of Mobile's app/(tabs)/index.tsx envelopes card (EnvelopeGroup + EnvelopeRow). */
 
@@ -46,6 +46,8 @@ interface Props {
   onToggleWeekly?: (category: string, on: boolean) => void
   /** Sets this month's assigned to a goal's monthly amount. Omit where goals can't be changed (read-only, another month). */
   onSetMonthly?: (category: string, amount: number) => Promise<void>
+  /** What a goal's Set draws on; its confirm says how much is there. */
+  readyToAssign?: number
 }
 
 const UNGROUPED_LABEL = 'Other'
@@ -126,7 +128,7 @@ function lastSpentLabel(iso: string | undefined): string {
   return new Date(spent).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'UTC' })
 }
 
-export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveMoney, onAssignFromRTA, onSetAssigned, onPayCreditCard, categoryIcons, groupIcons, rollPlay = 0, month, paces, weekly, onToggleWeekly, onSetMonthly }: Props) {
+export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveMoney, onAssignFromRTA, onSetAssigned, onPayCreditCard, categoryIcons, groupIcons, rollPlay = 0, month, paces, weekly, onToggleWeekly, onSetMonthly, readyToAssign }: Props) {
   const styleOf = useCategoryStyle()
   const { formatCurrency } = useCurrency()
   const money = (n: number) => (hideAmounts ? '---' : formatCurrency(n))
@@ -137,6 +139,16 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
   const [menuSide, setMenuSide] = useState<'top' | 'bottom'>('bottom')
   const triggers = useRef(new Map<string, HTMLElement>())
   const [goalFor, setGoalFor] = useState<string | null>(null)
+  // Goals whose Set just saved, with the balance before: once the new one
+  // lands, the Left pill rolls from the old to it and splashes (RollingAmount).
+  // Stamped with the grid's replay and month, so a later replay or another
+  // month ignores it and rolls as usual.
+  const [celebrate, setCelebrate] = useState(() => new Map<string, { from: number; play: number; rollPlay: number; month?: string }>())
+  const setMonthly = onSetMonthly && (async (category: string, amount: number) => {
+    const from = envelopes.find((x) => x.category === category)?.available ?? 0
+    await onSetMonthly(category, amount)
+    setCelebrate((m) => new Map(m).set(category, { from, play: Date.now(), rollPlay, month }))
+  })
   const categoryRows = useCategories().data
   const categoryByName = useMemo(() => new Map((categoryRows ?? []).map((c) => [c.name, c])), [categoryRows])
   const goalMonth = month ?? currentMonthKey()
@@ -230,12 +242,9 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
             )}
           </span>
           {goal ? (
-            <>
-              <span className="env-bar-track env2-bar">
-                <span className={`env-bar-fill ${goal.status === 'done' ? 'is-done' : 'is-mint'}`} style={{ display: 'block', width: `${goal.pct}%` }} />
-              </span>
-              <span className={`env2-meta env2-goal-line is-${goal.status}`}>{goalLine(goal, money)}</span>
-            </>
+            <span className="env-bar-track env2-bar">
+              <span className={`env-bar-fill ${goal.status === 'done' ? 'is-done' : 'is-mint'}`} style={{ display: 'block', width: `${goal.pct}%` }} />
+            </span>
           ) : pace ? (
             <>
               <span className="env2-bar-wrap">
@@ -317,12 +326,15 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
         <span className="env2-available">
           <span className="env2-balance-label">{e.isOverspent ? 'Overspent' : 'Left'}</span>
           {(() => {
+            // A celebration plays only once the balance has moved; before that the pill sits still.
+            const party = celebrate.get(e.category)
+            const partying = !!party && party.rollPlay === rollPlay && party.month === month && party.from !== e.available && !hideAmounts
             const pill = (
               <RollingAmount
                 className={`env2-pill ${pace ? PACE_PILL[pace.monthStatus] : pillClass(e)}`}
-                from={e.available - e.rolledOver}
+                from={partying ? party.from : e.available - e.rolledOver}
                 to={e.available}
-                play={hideAmounts ? 0 : rollPlay}
+                play={partying ? party.play : hideAmounts ? 0 : rollPlay}
                 delayMs={Math.min(rollOrder.get(e.category) ?? 0, 5) * 150}
                 format={money}
               />
@@ -338,8 +350,9 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
             )
           })()}
         </span>
-        {goal && row?.goal && onSetMonthly && (
-          <GoalActions category={e.category} goal={row.goal} progress={goal} month={goalMonth} money={money} onSetMonthly={onSetMonthly} />
+        {/* Outside the trigger button, so its actions can be buttons too. */}
+        {goal && row?.goal && (
+          <GoalLine category={e.category} goal={row.goal} progress={goal} month={goalMonth} money={money} assigned={e.assigned} readyToAssign={readyToAssign} onSetMonthly={setMonthly} />
         )}
       </div>
     )

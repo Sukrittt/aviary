@@ -86,14 +86,22 @@ export function goalLine(p: GoalProgress, money: (n: number) => string): string 
   }
 }
 
-export type GoalTemplateKey = 'emergency' | 'diwali' | 'insurance'
+export type GoalTemplateKey = 'emergency' | 'diwali' | 'holidays' | 'insurance'
+
+/** The next `mm` (1-12) strictly after `month`: this year's if it's still ahead, else next year's. */
+function nextMonthOf(month: string, mm: number): string {
+  const key = `${month.slice(0, 4)}-${String(mm).padStart(2, '0')}`
+  return key > month ? key : shiftMonthKey(key, 12)
+}
 
 /** Starting points for a new goal: a name and a deadline. The amount is the user's. */
 export function goalTemplate(key: GoalTemplateKey, month: string): { name: string; by: string; yearly: boolean } {
   switch (key) {
     case 'emergency': return { name: 'Emergency fund', by: '', yearly: false }
     // Diwali lands in October or November; October has the money ready either way.
-    case 'diwali': return { name: 'Diwali', by: `${Number(month.slice(0, 4)) + (month >= `${month.slice(0, 4)}-10` ? 1 : 0)}-10`, yearly: true }
+    case 'diwali': return { name: 'Diwali', by: nextMonthOf(month, 10), yearly: true }
+    // The year-end season, for budgets outside India.
+    case 'holidays': return { name: 'Holidays', by: nextMonthOf(month, 12), yearly: true }
     case 'insurance': return { name: 'Insurance', by: shiftMonthKey(month, 12), yearly: true }
   }
 }

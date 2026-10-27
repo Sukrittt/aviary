@@ -4,6 +4,7 @@ import { useMemo, useState, type ReactElement, type ReactNode } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { ReceiptIcon, BellIcon, ArrowsInLineVerticalIcon, SquaresFourIcon, MoonIcon, PencilSimpleIcon, PlusIcon, SunIcon, TrashIcon, XIcon } from "@/src/components/icons";
+import { draftOf, goalOf, GoalFields, type GoalDraft } from "../components/GoalSheet";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { CategoryIcon } from "../components/CategoryIcon";
 import { CategoryIconPicker, ColorSwatches } from "../components/CategoryIconPicker";
@@ -44,7 +45,7 @@ import { splitEmoji, avatarStyleFor, categoryColor, colorStyle, groupColor } fro
 import { isCategoryColor, type CategoryColor } from "../lib/categoryColors";
 import { DEFAULT_ALERT_PCTS } from "../lib/alerts";
 import { EMPTY } from "../lib/constants";
-import type { CategoryRow } from "../types";
+import type { CategoryGoal, CategoryRow } from "../types";
 import { BirdEmptyState } from "../components/BirdEmptyState";
 import { DragItem, DragList, useDragOrder } from "../components/DragReorder";
 import { useReadOnlyError } from "../components/BudgetNotices";
@@ -53,8 +54,13 @@ import { useSpaces } from "../hooks/useSpaces";
 /** A pending rename or creation, in whichever place the row sits. */
 type Draft =
   | { kind: "new-group" }
-  | { kind: "rename-category"; name: string; group: string; icon?: string; color?: string }
+  | { kind: "rename-category"; name: string; group: string; icon?: string; color?: string; goal?: CategoryGoal }
   | { kind: "rename-group"; name: string; icon?: string; color?: string };
+
+/** The edit sheet's starting point for a category row. */
+const editDraft = (c: CategoryRow, group: string): Draft => ({
+  kind: "rename-category", name: c.name, group, icon: c.icon, color: c.color, goal: c.goal,
+});
 
 type DeleteTarget =
   { kind: "category"; name: string } | { kind: "group"; name: string };
@@ -130,6 +136,8 @@ export function EnvelopesPage() {
   // Null until the user picks one (or the row already has one): until then
   // the colour follows the name, as everywhere else.
   const [pickedColor, setPickedColor] = useState<CategoryColor | null>(null);
+  // A category's goal as typed; null is "no goal" (and clears one on save).
+  const [goalDraft, setGoalDraft] = useState<GoalDraft | null>(null);
   const [addCategoryGroup, setAddCategoryGroup] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [editing, setEditing] = useState<CategoryRow | null>(null);
@@ -188,8 +196,10 @@ export function EnvelopesPage() {
     // Renames edit the words only. A legacy name's leading emoji stays on the
     // stored name (Mobile still reads it) and commitDraft puts it back.
     setDraftText(next.kind === "new-group" ? initial : splitEmoji(initial).text);
-    if (next.kind === "rename-category")
+    if (next.kind === "rename-category") {
       setDraftIcon(categoryIconKey(next.name, next.icon, next.group));
+      setGoalDraft(next.goal ? draftOf(next.goal) : null);
+    }
     if (next.kind === "rename-group")
       setDraftIcon(groupIconKey(next.name, next.icon));
     if (next.kind === "new-group") {
@@ -261,8 +271,10 @@ export function EnvelopesPage() {
       const icon = draftIcon ?? categoryIconKey(draft.name, draft.icon, draft.group);
       const iconChanged = icon !== categoryIconKey(draft.name, draft.icon, draft.group);
       const colorChanged = pickedColor !== null && pickedColor !== draft.color;
+      const goal = goalDraft ? goalOf(goalDraft) : null;
+      const goalChanged = JSON.stringify(goal) !== JSON.stringify(draft.goal ?? null);
       ok =
-        (newName === draft.name && !iconChanged && !colorChanged) ||
+        (newName === draft.name && !iconChanged && !colorChanged && !goalChanged) ||
         (await run(
           () =>
             updateCategory.mutateAsync({
@@ -271,6 +283,7 @@ export function EnvelopesPage() {
                 ...(newName !== draft.name ? { newName } : {}),
                 ...(iconChanged ? { icon } : {}),
                 ...(colorChanged ? { color: pickedColor } : {}),
+                ...(goalChanged ? { goal } : {}),
               },
             }),
           "category",
@@ -605,18 +618,7 @@ export function EnvelopesPage() {
                                   <button
                                     type="button"
                                     className="env-icon-btn"
-                                    onClick={() =>
-                                      beginDraft(
-                                        {
-                                          kind: "rename-category",
-                                          name: category.name,
-                                          group: group.name,
-                                          icon: category.icon,
-                                          color: category.color,
-                                        },
-                                        category.name,
-                                      )
-                                    }
+                                    onClick={() => beginDraft(editDraft(category, group.name), category.name)}
                                     aria-label={`Edit ${parts.text}`}
                                   >
                                     <PencilSimpleIcon size={14} aria-hidden="true" />
@@ -762,6 +764,19 @@ export function EnvelopesPage() {
               )}
               <ColorSwatches value={draftColor} onChange={setPickedColor} disabled={submitting} />
 
+              {draft.kind === "rename-category" && (
+                <div className="env-sheet-goal">
+                  <p className="env-sheet-section-label">Saving for something?</p>
+                  <div className="env-pct-row">
+                    <button type="button" className={`env-pct${goalDraft ? "" : " is-on"}`} aria-pressed={!goalDraft}
+                      disabled={submitting} onClick={() => setGoalDraft(null)}>No goal</button>
+                    <button type="button" className={`env-pct${goalDraft ? " is-on" : ""}`} aria-pressed={!!goalDraft}
+                      disabled={submitting} onClick={() => setGoalDraft((d) => d ?? draftOf(draft.goal))}>Goal</button>
+                  </div>
+                  {goalDraft && <GoalFields compact draft={goalDraft} onChange={setGoalDraft} />}
+                </div>
+              )}
+
               {error && (
                 <p className="env-sheet-hint" role="alert">
                   {error}
@@ -788,7 +803,7 @@ export function EnvelopesPage() {
                       : "auth-btn auth-btn--primary"
                   }
                   onClick={() => void commitDraft()}
-                  disabled={submitting || !draftText.trim()}
+                  disabled={submitting || !draftText.trim() || (!!goalDraft && !goalOf(goalDraft))}
                 >
                   {submitting
                     ? "Saving…"

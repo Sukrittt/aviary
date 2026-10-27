@@ -6,7 +6,8 @@ const spaces = vi.hoisted(() => ({ readOnly: false }))
 vi.mock('../hooks/useSpaces', () => ({ useSpaces: () => ({ readOnly: spaces.readOnly, active: undefined }) }))
 const add = vi.hoisted(() => vi.fn(async () => undefined))
 vi.mock('../hooks/useCategories', () => ({ useAddCategory: () => ({ mutateAsync: add }), useUpdateCategory: () => ({ mutateAsync: vi.fn() }) }))
-vi.mock('@/src/context/CurrencyContext', () => ({ useCurrency: () => ({ currencySymbol: '₹' }) }))
+const currency = vi.hoisted(() => ({ currencyCode: 'INR', currencySymbol: '₹' }))
+vi.mock('@/src/context/CurrencyContext', () => ({ useCurrency: () => currency }))
 const addGroup = vi.hoisted(() => vi.fn(async () => undefined))
 vi.mock('../hooks/useGroups', () => ({ useGroups: () => ({ data: ['Needs'] }), useGroupIcons: () => new Map(), useAddGroup: () => ({ mutateAsync: addGroup }) }))
 
@@ -25,7 +26,7 @@ describe('AddCategoryModal', () => {
     render(<AddCategoryModal onClose={() => {}} onCreated={() => {}} />)
     await user.click(screen.getByRole('button', { name: 'Diwali' }))
     expect(screen.getByLabelText('Name')).toHaveValue('Diwali')
-    expect(screen.getByLabelText('By')).toHaveValue('2027-10')
+    expect(screen.getByLabelText('By')).toHaveTextContent('Oct 2027')
     // No amount yet, so no goal to save.
     expect(screen.getByRole('button', { name: 'Add category' })).toBeDisabled()
     await user.type(screen.getByLabelText('Amount'), '30000')
@@ -33,6 +34,28 @@ describe('AddCategoryModal', () => {
     // Lands in a Goals group, made for it.
     expect(addGroup).toHaveBeenCalledWith({ name: 'Goals' })
     expect(add).toHaveBeenCalledWith(expect.objectContaining({ name: 'Diwali', group: 'Goals', goal: { amount: 30000, by: '2027-10', repeat: 'yearly' } }))
+    vi.useRealTimers()
+  })
+
+  it('offers the holidays instead of Diwali outside rupees, and picks a month from the picker', async () => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-10-27T12:00:00Z') })
+    currency.currencyCode = 'USD'
+    const user = userEvent.setup()
+    render(<AddCategoryModal onClose={() => {}} onCreated={() => {}} />)
+    expect(screen.queryByRole('button', { name: 'Diwali' })).toBeNull()
+    await user.click(screen.getByRole('button', { name: 'Holidays' }))
+    expect(screen.getByLabelText('Name')).toHaveValue('Holidays')
+    expect(screen.getByLabelText('By')).toHaveTextContent('Dec 2026')
+    // Step a year on and tap a month; months already gone can't be picked.
+    await user.click(screen.getByLabelText('By'))
+    expect(screen.getByRole('button', { name: 'September 2026' })).toBeDisabled()
+    await user.click(screen.getByRole('button', { name: 'Next year' }))
+    await user.click(screen.getByRole('button', { name: 'March 2027' }))
+    expect(screen.getByLabelText('By')).toHaveTextContent('Mar 2027')
+    await user.type(screen.getByLabelText('Amount'), '1200')
+    await user.click(screen.getByRole('button', { name: 'Add category' }))
+    expect(add).toHaveBeenLastCalledWith(expect.objectContaining({ name: 'Holidays', goal: { amount: 1200, by: '2027-03', repeat: 'yearly' } }))
+    currency.currencyCode = 'INR'
     vi.useRealTimers()
   })
 

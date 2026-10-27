@@ -6900,11 +6900,33 @@ button.account-feature-card {
   row-gap: 2px;
   column-gap: 0;
 }
-.date-picker-grid.is-next {
+.date-picker-grid.is-next,
+.month-picker-grid.is-next {
   animation: erd-date-monthNext 0.22s ease both;
 }
-.date-picker-grid.is-prev {
+.date-picker-grid.is-prev,
+.month-picker-grid.is-prev {
   animation: erd-date-monthPrev 0.22s ease both;
+}
+
+/* Month picker (goal deadlines): a year to step, twelve months to tap. */
+.month-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.month-picker-grid .date-picker-cell {
+  width: auto;
+  height: 36px;
+  border-radius: 12px;
+}
+.month-picker-grid .date-picker-cell:not(:disabled):hover {
+  background: var(--gold-soft);
+  color: var(--gold-ink);
+}
+.month-picker-grid .date-picker-cell.is-selected:hover {
+  background: var(--gold);
+  color: var(--erd-on-accent);
 }
 
 .date-picker-cell-wrap {
@@ -7271,7 +7293,7 @@ button.account-feature-card {
 
 .env-cat-alerts {
   display: inline-flex;
-  align-items: flex-start;
+  align-items: center;
   flex-shrink: 0;
   gap: 9px;
   white-space: nowrap;
@@ -7290,7 +7312,7 @@ button.account-feature-card {
 }
 
 .env-cat-alerts > svg {
-  margin-top: 10px;
+  flex: 0 0 auto;
 }
 
 .env-cat-alerts:hover {
@@ -7568,6 +7590,43 @@ span.env-cat-alerts:hover {
   margin-top: 6px;
 }
 
+/* Add category: wider for the goal fields, and air above each section after the first. */
+.expense-redesign .erd-modal-card.env-sheet--add {
+  width: 480px;
+}
+.env-sheet--add .env-sheet-section-label:not(:first-of-type) {
+  margin-top: 10px;
+}
+.env-sheet--add .env-sheet-actions {
+  margin-top: 12px;
+}
+.env-sheet--add .date-picker-field {
+  border-radius: 10px;
+  padding: 7px 10px;
+}
+/* Goal amount: the currency glued to a plain input, same height as the name field. */
+.env-amount {
+  display: flex;
+  align-items: stretch;
+}
+.env-amount-symbol {
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  min-height: 40px;
+  background: var(--erd-input-bg);
+  border: 1px solid var(--erd-border-strong);
+  border-right: 0;
+  border-radius: 8px 0 0 8px;
+  color: var(--erd-text2);
+  font-size: 0.9rem;
+}
+.env-amount .env-input {
+  border-radius: 0 8px 8px 0;
+  min-height: 40px;
+  font-size: 0.95rem;
+}
+
 .expense-redesign .erd-modal-card.env-sheet--rename {
   width: 430px;
   gap: 0;
@@ -7665,6 +7724,30 @@ span.env-cat-alerts:hover {
   line-height: 1.4;
 }
 
+/* Edit category's goal block, under the swatches. */
+.env-sheet-goal {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 22px;
+}
+.env-sheet--rename .env-sheet-goal .env-sheet-section-label {
+  margin: 0;
+}
+.env-sheet--rename .env-sheet-goal .env-sheet-section-label:not(:first-child) {
+  margin-top: 8px;
+}
+.env-sheet--rename .env-amount .env-input {
+  border-radius: 0 12px 12px 0;
+}
+.env-sheet--rename .env-amount-symbol {
+  border-radius: 12px 0 0 12px;
+  min-height: 48px;
+}
+.env-sheet--rename .date-picker-field {
+  border-radius: 12px;
+}
+
 .env-sheet--rename .env-sheet-actions {
   align-items: center;
   gap: 10px;
@@ -7736,6 +7819,7 @@ span.env-cat-alerts:hover {
 .env-sheet--alerts .env-pct {
   height: 40px;
   padding: 0;
+  justify-content: center;
   font-weight: 600;
   transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
@@ -7798,11 +7882,17 @@ span.env-cat-alerts:hover {
 
 .env-sheet--alerts .env-sheet-note {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 6px;
   margin-top: 16px;
   padding-top: 0;
   border-top: 0;
+  line-height: 1.4;
+}
+/* Sits on the first line of the note, not the centre of a wrapped one. */
+.env-sheet--alerts .env-sheet-note > svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
 }
 
 .env-sheet--alerts .env-sheet-actions {
@@ -15422,22 +15512,53 @@ span.env-cat-alerts:hover {
   font-weight: 600;
 }
 
-/* Savings goals on envelope rows (src/lib/goal.ts). The actions sit on their
-   own line under the row, outside the menu button they can't nest in. */
+/* Savings goals on envelope rows (src/lib/goal.ts). The line sits under the
+   row, outside the menu button it can't nest buttons in; its actions are
+   inline text. */
 .env2-row.has-goal { flex-wrap: wrap; }
+.env2-goal-line {
+  flex-basis: 100%;
+  /* Lines up with the name, past the icon. */
+  padding-left: 25px;
+  margin-top: -4px;
+}
 .env2-goal-line.is-behind { color: var(--tk-pill-low); }
 .env2-goal-line.is-funded { color: var(--tk-pill-good); }
 .env2-goal-line.is-done { color: var(--erd-text3); }
-.env2-goal-actions {
-  flex-basis: 100%;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  /* Lines up with the name, past the icon. */
-  padding-left: 25px;
+.env2-goal-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--gold-ink);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklab, var(--gold-ink) 40%, transparent);
+  text-underline-offset: 2px;
+  cursor: pointer;
 }
-.env2-goal-actions .account-pill-btn { padding: 6px 12px; }
+.env2-goal-link:hover:not(:disabled) { text-decoration-color: currentColor; }
+.env2-goal-link:disabled { cursor: default; opacity: 0.6; }
+/* The Set confirm: a three-line receipt instead of a sentence. */
+.goal-confirm {
+  margin: 4px 0 0;
+  font-size: 13px;
+}
+.goal-confirm-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--erd-border);
+}
+.goal-confirm-row dt { margin: 0; color: var(--erd-text2); }
+.goal-confirm-row dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.goal-confirm-row dd s { margin-right: 4px; font-weight: 400; color: var(--erd-text3); }
+.goal-confirm-row.is-total { border-bottom: 0; padding-top: 11px; }
+.goal-confirm-row.is-total dt { color: var(--erd-text); font-weight: 600; }
+.goal-confirm-row dd.is-over { color: var(--tk-pill-over); }
+.goal-confirm-warn { margin: 0; font-size: 12px; color: var(--tk-pill-over); }
 .env2-goal-error { font-size: 12px; color: var(--tk-pill-over); }
 .goal-sheet-actions {
   display: flex;
@@ -15446,5 +15567,4 @@ span.env-cat-alerts:hover {
   gap: 8px;
   width: 100%;
 }
-.goal-month { width: 100%; padding: 10px 12px; }
 .goal-sheet-actions .account-pill-btn { flex-shrink: 0; white-space: nowrap; }

@@ -15,10 +15,12 @@ import type { CategoryRow } from '../types'
 import { GoalFields, goalOf, type GoalDraft } from './GoalSheet'
 import { goalTemplate, type GoalTemplateKey } from '../lib/goal'
 import { currentMonthKey } from '../lib/envelope'
+import { useCurrency } from '@/src/context/CurrencyContext'
 
-const GOAL_PICKS: { key: GoalTemplateKey | 'custom'; label: string }[] = [
+/** The festive pick follows the budget's currency: Diwali for rupees, the year-end holidays elsewhere. */
+const goalPicks = (currencyCode: string): { key: GoalTemplateKey | 'custom'; label: string }[] => [
   { key: 'emergency', label: 'Emergency fund' },
-  { key: 'diwali', label: 'Diwali' },
+  currencyCode === 'INR' ? { key: 'diwali', label: 'Diwali' } : { key: 'holidays', label: 'Holidays' },
   { key: 'insurance', label: 'Insurance' },
   { key: 'custom', label: 'Custom' },
 ]
@@ -36,6 +38,7 @@ export function AddCategoryModal({ onClose, onCreated, initialGroup = '' }: {
   const addCategory = useAddCategory()
   const addGroup = useAddGroup()
   const { readOnly } = useSpaces()
+  const GOAL_PICKS = goalPicks(useCurrency().currencyCode)
   const [name, setName] = useState('')
   const [group, setGroup] = useState(initialGroup)
   // A group tapped here wins; otherwise a goal goes to Goals, even from another group's add button.
@@ -100,7 +103,7 @@ export function AddCategoryModal({ onClose, onCreated, initialGroup = '' }: {
 
   return (
     <Scrim className="erd-modal-overlay" onClick={close}>
-      <Sheet className="erd-modal-card env-sheet" role="dialog" aria-modal="true" aria-label="Add category"
+      <Sheet className="erd-modal-card env-sheet env-sheet--add" role="dialog" aria-modal="true" aria-label="Add category"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); close() } }}>
         {readOnly ? <ReadOnlyNotice onClose={onClose} /> : <form style={{ display: 'flex', flexDirection: 'column', gap: 'inherit' }} onSubmit={(e) => { e.preventDefault(); void save() }}>
@@ -130,7 +133,7 @@ export function AddCategoryModal({ onClose, onCreated, initialGroup = '' }: {
                 disabled={saving} onClick={() => pickGoal(p.key)}>{p.label}</button>
             ))}
           </div>
-          {goalPick && <GoalFields draft={goalDraft} onChange={setGoalDraft} />}
+          {goalPick && <GoalFields compact draft={goalDraft} onChange={setGoalDraft} />}
           {error && <p className="env-sheet-hint" role="alert">{error}</p>}
           <div className="env-sheet-actions">
             <button type="button" className="auth-btn auth-btn--outline" disabled={saving} onClick={close}>Cancel</button>

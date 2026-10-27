@@ -181,6 +181,10 @@ describe('goalTemplate', () => {
     expect(goalTemplate('diwali', '2026-10')).toEqual({ name: 'Diwali', by: '2027-10', yearly: true })
     expect(goalTemplate('diwali', '2027-03')).toEqual({ name: 'Diwali', by: '2027-10', yearly: true })
   })
+  it('sets the holidays for the coming December, every year', () => {
+    expect(goalTemplate('holidays', '2026-10')).toEqual({ name: 'Holidays', by: '2026-12', yearly: true })
+    expect(goalTemplate('holidays', '2026-12')).toEqual({ name: 'Holidays', by: '2027-12', yearly: true })
+  })
 
   it('sets insurance a year out, every year', () => {
     expect(goalTemplate('insurance', '2026-10')).toEqual({ name: 'Insurance', by: '2027-10', yearly: true })
