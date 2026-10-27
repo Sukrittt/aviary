@@ -558,27 +558,38 @@ export function EnvelopesPage() {
                                 />
                               </Pop>
                               <span className="env-cat-name">{parts.text}</span>
-                              <button
-                                type="button"
-                                className="env-cat-alerts"
-                                disabled={readOnly}
-                                onClick={() => {
-                                  setEditing(category);
-                                  setDraftPcts(thresholds);
-                                }}
-                                title="Get notified when spending in this category reaches these points"
-                                aria-label={`Spending alerts for ${parts.text}: ${thresholds.map((p) => `${p}%`).join(", ")}`}
-                              >
-                                <BellIcon size={14} aria-hidden="true" />
-                                <span className="env-alert-copy">
-                                  <span className="env-alert-label">
-                                    Spending alerts
-                                  </span>
-                                  <span className="env-alert-values">
-                                    {thresholds.map((p) => `${p}%`).join(" · ")}
+                              {/* Goals get no threshold alerts (lib/notifications/rules.ts): spending their money is the plan. */}
+                              {category.goal ? (
+                                <span className="env-cat-alerts">
+                                  <BellIcon size={14} aria-hidden="true" />
+                                  <span className="env-alert-copy">
+                                    <span className="env-alert-label">Spending alerts</span>
+                                    <span className="env-alert-values">Off for goals</span>
                                   </span>
                                 </span>
-                              </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  className="env-cat-alerts"
+                                  disabled={readOnly}
+                                  onClick={() => {
+                                    setEditing(category);
+                                    setDraftPcts(thresholds);
+                                  }}
+                                  title="Get notified when spending in this category reaches these points"
+                                  aria-label={`Spending alerts for ${parts.text}: ${thresholds.map((p) => `${p}%`).join(", ")}`}
+                                >
+                                  <BellIcon size={14} aria-hidden="true" />
+                                  <span className="env-alert-copy">
+                                    <span className="env-alert-label">
+                                      Spending alerts
+                                    </span>
+                                    <span className="env-alert-values">
+                                      {thresholds.map((p) => `${p}%`).join(" · ")}
+                                    </span>
+                                  </span>
+                                </button>
+                              )}
                               <div className="env-cat-actions">
                                 <IconTip label="View transactions">
                                   <Link

@@ -113,6 +113,17 @@ describe('EnvelopesPage', () => {
     ).toBeGreaterThan(0)
   })
 
+  it("offers no spending alerts on a goal, since they'd never fire", async () => {
+    ;(getCategories as Mock).mockResolvedValue([
+      { name: '🏠 Rent', group: 'Home' },
+      { name: 'Trip', group: 'Home', goal: { amount: 50000 } },
+    ])
+    renderPage()
+    await screen.findByText('Trip')
+    expect(screen.queryByRole('button', { name: /Spending alerts for Trip/ })).toBeNull()
+    expect(screen.getByText('Off for goals')).toBeInTheDocument()
+  })
+
   it('creates a category in the group whose add button was used', async () => {
     const user = userEvent.setup()
     renderPage()
