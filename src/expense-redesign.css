@@ -15533,3 +15533,45 @@ span.env-cat-alerts:hover {
   padding: 0 18px;
   font-size: 13px;
 }
+
+/* Category notes (NoteSheet, and the row's glyph) */
+.env2-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+  color: var(--erd-text3);
+  cursor: pointer;
+}
+.env2-note:hover { color: var(--erd-text2); }
+.env2-note-count { font-size: 11px; font-variant-numeric: tabular-nums; }
+.erd-sub-card .note-textarea { height: auto; }
+.note-textarea .counted-textarea-input { min-height: 140px; }
+.note-read {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--erd-text);
+  overflow-wrap: anywhere;
+}
+.note-read.is-editable { cursor: text; }
+.note-line { margin: 0; white-space: pre-wrap; }
+.note-check { display: flex; align-items: flex-start; gap: 8px; cursor: pointer; }
+.note-check input { margin-top: 4px; accent-color: var(--mint); cursor: pointer; }
+.note-check.is-done > span { color: var(--erd-text3); text-decoration: line-through; }
+.note-chip {
+  display: inline-block;
+  padding: 0 6px;
+  border-radius: 6px;
+  background: var(--gold-soft);
+  color: var(--gold-ink);
+  font-weight: 500;
+}
+.note-chip.is-past { background: var(--warn-soft); color: var(--warn-ink); }
+.note-chip-when { font-weight: 400; opacity: 0.85; }
+.note-amount { font-weight: 600; color: var(--gold-ink); }
+.note-link { color: var(--gold-ink); text-decoration: underline; text-underline-offset: 2px; }
+.note-sum { margin: 8px 0 0; font-size: 13px; font-weight: 500; color: var(--erd-text2); }
+.note-sum.is-match { color: var(--mint); }

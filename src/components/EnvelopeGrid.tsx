@@ -1,7 +1,7 @@
 import { useCurrency } from '@/src/context/CurrencyContext'
 import { useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowsInLineVerticalIcon } from '@/src/components/icons'
+import { ArrowsInLineVerticalIcon, NoteIcon } from '@/src/components/icons'
 import { SpringChevron, SpringCollapse } from './SpringCollapse'
 import { splitEmoji } from '../lib/emoji'
 import { useCategories, useCategoryStyle } from '../hooks/useCategories'
@@ -19,6 +19,8 @@ import { goalProgress } from '../lib/goal'
 import { currentMonthKey } from '../lib/envelope'
 import { AnimatePresence } from 'motion/react'
 import { GoalLine, GoalSheet } from './GoalSheet'
+import { NoteSheet } from './NoteSheet'
+import { checklistCount, firstLine } from '../lib/noteRender'
 
 /** Web twin of Mobile's app/(tabs)/index.tsx envelopes card (EnvelopeGroup + EnvelopeRow). */
 
@@ -139,6 +141,7 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
   const [menuSide, setMenuSide] = useState<'top' | 'bottom'>('bottom')
   const triggers = useRef(new Map<string, HTMLElement>())
   const [goalFor, setGoalFor] = useState<string | null>(null)
+  const [noteFor, setNoteFor] = useState<string | null>(null)
   const categoryRows = useCategories().data
   const categoryByName = useMemo(() => new Map((categoryRows ?? []).map((c) => [c.name, c])), [categoryRows])
   const goalMonth = month ?? currentMonthKey()
@@ -190,6 +193,7 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
     const goal = row?.goal ? goalProgress({ goal: row.goal, month: goalMonth, available: e.available, assigned: e.assigned, spent: e.spent, since: row.since }) : null
     // A goal row is about filling up, so its bar and line say that instead of spending or pace.
     const pace = isCC || goal ? undefined : paces?.get(e.category)
+    const todo = row?.note ? checklistCount(row.note) : null
 
     return (
       <div key={e.category} className={`env2-row ${isMenuOpen ? 'is-open' : ''} ${goal ? 'has-goal' : ''}`}>
@@ -220,6 +224,19 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
               <CategoryIcon name={e.category} icon={isCC ? 'CreditCard' : categoryIcons?.get(e.category)} group={group} />
             </span>
             <span className="env2-name">{name}</span>
+            {row?.note && (
+              // Inside the row's menu button, so a span that keeps its click to itself, not a nested button. The menu's Note item is the keyboard way in.
+              <span
+                className="env2-note"
+                title={firstLine(row.note)}
+                onPointerDown={(ev) => ev.stopPropagation()}
+                onMouseDown={(ev) => ev.stopPropagation()}
+                onClick={(ev) => { ev.stopPropagation(); setNoteFor(e.category) }}
+              >
+                <NoteIcon size={14} aria-hidden="true" />
+                {todo && todo.done < todo.total && <span className="env2-note-count">{todo.done}/{todo.total}</span>}
+              </span>
+            )}
             {goal ? (
               <span className="env2-spent-of">
                 {money(goal.saved)} <span className="env2-spent-label">of</span> {money(goal.target)}
@@ -296,6 +313,11 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
           {!isCC && onSetMonthly && (
             <DropdownMenuItem className={MENU_ITEM} onClick={() => setGoalFor(e.category)}>
               {row?.goal ? 'Edit goal' : 'Make this a goal'}
+            </DropdownMenuItem>
+          )}
+          {row && (
+            <DropdownMenuItem className={MENU_ITEM} onClick={() => setNoteFor(e.category)}>
+              Note
             </DropdownMenuItem>
           )}
           {!isCC && (
@@ -414,6 +436,7 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
       )}
       <AnimatePresence>
         {goalFor && <GoalSheet category={goalFor} goal={categoryByName.get(goalFor)?.goal} onClose={() => setGoalFor(null)} />}
+        {noteFor && categoryByName.get(noteFor) && <NoteSheet row={categoryByName.get(noteFor)!} onClose={() => setNoteFor(null)} />}
       </AnimatePresence>
     </>
   )
