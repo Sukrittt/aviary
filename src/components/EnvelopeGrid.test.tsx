@@ -299,3 +299,27 @@ describe('EnvelopeGrid goals', () => {
     expect(screen.getByText('Left in group')).toBeInTheDocument()
   })
 })
+
+describe('EnvelopeGrid notes', () => {
+  it('marks a row with a note and opens it from the glyph, not the menu', async () => {
+    cats.rows = [{ name: 'Rent', group: 'Essentials', note: 'Landlord\n- pay by 5th\n[x] receipt' }]
+    setup()
+    const user = userEvent.setup()
+    const glyph = screen.getByTitle('Landlord')
+    expect(glyph).toHaveTextContent('1/2')
+    await user.click(glyph)
+    expect(await screen.findByRole('dialog', { name: 'Note for Rent' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Rent/ })).toHaveAttribute('aria-expanded', 'false')
+    cats.rows = []
+  })
+
+  it('opens the note from the row menu', async () => {
+    cats.rows = [{ name: 'Rent', group: 'Essentials' }]
+    setup()
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: /Rent/ }))
+    await user.click(await screen.findByRole('menuitem', { name: 'Note' }))
+    expect(await screen.findByRole('dialog', { name: 'Note for Rent' })).toBeInTheDocument()
+    cats.rows = []
+  })
+})

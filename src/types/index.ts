@@ -94,6 +94,8 @@ export interface CategoryRow {
   weeklySince?: string
   /** A savings goal on the envelope (src/lib/goal.ts). */
   goal?: CategoryGoal
+  /** Free text the budget's people keep on the envelope (src/lib/noteRender.ts renders it). */
+  note?: string
 }
 
 /** `by` is a YYYY-MM month. `repeat: 'yearly'` rolls `by` a year on once it passes. */
