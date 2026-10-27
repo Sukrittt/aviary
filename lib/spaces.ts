@@ -373,6 +373,7 @@ export async function createBudget(
   return budgets.find((b) => b.id === id)!
 }
 
+// `note` stays out on purpose: a note is private to the budget it was written in.
 const CATEGORY_FIELDS = ['name', 'group', 'order', 'icon', 'color', 'alertPcts'] as const
 
 async function copyCategories(fromSpaceId: string, toSpaceId: string): Promise<void> {

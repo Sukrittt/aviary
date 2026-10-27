@@ -6,7 +6,7 @@ import { withTx } from '@/lib/mongodb'
 import { isCategoryIconKey } from '@/src/lib/categoryIcons'
 import { isCategoryColor } from '@/src/lib/categoryColors'
 import { createCategory, readGoal, storeGoal } from '@/lib/categories'
-import { parseGoal } from '@/lib/inputValidation'
+import { parseGoal, validText } from '@/lib/inputValidation'
 import type { CategoryGoal } from '@/src/types'
 
 export const dynamic = 'force-dynamic'
@@ -46,6 +46,7 @@ export async function GET(req: Request) {
         ...(typeof d.since === 'string' ? { since: d.since } : {}),
         ...(isDay(d.weeklySince) ? { weeklySince: d.weeklySince } : {}),
         ...(readGoal(d.goal) ? { goal: readGoal(d.goal) } : {}),
+        ...(typeof d.note === 'string' && d.note ? { note: d.note } : {}),
       }))
       .filter((c) => c.name),
   )
@@ -110,6 +111,13 @@ export async function PUT(req: Request) {
   else if (body.goal !== undefined) {
     goal = parseGoal(body.goal)
     if (!goal) return error('invalid goal')
+  }
+  // Same rule as `goal`: only a body naming `note` touches it. Blank clears it.
+  let note: string | null | undefined
+  if (body.note === null) note = null
+  else if (body.note !== undefined) {
+    if (!validText(body.note, 2000, true)) return error('note must be at most 2000 characters')
+    note = body.note.trim() || null
   }
 
   const coll = await getCollection('categories', auth)
@@ -179,6 +187,9 @@ export async function PUT(req: Request) {
       // Null, not $unset: lib/scoped.ts refuses $unset on an encrypted field.
       if (goal !== undefined) {
         await coll.updateOne({ name: effectiveName }, { $set: { goal: goal && storeGoal(goal) } }, { session })
+      }
+      if (note !== undefined) {
+        await coll.updateOne({ name: effectiveName }, { $set: { note } }, { session })
       }
 
       if (body.alertPcts === null) {
