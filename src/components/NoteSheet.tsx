@@ -44,7 +44,9 @@ export function NoteSheet({ row, onClose }: { row: CategoryRow; onClose: () => v
   const save = useButtonPhase()
   const id = useId()
   const [note, setNote] = useState(row.note ?? '')
-  const [editing, setEditing] = useState(!row.note && !readOnly)
+  // Derived, so a budget that turns out read-only once spaces load closes the editor.
+  const [wantsEdit, setEditing] = useState(!row.note)
+  const editing = wantsEdit && !readOnly
   const [draft, setDraft] = useState(row.note ?? '')
   const [error, setError] = useState('')
   const [ticking, setTicking] = useState(false)
@@ -87,7 +89,8 @@ export function NoteSheet({ row, onClose }: { row: CategoryRow; onClose: () => v
 
   // A click on the note's text edits it; its checkboxes and links do their own thing.
   function onReadClick(e: MouseEvent) {
-    if (readOnly || (e.target as HTMLElement).closest('a, input, label')) return
+    // Not mid-tick: the tick writes the whole note, and an edit saved after it would race it.
+    if (readOnly || ticking || (e.target as HTMLElement).closest('a, input, label')) return
     setEditing(true)
   }
 
@@ -109,7 +112,7 @@ export function NoteSheet({ row, onClose }: { row: CategoryRow; onClose: () => v
           ) : readOnly ? (
             <button type="button" className="account-pill-btn" onClick={onClose}>Close</button>
           ) : (
-            <button type="button" className="erd-log-submit" onClick={() => setEditing(true)}>Edit note</button>
+            <button type="button" className="erd-log-submit" disabled={ticking} onClick={() => setEditing(true)}>Edit note</button>
           )}
         </div>
       }
@@ -117,7 +120,7 @@ export function NoteSheet({ row, onClose }: { row: CategoryRow; onClose: () => v
       {editing ? (
         <section className="erd-sub-section">
           <label className="erd-log-label" htmlFor={id}>Note</label>
-          <CountedTextarea id={id} className="erd-log-input note-textarea" maxLength={NOTE_MAX} rows={7} autoFocus placeholder={placeholderFor(row)} value={draft} onChange={(e) => setDraft(e.target.value)} />
+          <CountedTextarea id={id} className="erd-log-input note-textarea" maxLength={NOTE_MAX} rows={7} autoFocus readOnly={busy} placeholder={placeholderFor(row)} value={draft} onChange={(e) => setDraft(e.target.value)} />
           <p className="erd-sub-hint">Only people in this budget can see it.</p>
         </section>
       ) : (

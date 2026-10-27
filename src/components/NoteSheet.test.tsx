@@ -75,3 +75,38 @@ describe('NoteSheet', () => {
     expect(screen.queryByLabelText('Note')).not.toBeInTheDocument()
   })
 })
+
+describe('NoteSheet while writing', () => {
+  it('locks the text box while a save is in flight', async () => {
+    let finish = () => {}
+    state.update.mockImplementationOnce(() => new Promise<undefined>((r) => { finish = () => r(undefined) }))
+    const user = userEvent.setup()
+    render(<NoteSheet row={{ name: 'Rent', group: '' }} onClose={vi.fn()} />)
+    await user.type(screen.getByLabelText('Note'), 'due')
+    await user.click(screen.getByRole('button', { name: 'Save note' }))
+    expect(screen.getByLabelText('Note')).toHaveAttribute('readonly')
+    finish()
+  })
+
+  it("won't open the editor while a tick is saving", async () => {
+    let finish = () => {}
+    state.update.mockImplementationOnce(() => new Promise<undefined>((r) => { finish = () => r(undefined) }))
+    const user = userEvent.setup()
+    render(<NoteSheet row={{ name: 'Rent', group: '', note: '- pay\nlandlord' }} onClose={vi.fn()} />)
+    await user.click(screen.getByRole('checkbox'))
+    expect(screen.getByRole('button', { name: 'Edit note' })).toBeDisabled()
+    await user.click(screen.getByText('landlord'))
+    expect(screen.queryByLabelText('Note')).not.toBeInTheDocument()
+    finish()
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Edit note' })).toBeEnabled())
+  })
+
+  it('closes the editor once the budget turns out read-only', () => {
+    const { rerender } = render(<NoteSheet row={{ name: 'Rent', group: '' }} onClose={vi.fn()} />)
+    expect(screen.getByLabelText('Note')).toBeInTheDocument()
+    state.readOnly = true
+    rerender(<NoteSheet row={{ name: 'Rent', group: '' }} onClose={vi.fn()} />)
+    expect(screen.queryByLabelText('Note')).not.toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: 'Close' })).toHaveLength(2)
+  })
+})
