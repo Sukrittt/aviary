@@ -51,7 +51,7 @@ export function EmailPlan({ salary, rent, intl = false }: { salary: number; rent
         <SuccessButton type="submit" baseClass="lp-button lp-button--dark"
           saving={button.saving} success={button.success} savingLabel="Sending…" successLabel="Sent"
           disabled={status === 'sending' || !salary}>
-          {sent ? 'Sent' : 'Email me this plan'}
+          {sent && !button.success ? 'Sent' : 'Email me this plan'}
         </SuccessButton>
       </div>
       <p className="lp-waitlist-note" role="status">

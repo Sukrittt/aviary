@@ -255,9 +255,12 @@ html:has(.lp) { scroll-behavior: smooth; }
 .lp .lp-waitlist .lp-button.is-joined { background: var(--food); color: var(--ink); opacity: 1; }
 .lp-waitlist .lp-button { position: relative; }
 .lp-waitlist .is-success .sb-label { visibility: hidden; }
-.lp-waitlist .sb-tick { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; animation: erd-success-pop 300ms ease forwards; }
+.lp-waitlist .sb-tick { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; animation: lp-tick-pop 300ms ease forwards; }
 .lp-waitlist .sb-tick svg { width: 18px; height: 18px; }
-.lp-waitlist .sb-tick path { stroke-dasharray: 1; stroke-dashoffset: 1; animation: erd-check-draw 350ms ease 220ms forwards; }
+.lp-waitlist .sb-tick path { stroke-dasharray: 1; stroke-dashoffset: 1; animation: lp-tick-draw 350ms ease 220ms forwards; }
+/* Own copies: the site layout doesn't load expense-redesign.css, where the app's erd-* versions live. */
+@keyframes lp-tick-pop { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes lp-tick-draw { to { stroke-dashoffset: 0; } }
 @media (prefers-reduced-motion: reduce) { .lp-waitlist .sb-tick, .lp-waitlist .sb-tick path { animation: none; stroke-dashoffset: 0; } }
 .lp-waitlist--hero { margin: 28px auto 0; padding-top: 0; border-top: 0; }
 .lp-waitlist-note { margin-top: 12px; font-size: 14px; color: var(--muted); }
@@ -907,6 +910,7 @@ html:has(.lp) { scroll-behavior: smooth; }
 .lp-calc-out dd { margin-top: 4px; font-family: var(--font-display), sans-serif; font-size: 26px; font-weight: 600; color: var(--ink); }
 .lp-calc-out dd small { display: block; font-family: var(--font-body), sans-serif; font-size: 13px; font-weight: 500; color: var(--muted); }
 .lp-calc-note { font-size: 15px !important; }
+.lp-calc .lp-waitlist { max-width: none; }
 .lp-calc .lp-calc-costs { margin-top: 0; }
 .lp-calc-costs td { vertical-align: middle; color: var(--ink); white-space: nowrap; }
 .lp-calc-costs td:first-child { min-width: 170px; }
