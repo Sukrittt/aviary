@@ -65,8 +65,9 @@ function isoWeekKey(dateStr: string): string {
   return `${d.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`
 }
 
+/** A goal category gets no thresholds: spending its money is the plan. Overspent still fires. */
 function alertPctsMap(categories: CategoryDocRow[]): Map<string, number[]> {
-  return new Map(categories.filter((c) => Array.isArray(c.alertPcts)).map((c) => [c.name, c.alertPcts as number[]]))
+  return new Map(categories.filter((c) => c.isGoal || Array.isArray(c.alertPcts)).map((c) => [c.name, c.isGoal ? [] : c.alertPcts as number[]]))
 }
 
 /** What the envelope had to spend this month: its assigned plus whatever
@@ -317,7 +318,7 @@ export function buildNotifications(input: {
     const coach = coachNotification(envelopes, meta, prefs, today)
     if (coach) notifications.push(coach)
 
-    const paceNudge = pace ? paceNotification(pace, envelopes, prefs, month) : null
+    const paceNudge = pace && !categories.some((c) => c.isGoal && c.name === pace.category) ? paceNotification(pace, envelopes, prefs, month) : null
     if (paceNudge) notifications.push(paceNudge)
   }
 

@@ -494,3 +494,30 @@ describe('weekRecapTeaserNotification', () => {
     }
   })
 })
+
+describe('buildNotifications — goal categories', () => {
+  // Spending a goal's money is the plan working, not a budget running low.
+  const run = (overrides: Partial<Envelope>, pace: Parameters<typeof buildNotifications>[0]['pace'] = null) => buildNotifications({
+    envelopes: [envelope({ category: 'Diwali', ...overrides })],
+    subscriptions: [],
+    categories: [{ name: 'Diwali', isGoal: true }],
+    meta: meta(),
+    prefs: prefs({ bills: false }),
+    today: TODAY,
+    month: MONTH,
+    pace,
+  })
+
+  it('sends no spending threshold alerts', () => {
+    expect(run({ assigned: 0, rolledOver: 30000, spent: 28000, available: 2000, spentPct: 100 }).filter((n) => n.kind === 'threshold')).toHaveLength(0)
+    expect(categoryLevel([envelope({ category: 'Diwali', spent: 900, available: 100 })], [{ name: 'Diwali', isGoal: true }], 'Diwali')).toBe(0)
+  })
+
+  it('still says when a goal is overspent', () => {
+    expect(run({ spent: 1200, available: -200, isOverspent: true }).map((n) => n.kind)).toContain('overspent')
+  })
+
+  it('sends no running-hot nudge', () => {
+    expect(run({}, { category: 'Diwali', spent: 6200, usual: 3000, usualRest: 9300, ratio: 2.1 }).filter((n) => n.kind === 'pace')).toHaveLength(0)
+  })
+})

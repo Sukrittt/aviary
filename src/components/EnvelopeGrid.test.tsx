@@ -4,8 +4,16 @@ import { describe, expect, it, vi } from 'vitest'
 import { EnvelopeGrid } from './EnvelopeGrid'
 import { avatarStyleFor } from '../lib/emoji'
 import { weekPace } from '../lib/weekly'
-vi.mock('../hooks/useCategories', () => ({ useCategoryStyle: () => (name: string) => avatarStyleFor(name), useCategoryColors: () => new Map() }))
+import type { CategoryRow } from '../types'
+const cats = vi.hoisted(() => ({ rows: [] as CategoryRow[], update: vi.fn(async () => undefined) }))
+vi.mock('../hooks/useCategories', () => ({
+  useCategoryStyle: () => (name: string) => avatarStyleFor(name),
+  useCategoryColors: () => new Map(),
+  useCategories: () => ({ data: cats.rows }),
+  useUpdateCategory: () => ({ mutateAsync: cats.update }),
+}))
 
+vi.mock('../hooks/useSpaces', () => ({ useSpaces: () => ({ readOnly: false }) }))
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }))
 vi.mock('@/src/context/CurrencyContext', () => ({
   useCurrency: () => ({ formatCurrency: (value: number) => `₹${value}` }),
@@ -202,5 +210,73 @@ describe('EnvelopeGrid weekly pacing', () => {
     expect(screen.getByText('This week')).toBeInTheDocument()
     await user.click(screen.getByRole('menuitemcheckbox', { name: /Track weekly/ }))
     expect(onToggleWeekly).toHaveBeenCalledWith('Groceries', false)
+  })
+})
+
+describe('EnvelopeGrid goals', () => {
+  // October 2026: 6,000 carried in, nothing assigned yet. 18,000 to go over Oct..Jan.
+  const saver = { ...envelope, category: 'Diwali', assigned: 0, spent: 0, available: 6000, spentPct: 0 }
+  function goalSetup(goal: CategoryRow['goal'], e = saver, onSetMonthly: ((c: string, n: number) => Promise<void>) | null = vi.fn(async () => undefined)) {
+    cats.rows = [{ name: e.category, group: 'Essentials', goal }]
+    cats.update.mockClear()
+    render(<EnvelopeGrid envelopes={[e]} groups={['Essentials']} month="2026-10"
+      hideAmounts={false} onManage={vi.fn()} onMoveMoney={vi.fn()}
+      onAssignFromRTA={vi.fn()} onSetAssigned={vi.fn()} onSetMonthly={onSetMonthly ?? undefined} />)
+    return { onSetMonthly }
+  }
+
+  it('shows progress to the target and what a month makes the deadline', () => {
+    goalSetup({ amount: 24000, by: '2027-01' })
+    expect(document.querySelector('.env2-spent-of')?.textContent).toBe('₹6000 of ₹24000')
+    expect(screen.getByText('Behind by ₹4500 · ₹4500/mo to make it by Jan 2027')).toBeInTheDocument()
+    expect(screen.queryByText(/Last spent/)).not.toBeInTheDocument()
+  })
+
+  it('sets the monthly amount only when tapped', async () => {
+    const { onSetMonthly } = goalSetup({ amount: 24000, by: '2027-01' })
+    expect(onSetMonthly).not.toHaveBeenCalled()
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Set ₹4500/mo' }))
+    expect(onSetMonthly).toHaveBeenCalledWith('Diwali', 4500)
+  })
+
+  it('offers no changes where goals are read-only', () => {
+    goalSetup({ amount: 24000, by: '2027-01' }, saver, null)
+    expect(screen.getByText(/Behind by/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Set ₹/ })).not.toBeInTheDocument()
+  })
+
+  it('says when, at this pace, a goal with no deadline gets there', () => {
+    goalSetup({ amount: 60000 }, { ...saver, assigned: 5000, available: 10000 })
+    expect(screen.getByText('At this pace, by Aug 2027')).toBeInTheDocument()
+  })
+
+  it('lets a spent goal be repeated next year or removed', async () => {
+    goalSetup({ amount: 30000, by: '2026-10' }, { ...saver, spent: 28000, available: 2000 })
+    expect(screen.getByText('Done')).toBeInTheDocument()
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Repeat next year' }))
+    expect(cats.update).toHaveBeenCalledWith({ name: 'Diwali', updates: { goal: { amount: 30000, by: '2027-10' } } })
+    expect(screen.getByRole('button', { name: 'Back to spending' })).toBeInTheDocument()
+  })
+
+  it('opens the goal sheet from the row menu', async () => {
+    goalSetup(undefined, { ...saver })
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: /Diwali/ }))
+    expect(await screen.findByRole('menuitem', { name: 'Make this a goal' })).toBeInTheDocument()
+    await user.click(screen.getByRole('menuitem', { name: 'Make this a goal' }))
+    expect(await screen.findByRole('dialog', { name: 'Make Diwali a goal' })).toBeInTheDocument()
+  })
+
+  it('sums a group of goals as saved of target', () => {
+    goalSetup({ amount: 24000, by: '2027-01' })
+    expect(screen.getByText('Saved').parentElement?.textContent).toBe('Saved₹6000 of ₹24000')
+  })
+
+  it('keeps Left in group when the group has spending categories too', () => {
+    cats.rows = [{ name: 'Diwali', group: 'Essentials', goal: { amount: 24000 } }, { name: 'Rent', group: 'Essentials' }]
+    render(<EnvelopeGrid envelopes={[saver, envelope]} groups={['Essentials']} month="2026-10"
+      hideAmounts={false} onManage={vi.fn()} onMoveMoney={vi.fn()} onAssignFromRTA={vi.fn()} onSetAssigned={vi.fn()} />)
+    expect(screen.getByText('Left in group')).toBeInTheDocument()
   })
 })

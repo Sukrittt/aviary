@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { AddIncomeScreen, AssignMoneyScreen, EditAssignedScreen, EditMonthIncomeScreen, EditReadyToAssignScreen, MoveMoneyScreen } from './MoneyScreens'
 import userEvent from '@testing-library/user-event'
-import { currentMonthKey } from '../lib/envelope'
+import { currentMonthKey, shiftMonthKey } from '../lib/envelope'
+import { shortMonth } from '../lib/goal'
 import { BudgetWriteError } from '../lib/budgetConflict'
 
 const mocks = vi.hoisted(() => ({ fresh: vi.fn(), update: vi.fn(), add: vi.fn(), transfer: vi.fn(), addIncome: vi.fn(), updateIncome: vi.fn(), budgetsLoading: false, carryError: false, accounts: [] as { id: string; name: string; type: string; archived: boolean; created_at: string }[], budgets: [] as {month: string; category: string; assigned: string; rolled_over: string; extra?: string; version: number}[] }))
@@ -17,7 +18,8 @@ vi.mock('../hooks/useBudgets', () => ({
 const spaces = vi.hoisted(() => ({ readOnly: false }))
 vi.mock('../hooks/useSpaces', () => ({ useSpaces: () => ({ readOnly: spaces.readOnly, active: undefined }) }))
 vi.mock('../hooks/useExpenses', () => ({ useRecentExpenses: () => ({ data: [] }) }))
-vi.mock('../hooks/useCategories', () => ({ useCategories: () => ({ data: [{ name: 'Food', group: 'Home' }, { name: 'Rent', group: 'Home' }] }) }))
+const cats = vi.hoisted(() => ({ rows: [] as { name: string; group: string; goal?: { amount: number; by?: string } }[] }))
+vi.mock('../hooks/useCategories', () => ({ useCategories: () => ({ data: cats.rows }) }))
 vi.mock('../hooks/useGroups', () => ({ useGroups: () => ({ data: ['Home'] }), useGroupIcons: () => new Map() }))
 vi.mock('../hooks/useHideAmounts', () => ({ useHideAmounts: () => [false] }))
 vi.mock('../hooks/useIncomes', () => ({ useAddIncome: () => ({ mutateAsync: mocks.addIncome }), useUpdateIncome: () => ({ mutateAsync: mocks.updateIncome }) }))
@@ -34,6 +36,7 @@ beforeEach(() => {
   mocks.accounts = []
   mocks.budgetsLoading = false
   mocks.carryError = false
+  cats.rows = [{ name: 'Food', group: 'Home' }, { name: 'Rent', group: 'Home' }]
   spaces.readOnly = false
   mocks.budgets = [['__income__', '2000'], ['Food', '100'], ['Rent', '500']].map(([category, assigned]) => ({ month: currentMonthKey(), category, assigned, rolled_over: '0', version: 3 }))
 })
@@ -112,6 +115,16 @@ describe('money screens', () => {
     await user.clear(input)
     await user.type(input, '50.25')
     expect(input).toHaveValue('50.25')
+  })
+
+  it('offers a goal\'s monthly amount as a pick', async () => {
+    // 1,200 by two months from now, nothing from before: 400 a month, this one included.
+    const by = shiftMonthKey(currentMonthKey(), 2)
+    cats.rows = [{ name: 'Food', group: 'Home', goal: { amount: 1200, by } }]
+    render(<EditAssignedScreen category="Food" onClose={vi.fn()} />)
+    fireEvent.click(screen.getByRole('button', { name: `₹400 makes it by ${shortMonth(by)}` }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(mocks.update).toHaveBeenCalledWith({ month: currentMonthKey(), category: 'Food', version: 3, updates: { assigned: '400' } }))
   })
 
   it('shows the money freed when an assignment is cleared', async () => {

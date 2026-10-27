@@ -440,6 +440,16 @@ export function ExpensePage() {
     setPayCreditCardAmount(amount);
   }
 
+  /** A goal's one-tap "Set ₹X/mo": this month's assigned, the same versioned write as Edit amount. */
+  async function setMonthly(category: string, amount: number) {
+    await updateBudgetM.mutateAsync({
+      month: thisMonth,
+      category,
+      version: budgetRows.find((row) => row.month === thisMonth && row.category === category)?.version ?? 0,
+      updates: { assigned: String(amount) },
+    });
+  }
+
   async function confirmPayCreditCard(amount: number) {
     // Deliberately not caught here — the caller drives the button's
     // saving/success/fail phase and must know whether this actually worked
@@ -763,6 +773,7 @@ export function ExpensePage() {
                     paces={paces}
                     weekly={onThisMonth ? weekly : undefined}
                     onToggleWeekly={readOnly ? undefined : setWeekly}
+                    onSetMonthly={onThisMonth && !readOnly ? setMonthly : undefined}
                   />
                 </motion.article>
               )}
