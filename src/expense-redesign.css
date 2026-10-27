@@ -15567,4 +15567,12 @@ span.env-cat-alerts:hover {
   gap: 8px;
   width: 100%;
 }
-.goal-sheet-actions .account-pill-btn { flex-shrink: 0; white-space: nowrap; }
+/* Both buttons the submit's height; the footer's own gap, not the submit's margin. */
+.goal-sheet-actions .erd-log-submit { margin-top: 0; }
+.goal-sheet-actions .account-pill-btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+  align-self: stretch;
+  padding: 0 18px;
+  font-size: 13px;
+}
