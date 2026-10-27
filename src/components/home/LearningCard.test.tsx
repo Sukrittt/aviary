@@ -28,6 +28,14 @@ it('folds the week away and keeps it folded', async () => {
   expect(week()).toBeInTheDocument()
 })
 
+it('toggles the week from anywhere on the card', async () => {
+  render(<LearningCard />)
+  fireEvent.click(screen.getByText(/learning your habits/))
+  await waitFor(() => expect(week()).not.toBeInTheDocument())
+  fireEvent.click(screen.getByRole('article'))
+  expect(week()).toBeInTheDocument()
+})
+
 it('shows the week on day 7 with no toggle, even if it was folded', () => {
   window.localStorage.setItem('mc-learning-collapsed', '1')
   mocks.day = 7

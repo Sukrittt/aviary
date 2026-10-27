@@ -12153,6 +12153,9 @@ button.account-feature-card {
   gap: 16px;
   padding: 20px 24px;
 }
+.home-learning.is-toggleable {
+  cursor: pointer;
+}
 .home-learning-head {
   display: flex;
   align-items: center;
