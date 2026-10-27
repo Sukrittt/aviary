@@ -55,6 +55,13 @@ describe('goalProgress', () => {
     expect(p.status).toBe('behind')
   })
 
+  it('never asks for a negative monthly amount when a negative assigned hides enough carry', () => {
+    // 12,000 carried, -3,000 assigned: 9,000 shows, but 12,000 was already there.
+    const p = goalProgress({ ...base, goal: { amount: 10000, by: '2026-12' }, available: 9000, assigned: -3000 })!
+    expect(p.monthlyNeed).toBe(0)
+    expect(p.behindBy).toBe(3000)
+  })
+
   it('counts spending this month against the goal', () => {
     // 8,000 carried in, 3,000 spent this month: 5,000 left, 15,000 to go over Oct..Dec.
     expect(goalProgress({ ...base, goal: { amount: 20000, by: '2026-12' }, available: 5000, spent: 3000 })!.monthlyNeed).toBe(5000)

@@ -64,7 +64,8 @@ export function goalProgress({ goal, month, available, assigned, spent, since }:
   if (!by) {
     return { ...out, status: 'saving', paceMonth: assigned > 0 ? shiftMonthKey(month, Math.ceil((target - before) / assigned) - 1) : null }
   }
-  const monthlyNeed = Math.ceil((target - before) / (monthsBetween(month, by) + 1))
+  // Never below 0: a negative assigned can hide carry that already covers it.
+  const monthlyNeed = Math.max(0, Math.ceil((target - before) / (monthsBetween(month, by) + 1)))
   return assigned >= monthlyNeed
     ? { ...out, status: 'onTrack', monthlyNeed }
     : { ...out, status: 'behind', monthlyNeed, behindBy: Math.round((monthlyNeed - assigned) * 100) / 100 }
