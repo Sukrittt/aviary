@@ -28,6 +28,17 @@ describe('goalProgress', () => {
     expect(p.behindBy).toBeUndefined()
   })
 
+  it('on track, says what each month from the next one needs', () => {
+    // 4,500 of 4,500 this month; 13,500 to go over Nov..Jan.
+    expect(goalProgress({ ...base, goal: { amount: 24000, by: '2027-01' }, available: 10500, assigned: 4500 })!.nextNeed).toBe(4500)
+    // Overfunded this month: 7,200 of 3,700 toward 7,400 by November. Only 200 left, all of it November's.
+    const p = goalProgress({ ...base, goal: { amount: 7400, by: '2026-11' }, available: 7200, assigned: 7200 })!
+    expect(p.status).toBe('onTrack')
+    expect(p.nextNeed).toBe(200)
+    // Behind, there's no next-month figure yet: this month's is the one to act on.
+    expect(goalProgress({ ...base, goal: { amount: 24000, by: '2027-01' }, available: 6000 })!.nextNeed).toBeUndefined()
+  })
+
   it('is behind by only the gap when some of the monthly amount is assigned', () => {
     const p = goalProgress({ ...base, goal: { amount: 24000, by: '2027-01' }, available: 9000, assigned: 3000 })!
     expect(p.status).toBe('behind')
@@ -162,7 +173,8 @@ describe('goalLine', () => {
   })
 
   it('says on track once the monthly amount is assigned', () => {
-    expect(line({ ...base, goal: { amount: 24000, by: '2027-01' }, available: 10500, assigned: 4500 })).toBe('On track · ₹4,500/mo to make it by Jan 2027')
+    expect(line({ ...base, goal: { amount: 24000, by: '2027-01' }, available: 10500, assigned: 4500 })).toBe('On track · ₹4,500/mo from Nov to make it by Jan 2027')
+    expect(line({ ...base, goal: { amount: 7400, by: '2026-11' }, available: 7200, assigned: 7200 })).toBe('On track · ₹200 more in Nov makes it')
   })
 
   it('says when the current pace gets there without a deadline', () => {
