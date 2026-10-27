@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { NoteSheet } from './NoteSheet'
@@ -7,7 +7,7 @@ const state = vi.hoisted(() => ({ readOnly: false, update: vi.fn(async (_: unkno
 vi.mock('../hooks/useCategories', () => ({ useUpdateCategory: () => ({ mutateAsync: state.update }) }))
 vi.mock('../hooks/useSpaces', () => ({ useSpaces: () => ({ readOnly: state.readOnly }) }))
 vi.mock('@/src/context/CurrencyContext', () => ({
-  useCurrency: () => ({ formatCurrency: (n: number) => `₹${n}`, formatCompact: (n: number) => `₹${n / 1000}k` }),
+  useCurrency: () => ({ currencySymbol: '₹', formatCurrency: (n: number) => `₹${n}`, formatCompact: (n: number) => `₹${n / 1000}k` }),
 }))
 
 beforeEach(() => {
@@ -123,8 +123,30 @@ describe('NoteSheet add to-do', () => {
     await user.type(box, 'book train')
     expect(box).toHaveValue('Diwali shopping\n- buy diyas\n- book train')
     await waitFor(() => expect(box).toHaveFocus())
-    expect(screen.getByText(/Start a line with - for a checkbox/)).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Save note' }))
     expect(state.update).toHaveBeenCalledWith({ name: 'Diwali', updates: { note: 'Diwali shopping\n- buy diyas\n- book train' } })
+  })
+})
+
+describe('NoteSheet date and amount chips', () => {
+  it('drops the currency at the caret', async () => {
+    const user = userEvent.setup()
+    render(<NoteSheet row={{ name: 'Diwali', group: '' }} onClose={vi.fn()} />)
+    const box = screen.getByLabelText('Note')
+    await user.type(box, 'gifts')
+    await user.click(screen.getByRole('button', { name: /Amount/ }))
+    await user.type(box, '20k')
+    expect(box).toHaveValue('gifts ₹20k')
+  })
+
+  it('writes a picked date the way the note reads it', async () => {
+    const user = userEvent.setup()
+    render(<NoteSheet row={{ name: 'Rent', group: '' }} onClose={vi.fn()} />)
+    const box = screen.getByLabelText('Note')
+    await user.type(box, 'due')
+    const picker = document.querySelector<HTMLInputElement>('input[type=date]')!
+    fireEvent.change(picker, { target: { value: '2027-03-01' } })
+    expect(box).toHaveValue('due 1 Mar 2027')
+    expect(screen.queryByText(/Start a line with/)).not.toBeInTheDocument()
   })
 })

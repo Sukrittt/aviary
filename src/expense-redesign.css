@@ -15575,4 +15575,7 @@ span.env-cat-alerts:hover {
 .note-link { color: var(--gold-ink); text-decoration: underline; text-underline-offset: 2px; }
 .note-sum { margin: 8px 0 0; font-size: 13px; font-weight: 500; color: var(--erd-text2); }
 .note-sum.is-match { color: var(--mint); }
-.note-todo-chip { align-self: flex-start; margin-top: 10px; }
+.note-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+/* The picker's anchor: there for showPicker(), never seen. */
+.note-date-chip { position: relative; }
+.note-date-input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; pointer-events: none; }

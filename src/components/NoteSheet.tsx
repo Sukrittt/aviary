@@ -3,14 +3,14 @@
 import { useId, useLayoutEffect, useRef, useState, type MouseEvent } from 'react'
 import { AmountSheet } from './AmountSheet'
 import { CountedTextarea } from './CountedTextarea'
-import { CheckSquareIcon } from '@/src/components/icons'
+import { CalendarBlankIcon, CheckSquareIcon } from '@/src/components/icons'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
 import { useCurrency } from '@/src/context/CurrencyContext'
 import { useSpaces } from '../hooks/useSpaces'
 import { useUpdateCategory } from '../hooks/useCategories'
 import { splitEmoji } from '../lib/emoji'
 import { todayIST } from '../lib/date'
-import { addTodo, dayLabel, goalFit, parseNote, toggleLine, type Segment } from '../lib/noteRender'
+import { addTodo, dayLabel, insertAt, noteDate, goalFit, parseNote, toggleLine, type Segment } from '../lib/noteRender'
 import type { CategoryRow } from '../types'
 
 export const NOTE_MAX = 2000
@@ -40,12 +40,13 @@ function Piece({ s }: { s: Segment }) {
 /** Read and write an envelope's note. Opens rendered when there's one, as a text box when there isn't. */
 export function NoteSheet({ row, onClose }: { row: CategoryRow; onClose: () => void }) {
   const { readOnly } = useSpaces()
-  const { formatCurrency, formatCompact } = useCurrency()
+  const { formatCurrency, formatCompact, currencySymbol } = useCurrency()
   const update = useUpdateCategory()
   const save = useButtonPhase()
   const id = useId()
   const box = useRef<HTMLTextAreaElement>(null)
   const caretAfter = useRef<number | null>(null)
+  const datePick = useRef<HTMLInputElement>(null)
   const [note, setNote] = useState(row.note ?? '')
   // Derived, so a budget that turns out read-only once spaces load closes the editor.
   const [wantsEdit, setEditing] = useState(!row.note)
@@ -90,12 +91,20 @@ export function NoteSheet({ row, onClose }: { row: CategoryRow; onClose: () => v
     }
   }
 
-  // The chip shows checklists exist by writing one: the syntax is right there in the box.
-  function onAddTodo() {
-    const next = addTodo(draft, box.current?.selectionStart ?? draft.length, NOTE_MAX)
+  // The chips show what a note understands by writing it: the syntax is right there in the box.
+  const caret = () => box.current?.selectionStart ?? draft.length
+  function apply(next: { text: string; caret: number } | null) {
     if (!next) return
     caretAfter.current = next.caret
     setDraft(next.text)
+  }
+  function pickDate() {
+    const input = datePick.current
+    if (!input) return
+    // No showPicker (older Safari): nothing to open, so the chip does nothing rather than focus an invisible field.
+    try {
+      input.showPicker()
+    } catch {}
   }
   // Same commit as the new text, so a keystroke right after the tap lands at the caret, not where it was.
   useLayoutEffect(() => {
@@ -139,11 +148,29 @@ export function NoteSheet({ row, onClose }: { row: CategoryRow; onClose: () => v
         <section className="erd-sub-section">
           <label className="erd-log-label" htmlFor={id}>Note</label>
           <CountedTextarea ref={box} id={id} className="erd-log-input note-textarea" maxLength={NOTE_MAX} rows={7} autoFocus readOnly={busy} placeholder={placeholderFor(row)} value={draft} onChange={(e) => setDraft(e.target.value)} />
-          {/* mousedown kept off the button, so the box keeps its caret and focus. */}
-          <button type="button" className="erd-chip note-todo-chip" disabled={busy} onMouseDown={(e) => e.preventDefault()} onClick={onAddTodo}>
-            <CheckSquareIcon size={14} aria-hidden="true" /> Add to-do
-          </button>
-          <p className="erd-sub-hint">Start a line with - for a checkbox. Dates and amounts light up on their own. Only people in this budget can see it.</p>
+          {/* mousedown kept off the chips, so the box keeps its caret and focus. */}
+          <div className="note-chips" onMouseDown={(e) => e.preventDefault()}>
+            <button type="button" className="erd-chip" disabled={busy} onClick={() => apply(addTodo(draft, caret(), NOTE_MAX))}>
+              <CheckSquareIcon size={14} aria-hidden="true" /> Add to-do
+            </button>
+            <span className="note-date-chip">
+              <button type="button" className="erd-chip" disabled={busy} onClick={pickDate}>
+                <CalendarBlankIcon size={14} aria-hidden="true" /> Date
+              </button>
+              <input ref={datePick} type="date" tabIndex={-1} aria-hidden="true" className="note-date-input"
+                onChange={(e) => {
+                  // Focus back to the box, or the next keystrokes edit this hidden date instead of the note.
+                  const picked = e.target.value
+                  e.target.value = ''
+                  e.target.blur()
+                  if (picked) apply(insertAt(draft, caret(), noteDate(picked, today), NOTE_MAX))
+                }} />
+            </span>
+            <button type="button" className="erd-chip" disabled={busy} onClick={() => apply(insertAt(draft, caret(), currencySymbol, NOTE_MAX))}>
+              <span aria-hidden="true">{currencySymbol}</span> Amount
+            </button>
+          </div>
+          <p className="erd-sub-hint">Only people in this budget can see it.</p>
         </section>
       ) : (
         <div className={`note-read ${readOnly ? '' : 'is-editable'}`} onClick={onReadClick}>

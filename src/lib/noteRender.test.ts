@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addTodo, checklistCount, dayLabel, firstLine, goalFit, noteAmounts, parseNote, toggleLine, type Segment } from './noteRender'
+import { addTodo, checklistCount, insertAt, noteDate, dayLabel, firstLine, goalFit, noteAmounts, parseNote, toggleLine, type Segment } from './noteRender'
 
 const TODAY = '2026-10-28'
 const kinds = (segments: Segment[]) => segments.filter((s) => s.kind !== 'text').map((s) => [s.kind, s.text])
@@ -117,4 +117,35 @@ describe('addTodo', () => {
     expect(addTodo('a'.repeat(1999), 1999, 2000)).toBeNull()
     expect(addTodo('a'.repeat(1998), 1998, 2000)?.text).toBe('- ' + 'a'.repeat(1998))
   })
+})
+
+describe('insertAt', () => {
+  const run = (marked: string, text: string) => {
+    const at = marked.indexOf('|')
+    const next = insertAt(marked.replace('|', ''), at, text)
+    return next && next.text.slice(0, next.caret) + '|' + next.text.slice(next.caret)
+  }
+  it('drops text at the caret, spaced off the word before it', () => {
+    expect(run('|', '₹')).toBe('₹|')
+    expect(run('rent |', '₹')).toBe('rent ₹|')
+    expect(run('due|', '15 Nov')).toBe('due 15 Nov|')
+    expect(run('- |', '15 Nov')).toBe('- 15 Nov|')
+    expect(run('a\n|', '₹')).toBe('a\n₹|')
+  })
+  it('does nothing past the cap', () => {
+    expect(insertAt('abc', 3, 'xy', 4)).toBeNull()
+  })
+})
+
+describe('noteDate', () => {
+  it('writes a day the way the note reads it back, with a year only when it is not this one', () => {
+    expect(noteDate('2026-11-15', TODAY)).toBe('15 Nov')
+    expect(noteDate('2027-03-01', TODAY)).toBe('1 Mar 2027')
+    expect(parseNote(`due ${noteDate('2027-03-01', TODAY)}`, TODAY)[0].segments[1]).toMatchObject({ kind: 'date', days: 124 })
+  })
+})
+
+it('highlights an amount in any currency symbol', () => {
+  const [line] = parseNote('¥500 and ₩3k and ₹ 20', TODAY)
+  expect(line.segments.filter((s) => s.kind === 'amount').map((s) => s.text)).toEqual(['¥500', '₩3k', '₹ 20'])
 })

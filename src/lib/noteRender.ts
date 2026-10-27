@@ -23,7 +23,7 @@ const CHECK_RE = /^(\s*)(?:-\s\[([ xX])\]|\[([ xX])\]|-(?=\s))\s?(.*)$/
 
 const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec']
 const MONTH_WORD = 'jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?'
-const B = '(?<![\\w.,/₹$€£-])' // not glued to the end of another number or word
+const B = '(?<![\\w.,/\\p{Sc}-])' // not glued to the end of another number or word
 const E = '(?![\\w/])'
 
 // First alternative to match at a spot wins, so a date's digits never read as money.
@@ -34,12 +34,12 @@ const TOKEN_RE = new RegExp(
     `${B}(?<dmy>(?<sd>\\d{1,2})/(?<sm>\\d{1,2})(?:/(?<sy>\\d{4}|\\d{2}))?)${E}`,
     `${B}(?<named>(?<nd>\\d{1,2})(?:st|nd|rd|th)?\\s(?<nm>${MONTH_WORD})\\b(?:,?\\s(?<ny>\\d{4})(?![\\w-]))?)`,
     `${B}(?<phone>(?:\\+\\d{1,3}[ -]?)?\\d(?:[ -]?\\d){9,11})(?![\\w])`,
-    `(?<amount>(?:₹|\\brs\\.?|\\binr|\\$|€|£)\\s?\\d[\\d,]*(?:\\.\\d+)?(?:\\s?(?:k|l|lakhs?|lacs?)\\b)?` +
+    `(?<amount>(?:\\p{Sc}|\\brs\\.?|\\binr)\\s?\\d[\\d,]*(?:\\.\\d+)?(?:\\s?(?:k|l|lakhs?|lacs?)\\b)?` +
       `|${B}\\d+(?:\\.\\d+)?\\s?(?:k|l|lakhs?|lacs?)\\b` +
       `|${B}\\d{1,3}(?:,\\d{2,3})+(?:\\.\\d+)?${E}` +
       `|${B}\\d{3,}(?:\\.\\d+)?${E})`,
   ].join('|'),
-  'gi',
+  'giu',
 )
 
 const utc = (y: number, m: number, d: number) => Date.UTC(y, m - 1, d)
@@ -167,4 +167,18 @@ export function addTodo(note: string, caret: number, max = Infinity): { text: st
     ? { text: `${note.slice(0, end)}\n- ${note.slice(end)}`, caret: end + 3 }
     : { text: `${note.slice(0, start)}- ${note.slice(start)}`, caret: caret + 2 }
   return next.text.length > max ? null : next
+}
+
+/** Drops `text` at the caret (the Date and Amount chips), a space off any word before it. Null past `max`. */
+export function insertAt(note: string, caret: number, text: string, max = Infinity): { text: string; caret: number } | null {
+  const piece = caret > 0 && !/\s/.test(note[caret - 1]) ? ` ${text}` : text
+  const next = note.slice(0, caret) + piece + note.slice(caret)
+  return next.length > max ? null : { text: next, caret: caret + piece.length }
+}
+
+/** A picked YYYY-MM-DD as the note writes it: `15 Nov`, with the year only when it isn't this one. */
+export function noteDate(iso: string, today: string): string {
+  const [y, m, d] = iso.split('-').map(Number)
+  const month = MONTHS[m - 1][0].toUpperCase() + MONTHS[m - 1].slice(1)
+  return `${d} ${month}${String(y) === today.slice(0, 4) ? '' : ` ${y}`}`
 }
