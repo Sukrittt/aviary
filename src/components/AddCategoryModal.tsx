@@ -5,7 +5,7 @@ import { Scrim, Sheet } from './MotionSheet'
 import { ReadOnlyNotice } from './BudgetNotices'
 import { useSpaces } from '../hooks/useSpaces'
 import { useAddCategory } from '../hooks/useCategories'
-import { useGroupIcons, useGroups } from '../hooks/useGroups'
+import { useAddGroup, useGroupIcons, useGroups } from '../hooks/useGroups'
 import { categoryColor, colorStyle, splitEmoji } from '../lib/emoji'
 import type { CategoryColor } from '../lib/categoryColors'
 import { categoryIconKey, type CategoryIconKey } from '../lib/categoryIcons'
@@ -23,6 +23,9 @@ const GOAL_PICKS: { key: GoalTemplateKey | 'custom'; label: string }[] = [
   { key: 'custom', label: 'Custom' },
 ]
 
+/** Where a new goal lands unless you pick a group yourself. Made on first use. */
+const GOALS_GROUP = 'Goals'
+
 export function AddCategoryModal({ onClose, onCreated, initialGroup = '' }: {
   onClose: () => void
   onCreated: (category: CategoryRow) => void
@@ -31,9 +34,13 @@ export function AddCategoryModal({ onClose, onCreated, initialGroup = '' }: {
   const groups = useGroups().data ?? []
   const groupIcons = useGroupIcons()
   const addCategory = useAddCategory()
+  const addGroup = useAddGroup()
   const { readOnly } = useSpaces()
   const [name, setName] = useState('')
   const [group, setGroup] = useState(initialGroup)
+  // A group tapped here wins; otherwise a goal goes to Goals, even from another group's add button.
+  const [groupPicked, setGroupPicked] = useState(false)
+  const groupChips = groups.includes(GOALS_GROUP) || group !== GOALS_GROUP ? groups : [...groups, GOALS_GROUP]
   // Follows the name until the user picks one ("Fuel" gets the pump).
   const [pickedIcon, setPickedIcon] = useState<CategoryIconKey | null>(null)
   const icon = pickedIcon ?? categoryIconKey(name, undefined, group)
@@ -57,6 +64,7 @@ export function AddCategoryModal({ onClose, onCreated, initialGroup = '' }: {
 
   function pickGoal(key: GoalTemplateKey | 'custom' | null) {
     setGoalPick(key)
+    if (!groupPicked) setGroup(key ? GOALS_GROUP : initialGroup)
     if (!key || key === 'custom') return
     const t = goalTemplate(key, currentMonthKey())
     setGoalDraft((d) => ({ ...d, by: t.by, yearly: t.yearly }))
@@ -75,6 +83,10 @@ export function AddCategoryModal({ onClose, onCreated, initialGroup = '' }: {
     setSaving(true)
     setError('')
     try {
+      if (group && !groups.includes(group)) {
+        // Someone else may have just made it; a 409 there is fine.
+        await addGroup.mutateAsync({ name: group }).catch((err) => { if (!/already exists/i.test(String(err))) throw err })
+      }
       await addCategory.mutateAsync(created)
       onCreated(created)
     } catch (err) {
@@ -103,10 +115,10 @@ export function AddCategoryModal({ onClose, onCreated, initialGroup = '' }: {
           <p className="env-sheet-section-label">GROUP</p>
           <div className="env-pct-row">
             <button type="button" className={`env-pct${group === '' ? ' is-on' : ''}`} aria-pressed={group === ''}
-              disabled={saving} onClick={() => setGroup('')}>Other</button>
-            {groups.map((g) => (
+              disabled={saving} onClick={() => { setGroup(''); setGroupPicked(true) }}>Other</button>
+            {groupChips.map((g) => (
               <button type="button" key={g} className={`env-pct${group === g ? ' is-on' : ''}`} aria-pressed={group === g}
-                disabled={saving} onClick={() => setGroup(g)}><CategoryIcon kind="group" name={g} icon={groupIcons.get(g)} /> {splitEmoji(g).text}</button>
+                disabled={saving} onClick={() => { setGroup(g); setGroupPicked(true) }}><CategoryIcon kind="group" name={g} icon={groupIcons.get(g)} /> {splitEmoji(g).text}</button>
             ))}
           </div>
           <p className="env-sheet-section-label">SAVING FOR SOMETHING?</p>

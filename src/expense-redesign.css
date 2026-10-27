@@ -15439,3 +15439,4 @@ button.account-feature-card {
   width: 100%;
 }
 .goal-month { width: 100%; padding: 10px 12px; }
+.goal-sheet-actions .account-pill-btn { flex-shrink: 0; white-space: nowrap; }

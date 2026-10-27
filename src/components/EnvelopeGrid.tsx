@@ -265,7 +265,7 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
               hangs under the row, above it when it sits over the row. They
               spring open and shut like a group, not snap. */}
           <SpringCollapse open={!!pace && menuSide === 'top'}>{pace && <WeekBreakdown pace={pace} e={e} money={money} />}</SpringCollapse>
-          {!isCC && weekly && onToggleWeekly && (
+          {!isCC && !goal && weekly && onToggleWeekly && (
             <>
               {/* A switch, like Mobile's Toggle. Still a checkbox item underneath,
                   so keyboard and screen readers get the on/off state. */}
@@ -296,7 +296,7 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
           </DropdownMenuItem>
           {!isCC && onSetMonthly && (
             <DropdownMenuItem className={MENU_ITEM} onClick={() => setGoalFor(e.category)}>
-              {row?.goal ? 'Edit goal' : 'Set a goal'}
+              {row?.goal ? 'Edit goal' : 'Make this a goal'}
             </DropdownMenuItem>
           )}
           {!isCC && (
@@ -377,6 +377,9 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
           {grouped.map(({ label, items }) => {
             const expanded = !collapsed.has(label)
             const totalAvailable = items.reduce((s, e) => s + e.available, 0)
+            // A group of nothing but goals is about filling up, so its total says how full.
+            const goals = items.map((e) => categoryByName.get(e.category)?.goal)
+            const goalTarget = goals.every(Boolean) ? goals.reduce((s, goal) => s + (goal?.amount ?? 0), 0) : 0
             return (
               <div key={label} className="env2-group">
                 <button type="button" className="env2-group-head" onClick={() => toggleGroup(label)} aria-expanded={expanded}>
@@ -386,10 +389,17 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
                     <span>{splitEmoji(label).text}</span>
                   </span>
                   {/* A summary, so neutral: color is the rows' pills' job. Red only when the group as a whole is over. */}
-                  <span className={`env2-group-left ${totalAvailable < 0 ? 'is-neg' : ''}`}>
-                    <span className="env2-balance-label">{totalAvailable < 0 ? 'Over in group' : 'Left in group'}</span>
-                    {money(Math.abs(totalAvailable))}
-                  </span>
+                  {goalTarget > 0 ? (
+                    <span className="env2-group-left">
+                      <span className="env2-balance-label">Saved</span>
+                      {money(totalAvailable)} of {money(goalTarget)}
+                    </span>
+                  ) : (
+                    <span className={`env2-group-left ${totalAvailable < 0 ? 'is-neg' : ''}`}>
+                      <span className="env2-balance-label">{totalAvailable < 0 ? 'Over in group' : 'Left in group'}</span>
+                      {money(Math.abs(totalAvailable))}
+                    </span>
+                  )}
                 </button>
                 <SpringCollapse open={expanded}>
                   <div className="env2-group-rows">{items.map((e) => renderRow(e, label))}</div>

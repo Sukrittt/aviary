@@ -256,14 +256,27 @@ describe('EnvelopeGrid goals', () => {
     const user = userEvent.setup()
     await user.click(screen.getByRole('button', { name: 'Repeat next year' }))
     expect(cats.update).toHaveBeenCalledWith({ name: 'Diwali', updates: { goal: { amount: 30000, by: '2027-10' } } })
-    expect(screen.getByRole('button', { name: 'Remove goal' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Back to spending' })).toBeInTheDocument()
   })
 
   it('opens the goal sheet from the row menu', async () => {
     goalSetup(undefined, { ...saver })
     const user = userEvent.setup()
     await user.click(screen.getByRole('button', { name: /Diwali/ }))
-    await user.click(await screen.findByRole('menuitem', { name: 'Set a goal' }))
-    expect(await screen.findByRole('dialog', { name: 'Set a goal for Diwali' })).toBeInTheDocument()
+    expect(await screen.findByRole('menuitem', { name: 'Make this a goal' })).toBeInTheDocument()
+    await user.click(screen.getByRole('menuitem', { name: 'Make this a goal' }))
+    expect(await screen.findByRole('dialog', { name: 'Make Diwali a goal' })).toBeInTheDocument()
+  })
+
+  it('sums a group of goals as saved of target', () => {
+    goalSetup({ amount: 24000, by: '2027-01' })
+    expect(screen.getByText('Saved').parentElement?.textContent).toBe('Saved₹6000 of ₹24000')
+  })
+
+  it('keeps Left in group when the group has spending categories too', () => {
+    cats.rows = [{ name: 'Diwali', group: 'Essentials', goal: { amount: 24000 } }, { name: 'Rent', group: 'Essentials' }]
+    render(<EnvelopeGrid envelopes={[saver, envelope]} groups={['Essentials']} month="2026-10"
+      hideAmounts={false} onManage={vi.fn()} onMoveMoney={vi.fn()} onAssignFromRTA={vi.fn()} onSetAssigned={vi.fn()} />)
+    expect(screen.getByText('Left in group')).toBeInTheDocument()
   })
 })

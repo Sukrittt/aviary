@@ -50,7 +50,7 @@ export function GoalFields({ draft, onChange, autoFocus }: { draft: GoalDraft; o
   )
 }
 
-/** Add, change or remove an envelope's goal. */
+/** Make an envelope a goal, change it, or turn it back into a spending category. */
 export function GoalSheet({ category, goal, onClose }: { category: string; goal?: CategoryGoal; onClose: () => void }) {
   const { readOnly } = useSpaces()
   const update = useUpdateCategory()
@@ -76,15 +76,15 @@ export function GoalSheet({ category, goal, onClose }: { category: string; goal?
 
   return (
     <AmountSheet
-      title={`${goal ? 'Goal for' : 'Set a goal for'} ${splitEmoji(category).text}`}
+      title={goal ? `Goal for ${splitEmoji(category).text}` : `Make ${splitEmoji(category).text} a goal`}
       onClose={onClose}
       busy={busy}
       replaceBody={readOnly ? <ReadOnlyNotice onClose={onClose} /> : undefined}
       footer={
         <div className="goal-sheet-actions">
           {goal && (
-            <SuccessButton type="button" baseClass="account-pill-btn" saving={remove.saving} success={remove.success} savingLabel="Removing…" successLabel="Removed" disabled={busy} onClick={() => void write(remove, null)}>
-              Remove goal
+            <SuccessButton type="button" baseClass="account-pill-btn" saving={remove.saving} success={remove.success} savingLabel="Saving…" successLabel="Done" disabled={busy} onClick={() => void write(remove, null)}>
+              Back to spending
             </SuccessButton>
           )}
           <SuccessButton type="button" baseClass="erd-log-submit" saving={save.saving} success={save.success} successLabel="Saved" disabled={!next || busy} onClick={() => next && void write(save, next)}>
@@ -155,9 +155,9 @@ export function GoalActions({ category, goal, progress, month, money, onSetMonth
               Repeat next year
             </SuccessButton>
           )}
-          <SuccessButton type="button" baseClass="account-pill-btn" saving={remove.saving} success={remove.success} savingLabel="Removing…" successLabel="Removed" disabled={busy}
+          <SuccessButton type="button" baseClass="account-pill-btn" saving={remove.saving} success={remove.success} savingLabel="Saving…" successLabel="Done" disabled={busy}
             onClick={() => void run(remove, () => update.mutateAsync({ name: category, updates: { goal: null } }))}>
-            Remove goal
+            Back to spending
           </SuccessButton>
         </>
       )}

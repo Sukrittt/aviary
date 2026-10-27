@@ -1,5 +1,6 @@
 'use client'
 
+import { goalProgress, shortMonth } from '../lib/goal'
 import './MoneyScreens.css'
 
 import { useCurrency } from '@/src/context/CurrencyContext'
@@ -733,9 +734,12 @@ export function EditAssignedScreen({ category, onClose, assign = false }: { cate
   const prevState = computeEnvelopeState(data.budgets, data.expenses, prevMonthKey(month), data.categories, data.groups)
   const envelope = state.envelopes.find((e) => e.category === category)
   const budget = data.budgets.find((b) => b.month === month && b.category === category)
+  const row = data.categories.find((c) => c.name === category)
+  const goal = row?.goal && envelope ? goalProgress({ goal: row.goal, month, available: envelope.available, assigned: envelope.assigned, spent: envelope.spent, since: row.since }) : null
 
   return (
     <EditAssignedBody
+      goalNeed={goal?.monthlyNeed !== undefined && goal.by ? { amount: goal.monthlyNeed, by: goal.by } : undefined}
       category={category}
       assign={assign}
       month={month}
@@ -766,10 +770,13 @@ function EditAssignedBody({
   isCreditCardPayment,
   lastMonthAssigned,
   readyToAssign,
+  goalNeed,
   onClose,
 }: {
   category: string
   assign: boolean
+  /** A goal's monthly amount to make its deadline (src/lib/goal.ts), offered as a pick. */
+  goalNeed?: { amount: number; by: string }
   month: string
   version: number
   currentAssigned: number
@@ -879,6 +886,14 @@ function EditAssignedBody({
             {QUICK_PICKS.map((v) => (
               <QuickChip key={v} label={formatMoney(v)} active={value === v} disabled={busy} onPress={() => setAmountText(String(v))} />
             ))}
+            {!assign && goalNeed && (
+              <QuickChip
+                label={`${formatCurrency(goalNeed.amount, hideAmounts)} makes it by ${shortMonth(goalNeed.by)}`}
+                active={value === goalNeed.amount}
+                disabled={busy}
+                onPress={() => setAmountText(String(goalNeed.amount))}
+              />
+            )}
             {!assign && !isCreditCardPayment && !!lastMonthAssigned && (
               <QuickChip
                 label={`Last month · ${formatCurrency(lastMonthAssigned, hideAmounts)}`}

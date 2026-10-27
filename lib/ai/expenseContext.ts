@@ -1,4 +1,5 @@
 import { currencyInstruction } from '@/lib/ai/moneyBrainPrompt'
+import { readGoal } from '@/lib/categories'
 import { getBudgetCurrency, nowForUser } from '@/lib/userCurrency'
 import { computeEnvelopeState } from '@/src/lib/envelope'
 import { savingsTrend } from '@/src/lib/monthly'
@@ -61,6 +62,8 @@ export interface CategoryDocRow {
   name: string
   group?: string
   alertPcts?: number[]
+  /** Has a savings goal (src/lib/goal.ts): spending it is the plan, so no spending alerts. */
+  isGoal?: boolean
 }
 
 export interface GroupDocRow {
@@ -513,6 +516,7 @@ export async function buildExpenseContext(
       name: String(d.name ?? ''),
       group: d.group ? String(d.group) : '',
       alertPcts: Array.isArray(d.alertPcts) ? d.alertPcts.filter((v): v is number => typeof v === 'number') : undefined,
+      ...(readGoal(d.goal) ? { isGoal: true } : {}),
     }))
     .filter((c) => c.name)
 
