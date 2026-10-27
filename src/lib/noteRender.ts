@@ -151,3 +151,20 @@ export function dayLabel(days: number): string {
 export function firstLine(note: string): string {
   return note.split('\n').map((l) => l.trim()).find(Boolean) ?? ''
 }
+
+/**
+ * The Add to-do chip: an empty line or a line of words becomes `- …`; on a
+ * to-do already, a fresh `- ` line goes under it. `caret` is where the text
+ * box's cursor goes next. Null when it wouldn't fit under `max`.
+ */
+export function addTodo(note: string, caret: number, max = Infinity): { text: string; caret: number } | null {
+  // Not lastIndexOf(…, -1): that reads as 0 and finds a newline the caret is before.
+  const start = caret === 0 ? 0 : note.lastIndexOf('\n', caret - 1) + 1
+  const endAt = note.indexOf('\n', caret)
+  const end = endAt === -1 ? note.length : endAt
+  const line = note.slice(start, end)
+  const next = CHECK_RE.test(line)
+    ? { text: `${note.slice(0, end)}\n- ${note.slice(end)}`, caret: end + 3 }
+    : { text: `${note.slice(0, start)}- ${note.slice(start)}`, caret: caret + 2 }
+  return next.text.length > max ? null : next
+}

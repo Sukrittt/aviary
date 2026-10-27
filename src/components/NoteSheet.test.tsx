@@ -21,7 +21,7 @@ describe('NoteSheet', () => {
     const box = screen.getByLabelText('Note')
     expect(box).toHaveFocus()
     expect(box).toHaveAttribute('placeholder', 'Due date, account no., autopay?')
-    expect(screen.getByText('Only people in this budget can see it.')).toBeInTheDocument()
+    expect(screen.getByText(/Only people in this budget can see it\./)).toBeInTheDocument()
   })
 
   it('saves a note and closes after the success beat', async () => {
@@ -108,5 +108,23 @@ describe('NoteSheet while writing', () => {
     rerender(<NoteSheet row={{ name: 'Rent', group: '' }} onClose={vi.fn()} />)
     expect(screen.queryByLabelText('Note')).not.toBeInTheDocument()
     expect(screen.getAllByRole('button', { name: 'Close' })).toHaveLength(2)
+  })
+})
+
+describe('NoteSheet add to-do', () => {
+  it('writes a to-do line into the box and saves it as text', async () => {
+    const user = userEvent.setup()
+    render(<NoteSheet row={{ name: 'Diwali', group: '' }} onClose={vi.fn()} />)
+    const box = screen.getByLabelText('Note')
+    await user.type(box, 'Diwali shopping{Enter}')
+    await user.click(screen.getByRole('button', { name: 'Add to-do' }))
+    await user.type(box, 'buy diyas')
+    await user.click(screen.getByRole('button', { name: 'Add to-do' }))
+    await user.type(box, 'book train')
+    expect(box).toHaveValue('Diwali shopping\n- buy diyas\n- book train')
+    await waitFor(() => expect(box).toHaveFocus())
+    expect(screen.getByText(/Start a line with - for a checkbox/)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Save note' }))
+    expect(state.update).toHaveBeenCalledWith({ name: 'Diwali', updates: { note: 'Diwali shopping\n- buy diyas\n- book train' } })
   })
 })

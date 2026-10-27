@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { checklistCount, dayLabel, firstLine, goalFit, noteAmounts, parseNote, toggleLine, type Segment } from './noteRender'
+import { addTodo, checklistCount, dayLabel, firstLine, goalFit, noteAmounts, parseNote, toggleLine, type Segment } from './noteRender'
 
 const TODAY = '2026-10-28'
 const kinds = (segments: Segment[]) => segments.filter((s) => s.kind !== 'text').map((s) => [s.kind, s.text])
@@ -91,4 +91,30 @@ describe('goal fit', () => {
 
 it('shows the first line that has words', () => {
   expect(firstLine('\n  Policy 88231 \nrenew')).toBe('Policy 88231')
+})
+
+describe('addTodo', () => {
+  // `|` marks the caret: where it is before, and where it lands after.
+  const run = (marked: string) => {
+    const at = marked.indexOf('|')
+    const next = addTodo(marked.replace('|', ''), at)
+    return next && next.text.slice(0, next.caret) + '|' + next.text.slice(next.caret)
+  }
+
+  it('starts an empty note or an empty line as a to-do', () => {
+    expect(run('|')).toBe('- |')
+    expect(run('Diwali\n|')).toBe('Diwali\n- |')
+    expect(run('|\nDiwali')).toBe('- |\nDiwali')
+  })
+  it('turns a line of words into a to-do, keeping the caret on its words', () => {
+    expect(run('Diwali\nbuy di|yas')).toBe('Diwali\n- buy di|yas')
+  })
+  it('adds the next to-do under one that is already there', () => {
+    expect(run('- buy diyas|\nafter')).toBe('- buy diyas\n- |\nafter')
+    expect(run('[x] bo|ok train')).toBe('[x] book train\n- |')
+  })
+  it('does nothing past the cap', () => {
+    expect(addTodo('a'.repeat(1999), 1999, 2000)).toBeNull()
+    expect(addTodo('a'.repeat(1998), 1998, 2000)?.text).toBe('- ' + 'a'.repeat(1998))
+  })
 })
