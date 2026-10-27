@@ -104,6 +104,7 @@ describe('addTodo', () => {
   it('starts an empty note or an empty line as a to-do', () => {
     expect(run('|')).toBe('- |')
     expect(run('Diwali\n|')).toBe('Diwali\n- |')
+    expect(run('|\nDiwali')).toBe('- |\nDiwali')
   })
   it('turns a line of words into a to-do, keeping the caret on its words', () => {
     expect(run('Diwali\nbuy di|yas')).toBe('Diwali\n- buy di|yas')

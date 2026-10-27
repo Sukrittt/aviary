@@ -158,7 +158,8 @@ export function firstLine(note: string): string {
  * box's cursor goes next. Null when it wouldn't fit under `max`.
  */
 export function addTodo(note: string, caret: number, max = Infinity): { text: string; caret: number } | null {
-  const start = note.lastIndexOf('\n', caret - 1) + 1
+  // Not lastIndexOf(…, -1): that reads as 0 and finds a newline the caret is before.
+  const start = caret === 0 ? 0 : note.lastIndexOf('\n', caret - 1) + 1
   const endAt = note.indexOf('\n', caret)
   const end = endAt === -1 ? note.length : endAt
   const line = note.slice(start, end)
