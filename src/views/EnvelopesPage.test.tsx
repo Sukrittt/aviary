@@ -122,7 +122,7 @@ describe('EnvelopesPage', () => {
     await user.type(screen.getByPlaceholderText('Groceries, fuel, gym…'), 'Gas')
     await user.keyboard('{Enter}')
     // The icon follows the name until one is picked.
-    await waitFor(() => expect(addCategory).toHaveBeenCalledWith('Gas', 'Home', 'Fire', undefined))
+    await waitFor(() => expect(addCategory).toHaveBeenCalledWith('Gas', 'Home', 'Fire', undefined, undefined))
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Add category' })).not.toBeInTheDocument())
   })
 

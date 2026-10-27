@@ -12,6 +12,16 @@ import { categoryIconKey, type CategoryIconKey } from '../lib/categoryIcons'
 import { CategoryIcon } from './CategoryIcon'
 import { CategoryIconPicker, ColorSwatches } from './CategoryIconPicker'
 import type { CategoryRow } from '../types'
+import { GoalFields, goalOf, type GoalDraft } from './GoalSheet'
+import { goalTemplate, type GoalTemplateKey } from '../lib/goal'
+import { currentMonthKey } from '../lib/envelope'
+
+const GOAL_PICKS: { key: GoalTemplateKey | 'custom'; label: string }[] = [
+  { key: 'emergency', label: 'Emergency fund' },
+  { key: 'diwali', label: 'Diwali' },
+  { key: 'insurance', label: 'Insurance' },
+  { key: 'custom', label: 'Custom' },
+]
 
 export function AddCategoryModal({ onClose, onCreated, initialGroup = '' }: {
   onClose: () => void
@@ -30,6 +40,10 @@ export function AddCategoryModal({ onClose, onCreated, initialGroup = '' }: {
   // Same: follows the name's hash until the user picks one.
   const [pickedColor, setPickedColor] = useState<CategoryColor | null>(null)
   const color = categoryColor(splitEmoji(name).text, pickedColor ?? undefined)
+  // A savings goal, started from a template or from scratch. Null: no goal.
+  const [goalPick, setGoalPick] = useState<GoalTemplateKey | 'custom' | null>(null)
+  const [goalDraft, setGoalDraft] = useState<GoalDraft>({ amount: '', by: '', yearly: false })
+  const goal = goalPick ? goalOf(goalDraft) : null
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
   const pending = useRef(false)
@@ -41,13 +55,22 @@ export function AddCategoryModal({ onClose, onCreated, initialGroup = '' }: {
     return () => trigger?.focus()
   }, [])
 
+  function pickGoal(key: GoalTemplateKey | 'custom' | null) {
+    setGoalPick(key)
+    if (!key || key === 'custom') return
+    const t = goalTemplate(key, currentMonthKey())
+    setGoalDraft((d) => ({ ...d, by: t.by, yearly: t.yearly }))
+    // Names the category too, unless you've typed your own.
+    if (!name.trim() || GOAL_PICKS.some((p) => p.label === name.trim())) setName(t.name)
+  }
+
   function close() {
     if (!pending.current) onClose()
   }
 
   async function save() {
-    if (!name.trim() || pending.current) return
-    const created = { name: name.trim(), group, icon, ...(pickedColor ? { color: pickedColor } : {}) }
+    if (!name.trim() || pending.current || (goalPick && !goal)) return
+    const created = { name: name.trim(), group, icon, ...(pickedColor ? { color: pickedColor } : {}), ...(goal ? { goal } : {}) }
     pending.current = true
     setSaving(true)
     setError('')
@@ -86,10 +109,20 @@ export function AddCategoryModal({ onClose, onCreated, initialGroup = '' }: {
                 disabled={saving} onClick={() => setGroup(g)}><CategoryIcon kind="group" name={g} icon={groupIcons.get(g)} /> {splitEmoji(g).text}</button>
             ))}
           </div>
+          <p className="env-sheet-section-label">SAVING FOR SOMETHING?</p>
+          <div className="env-pct-row">
+            <button type="button" className={`env-pct${goalPick === null ? ' is-on' : ''}`} aria-pressed={goalPick === null}
+              disabled={saving} onClick={() => pickGoal(null)}>No goal</button>
+            {GOAL_PICKS.map((p) => (
+              <button type="button" key={p.key} className={`env-pct${goalPick === p.key ? ' is-on' : ''}`} aria-pressed={goalPick === p.key}
+                disabled={saving} onClick={() => pickGoal(p.key)}>{p.label}</button>
+            ))}
+          </div>
+          {goalPick && <GoalFields draft={goalDraft} onChange={setGoalDraft} />}
           {error && <p className="env-sheet-hint" role="alert">{error}</p>}
           <div className="env-sheet-actions">
             <button type="button" className="auth-btn auth-btn--outline" disabled={saving} onClick={close}>Cancel</button>
-            <button type="submit" className="auth-btn auth-btn--primary" disabled={saving || !name.trim()}>
+            <button type="submit" className="auth-btn auth-btn--primary" disabled={saving || !name.trim() || (!!goalPick && !goal)}>
               {saving ? 'Saving…' : 'Add category'}
             </button>
           </div>

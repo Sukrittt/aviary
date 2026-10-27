@@ -1,7 +1,7 @@
 // A savings goal on an envelope: a target, an optional "by" month, an optional
 // yearly repeat. Progress is the envelope's own balance (computeEnvelopeState,
 // carry included), so a goal adds no money of its own. Pure, like envelope.ts.
-import { shiftMonthKey } from './envelope'
+import { monthAbbrev, shiftMonthKey } from './envelope'
 import type { CategoryGoal } from '@/src/types'
 
 export type GoalStatus = 'funded' | 'onTrack' | 'behind' | 'saving' | 'done'
@@ -68,4 +68,31 @@ export function goalProgress({ goal, month, available, assigned, spent, since }:
   return assigned >= monthlyNeed
     ? { ...out, status: 'onTrack', monthlyNeed }
     : { ...out, status: 'behind', monthlyNeed, behindBy: Math.round((monthlyNeed - assigned) * 100) / 100 }
+}
+
+/** "2027-01" -> "Jan 2027". */
+export const shortMonth = (key: string) => `${monthAbbrev(key)} ${key.slice(0, 4)}`
+
+/** The row's one line under a goal's bar. */
+export function goalLine(p: GoalProgress, money: (n: number) => string): string {
+  const make = p.monthlyNeed !== undefined && p.by ? `${money(p.monthlyNeed)}/mo to make it by ${shortMonth(p.by)}` : ''
+  switch (p.status) {
+    case 'funded': return 'Funded'
+    case 'done': return 'Done'
+    case 'onTrack': return `On track · ${make}`
+    case 'behind': return `Behind by ${money(p.behindBy ?? 0)} · ${make}`
+    case 'saving': return p.paceMonth ? `At this pace, by ${shortMonth(p.paceMonth)}` : 'Assign a monthly amount to see when'
+  }
+}
+
+export type GoalTemplateKey = 'emergency' | 'diwali' | 'insurance'
+
+/** Starting points for a new goal: a name and a deadline. The amount is the user's. */
+export function goalTemplate(key: GoalTemplateKey, month: string): { name: string; by: string; yearly: boolean } {
+  switch (key) {
+    case 'emergency': return { name: 'Emergency fund', by: '', yearly: false }
+    // Diwali lands in October or November; October has the money ready either way.
+    case 'diwali': return { name: 'Diwali', by: `${Number(month.slice(0, 4)) + (month >= `${month.slice(0, 4)}-10` ? 1 : 0)}-10`, yearly: true }
+    case 'insurance': return { name: 'Insurance', by: shiftMonthKey(month, 12), yearly: true }
+  }
 }

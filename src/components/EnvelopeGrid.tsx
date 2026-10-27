@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { ArrowsInLineVerticalIcon } from '@/src/components/icons'
 import { SpringChevron, SpringCollapse } from './SpringCollapse'
 import { splitEmoji } from '../lib/emoji'
-import { useCategoryStyle } from '../hooks/useCategories'
+import { useCategories, useCategoryStyle } from '../hooks/useCategories'
 import { CategoryIcon } from './CategoryIcon'
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { MENU_ITEM, MENU_POPUP } from './menuStyles'
@@ -15,6 +15,10 @@ import { RollingAmount } from './home/RollingAmount'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { rolledOverLine } from '../lib/rollover'
 import { allowanceNote, paceLine, resetChip, weekResult, type PaceStatus, type WeekPace } from '../lib/weekly'
+import { goalLine, goalProgress } from '../lib/goal'
+import { currentMonthKey } from '../lib/envelope'
+import { AnimatePresence } from 'motion/react'
+import { GoalActions, GoalSheet } from './GoalSheet'
 
 /** Web twin of Mobile's app/(tabs)/index.tsx envelopes card (EnvelopeGroup + EnvelopeRow). */
 
@@ -40,6 +44,8 @@ interface Props {
   /** Categories with Track weekly on. Omit to hide the switch (another month on screen). */
   weekly?: Map<string, string>
   onToggleWeekly?: (category: string, on: boolean) => void
+  /** Sets this month's assigned to a goal's monthly amount. Omit where goals can't be changed (read-only, another month). */
+  onSetMonthly?: (category: string, amount: number) => Promise<void>
 }
 
 const UNGROUPED_LABEL = 'Other'
@@ -120,7 +126,7 @@ function lastSpentLabel(iso: string | undefined): string {
   return new Date(spent).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'UTC' })
 }
 
-export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveMoney, onAssignFromRTA, onSetAssigned, onPayCreditCard, categoryIcons, groupIcons, rollPlay = 0, month, paces, weekly, onToggleWeekly }: Props) {
+export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveMoney, onAssignFromRTA, onSetAssigned, onPayCreditCard, categoryIcons, groupIcons, rollPlay = 0, month, paces, weekly, onToggleWeekly, onSetMonthly }: Props) {
   const styleOf = useCategoryStyle()
   const { formatCurrency } = useCurrency()
   const money = (n: number) => (hideAmounts ? '---' : formatCurrency(n))
@@ -130,6 +136,10 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
   const [menuCategory, setMenuCategory] = useState<string | null>(null)
   const [menuSide, setMenuSide] = useState<'top' | 'bottom'>('bottom')
   const triggers = useRef(new Map<string, HTMLElement>())
+  const [goalFor, setGoalFor] = useState<string | null>(null)
+  const categoryRows = useCategories().data
+  const categoryByName = useMemo(() => new Map((categoryRows ?? []).map((c) => [c.name, c])), [categoryRows])
+  const goalMonth = month ?? currentMonthKey()
 
   const grouped = useMemo(() => {
     const regular = envelopes.filter((e) => !e.isCreditCardPayment)
@@ -174,10 +184,13 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
     const isMenuOpen = menuCategory === e.category
     // Home keeps the month for every row; a weekly row adds a pace tick and
     // tones bar and pill by month pace. The weeks live in the row's menu.
-    const pace = isCC ? undefined : paces?.get(e.category)
+    const row = isCC ? undefined : categoryByName.get(e.category)
+    const goal = row?.goal ? goalProgress({ goal: row.goal, month: goalMonth, available: e.available, assigned: e.assigned, spent: e.spent, since: row.since }) : null
+    // A goal row is about filling up, so its bar and line say that instead of spending or pace.
+    const pace = isCC || goal ? undefined : paces?.get(e.category)
 
     return (
-      <div key={e.category} className={`env2-row ${isMenuOpen ? 'is-open' : ''}`}>
+      <div key={e.category} className={`env2-row ${isMenuOpen ? 'is-open' : ''} ${goal ? 'has-goal' : ''}`}>
         <DropdownMenu
           open={isMenuOpen}
           onOpenChange={(open) => {
@@ -205,12 +218,25 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
               <CategoryIcon name={e.category} icon={isCC ? 'CreditCard' : categoryIcons?.get(e.category)} group={group} />
             </span>
             <span className="env2-name">{name}</span>
-            <span className="env2-spent-of">
-              <span className="env2-spent-label">Spent</span> {money(e.spent)}
-              {!unbudgeted && <> <span className="env2-spent-label">of</span> {money(e.assigned)}</>}
-            </span>
+            {goal ? (
+              <span className="env2-spent-of">
+                {money(goal.saved)} <span className="env2-spent-label">of</span> {money(goal.target)}
+              </span>
+            ) : (
+              <span className="env2-spent-of">
+                <span className="env2-spent-label">Spent</span> {money(e.spent)}
+                {!unbudgeted && <> <span className="env2-spent-label">of</span> {money(e.assigned)}</>}
+              </span>
+            )}
           </span>
-          {pace ? (
+          {goal ? (
+            <>
+              <span className="env-bar-track env2-bar">
+                <span className={`env-bar-fill ${goal.status === 'done' ? 'is-done' : 'is-mint'}`} style={{ display: 'block', width: `${goal.pct}%` }} />
+              </span>
+              <span className={`env2-meta env2-goal-line is-${goal.status}`}>{goalLine(goal, money)}</span>
+            </>
+          ) : pace ? (
             <>
               <span className="env2-bar-wrap">
                 <span className="env-bar-track env2-bar">
@@ -228,7 +254,7 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
               <span className={`env-bar-fill ${fill}`} style={{ display: 'block', width: `${pct}%` }} />
             </span>
           )}
-          {!isCC && !pace && (
+          {!isCC && !pace && !goal && (
             <span className="env2-meta">
               {unbudgeted ? 'Not budgeted · ' : ''}Last spent {lastSpentLabel(e.lastSpentDate)}
             </span>
@@ -268,6 +294,11 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
           <DropdownMenuItem className={MENU_ITEM} onClick={() => onSetAssigned(e.category)}>
             Edit assigned amount
           </DropdownMenuItem>
+          {!isCC && onSetMonthly && (
+            <DropdownMenuItem className={MENU_ITEM} onClick={() => setGoalFor(e.category)}>
+              {row?.goal ? 'Edit goal' : 'Set a goal'}
+            </DropdownMenuItem>
+          )}
           {!isCC && (
             <DropdownMenuItem
               className={MENU_ITEM}
@@ -307,7 +338,9 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
             )
           })()}
         </span>
-
+        {goal && row?.goal && onSetMonthly && (
+          <GoalActions category={e.category} goal={row.goal} progress={goal} month={goalMonth} money={money} onSetMonthly={onSetMonthly} />
+        )}
       </div>
     )
   }
@@ -366,6 +399,9 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
           })}
         </div>
       )}
+      <AnimatePresence>
+        {goalFor && <GoalSheet category={goalFor} goal={categoryByName.get(goalFor)?.goal} onClose={() => setGoalFor(null)} />}
+      </AnimatePresence>
     </>
   )
 }

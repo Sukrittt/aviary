@@ -15413,3 +15413,29 @@ button.account-feature-card {
 .referral-landing-code {
   font-weight: 600;
 }
+
+/* Savings goals on envelope rows (src/lib/goal.ts). The actions sit on their
+   own line under the row, outside the menu button they can't nest in. */
+.env2-row.has-goal { flex-wrap: wrap; }
+.env2-goal-line.is-behind { color: var(--tk-pill-low); }
+.env2-goal-line.is-funded { color: var(--tk-pill-good); }
+.env2-goal-line.is-done { color: var(--erd-text3); }
+.env2-goal-actions {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  /* Lines up with the name, past the icon. */
+  padding-left: 25px;
+}
+.env2-goal-actions .account-pill-btn { padding: 6px 12px; }
+.env2-goal-error { font-size: 12px; color: var(--tk-pill-over); }
+.goal-sheet-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  width: 100%;
+}
+.goal-month { width: 100%; padding: 10px 12px; }

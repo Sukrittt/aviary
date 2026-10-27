@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { goalProgress, nextGoalMonth } from './goal'
+import { goalLine, goalProgress, goalTemplate, nextGoalMonth } from './goal'
 
 // `available` is the envelope's balance this month, carry and this month's
 // assigned included (computeEnvelopeState). `assigned` is this month's plan.
@@ -143,5 +143,43 @@ describe('nextGoalMonth', () => {
 
   it('lands on the first one still ahead', () => {
     expect(nextGoalMonth('2024-03', '2026-10')).toBe('2027-03')
+  })
+})
+
+describe('goalLine', () => {
+  const money = (n: number) => `₹${n.toLocaleString('en-IN')}`
+  const line = (input: Parameters<typeof goalProgress>[0]) => goalLine(goalProgress(input)!, money)
+
+  it('says how much a month makes the deadline, and how far behind this month is', () => {
+    expect(line({ ...base, goal: { amount: 24000, by: '2027-01' }, available: 9000, assigned: 3000 })).toBe('Behind by ₹1,500 · ₹4,500/mo to make it by Jan 2027')
+  })
+
+  it('says on track once the monthly amount is assigned', () => {
+    expect(line({ ...base, goal: { amount: 24000, by: '2027-01' }, available: 10500, assigned: 4500 })).toBe('On track · ₹4,500/mo to make it by Jan 2027')
+  })
+
+  it('says when the current pace gets there without a deadline', () => {
+    expect(line({ ...base, goal: { amount: 60000 }, available: 10000, assigned: 5000 })).toBe('At this pace, by Aug 2027')
+    expect(line({ ...base, goal: { amount: 60000 }, available: 10000 })).toBe('Assign a monthly amount to see when')
+  })
+
+  it('names funded and done plainly', () => {
+    expect(line({ ...base, goal: { amount: 100 }, available: 100 })).toBe('Funded')
+    expect(line({ ...base, goal: { amount: 100, by: '2026-01' } })).toBe('Done')
+  })
+})
+
+describe('goalTemplate', () => {
+  it('sets Diwali for next October, every year', () => {
+    expect(goalTemplate('diwali', '2026-10')).toEqual({ name: 'Diwali', by: '2027-10', yearly: true })
+    expect(goalTemplate('diwali', '2027-03')).toEqual({ name: 'Diwali', by: '2027-10', yearly: true })
+  })
+
+  it('sets insurance a year out, every year', () => {
+    expect(goalTemplate('insurance', '2026-10')).toEqual({ name: 'Insurance', by: '2027-10', yearly: true })
+  })
+
+  it('gives an emergency fund no deadline', () => {
+    expect(goalTemplate('emergency', '2026-10')).toEqual({ name: 'Emergency fund', by: '', yearly: false })
   })
 })
