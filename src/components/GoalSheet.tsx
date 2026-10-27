@@ -8,6 +8,7 @@ import { useSpaces } from '../hooks/useSpaces'
 import { useUpdateCategory } from '../hooks/useCategories'
 import { splitEmoji } from '../lib/emoji'
 import { nextGoalMonth, type GoalProgress } from '../lib/goal'
+import { currentMonthKey } from '../lib/envelope'
 import type { CategoryGoal } from '../types'
 
 /** A goal as typed: the amount as text, no deadline as ''. */
@@ -19,10 +20,10 @@ export interface GoalDraft {
 
 export const draftOf = (goal?: CategoryGoal): GoalDraft => ({ amount: goal ? String(goal.amount) : '', by: goal?.by ?? '', yearly: goal?.repeat === 'yearly' })
 
-/** The goal a draft describes, or null while it has no amount. */
+/** The goal a draft describes, or null while it has no amount or its month is already over. */
 export function goalOf(d: GoalDraft): CategoryGoal | null {
   const amount = Number(d.amount)
-  if (!(amount > 0)) return null
+  if (!(amount > 0) || (d.by && d.by < currentMonthKey())) return null
   return { amount, ...(d.by ? { by: d.by } : {}), ...(d.by && d.yearly ? { repeat: 'yearly' as const } : {}) }
 }
 
@@ -32,13 +33,14 @@ const SAVE_FAILED = "Couldn't save. Check your connection and try again."
 export function GoalFields({ draft, onChange, autoFocus }: { draft: GoalDraft; onChange: (d: GoalDraft) => void; autoFocus?: boolean }) {
   const amountId = useId()
   const byId = useId()
+  const thisMonth = currentMonthKey()
   return (
     <>
       <AmountField id={amountId} value={draft.amount} onChange={(amount) => onChange({ ...draft, amount })} hint="What you're saving up to." autoFocus={autoFocus} />
       <section className="erd-sub-section">
         <label className="erd-log-label" htmlFor={byId}>By</label>
-        <input id={byId} type="month" className="env-input goal-month" value={draft.by} onChange={(e) => onChange({ ...draft, by: e.target.value })} />
-        <p className="erd-sub-hint">{draft.by ? 'Need it again next year? Repeat it.' : 'Leave it empty to save at your own pace.'}</p>
+        <input id={byId} type="month" min={thisMonth} className="env-input goal-month" value={draft.by} onChange={(e) => onChange({ ...draft, by: e.target.value })} />
+        <p className="erd-sub-hint">{draft.by && draft.by < thisMonth ? "That month's over. Pick this one or later." : draft.by ? 'Need it again next year? Repeat it.' : 'Leave it empty to save at your own pace.'}</p>
         {draft.by && (
           <div className="erd-sub-picks">
             <button type="button" className={`erd-chip ${draft.yearly ? '' : 'is-selected'}`} aria-pressed={!draft.yearly} onClick={() => onChange({ ...draft, yearly: false })}>Just once</button>

@@ -56,3 +56,18 @@ describe('AddCategoryModal', () => {
     expect(screen.queryByLabelText('Name')).toBeNull()
   })
 })
+
+describe('goalOf', () => {
+  it('refuses a deadline already behind us, so a new goal never starts out Done', async () => {
+    const { goalOf } = await import('./GoalSheet')
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 9, 27))
+    try {
+      expect(goalOf({ amount: '10000', by: '2026-05', yearly: false })).toBeNull()
+      expect(goalOf({ amount: '10000', by: '2026-10', yearly: true })).toEqual({ amount: 10000, by: '2026-10', repeat: 'yearly' })
+      expect(goalOf({ amount: '10000', by: '', yearly: false })).toEqual({ amount: 10000 })
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+})
