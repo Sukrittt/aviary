@@ -13,7 +13,8 @@ vi.mock('../hooks/useCategories', () => ({
   useUpdateCategory: () => ({ mutateAsync: cats.update }),
 }))
 
-vi.mock('../hooks/useSpaces', () => ({ useSpaces: () => ({ readOnly: false }) }))
+const spaces = vi.hoisted(() => ({ readOnly: false }))
+vi.mock('../hooks/useSpaces', () => ({ useSpaces: () => spaces }))
 const motion = vi.hoisted(() => ({ inView: false }))
 vi.mock('motion/react', async (orig) => ({ ...(await orig<typeof import('motion/react')>()), useInView: () => motion.inView }))
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }))
@@ -318,8 +319,28 @@ describe('EnvelopeGrid notes', () => {
     setup()
     const user = userEvent.setup()
     await user.click(screen.getByRole('button', { name: /Rent/ }))
-    await user.click(await screen.findByRole('menuitem', { name: 'Note' }))
+    await user.click(await screen.findByRole('menuitem', { name: 'Add a note' }))
     expect(await screen.findByRole('dialog', { name: 'Note for Rent' })).toBeInTheDocument()
+    cats.rows = []
+  })
+})
+
+describe('EnvelopeGrid note menu item', () => {
+  it.each([
+    [false, 'with a note', 'Edit note'],
+    [true, 'with a note', 'View note'],
+    [true, 'without one', null],
+  ] as const)('read-only %s, %s: %s', async (readOnly, has, label) => {
+    spaces.readOnly = readOnly
+    cats.rows = [{ name: 'Rent', group: 'Essentials', ...(has === 'with a note' ? { note: 'due 5th' } : {}) }]
+    setup()
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: /Rent/ }))
+    await screen.findByRole('menuitem', { name: 'View transactions' })
+    const items = screen.getAllByRole('menuitem').map((el) => el.textContent)
+    if (label) expect(items).toContain(label)
+    else expect(items.some((t) => /note/i.test(t ?? ''))).toBe(false)
+    spaces.readOnly = false
     cats.rows = []
   })
 })

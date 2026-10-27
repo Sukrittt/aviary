@@ -5,6 +5,7 @@ import { ArrowsInLineVerticalIcon, NoteIcon } from '@/src/components/icons'
 import { SpringChevron, SpringCollapse } from './SpringCollapse'
 import { splitEmoji } from '../lib/emoji'
 import { useCategories, useCategoryStyle } from '../hooks/useCategories'
+import { useSpaces } from '../hooks/useSpaces'
 import { CategoryIcon } from './CategoryIcon'
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { MENU_ITEM, MENU_POPUP } from './menuStyles'
@@ -143,6 +144,7 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
   const [goalFor, setGoalFor] = useState<string | null>(null)
   const [noteFor, setNoteFor] = useState<string | null>(null)
   const categoryRows = useCategories().data
+  const { readOnly } = useSpaces()
   const categoryByName = useMemo(() => new Map((categoryRows ?? []).map((c) => [c.name, c])), [categoryRows])
   const goalMonth = month ?? currentMonthKey()
 
@@ -315,9 +317,10 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
               {row?.goal ? 'Edit goal' : 'Make this a goal'}
             </DropdownMenuItem>
           )}
-          {row && (
+          {/* Read-only can look at a note, not start one. */}
+          {row && (row.note || !readOnly) && (
             <DropdownMenuItem className={MENU_ITEM} onClick={() => setNoteFor(e.category)}>
-              Note
+              {!row.note ? 'Add a note' : readOnly ? 'View note' : 'Edit note'}
             </DropdownMenuItem>
           )}
           {!isCC && (
