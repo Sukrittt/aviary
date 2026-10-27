@@ -2,11 +2,12 @@ import Link from 'next/link'
 import { pageMetadata } from '@/lib/seo'
 import { COMPARE_CHECKED } from '@/lib/content'
 import { CompareTable, ContentPage, SoftCta, Sources } from '@/src/components/content/ContentPage'
+import { postLinks } from '@/lib/blog'
 
 export const metadata = pageMetadata('/compare/goodbudget')
 
 export default function GoodbudgetPage() {
-  return <ContentPage section="compare" path="/compare/goodbudget" title="Aviary vs Goodbudget" kicker={`Compare · Facts checked ${COMPARE_CHECKED}`} lede={<>Goodbudget and Aviary are close cousins. Both use envelope budgeting: you split your money into envelopes, or categories, and spend from them. Both work well without linking a bank, which matters in India because neither one syncs with Indian banks.</>} related={['/compare/ynab-alternative-india', '/features/budget-without-bank-linking', '/tools/50-30-20-calculator']}>
+  return <ContentPage section="compare" path="/compare/goodbudget" title="Aviary vs Goodbudget" kicker={`Compare · Facts checked ${COMPARE_CHECKED}`} lede={<>Goodbudget and Aviary are close cousins. Both use envelope budgeting: you split your money into envelopes, or categories, and spend from them. Both work well without linking a bank, which matters in India because neither one syncs with Indian banks.</>} related={[...postLinks('envelope-budgeting-upi'), '/compare/ynab-alternative-india', '/features/budget-without-bank-linking', '/tools/50-30-20-calculator']}>
 
     <h2>The short version</h2>
     <p>For most people in India, Aviary is the better fit.</p>

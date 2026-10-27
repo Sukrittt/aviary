@@ -4,6 +4,7 @@ import { jsonLd } from '@/src/components/JsonLd'
 import { lakhs } from '@/lib/tools/money'
 import { ContentPage, SoftCta } from './ContentPage'
 import { SalaryPlanner } from './Calculators'
+import { postLinks } from '@/lib/blog'
 
 const SALARY_PAGES: [number, PagePath][] = [
   [15000, '/tools/budget-for-15000-salary'], [20000, '/tools/budget-for-20000-salary'], [25000, '/tools/budget-for-25000-salary'], [30000, '/tools/budget-for-30000-salary'], [40000, '/tools/budget-for-40000-salary'], [50000, '/tools/budget-for-50000-salary'],
@@ -16,7 +17,7 @@ const SALARY_PAGES: [number, PagePath][] = [
  */
 export function SalaryBudget({ salary, path, intro, faqs, children }: { salary: number; path: PagePath; intro: ReactNode; faqs: { q: string; a: string }[]; children: ReactNode }) {
   const others = SALARY_PAGES.filter(([, p]) => p !== path).map(([, p]) => p)
-  return <ContentPage section="tools" path={path} title={`How to budget a ${lakhs(salary)} salary`} lede={intro} related={['/tools/salary-budget-planner', ...others, '/tools/emergency-fund-calculator']}>
+  return <ContentPage section="tools" path={path} title={`How to budget a ${lakhs(salary)} salary`} lede={intro} related={[...postLinks('first-salary-budget', '50-30-20-rule-india'), '/tools/salary-budget-planner', ...others, '/tools/emergency-fund-calculator']}>
     <h2>A starting plan for {lakhs(salary)} a month</h2>
     <p>This uses take-home pay and puts rent at 30%. Got a different rent? Type it in and the rest adjusts: wants shrink first, savings last.</p>
     <SalaryPlanner initial={salary} />

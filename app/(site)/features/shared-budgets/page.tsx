@@ -1,11 +1,12 @@
 import Link from 'next/link'
 import { pageMetadata } from '@/lib/seo'
 import { ContentPage, Screen, SoftCta } from '@/src/components/content/ContentPage'
+import { postLinks } from '@/lib/blog'
 
 export const metadata = pageMetadata('/features/shared-budgets')
 
 export default function SharedBudgetsPage() {
-  return <ContentPage section="features" path="/features/shared-budgets" title="One budget for the two of you, or the whole flat" lede={<>Rent, groceries and the weekend come out of one pot, so the budget should be one pot too. Invite your partner or flatmates, and whoever paid logs it. Everyone sees what’s left, and who spent it.</>} related={['/features/budget-without-bank-linking', '/compare/goodbudget', '/compare/budget-spreadsheet']}>
+  return <ContentPage section="features" path="/features/shared-budgets" title="One budget for the two of you, or the whole flat" lede={<>Rent, groceries and the weekend come out of one pot, so the budget should be one pot too. Invite your partner or flatmates, and whoever paid logs it. Everyone sees what’s left, and who spent it.</>} related={[...postLinks('split-expenses-with-flatmates', 'couples-budget-india'), '/features/budget-without-bank-linking', '/compare/goodbudget', '/compare/budget-spreadsheet']}>
     <Screen src="/landing/poster-members.webp" alt="Aviary’s Activity list in a shared budget called Family, each spend marked with the face of the person who logged it." caption="Every spend in a shared budget carries who logged it." />
 
     <h2>How it works</h2>

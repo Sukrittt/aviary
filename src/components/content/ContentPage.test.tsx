@@ -54,6 +54,8 @@ describe('content pages', () => {
     expect(html).toContain('How to budget a ₹25k salary')
     expect(html).toMatch(/Rent<\/th><td>₹7,500/)
     expect(html).toContain('href="/tools/budget-for-1-lakh-salary"')
+    expect(html).toContain('href="/blog/first-salary-budget"')
+    expect(renderToStaticMarkup(<SinkingFundPage />)).toContain('href="/blog/sinking-funds-india"')
   })
 
   it('show salary FAQs word for word in FAQPage JSON-LD', () => {

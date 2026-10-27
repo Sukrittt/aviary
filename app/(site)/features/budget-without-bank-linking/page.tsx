@@ -1,11 +1,12 @@
 import Link from 'next/link'
 import { pageMetadata } from '@/lib/seo'
 import { ContentPage, Screen, SoftCta } from '@/src/components/content/ContentPage'
+import { postLinks } from '@/lib/blog'
 
 export const metadata = pageMetadata('/features/budget-without-bank-linking')
 
 export default function NoBankLinkPage() {
-  return <ContentPage section="features" path="/features/budget-without-bank-linking" title="Budget without linking your bank" lede={<>Aviary never asks for your bank login, account aggregator consent or SMS access. You log what you spend, and Aviary makes that take one tap.</>} related={['/compare/axio', '/compare/goodbudget', '/features/recurring-expenses']}>
+  return <ContentPage section="features" path="/features/budget-without-bank-linking" title="Budget without linking your bank" lede={<>Aviary never asks for your bank login, account aggregator consent or SMS access. You log what you spend, and Aviary makes that take one tap.</>} related={[...postLinks('track-upi-spending-without-bank-linking'), '/compare/axio', '/compare/goodbudget', '/features/recurring-expenses']}>
     <Screen src="/landing/poster-log.webp" alt="Aviary’s Log expense keypad with ₹250 entered for Rapido in the Cabs & Auto category." caption="₹250, Rapido. The category picks itself." />
 
     <h2>Why not just sync?</h2>

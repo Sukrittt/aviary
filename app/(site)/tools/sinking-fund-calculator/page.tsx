@@ -2,11 +2,12 @@ import Link from 'next/link'
 import { pageMetadata } from '@/lib/seo'
 import { ContentPage, SoftCta } from '@/src/components/content/ContentPage'
 import { SinkingFundCalculator } from '@/src/components/content/Calculators'
+import { postLinks } from '@/lib/blog'
 
 export const metadata = pageMetadata('/tools/sinking-fund-calculator')
 
 export default function SinkingFundPage() {
-  return <ContentPage section="tools" path="/tools/sinking-fund-calculator" title="Sinking fund calculator" lede={<>List the big costs you know are coming, like insurance renewals and Diwali. You’ll see how much to put aside each month so the money’s there when the bill is.</>} related={['/tools/emergency-fund-calculator', '/tools/salary-budget-planner', '/tools/budget-for-60000-salary']}>
+  return <ContentPage section="tools" path="/tools/sinking-fund-calculator" title="Sinking fund calculator" lede={<>List the big costs you know are coming, like insurance renewals and Diwali. You’ll see how much to put aside each month so the money’s there when the bill is.</>} related={[...postLinks('sinking-funds-india', 'budget-for-diwali'), '/tools/emergency-fund-calculator', '/tools/salary-budget-planner', '/tools/budget-for-60000-salary']}>
     <SinkingFundCalculator />
 
     <h2>What a sinking fund is</h2>
