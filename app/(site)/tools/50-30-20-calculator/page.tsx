@@ -2,11 +2,12 @@ import Link from 'next/link'
 import { pageMetadata } from '@/lib/seo'
 import { ContentPage, SoftCta } from '@/src/components/content/ContentPage'
 import { Calculator503020 } from '@/src/components/content/Calculators'
+import { postLinks } from '@/lib/blog'
 
 export const metadata = pageMetadata('/tools/50-30-20-calculator')
 
 export default function Calculator503020Page() {
-  return <ContentPage section="tools" path="/tools/50-30-20-calculator" title="50/30/20 budget calculator" lede={<>Put in what lands in your account each month. The calculator splits it into needs, wants and savings.</>} related={['/tools/salary-budget-planner', '/tools/emergency-fund-calculator', '/tools/rent-affordability-calculator']}>
+  return <ContentPage section="tools" path="/tools/50-30-20-calculator" title="50/30/20 budget calculator" lede={<>Put in what lands in your account each month. The calculator splits it into needs, wants and savings.</>} related={[...postLinks('50-30-20-rule-india', 'zero-based-budgeting-salary-india'), '/tools/salary-budget-planner', '/tools/emergency-fund-calculator', '/tools/rent-affordability-calculator']}>
     <Calculator503020 />
 
     <h2>What the 50/30/20 rule says</h2>
