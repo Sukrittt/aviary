@@ -268,21 +268,4 @@ export function computeEnvelopeState(
   }
 }
 
-/**
- * Home's note under a negative Ready to assign: "₹5,000 more planned than
- * coming in". Usually it's a new month copying last month's plan after a
- * one-off extra paid for it. Null when nothing's over.
- */
-export function overPlannedLine(readyToAssign: number, money: (amount: number) => string): string | null {
-  return readyToAssign < 0 ? `${money(-readyToAssign)} more planned than coming in` : null
-}
-
-/** Where to trim an over-planned month: the biggest plans first. The card
- * payoff isn't a plan, it's last month's card spending, so it's left out. */
-export function trimCandidates<E extends { assigned: number; isCreditCardPayment?: boolean }>(envelopes: E[], n = 3): E[] {
-  return envelopes
-    .filter((e) => !e.isCreditCardPayment && e.assigned > 0)
-    .sort((a, b) => b.assigned - a.assigned)
-    .slice(0, n)
-}
 

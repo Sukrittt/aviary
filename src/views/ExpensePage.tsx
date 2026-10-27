@@ -8,7 +8,7 @@ import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "motion/r
 import { AmountText, CheckIcon } from "../components/landing/mobile/kit";
 import { track } from "../lib/analytics";
 import { currencyUnit } from "../lib/currencies";
-import { CaretDownIcon, CaretRightIcon, GearIcon, HouseIcon, InvoiceIcon, MoneyWavyIcon, MoonIcon, PencilSimpleIcon, SunIcon } from "@/src/components/icons";
+import { CaretRightIcon, GearIcon, HouseIcon, InvoiceIcon, MoneyWavyIcon, MoonIcon, PencilSimpleIcon, SunIcon } from "@/src/components/icons";
 import { useAppearance } from "../../components/AppearanceProvider";
 
 import { FluidDemo } from "../components/FluidDemo";
@@ -55,7 +55,6 @@ import { usePersistentState } from "../hooks/usePersistentState";
 import { useDismissedRolloverBanner } from "../hooks/useDismissedRolloverBanner";
 import { rolloverCard } from "../lib/rollover";
 import { splitEmoji } from "../lib/emoji";
-import { overPlannedLine, trimCandidates } from "../lib/envelope";
 import { RolloverCard } from "../components/home/RolloverCard";
 import { WeeklyRecapCard } from "../components/home/WeeklyRecapCard";
 import { useWeeklyCategories } from "../hooks/useWeeklyCategories";
@@ -612,29 +611,6 @@ export function ExpensePage() {
                         )
                       )}
                     </div>
-                    {/* Usually a new month copying a plan last month's one-off
-                        extra paid for. Says so, and offers the biggest plans to trim.
-                        No plan at all (a carried deficit alone): nothing to trim, so no line. */}
-                    {!hideAmounts && trimCandidates(envelopeState.envelopes).length > 0 && overPlannedLine(envelopeState.readyToAssign, (n) => formatCurrency(n)) && (
-                      <div className="erd-home-overplanned">
-                        <span>{overPlannedLine(envelopeState.readyToAssign, (n) => formatCurrency(n))}</span>
-                        {!readOnly && (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger render={<button type="button" className="erd-home-trim" />}>
-                            Trim
-                            <CaretDownIcon size={12} aria-hidden="true" />
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="center" className={MENU_POPUP}>
-                            {trimCandidates(envelopeState.envelopes).map((e) => (
-                              <DropdownMenuItem key={e.category} className={MENU_ITEM} onClick={() => setEditAssignedTarget(e.category)}>
-                                {`${splitEmoji(e.category).text} · ${formatCurrency(e.assigned)}`}
-                              </DropdownMenuItem>
-                            ))}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                        )}
-                      </div>
-                    )}
                   </div>
                   <div className="env-action-wrap erd-home-hero-menu">
                     {incomeMenu(
