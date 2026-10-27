@@ -130,7 +130,6 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
   const [menuCategory, setMenuCategory] = useState<string | null>(null)
   const [menuSide, setMenuSide] = useState<'top' | 'bottom'>('bottom')
   const triggers = useRef(new Map<string, HTMLElement>())
-  const ccEnvelope = useMemo(() => envelopes.find((e) => e.isCreditCardPayment) ?? null, [envelopes])
 
   const grouped = useMemo(() => {
     const regular = envelopes.filter((e) => !e.isCreditCardPayment)
@@ -145,11 +144,11 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
   // Rows that carried something roll in one after another, top to bottom.
   const rollOrder = useMemo(() => {
     const order = new Map<string, number>()
-    for (const e of [...grouped.flatMap((g) => g.items), ...(ccEnvelope ? [ccEnvelope] : [])]) {
+    for (const e of grouped.flatMap((g) => g.items)) {
       if (e.rolledOver) order.set(e.category, order.size)
     }
     return order
-  }, [grouped, ccEnvelope])
+  }, [grouped])
 
   const allCollapsed = grouped.length > 0 && grouped.every((g) => collapsed.has(g.label))
 
@@ -365,12 +364,6 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
               </div>
             )
           })}
-          {ccEnvelope && (
-            <div className="env2-cc">
-              <span className="env2-cc-badge">PAYOFF</span>
-              {renderRow(ccEnvelope)}
-            </div>
-          )}
         </div>
       )}
     </>
