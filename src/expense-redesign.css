@@ -7297,6 +7297,11 @@ button.account-feature-card {
   color: var(--gold-ink);
   border-color: var(--erd-border);
 }
+/* A goal's "Off for goals" is a label, not a button. */
+span.env-cat-alerts:hover {
+  color: var(--erd-text2);
+  border-color: transparent;
+}
 
 /* Match Activity's reading width, hierarchy, and category colors. */
 .env-page > .env-page-header,
