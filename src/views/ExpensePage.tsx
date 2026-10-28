@@ -477,10 +477,10 @@ export function ExpensePage() {
   }
 
   // Tapping Ready to Assign: give it a job, or take some back when it's negative.
-  // Taking back is capped at what's left, so it never just moves the hole into an envelope.
+  // Taking back lowers what's assigned, capped at what's left, so it never just moves the hole into an envelope.
   const rtaMenu = (trigger: ReactElement) => {
     const rta = envelopeState?.readyToAssign ?? 0;
-    const picks = (envelopeState?.envelopes ?? []).filter((e) => !e.isCreditCardPayment && (rta > 0 || e.available > 0));
+    const picks = (envelopeState?.envelopes ?? []).filter((e) => !e.isCreditCardPayment && (rta > 0 || (e.assigned > 0 && e.available > 0)));
     return (
       <DropdownMenu>
         <DropdownMenuTrigger render={trigger} />

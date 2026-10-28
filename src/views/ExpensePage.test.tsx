@@ -421,8 +421,9 @@ it('turns Ready to Assign into a menu that funds behind goals in one tap', async
 
 it("takes back only what a category has left, never pushing it overspent", async () => {
   const { getCategories } = await import('@/src/api/categories')
-  vi.mocked(getCategories).mockResolvedValue([{ name: 'Food', group: 'Essentials' }, { name: 'Rent', group: 'Essentials' }])
-  // Ready to Assign is -5,000. Rent is fully spent; Food has 3,000 left.
+  vi.mocked(getCategories).mockResolvedValue([{ name: 'Food', group: 'Essentials' }, { name: 'Rent', group: 'Essentials' }, { name: 'Travel', group: 'Essentials' }])
+  // Ready to Assign is -5,000. Rent is fully spent; Food has 3,000 left; Travel only has last month's carry, nothing assigned to lower.
+  vi.mocked(getCarry).mockResolvedValue({ ready_to_assign: 0, rolled_over: { Travel: 3000 } })
   vi.mocked(getBudgets).mockResolvedValue([
     { month, category: '__income__', assigned: '20000', rolled_over: '0', version: 1 },
     { month, category: 'Rent', assigned: '20000', rolled_over: '0', version: 1 },
@@ -435,6 +436,7 @@ it("takes back only what a category has left, never pushing it overspent", async
   await user.click(await screen.findByText('Take ₹5,000 back'))
   expect(await screen.findByText('Take it back from')).toBeInTheDocument()
   expect(screen.queryByRole('menuitem', { name: 'Rent' })).not.toBeInTheDocument()
+  expect(screen.queryByRole('menuitem', { name: 'Travel' })).not.toBeInTheDocument()
   await user.click(screen.getByRole('menuitem', { name: 'Food' }))
   const input = await waitFor(() => document.getElementById('assign-amount') as HTMLInputElement)
   await waitFor(() => expect(input).toHaveValue('2000'))
