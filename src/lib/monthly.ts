@@ -440,17 +440,17 @@ export function risingCategories(expenseRows: ExpenseRow[], month: string, today
 
 /** The plain "why" under a rising category, from the computed facts alone.
  *  Also the AI explanation's input, so both say the same thing. */
-export function spikeSummary(spike: CategorySpike, money: (amount: number) => string): string {
+export function spikeCause(spike: CategorySpike, money: (amount: number) => string): { why: string; fresh: string[] } {
   const usualCount = Math.round(spike.baselineCount)
   const avg = money(spike.count ? spike.spent / spike.count : 0)
   const usualAvg = money(spike.baseline / spike.baselineCount)
   const why = {
-    'one-off': `One big spend did most of it: ${spike.top[0]?.item}, ${money(spike.top[0]?.amount ?? 0)}.`,
-    'more-often': `You spent here ${spike.count} times, up from about ${usualCount}, and each spend was about the usual size.`,
-    bigger: `About as many spends as usual, but bigger: ${avg} each on average, up from ${usualAvg}.`,
-    both: `More spends (${spike.count}, up from about ${usualCount}) and bigger ones (${avg} on average, up from ${usualAvg}).`,
+    'one-off': `One big spend: ${spike.top[0]?.item}, ${money(spike.top[0]?.amount ?? 0)}`,
+    'more-often': `More spends: ${spike.count}, usually about ${usualCount}`,
+    bigger: `Bigger spends: ${avg} each, usually ${usualAvg}`,
+    both: `More and bigger: ${spike.count} spends (usually ${usualCount}), ${avg} each (usually ${usualAvg})`,
   }[spike.cause]
   // A one-off spend already named above isn't news twice.
-  const fresh = spike.newItems.filter((item) => spike.cause !== 'one-off' || item !== spike.top[0]?.item)
-  return fresh.length ? `${why} New this month: ${fresh.join(', ')}.` : why
+  const fresh = spike.newItems.filter((item) => spike.cause !== 'one-off' || itemKey(item) !== itemKey(spike.top[0]?.item ?? ''))
+  return { why, fresh }
 }

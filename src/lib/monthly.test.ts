@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { monthRange, categoryBreakdown, withDelta, leftoverFor, monthTotals, monthComparison, fixedCategories, savingsTrend, spikeFor, risingCategories, spikeSummary } from './monthly'
+import { monthRange, categoryBreakdown, withDelta, leftoverFor, monthTotals, monthComparison, fixedCategories, savingsTrend, spikeFor, risingCategories, spikeCause } from './monthly'
 import { CREDIT_CARD_CATEGORY, INCOME_CATEGORY, currentMonthKey, prevMonthKey } from './envelope'
 import type { BudgetRow, CategoryRow, ExpenseRow } from '@/src/types'
 
@@ -501,18 +501,25 @@ describe('risingCategories', () => {
   })
 })
 
-describe('spikeSummary', () => {
+describe('spikeCause', () => {
   it('names the cause and the new items', () => {
     const rows = [...history(), ...[3, 6, 9, 12, 15, 18].map((d) => spend(`2026-10-${String(d).padStart(2, '0')}`, 'Food', 300, d === 18 ? 'Blinkit' : 'Swiggy'))]
     const spike = spikeFor(rows, 'Food', '2026-10', '2026-11-02')!
-    expect(spikeSummary(spike, (n) => `₹${n}`)).toBe('You spent here 6 times, up from about 3, and each spend was about the usual size. New this month: Blinkit.')
+    expect(spikeCause(spike, (n) => `₹${n}`)).toEqual({ why: 'More spends: 6, usually about 3', fresh: ['Blinkit'] })
   })
 })
 
-describe('spikeSummary one-off', () => {
+describe('spikeCause one-off', () => {
   it("doesn't name the one big spend twice", () => {
     const rows = [...history(), ...[5, 12, 20].map((d) => spend(`2026-10-${d}`, 'Food', 300, 'Swiggy')), spend('2026-10-25', 'Food', 1200, 'Birthday dinner')]
-    expect(spikeSummary(spikeFor(rows, 'Food', '2026-10', '2026-11-02')!, (n) => `₹${n}`)).toBe('One big spend did most of it: Birthday dinner, ₹1200.')
+    expect(spikeCause(spikeFor(rows, 'Food', '2026-10', '2026-11-02')!, (n) => `₹${n}`)).toEqual({ why: 'One big spend: Birthday dinner, ₹1200', fresh: [] })
+  })
+})
+
+describe('spikeCause one-off, different capitals', () => {
+  it("doesn't name the one big spend again under New", () => {
+    const rows = [...history(), ...[5, 12].map((d) => spend(`2026-10-${d}`, 'Food', 300, 'Swiggy')), spend('2026-10-15', 'Food', 100, 'birthday dinner'), spend('2026-10-25', 'Food', 1200, 'Birthday dinner')]
+    expect(spikeCause(spikeFor(rows, 'Food', '2026-10', '2026-11-02')!, (n) => `₹${n}`).fresh).toEqual([])
   })
 })
 
