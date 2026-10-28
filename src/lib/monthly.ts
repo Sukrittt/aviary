@@ -451,6 +451,6 @@ export function spikeCause(spike: CategorySpike, money: (amount: number) => stri
     both: `More and bigger: ${spike.count} spends (usually ${usualCount}), ${avg} each (usually ${usualAvg})`,
   }[spike.cause]
   // A one-off spend already named above isn't news twice.
-  const fresh = spike.newItems.filter((item) => spike.cause !== 'one-off' || item !== spike.top[0]?.item)
+  const fresh = spike.newItems.filter((item) => spike.cause !== 'one-off' || itemKey(item) !== itemKey(spike.top[0]?.item ?? ''))
   return { why, fresh }
 }

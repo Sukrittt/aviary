@@ -516,6 +516,13 @@ describe('spikeCause one-off', () => {
   })
 })
 
+describe('spikeCause one-off, different capitals', () => {
+  it("doesn't name the one big spend again under New", () => {
+    const rows = [...history(), ...[5, 12].map((d) => spend(`2026-10-${d}`, 'Food', 300, 'Swiggy')), spend('2026-10-15', 'Food', 100, 'birthday dinner'), spend('2026-10-25', 'Food', 1200, 'Birthday dinner')]
+    expect(spikeCause(spikeFor(rows, 'Food', '2026-10', '2026-11-02')!, (n) => `₹${n}`).fresh).toEqual([])
+  })
+})
+
 describe('spikeFor baseline months', () => {
   it("doesn't count a month with only income or card payments as a zero-spend month", () => {
     // Jun has only an income row. Baseline should be Aug+Sep (900), not Jun+Aug+Sep (600).
