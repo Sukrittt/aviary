@@ -214,13 +214,16 @@ export function InsightsPage() {
     [expenses, breakdownMode, selectedBreakdownKey, insightMonth, today],
   );
   // Keeps the last spike on screen while its panel folds away.
-  const [shownSpike, setShownSpike] = useState(selectedSpike);
-  if (selectedSpike && selectedSpike !== shownSpike) setShownSpike(selectedSpike);
+  // Its month travels with it, so a fold after a month change still labels the old figures right.
+  const [shown, setShown] = useState(selectedSpike && { spike: selectedSpike, month: insightMonth });
+  if (selectedSpike && (selectedSpike !== shown?.spike || insightMonth !== shown.month)) setShown({ spike: selectedSpike, month: insightMonth });
+  const shownSpike = shown?.spike ?? null;
+  const shownMonth = shown?.month ?? insightMonth;
   const [explainKey, setExplainKey] = useState<string | null>(null);
-  const spikeKey = shownSpike ? `${shownSpike.category}|${insightMonth}|${shownSpike.spent}` : null;
+  const spikeKey = shownSpike ? `${shownSpike.category}|${shownMonth}|${shownSpike.spent}` : null;
   const explanation = useQuery({
     queryKey: ["spike-explanation", spikeKey],
-    queryFn: () => fetchSpikeExplanation(shownSpike!.category, insightMonth),
+    queryFn: () => fetchSpikeExplanation(shownSpike!.category, shownMonth),
     enabled: spikeKey != null && explainKey === spikeKey,
     staleTime: Infinity,
     retry: false,
@@ -639,7 +642,7 @@ export function InsightsPage() {
                     {shownSpike && (() => {
                       const money = (amount: number) => formatCurrency(Math.round(amount), hideAmounts)
                       const { why, fresh } = spikeCause(shownSpike, money)
-                      const isNow = insightMonth === currentMonth
+                      const isNow = shownMonth === currentMonth
                       return (
                         <div className="ins-spike">
                           <div className="ins-spike-head">
@@ -649,7 +652,7 @@ export function InsightsPage() {
                           <div className="ins-spike-stats">
                             <div>
                               <strong>{money(shownSpike.spent)}</strong>
-                              <span>{isNow ? "This month so far" : monthLabel(insightMonth)}</span>
+                              <span>{isNow ? "This month so far" : monthLabel(shownMonth)}</span>
                             </div>
                             <div>
                               <strong>{money(shownSpike.baseline)}</strong>
