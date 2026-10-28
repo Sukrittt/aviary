@@ -662,7 +662,7 @@ export function InsightsPage() {
                         )}
                       </dl>
                       {explanation.data ? (
-                        <div className="ins-spike-ai">
+                        <div className="ins-spike-ai" role="status">
                           <span className="ins-spike-ai-by"><BirdMark size={16} /> Aviary</span>
                           <p>
                             {explanation.data.split(" ").map((word, i) => (
