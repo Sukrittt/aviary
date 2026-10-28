@@ -670,6 +670,8 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  /* Match the 30px .erd-rta-icon tile so the row keeps its height when the label swaps. */
+  min-height: 30px;
   color: var(--mint);
   font-weight: 600;
 }
