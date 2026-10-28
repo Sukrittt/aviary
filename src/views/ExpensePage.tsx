@@ -582,11 +582,14 @@ export function ExpensePage() {
                       {hideAmounts ? (
                         "---"
                       ) : (
-                        <AmountText
-                          value={envelopeState.readyToAssign}
-                          animate
-                          id="ready-to-assign"
-                        />
+                        // One pass across the digits whenever there's money to give a job.
+                        <span className={envelopeState.readyToAssign > 0 ? "text-shimmer text-shimmer--once" : undefined}>
+                          <AmountText
+                            value={envelopeState.readyToAssign}
+                            animate
+                            id="ready-to-assign"
+                          />
+                        </span>
                       )}
                     </strong>
                     <span className="erd-home-hero-caption">

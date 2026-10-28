@@ -168,7 +168,10 @@ export function GoalLine({ category, goal, progress, money, month, onPull }: {
   let line: ReactNode = goalLine(progress, money)
   if (onPull && progress.status === 'behind' && progress.monthlyNeed !== undefined && progress.by && progress.behindBy) {
     const short = progress.behindBy
-    line = <>Behind by {money(short)} · <button type="button" className="env2-goal-link" disabled={!!busy} onClick={() => onPull(category, short)}>Set {money(progress.monthlyNeed)}/mo</button> to make it by {shortMonth(progress.by)}</>
+    line = <>Behind by {money(short)} · <button type="button" className="env2-goal-link" disabled={!!busy} onClick={() => onPull(category, short)}>
+      {/* One pass of the shimmer as it arrives, so a behind goal's Set catches the eye once. */}
+      <span className="text-shimmer text-shimmer--once">Set {money(progress.monthlyNeed)}/mo</span>
+    </button> to make it by {shortMonth(progress.by)}</>
   } else if (onPull && progress.status === 'done') {
     line = <>
       Done

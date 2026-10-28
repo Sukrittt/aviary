@@ -24,7 +24,12 @@ describe('LoadingCaption', () => {
     render(<LoadingCaption phrases={['Almost there…']} ordered />)
 
     expect(screen.getByRole('status')).toHaveTextContent('Loading')
-    expect(screen.getByText('Almost there…')).toHaveAttribute('aria-hidden', 'true')
+    expect(screen.getByText('Almost there…').parentElement).toHaveAttribute('aria-hidden', 'true')
     expect(timer).not.toHaveBeenCalled()
+  })
+
+  it('runs the shimmer across the phrase while it waits', () => {
+    render(<LoadingCaption phrases={['Almost there…']} ordered />)
+    expect(screen.getByText('Almost there…')).toHaveClass('text-shimmer')
   })
 })
