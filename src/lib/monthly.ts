@@ -254,6 +254,15 @@ export interface MonthComparison {
 
 const DRIVER_SHARE_THRESHOLD = 0.4
 
+/** Up to 3 months before `month` with any spending: the baseline months for
+ *  monthComparison and spikeFor. A month that never happened, or only holds
+ *  income or card payments, isn't a zero. */
+function priorMonthsWithData(expenseRows: ExpenseRow[], month: string): string[] {
+  return [1, 2, 3]
+    .map((n) => shiftMonthKey(month, -n))
+    .filter((m) => expenseRows.some((e) => e.date.startsWith(m) && !isExcluded(e.category)))
+}
+
 /** "Is this a normal month?" — the screen's headline. Compares `month` against
  *  the mean of its 3 preceding months, day-truncated to `today`'s day-of-month
  *  when `month` is still in progress so a 10-day-old month isn't compared
@@ -264,9 +273,7 @@ export function monthComparison(expenseRows: ExpenseRow[], month: string, today:
 
   const spent = totalSpendInMonth(expenseRows, month, cutoffDay)
 
-  const priorMonths = [1, 2, 3]
-    .map((n) => shiftMonthKey(month, -n))
-    .filter((m) => expenseRows.some((e) => e.date.startsWith(m)))
+  const priorMonths = priorMonthsWithData(expenseRows, month)
 
   const baseline =
     priorMonths.length >= 2
@@ -337,4 +344,113 @@ export function fixedCategories(expenseRows: ExpenseRow[], month: string, lookba
     if (cv < FIXED_CV_THRESHOLD) fixed.add(category)
   }
   return fixed
+}
+
+export interface CategorySpike {
+  category: string
+  label: string
+  /** This month, up to today's day of month while it's in progress. */
+  spent: number
+  /** Mean of the baseline months over the same days. */
+  baseline: number
+  delta: number
+  deltaPct: number
+  count: number
+  baselineCount: number
+  /** What drove the rise: more spends, bigger spends, both, or one big spend. */
+  cause: 'more-often' | 'bigger' | 'both' | 'one-off'
+  /** This month's 3 biggest spends in the category. */
+  top: { item: string; amount: number; date: string }[]
+  /** Items this month that the baseline months never had in this category, biggest first, up to 3. */
+  newItems: string[]
+}
+
+const SPIKE_MIN_PCT = 25
+/** Of the usual whole month, so a ₹40 to ₹90 jump doesn't flag on a ₹30k budget. */
+const SPIKE_MIN_SHARE = 0.02
+/** Before this day an in-progress month is mostly noise. */
+const SPIKE_MIN_DAY = 7
+const CAUSE_RATIO = 1.2
+
+const itemKey = (item: string) => item.trim().toLowerCase()
+
+/** Whether `category` is clearly above its usual level in `month`, and why.
+ *  Same baseline rules as monthComparison: the mean of up to 3 prior months
+ *  with data (2+ needed), day-truncated while `month` is in progress. Null
+ *  when it isn't rising, or the category has no history to rise from. */
+export function spikeFor(expenseRows: ExpenseRow[], category: string, month: string, today: string): CategorySpike | null {
+  if (isExcluded(category)) return null
+  const inProgress = today.startsWith(month)
+  const cutoffDay = inProgress ? Number(today.slice(8, 10)) : null
+  if (cutoffDay != null && cutoffDay < SPIKE_MIN_DAY) return null
+  const priorMonths = priorMonthsWithData(expenseRows, month)
+  if (priorMonths.length < 2) return null
+
+  const inWindow = (e: ExpenseRow, m: string) =>
+    e.date.startsWith(m) && (cutoffDay == null || Number(e.date.slice(8, 10)) <= cutoffDay)
+  const amountOf = (e: ExpenseRow) => Number(e.amount_inr) || 0
+  const current = expenseRows.filter((e) => e.category === category && inWindow(e, month))
+  const prior = expenseRows.filter((e) => e.category === category && priorMonths.some((m) => inWindow(e, m)))
+
+  const spent = current.reduce((s, e) => s + amountOf(e), 0)
+  const baseline = prior.reduce((s, e) => s + amountOf(e), 0) / priorMonths.length
+  if (baseline <= 0) return null
+  const delta = spent - baseline
+  const deltaPct = (delta / baseline) * 100
+  const usualMonth = priorMonths.reduce((s, m) => s + totalSpendInMonth(expenseRows, m, cutoffDay), 0) / priorMonths.length
+  if (deltaPct < SPIKE_MIN_PCT || delta < usualMonth * SPIKE_MIN_SHARE) return null
+
+  const count = current.length
+  const baselineCount = prior.length / priorMonths.length
+  const avgSpend = count ? spent / count : 0
+  const baselineAvgSpend = baseline / baselineCount
+  const top = [...current]
+    .sort((a, b) => amountOf(b) - amountOf(a))
+    .slice(0, 3)
+    .map((e) => ({ item: e.item.trim() || splitEmoji(category).text, amount: amountOf(e), date: e.date }))
+
+  const moreOften = count / baselineCount >= CAUSE_RATIO
+  const bigger = avgSpend / baselineAvgSpend >= CAUSE_RATIO
+  const oneOff = top[0].amount >= 2 * baselineAvgSpend && top[0].amount >= 0.5 * delta
+  const cause = oneOff ? 'one-off' : moreOften && !bigger ? 'more-often' : bigger && !moreOften ? 'bigger' : 'both'
+
+  const seen = new Set(prior.map((e) => itemKey(e.item)))
+  const fresh = new Map<string, { item: string; amount: number }>()
+  for (const e of current) {
+    const key = itemKey(e.item)
+    if (!key || seen.has(key)) continue
+    const entry = fresh.get(key) ?? { item: e.item.trim(), amount: 0 }
+    entry.amount += amountOf(e)
+    fresh.set(key, entry)
+  }
+  const newItems = [...fresh.values()].sort((a, b) => b.amount - a.amount).slice(0, 3).map((e) => e.item)
+
+  return { category, label: splitEmoji(category).text, spent, baseline, delta, deltaPct, count, baselineCount, cause, top, newItems }
+}
+
+/** The categories most clearly above their usual level in `month`, biggest rise first. */
+export function risingCategories(expenseRows: ExpenseRow[], month: string, today: string, limit = 3): CategorySpike[] {
+  const categories = new Set(expenseRows.filter((e) => e.date.startsWith(month)).map((e) => e.category))
+  return [...categories]
+    .map((category) => spikeFor(expenseRows, category, month, today))
+    .filter((spike): spike is CategorySpike => spike != null)
+    .sort((a, b) => b.delta - a.delta)
+    .slice(0, limit)
+}
+
+/** The plain "why" under a rising category, from the computed facts alone.
+ *  Also the AI explanation's input, so both say the same thing. */
+export function spikeSummary(spike: CategorySpike, money: (amount: number) => string): string {
+  const usualCount = Math.round(spike.baselineCount)
+  const avg = money(spike.count ? spike.spent / spike.count : 0)
+  const usualAvg = money(spike.baseline / spike.baselineCount)
+  const why = {
+    'one-off': `One big spend did most of it: ${spike.top[0]?.item}, ${money(spike.top[0]?.amount ?? 0)}.`,
+    'more-often': `You spent here ${spike.count} times, up from about ${usualCount}, and each spend was about the usual size.`,
+    bigger: `About as many spends as usual, but bigger: ${avg} each on average, up from ${usualAvg}.`,
+    both: `More spends (${spike.count}, up from about ${usualCount}) and bigger ones (${avg} on average, up from ${usualAvg}).`,
+  }[spike.cause]
+  // A one-off spend already named above isn't news twice.
+  const fresh = spike.newItems.filter((item) => spike.cause !== 'one-off' || item !== spike.top[0]?.item)
+  return fresh.length ? `${why} New this month: ${fresh.join(', ')}.` : why
 }
