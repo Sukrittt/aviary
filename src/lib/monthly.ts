@@ -254,12 +254,13 @@ export interface MonthComparison {
 
 const DRIVER_SHARE_THRESHOLD = 0.4
 
-/** Up to 3 months before `month` that have any expense: the baseline months
- *  for monthComparison and spikeFor. A month that never happened isn't a zero. */
+/** Up to 3 months before `month` with any spending: the baseline months for
+ *  monthComparison and spikeFor. A month that never happened, or only holds
+ *  income or card payments, isn't a zero. */
 function priorMonthsWithData(expenseRows: ExpenseRow[], month: string): string[] {
   return [1, 2, 3]
     .map((n) => shiftMonthKey(month, -n))
-    .filter((m) => expenseRows.some((e) => e.date.startsWith(m)))
+    .filter((m) => expenseRows.some((e) => e.date.startsWith(m) && !isExcluded(e.category)))
 }
 
 /** "Is this a normal month?" — the screen's headline. Compares `month` against

@@ -515,3 +515,15 @@ describe('spikeSummary one-off', () => {
     expect(spikeSummary(spikeFor(rows, 'Food', '2026-10', '2026-11-02')!, (n) => `₹${n}`)).toBe('One big spend did most of it: Birthday dinner, ₹1200.')
   })
 })
+
+describe('spikeFor baseline months', () => {
+  it("doesn't count a month with only income or card payments as a zero-spend month", () => {
+    // Jun has only an income row. Baseline should be Aug+Sep (900), not Jun+Aug+Sep (600).
+    const rows = [
+      ...history().filter((e) => e.date >= '2026-08'),
+      spend('2026-07-01', INCOME_CATEGORY, 50000),
+      spend('2026-10-05', 'Food', 300), spend('2026-10-12', 'Food', 300), spend('2026-10-20', 'Food', 300),
+    ]
+    expect(spikeFor(rows, 'Food', '2026-10', '2026-11-02')).toBeNull()
+  })
+})
