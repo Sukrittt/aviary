@@ -223,6 +223,8 @@ summary:focus-visible,
     rgb(0 0 0 / calc(1 - var(--shimmer-dim))) calc(var(--shimmer-at) + var(--shimmer-band)));
   display: inline-block;
   max-width: 100%;
+  /* Inline-block stops a parent link's underline from reaching the text; carry it over. */
+  text-decoration: inherit;
   -webkit-mask-image: var(--shimmer-mask);
   mask-image: var(--shimmer-mask);
   --shimmer-dim: 0.22;
