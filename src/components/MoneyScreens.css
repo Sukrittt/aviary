@@ -345,23 +345,26 @@
 .money-remove {
   display: grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
   border: 0;
   border-radius: 99px;
-  background: var(--tk-input-bg);
-  color: var(--tk-text2);
+  background: transparent;
+  color: var(--tk-text3);
 }
 .money-alloc {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 10px;
-  padding: 8px 12px;
+  flex: 0 0 auto;
+  gap: 4px;
+  width: 112px;
+  height: 40px;
+  padding: 0 10px;
   border: 1px solid var(--tk-border);
-  border-radius: 14px;
-  background: var(--tk-input-bg);
-  color: var(--tk-text2);
+  border-radius: 12px;
+  background: var(--tk-card);
+  color: var(--tk-text3);
 }
 .money-alloc input {
   flex: 1;
@@ -370,6 +373,7 @@
   border: 0;
   color: var(--tk-text);
   text-align: right;
+  font-weight: 600;
 }
 @media (max-width: 600px) {
   .money-overlay {

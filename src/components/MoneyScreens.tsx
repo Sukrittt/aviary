@@ -655,15 +655,16 @@ function MoveMoneyBody({
                               {formatCurrency(item.available, hideAmounts)} → {formatCurrency(item.available - alloc, hideAmounts)}
                             </span>
                           </div>
+                          {/* One line, same as mobile: the amount sits in a compact field instead of a full-width bar. */}
+                          <label className="money-alloc">
+                            <span>{currencySymbol}</span>
+                            <SourceAmountInput value={alloc} max={maxFor(item)} name={item.name}
+                              onChange={(value) => setAllocValue(item.key, value)} />
+                          </label>
                           <button type="button" className="money-remove" aria-label="Remove" onClick={() => removeAlloc(item.key)} disabled={busy}>
                             <TrashIcon size={14} />
                           </button>
                         </div>
-                        <label className="money-alloc">
-                          <span>{currencySymbol}</span>
-                          <SourceAmountInput value={alloc} max={maxFor(item)} name={item.name}
-                            onChange={(value) => setAllocValue(item.key, value)} />
-                        </label>
                       </motion.div>
                     )
                   })}
