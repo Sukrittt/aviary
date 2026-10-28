@@ -206,3 +206,53 @@ summary:focus-visible,
     background: var(--bg);
   }
 }
+
+/* Mobile's ShimmerText: a soft bright band sweeps across the text, left to
+   right. Looping means "in progress"; .text-shimmer--once is a single pass
+   for "just arrived", run whenever the class goes on. Off the band the text
+   sits at 78% (a pass fades that dip in and out). */
+@property --shimmer-x { syntax: '<number>'; inherits: false; initial-value: 0; }
+@property --shimmer-dim { syntax: '<number>'; inherits: false; initial-value: 0; }
+
+.text-shimmer {
+  --shimmer-band: 1.6em;
+  --shimmer-at: calc(var(--shimmer-x) * (100% + 2 * var(--shimmer-band)) - var(--shimmer-band));
+  --shimmer-mask: linear-gradient(90deg,
+    rgb(0 0 0 / calc(1 - var(--shimmer-dim))) calc(var(--shimmer-at) - var(--shimmer-band)),
+    #000 var(--shimmer-at),
+    rgb(0 0 0 / calc(1 - var(--shimmer-dim))) calc(var(--shimmer-at) + var(--shimmer-band)));
+  display: inline-block;
+  max-width: 100%;
+  -webkit-mask-image: var(--shimmer-mask);
+  mask-image: var(--shimmer-mask);
+  --shimmer-dim: 0.22;
+  animation: text-shimmer-loop 2.4s infinite;
+}
+
+.text-shimmer--once {
+  animation:
+    text-shimmer-x 1.5s cubic-bezier(0.45, 0, 0.55, 1) 0.25s both,
+    text-shimmer-depth 1.5s linear 0.25s both;
+}
+
+/* 1.5s across, then a 0.9s rest before the next pass. */
+@keyframes text-shimmer-loop {
+  0% { --shimmer-x: 0; animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+  62.5%, 100% { --shimmer-x: 1; }
+}
+@keyframes text-shimmer-x {
+  from { --shimmer-x: 0; }
+  to { --shimmer-x: 1; }
+}
+@keyframes text-shimmer-depth {
+  0%, 100% { --shimmer-dim: 0; }
+  25%, 75% { --shimmer-dim: 0.22; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .text-shimmer {
+    animation: none;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+}

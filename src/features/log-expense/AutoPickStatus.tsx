@@ -160,7 +160,7 @@ export function AutoPickStatus({ thinking, picked, selected = picked, pickTick =
               <motion.span
                 ref={labelRef}
                 key={label}
-                className="auto-pick-label"
+                className={busy ? 'auto-pick-label text-shimmer' : 'auto-pick-label'}
                 initial={reduceMotion ? false : { opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.22, ease: 'easeOut' }}
