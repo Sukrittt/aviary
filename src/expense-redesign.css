@@ -686,6 +686,36 @@
   color: var(--erd-text2);
 }
 
+/* Ready to Assign with a job to do: the number and its hint are one button. */
+.erd-home-hero-assign {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 16px 6px;
+  border: 0;
+  border-radius: 18px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+.erd-home-hero-assign:hover,
+.erd-home-hero-assign[data-popup-open] {
+  background: var(--erd-input-bg);
+}
+.erd-home-hero-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--erd-text);
+}
+.erd-home-hero-hint.is-negative {
+  color: var(--coral);
+}
 .erd-home-hero-caption {
   font-size: 13px;
   font-weight: 500;
