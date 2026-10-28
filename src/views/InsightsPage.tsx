@@ -8,6 +8,7 @@ import { AnimatePresence } from "motion/react";
 import { useRouter } from "next/navigation";
 import { ArrowLeftIcon, CaretLeftIcon, CaretRightIcon, GearIcon, HouseIcon, InvoiceIcon, MoonIcon, SunIcon, TrendDownIcon, TrendUpIcon, XIcon } from "@/src/components/icons";
 import { CategoryIcon } from "@/src/components/CategoryIcon";
+import { BirdMark, BirdThinking } from "@/src/components/BirdMark";
 import { useAppearance } from "@/components/AppearanceProvider";
 import { ExpenseSidebar } from "@/src/components/ExpenseSidebar";
 import { InsightsSkeleton } from "@/src/components/TabSkeleton";
@@ -538,6 +539,25 @@ export function InsightsPage() {
                       </button>
                     ) : (
                     <>
+                    {!showSaved && rising.length > 0 && (
+                      <div className="ins-rising" aria-label={`Rising in ${monthAbbrev(insightMonth)}`}>
+                        {rising.map((spike) => (
+                          <button
+                            key={spike.category}
+                            type="button"
+                            className="ins-rising-chip"
+                            onClick={() => selectCategory(spike.category)}
+                            title={`${formatCurrency(Math.round(spike.spent), hideAmounts)} vs ${formatCurrency(Math.round(spike.baseline), hideAmounts)} usually`}
+                          >
+                            <span className="ins-top-icon" style={styleOf(spike.label)}>
+                              <CategoryIcon name={spike.category} icon={categoryIcons.get(spike.category)} group={categoryGroupMap.get(spike.category)} />
+                            </span>
+                            {spike.label}
+                            <span className="ins-rising-pct">+{Math.round(spike.deltaPct)}%</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                     {!showSaved &&
                       trendSummary?.kind === "compare" &&
                       trendSummary.deltaPct != null && (
@@ -576,29 +596,6 @@ export function InsightsPage() {
                     )}
                   </div>
                 </div>
-                {!showSaved && !selectedBreakdownKey && rising.length > 0 && (
-                  <div className="ins-rising" aria-label={`Rising in ${monthAbbrev(insightMonth)}`}>
-                    <span className="ins-rising-label">Rising</span>
-                    {rising.map((spike) => (
-                      <button
-                        key={spike.category}
-                        type="button"
-                        className="ins-rising-chip"
-                        onClick={() => selectCategory(spike.category)}
-                        title={`${formatCurrency(Math.round(spike.spent), hideAmounts)} vs ${formatCurrency(Math.round(spike.baseline), hideAmounts)} usually`}
-                      >
-                        <span className="ins-top-icon" style={styleOf(spike.label)}>
-                          <CategoryIcon name={spike.category} icon={categoryIcons.get(spike.category)} group={categoryGroupMap.get(spike.category)} />
-                        </span>
-                        {spike.label}
-                        <span className="ins-head-delta is-up">
-                          <TrendUpIcon size={12} />
-                          {Math.round(spike.deltaPct)}%
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                )}
                 {showSaved ? (
                   <>
                     <TrendChart
@@ -665,17 +662,28 @@ export function InsightsPage() {
                         )}
                       </dl>
                       {explanation.data ? (
-                        <p className="ins-spike-ai">{explanation.data}</p>
+                        <div className="ins-spike-ai">
+                          <span className="ins-spike-ai-by"><BirdMark size={16} /> Aviary</span>
+                          <p>
+                            {explanation.data.split(" ").map((word, i) => (
+                              <span key={i} className="ins-spike-word" style={{ animationDelay: `${i * 55}ms` }}>{word} </span>
+                            ))}
+                          </p>
+                        </div>
                       ) : explanation.data === null ? null : explanation.isError ? (
                         <p className="ins-spike-error">Couldn&apos;t explain right now. Try again later.</p>
+                      ) : explanation.isFetching ? (
+                        <div className="ins-spike-thinking" role="status">
+                          <BirdThinking size={30} />
+                          <span>Reading your {selectedSpike.label.toLowerCase()} spends…</span>
+                        </div>
                       ) : (
                         <button
                           type="button"
                           className="ins-spike-explain"
                           onClick={() => setExplainKey(spikeKey)}
-                          disabled={explanation.isFetching}
                         >
-                          {explanation.isFetching ? "Thinking…" : "Explain with AI"}
+                          Explain with AI
                         </button>
                       )}
                     </div>
