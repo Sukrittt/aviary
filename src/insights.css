@@ -1128,16 +1128,16 @@
 
 .ins-spike-fold.is-open .ins-spike > * { opacity: 1; transform: none; }
 .ins-spike-fold.is-open .ins-spike > :nth-child(1) { transition-delay: 120ms; }
-.ins-spike-fold.is-open .ins-spike > :nth-child(2) { transition-delay: 180ms; }
-.ins-spike-fold.is-open .ins-spike > :nth-child(3) { transition-delay: 240ms; }
-.ins-spike-fold.is-open .ins-spike > :nth-child(4) { transition-delay: 300ms; }
+.ins-spike-fold.is-open .ins-spike > :nth-child(2) { transition-delay: 220ms; }
 
 .ins-heading-swap { animation: ins-heading-in 320ms cubic-bezier(0.33, 1, 0.68, 1) both; }
 @keyframes ins-heading-in { from { opacity: 0; transform: translateY(4px); } }
 
+/* Two halves: the figures on the left, why it's up and the AI reply on the right. Stacks on narrow cards. */
 .ins-spike {
   display: grid;
-  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px 32px;
   margin-top: 16px;
   padding-top: 16px;
   border-top: 1px solid var(--erd-border);
@@ -1147,11 +1147,22 @@
 
 .ins-spike p { margin: 0; }
 
+.ins-spike-main,
+.ins-spike-side {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+}
+
+.ins-spike-side {
+  padding-left: 32px;
+  border-left: 1px solid var(--erd-border);
+}
+
 .ins-spike-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
 }
 
 .ins-spike-title {
@@ -1161,10 +1172,10 @@
 }
 
 .ins-spike-pct {
-  padding: 3px 10px;
+  padding: 2px 9px;
   border-radius: 999px;
   background: var(--coral-soft);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .ins-spike-stats {
@@ -1173,7 +1184,8 @@
   gap: 12px;
 }
 
-.ins-spike-stats div { display: grid; gap: 2px; }
+.ins-spike-stats div,
+.ins-spike-fact { display: grid; gap: 2px; }
 
 .ins-spike-stats strong {
   color: var(--erd-text);
@@ -1186,20 +1198,18 @@
 .ins-spike-stats div + div strong { color: var(--erd-text2); }
 
 .ins-spike-stats span,
-.ins-spike-facts dt {
+.ins-spike-fact span {
   color: var(--erd-text3);
   font-size: 12px;
 }
 
-.ins-spike-facts {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 6px 14px;
-  margin: 0;
-}
+.ins-spike-fact span { font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+.ins-spike-fact p { color: var(--erd-text); font-size: 15px; font-weight: 550; }
 
-.ins-spike-facts dt { padding-top: 2px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
-.ins-spike-facts dd { margin: 0; color: var(--erd-text); }
+@media (max-width: 760px) {
+  .ins-spike { grid-template-columns: minmax(0, 1fr); }
+  .ins-spike-side { padding: 16px 0 0; border-left: 0; border-top: 1px solid var(--erd-border); }
+}
 
 .ins-spike-thinking {
   display: flex;
@@ -1214,10 +1224,9 @@
 .ins-spike-ai {
   display: grid;
   gap: 6px;
-  padding: 12px 14px;
-  border-radius: 14px;
-  background: var(--gold-soft);
   color: var(--erd-text);
+  font-size: 15px;
+  line-height: 1.5;
 }
 
 .ins-spike-ai-by {

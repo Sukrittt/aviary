@@ -645,55 +645,59 @@ export function InsightsPage() {
                       const isNow = shownMonth === currentMonth
                       return (
                         <div className="ins-spike">
-                          <div className="ins-spike-head">
-                            <span className="ins-spike-title">{shownSpike.label} is up</span>
-                            <span className="ins-spike-pct">+{Math.round(shownSpike.deltaPct)}%</span>
-                          </div>
-                          <div className="ins-spike-stats">
-                            <div>
-                              <strong>{money(shownSpike.spent)}</strong>
-                              <span>{isNow ? "This month so far" : monthLabel(shownMonth)}</span>
+                          <div className="ins-spike-main">
+                            <div className="ins-spike-head">
+                              <span className="ins-spike-title">{shownSpike.label} is up</span>
+                              <span className="ins-spike-pct">+{Math.round(shownSpike.deltaPct)}%</span>
                             </div>
-                            <div>
-                              <strong>{money(shownSpike.baseline)}</strong>
-                              <span>{isNow ? `Usual by day ${Number(today.slice(8, 10))}` : "Usual month"}</span>
+                            <div className="ins-spike-stats">
+                              <div>
+                                <strong>{money(shownSpike.spent)}</strong>
+                                <span>{isNow ? "This month so far" : monthLabel(shownMonth)}</span>
+                              </div>
+                              <div>
+                                <strong>{money(shownSpike.baseline)}</strong>
+                                <span>{isNow ? `Usual by day ${Number(today.slice(8, 10))}` : "Usual month"}</span>
+                              </div>
                             </div>
                           </div>
-                          <dl className="ins-spike-facts">
-                            <dt>Why</dt>
-                            <dd>{why}</dd>
+                          <div className="ins-spike-side">
+                            <div className="ins-spike-fact">
+                              <span>Why it&apos;s up</span>
+                              <p>{why}</p>
+                            </div>
                             {fresh.length > 0 && (
-                              <>
-                                <dt>New</dt>
-                                <dd>{fresh.join(", ")}</dd>
-                              </>
+                              <div className="ins-spike-fact">
+                                <span>New</span>
+                                <p>{fresh.join(", ")}</p>
+                              </div>
                             )}
-                          </dl>
-                          {explanation.data ? (
-                            <div className="ins-spike-ai" role="status">
-                              <span className="ins-spike-ai-by"><BirdMark size={16} /> Aviary</span>
-                              <p>
-                                {explanation.data.split(" ").map((word, i) => (
-                                  <span key={i} className="ins-spike-word" style={{ animationDelay: `${i * 55}ms` }}>{word} </span>
-                                ))}
-                              </p>
-                            </div>
-                          ) : explanation.data === null ? null : explanation.isError ? (
-                            <p className="ins-spike-error">Couldn&apos;t explain right now. Try again later.</p>
-                          ) : explanation.isFetching ? (
-                            <div className="ins-spike-thinking" role="status">
-                              <BirdThinking size={30} />
-                              <span>Reading your {shownSpike.label.toLowerCase()} spends…</span>
-                            </div>
-                          ) : (
-                            <button
-                              type="button"
-                              className="ins-spike-explain"
-                              onClick={() => setExplainKey(spikeKey)}
-                            >
-                              Explain with AI
-                            </button>
-                          )}
+                            {explanation.data ? (
+                              <div className="ins-spike-ai" role="status">
+                                <span className="ins-spike-ai-by"><BirdMark size={16} /> Aviary</span>
+                                <p>
+                                  {explanation.data.split(" ").map((word, i) => (
+                                    <span key={i} className="ins-spike-word" style={{ animationDelay: `${i * 55}ms` }}>{word} </span>
+                                  ))}
+                                </p>
+                              </div>
+                            ) : explanation.data === null ? null : explanation.isError ? (
+                              <p className="ins-spike-error">Couldn&apos;t explain right now. Try again later.</p>
+                            ) : explanation.isFetching ? (
+                              <div className="ins-spike-thinking" role="status">
+                                <BirdThinking size={30} />
+                                <span>Reading your {shownSpike.label.toLowerCase()} spends…</span>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                className="ins-spike-explain"
+                                onClick={() => setExplainKey(spikeKey)}
+                              >
+                                Explain with AI
+                              </button>
+                            )}
+                          </div>
                         </div>
                       )
                     })()}
