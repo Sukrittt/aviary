@@ -147,6 +147,8 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
   const { readOnly } = useSpaces()
   const categoryByName = useMemo(() => new Map((categoryRows ?? []).map((c) => [c.name, c])), [categoryRows])
   const goalMonth = month ?? currentMonthKey()
+  // The card row stays out of the list until there's a bill on it; then it's the only way to pay it here.
+  const ccEnvelope = useMemo(() => envelopes.find((e) => e.isCreditCardPayment && e.available > 0) ?? null, [envelopes])
 
   const grouped = useMemo(() => {
     const regular = envelopes.filter((e) => !e.isCreditCardPayment)
@@ -161,11 +163,11 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
   // Rows that carried something roll in one after another, top to bottom.
   const rollOrder = useMemo(() => {
     const order = new Map<string, number>()
-    for (const e of grouped.flatMap((g) => g.items)) {
+    for (const e of [...grouped.flatMap((g) => g.items), ...(ccEnvelope ? [ccEnvelope] : [])]) {
       if (e.rolledOver) order.set(e.category, order.size)
     }
     return order
-  }, [grouped])
+  }, [grouped, ccEnvelope])
 
   const allCollapsed = grouped.length > 0 && grouped.every((g) => collapsed.has(g.label))
 
@@ -435,6 +437,12 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
               </div>
             )
           })}
+          {ccEnvelope && (
+            <div className="env2-cc">
+              <span className="env2-cc-badge">PAYOFF</span>
+              {renderRow(ccEnvelope)}
+            </div>
+          )}
         </div>
       )}
       <AnimatePresence>
