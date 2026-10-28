@@ -80,6 +80,7 @@ export type AppEvent =
   | 'ai_category_suggested'
   | 'money_moved'
   | 'rta_zero_celebrated'
+  | 'rta_goals_funded'
   | 'envelope_created'
   | 'duplicates_resolved'
   // Bill scanning, start to finish

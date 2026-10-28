@@ -25,7 +25,7 @@ import {
   AddIncomeScreen,
 } from "../components/MoneyScreens";
 import { ExpenseSidebar } from "../components/ExpenseSidebar";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MENU_ITEM, MENU_POPUP } from "../components/menuStyles";
 import { Scrim, Sheet } from "../components/MotionSheet";
 import { HomeSkeleton } from "../components/TabSkeleton";
@@ -55,6 +55,7 @@ import { usePersistentState } from "../hooks/usePersistentState";
 import { useDismissedRolloverBanner } from "../hooks/useDismissedRolloverBanner";
 import { rolloverCard } from "../lib/rollover";
 import { splitEmoji } from "../lib/emoji";
+import { fundBehindGoals, goalProgress } from "../lib/goal";
 import { RolloverCard } from "../components/home/RolloverCard";
 import { WeeklyRecapCard } from "../components/home/WeeklyRecapCard";
 import { useWeeklyCategories } from "../hooks/useWeeklyCategories";
@@ -282,6 +283,19 @@ export function ExpensePage() {
   const [getStartedSkipped, setGetStartedSkipped] = usePersistentState(
     'rollover-dismissed-get-started', false, parseDismissed, serializeDismissed,
   );
+  // Ready to Assign's "Fund behind goals": what each behind goal is short this
+  // month, out of what's there to assign. Empty when there's nothing to do.
+  const goalFunding = useMemo(() => {
+    if (!envelopeState || !onThisMonth || readOnly || envelopeState.readyToAssign <= 0) return [];
+    const rows = new Map(categoryRows.map((c) => [c.name, c]));
+    const behind = envelopeState.envelopes.flatMap((e) => {
+      const row = e.isCreditCardPayment ? undefined : rows.get(e.category);
+      const p = row?.goal ? goalProgress({ goal: row.goal, month: thisMonth, available: e.available, assigned: e.assigned, spent: e.spent, since: row.since }) : null;
+      return p?.status === "behind" && p.by && p.behindBy ? [{ category: e.category, by: p.by, behindBy: p.behindBy }] : [];
+    });
+    return fundBehindGoals(envelopeState.readyToAssign, behind);
+  }, [envelopeState, onThisMonth, readOnly, categoryRows, thisMonth]);
+  const goalFundingTotal = goalFunding.reduce((sum, f) => sum + f.amount, 0);
   // Unknown until budgets load; counting it done avoids flashing the income step.
   const incomeDone = !envelopeState || envelopeState.income > 0;
   // Same test as Mobile's Home: income is set and nothing is left to assign.
@@ -449,6 +463,53 @@ export function ExpensePage() {
     });
   }
 
+  async function fundGoals() {
+    if (!envelopeState) return;
+    try {
+      // One versioned write per goal, same as tapping each goal's Set.
+      for (const f of goalFunding) {
+        const assigned = envelopeState.envelopes.find((e) => e.category === f.category)?.assigned ?? 0;
+        await setMonthly(f.category, Math.round((assigned + f.amount) * 100) / 100);
+      }
+      track("rta_goals_funded", { goals: goalFunding.length });
+    } catch {
+      setActionError("Couldn't fund your goals. Check your connection and try again.");
+    }
+  }
+
+  // Tapping Ready to Assign: give it a job, or take some back when it's negative.
+  const rtaMenu = (trigger: ReactElement) => {
+    const rta = envelopeState?.readyToAssign ?? 0;
+    const picks = (envelopeState?.envelopes ?? []).filter((e) => !e.isCreditCardPayment && (rta > 0 || e.assigned > 0));
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger render={trigger} />
+        <DropdownMenuContent align="center" sideOffset={6} className={`${MENU_POPUP} max-h-80`}>
+          {rta > 0 && goalFunding.length > 0 && (
+            <DropdownMenuItem className={MENU_ITEM} onClick={() => void fundGoals()}>
+              {`Fund behind goals · ${formatCurrency(goalFundingTotal, hideAmounts)}`}
+            </DropdownMenuItem>
+          )}
+          {/* Flat, not a submenu: it has to work by tap, and a phone has no hover. */}
+          <DropdownMenuGroup>
+            <DropdownMenuLabel className="px-2.5 pt-2 pb-1">
+              {rta > 0 ? "Or pick a category" : "Take it back from"}
+            </DropdownMenuLabel>
+            {picks.map((e) => (
+              <DropdownMenuItem
+                key={e.category}
+                className={MENU_ITEM}
+                onClick={() => (rta > 0 ? setAssignTarget(e.category) : setEditAssignedTarget(e.category))}
+              >
+                {splitEmoji(e.category).text}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  };
+
   async function confirmPayCreditCard(amount: number) {
     // Deliberately not caught here — the caller drives the button's
     // saving/success/fail phase and must know whether this actually worked
@@ -576,23 +637,39 @@ export function ExpensePage() {
                 <article className="erd-card erd-home-hero-card">
                   <div className="erd-home-hero">
                     <span className="erd-home-hero-label">READY TO ASSIGN</span>
-                    <strong
-                      className={`erd-home-hero-amount ${envelopeState.readyToAssign < 0 ? "is-negative" : ""}`}
-                    >
-                      {hideAmounts ? (
-                        "---"
-                      ) : (
-                        // A pass across the digits every few seconds while there's money to give a job,
-                        // for someone who can give it one.
-                        <span className={envelopeState.readyToAssign > 0 && !readOnly ? "text-shimmer text-shimmer--nudge" : undefined}>
-                          <AmountText
-                            value={envelopeState.readyToAssign}
-                            animate
-                            id="ready-to-assign"
-                          />
-                        </span>
-                      )}
-                    </strong>
+                    {(() => {
+                      const rta = envelopeState.readyToAssign;
+                      const amount = (
+                        <strong className={`erd-home-hero-amount ${rta < 0 ? "is-negative" : ""}`}>
+                          {hideAmounts ? (
+                            "---"
+                          ) : (
+                            // A pass across the digits every few seconds while there's money to give a job,
+                            // for someone who can give it one.
+                            <span className={rta > 0 && !readOnly ? "text-shimmer text-shimmer--nudge" : undefined}>
+                              <AmountText value={rta} animate id="ready-to-assign" />
+                            </span>
+                          )}
+                        </strong>
+                      );
+                      // Nothing to do with it (zero, or a viewer): just the number.
+                      if (readOnly || Math.abs(rta) < 0.005) return amount;
+                      return (
+                        <div className="env-action-wrap erd-home-pill-wrap">
+                          {rtaMenu(
+                            <button type="button" className="erd-home-hero-assign">
+                              {amount}
+                              <span className={`erd-home-hero-hint${rta < 0 ? " is-negative" : ""}`}>
+                                {rta > 0
+                                  ? hideAmounts ? "Give it a job" : `Give this ${formatCurrency(rta)} a job`
+                                  : hideAmounts ? "Take some back" : `Take ${formatCurrency(-rta)} back`}
+                                <CaretRightIcon size={14} aria-hidden="true" />
+                              </span>
+                            </button>,
+                          )}
+                        </div>
+                      );
+                    })()}
                     <span className="erd-home-hero-caption">
                       {monthLabel(panel.month)} · {daysLeftLabel}
                     </span>

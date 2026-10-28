@@ -400,3 +400,36 @@ it('keeps a sidebar dialog opened while loading open once the dashboard arrives'
   client.clear()
 })
 
+
+it('turns Ready to Assign into a menu that funds behind goals in one tap', async () => {
+  const { getCategories } = await import('@/src/api/categories')
+  // Food's goal wants 8,000 by this month and has 5,000: it's 3,000 behind.
+  vi.mocked(getCategories).mockResolvedValue([{ name: 'Food', group: 'Essentials', goal: { amount: 8000, by: month } }])
+  vi.mocked(getBudgets).mockResolvedValue([
+    { month, category: '__income__', assigned: '20000', rolled_over: '0', version: 1 },
+    { month, category: 'Food', assigned: '5000', rolled_over: '0', version: 4 },
+  ])
+  vi.mocked(updateBudget).mockResolvedValue(undefined)
+  const client = renderPage()
+  const user = userEvent.setup()
+  await user.click(await screen.findByText('Give this ₹15,000 a job'))
+  await user.click(await screen.findByRole('menuitem', { name: 'Fund behind goals · ₹3,000' }))
+  await waitFor(() => expect(updateBudget).toHaveBeenCalledWith(month, 'Food', { assigned: '8000' }, 4))
+  expect(track).toHaveBeenCalledWith('rta_goals_funded', { goals: 1 })
+  client.clear()
+})
+
+it('offers to take money back when Ready to Assign is negative', async () => {
+  vi.mocked(getBudgets).mockResolvedValue([
+    { month, category: '__income__', assigned: '4000', rolled_over: '0', version: 1 },
+    { month, category: 'Food', assigned: '5000', rolled_over: '0', version: 1 },
+  ])
+  const client = renderPage()
+  const user = userEvent.setup()
+  await user.click(await screen.findByText('Take ₹1,000 back'))
+  expect(screen.queryByRole('menuitem', { name: /Fund behind goals/ })).not.toBeInTheDocument()
+  expect(await screen.findByText('Take it back from')).toBeInTheDocument()
+  await user.click(screen.getByRole('menuitem', { name: 'Food' }))
+  expect(await screen.findByRole('dialog')).toBeInTheDocument()
+  client.clear()
+})

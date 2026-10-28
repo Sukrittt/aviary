@@ -75,6 +75,26 @@ export function goalProgress({ goal, month, available, assigned, spent, since }:
   return { ...out, status: 'onTrack', monthlyNeed, nextMonth: shiftMonthKey(month, 1), nextNeed: Math.max(0, Math.ceil((target - available) / Math.max(1, left))) }
 }
 
+/**
+ * Ready to Assign's one-tap "Fund behind goals": each behind goal gets what it's
+ * short this month, nearest deadline first, until Ready to Assign runs out.
+ */
+export function fundBehindGoals(
+  readyToAssign: number,
+  goals: { category: string; by: string; behindBy: number }[],
+): { category: string; amount: number }[] {
+  let left = Math.round(readyToAssign * 100)
+  const out: { category: string; amount: number }[] = []
+  for (const g of [...goals].sort((a, b) => a.by.localeCompare(b.by))) {
+    if (left <= 0) break
+    const take = Math.min(left, Math.round(g.behindBy * 100))
+    if (take <= 0) continue
+    out.push({ category: g.category, amount: take / 100 })
+    left -= take
+  }
+  return out
+}
+
 /** "2027-01" -> "Jan 2027". */
 export const shortMonth = (key: string) => `${monthAbbrev(key)} ${key.slice(0, 4)}`
 

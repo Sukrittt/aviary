@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { goalLine, goalProgress, goalTemplate, nextGoalMonth } from './goal'
+import { fundBehindGoals, goalLine, goalProgress, goalTemplate, nextGoalMonth } from './goal'
 
 // `available` is the envelope's balance this month, carry and this month's
 // assigned included (computeEnvelopeState). `assigned` is this month's plan.
@@ -204,5 +204,36 @@ describe('goalTemplate', () => {
 
   it('gives an emergency fund no deadline', () => {
     expect(goalTemplate('emergency', '2026-10')).toEqual({ name: 'Emergency fund', by: '', yearly: false })
+  })
+})
+
+describe('fundBehindGoals', () => {
+  const goals = [
+    { category: 'Insurance', by: '2027-03', behindBy: 3000 },
+    { category: 'Diwali', by: '2026-10', behindBy: 1500 },
+  ]
+
+  it('covers every behind goal when there is enough', () => {
+    expect(fundBehindGoals(10000, goals)).toEqual([
+      { category: 'Diwali', amount: 1500 },
+      { category: 'Insurance', amount: 3000 },
+    ])
+  })
+
+  it('fills the nearest deadline first when there is not', () => {
+    expect(fundBehindGoals(2000, goals)).toEqual([
+      { category: 'Diwali', amount: 1500 },
+      { category: 'Insurance', amount: 500 },
+    ])
+  })
+
+  it('never hands out more than Ready to Assign, to the cent', () => {
+    const out = fundBehindGoals(100.1, [{ category: 'A', by: '2026-11', behindBy: 60.07 }, { category: 'B', by: '2026-12', behindBy: 80 }])
+    expect(out).toEqual([{ category: 'A', amount: 60.07 }, { category: 'B', amount: 40.03 }])
+  })
+
+  it('gives nothing when Ready to Assign is empty or negative', () => {
+    expect(fundBehindGoals(0, goals)).toEqual([])
+    expect(fundBehindGoals(-50, goals)).toEqual([])
   })
 })
