@@ -733,7 +733,7 @@ function ProgressBar({ pct, done }: { pct: number; done: boolean }) {
 
 // ─── Edit assigned amount ────────────────────────────────────────────────────
 
-export function EditAssignedScreen({ category, onClose, assign = false }: { category: string; onClose: () => void; assign?: boolean }) {
+export function EditAssignedScreen({ category, onClose, assign = false, takeBack }: { category: string; onClose: () => void; assign?: boolean; /** Start the amount this much lower (never below 0). */ takeBack?: number }) {
   const data = useMoneyData()
   // Mounted only once data has settled, so the numpad seeds from the real envelope.
   if (data.isLoading) return <FormSheet title={assign ? 'Assign money' : 'Edit amount'} onClose={onClose} busy={false}><LoadingCaption /></FormSheet>
@@ -760,6 +760,7 @@ export function EditAssignedScreen({ category, onClose, assign = false }: { cate
       isCreditCardPayment={!!envelope?.isCreditCardPayment}
       lastMonthAssigned={prevState.envelopes.find((e) => e.category === category)?.assigned}
       readyToAssign={state.readyToAssign}
+      takeBack={takeBack}
       onClose={onClose}
     />
   )
@@ -781,10 +782,12 @@ function EditAssignedBody({
   lastMonthAssigned,
   readyToAssign,
   goalNeed,
+  takeBack,
   onClose,
 }: {
   category: string
   assign: boolean
+  takeBack?: number
   /** A goal's monthly amount to make its deadline (src/lib/goal.ts), offered as a pick. */
   goalNeed?: { amount: number; by: string }
   month: string
@@ -807,7 +810,7 @@ function EditAssignedBody({
 
   const name = isCreditCardPayment ? 'Credit Card Payment' : splitEmoji(category).text
 
-  const [amountText, setAmountText] = useState(assign ? '' : String(currentAssigned))
+  const [amountText, setAmountText] = useState(assign ? '' : String(takeBack ? Math.max(0, cents(currentAssigned - takeBack)) : currentAssigned))
   const [error, setError] = useState('')
   const [baseAssigned, setBaseAssigned] = useState(currentAssigned)
   const [baseReadyToAssign, setBaseReadyToAssign] = useState(readyToAssign)

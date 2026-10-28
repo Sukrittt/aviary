@@ -177,9 +177,8 @@ export function ExpensePage() {
       : panel.envelopeState
     : null;
   const [moveMoneyTarget, setMoveMoneyTarget] = useState<{ category: string; amount?: number } | null>(null);
-  const [editAssignedTarget, setEditAssignedTarget] = useState<string | null>(
-    null,
-  );
+  // takeBack: opened from a negative Ready to Assign, so the amount starts lowered by what's over.
+  const [editAssignedTarget, setEditAssignedTarget] = useState<{ category: string; takeBack?: number } | null>(null);
   const [assignTarget, setAssignTarget] = useState<string | null>(null);
   const [editReady, setEditReady] = useState(false);
   const [incomeScreen, setIncomeScreen] = useState<"add" | "monthly" | "starting" | null>(null);
@@ -499,7 +498,7 @@ export function ExpensePage() {
               <DropdownMenuItem
                 key={e.category}
                 className={MENU_ITEM}
-                onClick={() => (rta > 0 ? setAssignTarget(e.category) : setEditAssignedTarget(e.category))}
+                onClick={() => (rta > 0 ? setAssignTarget(e.category) : setEditAssignedTarget({ category: e.category, takeBack: -rta }))}
               >
                 {splitEmoji(e.category).text}
               </DropdownMenuItem>
@@ -825,7 +824,7 @@ export function ExpensePage() {
                     onManage={() => router.push("/expense/envelopes")}
                     onMoveMoney={(category, amount) => setMoveMoneyTarget({ category, amount })}
                     onAssignFromRTA={setAssignTarget}
-                    onSetAssigned={setEditAssignedTarget}
+                    onSetAssigned={(category) => setEditAssignedTarget({ category })}
                     onPayCreditCard={handlePayCreditCard}
                     paces={paces}
                     weekly={onThisMonth ? weekly : undefined}
@@ -963,7 +962,8 @@ export function ExpensePage() {
         <AnimatePresence>
           {editAssignedTarget && (
             <EditAssignedScreen
-              category={editAssignedTarget}
+              category={editAssignedTarget.category}
+              takeBack={editAssignedTarget.takeBack}
               onClose={() => setEditAssignedTarget(null)}
             />
           )}
