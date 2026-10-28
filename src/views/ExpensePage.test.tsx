@@ -283,6 +283,8 @@ it('renders the finished home screen from a filled cache on the first render, an
 
   const html = renderToString(tree(filled()))
   expect(html).toContain('READY TO ASSIGN')
+  // ₹15,000 still waiting for a job: the hero keeps nudging.
+  expect(html).toContain('text-shimmer text-shimmer--nudge')
   expect(html).toContain('Envelope content')
   expect(html).not.toContain('erd-home-loading')
 

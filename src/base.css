@@ -208,9 +208,9 @@ summary:focus-visible,
 }
 
 /* Mobile's ShimmerText: a soft bright band sweeps across the text, left to
-   right. Looping means "in progress"; .text-shimmer--once is a single pass
-   for "just arrived", run whenever the class goes on. Off the band the text
-   sits at 78% (a pass fades that dip in and out). */
+   right. Looping means "in progress": off the band the text sits at 78%.
+   .text-shimmer--nudge means "needs you": the same pass every few seconds,
+   its dip fading in and out so the text rests at full strength between. */
 @property --shimmer-x { syntax: '<number>'; inherits: false; initial-value: 0; }
 @property --shimmer-dim { syntax: '<number>'; inherits: false; initial-value: 0; }
 
@@ -229,10 +229,10 @@ summary:focus-visible,
   animation: text-shimmer-loop 2.4s infinite;
 }
 
-.text-shimmer--once {
+.text-shimmer--nudge {
   animation:
-    text-shimmer-x 1.5s cubic-bezier(0.45, 0, 0.55, 1) 0.25s both,
-    text-shimmer-depth 1.5s linear 0.25s both;
+    text-shimmer-nudge-x 4.5s 0.25s infinite backwards,
+    text-shimmer-nudge-depth 4.5s linear 0.25s infinite backwards;
 }
 
 /* 1.5s across, then a 0.9s rest before the next pass. */
@@ -240,13 +240,14 @@ summary:focus-visible,
   0% { --shimmer-x: 0; animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
   62.5%, 100% { --shimmer-x: 1; }
 }
-@keyframes text-shimmer-x {
-  from { --shimmer-x: 0; }
-  to { --shimmer-x: 1; }
+/* 1.5s across (a third of the cycle), then 3s at rest. */
+@keyframes text-shimmer-nudge-x {
+  0% { --shimmer-x: 0; animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+  33.333%, 100% { --shimmer-x: 1; }
 }
-@keyframes text-shimmer-depth {
-  0%, 100% { --shimmer-dim: 0; }
-  25%, 75% { --shimmer-dim: 0.22; }
+@keyframes text-shimmer-nudge-depth {
+  0%, 33.333%, 100% { --shimmer-dim: 0; }
+  8.333%, 25% { --shimmer-dim: 0.22; }
 }
 
 @media (prefers-reduced-motion: reduce) {

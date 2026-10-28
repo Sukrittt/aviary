@@ -169,8 +169,8 @@ export function GoalLine({ category, goal, progress, money, month, onPull }: {
   if (onPull && progress.status === 'behind' && progress.monthlyNeed !== undefined && progress.by && progress.behindBy) {
     const short = progress.behindBy
     line = <>Behind by {money(short)} · <button type="button" className="env2-goal-link" disabled={!!busy} onClick={() => onPull(category, short)}>
-      {/* One pass of the shimmer as it arrives, so a behind goal's Set catches the eye once. */}
-      <span className="text-shimmer text-shimmer--once">Set {money(progress.monthlyNeed)}/mo</span>
+      {/* The shimmer comes back every few seconds: Set is something the user still has to do. */}
+      <span className="text-shimmer text-shimmer--nudge">Set {money(progress.monthlyNeed)}/mo</span>
     </button> to make it by {shortMonth(progress.by)}</>
   } else if (onPull && progress.status === 'done') {
     line = <>

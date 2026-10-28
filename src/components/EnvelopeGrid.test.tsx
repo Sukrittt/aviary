@@ -233,8 +233,8 @@ describe('EnvelopeGrid goals', () => {
     goalSetup({ amount: 24000, by: '2027-01' })
     expect(document.querySelector('.env2-spent-of')?.textContent).toBe('₹6000 of ₹24000')
     expect(document.querySelector('.env2-goal-line')?.textContent).toBe('Behind by ₹4500 · Set ₹4500/mo to make it by Jan 2027')
-    // Set catches the eye with one shimmer pass as it arrives.
-    expect(screen.getByText('Set ₹4500/mo')).toHaveClass('text-shimmer', 'text-shimmer--once')
+    // Set keeps nudging with a shimmer until the user acts on it.
+    expect(screen.getByText('Set ₹4500/mo')).toHaveClass('text-shimmer', 'text-shimmer--nudge')
     expect(screen.queryByText(/Last spent/)).not.toBeInTheDocument()
   })
 
