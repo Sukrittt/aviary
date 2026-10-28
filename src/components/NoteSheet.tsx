@@ -8,6 +8,8 @@ import { SuccessButton, useButtonPhase } from './SuccessButton'
 import { useCurrency } from '@/src/context/CurrencyContext'
 import { useSpaces } from '../hooks/useSpaces'
 import { useUpdateCategory } from '../hooks/useCategories'
+import { getCategories } from '../api/categories'
+import { HttpError } from '../api/client'
 import { splitEmoji } from '../lib/emoji'
 import { todayIST } from '../lib/date'
 import { addTodo, dayLabel, insertAt, noteDate, goalFit, parseNote, toggleLine, type Segment } from '../lib/noteRender'
@@ -15,6 +17,17 @@ import type { CategoryRow } from '../types'
 
 export const NOTE_MAX = 2000
 const SAVE_FAILED = "Couldn't save. Check your connection and try again."
+const CHANGED = 'This note changed on another device.'
+
+/** The note as it's saved now, after a write was refused for being made from an older copy. Null if that can't be read either. */
+async function latestNote(e: unknown, name: string): Promise<string | null> {
+  if (!(e instanceof HttpError) || e.status !== 409) return null
+  try {
+    return (await getCategories()).find((c) => c.name === name)?.note ?? ''
+  } catch {
+    return null
+  }
+}
 
 function placeholderFor(row?: CategoryRow): string {
   if (row?.goal || /sav|goal|fund|invest/i.test(row?.group ?? '')) return "What's it for? Break it down"
@@ -47,6 +60,7 @@ export function NoteSheet({ row, onClose }: { row: CategoryRow; onClose: () => v
   const box = useRef<HTMLTextAreaElement>(null)
   const caretAfter = useRef<number | null>(null)
   const datePick = useRef<HTMLInputElement>(null)
+  // The last copy the server confirmed: every write says it was made from this one.
   const [note, setNote] = useState(row.note ?? '')
   // Derived, so a budget that turns out read-only once spaces load closes the editor.
   const [wantsEdit, setEditing] = useState(!row.note)
@@ -64,28 +78,33 @@ export function NoteSheet({ row, onClose }: { row: CategoryRow; onClose: () => v
     setError('')
     try {
       // Blank clears it: the server trims and stores null.
-      await update.mutateAsync({ name: row.name, updates: { note: draft.trim() || null } })
+      await update.mutateAsync({ name: row.name, updates: { note: draft.trim() || null, prevNote: note } })
       save.succeed(onClose)
-    } catch {
+    } catch (e) {
       save.fail()
-      setError(SAVE_FAILED)
+      // Their version becomes the base, so saving again replaces it on purpose.
+      const fresh = await latestNote(e, row.name)
+      if (fresh !== null) setNote(fresh)
+      setError(fresh === null ? SAVE_FAILED : `${CHANGED} Save again to replace it.`)
     }
   }
 
   async function tick(index: number) {
     if (ticking || readOnly) return
     const before = note
-    const next = toggleLine(note, index)
+    // Trimmed the way the server stores it, so the next tick's base matches.
+    const next = toggleLine(note, index).trim()
     setNote(next)
     setDraft(next)
     setTicking(true)
     setError('')
     try {
-      await update.mutateAsync({ name: row.name, updates: { note: next } })
-    } catch {
-      setNote(before)
-      setDraft(before)
-      setError(SAVE_FAILED)
+      await update.mutateAsync({ name: row.name, updates: { note: next, prevNote: before } })
+    } catch (e) {
+      const fresh = await latestNote(e, row.name)
+      setNote(fresh ?? before)
+      setDraft(fresh ?? before)
+      setError(fresh === null ? SAVE_FAILED : `${CHANGED} Here's the latest.`)
     } finally {
       setTicking(false)
     }
@@ -132,7 +151,7 @@ export function NoteSheet({ row, onClose }: { row: CategoryRow; onClose: () => v
           {editing ? (
             <>
               <button type="button" className="account-pill-btn" onClick={onClose} disabled={busy}>Cancel</button>
-              <SuccessButton type="button" baseClass="erd-log-submit" saving={save.saving} success={save.success} successLabel="Saved" disabled={busy || draft.trim() === (row.note ?? '')} onClick={() => void write()}>
+              <SuccessButton type="button" baseClass="erd-log-submit" saving={save.saving} success={save.success} successLabel="Saved" disabled={busy || draft.trim() === note} onClick={() => void write()}>
                 Save note
               </SuccessButton>
             </>

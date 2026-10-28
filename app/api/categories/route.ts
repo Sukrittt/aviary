@@ -116,9 +116,12 @@ export async function PUT(req: Request) {
   let note: string | null | undefined
   if (body.note === null) note = null
   else if (body.note !== undefined) {
-    if (!validText(body.note, 2000, true)) return error('note must be at most 2000 characters')
+    // The editor stops at 2000; the headroom is for ticks, which turn `- item` into `[x] item`.
+    if (!validText(body.note, 3000, true)) return error('note must be at most 3000 characters')
     note = body.note.trim() || null
   }
+  // The copy the write was made from, so one member's tick can't wipe another's edit. Optional: Mobile doesn't send it yet.
+  if (body.prevNote !== undefined && body.prevNote !== null && typeof body.prevNote !== 'string') return error('prevNote must be text')
 
   const coll = await getCollection('categories', auth)
   const budgetColl = await getCollection('budgets', auth)
@@ -135,6 +138,9 @@ export async function PUT(req: Request) {
     renamed = await withTx(async (session) => {
       const existing = await coll.findOne({ name: String(body.name) }, { session })
       if (!existing) throw new CategoryWriteError(404, 'category not found')
+      if (note !== undefined && body.prevNote !== undefined && (existing.note ?? '') !== (body.prevNote ?? '')) {
+        throw new CategoryWriteError(409, 'note changed')
+      }
 
       let effectiveName = String(body.name)
       let didRename = false

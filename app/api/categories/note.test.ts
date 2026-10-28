@@ -65,11 +65,38 @@ describe('category notes', () => {
     expect(raw?.note).not.toContain('88231')
   })
 
-  it('takes 2000 characters and rejects 2001', async () => {
-    expect((await send(PUT, 'PUT', { name: 'Rent', note: 'a'.repeat(2000) })).status).toBe(200)
-    expect(await noteOf('Rent')).toBe('a'.repeat(2000))
-    expect((await send(PUT, 'PUT', { name: 'Rent', note: 'b'.repeat(2001) })).status).toBe(400)
-    expect(await noteOf('Rent')).toBe('a'.repeat(2000))
+  it('takes 3000 characters and rejects 3001', async () => {
+    expect((await send(PUT, 'PUT', { name: 'Rent', note: 'a'.repeat(3000) })).status).toBe(200)
+    expect(await noteOf('Rent')).toBe('a'.repeat(3000))
+    expect((await send(PUT, 'PUT', { name: 'Rent', note: 'b'.repeat(3001) })).status).toBe(400)
+    expect(await noteOf('Rent')).toBe('a'.repeat(3000))
+  })
+
+  it('ticks a full 2000-character note, though the tick makes it longer', async () => {
+    const full = '- x\n'.repeat(499) + '- x'
+    expect(full.length).toBe(1999)
+    expect((await send(PUT, 'PUT', { name: 'Rent', note: full })).status).toBe(200)
+    const ticked = full.replaceAll('- x', '[x] x')
+    expect((await send(PUT, 'PUT', { name: 'Rent', note: ticked, prevNote: full })).status).toBe(200)
+    expect(await noteOf('Rent')).toBe(ticked)
+  })
+
+  it('refuses a write made from an older copy of the note, so nobody\'s edit is lost', async () => {
+    // A ticks from the copy they opened; B changed the note meanwhile.
+    expect((await send(PUT, 'PUT', { name: 'Insurance', note: NOTE + '\n- call agent', prevNote: NOTE })).status).toBe(200)
+    expect((await send(PUT, 'PUT', { name: 'Insurance', note: NOTE.replace('- renew', '[x] renew'), prevNote: NOTE })).status).toBe(409)
+    expect(await noteOf('Insurance')).toBe(NOTE + '\n- call agent')
+  })
+
+  it('treats a missing note as the empty copy', async () => {
+    expect((await send(PUT, 'PUT', { name: 'Rent', note: 'first', prevNote: '' })).status).toBe(200)
+    expect((await send(PUT, 'PUT', { name: 'Rent', note: 'second', prevNote: '' })).status).toBe(409)
+    expect(await noteOf('Rent')).toBe('first')
+  })
+
+  it('rejects a prevNote that is not text', async () => {
+    expect((await send(PUT, 'PUT', { name: 'Insurance', note: 'x', prevNote: 42 })).status).toBe(400)
+    expect(await noteOf('Insurance')).toBe(NOTE)
   })
 
   it('rejects a note that is not text', async () => {
