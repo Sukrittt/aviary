@@ -9,7 +9,6 @@ import { getRecentExpenses } from '@/src/api/expenses'
 import { ExpensePage } from './ExpensePage'
 import { getBudgets, addBudget, updateBudget, transferBudget, getCarry } from '@/src/api/budgets'
 import { getUser } from '@/src/api/account'
-import { getBudgets as getSpaces } from '@/src/api/spaces'
 import { getRecurringIncomes } from '@/src/api/incomes'
 import { currentMonthKey, prevMonthKey, monthLabel } from '@/src/lib/envelope'
 
