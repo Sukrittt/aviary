@@ -250,7 +250,9 @@ summary:focus-visible,
   to { --shimmer-x: 1; }
 }
 
-@media (prefers-reduced-motion: reduce) {
+/* Plain text for anyone who's asked for less motion or more contrast: the
+   streak fades the text as it crosses. */
+@media (prefers-reduced-motion: reduce), (prefers-contrast: more) {
   .text-shimmer {
     animation: none;
     -webkit-mask-image: none;
