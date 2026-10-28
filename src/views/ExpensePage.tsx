@@ -582,8 +582,9 @@ export function ExpensePage() {
                       {hideAmounts ? (
                         "---"
                       ) : (
-                        // A pass across the digits every few seconds while there's money to give a job.
-                        <span className={envelopeState.readyToAssign > 0 ? "text-shimmer text-shimmer--nudge" : undefined}>
+                        // A pass across the digits every few seconds while there's money to give a job,
+                        // for someone who can give it one.
+                        <span className={envelopeState.readyToAssign > 0 && !readOnly ? "text-shimmer text-shimmer--nudge" : undefined}>
                           <AmountText
                             value={envelopeState.readyToAssign}
                             animate
