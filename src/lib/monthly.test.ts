@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { monthRange, categoryBreakdown, withDelta, leftoverFor, monthTotals, monthComparison, fixedCategories, savingsTrend } from './monthly'
+import { monthRange, categoryBreakdown, withDelta, leftoverFor, monthTotals, monthComparison, fixedCategories, savingsTrend, spikeFor, risingCategories, spikeSummary } from './monthly'
 import { CREDIT_CARD_CATEGORY, INCOME_CATEGORY, currentMonthKey, prevMonthKey } from './envelope'
 import type { BudgetRow, CategoryRow, ExpenseRow } from '@/src/types'
 
@@ -410,5 +410,108 @@ describe('savingsTrend', () => {
     const budgets = [budget('2026-09', INCOME_CATEGORY, '100000')]
     const expenses = [expense('2026-07-05', CREDIT_CARD_CATEGORY, '5000'), expense('2026-07-01', INCOME_CATEGORY, '90000')]
     expect(savingsTrend(budgets, expenses, categories, groups, '2026-09').missingIncome).toEqual([])
+  })
+})
+
+function spend(date: string, category: string, amount: number, item = 'x'): ExpenseRow {
+  return { ...expense(date, category, String(amount)), item }
+}
+
+/** Jul-Sep: Food 3 x 300 = 900/month, Rent 10000, Fun 500. */
+function history(): ExpenseRow[] {
+  const rows: ExpenseRow[] = []
+  for (const m of ['2026-07', '2026-08', '2026-09']) {
+    rows.push(spend(`${m}-01`, 'Rent', 10000, 'Rent'))
+    rows.push(spend(`${m}-05`, 'Food', 300, 'Swiggy'), spend(`${m}-12`, 'Food', 300, 'Swiggy'), spend(`${m}-20`, 'Food', 300, 'Zomato'))
+    rows.push(spend(`${m}-15`, 'Fun', 500, 'Movie'))
+  }
+  return rows
+}
+
+describe('spikeFor', () => {
+  it('says more often when the count rises and each spend stays the same size', () => {
+    const rows = [...history(), ...[3, 6, 9, 12, 15, 18].map((d) => spend(`2026-10-${String(d).padStart(2, '0')}`, 'Food', 300, 'Swiggy'))]
+    const spike = spikeFor(rows, 'Food', '2026-10', '2026-11-02')!
+    expect(spike.spent).toBe(1800)
+    expect(spike.baseline).toBe(900)
+    expect(spike.delta).toBe(900)
+    expect(spike.deltaPct).toBe(100)
+    expect(spike.count).toBe(6)
+    expect(spike.baselineCount).toBe(3)
+    expect(spike.cause).toBe('more-often')
+  })
+
+  it('says bigger when the count holds and each spend grows', () => {
+    const rows = [...history(), ...[5, 12, 20].map((d) => spend(`2026-10-${d}`, 'Food', 500, 'Swiggy'))]
+    expect(spikeFor(rows, 'Food', '2026-10', '2026-11-02')!.cause).toBe('bigger')
+  })
+
+  it('says one-off when a single spend bigger than any before covers most of the rise', () => {
+    const rows = [...history(), ...[5, 12, 20].map((d) => spend(`2026-10-${d}`, 'Food', 300, 'Swiggy')), spend('2026-10-25', 'Food', 1200, 'Birthday dinner')]
+    const spike = spikeFor(rows, 'Food', '2026-10', '2026-11-02')!
+    expect(spike.cause).toBe('one-off')
+    expect(spike.top[0]).toEqual({ item: 'Birthday dinner', amount: 1200, date: '2026-10-25' })
+  })
+
+  it('lists items not seen in the category in the prior months, biggest first', () => {
+    const rows = [...history(), spend('2026-10-05', 'Food', 300, 'swiggy '), spend('2026-10-06', 'Food', 400, 'Blinkit'), spend('2026-10-07', 'Food', 900, 'Dominos')]
+    expect(spikeFor(rows, 'Food', '2026-10', '2026-11-02')!.newItems).toEqual(['Dominos', 'Blinkit'])
+  })
+
+  it('compares an in-progress month against the same days of prior months', () => {
+    // By the 12th, prior months had 2 x 300 in Food. 3 x 300 by Oct 12 is +50%.
+    const rows = [...history(), ...[2, 6, 10].map((d) => spend(`2026-10-${String(d).padStart(2, '0')}`, 'Food', 300))]
+    const spike = spikeFor(rows, 'Food', '2026-10', '2026-10-12')!
+    expect(spike.baseline).toBe(600)
+    expect(spike.spent).toBe(900)
+  })
+
+  it('stays quiet in the first week of the month, while pace is still noise', () => {
+    const rows = [...history(), spend('2026-10-02', 'Food', 3000)]
+    expect(spikeFor(rows, 'Food', '2026-10', '2026-10-06')).toBeNull()
+  })
+
+  it('is null for a rise too small to matter next to the whole budget', () => {
+    // Fun up 40% but 200 is under 5% of the usual ~11,400 month.
+    const rows = [...history(), spend('2026-10-15', 'Fun', 700)]
+    expect(spikeFor(rows, 'Fun', '2026-10', '2026-11-02')).toBeNull()
+  })
+
+  it('is null under a 25% rise, with fewer than 2 prior months, or with no history in the category', () => {
+    expect(spikeFor([...history(), spend('2026-10-01', 'Rent', 12000)], 'Rent', '2026-10', '2026-11-02')).toBeNull()
+    const short = history().filter((e) => e.date >= '2026-09')
+    expect(spikeFor([...short, spend('2026-10-01', 'Food', 5000)], 'Food', '2026-10', '2026-11-02')).toBeNull()
+    expect(spikeFor([...history(), spend('2026-10-01', 'Travel', 5000)], 'Travel', '2026-10', '2026-11-02')).toBeNull()
+  })
+})
+
+describe('risingCategories', () => {
+  it('ranks rising categories by how much more they cost, skipping credit card payments', () => {
+    const rows = [
+      ...history(),
+      spend('2026-10-01', 'Rent', 10000),
+      ...[3, 6, 9, 12, 15, 18].map((d) => spend(`2026-10-${String(d).padStart(2, '0')}`, 'Food', 300)),
+      spend('2026-10-15', 'Fun', 2500),
+      spend('2026-10-20', CREDIT_CARD_CATEGORY, 50000),
+    ]
+    expect(risingCategories(rows, '2026-10', '2026-11-02').map((s) => [s.category, s.delta])).toEqual([
+      ['Fun', 2000],
+      ['Food', 900],
+    ])
+  })
+})
+
+describe('spikeSummary', () => {
+  it('names the cause and the new items', () => {
+    const rows = [...history(), ...[3, 6, 9, 12, 15, 18].map((d) => spend(`2026-10-${String(d).padStart(2, '0')}`, 'Food', 300, d === 18 ? 'Blinkit' : 'Swiggy'))]
+    const spike = spikeFor(rows, 'Food', '2026-10', '2026-11-02')!
+    expect(spikeSummary(spike, (n) => `₹${n}`)).toBe('You spent here 6 times, up from about 3, and each spend was about the usual size. New this month: Blinkit.')
+  })
+})
+
+describe('spikeSummary one-off', () => {
+  it("doesn't name the one big spend twice", () => {
+    const rows = [...history(), ...[5, 12, 20].map((d) => spend(`2026-10-${d}`, 'Food', 300, 'Swiggy')), spend('2026-10-25', 'Food', 1200, 'Birthday dinner')]
+    expect(spikeSummary(spikeFor(rows, 'Food', '2026-10', '2026-11-02')!, (n) => `₹${n}`)).toBe('One big spend did most of it: Birthday dinner, ₹1200.')
   })
 })

@@ -1050,3 +1050,98 @@
   padding: 12px 8px;
 }
 .expense-redesign .home-forecast-warning button:focus-visible { outline: 2px solid var(--tk-accent-ink); outline-offset: 3px; }
+
+/* Category trends: rising strip, the selection's clear chip, and the "why" under its bars. */
+.ins-rising {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 2px 0 10px;
+}
+
+.ins-rising-label {
+  color: var(--erd-text3);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ins-rising-chip,
+.ins-clear-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 4px;
+  border: 1px solid var(--erd-border);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.ins-rising-chip:hover,
+.ins-clear-chip:hover { border-color: var(--erd-border-strong); }
+
+.ins-rising-chip .ins-top-icon {
+  width: 24px;
+  height: 24px;
+  font-size: 12px;
+}
+
+.ins-clear-chip {
+  padding: 5px 10px;
+  color: var(--erd-text3);
+  font-size: 12px;
+}
+
+.ins-spike {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--coral-soft);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.ins-spike p { margin: 0; }
+
+.ins-spike-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+}
+
+.ins-spike-title svg { color: var(--coral); flex: none; }
+
+.ins-spike-ai {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.ins-spike-ai svg { flex: none; margin-top: 3px; color: var(--gold-ink); }
+
+.ins-spike-error { color: var(--erd-text3); }
+
+.ins-spike-explain {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--gold-soft);
+  color: var(--gold-ink);
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.ins-spike-explain:disabled { opacity: 0.7; cursor: progress; }

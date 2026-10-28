@@ -9,7 +9,7 @@ const AI_ALLOWANCE_EXCEEDED = 'AI_ALLOWANCE_EXCEEDED'
  * does: how often the cap bites, and on what, is the input to pricing it.
  * Reads a clone, so the caller can still read the body for its own error.
  */
-export async function allowanceHit(resp: Response, feature: 'brief' | 'chat' | 'scan' | 'statement'): Promise<boolean> {
+export async function allowanceHit(resp: Response, feature: 'brief' | 'chat' | 'scan' | 'statement' | 'spike'): Promise<boolean> {
   if (resp.status !== 429) return false
   const body = await resp.clone().json().catch(() => null)
   if (body?.code !== AI_ALLOWANCE_EXCEEDED) return false
@@ -135,6 +135,17 @@ export async function fetchBrief(): Promise<Brief> {
     throw new Error(detail.error ?? `Failed to load brief: ${resp.status}`)
   }
   return resp.json()
+}
+
+/** Gemini's words for why `category` is up in `month`; null when it isn't rising. */
+export async function fetchSpikeExplanation(category: string, month: string): Promise<string | null> {
+  const resp = await apiFetch(`/api/ai/category-spike?${new URLSearchParams({ category, month })}`)
+  if (!resp.ok) {
+    await allowanceHit(resp, 'spike')
+    const detail = await resp.json().catch(() => ({}))
+    throw new Error(detail.error ?? `Failed to explain: ${resp.status}`)
+  }
+  return (await resp.json()).explanation
 }
 
 /**
