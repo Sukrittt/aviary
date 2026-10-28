@@ -213,11 +213,14 @@ export function InsightsPage() {
         : null,
     [expenses, breakdownMode, selectedBreakdownKey, insightMonth, today],
   );
+  // Keeps the last spike on screen while its panel folds away.
+  const [shownSpike, setShownSpike] = useState(selectedSpike);
+  if (selectedSpike && selectedSpike !== shownSpike) setShownSpike(selectedSpike);
   const [explainKey, setExplainKey] = useState<string | null>(null);
-  const spikeKey = selectedSpike ? `${selectedSpike.category}|${insightMonth}|${selectedSpike.spent}` : null;
+  const spikeKey = shownSpike ? `${shownSpike.category}|${insightMonth}|${shownSpike.spent}` : null;
   const explanation = useQuery({
     queryKey: ["spike-explanation", spikeKey],
-    queryFn: () => fetchSpikeExplanation(selectedSpike!.category, insightMonth),
+    queryFn: () => fetchSpikeExplanation(shownSpike!.category, insightMonth),
     enabled: spikeKey != null && explainKey === spikeKey,
     staleTime: Infinity,
     retry: false,
@@ -519,7 +522,7 @@ export function InsightsPage() {
               >
                 <div className="ins-card-heading">
                   <div>
-                    <h2>{selectedLabel ?? (showSaved ? "Saved per month" : "Spending trend")}</h2>
+                    <h2 key={selectedLabel ?? (showSaved ? "saved" : "all")} className="ins-heading-swap">{selectedLabel ?? (showSaved ? "Saved per month" : "Spending trend")}</h2>
                     <p>
                       {showSaved && savings.since && savings.since < currentMonth
                         ? `${formatCurrency(savings.total, hideAmounts)} saved since ${monthLabel(savings.since)}`
@@ -631,64 +634,68 @@ export function InsightsPage() {
                     ariaLabel={selectedLabel ? `${selectedLabel} spending over the last 12 months` : undefined}
                   />
                 )}
-                {selectedSpike && (() => {
-                  const money = (amount: number) => formatCurrency(Math.round(amount), hideAmounts)
-                  const { why, fresh } = spikeCause(selectedSpike, money)
-                  const isNow = insightMonth === currentMonth
-                  return (
-                    <div className="ins-spike">
-                      <div className="ins-spike-head">
-                        <span className="ins-spike-title">{selectedSpike.label} is up</span>
-                        <span className="ins-spike-pct">+{Math.round(selectedSpike.deltaPct)}%</span>
-                      </div>
-                      <div className="ins-spike-stats">
-                        <div>
-                          <strong>{money(selectedSpike.spent)}</strong>
-                          <span>{isNow ? "This month so far" : monthLabel(insightMonth)}</span>
+                <div className={`ins-spike-fold${selectedSpike ? " is-open" : ""}`} aria-hidden={!selectedSpike} inert={!selectedSpike}>
+                  <div className="ins-spike-clip">
+                    {shownSpike && (() => {
+                      const money = (amount: number) => formatCurrency(Math.round(amount), hideAmounts)
+                      const { why, fresh } = spikeCause(shownSpike, money)
+                      const isNow = insightMonth === currentMonth
+                      return (
+                        <div className="ins-spike">
+                          <div className="ins-spike-head">
+                            <span className="ins-spike-title">{shownSpike.label} is up</span>
+                            <span className="ins-spike-pct">+{Math.round(shownSpike.deltaPct)}%</span>
+                          </div>
+                          <div className="ins-spike-stats">
+                            <div>
+                              <strong>{money(shownSpike.spent)}</strong>
+                              <span>{isNow ? "This month so far" : monthLabel(insightMonth)}</span>
+                            </div>
+                            <div>
+                              <strong>{money(shownSpike.baseline)}</strong>
+                              <span>{isNow ? `Usual by day ${Number(today.slice(8, 10))}` : "Usual month"}</span>
+                            </div>
+                          </div>
+                          <dl className="ins-spike-facts">
+                            <dt>Why</dt>
+                            <dd>{why}</dd>
+                            {fresh.length > 0 && (
+                              <>
+                                <dt>New</dt>
+                                <dd>{fresh.join(", ")}</dd>
+                              </>
+                            )}
+                          </dl>
+                          {explanation.data ? (
+                            <div className="ins-spike-ai" role="status">
+                              <span className="ins-spike-ai-by"><BirdMark size={16} /> Aviary</span>
+                              <p>
+                                {explanation.data.split(" ").map((word, i) => (
+                                  <span key={i} className="ins-spike-word" style={{ animationDelay: `${i * 55}ms` }}>{word} </span>
+                                ))}
+                              </p>
+                            </div>
+                          ) : explanation.data === null ? null : explanation.isError ? (
+                            <p className="ins-spike-error">Couldn&apos;t explain right now. Try again later.</p>
+                          ) : explanation.isFetching ? (
+                            <div className="ins-spike-thinking" role="status">
+                              <BirdThinking size={30} />
+                              <span>Reading your {shownSpike.label.toLowerCase()} spends…</span>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              className="ins-spike-explain"
+                              onClick={() => setExplainKey(spikeKey)}
+                            >
+                              Explain with AI
+                            </button>
+                          )}
                         </div>
-                        <div>
-                          <strong>{money(selectedSpike.baseline)}</strong>
-                          <span>{isNow ? `Usual by day ${Number(today.slice(8, 10))}` : "Usual month"}</span>
-                        </div>
-                      </div>
-                      <dl className="ins-spike-facts">
-                        <dt>Why</dt>
-                        <dd>{why}</dd>
-                        {fresh.length > 0 && (
-                          <>
-                            <dt>New</dt>
-                            <dd>{fresh.join(", ")}</dd>
-                          </>
-                        )}
-                      </dl>
-                      {explanation.data ? (
-                        <div className="ins-spike-ai" role="status">
-                          <span className="ins-spike-ai-by"><BirdMark size={16} /> Aviary</span>
-                          <p>
-                            {explanation.data.split(" ").map((word, i) => (
-                              <span key={i} className="ins-spike-word" style={{ animationDelay: `${i * 55}ms` }}>{word} </span>
-                            ))}
-                          </p>
-                        </div>
-                      ) : explanation.data === null ? null : explanation.isError ? (
-                        <p className="ins-spike-error">Couldn&apos;t explain right now. Try again later.</p>
-                      ) : explanation.isFetching ? (
-                        <div className="ins-spike-thinking" role="status">
-                          <BirdThinking size={30} />
-                          <span>Reading your {selectedSpike.label.toLowerCase()} spends…</span>
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          className="ins-spike-explain"
-                          onClick={() => setExplainKey(spikeKey)}
-                        >
-                          Explain with AI
-                        </button>
-                      )}
-                    </div>
-                  )
-                })()}
+                      )
+                    })()}
+                  </div>
+                </div>
               </article>
 
               <div className="ins-left-col">

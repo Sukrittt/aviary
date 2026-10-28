@@ -1,11 +1,13 @@
 'use client'
 
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { motion, useReducedMotion } from 'motion/react'
 
 import { useCurrency } from '@/src/context/CurrencyContext'
 
 import { monthAbbrev } from '@/src/lib/envelope'
 import { BirdEmptyState } from '../BirdEmptyState'
+import { ease } from '@/src/components/landing/mobile/kit'
 
 
 export interface TrendPoint {
@@ -32,6 +34,8 @@ const HEIGHT = 245
 const PAD_TOP = 38
 const PAD_BOTTOM = 34
 const PAD_X = 12
+/** Bars glide to new heights (a category picked, Spending/Saved switched) on the donut's morph timing. */
+const MORPH = { duration: 0.42, ease: ease.inOutCubic }
 
 
 
@@ -47,6 +51,7 @@ export function TrendChart({
   ariaLabel = 'Spending over the last 12 months',
 }: Props) {
   const { formatCompact, formatCurrency } = useCurrency()
+  const glide = useReducedMotion() ? { duration: 0 } : MORPH
   // viewBox tracks the rendered width so the plot spans the whole card. A
   // fixed-width viewBox gets letterboxed into the middle of wide cards.
   const wrapRef = useRef<HTMLDivElement>(null)
@@ -103,6 +108,7 @@ export function TrendChart({
           const dimmed = (point.value === 0 && !point.missing) || (selectedKey != null && !selected && point.date !== partialKey)
           const amountText = point.missing ? 'No income set' : hideAmounts ? 'Amount hidden' : formatCurrency(point.value)
           const label = `${monthAbbrev(point.date)}${point.date === partialKey ? '*' : ''}`
+          const valueY = negative ? Math.min(HEIGHT - PAD_BOTTOM - 4, y + height + 14) : Math.max(15, y - 10)
           return (
             <g
               key={point.date}
@@ -121,24 +127,27 @@ export function TrendChart({
             >
               <title>{`${label} · ${amountText}`}</title>
               <rect x={PAD_X + index * slot} y={PAD_TOP} width={slot} height={plotHeight} fill="transparent" />
-              <rect
+              <motion.rect
                 x={x}
-                y={y}
                 width={barWidth}
-                height={height}
                 rx="7"
+                initial={{ attrY: y, height }}
+                animate={{ attrY: y, height }}
+                transition={{ ...glide, delay: glide.duration ? index * 0.02 : 0 }}
                 className={`ins-trend-bar${point.missing ? ' is-missing' : negative ? ' is-negative' : ''}${dimmed ? ' is-dimmed' : ''}`}
                 style={{ animationDelay: `${index * 30}ms` }}
               />
               {selected && (
-                <text
+                <motion.text
                   x={x + barWidth / 2}
-                  y={negative ? Math.min(HEIGHT - PAD_BOTTOM - 4, y + height + 14) : Math.max(15, y - 10)}
+                  initial={{ attrY: valueY }}
+                  animate={{ attrY: valueY }}
+                  transition={{ ...glide, delay: glide.duration ? index * 0.02 : 0 }}
                   textAnchor="middle"
                   className="ins-trend-value"
                 >
                   {point.missing ? 'Add income' : formatCompact(point.value, hideAmounts)}
-                </text>
+                </motion.text>
               )}
               <text x={x + barWidth / 2} y={HEIGHT - 8} textAnchor="middle" className={selected ? 'ins-trend-label is-selected' : 'ins-trend-label'}>
                 {label}
@@ -148,14 +157,12 @@ export function TrendChart({
         })}
         {/* Drawn after the bars so tall bars don't hide it. */}
         {baselineY != null && (
-          // Keyed on the value so the draw-in replays when the average changes;
-          // starts once the last bar has finished rising.
+          // Draws in once the last bar has finished rising, then glides with the bars when the average changes.
           <g
-            key={baseline}
             className="ins-trend-baseline-group"
             style={{ '--ins-baseline-delay': `${(data.length - 1) * 30 + 350}ms` } as CSSProperties}
           >
-            <line x1={PAD_X} x2={WIDTH - PAD_X} y1={baselineY} y2={baselineY} className="ins-trend-baseline" />
+            <motion.line x1={PAD_X} x2={WIDTH - PAD_X} initial={{ y1: baselineY, y2: baselineY }} animate={{ y1: baselineY, y2: baselineY }} transition={glide} className="ins-trend-baseline" />
           </g>
         )}
       </svg>
