@@ -98,8 +98,10 @@ export function useAddCategory() {
 export function useUpdateCategory() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (params: { name: string; updates: { newName?: string; group?: string; icon?: string; color?: string; alertPcts?: number[] | null; goal?: CategoryGoal | null; note?: string | null } }) =>
+    mutationFn: (params: { name: string; updates: { newName?: string; group?: string; icon?: string; color?: string; alertPcts?: number[] | null; goal?: CategoryGoal | null; note?: string | null; prevNote?: string } }) =>
       updateCategory(params.name, params.updates),
+    // A refused note write means the list is stale too.
+    onError: () => qc.invalidateQueries({ queryKey: key }),
     onSuccess: (_data, params) => {
       qc.invalidateQueries({ queryKey: key })
       // A rename moves the budget rows server-side, and the carry is keyed by

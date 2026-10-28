@@ -2,9 +2,12 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { NoteSheet } from './NoteSheet'
+import { HttpError } from '../api/client'
 
 const state = vi.hoisted(() => ({ readOnly: false, update: vi.fn(async (_: unknown) => undefined) }))
 vi.mock('../hooks/useCategories', () => ({ useUpdateCategory: () => ({ mutateAsync: state.update }) }))
+const latest = vi.hoisted(() => ({ rows: [] as { name: string; group: string; note?: string }[] }))
+vi.mock('../api/categories', () => ({ getCategories: vi.fn(async () => latest.rows) }))
 vi.mock('../hooks/useSpaces', () => ({ useSpaces: () => ({ readOnly: state.readOnly }) }))
 vi.mock('@/src/context/CurrencyContext', () => ({
   useCurrency: () => ({ currencySymbol: '₹', formatCurrency: (n: number) => `₹${n}`, formatCompact: (n: number) => `₹${n / 1000}k` }),
@@ -30,7 +33,7 @@ describe('NoteSheet', () => {
     render(<NoteSheet row={{ name: 'Rent', group: '' }} onClose={onClose} />)
     await user.type(screen.getByLabelText('Note'), 'due on the 5th')
     await user.click(screen.getByRole('button', { name: 'Save note' }))
-    expect(state.update).toHaveBeenCalledWith({ name: 'Rent', updates: { note: 'due on the 5th' } })
+    expect(state.update).toHaveBeenCalledWith({ name: 'Rent', updates: { note: 'due on the 5th', prevNote: '' } })
     await waitFor(() => expect(onClose).toHaveBeenCalled(), { timeout: 2000 })
   })
 
@@ -40,7 +43,7 @@ describe('NoteSheet', () => {
     await user.click(screen.getByRole('button', { name: 'Edit note' }))
     await user.clear(screen.getByLabelText('Note'))
     await user.click(screen.getByRole('button', { name: 'Save note' }))
-    expect(state.update).toHaveBeenCalledWith({ name: 'Rent', updates: { note: null } })
+    expect(state.update).toHaveBeenCalledWith({ name: 'Rent', updates: { note: null, prevNote: 'old' } })
   })
 
   it('ticks a checklist line and saves it', async () => {
@@ -50,7 +53,7 @@ describe('NoteSheet', () => {
     expect(gifts).not.toBeChecked()
     expect(train).toBeChecked()
     await user.click(gifts)
-    expect(state.update).toHaveBeenCalledWith({ name: 'Diwali', updates: { note: '[x] buy gifts\n[x] book train' } })
+    expect(state.update).toHaveBeenCalledWith({ name: 'Diwali', updates: { note: '[x] buy gifts\n[x] book train', prevNote: '- buy gifts\n[x] book train' } })
     expect(gifts).toBeChecked()
   })
 
@@ -124,7 +127,7 @@ describe('NoteSheet add to-do', () => {
     expect(box).toHaveValue('Diwali shopping\n- buy diyas\n- book train')
     await waitFor(() => expect(box).toHaveFocus())
     await user.click(screen.getByRole('button', { name: 'Save note' }))
-    expect(state.update).toHaveBeenCalledWith({ name: 'Diwali', updates: { note: 'Diwali shopping\n- buy diyas\n- book train' } })
+    expect(state.update).toHaveBeenCalledWith({ name: 'Diwali', updates: { note: 'Diwali shopping\n- buy diyas\n- book train', prevNote: '' } })
   })
 })
 
@@ -148,5 +151,37 @@ describe('NoteSheet date and amount chips', () => {
     fireEvent.change(picker, { target: { value: '2027-03-01' } })
     expect(box).toHaveValue('due 1 Mar 2027')
     expect(screen.queryByText(/Start a line with/)).not.toBeInTheDocument()
+  })
+})
+
+describe('NoteSheet when someone else changed the note', () => {
+  const conflict = () => { throw new HttpError(409, 'note changed') }
+
+  it('shows the latest copy instead of wiping it with a tick from the old one', async () => {
+    latest.rows = [{ name: 'Diwali', group: '', note: '- buy gifts\n[x] book train\n- call mom' }]
+    state.update.mockImplementationOnce(async () => conflict())
+    const user = userEvent.setup()
+    render(<NoteSheet row={{ name: 'Diwali', group: '', note: '- buy gifts\n[x] book train' }} onClose={vi.fn()} />)
+    await user.click(screen.getAllByRole('checkbox')[0])
+    expect(await screen.findByRole('alert')).toHaveTextContent("This note changed on another device. Here's the latest.")
+    expect(screen.getByText('call mom')).toBeInTheDocument()
+    expect(screen.getAllByRole('checkbox')[0]).not.toBeChecked()
+    // The next tick is made from the copy that's now on screen.
+    await user.click(screen.getAllByRole('checkbox')[0])
+    expect(state.update).toHaveBeenLastCalledWith({ name: 'Diwali', updates: { note: '[x] buy gifts\n[x] book train\n- call mom', prevNote: '- buy gifts\n[x] book train\n- call mom' } })
+  })
+
+  it('keeps your edit and saves it over theirs only when you save again', async () => {
+    latest.rows = [{ name: 'Rent', group: '', note: 'theirs' }]
+    state.update.mockImplementationOnce(async () => conflict())
+    const user = userEvent.setup()
+    render(<NoteSheet row={{ name: 'Rent', group: '', note: 'old' }} onClose={vi.fn()} />)
+    await user.click(screen.getByRole('button', { name: 'Edit note' }))
+    await user.type(screen.getByLabelText('Note'), ' mine')
+    await user.click(screen.getByRole('button', { name: 'Save note' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('This note changed on another device. Save again to replace it.')
+    expect(screen.getByLabelText('Note')).toHaveValue('old mine')
+    await user.click(screen.getByRole('button', { name: 'Save note' }))
+    expect(state.update).toHaveBeenLastCalledWith({ name: 'Rent', updates: { note: 'old mine', prevNote: 'theirs' } })
   })
 })
