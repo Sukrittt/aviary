@@ -1179,8 +1179,8 @@
 
 .ins-spike-stats {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 220px));
-  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
 }
 
 .ins-spike-stats div,
@@ -1189,7 +1189,10 @@
 .ins-spike-stats strong {
   color: var(--erd-text);
   font-family: var(--font-display);
-  font-size: 22px;
+  /* Scales with the trend card (its container), so the figures fill the left half on wide screens. */
+  font-size: clamp(24px, 4.2cqi, 42px);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
   font-weight: 650;
   font-variant-numeric: tabular-nums;
 }
@@ -1201,6 +1204,9 @@
   color: var(--erd-text3);
   font-size: 12px;
 }
+
+.ins-spike-stats div { gap: 4px; }
+.ins-spike-stats span { font-size: 13px; }
 
 .ins-spike-fact span { font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
 .ins-spike-fact p { color: var(--erd-text); font-size: 15px; font-weight: 550; }
