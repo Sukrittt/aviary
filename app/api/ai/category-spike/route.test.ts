@@ -46,6 +46,6 @@ describe('GET /api/ai/category-spike', () => {
     expect(body.explanation).not.toContain('—')
     const prompt = generateJSON.mock.calls[0][0] as string
     expect(prompt).toContain('₹1,800 vs a usual ₹600 (up 200%)')
-    expect(prompt).toContain('One big spend did most of it: Birthday dinner, ₹1,500.')
+    expect(prompt).toContain('One big spend: Birthday dinner, ₹1,500.')
   })
 })

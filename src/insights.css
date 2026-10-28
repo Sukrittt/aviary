@@ -1099,49 +1099,97 @@
 
 .ins-spike {
   display: grid;
-  gap: 6px;
-  margin-top: 12px;
-  padding: 12px 14px;
-  border-radius: 14px;
-  background: var(--coral-soft);
-  font-size: 13px;
+  gap: 14px;
+  margin-top: 14px;
+  padding: 16px;
+  border: 1px solid var(--erd-border);
+  border-radius: 16px;
+  background: var(--erd-input-bg);
+  font-size: 14px;
   line-height: 1.45;
 }
 
 .ins-spike p { margin: 0; }
 
-.ins-spike-title {
+.ins-spike-head {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-weight: 700;
+  justify-content: space-between;
+  gap: 12px;
 }
 
-.ins-spike-title svg { color: var(--coral); flex: none; }
+.ins-spike-title {
+  color: var(--erd-text);
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.ins-spike-pct {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--coral-soft);
+  color: var(--coral);
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.ins-spike-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 220px));
+  gap: 12px;
+}
+
+.ins-spike-stats div { display: grid; gap: 2px; }
+
+.ins-spike-stats strong {
+  color: var(--erd-text);
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.ins-spike-stats div + div strong { color: var(--erd-text2); }
+
+.ins-spike-stats span,
+.ins-spike-facts dt {
+  color: var(--erd-text3);
+  font-size: 12px;
+}
+
+.ins-spike-facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 14px;
+  margin: 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--erd-border);
+}
+
+.ins-spike-facts dt { padding-top: 2px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+.ins-spike-facts dd { margin: 0; color: var(--erd-text); }
 
 .ins-spike-ai {
-  display: flex;
-  gap: 6px;
-  align-items: flex-start;
+  padding-top: 12px;
+  border-top: 1px solid var(--erd-border);
+  color: var(--erd-text2);
 }
-
-.ins-spike-ai svg { flex: none; margin-top: 3px; color: var(--gold-ink); }
 
 .ins-spike-error { color: var(--erd-text3); }
 
 .ins-spike-explain {
   justify-self: start;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 12px;
-  border: 0;
+  padding: 7px 14px;
+  border: 1px solid var(--erd-border-strong);
   border-radius: 999px;
-  background: var(--gold-soft);
-  color: var(--gold-ink);
-  font-size: 12px;
-  font-weight: 650;
+  background: transparent;
+  color: var(--erd-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
 }
 
+.ins-spike-explain:hover { background: var(--erd-card); }
 .ins-spike-explain:disabled { opacity: 0.7; cursor: progress; }

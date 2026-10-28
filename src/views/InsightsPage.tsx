@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { AnimatePresence } from "motion/react";
 import { useRouter } from "next/navigation";
-import { ArrowLeftIcon, CaretLeftIcon, CaretRightIcon, GearIcon, HouseIcon, InvoiceIcon, MoonIcon, SparkleIcon, SunIcon, TrendDownIcon, TrendUpIcon, XIcon } from "@/src/components/icons";
+import { ArrowLeftIcon, CaretLeftIcon, CaretRightIcon, GearIcon, HouseIcon, InvoiceIcon, MoonIcon, SunIcon, TrendDownIcon, TrendUpIcon, XIcon } from "@/src/components/icons";
 import { CategoryIcon } from "@/src/components/CategoryIcon";
 import { useAppearance } from "@/components/AppearanceProvider";
 import { ExpenseSidebar } from "@/src/components/ExpenseSidebar";
@@ -44,7 +44,7 @@ import {
   risingCategories,
   savingsTrend,
   spikeFor,
-  spikeSummary,
+  spikeCause,
   withDelta,
 } from "@/src/lib/monthly";
 import { fetchSpikeExplanation } from "@/src/api/ai";
@@ -634,33 +634,53 @@ export function InsightsPage() {
                     ariaLabel={selectedLabel ? `${selectedLabel} spending over the last 12 months` : undefined}
                   />
                 )}
-                {selectedSpike && (
-                  <div className="ins-spike">
-                    <p className="ins-spike-title">
-                      <TrendUpIcon size={14} aria-hidden />
-                      {`${selectedSpike.label} is up ${Math.round(selectedSpike.deltaPct)}%: ${formatCurrency(Math.round(selectedSpike.spent), hideAmounts)}${insightMonth === currentMonth ? " so far" : ""}, vs ${formatCurrency(Math.round(selectedSpike.baseline), hideAmounts)} ${insightMonth === currentMonth ? "by this day in the months before" : "on average in the months before"}`}
-                    </p>
-                    <p>{spikeSummary(selectedSpike, (amount) => formatCurrency(Math.round(amount), hideAmounts))}</p>
-                    {explanation.data ? (
-                      <p className="ins-spike-ai">
-                        <SparkleIcon size={14} aria-hidden />
-                        {explanation.data}
-                      </p>
-                    ) : explanation.data === null ? null : explanation.isError ? (
-                      <p className="ins-spike-error">Couldn&apos;t explain right now. Try again later.</p>
-                    ) : (
-                      <button
-                        type="button"
-                        className="ins-spike-explain"
-                        onClick={() => setExplainKey(spikeKey)}
-                        disabled={explanation.isFetching}
-                      >
-                        <SparkleIcon size={14} aria-hidden />
-                        {explanation.isFetching ? "Thinking…" : "Explain"}
-                      </button>
-                    )}
-                  </div>
-                )}
+                {selectedSpike && (() => {
+                  const money = (amount: number) => formatCurrency(Math.round(amount), hideAmounts)
+                  const { why, fresh } = spikeCause(selectedSpike, money)
+                  const isNow = insightMonth === currentMonth
+                  return (
+                    <div className="ins-spike">
+                      <div className="ins-spike-head">
+                        <span className="ins-spike-title">{selectedSpike.label} is up</span>
+                        <span className="ins-spike-pct">+{Math.round(selectedSpike.deltaPct)}%</span>
+                      </div>
+                      <div className="ins-spike-stats">
+                        <div>
+                          <strong>{money(selectedSpike.spent)}</strong>
+                          <span>{isNow ? "This month so far" : monthLabel(insightMonth)}</span>
+                        </div>
+                        <div>
+                          <strong>{money(selectedSpike.baseline)}</strong>
+                          <span>{isNow ? `Usual by day ${Number(today.slice(8, 10))}` : "Usual month"}</span>
+                        </div>
+                      </div>
+                      <dl className="ins-spike-facts">
+                        <dt>Why</dt>
+                        <dd>{why}</dd>
+                        {fresh.length > 0 && (
+                          <>
+                            <dt>New</dt>
+                            <dd>{fresh.join(", ")}</dd>
+                          </>
+                        )}
+                      </dl>
+                      {explanation.data ? (
+                        <p className="ins-spike-ai">{explanation.data}</p>
+                      ) : explanation.data === null ? null : explanation.isError ? (
+                        <p className="ins-spike-error">Couldn&apos;t explain right now. Try again later.</p>
+                      ) : (
+                        <button
+                          type="button"
+                          className="ins-spike-explain"
+                          onClick={() => setExplainKey(spikeKey)}
+                          disabled={explanation.isFetching}
+                        >
+                          {explanation.isFetching ? "Thinking…" : "Explain with AI"}
+                        </button>
+                      )}
+                    </div>
+                  )
+                })()}
               </article>
 
               <div className="ins-left-col">

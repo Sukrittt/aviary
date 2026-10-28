@@ -12,7 +12,7 @@ import { aiDisabledResponse } from '@/lib/systemSettings'
 import { aiAllowanceResponse } from '@/lib/ai/allowance'
 import { formatMoney } from '@/src/lib/currencies'
 import { shiftMonthKey } from '@/src/lib/envelope'
-import { monthRange, spikeFor, spikeSummary } from '@/src/lib/monthly'
+import { monthRange, spikeCause, spikeFor } from '@/src/lib/monthly'
 import type { ExpenseRow } from '@/src/types'
 
 export const dynamic = 'force-dynamic'
@@ -58,14 +58,16 @@ export async function GET(req: Request) {
     if (!spike) return json({ explanation: null })
 
     const money = (n: number) => formatMoney(Math.round(n), currencyCode)
+    const { why, fresh } = spikeCause(spike, money)
     const prompt = [
       currencyInstruction(currencyCode),
-      `Explain in 1 to 2 short sentences why the user's "${spike.label}" spending is up this month, for a personal expense tracker.`,
+      `Explain in one short sentence (under 25 words) why the user's "${spike.label}" spending is up this month, for a personal expense tracker.`,
       'Be warm and direct, second person, no markdown, no em dashes, use contractions. If the facts point to one, suggest one small, concrete thing to watch.',
-      'Use only the facts below. Never estimate or invent a figure, a time frame, or a habit the facts do not show.',
+      'The user already sees both totals, so don\'t repeat them. Use only the facts below. Never estimate or invent a figure, a time frame, or a habit the facts do not show.',
       '',
       `${spike.label}: ${money(spike.spent)} vs a usual ${money(spike.baseline)} (up ${Math.round(spike.deltaPct)}%).`,
-      spikeSummary(spike, money),
+      `${why}.`,
+      fresh.length ? `New this month: ${fresh.join(', ')}.` : '',
       `Biggest spends: ${spike.top.map((t) => `${t.item} ${money(t.amount)} on ${t.date}`).join('; ')}.`,
     ].join('\n')
 
