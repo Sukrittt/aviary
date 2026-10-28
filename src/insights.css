@@ -1206,7 +1206,10 @@
 .ins-spike-fact span { font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
 .ins-spike-fact p { color: var(--erd-text); font-size: 15px; font-weight: 550; }
 
-@media (max-width: 760px) {
+/* Keyed to the card's own width, not the viewport: the card's width doesn't track the window across the grid's breakpoints. */
+.ins-trend-card { container-type: inline-size; }
+
+@container (max-width: 720px) {
   .ins-spike { grid-template-columns: minmax(0, 1fr); }
   .ins-spike-side { padding: 16px 0 0; border-left: 0; border-top: 1px solid var(--erd-border); }
 }
