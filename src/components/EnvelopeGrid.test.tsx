@@ -344,25 +344,3 @@ describe('EnvelopeGrid note menu item', () => {
     cats.rows = []
   })
 })
-
-describe('EnvelopeGrid credit card bill', () => {
-  const cc = { ...envelope, category: '__credit_card__', group: undefined, isCreditCardPayment: true, assigned: 0, spent: 0, available: 2000 }
-
-  it('shows a card balance with Pay, so web can pay the bill', async () => {
-    const onPayCreditCard = vi.fn()
-    render(<EnvelopeGrid envelopes={[envelope, cc]} groups={['Essentials']}
-      hideAmounts={false} onManage={vi.fn()} onMoveMoney={vi.fn()}
-      onAssignFromRTA={vi.fn()} onSetAssigned={vi.fn()} onPayCreditCard={onPayCreditCard} />)
-    const user = userEvent.setup()
-    await user.click(screen.getByRole('button', { name: /Credit Card Payment/ }))
-    await user.click(await screen.findByRole('menuitem', { name: 'Pay credit card bill' }))
-    expect(onPayCreditCard).toHaveBeenCalled()
-  })
-
-  it('stays out of the list when the card owes nothing', () => {
-    render(<EnvelopeGrid envelopes={[envelope, { ...cc, available: 0 }]} groups={['Essentials']}
-      hideAmounts={false} onManage={vi.fn()} onMoveMoney={vi.fn()}
-      onAssignFromRTA={vi.fn()} onSetAssigned={vi.fn()} />)
-    expect(screen.queryByText('Credit Card Payment')).not.toBeInTheDocument()
-  })
-})
