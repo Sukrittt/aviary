@@ -684,7 +684,7 @@ export function InsightsPage() {
                               <p className="ins-spike-error">Couldn&apos;t explain right now. Try again later.</p>
                             ) : explanation.text ? (
                               <div className="ins-spike-ai" role="status" aria-busy={explanation.status === "streaming"}>
-                                <span className="ins-spike-ai-by"><BirdMark size={16} /> Aviary</span>
+                                <span className="ins-spike-ai-by"><BirdMark size={26} /> Aviary</span>
                                 <p>{explanation.text}</p>
                               </div>
                             ) : explanation.status === "streaming" ? (

@@ -1236,9 +1236,12 @@
   align-items: center;
   gap: 6px;
   color: var(--gold-ink);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 650;
 }
+
+/* Ask Aviary's avatar size; the perch sits low in the mark, so it drops a touch to centre on the label. */
+.ins-spike-ai-by svg { flex: none; margin: -4px 0 -2px; }
 
 
 .ins-spike-error { color: var(--erd-text3); }
