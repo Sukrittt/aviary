@@ -2,7 +2,6 @@
 
 import { useCurrency } from "@/src/context/CurrencyContext";
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { AnimatePresence } from "motion/react";
 import { useRouter } from "next/navigation";
@@ -48,7 +47,7 @@ import {
   spikeCause,
   withDelta,
 } from "@/src/lib/monthly";
-import { fetchSpikeExplanation } from "@/src/api/ai";
+import { streamSpikeExplanation } from "@/src/api/ai";
 import { EMPTY } from "@/src/lib/constants";
 import { BirdEmptyState } from "@/src/components/BirdEmptyState";
 import { InsightsTab } from "@/src/components/InsightsTab";
@@ -219,15 +218,20 @@ export function InsightsPage() {
   if (selectedSpike && (selectedSpike !== shown?.spike || insightMonth !== shown.month)) setShown({ spike: selectedSpike, month: insightMonth });
   const shownSpike = shown?.spike ?? null;
   const shownMonth = shown?.month ?? insightMonth;
-  const [explainKey, setExplainKey] = useState<string | null>(null);
   const spikeKey = shownSpike ? `${shownSpike.category}|${shownMonth}|${shownSpike.spent}` : null;
-  const explanation = useQuery({
-    queryKey: ["spike-explanation", spikeKey],
-    queryFn: () => fetchSpikeExplanation(shownSpike!.category, shownMonth),
-    enabled: spikeKey != null && explainKey === spikeKey,
-    staleTime: Infinity,
-    retry: false,
-  });
+  // Streamed replies, kept per spike for the session so going back to one shows it again.
+  const [explained, setExplained] = useState<Record<string, { text: string; status: "streaming" | "done" | "error" | "none" }>>({});
+  const explanation = spikeKey ? explained[spikeKey] : undefined;
+  const explain = () => {
+    if (!shownSpike || !spikeKey) return;
+    const key = spikeKey;
+    const put = (status: "streaming" | "done" | "error" | "none", delta = "") =>
+      setExplained((all) => ({ ...all, [key]: { text: (all[key]?.text ?? "") + delta, status } }));
+    put("streaming");
+    streamSpikeExplanation(shownSpike.category, shownMonth, (delta) => put("streaming", delta))
+      .then((rising) => put(rising ? "done" : "none"))
+      .catch(() => put("error"));
+  };
 
   const comparison = useMemo(
     () => monthComparison(expenses, insightMonth, today),
@@ -672,31 +676,23 @@ export function InsightsPage() {
                                 <p>{fresh.join(", ")}</p>
                               </div>
                             )}
-                            {explanation.data ? (
-                              <div className="ins-spike-ai" role="status">
-                                <span className="ins-spike-ai-by"><BirdMark size={16} /> Aviary</span>
-                                <p>
-                                  {explanation.data.split(" ").map((word, i) => (
-                                    <span key={i} className="ins-spike-word" style={{ animationDelay: `${i * 55}ms` }}>{word} </span>
-                                  ))}
-                                </p>
-                              </div>
-                            ) : explanation.data === null ? null : explanation.isError ? (
+                            {!explanation ? (
+                              <button type="button" className="ins-spike-explain" onClick={explain}>
+                                Explain with AI
+                              </button>
+                            ) : explanation.status === "error" ? (
                               <p className="ins-spike-error">Couldn&apos;t explain right now. Try again later.</p>
-                            ) : explanation.isFetching ? (
+                            ) : explanation.text ? (
+                              <div className="ins-spike-ai" role="status" aria-busy={explanation.status === "streaming"}>
+                                <span className="ins-spike-ai-by"><BirdMark size={16} /> Aviary</span>
+                                <p>{explanation.text}</p>
+                              </div>
+                            ) : explanation.status === "streaming" ? (
                               <div className="ins-spike-thinking" role="status">
                                 <BirdThinking size={30} />
                                 <span>Reading your {shownSpike.label.toLowerCase()} spends…</span>
                               </div>
-                            ) : (
-                              <button
-                                type="button"
-                                className="ins-spike-explain"
-                                onClick={() => setExplainKey(spikeKey)}
-                              >
-                                Explain with AI
-                              </button>
-                            )}
+                            ) : null}
                           </div>
                         </div>
                       )

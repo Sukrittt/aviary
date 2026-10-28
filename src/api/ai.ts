@@ -137,15 +137,56 @@ export async function fetchBrief(): Promise<Brief> {
   return resp.json()
 }
 
-/** Gemini's words for why `category` is up in `month`; null when it isn't rising. */
-export async function fetchSpikeExplanation(category: string, month: string): Promise<string | null> {
-  const resp = await apiFetch(`/api/ai/category-spike?${new URLSearchParams({ category, month })}`)
+/**
+ * Streams Gemini's words for why `category` is up in `month`, calling onDelta
+ * as they arrive (the same SSE frames as Ask Aviary). Resolves false, having
+ * sent nothing, when the category isn't rising.
+ */
+export async function streamSpikeExplanation(
+  category: string,
+  month: string,
+  onDelta: (text: string) => void,
+): Promise<boolean> {
+  // Untimed like streamChat: apiFetch's 15s default would cut a slow reply off mid-sentence. The route caps itself at 30s.
+  const resp = await apiFetch(`/api/ai/category-spike?${new URLSearchParams({ category, month })}`, { signal: null })
   if (!resp.ok) {
     await allowanceHit(resp, 'spike')
     const detail = await resp.json().catch(() => ({}))
     throw new Error(detail.error ?? `Failed to explain: ${resp.status}`)
   }
-  return (await resp.json()).explanation
+  if (!resp.headers.get('Content-Type')?.includes('text/event-stream')) return (await resp.json()).explanation != null
+  if (!resp.body) throw new Error('Failed to explain: empty response body')
+  await readEvents(resp.body, (event) => {
+    if (typeof event.delta === 'string') onDelta(event.delta)
+  })
+  return true
+}
+
+/**
+ * Reads SSE frames ("\n\n"-delimited `data: {...}` lines) until `[DONE]` or the
+ * body ends, throwing on an `{error}` frame. A browser ReadableStream is not
+ * async-iterable in Chrome, so this reads it explicitly.
+ */
+async function readEvents(body: ReadableStream<Uint8Array>, onEvent: (event: Record<string, unknown>) => void): Promise<void> {
+  const decoder = new TextDecoder()
+  const reader = body.getReader()
+  let buffer = ''
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) return
+    buffer += decoder.decode(value, { stream: true })
+    const frames = buffer.split('\n\n')
+    buffer = frames.pop() ?? ''
+    for (const frame of frames) {
+      const line = frame.split('\n').find((l) => l.startsWith('data: '))
+      if (!line) continue
+      const payload = line.slice('data: '.length)
+      if (payload === '[DONE]') return
+      const parsed = JSON.parse(payload)
+      if (parsed.error) throw new Error(parsed.error)
+      onEvent(parsed)
+    }
+  }
 }
 
 /**
@@ -193,34 +234,13 @@ export async function streamChat(
   }
   if (!resp.body) throw new Error('Failed to chat: empty response body')
 
-  const decoder = new TextDecoder()
-  let buffer = ''
   let resolvedSessionId = sessionId
-
-  // Mobile iterates the body directly (`for await (const chunk of resp.body)`),
-  // which expo/fetch supports. A browser ReadableStream is not async-iterable
-  // in Chrome, so this reads it explicitly instead.
-  const reader = resp.body.getReader()
-  for (;;) {
-    const { done, value } = await reader.read()
-    if (done) break
-    buffer += decoder.decode(value, { stream: true })
-    const frames = buffer.split('\n\n')
-    buffer = frames.pop() ?? ''
-    for (const frame of frames) {
-      const line = frame.split('\n').find((l) => l.startsWith('data: '))
-      if (!line) continue
-      const payload = line.slice('data: '.length)
-      if (payload === '[DONE]') return resolvedSessionId
-      const parsed = JSON.parse(payload)
-      if (parsed.error) throw new Error(parsed.error)
-      if (typeof parsed.sessionId === 'string') resolvedSessionId = parsed.sessionId
-      if (parsed.proposal && typeof parsed.proposal === 'object' && Array.isArray(parsed.proposal.items)) {
-        onProposal?.(parsed.proposal as CaptureProposal)
-      }
-      if (typeof parsed.delta === 'string') onDelta(parsed.delta)
-    }
-  }
+  await readEvents(resp.body, (parsed) => {
+    if (typeof parsed.sessionId === 'string') resolvedSessionId = parsed.sessionId
+    const proposal = parsed.proposal as CaptureProposal | undefined
+    if (proposal && typeof proposal === 'object' && Array.isArray(proposal.items)) onProposal?.(proposal)
+    if (typeof parsed.delta === 'string') onDelta(parsed.delta)
+  })
   return resolvedSessionId
 }
 

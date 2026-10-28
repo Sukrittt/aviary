@@ -943,7 +943,6 @@
   .ins-trend-baseline,
   .ins-heatmap-cell,
   .ins-filter-dialog,
-  .ins-spike-word,
   .ins-heading-swap {
     animation: none !important;
   }
@@ -1241,12 +1240,6 @@
   font-weight: 650;
 }
 
-.ins-spike-word {
-  display: inline;
-  animation: ins-word-in 240ms ease-out both;
-}
-
-@keyframes ins-word-in { from { opacity: 0; filter: blur(3px); } to { opacity: 1; filter: none; } }
 
 .ins-spike-error { color: var(--erd-text3); }
 

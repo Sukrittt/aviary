@@ -1,12 +1,11 @@
-import { Type } from '@google/genai'
 import { json, error, getCollection } from '@/lib/http'
 import { getAuth, type Auth } from '@/lib/access'
 import { requireAccess } from '@/lib/billing/guard'
 import { EXPENSE_HEADERS, toRow } from '@/lib/models'
 import { getBudgetCurrency, nowForUser } from '@/lib/userCurrency'
 import { currencyInstruction } from '@/lib/ai/moneyBrainPrompt'
-import { scrubEmDashes } from '@/lib/ai/emDash'
-import { generateJSON } from '@/lib/ai/gemini'
+import { createEmDashScrubber } from '@/lib/ai/emDash'
+import { streamText } from '@/lib/ai/gemini'
 import { isRateLimited } from '@/lib/rateLimit'
 import { aiDisabledResponse } from '@/lib/systemSettings'
 import { aiAllowanceResponse } from '@/lib/ai/allowance'
@@ -28,7 +27,9 @@ function rateLimited(auth: Auth): Promise<boolean> {
 /**
  * "Why is Food up?" on Insights. The facts come from spikeFor, recomputed here
  * from the user's own rows, and Gemini only puts them into words, so no model
- * authors a figure the user reads.
+ * authors a figure the user reads. The words stream back as SSE frames in Ask
+ * Aviary's shape (`{delta}`, then `[DONE]`, or `{error}`); a category that
+ * isn't rising answers plain JSON `{explanation: null}` without calling the model.
  */
 export async function GET(req: Request) {
   const auth = await getAuth(req)
@@ -71,13 +72,33 @@ export async function GET(req: Request) {
       `Biggest spends: ${spike.top.map((t) => `${t.item} ${money(t.amount)} on ${t.date}`).join('; ')}.`,
     ].join('\n')
 
-    const { explanation } = await generateJSON<{ explanation: string }>(
-      prompt,
-      { type: Type.OBJECT, properties: { explanation: { type: Type.STRING } }, required: ['explanation'] },
-      { userId: auth.userId, feature: 'spike' },
-      { timeoutMs: 10_000 },
-    )
-    return json({ explanation: scrubEmDashes(explanation) })
+    // Opened before the response so a model that won't start still gets a plain 502.
+    const reply = await streamText(prompt, [{ role: 'user', parts: [{ text: 'Why is it up?' }] }], { userId: auth.userId, feature: 'spike' })
+    const encoder = new TextEncoder()
+    const stream = new ReadableStream({
+      async start(controller) {
+        const send = (frame: string) => controller.enqueue(encoder.encode(`data: ${frame}\n\n`))
+        const scrub = createEmDashScrubber()
+        let said = ''
+        const emit = (text: string) => {
+          if (!text) return
+          said += text
+          send(JSON.stringify({ delta: text }))
+        }
+        try {
+          for await (const chunk of reply) if (chunk.text) emit(scrub.push(chunk.text))
+          emit(scrub.flush())
+          if (!said) throw new Error('empty reply')
+          send('[DONE]')
+        } catch (err) {
+          console.error('category-spike: stream failed', err)
+          send(JSON.stringify({ error: 'explanation unavailable' }))
+        } finally {
+          controller.close()
+        }
+      },
+    })
+    return new Response(stream, { headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' } })
   } catch (err) {
     console.error('category-spike: failed', err)
     return error('explanation unavailable', 502)
