@@ -283,6 +283,8 @@ it('renders the finished home screen from a filled cache on the first render, an
 
   const html = renderToString(tree(filled()))
   expect(html).toContain('READY TO ASSIGN')
+  // ₹15,000 still waiting for a job: the hero keeps nudging.
+  expect(html).toContain('text-shimmer text-shimmer--nudge')
   expect(html).toContain('Envelope content')
   expect(html).not.toContain('erd-home-loading')
 
@@ -293,6 +295,13 @@ it('renders the finished home screen from a filled cache on the first render, an
   await act(async () => { hydrateRoot(container, tree(filled()), { onRecoverableError }) })
   expect(onRecoverableError).not.toHaveBeenCalled()
   container.remove()
+
+  // A read-only budget can't give the money a job, so nothing nudges.
+  const viewer = filled()
+  viewer.setQueryData(['spaces'], { count: 1, limit: 5, activeId: 'b1', budgets: [{ id: 'b1', name: 'Studio', emoji: '', role: 'member', ownerId: 'o1', currencyCode: 'INR', personal: true, readOnly: true, members: [] }] })
+  const viewerHtml = renderToString(tree(viewer))
+  expect(viewerHtml).toContain('READY TO ASSIGN')
+  expect(viewerHtml).not.toContain('text-shimmer--nudge')
 })
 
 it('names income in a pill under the hero that opens the income menu', async () => {
