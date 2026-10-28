@@ -55,3 +55,5 @@ Everything else (UI, screens, navigation, styling, CRUD scaffolding): feature fi
 When a step doesn't need my input, keep going. Put status notes in the same message as the next action. Stop and ask only when you can't continue without me, before anything destructive (deleting data, force pushing, or changing anything outside this repository).
 
 Merge PRs with --admin.
+
+Don't use subagents unless it's really required. Do the work yourself in the main thread by default.
