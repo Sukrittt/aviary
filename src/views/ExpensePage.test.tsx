@@ -419,6 +419,31 @@ it('turns Ready to Assign into a menu that funds behind goals in one tap', async
   client.clear()
 })
 
+it("takes back only what a category has left, never pushing it overspent", async () => {
+  const { getCategories } = await import('@/src/api/categories')
+  vi.mocked(getCategories).mockResolvedValue([{ name: 'Food', group: 'Essentials' }, { name: 'Rent', group: 'Essentials' }, { name: 'Travel', group: 'Essentials' }])
+  // Ready to Assign is -5,000. Rent is fully spent; Food has 3,000 left; Travel only has last month's carry, nothing assigned to lower.
+  vi.mocked(getCarry).mockResolvedValue({ ready_to_assign: 0, rolled_over: { Travel: 3000 } })
+  vi.mocked(getBudgets).mockResolvedValue([
+    { month, category: '__income__', assigned: '20000', rolled_over: '0', version: 1 },
+    { month, category: 'Rent', assigned: '20000', rolled_over: '0', version: 1 },
+    { month, category: 'Food', assigned: '5000', rolled_over: '0', version: 1 },
+  ])
+  const row = (category: string, amount: string) => ({ timestamp: `${month}-02T10:00:00`, date: `${month}-02`, item: 'x', amount_inr: amount, category, notes: '', source: '', amount, description: '', payment_method: '' })
+  vi.mocked(getRecentExpenses).mockResolvedValue({ rows: [row('Rent', '20000'), row('Food', '2000')], lastSpent: {} } as never)
+  const client = renderPage()
+  const user = userEvent.setup()
+  await user.click(await screen.findByText('Take ₹5,000 back'))
+  expect(await screen.findByText('Take it back from')).toBeInTheDocument()
+  expect(screen.queryByRole('menuitem', { name: 'Rent' })).not.toBeInTheDocument()
+  expect(screen.queryByRole('menuitem', { name: 'Travel' })).not.toBeInTheDocument()
+  await user.click(screen.getByRole('menuitem', { name: 'Food' }))
+  const input = await waitFor(() => document.getElementById('assign-amount') as HTMLInputElement)
+  await waitFor(() => expect(input).toHaveValue('2000'))
+  expect(screen.getByText('Frees ₹3,000 back to Ready to Assign')).toBeInTheDocument()
+  client.clear()
+})
+
 it('offers to take money back when Ready to Assign is negative', async () => {
   vi.mocked(getBudgets).mockResolvedValue([
     { month, category: '__income__', assigned: '4000', rolled_over: '0', version: 1 },
