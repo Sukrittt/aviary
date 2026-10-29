@@ -7271,7 +7271,7 @@ button.account-feature-card {
 .env-cat-list {
   list-style: none;
   margin: 0;
-  padding: 0 18px;
+  padding: 0;
   display: flex;
   flex-direction: column;
 }
@@ -7281,7 +7281,8 @@ button.account-feature-card {
   align-items: center;
   gap: 14px;
   min-height: 64px;
-  padding: 10px 0;
+  /* Padding on the row, not the list, so the hover fill reaches the card edges. */
+  padding: 10px 18px;
   transition: background-color 150ms ease;
   border-top: 1px solid var(--erd-border);
   font-size: 15px;
@@ -7425,10 +7426,8 @@ span.env-cat-alerts:hover {
   .env-group-head {
     padding: 10px;
   }
-  .env-cat-list {
-    padding-inline: 10px;
-  }
   .env-cat {
+    padding-inline: 10px;
     display: grid;
     grid-template-columns: 38px minmax(0, 1fr) auto;
     gap: 2px 10px;
