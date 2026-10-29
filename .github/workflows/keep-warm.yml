@@ -23,11 +23,16 @@ on:
   schedule:
     - cron: '*/5 * * * *'
   workflow_dispatch:
+  # Each production deploy starts every function cold, and the 5-minute timer
+  # can leave the first users on the new build waiting up to 5 minutes for it.
+  # Vercel reports deploys to GitHub, so ping as soon as one goes live.
+  deployment_status:
 
 permissions: {}
 
 jobs:
   ping:
+    if: github.event_name != 'deployment_status' || (github.event.deployment_status.state == 'success' && startsWith(github.event.deployment.environment, 'Production'))
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
