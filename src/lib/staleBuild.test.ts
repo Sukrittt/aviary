@@ -20,7 +20,7 @@ describe('reloadIfStaleBuild', () => {
 
   it("loads the route that failed when the address bar hasn't moved to it yet", () => {
     const assign = vi.fn()
-    vi.stubGlobal('location', { ...window.location, pathname: '/expense', reload, assign })
+    vi.stubGlobal('location', { ...window.location, pathname: '/expense', search: '', reload, assign })
     reloadIfStaleBuild(chunkError(), '/insights')
     expect(assign).toHaveBeenCalledWith('/insights')
     expect(reload).not.toHaveBeenCalled()

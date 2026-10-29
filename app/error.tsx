@@ -1,6 +1,6 @@
 'use client'
 
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { useState } from 'react'
 import { AppErrorScreen } from '@/src/components/AppErrorScreen'
 import { reloadIfStaleBuild } from '@/src/lib/staleBuild'
@@ -8,8 +8,9 @@ import { reloadIfStaleBuild } from '@/src/lib/staleBuild'
 /** Catches render errors in any route below the root layout. */
 export default function RouteError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   // A deploy under an open tab: reload into the new build instead of showing the error.
-  const pathname = usePathname()
-  const [reloading] = useState(() => reloadIfStaleBuild(error, pathname))
+  const query = useSearchParams()?.toString()
+  const route = `${usePathname()}${query ? `?${query}` : ''}`
+  const [reloading] = useState(() => reloadIfStaleBuild(error, route))
   if (reloading) return null
   return (
     <AppErrorScreen

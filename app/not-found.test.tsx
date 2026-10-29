@@ -4,7 +4,7 @@ import NotFound from './not-found'
 import RouteError from './error'
 
 const replace = vi.fn()
-vi.mock('next/navigation', () => ({ useRouter: () => ({ replace }), usePathname: () => '/insights' }))
+vi.mock('next/navigation', () => ({ useRouter: () => ({ replace }), usePathname: () => '/expense/transactions', useSearchParams: () => new URLSearchParams('category=Food') }))
 
 it('404 explains the dead link and sends the visitor home', () => {
   render(<NotFound />)
@@ -33,11 +33,11 @@ it('global error page retries without showing the raw error', async () => {
 
 it('error page reloads into the new build when a deploy left this tab with missing chunks', () => {
   const assign = vi.fn()
-  vi.stubGlobal('location', { ...window.location, pathname: '/expense', assign })
+  vi.stubGlobal('location', { ...window.location, pathname: '/expense', search: '', assign })
   sessionStorage.clear()
   const { container } = render(<RouteError error={Object.assign(new Error('Loading chunk 6553 failed.'), { name: 'ChunkLoadError' })} reset={vi.fn()} />)
   // The click that hit the missing chunk still lands where it was going.
-  expect(assign).toHaveBeenCalledWith('/insights')
+  expect(assign).toHaveBeenCalledWith('/expense/transactions?category=Food')
   expect(container).toBeEmptyDOMElement()
   vi.unstubAllGlobals()
 })
