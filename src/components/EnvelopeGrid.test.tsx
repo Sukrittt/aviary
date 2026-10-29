@@ -4,8 +4,19 @@ import { describe, expect, it, vi } from 'vitest'
 import { EnvelopeGrid } from './EnvelopeGrid'
 import { avatarStyleFor } from '../lib/emoji'
 import { weekPace } from '../lib/weekly'
-vi.mock('../hooks/useCategories', () => ({ useCategoryStyle: () => (name: string) => avatarStyleFor(name), useCategoryColors: () => new Map() }))
+import type { CategoryRow } from '../types'
+const cats = vi.hoisted(() => ({ rows: [] as CategoryRow[], update: vi.fn(async () => undefined) }))
+vi.mock('../hooks/useCategories', () => ({
+  useCategoryStyle: () => (name: string) => avatarStyleFor(name),
+  useCategoryColors: () => new Map(),
+  useCategories: () => ({ data: cats.rows }),
+  useUpdateCategory: () => ({ mutateAsync: cats.update }),
+}))
 
+const spaces = vi.hoisted(() => ({ readOnly: false }))
+vi.mock('../hooks/useSpaces', () => ({ useSpaces: () => spaces }))
+const motion = vi.hoisted(() => ({ inView: false }))
+vi.mock('motion/react', async (orig) => ({ ...(await orig<typeof import('motion/react')>()), useInView: () => motion.inView }))
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }))
 vi.mock('@/src/context/CurrencyContext', () => ({
   useCurrency: () => ({ formatCurrency: (value: number) => `₹${value}` }),
@@ -202,5 +213,136 @@ describe('EnvelopeGrid weekly pacing', () => {
     expect(screen.getByText('This week')).toBeInTheDocument()
     await user.click(screen.getByRole('menuitemcheckbox', { name: /Track weekly/ }))
     expect(onToggleWeekly).toHaveBeenCalledWith('Groceries', false)
+  })
+})
+
+describe('EnvelopeGrid goals', () => {
+  // October 2026: 6,000 carried in, nothing assigned yet. 18,000 to go over Oct..Jan.
+  const saver = { ...envelope, category: 'Diwali', assigned: 0, spent: 0, available: 6000, spentPct: 0 }
+  function goalSetup(goal: CategoryRow['goal'], e = saver, onSetMonthly: ((c: string, n: number) => Promise<void>) | null = vi.fn(async () => undefined)) {
+    cats.rows = [{ name: e.category, group: 'Essentials', goal }]
+    cats.update.mockClear()
+    const onMoveMoney = vi.fn()
+    render(<EnvelopeGrid envelopes={[e]} groups={['Essentials']} month="2026-10"
+      hideAmounts={false} onManage={vi.fn()} onMoveMoney={onMoveMoney}
+      onAssignFromRTA={vi.fn()} onSetAssigned={vi.fn()} onSetMonthly={onSetMonthly ?? undefined} />)
+    return { onSetMonthly, onMoveMoney }
+  }
+
+  it('shows progress to the target and what a month makes the deadline', () => {
+    goalSetup({ amount: 24000, by: '2027-01' })
+    expect(document.querySelector('.env2-spent-of')?.textContent).toBe('₹6000 of ₹24000')
+    expect(document.querySelector('.env2-goal-line')?.textContent).toBe('Behind by ₹4500 · Set ₹4500/mo to make it by Jan 2027')
+    // Set keeps nudging with a shimmer until the user acts on it.
+    expect(screen.getByText('Set ₹4500/mo')).toHaveClass('text-shimmer', 'text-shimmer--nudge')
+    expect(screen.queryByText(/Last spent/)).not.toBeInTheDocument()
+  })
+
+  it('Set opens Pull money for the amount the month is behind by', async () => {
+    // 1,000 of the 4,500 in: the pull is for the other 3,500, not the whole share.
+    const { onMoveMoney, onSetMonthly } = goalSetup({ amount: 24000, by: '2027-01' }, { ...saver, assigned: 1000, available: 7000 })
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Set ₹4500/mo' }))
+    expect(onMoveMoney).toHaveBeenCalledWith('Diwali', 3500)
+    expect(onSetMonthly).not.toHaveBeenCalled()
+  })
+
+  it('rolls the Left pill from the old balance to the new one once money lands, then splashes', async () => {
+    motion.inView = true
+    cats.rows = [{ name: 'Diwali', group: 'Essentials', goal: { amount: 24000, by: '2027-01' } }]
+    const props = { groups: ['Essentials'], month: '2026-10', hideAmounts: false, onManage: vi.fn(), onMoveMoney: vi.fn(), onAssignFromRTA: vi.fn(), onSetAssigned: vi.fn() }
+    const { container, rerender } = render(<EnvelopeGrid {...props} envelopes={[saver]} />)
+    const pill = () => container.querySelector('.env2-pill')!
+    expect(pill()).not.toHaveClass('is-rolling-up')
+    rerender(<EnvelopeGrid {...props} envelopes={[{ ...saver, assigned: 4500, available: 10500 }]} />)
+    // Ticks up from the old 6,000, then lands and splashes.
+    await waitFor(() => expect(pill()).toHaveClass('is-rolling-up'), { timeout: 1500 })
+    await waitFor(() => expect(pill()).toHaveClass('is-splash'), { timeout: 3000 })
+    expect(container.querySelectorAll('.env2-splash i').length).toBeGreaterThan(0)
+    motion.inView = false
+  })
+
+  it('offers no changes where goals are read-only', () => {
+    goalSetup({ amount: 24000, by: '2027-01' }, saver, null)
+    expect(screen.getByText(/Behind by/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Set ₹/ })).not.toBeInTheDocument()
+  })
+
+  it('says when, at this pace, a goal with no deadline gets there', () => {
+    goalSetup({ amount: 60000 }, { ...saver, assigned: 5000, available: 10000 })
+    expect(screen.getByText('At this pace, by Aug 2027')).toBeInTheDocument()
+  })
+
+  it('lets a spent goal be repeated next year or removed', async () => {
+    goalSetup({ amount: 30000, by: '2026-10' }, { ...saver, spent: 28000, available: 2000 })
+    expect(document.querySelector('.env2-goal-line')?.textContent).toBe('Done · Repeat next year · Back to spending')
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Repeat next year' }))
+    expect(cats.update).toHaveBeenCalledWith({ name: 'Diwali', updates: { goal: { amount: 30000, by: '2027-10' } } })
+    expect(screen.getByRole('button', { name: 'Back to spending' })).toBeInTheDocument()
+  })
+
+  it('opens the goal sheet from the row menu', async () => {
+    goalSetup(undefined, { ...saver })
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: /Diwali/ }))
+    expect(await screen.findByRole('menuitem', { name: 'Make this a goal' })).toBeInTheDocument()
+    await user.click(screen.getByRole('menuitem', { name: 'Make this a goal' }))
+    expect(await screen.findByRole('dialog', { name: 'Make Diwali a goal' })).toBeInTheDocument()
+  })
+
+  it('sums a group of goals as saved of target', () => {
+    goalSetup({ amount: 24000, by: '2027-01' })
+    expect(screen.getByText('Saved').parentElement?.textContent).toBe('Saved₹6000 of ₹24000')
+  })
+
+  it('keeps Left in group when the group has spending categories too', () => {
+    cats.rows = [{ name: 'Diwali', group: 'Essentials', goal: { amount: 24000 } }, { name: 'Rent', group: 'Essentials' }]
+    render(<EnvelopeGrid envelopes={[saver, envelope]} groups={['Essentials']} month="2026-10"
+      hideAmounts={false} onManage={vi.fn()} onMoveMoney={vi.fn()} onAssignFromRTA={vi.fn()} onSetAssigned={vi.fn()} />)
+    expect(screen.getByText('Left in group')).toBeInTheDocument()
+  })
+})
+
+describe('EnvelopeGrid notes', () => {
+  it('marks a row with a note and opens it from the glyph, not the menu', async () => {
+    cats.rows = [{ name: 'Rent', group: 'Essentials', note: 'Landlord\n- pay by 5th\n[x] receipt' }]
+    setup()
+    const user = userEvent.setup()
+    const glyph = screen.getByTitle('Landlord')
+    expect(glyph).toHaveTextContent('1/2')
+    await user.click(glyph)
+    expect(await screen.findByRole('dialog', { name: 'Note for Rent' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Rent/ })).toHaveAttribute('aria-expanded', 'false')
+    cats.rows = []
+  })
+
+  it('opens the note from the row menu', async () => {
+    cats.rows = [{ name: 'Rent', group: 'Essentials' }]
+    setup()
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: /Rent/ }))
+    await user.click(await screen.findByRole('menuitem', { name: 'Add a note' }))
+    expect(await screen.findByRole('dialog', { name: 'Note for Rent' })).toBeInTheDocument()
+    cats.rows = []
+  })
+})
+
+describe('EnvelopeGrid note menu item', () => {
+  it.each([
+    [false, 'with a note', 'Edit note'],
+    [true, 'with a note', 'View note'],
+    [true, 'without one', null],
+  ] as const)('read-only %s, %s: %s', async (readOnly, has, label) => {
+    spaces.readOnly = readOnly
+    cats.rows = [{ name: 'Rent', group: 'Essentials', ...(has === 'with a note' ? { note: 'due 5th' } : {}) }]
+    setup()
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: /Rent/ }))
+    await screen.findByRole('menuitem', { name: 'View transactions' })
+    const items = screen.getAllByRole('menuitem').map((el) => el.textContent)
+    if (label) expect(items).toContain(label)
+    else expect(items.some((t) => /note/i.test(t ?? ''))).toBe(false)
+    spaces.readOnly = false
+    cats.rows = []
   })
 })

@@ -206,3 +206,56 @@ summary:focus-visible,
     background: var(--bg);
   }
 }
+
+/* Mobile's ShimmerText: a soft bright band sweeps across the text, left to
+   right. Looping means "in progress": off the band the text sits at 78%.
+   .text-shimmer--nudge means "needs you": the text stays at full strength
+   and a bright streak of light runs across it, nonstop, until it's acted on. */
+@property --shimmer-x { syntax: '<number>'; inherits: false; initial-value: 0; }
+@property --shimmer-dim { syntax: '<number>'; inherits: false; initial-value: 0; }
+
+.text-shimmer {
+  --shimmer-band: 1.6em;
+  --shimmer-at: calc(var(--shimmer-x) * (100% + 2 * var(--shimmer-band)) - var(--shimmer-band));
+  --shimmer-mask: linear-gradient(90deg,
+    rgb(0 0 0 / calc(1 - var(--shimmer-dim))) calc(var(--shimmer-at) - var(--shimmer-band)),
+    #000 var(--shimmer-at),
+    rgb(0 0 0 / calc(1 - var(--shimmer-dim))) calc(var(--shimmer-at) + var(--shimmer-band)));
+  display: inline-block;
+  max-width: 100%;
+  /* Inline-block stops a parent link's underline from reaching the text; carry it over. */
+  text-decoration: inherit;
+  -webkit-mask-image: var(--shimmer-mask);
+  mask-image: var(--shimmer-mask);
+  --shimmer-dim: 0.22;
+  animation: text-shimmer-loop 2.4s infinite;
+}
+
+.text-shimmer--nudge {
+  --shimmer-band: 1.2em;
+  --shimmer-mask: linear-gradient(90deg,
+    #000 calc(var(--shimmer-at) - var(--shimmer-band)),
+    rgb(0 0 0 / 0.3) var(--shimmer-at),
+    #000 calc(var(--shimmer-at) + var(--shimmer-band)));
+  animation: text-shimmer-glint 1.8s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+/* 1.5s across, then a 0.9s rest before the next pass. */
+@keyframes text-shimmer-loop {
+  0% { --shimmer-x: 0; animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+  62.5%, 100% { --shimmer-x: 1; }
+}
+@keyframes text-shimmer-glint {
+  from { --shimmer-x: 0; }
+  to { --shimmer-x: 1; }
+}
+
+/* Plain text for anyone who's asked for less motion or more contrast: the
+   streak fades the text as it crosses. */
+@media (prefers-reduced-motion: reduce), (prefers-contrast: more) {
+  .text-shimmer {
+    animation: none;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+}

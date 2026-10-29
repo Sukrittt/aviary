@@ -168,6 +168,13 @@ it('opens straight to typing spends in capture mode, without the money brief', (
   expect(screen.queryByText('Your monthly brief.')).toBeNull()
   expect(screen.getByText('Log several at once')).toBeInTheDocument()
   expect(screen.getByRole('textbox', { name: 'Ask Aviary' })).toHaveAttribute('placeholder', 'What did you spend?')
+  // The "reading" shimmer is only for the brief.
+  expect(document.querySelector('.brain-heading .text-shimmer')).toBeNull()
+})
+
+it('shimmers the subtitle while it reads the budget', () => {
+  render(<QueryClientProvider client={new QueryClient()}><MoneyBrainDrawer onClose={vi.fn()} /></QueryClientProvider>)
+  expect(screen.getByText('Reading 58 transactions')).toHaveClass('text-shimmer')
 })
 
 it('records an outcome picked mid-stream once the chat exists, retrying while the reply saves', async () => {

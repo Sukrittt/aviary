@@ -7,6 +7,19 @@ const SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'O
 const WEEKDAY_SHORT = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
 const WEEKDAY_FULL = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
+const pad2 = (n: number) => String(n).padStart(2, '0')
+
+const CalendarGlyph = () => (
+  <span className="date-picker-field-icon" aria-hidden="true">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="5" width="18" height="16" rx="3" />
+      <path d="M3 10h18" />
+      <path d="M8 3v4" />
+      <path d="M16 3v4" />
+    </svg>
+  </span>
+)
+
 export function parseISO(value: string): Date | null {
   if (!value) return null
   const [y, m, d] = value.split('-').map(Number)
@@ -14,7 +27,7 @@ export function parseISO(value: string): Date | null {
   return new Date(y, m - 1, d)
 }
 export function toISO(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
 }
 export const key = (d: Date) => d.getFullYear() * 10000 + d.getMonth() * 100 + d.getDate()
 const addDays = (d: Date, n: number) => {
@@ -379,14 +392,7 @@ export function DatePicker(props: DatePickerProps) {
     return (
       <div className="date-picker-field-wrap" ref={rootRef}>
         <button type="button" className="date-picker-field" onClick={() => (open ? setOpen(false) : openPicker())}>
-          <span className="date-picker-field-icon" aria-hidden="true">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="5" width="18" height="16" rx="3" />
-              <path d="M3 10h18" />
-              <path d="M8 3v4" />
-              <path d="M16 3v4" />
-            </svg>
-          </span>
+          <CalendarGlyph />
           <span className="date-picker-field-text">{label}</span>
           <span className={`date-picker-field-caret${open ? ' is-open' : ''}`} aria-hidden="true">
             ⌄
@@ -414,14 +420,7 @@ export function DatePicker(props: DatePickerProps) {
   return (
     <div className="date-picker-field-wrap" ref={rootRef}>
       <button type="button" className="date-picker-trigger" onClick={() => (open ? setOpen(false) : openPicker())}>
-        <span className="date-picker-field-icon" aria-hidden="true">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="3" y="5" width="18" height="16" rx="3" />
-            <path d="M3 10h18" />
-            <path d="M8 3v4" />
-            <path d="M16 3v4" />
-          </svg>
-        </span>
+        <CalendarGlyph />
         <span className="date-picker-trigger-text">
           <span className="date-picker-trigger-caption">DATE RANGE</span>
           <span className="date-picker-trigger-label">{rangeLabel}</span>
@@ -505,6 +504,88 @@ export function DatePicker(props: DatePickerProps) {
             </div>
           </Sheet>
         </Scrim>
+      )}
+    </div>
+  )
+}
+
+/** `YYYY-MM` as `Mon YYYY`. */
+export const formatMonth = (key: string) => `${SHORT[Number(key.slice(5, 7)) - 1]} ${key.slice(0, 4)}`
+
+/**
+ * A month, in the date picker's dress: step the year, tap one of twelve.
+ * Opens inline under its field, so it lives inside a scrolling sheet without
+ * portal maths. Months already gone are greyed out; '' is "no month".
+ */
+export function MonthPicker({ id, value, onChange, placeholder = 'No deadline' }: {
+  id?: string
+  value: string
+  onChange: (value: string) => void
+  placeholder?: string
+}) {
+  const today = new Date()
+  const thisMonth = `${today.getFullYear()}-${pad2(today.getMonth() + 1)}`
+  const [open, setOpen] = useState(false)
+  const [year, setYear] = useState(() => Number((value || thisMonth).slice(0, 4)))
+  const [dir, setDir] = useState<'next' | 'prev'>('next')
+  const rootRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    function onDocClick(e: MouseEvent) {
+      if (!rootRef.current?.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onDocClick)
+    return () => document.removeEventListener('mousedown', onDocClick)
+  }, [open])
+
+  function toggle() {
+    if (!open) setYear(Number((value || thisMonth).slice(0, 4)))
+    setOpen(!open)
+  }
+  function stepYear(delta: number) {
+    setDir(delta > 0 ? 'next' : 'prev')
+    setYear((y) => y + delta)
+  }
+  function pick(key: string) {
+    onChange(key)
+    setOpen(false)
+  }
+
+  return (
+    <div className="date-picker-field-wrap" ref={rootRef}
+      onKeyDown={(e) => { if (e.key === 'Escape' && open) { e.stopPropagation(); setOpen(false) } }}>
+      <button id={id} type="button" className="date-picker-field" aria-expanded={open} onClick={toggle}>
+        <CalendarGlyph />
+        <span className="date-picker-field-text">{value ? formatMonth(value) : placeholder}</span>
+        <span className={`date-picker-field-caret${open ? ' is-open' : ''}`} aria-hidden="true">⌄</span>
+      </button>
+      {open && (
+        <div className="date-picker-card month-picker-card">
+          <div className="date-picker-nav">
+            <button type="button" className="date-picker-nav-btn" onClick={() => stepYear(-1)} aria-label="Previous year">‹</button>
+            <div className="date-picker-month-label">{year}</div>
+            <button type="button" className="date-picker-nav-btn" onClick={() => stepYear(1)} aria-label="Next year">›</button>
+          </div>
+          <div key={year} className={`month-picker-grid is-${dir}`}>
+            {SHORT.map((m, i) => {
+              const key = `${year}-${pad2(i + 1)}`
+              const past = key < thisMonth
+              return (
+                <button type="button" key={m} disabled={past} aria-label={`${MONTHS[i]} ${year}`} aria-pressed={key === value}
+                  className={`date-picker-cell${key === value ? ' is-selected' : ''}${key === thisMonth ? ' is-today' : ''}${past ? ' is-future' : ''}`}
+                  onClick={() => pick(key)}>
+                  {m}
+                </button>
+              )
+            })}
+          </div>
+          {value && (
+            <div className="date-picker-quick">
+              <button type="button" className="date-picker-chip" onClick={() => pick('')}>{placeholder}</button>
+            </div>
+          )}
+        </div>
       )}
     </div>
   )

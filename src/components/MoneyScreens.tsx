@@ -1,5 +1,6 @@
 'use client'
 
+import { goalProgress, shortMonth } from '../lib/goal'
 import './MoneyScreens.css'
 
 import { useCurrency } from '@/src/context/CurrencyContext'
@@ -350,26 +351,30 @@ interface SourceItem {
   score: number
 }
 
-export function MoveMoneyScreen({ targetCategory, amount, onClose }: {
+export function MoveMoneyScreen({ targetCategory, amount, quick, onClose }: {
   targetCategory: string
   /** Opening amount, e.g. the shortfall Insights' forecast offered to top up. */
   amount?: number
+  /** With an amount: open on the sources, Ready to Assign already picked (a goal's Set). */
+  quick?: boolean
   onClose: () => void
 }) {
   const data = useMoneyData()
-  if (data.isLoading) return <FormSheet title="Pull money" onClose={onClose} busy={false}><LoadingCaption /></FormSheet>
+  if (data.isLoading) return <FormSheet title="Pull money" onClose={onClose} busy={false} className="money-wide"><LoadingCaption /></FormSheet>
   if (data.carryFailed) return <CarryFailed title="Pull money" onClose={onClose} />
-  return <MoveMoneyBody targetCategoryName={targetCategory} initialAmount={amount} onClose={onClose} data={data} />
+  return <MoveMoneyBody targetCategoryName={targetCategory} initialAmount={amount} quick={quick} onClose={onClose} data={data} />
 }
 
 function MoveMoneyBody({
   targetCategoryName,
   initialAmount,
+  quick,
   onClose,
   data,
 }: {
   targetCategoryName: string
   initialAmount?: number
+  quick?: boolean
   onClose: () => void
   data: ReturnType<typeof useMoneyData>
 }) {
@@ -395,8 +400,11 @@ function MoveMoneyBody({
     (e) => e.available > 0 && e.category !== targetCategoryName && !e.isCreditCardPayment,
   )
 
-  const [step, setStep] = useState<'amount' | 'sources'>('amount')
-  const [allocs, setAllocs] = useState<Record<string, number>>({})
+  const quickStart = !!quick && !!initialAmount && initialAmount > 0
+  const [step, setStep] = useState<'amount' | 'sources'>(quickStart ? 'sources' : 'amount')
+  const [allocs, setAllocs] = useState<Record<string, number>>(
+    quickStart && readyToAssign > 0 ? { [RTA_SENTINEL]: Math.min(readyToAssign, cents(initialAmount)) } : {},
+  )
   const [amountStr, setAmountStr] = useState(
     initialAmount && initialAmount > 0 ? String(cents(initialAmount)) : isOverspent ? String(cents(shortfall)) : '',
   )
@@ -493,6 +501,7 @@ function MoveMoneyBody({
         title="Pull money"
         onClose={onClose}
         busy={false}
+        className="money-wide"
         footer={<button type="button" className="erd-log-submit" onClick={onClose}>Close</button>}
       >
         <div className="erd-sub-empty">
@@ -513,6 +522,7 @@ function MoveMoneyBody({
         title={title}
         onClose={onClose}
         busy={busy}
+        className="money-wide"
         footer={
           <button type="button" className="erd-log-submit" disabled={amount <= 0} onClick={() => setStep('sources')}>
             {amount > 0 ? 'Pick sources →' : 'Add an amount'}
@@ -572,7 +582,7 @@ function MoveMoneyBody({
       onClose={onClose}
       onBack={() => setStep('amount')}
       busy={busy}
-      className="money-form"
+      className="money-form money-wide"
       footer={
         <>
           {error !== '' && <p role="alert" className="erd-log-error money-form-error">{error}</p>}
@@ -645,15 +655,16 @@ function MoveMoneyBody({
                               {formatCurrency(item.available, hideAmounts)} → {formatCurrency(item.available - alloc, hideAmounts)}
                             </span>
                           </div>
+                          {/* One line, same as mobile: the amount sits in a compact field instead of a full-width bar. */}
+                          <label className="money-alloc">
+                            <span>{currencySymbol}</span>
+                            <SourceAmountInput value={alloc} max={maxFor(item)} name={item.name}
+                              onChange={(value) => setAllocValue(item.key, value)} />
+                          </label>
                           <button type="button" className="money-remove" aria-label="Remove" onClick={() => removeAlloc(item.key)} disabled={busy}>
                             <TrashIcon size={14} />
                           </button>
                         </div>
-                        <label className="money-alloc">
-                          <span>{currencySymbol}</span>
-                          <SourceAmountInput value={alloc} max={maxFor(item)} name={item.name}
-                            onChange={(value) => setAllocValue(item.key, value)} />
-                        </label>
                       </motion.div>
                     )
                   })}
@@ -686,7 +697,7 @@ function MoveMoneyBody({
                     <span className="money-source-name">{item.name}</span>
                     <span className="money-source-avail">
                       <span>{formatCurrency(item.available, hideAmounts)}</span>
-                      <small>AVAILABLE</small>
+                      <small>Available</small>
                     </span>
                   </motion.button>
                 ))}
@@ -722,7 +733,7 @@ function ProgressBar({ pct, done }: { pct: number; done: boolean }) {
 
 // ─── Edit assigned amount ────────────────────────────────────────────────────
 
-export function EditAssignedScreen({ category, onClose, assign = false }: { category: string; onClose: () => void; assign?: boolean }) {
+export function EditAssignedScreen({ category, onClose, assign = false, takeBack }: { category: string; onClose: () => void; assign?: boolean; /** Start the amount this much lower (never below 0). */ takeBack?: number }) {
   const data = useMoneyData()
   // Mounted only once data has settled, so the numpad seeds from the real envelope.
   if (data.isLoading) return <FormSheet title={assign ? 'Assign money' : 'Edit amount'} onClose={onClose} busy={false}><LoadingCaption /></FormSheet>
@@ -733,9 +744,12 @@ export function EditAssignedScreen({ category, onClose, assign = false }: { cate
   const prevState = computeEnvelopeState(data.budgets, data.expenses, prevMonthKey(month), data.categories, data.groups)
   const envelope = state.envelopes.find((e) => e.category === category)
   const budget = data.budgets.find((b) => b.month === month && b.category === category)
+  const row = data.categories.find((c) => c.name === category)
+  const goal = row?.goal && envelope ? goalProgress({ goal: row.goal, month, available: envelope.available, assigned: envelope.assigned, spent: envelope.spent, since: row.since }) : null
 
   return (
     <EditAssignedBody
+      goalNeed={goal?.monthlyNeed !== undefined && goal.by ? { amount: goal.monthlyNeed, by: goal.by } : undefined}
       category={category}
       assign={assign}
       month={month}
@@ -746,6 +760,7 @@ export function EditAssignedScreen({ category, onClose, assign = false }: { cate
       isCreditCardPayment={!!envelope?.isCreditCardPayment}
       lastMonthAssigned={prevState.envelopes.find((e) => e.category === category)?.assigned}
       readyToAssign={state.readyToAssign}
+      takeBack={takeBack}
       onClose={onClose}
     />
   )
@@ -766,10 +781,15 @@ function EditAssignedBody({
   isCreditCardPayment,
   lastMonthAssigned,
   readyToAssign,
+  goalNeed,
+  takeBack,
   onClose,
 }: {
   category: string
   assign: boolean
+  takeBack?: number
+  /** A goal's monthly amount to make its deadline (src/lib/goal.ts), offered as a pick. */
+  goalNeed?: { amount: number; by: string }
   month: string
   version: number
   currentAssigned: number
@@ -790,7 +810,7 @@ function EditAssignedBody({
 
   const name = isCreditCardPayment ? 'Credit Card Payment' : splitEmoji(category).text
 
-  const [amountText, setAmountText] = useState(assign ? '' : String(currentAssigned))
+  const [amountText, setAmountText] = useState(assign ? '' : String(takeBack ? Math.max(0, cents(currentAssigned - takeBack)) : currentAssigned))
   const [error, setError] = useState('')
   const [baseAssigned, setBaseAssigned] = useState(currentAssigned)
   const [baseReadyToAssign, setBaseReadyToAssign] = useState(readyToAssign)
@@ -879,6 +899,14 @@ function EditAssignedBody({
             {QUICK_PICKS.map((v) => (
               <QuickChip key={v} label={formatMoney(v)} active={value === v} disabled={busy} onPress={() => setAmountText(String(v))} />
             ))}
+            {!assign && goalNeed && (
+              <QuickChip
+                label={`${formatCurrency(goalNeed.amount, hideAmounts)} makes it by ${shortMonth(goalNeed.by)}`}
+                active={value === goalNeed.amount}
+                disabled={busy}
+                onPress={() => setAmountText(String(goalNeed.amount))}
+              />
+            )}
             {!assign && !isCreditCardPayment && !!lastMonthAssigned && (
               <QuickChip
                 label={`Last month · ${formatCurrency(lastMonthAssigned, hideAmounts)}`}

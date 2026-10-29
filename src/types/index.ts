@@ -92,6 +92,17 @@ export interface CategoryRow {
   since?: string
   /** Day (YYYY-MM-DD) weekly pacing was switched on. Absent means off. */
   weeklySince?: string
+  /** A savings goal on the envelope (src/lib/goal.ts). */
+  goal?: CategoryGoal
+  /** Free text the budget's people keep on the envelope (src/lib/noteRender.ts renders it). */
+  note?: string
+}
+
+/** `by` is a YYYY-MM month. `repeat: 'yearly'` rolls `by` a year on once it passes. */
+export interface CategoryGoal {
+  amount: number
+  by?: string
+  repeat?: 'yearly'
 }
 
 export interface CategoryMap {

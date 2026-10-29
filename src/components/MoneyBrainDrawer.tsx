@@ -334,7 +334,9 @@ export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onL
           ) : <span className="brain-orbit" aria-hidden="true"><BirdMark size={26} /></span>}
           <div className="brain-heading">
             <h2>{view === 'history' ? 'Chat history' : 'Ask Aviary'}</h2>
-            <p>{view === 'history' ? 'Pick up where you left off' : capture ? 'Type what you spent. Several at once is fine.' : brief.data ? `Reading ${brief.data.meta.txnCountThisMonth} transactions` : 'Reading your budget…'}</p>
+            <p>{view === 'history' ? 'Pick up where you left off' : capture ? 'Type what you spent. Several at once is fine.' : (
+              <span className="text-shimmer">{brief.data ? `Reading ${brief.data.meta.txnCountThisMonth} transactions` : 'Reading your budget…'}</span>
+            )}</p>
           </div>
           <div className="brain-head-actions">
             {view === 'chat' && (

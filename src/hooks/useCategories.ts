@@ -7,7 +7,7 @@ import {
   moveCategory,
   updateCategory,
 } from '@/src/api/categories'
-import type { CategoryRow } from '@/src/types'
+import type { CategoryGoal, CategoryRow } from '@/src/types'
 import { track } from '@/src/lib/analytics'
 import { budgetsKey } from './useBudgets'
 import { avatarStyleFor, splitEmoji } from '@/src/lib/emoji'
@@ -80,8 +80,8 @@ export function useCategoryStyle(): (category: string) => { background: string; 
 export function useAddCategory() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (params: { name: string; group?: string; icon?: string; color?: string }) =>
-      addCategory(params.name, params.group, params.icon, params.color),
+    mutationFn: (params: { name: string; group?: string; icon?: string; color?: string; goal?: CategoryGoal }) =>
+      addCategory(params.name, params.group, params.icon, params.color, params.goal),
     onSuccess: (_data, params) => {
       // Envelopes get created from two places: the setup wizard and the
       // inline "new category" row inside log-expense. $screen_name tells them
@@ -98,8 +98,10 @@ export function useAddCategory() {
 export function useUpdateCategory() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (params: { name: string; updates: { newName?: string; group?: string; icon?: string; color?: string; alertPcts?: number[] | null } }) =>
+    mutationFn: (params: { name: string; updates: { newName?: string; group?: string; icon?: string; color?: string; alertPcts?: number[] | null; goal?: CategoryGoal | null; note?: string | null; prevNote?: string } }) =>
       updateCategory(params.name, params.updates),
+    // A refused note write means the list is stale too.
+    onError: () => qc.invalidateQueries({ queryKey: key }),
     onSuccess: (_data, params) => {
       qc.invalidateQueries({ queryKey: key })
       // A rename moves the budget rows server-side, and the carry is keyed by

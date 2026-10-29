@@ -24,12 +24,13 @@ it('shows nothing when there is no auto-picked category', () => {
 
 it('says it is picking while thinking, then settles on "Picked for you"', async () => {
   const { rerender } = render(<AutoPickStatus thinking picked={null} rollIcons={rollIcons} />)
-  expect(screen.getByText(PICKING_LABEL)).toBeTruthy()
+  expect(screen.getByText(PICKING_LABEL)).toHaveClass('text-shimmer')
 
   rerender(<AutoPickStatus thinking={false} picked={groceries} rollIcons={rollIcons} />)
   // Still rolling down onto the answer.
   expect(screen.getByText(PICKING_LABEL)).toBeTruthy()
   await waitFor(() => expect(screen.getByText(PICKED_LABEL)).toBeTruthy(), SETTLE)
+  expect(screen.getByText(PICKED_LABEL)).not.toHaveClass('text-shimmer')
   await waitFor(() => expect(slotIcons()).toContain('ShoppingCart'), SETTLE)
 })
 

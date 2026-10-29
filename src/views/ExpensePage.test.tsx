@@ -9,7 +9,6 @@ import { getRecentExpenses } from '@/src/api/expenses'
 import { ExpensePage } from './ExpensePage'
 import { getBudgets, addBudget, updateBudget, transferBudget, getCarry } from '@/src/api/budgets'
 import { getUser } from '@/src/api/account'
-import { getBudgets as getSpaces } from '@/src/api/spaces'
 import { getRecurringIncomes } from '@/src/api/incomes'
 import { currentMonthKey, prevMonthKey, monthLabel } from '@/src/lib/envelope'
 
@@ -284,6 +283,8 @@ it('renders the finished home screen from a filled cache on the first render, an
 
   const html = renderToString(tree(filled()))
   expect(html).toContain('READY TO ASSIGN')
+  // ₹15,000 still waiting for a job: the hero keeps nudging.
+  expect(html).toContain('text-shimmer text-shimmer--nudge')
   expect(html).toContain('Envelope content')
   expect(html).not.toContain('erd-home-loading')
 
@@ -294,6 +295,13 @@ it('renders the finished home screen from a filled cache on the first render, an
   await act(async () => { hydrateRoot(container, tree(filled()), { onRecoverableError }) })
   expect(onRecoverableError).not.toHaveBeenCalled()
   container.remove()
+
+  // A read-only budget can't give the money a job, so nothing nudges.
+  const viewer = filled()
+  viewer.setQueryData(['spaces'], { count: 1, limit: 5, activeId: 'b1', budgets: [{ id: 'b1', name: 'Studio', emoji: '', role: 'member', ownerId: 'o1', currencyCode: 'INR', personal: true, readOnly: true, members: [] }] })
+  const viewerHtml = renderToString(tree(viewer))
+  expect(viewerHtml).toContain('READY TO ASSIGN')
+  expect(viewerHtml).not.toContain('text-shimmer--nudge')
 })
 
 it('names income in a pill under the hero that opens the income menu', async () => {
@@ -392,44 +400,67 @@ it('keeps a sidebar dialog opened while loading open once the dashboard arrives'
   client.clear()
 })
 
-it('says how far the plan is over what comes in, and offers the biggest plans to trim', async () => {
+
+it('turns Ready to Assign into a menu that funds behind goals in one tap', async () => {
+  const { getCategories } = await import('@/src/api/categories')
+  // Food's goal wants 8,000 by this month and has 5,000: it's 3,000 behind.
+  vi.mocked(getCategories).mockResolvedValue([{ name: 'Food', group: 'Essentials', goal: { amount: 8000, by: month } }])
   vi.mocked(getBudgets).mockResolvedValue([
     { month, category: '__income__', assigned: '20000', rolled_over: '0', version: 1 },
-    { month, category: 'Food', assigned: '25000', rolled_over: '0', version: 1 },
+    { month, category: 'Food', assigned: '5000', rolled_over: '0', version: 4 },
   ])
+  vi.mocked(updateBudget).mockResolvedValue(undefined)
   const client = renderPage()
-  expect(await screen.findByText('₹5,000 more planned than coming in')).toBeInTheDocument()
   const user = userEvent.setup()
-  await user.click(screen.getByRole('button', { name: 'Trim' }))
-  await user.click(await screen.findByRole('menuitem', { name: 'Food · ₹25,000' }))
-  expect(await screen.findByRole('dialog')).toBeInTheDocument()
+  await user.click(await screen.findByText('Give this ₹15,000 a job'))
+  await user.click(await screen.findByRole('menuitem', { name: 'Fund behind goals · ₹3,000' }))
+  await waitFor(() => expect(updateBudget).toHaveBeenCalledWith(month, 'Food', { assigned: '8000' }, 4))
+  expect(track).toHaveBeenCalledWith('rta_goals_funded', { goals: 1 })
   client.clear()
 })
 
-it('says nothing about trimming when the plan fits', async () => {
-  const client = renderPage()
-  await screen.findByRole('button', { name: 'Income · ₹20,000' })
-  expect(screen.queryByText(/more planned than coming in/)).not.toBeInTheDocument()
-  client.clear()
-})
-
-it('in a read-only budget, explains an over plan but offers no Trim', async () => {
-  vi.mocked(getSpaces).mockResolvedValue({ budgets: [{ id: 'space-1', name: 'Studio', personal: false, readOnly: true, members: [] }], activeId: 'space-1', deleted: [] } as never)
+it("takes back only what a category has left, never pushing it overspent", async () => {
+  const { getCategories } = await import('@/src/api/categories')
+  vi.mocked(getCategories).mockResolvedValue([{ name: 'Food', group: 'Essentials' }, { name: 'Rent', group: 'Essentials' }, { name: 'Travel', group: 'Essentials' }])
+  // Ready to Assign is -5,000. Rent is fully spent; Food has 3,000 left; Travel only has last month's carry, nothing assigned to lower.
+  vi.mocked(getCarry).mockResolvedValue({ ready_to_assign: 0, rolled_over: { Travel: 3000 } })
   vi.mocked(getBudgets).mockResolvedValue([
     { month, category: '__income__', assigned: '20000', rolled_over: '0', version: 1 },
-    { month, category: 'Food', assigned: '25000', rolled_over: '0', version: 1 },
+    { month, category: 'Rent', assigned: '20000', rolled_over: '0', version: 1 },
+    { month, category: 'Food', assigned: '5000', rolled_over: '0', version: 1 },
   ])
+  const row = (category: string, amount: string) => ({ timestamp: `${month}-02T10:00:00`, date: `${month}-02`, item: 'x', amount_inr: amount, category, notes: '', source: '', amount, description: '', payment_method: '' })
+  vi.mocked(getRecentExpenses).mockResolvedValue({ rows: [row('Rent', '20000'), row('Food', '2000')], lastSpent: {} } as never)
   const client = renderPage()
-  expect(await screen.findByText('₹5,000 more planned than coming in')).toBeInTheDocument()
-  await waitFor(() => expect(screen.queryByRole('button', { name: 'Trim' })).not.toBeInTheDocument())
+  const user = userEvent.setup()
+  await user.click(await screen.findByText('Take ₹5,000 back'))
+  expect(await screen.findByText('Take it back from')).toBeInTheDocument()
+  expect(screen.queryByRole('menuitem', { name: 'Rent' })).not.toBeInTheDocument()
+  expect(screen.queryByRole('menuitem', { name: 'Travel' })).not.toBeInTheDocument()
+  await user.click(screen.getByRole('menuitem', { name: 'Food' }))
+  const input = await waitFor(() => document.getElementById('assign-amount') as HTMLInputElement)
+  await waitFor(() => expect(input).toHaveValue('2000'))
+  expect(screen.getByText('Frees ₹3,000 back to Ready to Assign')).toBeInTheDocument()
   client.clear()
 })
 
-it('says nothing about over-planning when nothing is planned', async () => {
-  vi.mocked(getBudgets).mockResolvedValue([{ month, category: '__income__', assigned: '20000', rolled_over: '0', version: 1 }])
-  vi.mocked(getCarry).mockResolvedValue({ ready_to_assign: -25000, rolled_over: {} })
+it('offers to take money back when Ready to Assign is negative', async () => {
+  vi.mocked(getBudgets).mockResolvedValue([
+    { month, category: '__income__', assigned: '4000', rolled_over: '0', version: 1 },
+    { month, category: 'Food', assigned: '5000', rolled_over: '0', version: 1 },
+  ])
   const client = renderPage()
-  await screen.findByRole('button', { name: 'Income · ₹20,000' })
-  expect(screen.queryByText(/more planned than coming in/)).not.toBeInTheDocument()
+  const user = userEvent.setup()
+  await user.click(await screen.findByText('Take ₹1,000 back'))
+  expect(screen.queryByRole('menuitem', { name: /Fund behind goals/ })).not.toBeInTheDocument()
+  expect(await screen.findByText('Take it back from')).toBeInTheDocument()
+  vi.mocked(updateBudget).mockResolvedValue(undefined)
+  await user.click(screen.getByRole('menuitem', { name: 'Food' }))
+  // Already lowered by the 1,000 over, so Save takes it back without any math.
+  const input = await waitFor(() => document.getElementById('assign-amount') as HTMLInputElement)
+  await waitFor(() => expect(input).toHaveValue('4000'))
+  expect(screen.getByText('Frees ₹1,000 back to Ready to Assign')).toBeInTheDocument()
+  await user.click(screen.getByRole('button', { name: 'Save' }))
+  await waitFor(() => expect(updateBudget).toHaveBeenCalledWith(month, 'Food', { assigned: '4000' }, 1))
   client.clear()
 })

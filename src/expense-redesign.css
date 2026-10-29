@@ -670,6 +670,8 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  /* Match the 30px .erd-rta-icon tile so the row keeps its height when the label swaps. */
+  min-height: 30px;
   color: var(--mint);
   font-weight: 600;
 }
@@ -686,33 +688,40 @@
   color: var(--erd-text2);
 }
 
+/* Ready to Assign with a job to do: the number and its hint are one button. */
+.erd-home-hero-assign {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 16px 6px;
+  border: 0;
+  border-radius: 18px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+.erd-home-hero-assign:hover,
+.erd-home-hero-assign[data-popup-open] {
+  background: var(--erd-input-bg);
+}
+.erd-home-hero-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--erd-text);
+}
+.erd-home-hero-hint.is-negative {
+  color: var(--coral);
+}
 .erd-home-hero-caption {
   font-size: 13px;
   font-weight: 500;
   color: var(--erd-text2);
-}
-.erd-home-overplanned {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 6px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--coral);
-}
-.erd-home-trim {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--erd-text);
-  font: inherit;
-  font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  cursor: pointer;
 }
 .erd-home-income-pill {
   display: inline-flex;
@@ -6900,11 +6909,33 @@ button.account-feature-card {
   row-gap: 2px;
   column-gap: 0;
 }
-.date-picker-grid.is-next {
+.date-picker-grid.is-next,
+.month-picker-grid.is-next {
   animation: erd-date-monthNext 0.22s ease both;
 }
-.date-picker-grid.is-prev {
+.date-picker-grid.is-prev,
+.month-picker-grid.is-prev {
   animation: erd-date-monthPrev 0.22s ease both;
+}
+
+/* Month picker (goal deadlines): a year to step, twelve months to tap. */
+.month-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.month-picker-grid .date-picker-cell {
+  width: auto;
+  height: 36px;
+  border-radius: 12px;
+}
+.month-picker-grid .date-picker-cell:not(:disabled):hover {
+  background: var(--gold-soft);
+  color: var(--gold-ink);
+}
+.month-picker-grid .date-picker-cell.is-selected:hover {
+  background: var(--gold);
+  color: var(--erd-on-accent);
 }
 
 .date-picker-cell-wrap {
@@ -7271,7 +7302,7 @@ button.account-feature-card {
 
 .env-cat-alerts {
   display: inline-flex;
-  align-items: flex-start;
+  align-items: center;
   flex-shrink: 0;
   gap: 9px;
   white-space: nowrap;
@@ -7290,12 +7321,17 @@ button.account-feature-card {
 }
 
 .env-cat-alerts > svg {
-  margin-top: 10px;
+  flex: 0 0 auto;
 }
 
 .env-cat-alerts:hover {
   color: var(--gold-ink);
   border-color: var(--erd-border);
+}
+/* A goal's "Off for goals" is a label, not a button. */
+span.env-cat-alerts:hover {
+  color: var(--erd-text2);
+  border-color: transparent;
 }
 
 /* Match Activity's reading width, hierarchy, and category colors. */
@@ -7563,6 +7599,43 @@ button.account-feature-card {
   margin-top: 6px;
 }
 
+/* Add category: wider for the goal fields, and air above each section after the first. */
+.expense-redesign .erd-modal-card.env-sheet--add {
+  width: 480px;
+}
+.env-sheet--add .env-sheet-section-label:not(:first-of-type) {
+  margin-top: 10px;
+}
+.env-sheet--add .env-sheet-actions {
+  margin-top: 12px;
+}
+.env-sheet--add .date-picker-field {
+  border-radius: 10px;
+  padding: 7px 10px;
+}
+/* Goal amount: the currency glued to a plain input, same height as the name field. */
+.env-amount {
+  display: flex;
+  align-items: stretch;
+}
+.env-amount-symbol {
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  min-height: 40px;
+  background: var(--erd-input-bg);
+  border: 1px solid var(--erd-border-strong);
+  border-right: 0;
+  border-radius: 8px 0 0 8px;
+  color: var(--erd-text2);
+  font-size: 0.9rem;
+}
+.env-amount .env-input {
+  border-radius: 0 8px 8px 0;
+  min-height: 40px;
+  font-size: 0.95rem;
+}
+
 .expense-redesign .erd-modal-card.env-sheet--rename {
   width: 430px;
   gap: 0;
@@ -7660,6 +7733,30 @@ button.account-feature-card {
   line-height: 1.4;
 }
 
+/* Edit category's goal block, under the swatches. */
+.env-sheet-goal {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 22px;
+}
+.env-sheet--rename .env-sheet-goal .env-sheet-section-label {
+  margin: 0;
+}
+.env-sheet--rename .env-sheet-goal .env-sheet-section-label:not(:first-child) {
+  margin-top: 8px;
+}
+.env-sheet--rename .env-amount .env-input {
+  border-radius: 0 12px 12px 0;
+}
+.env-sheet--rename .env-amount-symbol {
+  border-radius: 12px 0 0 12px;
+  min-height: 48px;
+}
+.env-sheet--rename .date-picker-field {
+  border-radius: 12px;
+}
+
 .env-sheet--rename .env-sheet-actions {
   align-items: center;
   gap: 10px;
@@ -7731,6 +7828,7 @@ button.account-feature-card {
 .env-sheet--alerts .env-pct {
   height: 40px;
   padding: 0;
+  justify-content: center;
   font-weight: 600;
   transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
@@ -7793,11 +7891,17 @@ button.account-feature-card {
 
 .env-sheet--alerts .env-sheet-note {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 6px;
   margin-top: 16px;
   padding-top: 0;
   border-top: 0;
+  line-height: 1.4;
+}
+/* Sits on the first line of the note, not the centre of a wrapped one. */
+.env-sheet--alerts .env-sheet-note > svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
 }
 
 .env-sheet--alerts .env-sheet-actions {
@@ -12153,6 +12257,9 @@ button.account-feature-card {
   gap: 16px;
   padding: 20px 24px;
 }
+.home-learning.is-toggleable {
+  cursor: pointer;
+}
 .home-learning-head {
   display: flex;
   align-items: center;
@@ -12209,6 +12316,7 @@ button.account-feature-card {
 .home-learning-days li.is-on span {
   border-color: var(--gold);
   background: var(--gold);
+  color: #fff;
 }
 .home-learning-days li.is-today span {
   outline: 2px solid var(--gold);
@@ -15413,3 +15521,94 @@ button.account-feature-card {
 .referral-landing-code {
   font-weight: 600;
 }
+
+/* Savings goals on envelope rows (src/lib/goal.ts). The line sits under the
+   row, outside the menu button it can't nest buttons in; its actions are
+   inline text. */
+.env2-row.has-goal { flex-wrap: wrap; }
+.env2-goal-line {
+  flex-basis: 100%;
+  /* Lines up with the name, past the icon. */
+  padding-left: 25px;
+  margin-top: -4px;
+}
+.env2-goal-line.is-behind { color: var(--tk-pill-low); }
+.env2-goal-line.is-funded { color: var(--tk-pill-good); }
+.env2-goal-line.is-done { color: var(--erd-text3); }
+.env2-goal-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--gold-ink);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklab, var(--gold-ink) 40%, transparent);
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.env2-goal-link:hover:not(:disabled) { text-decoration-color: currentColor; }
+.env2-goal-link:disabled { cursor: default; opacity: 0.6; }
+.env2-goal-error { font-size: 12px; color: var(--tk-pill-over); }
+.goal-sheet-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  width: 100%;
+}
+/* Both buttons the submit's height; the footer's own gap, not the submit's margin. */
+.goal-sheet-actions .erd-log-submit { margin-top: 0; }
+.goal-sheet-actions .account-pill-btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+  align-self: stretch;
+  padding: 0 18px;
+  font-size: 13px;
+}
+
+/* Category notes (NoteSheet, and the row's glyph) */
+.env2-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+  color: var(--erd-text3);
+  cursor: pointer;
+}
+.env2-note:hover { color: var(--erd-text2); }
+.env2-note-count { font-size: 11px; font-variant-numeric: tabular-nums; }
+.erd-sub-card .note-textarea { height: auto; }
+.note-textarea .counted-textarea-input { min-height: 140px; }
+.note-read {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--erd-text);
+  overflow-wrap: anywhere;
+}
+.note-read.is-editable { cursor: text; }
+.note-line { margin: 0; white-space: pre-wrap; }
+.note-check { display: flex; align-items: flex-start; gap: 8px; cursor: pointer; }
+.note-check input { margin-top: 4px; accent-color: var(--mint); cursor: pointer; }
+.note-check.is-done > span { color: var(--erd-text3); text-decoration: line-through; }
+.note-chip {
+  display: inline-block;
+  padding: 0 6px;
+  border-radius: 6px;
+  background: var(--gold-soft);
+  color: var(--gold-ink);
+  font-weight: 500;
+}
+.note-chip.is-past { background: var(--warn-soft); color: var(--warn-ink); }
+.note-chip-when { font-weight: 400; opacity: 0.85; }
+.note-amount { font-weight: 600; color: var(--gold-ink); }
+.note-link { color: var(--gold-ink); text-decoration: underline; text-underline-offset: 2px; }
+.note-sum { margin: 8px 0 0; font-size: 13px; font-weight: 500; color: var(--erd-text2); }
+.note-sum.is-match { color: var(--mint); }
+.note-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+/* The picker's anchor: there for showPicker(), never seen. */
+.note-date-chip { position: relative; }
+.note-date-input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; pointer-events: none; }

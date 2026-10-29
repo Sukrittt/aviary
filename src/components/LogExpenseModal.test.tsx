@@ -27,7 +27,7 @@ vi.mock('../hooks/useExpenses', () => ({
 vi.mock('../api/categoryMap', () => ({ getCategoryMap: vi.fn(async () => ({ words: {}, updatedAt: '' })) }))
 vi.mock('../lib/autoCategory', () => ({ suggestCategoryLLM: vi.fn() }))
 vi.mock('../hooks/useUser', () => ({ useHiddenFeatures: () => [] }))
-vi.mock('../hooks/useGroups', () => ({ useGroups: () => ({ data: ['Food', 'Home'] }), useGroupIcons: () => new Map() }))
+vi.mock('../hooks/useGroups', () => ({ useGroups: () => ({ data: ['Food', 'Home'] }), useGroupIcons: () => new Map(), useAddGroup: () => ({ mutateAsync: vi.fn() }) }))
 vi.mock('../hooks/useCategories', () => ({
   useAddCategory: () => ({ mutateAsync: addCategoryMutation }),
   useCategories: () => ({ data: [{ name: 'Groceries' }, { name: 'Rent' }, { name: 'Eating out' }] }),

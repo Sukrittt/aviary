@@ -1,5 +1,5 @@
-import { apiFetch, apiErrorMessage } from './client'
-import type { CategoryRow } from '@/src/types'
+import { apiFetch, apiErrorMessage, HttpError } from './client'
+import type { CategoryGoal, CategoryRow } from '@/src/types'
 import { BUCKETS, type Bucket, type BucketTags } from '@/src/lib/budgetSplit'
 
 export async function getCategories(): Promise<CategoryRow[]> {
@@ -8,25 +8,25 @@ export async function getCategories(): Promise<CategoryRow[]> {
   return resp.json()
 }
 
-export async function addCategory(name: string, group = '', icon?: string, color?: string): Promise<void> {
+export async function addCategory(name: string, group = '', icon?: string, color?: string, goal?: CategoryGoal): Promise<void> {
   const resp = await apiFetch('/api/categories', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, group, icon, color }),
+    body: JSON.stringify({ name, group, icon, color, goal }),
   })
   if (!resp.ok) throw new Error(await apiErrorMessage(resp, 'Failed to add category'))
 }
 
 export async function updateCategory(
   name: string,
-  updates: { newName?: string; group?: string; icon?: string; color?: string; alertPcts?: number[] | null; weeklySince?: string | null },
+  updates: { newName?: string; group?: string; icon?: string; color?: string; alertPcts?: number[] | null; weeklySince?: string | null; goal?: CategoryGoal | null; note?: string | null; prevNote?: string },
 ): Promise<void> {
   const resp = await apiFetch('/api/categories', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name, ...updates }),
   })
-  if (!resp.ok) throw new Error(await apiErrorMessage(resp, 'Failed to update category'))
+  if (!resp.ok) throw new HttpError(resp.status, await apiErrorMessage(resp, 'Failed to update category'))
 }
 
 export async function deleteCategory(name: string): Promise<void> {

@@ -1,12 +1,13 @@
 "use client";
 
 import { useCurrency } from "@/src/context/CurrencyContext";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence } from "motion/react";
 import { useRouter } from "next/navigation";
-import { ArrowLeftIcon, CaretLeftIcon, CaretRightIcon, GearIcon, HouseIcon, InvoiceIcon, MoonIcon, SunIcon, TrendDownIcon, TrendUpIcon } from "@/src/components/icons";
+import { ArrowLeftIcon, CaretLeftIcon, CaretRightIcon, GearIcon, HouseIcon, InvoiceIcon, MoonIcon, SunIcon, TrendDownIcon, TrendUpIcon, XIcon } from "@/src/components/icons";
 import { CategoryIcon } from "@/src/components/CategoryIcon";
+import { BirdMark, BirdThinking } from "@/src/components/BirdMark";
 import { useAppearance } from "@/components/AppearanceProvider";
 import { ExpenseSidebar } from "@/src/components/ExpenseSidebar";
 import { InsightsSkeleton } from "@/src/components/TabSkeleton";
@@ -40,9 +41,13 @@ import {
   leftoverFor,
   monthComparison,
   monthTotals,
+  risingCategories,
   savingsTrend,
+  spikeFor,
+  spikeCause,
   withDelta,
 } from "@/src/lib/monthly";
+import { streamSpikeExplanation } from "@/src/api/ai";
 import { EMPTY } from "@/src/lib/constants";
 import { BirdEmptyState } from "@/src/components/BirdEmptyState";
 import { InsightsTab } from "@/src/components/InsightsTab";
@@ -104,11 +109,16 @@ export function InsightsPage() {
   const [incomeMonth, setIncomeMonth] = useState<string | null>(null);
   const [topUp, setTopUp] = useState<{ category: string; amount: number } | null>(null);
 
-  const scopeRef = useRef(`${insightMonth}|${breakdownMode}`);
-  const scope = `${insightMonth}|${breakdownMode}`;
-  if (scopeRef.current !== scope) {
-    scopeRef.current = scope;
-    if (selectedBreakdownKey != null) setSelectedBreakdownKey(null);
+  // The selection survives a month change, so tapping another month on the
+  // category's trend keeps the whole page on that category. A new mode drops
+  // it: a category key means nothing as a group.
+  function changeBreakdownMode(mode: "category" | "group") {
+    setBreakdownMode(mode);
+    setSelectedBreakdownKey(null);
+  }
+  function selectCategory(category: string) {
+    setBreakdownMode("category");
+    setSelectedBreakdownKey(category);
   }
 
   // Same rule ForecastCard renders by, so its bones don't vanish on load.
@@ -148,12 +158,17 @@ export function InsightsPage() {
     [currentMonth],
   );
   const trendData: TrendPoint[] = useMemo(() => {
-    const totals = monthTotals(expenses, trendMonths);
+    const totals = monthTotals(
+      selectedBreakdownKey ? expenses.filter((expense) => matchesSelection(expense.category)) : expenses,
+      trendMonths,
+    );
     const points = trendMonths.map((date) => ({ date, value: totals.get(date) ?? 0 }));
     // Start at the first month with spend; later empty months stay as gaps.
     const first = points.findIndex((point) => point.value > 0);
     return first === -1 ? [] : points.slice(first);
-  }, [expenses, trendMonths]);
+    // matchesSelection closes over the selection and category mapping listed below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expenses, trendMonths, selectedBreakdownKey, breakdownMode, categoryGroupMap]);
 
   // Full history (Insights loads every expense), so the running total is exact.
   const savings = useMemo(
@@ -180,7 +195,43 @@ export function InsightsPage() {
     const done = savedData.filter((point) => !point.missing && point.date < currentMonth);
     return done.length >= 2 ? done.reduce((sum, point) => sum + point.value, 0) / done.length : null;
   }, [savedData, currentMonth]);
-  const showSaved = trendView === "saved";
+  const showSaved = trendView === "saved" && !selectedBreakdownKey;
+  // A selection's own average: its finished months in view, like savedBaseline.
+  const selectionBaseline = useMemo(() => {
+    const done = trendData.filter((point) => point.date < currentMonth);
+    return done.length >= 2 ? done.reduce((sum, point) => sum + point.value, 0) / done.length : null;
+  }, [trendData, currentMonth]);
+  const rising = useMemo(
+    () => risingCategories(expenses, insightMonth, today),
+    [expenses, insightMonth, today],
+  );
+  const selectedSpike = useMemo(
+    () =>
+      breakdownMode === "category" && selectedBreakdownKey
+        ? spikeFor(expenses, selectedBreakdownKey, insightMonth, today)
+        : null,
+    [expenses, breakdownMode, selectedBreakdownKey, insightMonth, today],
+  );
+  // Keeps the last spike on screen while its panel folds away.
+  // Its month travels with it, so a fold after a month change still labels the old figures right.
+  const [shown, setShown] = useState(selectedSpike && { spike: selectedSpike, month: insightMonth });
+  if (selectedSpike && (selectedSpike !== shown?.spike || insightMonth !== shown.month)) setShown({ spike: selectedSpike, month: insightMonth });
+  const shownSpike = shown?.spike ?? null;
+  const shownMonth = shown?.month ?? insightMonth;
+  const spikeKey = shownSpike ? `${shownSpike.category}|${shownMonth}|${shownSpike.spent}` : null;
+  // Streamed replies, kept per spike for the session so going back to one shows it again.
+  const [explained, setExplained] = useState<Record<string, { text: string; status: "streaming" | "done" | "error" | "none" }>>({});
+  const explanation = spikeKey ? explained[spikeKey] : undefined;
+  const explain = () => {
+    if (!shownSpike || !spikeKey) return;
+    const key = spikeKey;
+    const put = (status: "streaming" | "done" | "error" | "none", delta = "") =>
+      setExplained((all) => ({ ...all, [key]: { text: (all[key]?.text ?? "") + delta, status } }));
+    put("streaming");
+    streamSpikeExplanation(shownSpike.category, shownMonth, (delta) => put("streaming", delta))
+      .then((rising) => put(rising ? "done" : "none"))
+      .catch(() => put("error"));
+  };
 
   const comparison = useMemo(
     () => monthComparison(expenses, insightMonth, today),
@@ -375,6 +426,10 @@ export function InsightsPage() {
 
   const selectedRow =
     breakdownRows.find((row) => row.key === selectedBreakdownKey) ?? null;
+  // Still named in a month the selection didn't spend in, where it has no row.
+  const selectedLabel = selectedBreakdownKey
+    ? selectedRow?.label ?? splitEmoji(selectedBreakdownKey).text
+    : null;
   const back = monthsBack(insightMonth, currentMonth);
   const canGoPrevious = insightMonth > earliestMonth;
   const canGoNext = insightMonth < currentMonth;
@@ -474,7 +529,7 @@ export function InsightsPage() {
               >
                 <div className="ins-card-heading">
                   <div>
-                    <h2>{showSaved ? "Saved per month" : "Spending trend"}</h2>
+                    <h2 key={selectedLabel ?? (showSaved ? "saved" : "all")} className="ins-heading-swap">{selectedLabel ?? (showSaved ? "Saved per month" : "Spending trend")}</h2>
                     <p>
                       {showSaved && savings.since && savings.since < currentMonth
                         ? `${formatCurrency(savings.total, hideAmounts)} saved since ${monthLabel(savings.since)}`
@@ -482,6 +537,37 @@ export function InsightsPage() {
                     </p>
                   </div>
                   <div className="ins-head-actions">
+                    {selectedLabel ? (
+                      <button
+                        type="button"
+                        className="ins-clear-chip"
+                        onClick={() => setSelectedBreakdownKey(null)}
+                        aria-label={`Show all spending, not just ${selectedLabel}`}
+                      >
+                        All spending
+                        <XIcon size={12} aria-hidden />
+                      </button>
+                    ) : (
+                    <>
+                    {!showSaved && rising.length > 0 && (
+                      <div className="ins-rising" aria-label={`Rising in ${monthAbbrev(insightMonth)}`}>
+                        {rising.map((spike) => (
+                          <button
+                            key={spike.category}
+                            type="button"
+                            className="ins-rising-chip"
+                            onClick={() => selectCategory(spike.category)}
+                            title={`${formatCurrency(Math.round(spike.spent), hideAmounts)} vs ${formatCurrency(Math.round(spike.baseline), hideAmounts)} usually`}
+                          >
+                            <span className="ins-top-icon" style={styleOf(spike.label)}>
+                              <CategoryIcon name={spike.category} icon={categoryIcons.get(spike.category)} group={categoryGroupMap.get(spike.category)} />
+                            </span>
+                            {spike.label}
+                            <span className="ins-rising-pct">+{Math.round(spike.deltaPct)}%</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                     {!showSaved &&
                       trendSummary?.kind === "compare" &&
                       trendSummary.deltaPct != null && (
@@ -516,6 +602,8 @@ export function InsightsPage() {
                         Saved
                       </button>
                     </div>
+                    </>
+                    )}
                   </div>
                 </div>
                 {showSaved ? (
@@ -544,14 +632,73 @@ export function InsightsPage() {
                 ) : (
                   <TrendChart
                     data={trendData}
-                    baseline={comparison.baseline}
+                    baseline={selectedBreakdownKey ? selectionBaseline : comparison.baseline}
                     selectedKey={insightMonth}
                     hideAmounts={hideAmounts}
                     onSelect={setInsightMonth}
                     partialKey={currentMonth}
                     partialNote={`${monthAbbrev(currentMonth)}, ${Number(today.slice(8, 10))} days in`}
+                    ariaLabel={selectedLabel ? `${selectedLabel} spending over the last 12 months` : undefined}
                   />
                 )}
+                <div className={`ins-spike-fold${selectedSpike ? " is-open" : ""}`} aria-hidden={!selectedSpike} inert={!selectedSpike}>
+                  <div className="ins-spike-clip">
+                    {shownSpike && (() => {
+                      const money = (amount: number) => formatCurrency(Math.round(amount), hideAmounts)
+                      const { why, fresh } = spikeCause(shownSpike, money)
+                      const isNow = shownMonth === currentMonth
+                      return (
+                        <div className="ins-spike">
+                          <div className="ins-spike-main">
+                            <div className="ins-spike-head">
+                              <span className="ins-spike-title">{shownSpike.label} is up</span>
+                              <span className="ins-spike-pct">+{Math.round(shownSpike.deltaPct)}%</span>
+                            </div>
+                            <div className="ins-spike-stats">
+                              <div>
+                                <strong>{money(shownSpike.spent)}</strong>
+                                <span>{isNow ? "This month so far" : monthLabel(shownMonth)}</span>
+                              </div>
+                              <div>
+                                <strong>{money(shownSpike.baseline)}</strong>
+                                <span>{isNow ? `Usual by day ${Number(today.slice(8, 10))}` : "Usual month"}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="ins-spike-side">
+                            <div className="ins-spike-fact">
+                              <span>Why it&apos;s up</span>
+                              <p>{why}</p>
+                            </div>
+                            {fresh.length > 0 && (
+                              <div className="ins-spike-fact">
+                                <span>New</span>
+                                <p>{fresh.join(", ")}</p>
+                              </div>
+                            )}
+                            {!explanation ? (
+                              <button type="button" className="ins-spike-explain" onClick={explain}>
+                                Explain with AI
+                              </button>
+                            ) : explanation.status === "error" ? (
+                              <p className="ins-spike-error">Couldn&apos;t explain right now. Try again later.</p>
+                            ) : explanation.text ? (
+                              <div className="ins-spike-ai" role="status" aria-busy={explanation.status === "streaming"}>
+                                <span className="ins-spike-ai-by"><BirdMark size={26} /> Aviary</span>
+                                <p>{explanation.text}</p>
+                              </div>
+                            ) : explanation.status === "streaming" ? (
+                              <div className="ins-spike-thinking" role="status">
+                                <BirdThinking size={30} />
+                                <span>Reading your {shownSpike.label.toLowerCase()} spends…</span>
+                              </div>
+                            ) : null}
+                          </div>
+                        </div>
+                      )
+                    })()}
+                  </div>
+                </div>
               </article>
 
               <div className="ins-left-col">
@@ -571,8 +718,8 @@ export function InsightsPage() {
                   <div className="ins-card-heading ins-heatmap-heading">
                     <div>
                       <h2>
-                        {selectedRow
-                          ? `Daily spend · ${selectedRow.label}`
+                        {selectedLabel
+                          ? `Daily spend · ${selectedLabel}`
                           : "Daily spend"}
                       </h2>
                       {heatmap.caption && <p>{heatmap.caption}</p>}
@@ -612,8 +759,8 @@ export function InsightsPage() {
                   groupRows={groupRows}
                   categoryGroupMap={categoryGroupMap}
                   mode={breakdownMode}
-                  onModeChange={setBreakdownMode}
-                  selectedKey={selectedBreakdownKey}
+                  onModeChange={changeBreakdownMode}
+                  selectedKey={selectedRow ? selectedBreakdownKey : null}
                   onSelectKey={setSelectedBreakdownKey}
                   comparison={comparison}
                   leftover={leftover}
@@ -627,9 +774,7 @@ export function InsightsPage() {
                   <div>
                     <h2>Biggest spends</h2>
                     <p>
-                      {selectedRow
-                        ? selectedRow.label
-                        : monthLabel(insightMonth)}
+                      {selectedLabel ?? monthLabel(insightMonth)}
                     </p>
                   </div>
                   <Link href="/expense/transactions" className="erd-manage-btn ins-view-all">

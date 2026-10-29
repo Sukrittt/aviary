@@ -56,7 +56,7 @@ describe('insights chart primitives', () => {
     expect(positive).not.toHaveClass('is-negative')
     // Positive bar ends at the zero line; negative bar starts there.
     const zeroY = Number(zero.getAttribute('y1'))
-    expect(Number(positive.getAttribute('y')) + Number(positive.getAttribute('height'))).toBeCloseTo(zeroY)
+    expect(Number(positive.getAttribute('y')) + parseFloat(positive.getAttribute('height')!)).toBeCloseTo(zeroY)
     expect(Number(negative.getAttribute('y'))).toBeCloseTo(zeroY)
   })
 

@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { AddIncomeScreen, AssignMoneyScreen, EditAssignedScreen, EditMonthIncomeScreen, EditReadyToAssignScreen, MoveMoneyScreen } from './MoneyScreens'
 import userEvent from '@testing-library/user-event'
-import { currentMonthKey } from '../lib/envelope'
+import { currentMonthKey, shiftMonthKey } from '../lib/envelope'
+import { shortMonth } from '../lib/goal'
 import { BudgetWriteError } from '../lib/budgetConflict'
 
 const mocks = vi.hoisted(() => ({ fresh: vi.fn(), update: vi.fn(), add: vi.fn(), transfer: vi.fn(), addIncome: vi.fn(), updateIncome: vi.fn(), budgetsLoading: false, carryError: false, accounts: [] as { id: string; name: string; type: string; archived: boolean; created_at: string }[], budgets: [] as {month: string; category: string; assigned: string; rolled_over: string; extra?: string; version: number}[] }))
@@ -17,7 +18,8 @@ vi.mock('../hooks/useBudgets', () => ({
 const spaces = vi.hoisted(() => ({ readOnly: false }))
 vi.mock('../hooks/useSpaces', () => ({ useSpaces: () => ({ readOnly: spaces.readOnly, active: undefined }) }))
 vi.mock('../hooks/useExpenses', () => ({ useRecentExpenses: () => ({ data: [] }) }))
-vi.mock('../hooks/useCategories', () => ({ useCategories: () => ({ data: [{ name: 'Food', group: 'Home' }, { name: 'Rent', group: 'Home' }] }) }))
+const cats = vi.hoisted(() => ({ rows: [] as { name: string; group: string; goal?: { amount: number; by?: string } }[] }))
+vi.mock('../hooks/useCategories', () => ({ useCategories: () => ({ data: cats.rows }) }))
 vi.mock('../hooks/useGroups', () => ({ useGroups: () => ({ data: ['Home'] }), useGroupIcons: () => new Map() }))
 vi.mock('../hooks/useHideAmounts', () => ({ useHideAmounts: () => [false] }))
 vi.mock('../hooks/useIncomes', () => ({ useAddIncome: () => ({ mutateAsync: mocks.addIncome }), useUpdateIncome: () => ({ mutateAsync: mocks.updateIncome }) }))
@@ -34,6 +36,7 @@ beforeEach(() => {
   mocks.accounts = []
   mocks.budgetsLoading = false
   mocks.carryError = false
+  cats.rows = [{ name: 'Food', group: 'Home' }, { name: 'Rent', group: 'Home' }]
   spaces.readOnly = false
   mocks.budgets = [['__income__', '2000'], ['Food', '100'], ['Rent', '500']].map(([category, assigned]) => ({ month: currentMonthKey(), category, assigned, rolled_over: '0', version: 3 }))
 })
@@ -76,6 +79,23 @@ describe('money screens', () => {
     expect((screen.getByRole('textbox', { name: 'Amount' }) as HTMLInputElement).value).toContain('750')
   })
 
+  it('quick-opens on the sources with Ready to Assign picked for the amount', async () => {
+    render(<MoveMoneyScreen targetCategory="Food" amount={100} quick onClose={vi.fn()} />)
+    // Straight to the sources, Ready to Assign already covering it.
+    expect(screen.queryByRole('textbox', { name: 'Amount' })).not.toBeInTheDocument()
+    expect(screen.getByText('From')).toBeInTheDocument()
+    expect(screen.getByText(/You're all covered/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /^Move ₹/ }))
+    await waitFor(() => expect(mocks.transfer).toHaveBeenCalledWith({ month: currentMonthKey(), to: 'Food', sources: [{ category: '__ready_to_assign__', amount: 100 }] }))
+  })
+
+  it('quick-opens with the rest still to pick when Ready to Assign is short', () => {
+    render(<MoveMoneyScreen targetCategory="Food" amount={1500} quick onClose={vi.fn()} />)
+    // 1,400 ready: picked in full, 100 left to find elsewhere.
+    expect(screen.getByRole('button', { name: '₹100 more to allocate' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /Rent.*Available/ })).toBeInTheDocument()
+  })
+
   it('submits a decimal transfer from multiple sources exactly', async () => {
     openSources('1500.25')
     fireEvent.click(screen.getByRole('button', { name: 'Auto-fill' }))
@@ -87,16 +107,16 @@ describe('money screens', () => {
 
   it('hides the other sources once the transfer is fully covered', async () => {
     openSources('100')
-    fireEvent.click(screen.getByRole('button', { name: /Ready to Assign.*AVAILABLE/ }))
-    await waitFor(() => expect(screen.queryByRole('button', { name: /Rent.*AVAILABLE/ })).not.toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: /Ready to Assign.*Available/ }))
+    await waitFor(() => expect(screen.queryByRole('button', { name: /Rent.*Available/ })).not.toBeInTheDocument())
     expect(screen.getByText(/You're all covered/)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Remove' }))
-    expect(screen.getByRole('button', { name: /Rent.*AVAILABLE/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Rent.*Available/ })).toBeInTheDocument()
   })
 
   it('preserves cents when editing a source allocation', async () => {
     openSources('100.25')
-    fireEvent.click(screen.getByRole('button', { name: /Ready to Assign.*AVAILABLE/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Ready to Assign.*Available/ }))
     fireEvent.change(screen.getByLabelText('Amount from Ready to Assign'), { target: { value: '50.25' } })
     expect(screen.getByLabelText('Amount from Ready to Assign')).toHaveValue('50.25')
     fireEvent.change(screen.getByLabelText('Amount from Ready to Assign'), { target: { value: '100.25' } })
@@ -107,11 +127,21 @@ describe('money screens', () => {
   it('allows typing a decimal source amount character by character', async () => {
     const user = userEvent.setup()
     openSources('100.25')
-    fireEvent.click(screen.getByRole('button', { name: /Ready to Assign.*AVAILABLE/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Ready to Assign.*Available/ }))
     const input = screen.getByLabelText('Amount from Ready to Assign')
     await user.clear(input)
     await user.type(input, '50.25')
     expect(input).toHaveValue('50.25')
+  })
+
+  it('offers a goal\'s monthly amount as a pick', async () => {
+    // 1,200 by two months from now, nothing from before: 400 a month, this one included.
+    const by = shiftMonthKey(currentMonthKey(), 2)
+    cats.rows = [{ name: 'Food', group: 'Home', goal: { amount: 1200, by } }]
+    render(<EditAssignedScreen category="Food" onClose={vi.fn()} />)
+    fireEvent.click(screen.getByRole('button', { name: `₹400 makes it by ${shortMonth(by)}` }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(mocks.update).toHaveBeenCalledWith({ month: currentMonthKey(), category: 'Food', version: 3, updates: { assigned: '400' } }))
   })
 
   it('shows the money freed when an assignment is cleared', async () => {

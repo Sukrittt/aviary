@@ -49,7 +49,13 @@ export function LearningCard() {
       animate={{ height: 'auto', opacity: 1, marginBottom: 0 }}
       transition={{ duration: reduceMotion ? 0 : 0.4, ease: [0.22, 1, 0.36, 1] }}
     >
-      <article className="erd-card home-learning" aria-label="We're learning your habits">
+      {/* The whole card toggles the week; the caret button's click bubbles up
+          here, so it stays the keyboard and screen reader handle. */}
+      <article
+        className={`erd-card home-learning${lastDay ? '' : ' is-toggleable'}`}
+        aria-label="We're learning your habits"
+        onClick={lastDay ? undefined : () => setCollapsed(!collapsed)}
+      >
         <div className="home-learning-head">
           <span className="home-learning-bird"><BirdMark size={40} /></span>
           <div>
@@ -60,7 +66,6 @@ export function LearningCard() {
             <button
               type="button"
               className="env2-icon-btn home-learning-toggle"
-              onClick={() => setCollapsed(!collapsed)}
               aria-expanded={!collapsed}
               aria-label={collapsed ? 'Show the week' : 'Hide the week'}
               title={collapsed ? 'Show the week' : 'Hide the week'}

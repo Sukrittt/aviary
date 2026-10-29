@@ -15,7 +15,7 @@ export function ConfirmDialog({
   children,
 }: {
   title: string
-  body?: string
+  body?: ReactNode
   cancelLabel: string
   onCancel: () => void
   busy?: boolean
@@ -25,7 +25,7 @@ export function ConfirmDialog({
     <Scrim className="erd-modal-overlay" onClick={() => { if (!busy) onCancel() }}>
       <Sheet className="erd-modal-card archive-confirm" role="alertdialog" aria-modal="true" aria-busy={busy || undefined} aria-label={title} onClick={(e) => e.stopPropagation()}>
         <h3 className="archive-confirm-title">{title}</h3>
-        {body && <p className="account-row-meta">{body}</p>}
+        {body && (typeof body === 'string' ? <p className="account-row-meta">{body}</p> : body)}
         <div className="archive-confirm-actions">
           <button type="button" className="account-pill-btn" onClick={onCancel} disabled={busy}>
             {cancelLabel}

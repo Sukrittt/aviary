@@ -5,7 +5,9 @@ import { invalidate } from '@/lib/cache'
 import { withTx } from '@/lib/mongodb'
 import { isCategoryIconKey } from '@/src/lib/categoryIcons'
 import { isCategoryColor } from '@/src/lib/categoryColors'
-import { createCategory } from '@/lib/categories'
+import { createCategory, readGoal, storeGoal } from '@/lib/categories'
+import { parseGoal, validText } from '@/lib/inputValidation'
+import type { CategoryGoal } from '@/src/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -43,6 +45,8 @@ export async function GET(req: Request) {
         ...(Array.isArray(d.alertPcts) ? { alertPcts: d.alertPcts } : {}),
         ...(typeof d.since === 'string' ? { since: d.since } : {}),
         ...(isDay(d.weeklySince) ? { weeklySince: d.weeklySince } : {}),
+        ...(readGoal(d.goal) ? { goal: readGoal(d.goal) } : {}),
+        ...(typeof d.note === 'string' && d.note ? { note: d.note } : {}),
       }))
       .filter((c) => c.name),
   )
@@ -59,12 +63,15 @@ export async function POST(req: Request) {
   if (!body.name) return error('name required')
   if (body.icon !== undefined && !isCategoryIconKey(body.icon)) return error('unknown icon')
   if (body.color !== undefined && !isCategoryColor(body.color)) return error('unknown color')
+  const goal = body.goal === undefined ? undefined : parseGoal(body.goal)
+  if (goal === null) return error('invalid goal')
 
   const created = await createCategory(auth, {
     name: String(body.name),
     group: String(body.group ?? ''),
     ...(body.icon !== undefined ? { icon: body.icon } : {}),
     ...(body.color !== undefined ? { color: body.color } : {}),
+    ...(goal ? { goal } : {}),
   })
   if (created === 'exists') return error('category already exists', 409)
   return json({ ok: true })
@@ -96,6 +103,25 @@ export async function PUT(req: Request) {
   if (body.color !== undefined && !isCategoryColor(body.color)) return error('unknown color')
   // The client's own calendar day, so Monday's recap counts weeks in its time zone.
   if (body.weeklySince !== undefined && body.weeklySince !== null && !isDay(body.weeklySince)) return error('weeklySince must be a YYYY-MM-DD day or null')
+  // Only a body that names `goal` touches it. Mobile's renames, moves and
+  // alert changes send just their own fields, so they leave a goal alone.
+  // `null` removes the goal; undefined leaves it.
+  let goal: CategoryGoal | null | undefined
+  if (body.goal === null) goal = null
+  else if (body.goal !== undefined) {
+    goal = parseGoal(body.goal)
+    if (!goal) return error('invalid goal')
+  }
+  // Same rule as `goal`: only a body naming `note` touches it. Blank clears it.
+  let note: string | null | undefined
+  if (body.note === null) note = null
+  else if (body.note !== undefined) {
+    // The editor stops at 2000; the headroom is for ticks, which turn `- item` into `[x] item`.
+    if (!validText(body.note, 3000, true)) return error('note must be at most 3000 characters')
+    note = body.note.trim() || null
+  }
+  // The copy the write was made from, so one member's tick can't wipe another's edit. Optional: Mobile doesn't send it yet.
+  if (body.prevNote !== undefined && body.prevNote !== null && typeof body.prevNote !== 'string') return error('prevNote must be text')
 
   const coll = await getCollection('categories', auth)
   const budgetColl = await getCollection('budgets', auth)
@@ -112,6 +138,9 @@ export async function PUT(req: Request) {
     renamed = await withTx(async (session) => {
       const existing = await coll.findOne({ name: String(body.name) }, { session })
       if (!existing) throw new CategoryWriteError(404, 'category not found')
+      if (note !== undefined && body.prevNote !== undefined && (existing.note ?? '') !== (body.prevNote ?? '')) {
+        throw new CategoryWriteError(409, 'note changed')
+      }
 
       let effectiveName = String(body.name)
       let didRename = false
@@ -159,6 +188,14 @@ export async function PUT(req: Request) {
         await coll.updateOne({ name: effectiveName }, { $unset: { weeklySince: '' } }, { session })
       } else if (body.weeklySince !== undefined) {
         await coll.updateOne({ name: effectiveName }, { $set: { weeklySince: body.weeklySince } }, { session })
+      }
+
+      // Null, not $unset: lib/scoped.ts refuses $unset on an encrypted field.
+      if (goal !== undefined) {
+        await coll.updateOne({ name: effectiveName }, { $set: { goal: goal && storeGoal(goal) } }, { session })
+      }
+      if (note !== undefined) {
+        await coll.updateOne({ name: effectiveName }, { $set: { note } }, { session })
       }
 
       if (body.alertPcts === null) {

@@ -30,3 +30,12 @@ export function expenseInputError(input: Record<string, unknown>, partial = fals
   if (input.client_id !== undefined && !validText(input.client_id, 200)) return 'invalid client id'
   return null
 }
+/** A category's savings goal from a client, normalised, or null if it isn't one. `repeat` needs a `by`. */
+export function parseGoal(value: unknown): { amount: number; by?: string; repeat?: 'yearly' } | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const { amount, by, repeat } = value as Record<string, unknown>
+  if (!validMoney(amount) || Number(amount) <= 0) return null
+  if (by !== undefined && !validMonth(by)) return null
+  if (repeat !== undefined && (repeat !== 'yearly' || by === undefined)) return null
+  return { amount: Number(amount), ...(by !== undefined ? { by } : {}), ...(repeat !== undefined ? { repeat } : {}) }
+}

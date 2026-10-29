@@ -516,7 +516,7 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-  padding: 6px 10px;
+  padding: 8px 12px;
   border: 1px solid transparent;
   border-radius: 15px;
   background: transparent;
@@ -526,15 +526,18 @@
   transition: background 160ms ease, border-color 160ms ease, opacity 160ms ease;
 }
 
-.ins-breakdown-row:hover,
-.ins-breakdown-row.is-selected {
-  border-color: var(--erd-border);
+.ins-breakdown-row:hover {
   background: var(--erd-input-bg);
+}
+
+.ins-breakdown-row.is-selected {
+  border-color: color-mix(in oklab, var(--row-color, var(--erd-border)) 35%, transparent);
+  background: color-mix(in oklab, var(--row-color, var(--erd-card)) 8%, var(--erd-card));
 }
 
 .ins-breakdown-row:has(~ .is-selected):not(.is-selected),
 .ins-breakdown-list:has(.is-selected) .ins-breakdown-row:not(.is-selected) {
-  opacity: 0.5;
+  opacity: 0.6;
 }
 
 .ins-row-top {
@@ -602,7 +605,7 @@
 }
 
 .ins-breakdown-row a {
-  margin-top: 4px;
+  margin-top: 8px;
   color: var(--gold-ink);
   font-size: 12px;
   font-weight: 600;
@@ -925,6 +928,10 @@
 }
 
 @media (max-width: 600px) {
+  .ins-trend-card .ins-card-heading { flex-wrap: wrap; }
+  .ins-trend-card .ins-head-actions { flex-wrap: wrap; width: 100%; }
+  .ins-trend-card .ins-segmented { margin-left: auto; }
+  .ins-trend-card .ins-rising { order: 1; width: 100%; }
   .ins-heatmap-heading { align-items: flex-start; }
   .ins-heatmap-heading .ins-segmented { flex: none; }
   .ins-trend-svg { height: 205px; }
@@ -938,8 +945,13 @@
   .ins-trend-bar,
   .ins-trend-baseline,
   .ins-heatmap-cell,
-  .ins-filter-dialog {
+  .ins-filter-dialog,
+  .ins-heading-swap {
     animation: none !important;
+  }
+  .ins-spike-fold,
+  .ins-spike > * {
+    transition: none !important;
   }
 }
 
@@ -1050,3 +1062,210 @@
   padding: 12px 8px;
 }
 .expense-redesign .home-forecast-warning button:focus-visible { outline: 2px solid var(--tk-accent-ink); outline-offset: 3px; }
+
+/* Category trends: rising strip, the selection's clear chip, and the "why" under its bars. */
+/* Stretched so the chips stand as tall as the Spending/Saved toggle beside them. */
+.ins-rising {
+  display: flex;
+  flex-wrap: wrap;
+  align-self: stretch;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.ins-rising-chip,
+.ins-clear-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px 3px 5px;
+  border: 1px solid var(--erd-border);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.ins-rising-chip:hover,
+.ins-clear-chip:hover { border-color: var(--erd-border-strong); }
+
+.ins-rising-chip .ins-top-icon {
+  width: 22px;
+  height: 22px;
+  font-size: 11px;
+}
+
+.ins-rising-pct,
+.ins-spike-pct {
+  color: var(--coral);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.ins-clear-chip {
+  padding: 5px 10px;
+  color: var(--erd-text3);
+  font-size: 12px;
+}
+
+/* Unfolds when a rising category is picked and folds back on "All spending". */
+.ins-spike-fold {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 420ms cubic-bezier(0.65, 0, 0.35, 1), opacity 300ms ease;
+}
+
+.ins-spike-fold.is-open { grid-template-rows: 1fr; opacity: 1; }
+.ins-spike-clip { min-height: 0; overflow: hidden; }
+
+.ins-spike > * {
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 280ms ease, transform 380ms cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+.ins-spike-fold.is-open .ins-spike > * { opacity: 1; transform: none; }
+.ins-spike-fold.is-open .ins-spike > :nth-child(1) { transition-delay: 120ms; }
+.ins-spike-fold.is-open .ins-spike > :nth-child(2) { transition-delay: 220ms; }
+
+.ins-heading-swap { animation: ins-heading-in 320ms cubic-bezier(0.33, 1, 0.68, 1) both; }
+@keyframes ins-heading-in { from { opacity: 0; transform: translateY(4px); } }
+
+/* Two halves: the figures on the left, why it's up and the AI reply on the right. Stacks on narrow cards. */
+.ins-spike {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px 32px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--erd-border);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.ins-spike p { margin: 0; }
+
+.ins-spike-main,
+.ins-spike-side {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+}
+
+.ins-spike-side {
+  padding-left: 32px;
+  border-left: 1px solid var(--erd-border);
+}
+
+.ins-spike-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ins-spike-title {
+  color: var(--erd-text);
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.ins-spike-pct {
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--coral-soft);
+  font-size: 12px;
+}
+
+.ins-spike-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.ins-spike-stats div,
+.ins-spike-fact { display: grid; gap: 2px; }
+
+.ins-spike-stats strong {
+  color: var(--erd-text);
+  font-family: var(--font-display);
+  /* Scales with the trend card (its container), so the figures fill the left half on wide screens. */
+  font-size: clamp(24px, 4.2cqi, 42px);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.ins-spike-stats div + div strong { color: var(--erd-text2); }
+
+.ins-spike-stats span,
+.ins-spike-fact span {
+  color: var(--erd-text3);
+  font-size: 12px;
+}
+
+.ins-spike-stats div { gap: 4px; }
+.ins-spike-stats span { font-size: 13px; }
+
+.ins-spike-fact span { font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+.ins-spike-fact p { color: var(--erd-text); font-size: 15px; font-weight: 550; }
+
+/* Keyed to the card's own width, not the viewport: the card's width doesn't track the window across the grid's breakpoints. */
+.ins-trend-card { container-type: inline-size; }
+
+@container (max-width: 720px) {
+  .ins-spike { grid-template-columns: minmax(0, 1fr); }
+  .ins-spike-side { padding: 16px 0 0; border-left: 0; border-top: 1px solid var(--erd-border); }
+}
+
+.ins-spike-thinking {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--erd-text3);
+  font-size: 13px;
+}
+
+.ins-spike-thinking .brain-thinking { align-self: center; }
+
+.ins-spike-ai {
+  display: grid;
+  gap: 6px;
+  color: var(--erd-text);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.ins-spike-ai-by {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--gold-ink);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+/* Ask Aviary's avatar size; the perch sits low in the mark, so it drops a touch to centre on the label. */
+.ins-spike-ai-by svg { flex: none; margin: -4px 0 -2px; }
+
+
+.ins-spike-error { color: var(--erd-text3); }
+
+.ins-spike-explain {
+  justify-self: start;
+  padding: 7px 14px;
+  border: 1px solid var(--erd-border-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--erd-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ins-spike-explain:hover { background: var(--erd-input-bg); }

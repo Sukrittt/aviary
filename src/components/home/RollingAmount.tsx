@@ -28,14 +28,19 @@ export function rollSteps(from: number, to: number, steps = STEPS): number[] {
  * While it ticks it's green going up and red going down (a shortfall eating
  * into this month), then settles into its own color: an amount still above
  * zero after a shortfall turns back green.
+ *
+ * With `rise`, it also rolls on its own whenever `to` goes up between renders
+ * (money assigned or moved in), from the amount it showed before. Going down
+ * just updates. Key it by month so a month switch doesn't read as a rise.
  */
-export function RollingAmount({ from, to, play, delayMs = 0, format, className }: {
+export function RollingAmount({ from, to, play, delayMs = 0, format, className, rise = false }: {
   from: number
   to: number
   play: number
   delayMs?: number
   format: (n: number) => string
   className?: string
+  rise?: boolean
 }) {
   const ref = useRef<HTMLSpanElement>(null)
   const inView = useInView(ref, { amount: 0.6 })
@@ -46,6 +51,9 @@ export function RollingAmount({ from, to, play, delayMs = 0, format, className }
   // The pill's size when it landed, keyed so each landing is a fresh burst.
   const [splash, setSplash] = useState<{ n: number; w: number; h: number } | null>(null)
 
+  // Where the current roll started: `from` on a play, the last shown amount on a rise.
+  const [start, setStart] = useState(from)
+
   // A new play goes back to the old amount during render, so the new one never
   // flashes first. Re-renders with the same play leave a roll alone.
   const [seenPlay, setSeenPlay] = useState(0)
@@ -53,13 +61,24 @@ export function RollingAmount({ from, to, play, delayMs = 0, format, className }
     setSeenPlay(play)
     if (play > 0 && !reduceMotion && from !== to) {
       setShown(from)
+      setStart(from)
       setArmed(play)
+    }
+  }
+  // A rise, same way: back to the old amount before it can flash the new one.
+  const [seenTo, setSeenTo] = useState(to)
+  if (to !== seenTo) {
+    setSeenTo(to)
+    if (rise && to > seenTo && !reduceMotion && !armed) {
+      setShown(seenTo)
+      setStart(seenTo)
+      setArmed(1) // idle is 0, so any roll key works; the effect keys on the change
     }
   }
 
   useEffect(() => {
     if (!armed || !inView) return
-    const steps = rollSteps(from, to)
+    const steps = rollSteps(start, to)
     const timers = steps.map((n, i) => setTimeout(() => setShown(n), HOLD_MS + delayMs + i * STEP_MS))
     // After the last tick's odometer roll: settle, bounce, splash.
     timers.push(setTimeout(() => {
@@ -68,7 +87,7 @@ export function RollingAmount({ from, to, play, delayMs = 0, format, className }
       setSplash((s) => ({ n: (s?.n ?? 0) + 1, w: ref.current?.offsetWidth ?? 64, h: ref.current?.offsetHeight ?? 24 }))
     }, HOLD_MS + delayMs + steps.length * STEP_MS))
     return () => timers.forEach(clearTimeout)
-  }, [armed, inView]) // eslint-disable-line react-hooks/exhaustive-deps -- from/to are read at the start of a roll
+  }, [armed, inView]) // eslint-disable-line react-hooks/exhaustive-deps -- start/to are read at the start of a roll
 
   useEffect(() => {
     if (!splash) return
@@ -77,7 +96,7 @@ export function RollingAmount({ from, to, play, delayMs = 0, format, className }
   }, [splash])
 
   const value = shown ?? to
-  const tone = shown !== null ? (to < from ? ' is-rolling-down' : ' is-rolling-up') : ''
+  const tone = shown !== null ? (to < start ? ' is-rolling-down' : ' is-rolling-up') : ''
   return (
     <span ref={ref} className={`${className ?? ''}${tone}${splash ? ' is-splash' : ''}`}>
       <AmountText value={value} rawText={format(value)} animate />

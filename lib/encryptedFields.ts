@@ -15,9 +15,10 @@
  *
  * Deliberately not encrypted, because each is a filter/sort/index key: on
  * `expenses` — date, category, payment_method, timestamp; on
- * `budgets` — month, category; `categories`/`groups`/`category_map_overrides`
- * entirely (name/word are unique-index filter keys, and `categories.alertPcts`
- * needs no encryption either — thresholds, not money); `subscriptions.service`,
+ * `budgets` — month, category; `categories` other than `goal` and `note`, and
+ * `groups`/`category_map_overrides` entirely (name/word are unique-index filter
+ * keys, and `categories.alertPcts` needs no encryption either — thresholds,
+ * not money); `subscriptions.service`,
  * `.next_due_date`, `.billing_cycle`, `.status` (also filter/sort keys);
  * on `recurring_expenses` — category, payment_method, frequency, the three
  * dates and status, all of which the nightly cron filters or sorts on;
@@ -46,6 +47,9 @@ export const ENCRYPTED_FIELDS: Record<string, string[]> = {
   incomes: ['amount', 'label', 'notes'],
   recurring_incomes: ['amount', 'label'],
   accounts: ['name'],
+  // A savings goal's target and deadline, as one JSON string (lib/categories.ts),
+  // and the envelope's free-text note.
+  categories: ['goal', 'note'],
   // Imported rows (item text and amounts), a YNAB plan's amounts and the commit's
   // summary (the salary): each one JSON string (lib/import/service.ts).
   imports: ['rows', 'plan', 'summary'],

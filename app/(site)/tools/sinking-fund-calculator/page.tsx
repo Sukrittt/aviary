@@ -9,6 +9,7 @@ export const metadata = pageMetadata('/tools/sinking-fund-calculator')
 export default function SinkingFundPage() {
   return <ContentPage section="tools" path="/tools/sinking-fund-calculator" title="Sinking fund calculator" lede={<>List the big costs you know are coming, like insurance renewals and Diwali. You’ll see how much to put aside each month so the money’s there when the bill is.</>} related={[...postLinks('sinking-funds-india', 'budget-for-diwali'), '/tools/emergency-fund-calculator', '/tools/salary-budget-planner', '/tools/budget-for-60000-salary']}>
     <SinkingFundCalculator />
+    <SoftCta title="Track this in Aviary" placement="tool_sinking_fund">Give each cost a category with a goal: how much, and the month it’s due. Aviary shows what to set aside each month and whether you’re on track. Yearly ones like insurance start over on their own.</SoftCta>
 
     <h2>What a sinking fund is</h2>
     <p>It’s money you save a little at a time for a cost you know is coming. Not a surprise, just a bill that doesn’t arrive every month: health insurance, vehicle insurance, school fees, Diwali, a wedding in the family, a new phone.</p>
@@ -36,6 +37,5 @@ export default function SinkingFundPage() {
 
     <h2>Keeping it going</h2>
     <p>When a bill’s paid, reset it for next year so the monthly amount stays steady. Add new costs as you find them. If something’s due next month and you haven’t started, the calculator shows the whole amount as one month’s set-aside. That’s the sign to start earlier next time.</p>
-    <SoftCta title="Plan for the big bills" placement="tool_sinking_fund">Give each cost a category in Aviary with its monthly amount. Each new month keeps the same amount assigned, so it never gets skipped.</SoftCta>
   </ContentPage>
 }
