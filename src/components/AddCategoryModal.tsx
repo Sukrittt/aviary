@@ -41,7 +41,7 @@ export function AddCategoryModal({ onClose, onCreated, initialGroup = '' }: {
   const GOAL_PICKS = goalPicks(useCurrency().currencyCode)
   const [name, setName] = useState('')
   const [group, setGroup] = useState(initialGroup)
-  // A group tapped here wins; otherwise a goal goes to Goals, even from another group's add button.
+  // A group tapped here or the group whose add button opened this wins; otherwise a goal goes to Goals.
   const [groupPicked, setGroupPicked] = useState(false)
   const groupChips = groups.includes(GOALS_GROUP) || group !== GOALS_GROUP ? groups : [...groups, GOALS_GROUP]
   // Follows the name until the user picks one ("Fuel" gets the pump).
@@ -67,7 +67,7 @@ export function AddCategoryModal({ onClose, onCreated, initialGroup = '' }: {
 
   function pickGoal(key: GoalTemplateKey | 'custom' | null) {
     setGoalPick(key)
-    if (!groupPicked) setGroup(key ? GOALS_GROUP : initialGroup)
+    if (!groupPicked && !initialGroup) setGroup(key ? GOALS_GROUP : '')
     if (!key || key === 'custom') return
     const t = goalTemplate(key, currentMonthKey())
     setGoalDraft((d) => ({ ...d, by: t.by, yearly: t.yearly }))

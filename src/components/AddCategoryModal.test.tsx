@@ -59,13 +59,12 @@ describe('AddCategoryModal', () => {
     vi.useRealTimers()
   })
 
-  it('keeps a goal in a group you tap', async () => {
+  it("keeps a goal in the group whose add button you tapped", async () => {
     addGroup.mockClear()
     const user = userEvent.setup()
     render(<AddCategoryModal onClose={() => {}} onCreated={() => {}} initialGroup="Needs" />)
     await user.click(screen.getByRole('button', { name: 'Emergency fund' }))
-    expect(screen.getByRole('button', { name: /Goals/ })).toHaveAttribute('aria-pressed', 'true')
-    await user.click(screen.getByRole('button', { name: /Needs/ }))
+    expect(screen.getByRole('button', { name: /Needs/ })).toHaveAttribute('aria-pressed', 'true')
     await user.type(screen.getByLabelText('Amount'), '90000')
     await user.click(screen.getByRole('button', { name: 'Add category' }))
     expect(addGroup).not.toHaveBeenCalled()
