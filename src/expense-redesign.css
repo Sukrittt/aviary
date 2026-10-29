@@ -3627,6 +3627,7 @@
   gap: 8px;
   min-height: 44px;
   padding-inline: 18px;
+  line-height: normal;
 }
 .expense-redesign .txn-timeline-filters {
   display: grid;
@@ -4131,7 +4132,8 @@
   .expense-redesign .txn-page-heading {
     display: none;
   }
-  .expense-redesign .txn-page-log-btn {
+  .expense-redesign .txn-page-log-btn,
+  .expense-redesign .txn-page-actions .action-button {
     min-height: 42px;
   }
   .expense-redesign .txn-timeline-filters {
@@ -13014,6 +13016,10 @@ span.env-cat-alerts:hover {
 .tone-yearly { --tone: var(--gold-ink); --tone-soft: var(--gold-soft); }
 .expense-redesign .account-header {
   border-bottom: 1px solid var(--erd-border);
+}
+/* Keep header actions on one row; the heading text wraps instead. */
+.expense-redesign .account-header .txn-page-actions {
+  flex-shrink: 0;
 }
 /* The panel's flex gap already spaces cards; drop the card's own margin. */
 .account-panel > .recurring-discovery.account-card {
