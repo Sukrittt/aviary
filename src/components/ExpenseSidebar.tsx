@@ -2,13 +2,14 @@ import { createContext, useContext, useEffect, useState, type CSSProperties } fr
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
-import { HouseIcon, ChartLineIcon, SignOutIcon, SquaresFourIcon, ListIcon, MoonIcon, SidebarSimpleIcon, PlusIcon, InvoiceIcon, UploadSimpleIcon, GearIcon, SparkleIcon, SunIcon, ArrowUUpLeftIcon, XIcon, type PhosphorIcon } from "@/src/components/icons";
+import { HouseIcon, ChartLineIcon, SignOutIcon, SquaresFourIcon, ListIcon, MoonIcon, SidebarSimpleIcon, PlusIcon, InvoiceIcon, UploadSimpleIcon, GearIcon, SparkleIcon, SunIcon, ArrowUUpLeftIcon, XIcon, RepeatIcon, ReceiptIcon, WalletIcon, TrendUpIcon, type PhosphorIcon } from "@/src/components/icons";
 import { SignOutDialog } from "./ConfirmDialog";
 import { useMoneyBrain } from "@/components/MoneyBrainProvider";
 import { useAppearance } from "@/components/AppearanceProvider";
 import { usePersistentState } from "../hooks/usePersistentState";
 import { useAccessAllowed } from "../hooks/useBillingStatus";
 import { useHiddenFeatures } from "../hooks/useUser";
+import type { HideableFeature } from "../lib/features";
 import { BirdMark } from "./BirdMark";
 import { LogExpenseModal } from "./LogExpenseModal";
 import { BudgetSwitcher, REOPEN_LOG_KEY } from "./BudgetSwitcher";
@@ -33,12 +34,24 @@ interface Props {
   onBulkReturn?: () => void;
 }
 
-const NAV: Array<{ href: string; label: string; icon: PhosphorIcon }> = [
+type NavLink = { href: string; label: string; icon: PhosphorIcon; feature?: HideableFeature };
+
+const NAV: NavLink[] = [
   { href: "/expense", label: "Home", icon: HouseIcon },
   { href: "/expense/transactions", label: "Activity", icon: InvoiceIcon },
   { href: "/expense/envelopes", label: "Categories", icon: SquaresFourIcon },
-  { href: "/insights", label: "Insights", icon: ChartLineIcon },
+  { href: "/insights", label: "Insights", icon: ChartLineIcon, feature: "insights" },
 ];
+
+// Pages that used to sit only behind Account > Features.
+const PLAN: NavLink[] = [
+  { href: "/account/recurring", label: "Recurring", icon: RepeatIcon, feature: "recurring" },
+  { href: "/account/subscriptions", label: "Subscriptions", icon: ReceiptIcon, feature: "subscriptions" },
+  { href: "/account/income", label: "Income", icon: WalletIcon, feature: "income" },
+  { href: "/investments", label: "Investments", icon: TrendUpIcon, feature: "investments" },
+];
+
+const isAt = (pathname: string, href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
 const parseBool = (raw: string) => raw === "1";
 const serializeBool = (v: boolean) => (v ? "1" : "0");
@@ -137,13 +150,14 @@ function ExpenseSidebarNav({ onBulkReturn }: Props) {
     if (!isMobile) setOpenMobile(false);
   }, [isMobile, setOpenMobile]);
 
+  const shown = ({ feature }: NavLink) => !feature || !hidden.includes(feature);
+  const plan = PLAN.filter(shown);
+  const planPage = PLAN.find(({ href }) => isAt(pathname, href));
+
   const currentPage =
     NAV.find(({ href }) => pathname === href)?.label ??
-    (pathname.startsWith("/account")
-      ? "Account"
-      : pathname.startsWith("/investments")
-        ? "Investments"
-        : "Aviary");
+    planPage?.label ??
+    (pathname.startsWith("/account") ? "Account" : "Aviary");
 
   return (
     <>
@@ -208,7 +222,7 @@ function ExpenseSidebarNav({ onBulkReturn }: Props) {
         <SidebarContent className="gap-[22px] px-3.5 pt-[22px]">
           <SidebarGroup className="p-0">
             <SidebarMenu className="gap-0.5">
-              {NAV.filter(({ href }) => !(href === "/insights" && hidden.includes("insights"))).map(({ href, label, icon }) => (
+              {NAV.filter(shown).map(({ href, label, icon }) => (
                 <NavItem key={href} href={href} label={label} icon={icon} active={pathname === href} onClick={closeMobile} />
               ))}
               {!hidden.includes("askAviary") && (
@@ -216,6 +230,17 @@ function ExpenseSidebarNav({ onBulkReturn }: Props) {
               )}
             </SidebarMenu>
           </SidebarGroup>
+
+          {plan.length > 0 && (
+            <SidebarGroup className="p-0">
+              <SidebarGroupLabel className="erd-nav-label">Plan</SidebarGroupLabel>
+              <SidebarMenu className="gap-0.5">
+                {plan.map(({ href, label, icon }) => (
+                  <NavItem key={href} href={href} label={label} icon={icon} active={isAt(pathname, href)} onClick={closeMobile} />
+                ))}
+              </SidebarMenu>
+            </SidebarGroup>
+          )}
 
           {onBulkReturn && (
             <SidebarGroup className="p-0">
@@ -229,7 +254,7 @@ function ExpenseSidebarNav({ onBulkReturn }: Props) {
 
         <SidebarFooter className="mx-3.5 mb-[18px] border-t border-sidebar-border px-0 pt-3 pb-0">
           <SidebarMenu className="gap-0.5">
-            <NavItem href="/account" label="Account" icon={GearIcon} active={pathname.startsWith("/account")} onClick={closeMobile} />
+            <NavItem href="/account" label="Account" icon={GearIcon} active={pathname.startsWith("/account") && !planPage} onClick={closeMobile} />
             <NavItem
               hoverKey="theme"
               label={theme === "light" ? "Dark mode" : "Light mode"}

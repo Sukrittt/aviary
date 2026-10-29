@@ -38,6 +38,15 @@ describe('ExpenseSidebar', () => {
     expect(screen.getByText('Categories')).toBeTruthy()
   })
 
+  it('lists Plan pages and drops the hidden ones', () => {
+    hidden = ['investments']
+    render(<ExpenseSidebar />)
+    expect(screen.getByText('Recurring').closest('a')?.getAttribute('href')).toBe('/account/recurring')
+    expect(screen.getByText('Subscriptions')).toBeTruthy()
+    expect(screen.getByText('Income')).toBeTruthy()
+    expect(screen.queryByText('Investments')).toBeNull()
+  })
+
   it('opens statement upload from the sidebar', () => {
     render(<ExpenseSidebar />)
     fireEvent.click(screen.getByText('Add from statement'))
