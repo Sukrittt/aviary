@@ -483,6 +483,16 @@ describe('spikeFor', () => {
     expect(spikeFor([...short, spend('2026-10-01', 'Food', 5000)], 'Food', '2026-10', '2026-11-02')).toBeNull()
     expect(spikeFor([...history(), spend('2026-10-01', 'Travel', 5000)], 'Travel', '2026-10', '2026-11-02')).toBeNull()
   })
+
+  it("doesn't count months before the category was first logged as zero", () => {
+    // Rent started in Sep and stayed flat; Aug only has other spending.
+    const rows = [
+      ...history().filter((e) => e.category !== 'Rent'),
+      spend('2026-09-05', 'Rent', 9500),
+      spend('2026-10-05', 'Rent', 9500),
+    ]
+    expect(spikeFor(rows, 'Rent', '2026-10', '2026-10-29')).toBeNull()
+  })
 })
 
 describe('risingCategories', () => {
