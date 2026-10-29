@@ -5,6 +5,7 @@ import { requireAccess } from '@/lib/billing/guard'
 import { buildExpenseContext, factsFor } from '@/lib/ai/expenseContext'
 import { buildSystemPrompt, SCOPE_REFUSAL } from '@/lib/ai/moneyBrainPrompt'
 import { routeChat, type ChatRoute } from '@/lib/ai/chatRouter'
+import { loadOneOffTags, projectionFacts, tagOneOffs, tagOneOffsLater, type OneOffTags } from '@/lib/ai/projection'
 import { buildProductGuide } from '@/lib/ai/productGuide'
 import { recentReleases } from '@/lib/changelog'
 import { createEmDashScrubber } from '@/lib/ai/emDash'
@@ -117,6 +118,8 @@ function streamReply(
         const contextRead = options.route ? null : buildExpenseContext(auth)
         // A capture reply never reads the context; keep a failed read from going unhandled.
         contextRead?.catch(() => {})
+        // Stored one-off tags (lib/ai/projection.ts), read alongside so a projection turn never waits on them.
+        const tagsRead = contextRead ? loadOneOffTags(auth).catch((): OneOffTags => new Map()) : null
         // A message with a number in it is likely a list of spends: start reading it
         // while routing decides, instead of after. A question that happens to hold a
         // number ("what did I spend on the 5th?") costs one small wasted read.
@@ -168,7 +171,15 @@ function streamReply(
         }
 
         const productGuide = route.product ? buildProductGuide(ctx.currencyCode, releases) : ''
-        const systemPrompt = buildSystemPrompt(factsFor(ctx.sections, route.sections), ctx.currencyCode, route.decision, options.captureCapable && !auth.readOnly, productGuide)
+        const tagCaller = { userId: auth.userId, feature: 'oneoff' as const }
+        const known = await (tagsRead ?? loadOneOffTags(auth).catch((): OneOffTags => new Map()))
+        // Normally everything is tagged already; only names logged since are asked about here.
+        const projection = route.projection
+          ? projectionFacts(ctx.projection, await tagOneOffs(auth, ctx.projection.newItems, tagCaller, known), auth.spaceId)
+          : ''
+        if (!route.projection) tagOneOffsLater(auth, ctx.projection.newItems, tagCaller, known)
+        const facts = [factsFor(ctx.sections, route.sections), projection].filter(Boolean).join('\n\n')
+        const systemPrompt = buildSystemPrompt(facts, ctx.currencyCode, route.decision, options.captureCapable && !auth.readOnly, productGuide, route.projection)
         const geminiStream = await streamText(systemPrompt, contents, caller, route.decision)
 
         const scrub = createEmDashScrubber()

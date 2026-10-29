@@ -77,6 +77,8 @@ const INDEXES = {
     [{ user_id: 1, client_id: 1 }, { unique: true, partialFilterExpression: { client_id: { $type: 'string' } } }],
   ],
   accounts: [[{ user_id: 1 }, {}]],
+  // Ask Aviary's one-off tags (lib/ai/projection.ts): a budget's whole set is read on each chat turn.
+  one_off_tags: [[{ user_id: 1 }, {}]],
   // One user's current import, and the hourly sweep for passes whose lease ran out.
   imports: [
     [{ user_id: 1, status: 1 }, {}],

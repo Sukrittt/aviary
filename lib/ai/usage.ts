@@ -4,7 +4,7 @@ import { estimateCostUsd } from './pricing'
 
 export const AI_USAGE = 'ai_usage'
 
-export type AiFeature = 'chat' | 'brief' | 'scan' | 'suggest' | 'coach' | 'wrapped' | 'duplicate' | 'nudge' | 'onboarding' | 'capture' | 'feedback' | 'import' | 'statement' | 'spike'
+export type AiFeature = 'chat' | 'brief' | 'scan' | 'suggest' | 'coach' | 'wrapped' | 'duplicate' | 'nudge' | 'onboarding' | 'capture' | 'feedback' | 'import' | 'statement' | 'spike' | 'oneoff'
 
 /** Who an AI call is for — wrappers require one so no model call goes unlogged. */
 export interface AiCaller {

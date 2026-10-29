@@ -39,6 +39,10 @@ const SENTINEL_CREDIT_CARD = '__credit_card__'
 const TXN_HISTORY_DAYS = 90
 const TXN_CAP = 400
 const TREND_MONTHS = 6
+const NEW_ITEMS_CAP = 15
+// ponytail: name match on category or group. A savings group holding everyday
+// spends gets counted as savings; the FACTS line names each category so the model can see it.
+const SAVINGS_PATTERN = /saving|invest/i
 
 export interface ExpenseRow {
   timestamp?: string
@@ -124,11 +128,21 @@ export interface FactHighlights {
   investmentTotal: number
 }
 
+/** What lib/ai/projection.ts needs to work out a regular month. */
+export interface ProjectionBase {
+  spendingOnly: number
+  /** This month's purchases with no same-named item in earlier months, biggest first: one-off candidates. */
+  newItems: { date: string; item: string; amount: number; category: string }[]
+  /** Spending categories paid in every full trend month (at least two) but not yet this month. */
+  missingRegulars: { category: string; usual: number }[]
+}
+
 export interface SummarizeExpensesResult {
   currencyCode?: string
   facts: string
   sections: FactSections
   highlights: FactHighlights
+  projection: ProjectionBase
   meta: SummarizeExpensesMeta
   envelopes: Envelope[]
   subscriptions: SubscriptionDocRow[]
@@ -248,6 +262,9 @@ export function summarizeExpenses(input: SummarizeExpensesInput): SummarizeExpen
 
   const groupNames = groups.map((g) => g.name)
 
+  // Money moved into savings or investment categories is saving, not a living cost.
+  const savingsCategories = new Set(categories.filter((c) => SAVINGS_PATTERN.test(`${c.name} ${c.group ?? ''}`)).map((c) => c.name))
+
   const envelopeState = computeEnvelopeState(budgetRows, envelopeExpenseRows, currentMonth, realCategories, groupNames, undefined, carry)
 
   const income = envelopeState.income
@@ -288,6 +305,14 @@ export function summarizeExpenses(input: SummarizeExpensesInput): SummarizeExpen
     `LEFT THIS MONTH: ${round(unspent - overspent + envelopeState.readyToAssign)} (available plus ready to assign; answers "how much is left")`,
     `FREE FOR NEW COSTS: ${round(envelopeState.readyToAssign - overspent)} (ready to assign minus overspent; unspent category money is already promised)`,
   )
+  const savedEnvelopes = spendingEnvelopes.filter((e) => savingsCategories.has(e.category) && round(e.spent) > 0)
+  const movedToSavings = savedEnvelopes.reduce((sum, e) => sum + e.spent, 0)
+  const spendingOnly = round(envelopeState.totalSpent - movedToSavings)
+  if (savedEnvelopes.length) {
+    envelopeLines.push(
+      `SPENDING ONLY: ${spendingOnly} (spent minus ${round(movedToSavings)} moved to savings and investment categories: ${savedEnvelopes.map((e) => `${e.category} ${round(e.spent)}`).join(', ')})`,
+    )
+  }
 
   // Trend: per-category totals for each of the last TREND_MONTHS months.
   const trendMonths = lastNMonths(currentMonth, TREND_MONTHS)
@@ -322,6 +347,11 @@ export function summarizeExpenses(input: SummarizeExpensesInput): SummarizeExpen
   trendLines.push(
     trendRow('TOTAL', (m) => [...trendCategoryTotals.values()].reduce((sum, monthMap) => sum + (monthMap.get(m) ?? 0), 0)).line,
   )
+  if ([...trendCategoryTotals.keys()].some((c) => savingsCategories.has(c))) {
+    const spendingTotal = (m: string) =>
+      [...trendCategoryTotals.entries()].reduce((sum, [c, monthMap]) => sum + (savingsCategories.has(c) ? 0 : (monthMap.get(m) ?? 0)), 0)
+    trendLines.push(trendRow('TOTAL WITHOUT SAVINGS', spendingTotal).line)
+  }
   // Per-month income minus spending: what each month itself kept (leftovers also roll inside envelopes).
   // Expenses are loaded for the trend window only, so the total starts there at the earliest.
   const saved = savingsTrend(budgetRows, envelopeExpenseRows, realCategories, groupNames, currentMonth)
@@ -404,6 +434,24 @@ export function summarizeExpenses(input: SummarizeExpensesInput): SummarizeExpen
     for (const m of repeatMerchants) txnLines.push(`${m.name}|${round(m.month)}|${round(m.window)}|${m.count}`)
   }
 
+  // One-off candidates: this month's purchases with no same-named item in earlier
+  // months. The model judges which really won't repeat (boots vs toiletries).
+  const earlierItems = new Set(expenses.filter((e) => e.date < `${currentMonth}-01` && e.item).map((e) => e.item!.trim().toLowerCase()))
+  const newItems = realMonthExpenses
+    .filter((e) => e.item && !savingsCategories.has(e.category) && !earlierItems.has(e.item.trim().toLowerCase()))
+    .map((e) => ({ date: e.date, item: e.item!, amount: round(Number(e.amount_inr) || 0), category: e.category }))
+    .sort((a, b) => b.amount - a.amount)
+  if (newItems.length) {
+    txnLines.push('', `NEW THIS MONTH (biggest ${NEW_ITEMS_CAP} purchases this month with no same-named item in earlier months; one-off candidates, judge each; date|item|amount|category):`)
+    for (const e of newItems.slice(0, NEW_ITEMS_CAP)) txnLines.push(`${e.date}|${e.item}|${e.amount}|${e.category}`)
+  }
+  const missingRegulars =
+    fullMonths.length < 2
+      ? []
+      : [...trendCategoryTotals.entries()]
+          .filter(([c, monthMap]) => !savingsCategories.has(c) && !monthMap.get(currentMonth) && fullMonths.every((m) => (monthMap.get(m) ?? 0) > 0))
+          .map(([category, monthMap]) => ({ category, usual: round(fullMonths.reduce((sum, m) => sum + monthMap.get(m)!, 0) / fullMonths.length) }))
+
   const topExpense = top10[0]
   const riser = pickRiser(trendCategoryTotals, trendMonths)
 
@@ -436,6 +484,7 @@ export function summarizeExpenses(input: SummarizeExpensesInput): SummarizeExpen
       subscriptionMonthlyBurn: round(totalMonthlyBurn),
       investmentTotal: round(totalInvestmentValue),
     },
+    projection: { spendingOnly, newItems, missingRegulars },
     meta: {
       txnCountThisMonth: monthExpenses.length,
       totalSpent: round(envelopeState.totalSpent),

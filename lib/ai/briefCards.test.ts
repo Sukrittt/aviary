@@ -13,6 +13,7 @@ function ctx(over: Partial<SummarizeExpensesResult> = {}): SummarizeExpensesResu
       subscriptionMonthlyBurn: 1290,
       investmentTotal: 120000,
     },
+    projection: { spendingOnly: 21000, newItems: [], missingRegulars: [] },
     meta: {
       txnCountThisMonth: 24,
       totalSpent: 21000,
