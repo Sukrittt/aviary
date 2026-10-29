@@ -71,6 +71,17 @@ describe('AddCategoryModal', () => {
     expect(add).toHaveBeenLastCalledWith(expect.objectContaining({ name: 'Emergency fund', group: 'Needs', goal: { amount: 90000 } }))
   })
 
+  it("keeps a goal ungrouped when added from the Other section", async () => {
+    addGroup.mockClear()
+    const user = userEvent.setup()
+    render(<AddCategoryModal onClose={() => {}} onCreated={() => {}} initialGroup="" />)
+    await user.click(screen.getByRole('button', { name: 'Emergency fund' }))
+    await user.type(screen.getByLabelText('Amount'), '90000')
+    await user.click(screen.getByRole('button', { name: 'Add category' }))
+    expect(addGroup).not.toHaveBeenCalled()
+    expect(add).toHaveBeenLastCalledWith(expect.objectContaining({ name: 'Emergency fund', group: '' }))
+  })
+
   it('shows the read-only notice instead of the form in a read-only budget', () => {
     spaces.readOnly = true
     render(<AddCategoryModal onClose={() => {}} onCreated={() => {}} />)

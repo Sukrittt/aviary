@@ -28,9 +28,10 @@ const goalPicks = (currencyCode: string): { key: GoalTemplateKey | 'custom'; lab
 /** Where a new goal lands unless you pick a group yourself. Made on first use. */
 const GOALS_GROUP = 'Goals'
 
-export function AddCategoryModal({ onClose, onCreated, initialGroup = '' }: {
+export function AddCategoryModal({ onClose, onCreated, initialGroup }: {
   onClose: () => void
   onCreated: (category: CategoryRow) => void
+  /** The group whose add button opened this ('' is Other). Unset when opened outside the list. */
   initialGroup?: string
 }) {
   const groups = useGroups().data ?? []
@@ -40,8 +41,8 @@ export function AddCategoryModal({ onClose, onCreated, initialGroup = '' }: {
   const { readOnly } = useSpaces()
   const GOAL_PICKS = goalPicks(useCurrency().currencyCode)
   const [name, setName] = useState('')
-  const [group, setGroup] = useState(initialGroup)
-  // A group tapped here or the group whose add button opened this wins; otherwise a goal goes to Goals.
+  const [group, setGroup] = useState(initialGroup ?? '')
+  // A group tapped here or the section whose add button opened this wins; otherwise a goal goes to Goals.
   const [groupPicked, setGroupPicked] = useState(false)
   const groupChips = groups.includes(GOALS_GROUP) || group !== GOALS_GROUP ? groups : [...groups, GOALS_GROUP]
   // Follows the name until the user picks one ("Fuel" gets the pump).
@@ -67,7 +68,7 @@ export function AddCategoryModal({ onClose, onCreated, initialGroup = '' }: {
 
   function pickGoal(key: GoalTemplateKey | 'custom' | null) {
     setGoalPick(key)
-    if (!groupPicked && !initialGroup) setGroup(key ? GOALS_GROUP : '')
+    if (!groupPicked && initialGroup === undefined) setGroup(key ? GOALS_GROUP : '')
     if (!key || key === 'custom') return
     const t = goalTemplate(key, currentMonthKey())
     setGoalDraft((d) => ({ ...d, by: t.by, yearly: t.yearly }))
