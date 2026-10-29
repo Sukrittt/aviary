@@ -143,11 +143,11 @@ export function IncomePage() {
           {!readOnly && (
             <>
               <button type="button" className="action-button txn-page-duplicates-btn" onClick={() => setAddingOneOff(true)}>
-                <PlusIcon size={14} aria-hidden="true" />
+                <PlusIcon size={17} weight="bold" aria-hidden="true" />
                 One-off
               </button>
               <button type="button" className="erd-log-btn txn-page-log-btn" onClick={() => setEditing('')}>
-                <PlusIcon size={14} aria-hidden="true" />
+                <PlusIcon size={17} weight="bold" aria-hidden="true" />
                 Recurring
               </button>
             </>
