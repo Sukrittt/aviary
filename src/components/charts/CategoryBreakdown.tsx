@@ -2,7 +2,7 @@
 
 import { useCurrency } from '@/src/context/CurrencyContext'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import Link from 'next/link'
 import { AnimatePresence, motion } from 'motion/react'
 import { CheckIcon, FunnelSimpleIcon, TrendDownIcon, TrendUpIcon, XIcon } from '@/src/components/icons'
@@ -335,7 +335,7 @@ export function CategoryBreakdown({ rows, categoryRows, groupRows, categoryGroup
                   return (
                     <motion.div key={row.key} layout="position" transition={LIST_SPRING} exit={{ opacity: 0, transition: { duration: 0.16 } }}>
                       <PopIn key={`${revealKey}:${row.key}`} play={play} delay={rowDelay}>
-                        <button type="button" key={row.key} className={selected ? 'ins-breakdown-row is-selected' : 'ins-breakdown-row'} onClick={() => onSelectKey(selected ? null : row.key)} aria-pressed={selected}>
+                        <button type="button" key={row.key} className={selected ? 'ins-breakdown-row is-selected' : 'ins-breakdown-row'} onClick={() => onSelectKey(selected ? null : row.key)} aria-pressed={selected} style={{ '--row-color': colors.get(row.key) } as CSSProperties}>
                           <span className="ins-row-top">
                             <RowMark row={row} color={colors.get(row.key)} picked={pickedColor(row)} />
                             <span className="ins-row-name">{row.label}</span>
