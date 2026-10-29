@@ -60,7 +60,7 @@ describe('aiAllowanceResponse', () => {
     const { aiAllowanceResponse } = await import('./allowance')
     await aiAllowanceResponse(user, NOW)
     const [pipeline] = pipelineMock.mock.calls.at(-1) as [Array<{ $match?: { feature?: unknown } }>]
-    expect(pipeline[0].$match?.feature).toEqual({ $nin: ['capture', 'nudge'] })
+    expect(pipeline[0].$match?.feature).toEqual({ $nin: ['capture', 'nudge', 'oneoff'] })
   })
 
   it('never applies to the shared demo user', async () => {

@@ -34,6 +34,7 @@ vi.mock('@/lib/ai/expenseContext', async (importOriginal) => {
     buildExpenseContext: vi.fn(async () => ({
       facts: 'FACTS',
       meta: {},
+      projection: { spendingOnly: 0, newItems: [], missingRegulars: [] },
       currencyCode: 'INR',
       sections: {
         header: 'MONTH: 2026-09',
@@ -62,7 +63,7 @@ const recentReleasesMock = vi.fn(async () => [
 ])
 vi.mock('@/lib/changelog', () => ({ recentReleases: () => recentReleasesMock() }))
 
-const routeChatMock = vi.fn<(message: string, caller?: unknown, earlier?: string[]) => Promise<{ onTopic: boolean; sections: string[]; decision?: boolean; capture?: boolean; product?: boolean }>>(
+const routeChatMock = vi.fn<(message: string, caller?: unknown, earlier?: string[]) => Promise<{ onTopic: boolean; sections: string[]; decision?: boolean; capture?: boolean; product?: boolean; projection?: boolean }>>(
   async () => ({ onTopic: true, sections: ['header', 'envelopes', 'top10'] }),
 )
 vi.mock('@/lib/ai/chatRouter', () => ({
@@ -320,6 +321,15 @@ describe('POST /api/ai/chat (Jev routing)', () => {
     await (await POST(jsonRequest({ messages: [{ role: 'user', text: 'how much on food?' }] }))).text()
 
     expect(streamTextMock.mock.calls[0][0]).not.toContain('DECISIONS:')
+    expect(streamTextMock.mock.calls[0][3]).toBeFalsy()
+  })
+
+  it('answers a next-month projection from the figure worked out in code, without thinking', async () => {
+    routeChatMock.mockResolvedValueOnce({ onTopic: true, sections: ['header', 'envelopes', 'trend', 'top10', 'subscriptions'], projection: true })
+    await (await POST(jsonRequest({ messages: [{ role: 'user', text: 'what will next month cost without one-offs?' }] }))).text()
+
+    expect(streamTextMock.mock.calls[0][0]).toContain('PROJECTED REGULAR MONTH: 0')
+    expect(streamTextMock.mock.calls[0][0]).toContain('PROJECTIONS:')
     expect(streamTextMock.mock.calls[0][3]).toBeFalsy()
   })
 

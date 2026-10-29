@@ -10,7 +10,7 @@ function answers(probabilities: Record<string, number>) {
   return Object.fromEntries(Object.entries(probabilities).map(([k, probability]) => [k, { type: 'boolean', probability }]))
 }
 
-const onTopicOnly = { onTopic: 0.98, needsTransactions: 0.02, needsTrend: 0.05, needsSubscriptions: 0.01, needsInvestments: 0.01, isDecision: 0.03, isCapture: 0.02, isProductHelp: 0.02 }
+const onTopicOnly = { onTopic: 0.98, needsTransactions: 0.02, needsTrend: 0.05, needsSubscriptions: 0.01, needsInvestments: 0.01, isDecision: 0.03, isCapture: 0.02, isProductHelp: 0.02, isProjection: 0.02 }
 
 beforeEach(() => vi.clearAllMocks())
 
@@ -52,6 +52,23 @@ describe('routeChat', () => {
     const route = await routeChat('can I afford a 7K subscription?', caller)
     expect(route.decision).toBe(true)
     expect(route.sections).toEqual(expect.arrayContaining(['transactions', 'trend', 'subscriptions', 'investments']))
+  })
+
+  it('flags a next-month projection with the trend and bills, without making it a decision', async () => {
+    // A decision turns on model thinking, which doubles the reply time; a projection doesn't need it.
+    runJev.mockResolvedValue(answers({ ...onTopicOnly, isProjection: 0.9, needsTransactions: 0.8 }))
+    const route = await routeChat('what will my basic expenses cost next month, without one-offs?', caller)
+    expect(route.projection).toBe(true)
+    expect(route.decision).toBe(false)
+    expect(route.sections).toEqual(expect.arrayContaining(['trend', 'subscriptions']))
+    expect(route.sections).not.toContain('transactions')
+  })
+
+  it('keeps the projection flag on a decision, so a plan\'s follow-ups see the same figure', async () => {
+    runJev.mockResolvedValue(answers({ ...onTopicOnly, isDecision: 0.8, isProjection: 0.8 }))
+    const route = await routeChat('drop the boots too', caller, ['what will next month cost without one-offs?'])
+    expect(route.decision).toBe(true)
+    expect(route.projection).toBe(true)
   })
 
   it('does not flag a plain lookup as a decision', async () => {

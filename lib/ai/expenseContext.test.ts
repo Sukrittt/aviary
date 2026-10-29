@@ -112,6 +112,66 @@ describe('summarizeExpenses precomputed totals', () => {
   })
 })
 
+describe('summarizeExpenses projection facts', () => {
+  // Ask Aviary counted an 18,000 "set aside" savings category and a stock buy as
+  // basic monthly spending, and only spotted the one-offs in the top 10.
+  const withSavings: SummarizeExpensesInput = {
+    ...input,
+    expenses: [
+      ...input.expenses,
+      { date: '2026-09-05', item: 'Kotak Stocks', amount_inr: 20000, category: 'Investments' },
+      { date: '2026-09-05', item: 'Set aside for trip', amount_inr: 5000, category: 'Trip Fund' },
+      { date: '2026-08-02', item: 'Metro card', amount_inr: 300, category: 'Travel' },
+      { date: '2026-09-21', item: 'Football Boots', amount_inr: 5999, category: 'Shopping' },
+    ],
+    categories: [...input.categories, { name: 'Investments', group: 'Wealth' }, { name: 'Trip Fund', group: '🌱 Savings' }, { name: 'Shopping', group: 'Wants' }],
+  }
+
+  it('states spending without the money moved into savings and investment categories', () => {
+    const { sections } = summarizeExpenses(withSavings)
+    // Spent 640 + 300 + 5999 + 20000 + 5000 = 31939; 25000 of it went to savings.
+    expect(sections.envelopes).toContain('SPENDING ONLY: 6939 (spent minus 25000 moved to savings and investment categories: Investments 20000, Trip Fund 5000)')
+  })
+
+  it('adds a spending-only row to the trend', () => {
+    const { sections } = summarizeExpenses(withSavings)
+    // August: 420 + 300. September: 6939.
+    expect(sections.trend).toContain('TOTAL WITHOUT SAVINGS|0|0|0|0|720|6939|720')
+  })
+
+  it('leaves the spending-only lines out when nothing went to savings', () => {
+    const { sections } = summarizeExpenses(input)
+    expect(sections.envelopes).not.toContain('SPENDING ONLY')
+    expect(sections.trend).not.toContain('TOTAL WITHOUT SAVINGS')
+  })
+
+  it('hands the projection its inputs: spending only, new items, and regulars not paid yet', () => {
+    const { projection } = summarizeExpenses({
+      ...withSavings,
+      expenses: [
+        ...withSavings.expenses,
+        // Paid in both full months, not yet in September.
+        { date: '2026-07-19', item: 'Electricity', amount_inr: 400, category: 'Bills' },
+        { date: '2026-08-19', item: 'Electricity', amount_inr: 500, category: 'Bills' },
+      ],
+      categories: [...withSavings.categories, { name: 'Bills', group: 'Needs' }],
+    })
+    expect(projection.spendingOnly).toBe(6939)
+    expect(projection.newItems.map((e) => e.item)).toEqual(['Football Boots', 'Swiggy dinner'])
+    expect(projection.missingRegulars).toEqual([{ category: 'Bills', usual: 450 }])
+  })
+
+  it('lists this month\'s new items, biggest first, as one-off candidates', () => {
+    const { sections } = summarizeExpenses(withSavings)
+    const list = sections.transactions.split('NEW THIS MONTH')[1]
+    expect(list).toBeDefined()
+    // Metro card also ran in August, so it is not new; savings moves are not purchases.
+    expect(list).toMatch(/2026-09-21\|Football Boots\|5999\|Shopping\n2026-09-04\|Swiggy dinner\|640\|Food/)
+    expect(list).not.toContain('Metro card')
+    expect(list).not.toContain('Kotak Stocks')
+  })
+})
+
 describe('factsFor', () => {
   it('includes only the requested sections, in canonical order', () => {
     const { sections } = summarizeExpenses(input)

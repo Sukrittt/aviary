@@ -10,8 +10,9 @@ export const AI_ALLOWANCE_EXCEEDED = 'AI_ALLOWANCE_EXCEEDED'
 // Logging spends from the money brain is how the app gets its data, so it
 // never eats into the allowance: a user who runs out mid-month can still log.
 // Those calls are still rate limited with the rest of the chat. Habit nudge
-// copy is written for the user unasked, a few times ever, so it's exempt too.
-export const ALLOWANCE_EXEMPT_FEATURES: AiFeature[] = ['capture', 'nudge']
+// copy is written for the user unasked, a few times ever, so it's exempt too, as
+// is tagging logged items as one-offs (lib/ai/projection.ts), done in the background.
+export const ALLOWANCE_EXEMPT_FEATURES: AiFeature[] = ['capture', 'nudge', 'oneoff']
 
 const CACHE_MS = 60_000
 // ponytail: per-instance 60s cache of each user's month-to-date spend, so a

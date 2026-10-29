@@ -60,6 +60,11 @@ const QUESTIONS = {
     instructions:
       'Is the user weighing a decision or asking for a plan: whether they can afford something, whether to buy or add a new cost, how to cut spending or make room in their budget, how to reach a savings goal, or how to plan a budget? A plain lookup (how much is left, how much was spent) is not a decision.',
   },
+  isProjection: {
+    type: 'boolean',
+    instructions:
+      'Is the user asking what next month or a normal month will cost them, their regular or basic monthly spending, or their spending with one-off purchases or investments left out?',
+  },
   isProductHelp: {
     type: 'boolean',
     instructions:
@@ -87,6 +92,8 @@ export interface ChatRoute {
   capture: boolean
   /** Asks how Aviary works or what's new: gets the product guide (lib/ai/productGuide.ts). */
   product: boolean
+  /** What next month costs without one-offs: gets the projection worked out in code (lib/ai/projection.ts). No thinking: it doubled reply time. */
+  projection?: boolean
 }
 
 /** Everything, i.e. exactly what the chat sent before routing existed. */
@@ -142,7 +149,9 @@ export async function routeChat(message: string, caller: AiCaller, earlierMessag
   const productP = probability('isProductHelp')
   const product = productP !== null && productP >= PRODUCT_AT
   if (onTopic < OFF_TOPIC_BELOW && !product) return { onTopic: false, sections: [], decision: false, capture: false, product: false }
-  if (decision) return { ...FULL_ROUTE, decision: true, product }
+  const projectionP = probability('isProjection')
+  const projection = projectionP !== null && projectionP >= NEEDS_SECTION_AT ? { projection: true } : {}
+  if (decision) return { ...FULL_ROUTE, decision: true, product, ...projection }
 
   // Only about the app: the month header is enough, the guide carries the rest.
   const sections = new Set<FactSection>(product && onTopic < NEEDS_SECTION_AT ? ['header'] : ALWAYS_SECTIONS)
@@ -154,6 +163,13 @@ export async function routeChat(message: string, caller: AiCaller, earlierMessag
   add('needsTrend', 'trend')
   add('needsSubscriptions', 'subscriptions')
   add('needsInvestments', 'investments')
+  // The projection's math is done in code (lib/ai/projection.ts), so it needs the trend and
+  // bills but not the rows, which are most of the prompt and slow the first token.
+  if (projection.projection) {
+    sections.add('trend')
+    sections.add('subscriptions')
+    sections.delete('transactions')
+  }
 
-  return { onTopic: true, sections: FACT_SECTIONS.filter((s) => sections.has(s)), decision: false, capture: false, product }
+  return { onTopic: true, sections: FACT_SECTIONS.filter((s) => sections.has(s)), decision: false, capture: false, product, ...projection }
 }

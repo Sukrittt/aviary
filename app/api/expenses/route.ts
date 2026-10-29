@@ -11,6 +11,7 @@ import { getCachedCategoryMap, invalidateCategoryMap, learnCategoryCorrection, t
 import { notifyThresholdCrossed } from '@/lib/notifications/instant'
 import { withTx } from '@/lib/mongodb'
 import { createExpense, adjustCreditCardEnvelope } from '@/lib/createExpense'
+import { tagOneOffsLater } from '@/lib/ai/projection'
 import { resolveCategoryName } from '@/lib/categoryName'
 import { flagIfDuplicate } from '@/lib/duplicates'
 import { markManualTransactionComplete } from '@/lib/users'
@@ -267,6 +268,8 @@ export async function POST(req: Request) {
   if (body.source === 'manual') await markManualTransactionComplete(auth.userId)
   // A referred account becomes "activated" by logging on 3 different days.
   if (!result.duplicate) activateLater(auth.userId)
+  // Ask Aviary's next-month projection reads this tag instead of waiting on Jev.
+  if (!result.duplicate) tagOneOffsLater(auth, [{ item: String(body.item), amount: Number(body.amount_inr) || 0, category: result.category }], { userId: auth.userId, feature: 'oneoff' })
   if (!result.duplicate) await learnFromSave(auth, mapBefore, String(body.item), result.category)
   if (!result.duplicate) {
     await notifyOthersOfLog(auth, { item: String(body.item), amount: Number(body.amount_inr), category: result.category })
