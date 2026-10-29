@@ -14,7 +14,8 @@ vi.mock('@/components/AppearanceProvider', () => ({ useAppearance: () => ({ them
 const setCollapsed = vi.fn()
 vi.mock('../hooks/usePersistentState', () => ({ usePersistentState: (k: string, v: unknown) => [v, (next: unknown) => setCollapsed(k, next)] }))
 let hidden: string[] = []
-vi.mock('../hooks/useUser', () => ({ useHiddenFeatures: () => hidden }))
+let user: object | undefined = {}
+vi.mock('../hooks/useUser', () => ({ useHiddenFeatures: () => hidden, useUser: () => ({ data: user }) }))
 vi.mock('./LogExpenseModal', () => ({ LogExpenseModal: () => <div>log-expense-dialog</div> }))
 vi.mock('../features/fill-gap/StatementModal', () => ({ StatementModal: () => <div>statement-dialog</div> }))
 vi.mock('./ConfirmDialog', () => ({ SignOutDialog: () => null }))
@@ -26,6 +27,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   allowed = true
   hidden = []
+  user = {}
   theme = 'dark'
 })
 
@@ -45,6 +47,13 @@ describe('ExpenseSidebar', () => {
     expect(screen.getByText('Subscriptions')).toBeTruthy()
     expect(screen.getByText('Income')).toBeTruthy()
     expect(screen.queryByText('Investments')).toBeNull()
+  })
+
+  it('holds Plan back until the profile says what is hidden', () => {
+    user = undefined
+    render(<ExpenseSidebar />)
+    expect(screen.queryByText('Plan')).toBeNull()
+    expect(screen.queryByText('Recurring')).toBeNull()
   })
 
   it('opens statement upload from the sidebar', () => {

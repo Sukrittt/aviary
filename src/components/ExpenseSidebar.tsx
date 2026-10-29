@@ -8,7 +8,7 @@ import { useMoneyBrain } from "@/components/MoneyBrainProvider";
 import { useAppearance } from "@/components/AppearanceProvider";
 import { usePersistentState } from "../hooks/usePersistentState";
 import { useAccessAllowed } from "../hooks/useBillingStatus";
-import { useHiddenFeatures } from "../hooks/useUser";
+import { useHiddenFeatures, useUser } from "../hooks/useUser";
 import type { HideableFeature } from "../lib/features";
 import { BirdMark } from "./BirdMark";
 import { LogExpenseModal } from "./LogExpenseModal";
@@ -123,6 +123,7 @@ function ExpenseSidebarNav({ onBulkReturn }: Props) {
   const { theme, setTheme } = useAppearance();
   const { open, toggleSidebar, isMobile, openMobile, setOpenMobile } = useSidebar();
   const hidden = useHiddenFeatures();
+  const { data: user } = useUser();
   const { multi, readOnly } = useSpaces();
   const [showLog, setShowLog] = useState(false);
   // Back from a budget switch made inside Log expense: open it again in the new budget.
@@ -151,7 +152,9 @@ function ExpenseSidebarNav({ onBulkReturn }: Props) {
   }, [isMobile, setOpenMobile]);
 
   const shown = ({ feature }: NavLink) => !feature || !hidden.includes(feature);
-  const plan = PLAN.filter(shown);
+  // Recurring and Income aren't opt-in extras, so the loading default shows
+  // them; wait for the saved choice instead of flashing and dropping them.
+  const plan = user ? PLAN.filter(shown) : [];
   const planPage = PLAN.find(({ href }) => isAt(pathname, href));
 
   const currentPage =
