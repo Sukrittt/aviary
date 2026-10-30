@@ -421,3 +421,37 @@ describe('resolveRows', () => {
     expect(resolveRows(rows, { direction: 'negative_spend', currency: 'INR', hasCurrency: true }).map((r) => r.kind)).toEqual(['expense', 'skipped'])
   })
 })
+
+describe('a statement that says which way the money went', () => {
+  const kinds = (lines: string[]) => normalize(inspect(csv(lines)), TODAY).rows.map((r) => [r.item, r.kind, r.amount])
+
+  it('a Cr on the amount is money in, and the bare rows beside it are spend', () => {
+    const out = normalize(inspect(csv(['Date,Description,Amount', '01/09/2026,Rent,1000.00', '02/09/2026,Salary,2000.00 Cr'])), TODAY)
+    const resolved = resolveRows(out.rows, { direction: out.defaultDirection, currency: '', hasCurrency: false })
+    expect(resolved.map((r) => [r.item, r.kind])).toEqual([['Rent', 'expense'], ['Salary', 'income']])
+  })
+
+  it('Dr and Cr on every row beat the vote on a mostly positive file', () => {
+    expect(kinds(['Date,Description,Amount', '01/09/2026,Rent,500.00 Dr', ...[2, 3, 4, 5, 6].map((d) => `0${d}/09/2026,Pay ${d},100.00 Cr`)])[0]).toEqual(['Rent', 'expense', 500])
+    expect(kinds(['Date,Description,Amount', '01/09/2026,Rent,500 (Dr)', '02/09/2026,Pay,100 (Cr)'])).toEqual([['Rent', 'expense', 500], ['Pay', 'income', 100]])
+    expect(kinds(['Date,Description,Amount', '01/09/2026,Rent,Dr 500', '02/09/2026,Pay,Cr 100'])).toEqual([['Rent', 'expense', 500], ['Pay', 'income', 100]])
+    expect(kinds(['Date,Description,Amount', '01/09/2026,Rent,500D', '02/09/2026,Pay,100C'])).toEqual([['Rent', 'expense', 500], ['Pay', 'income', 100]])
+  })
+
+  it('reads a Debit/Credit column and its short values', () => {
+    expect(kinds(['Date,Description,Amount,Debit/Credit', '01/09/2026,Salary,80000,C', '02/09/2026,Rent,20000,D'])).toEqual([['Salary', 'income', 80000], ['Rent', 'expense', 20000]])
+    expect(kinds(['Date,Description,Amount,Dr / Cr', '01/09/2026,Salary,80000,Cr.', '02/09/2026,Rent,20000,Dr.'])).toEqual([['Salary', 'income', 80000], ['Rent', 'expense', 20000]])
+  })
+
+  it('a marked credit on a spending category is a refund, the same as a two-column file', () => {
+    const out = normalize(inspect(csv(['Date,Description,Category,Amount', '01/09/2026,Shoes,Shopping,500 Dr', '02/09/2026,Shoes back,Shopping,500 Cr'])), TODAY)
+    const resolved = resolveRows(out.rows, { direction: out.defaultDirection, currency: '', hasCurrency: false })
+    expect(resolved.map((r) => [r.item, r.kind, r.amount])).toEqual([['Shoes', 'expense', 500], ['Shoes back', 'expense', -500]])
+  })
+
+  it('a dash or NA in the unused column of a two-column file is empty, not unreadable', () => {
+    const out = normalize(inspect(csv(['Date,Description,Debit,Credit', '01/09/2026,Rent,25000.00,-', '02/09/2026,Salary,NA,80000.00', '03/09/2026,Tea,20.00,–'])), TODAY)
+    expect(out.rows.map((r) => [r.item, r.kind, r.amount])).toEqual([['Rent', 'expense', 25000], ['Salary', 'income', 80000], ['Tea', 'expense', 20]])
+    expect(out.skipped).toEqual({})
+  })
+})

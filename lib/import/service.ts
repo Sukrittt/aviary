@@ -301,6 +301,7 @@ export async function loadImport(auth: Auth, importId: string): Promise<ImportDo
 
 /** The review again after a flip or a currency change: same stored rows, no re-upload. */
 export async function recomputePreview(auth: Auth, importId: string, change: { direction?: unknown; currency?: unknown }): Promise<Review> {
+  assertOwner(auth)
   const doc = await loadImport(auth, importId)
   if (doc.status !== 'previewed') throw new ImportError('not_found')
   const set: Partial<ImportDoc> = {}

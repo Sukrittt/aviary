@@ -102,3 +102,18 @@ describe('PUT /api/subscriptions — case-insensitive match', () => {
     expect(res.status).toBe(404)
   })
 })
+
+describe('subscription amounts', () => {
+  it('POST refuses an amount that is not money', async () => {
+    for (const amount_inr of ['abc', '', undefined, '-5', '1e999']) {
+      expect((await POST(req('POST', { service: 'Netflix', amount_inr }))).status).toBe(400)
+    }
+    expect(store).toHaveLength(0)
+  })
+
+  it('PUT refuses one too and keeps the old amount', async () => {
+    await POST(req('POST', { service: 'Netflix', amount_inr: '649' }))
+    expect((await PUT(req('PUT', { service: 'Netflix', amount_inr: 'abc' }))).status).toBe(400)
+    expect(store[0].amount_inr).toBe('649')
+  })
+})

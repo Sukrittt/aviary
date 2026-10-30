@@ -428,6 +428,7 @@ describe('failing rows', () => {
     expect(sendEmail).toHaveBeenCalledTimes(1)
     expect(sendEmail.mock.calls[0]).toMatchObject([{ subject: 'Your history didn’t all make it in' }, `import-failed:${id}`])
 
+    await expect(retryImport({ ...auth, spaceRole: 'member' as const }, id)).rejects.toMatchObject({ code: 'not_owner' })
     expect(await retryImport(auth, id)).toBe(true)
     expect(await (await coll('imports')).findOne({ _id: new ObjectId(id) })).toMatchObject({ status: 'importing', cursor: 50, failed: 0, streak: 0 })
   })
