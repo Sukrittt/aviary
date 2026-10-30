@@ -174,7 +174,7 @@ export function TransactionsView({
   }, [dateParam, anchorDate]);
 
   // Arriving with ?date= means the user asked for one specific day.
-  const period: PeriodKey = periodOverride ?? (dateParam ? "custom" : "week");
+  const period: PeriodKey = periodOverride ?? (dateParam ? "custom" : "month");
   const customStart = customStartOverride ?? seededRange.start;
   const customEnd = customEndOverride ?? seededRange.end;
 
@@ -357,7 +357,7 @@ export function TransactionsView({
   }
 
   function resetFilters() {
-    setPeriod("week");
+    setPeriod("month");
     setSelectedCategory("");
     setSelectedAccount("");
     setSearch("");
@@ -459,7 +459,7 @@ export function TransactionsView({
   }
 
   const hasActiveFilters =
-    period !== "week" || Boolean(selectedCategory) || Boolean(selectedAccount) || Boolean(search.trim()) || showMine;
+    period !== "month" || Boolean(selectedCategory) || Boolean(selectedAccount) || Boolean(search.trim()) || showMine;
 
   const filtered = Boolean(search || selectedCategory || selectedAccount || showMine);
   // An import books oldest first, so this week's rows are the last to land.

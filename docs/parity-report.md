@@ -16,6 +16,19 @@ and fixes F1 to F6. The rest have one reading behind them, so check the code bef
 "Port in progress" means a one-sided commit from the last few days, so the other side may
 simply not have caught up yet.
 
+## Decisions from Sukrit (2026-10-30)
+
+These override the "needs a decision" notes on the items below.
+
+| Item | Decision | Status |
+| --- | --- | --- |
+| 8 | Transactions open on this month on both sides. Web gets no "all" period for now, so search there stays inside the selected period. | Default changed on Web. The search gap remains. |
+| 10 | No Ready to Assign cap on Mobile. It keeps its "₹X over" warning. | No change needed. The different stored data in item 10 is still open. |
+| 13, 14 | Mobile doesn't get "return all money" or expense splitting. | Closed |
+| 20 | One category rule on both sides: most matching words wins, first seen on a tie, and a dictionary name also matches a category that contains it. | Shipped as `src/lib/matchCategory.ts` in both repos |
+| 27 | Leave Wrapped as it is on Web. | Closed |
+| 57 | The settings screen and its tab are called Account everywhere. | Renamed on both sides, including the Ask Aviary guide and public pages |
+
 ## Fixed in this pass
 
 | # | Side | What was wrong | PR |

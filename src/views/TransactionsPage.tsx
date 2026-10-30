@@ -51,7 +51,7 @@ export function TransactionsPage() {
         <InsightsTab />
         <Link href="/account" className="erd-tab">
           <GearIcon size={22} aria-hidden />
-          <span>More</span>
+          <span>Account</span>
         </Link>
       </nav>
     </section>
