@@ -28,7 +28,7 @@ const NAV_ROUTES: { name: NavRoute; glyph: Glyph; label: string }[] = [
   { name: 'index', glyph: HomeGlyph, label: 'Home' },
   { name: 'activity', glyph: ActivityGlyph, label: 'Activity' },
   { name: 'envelopes', glyph: EnvelopeGlyph, label: 'Categories' },
-  { name: 'more', glyph: ProfileGlyph, label: 'More' },
+  { name: 'more', glyph: ProfileGlyph, label: 'Account' },
 ]
 
 const BAR = 56

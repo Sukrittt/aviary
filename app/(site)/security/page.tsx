@@ -53,7 +53,7 @@ export default function SecurityPage() {
           <li><strong>Habit nudges.</strong> The Android app sends Gemini a habit&apos;s item, category and usual days and time, to write the nudge once. Turn nudges off in notification settings.</li>
           <li><strong>Logging.</strong> The category and one-off checks above run as you log.</li>
         </ul>
-        <p>Turning Ask Aviary off in More &rarr; Features hides it, but it doesn&apos;t stop the nudges or the logging checks. There&apos;s no single switch for all AI yet.</p>
+        <p>Turning Ask Aviary off in Account &rarr; Features hides it, but it doesn&apos;t stop the nudges or the logging checks. There&apos;s no single switch for all AI yet.</p>
 
         <h3>Training and retention</h3>
         <p>Google does not use this data to train its models under our API agreement with them. For TypeSafe, every request sets the AI Gateway&apos;s option that disallows prompt training. We haven&apos;t turned on the gateway&apos;s zero data retention, so those requests don&apos;t come with a no-retention promise.</p>

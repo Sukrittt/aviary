@@ -14,7 +14,7 @@ const TABS: Array<{ href: string; icon: PhosphorIcon; label: string }> = [
   { href: '/expense/envelopes', icon: SquaresFourIcon, label: 'Categories' },
   { href: '/expense/transactions', icon: InvoiceIcon, label: 'Activity' },
   { href: '/insights', icon: ChartLineIcon, label: 'Insights' },
-  { href: '/account', icon: GearIcon, label: 'More' },
+  { href: '/account', icon: GearIcon, label: 'Account' },
 ]
 
 export function EnvelopeTabbar() {

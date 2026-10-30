@@ -23,7 +23,7 @@ export default function AskAviaryPage() {
     <h2>What it sends, and where</h2>
     <p>What you type goes to Google Gemini and to TypeSafe AI, through Vercel’s AI Gateway. Gemini also gets your budget numbers and biggest items. When the question needs them, it gets up to 90 days of transactions (item, amount, category, date, payment method), your spending trends, subscriptions and investments. Opening Ask Aviary also builds a short brief from your month, before you type anything.</p>
     <p>We don’t add your name or email, and your saved notes aren’t included. Whatever you type goes as written. Google does not use this data to train its models under our API agreement with them.</p>
-    <p>Your data isn’t sold, and there are no ads. You can turn Ask Aviary off in More → Features, though other AI features keep running. See <Link href="/security#ai">what the AI sees and when</Link>, and the <Link href="/legal/privacy">privacy policy</Link>.</p>
+    <p>Your data isn’t sold, and there are no ads. You can turn Ask Aviary off in Account → Features, though other AI features keep running. See <Link href="/security#ai">what the AI sees and when</Link>, and the <Link href="/legal/privacy">privacy policy</Link>.</p>
 
     <h2>Why a chat in a budget app</h2>
     <p>Most people quit budgeting because logging falls behind and catching up feels like homework. A chat makes catching up a sentence. And being able to ask “can I afford this?” at the counter is the whole point of having a budget.</p>

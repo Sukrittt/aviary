@@ -16,7 +16,7 @@ export default function DeleteAccountPage() {
         <h2>In the app</h2>
         <ul>
           <li>
-            <strong>Mobile:</strong> More &rarr; Account &amp; security &rarr; Delete account. You&apos;ll be asked
+            <strong>Mobile:</strong> Account &rarr; Account &amp; security &rarr; Delete account. You&apos;ll be asked
             to type your account email to confirm.
           </li>
           <li>
