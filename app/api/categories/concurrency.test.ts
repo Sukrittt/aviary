@@ -226,6 +226,12 @@ describe('moving a category to another group', () => {
     expect(await rows()).toContainEqual(['Food', 'Home', 1])
   })
 
+  it('reorders in place when the group named is the one it is already in', async () => {
+    expect((await move({ name: 'Fuel', toIndex: 0, group: 'Home' })).status).toBe(200)
+    expect((await state()).categories.filter((c) => c.group === 'Home').map((c) => [c.name, c.order]))
+      .toEqual([['Fuel', 0], ['Rent', 1], ['Food', 2]])
+  })
+
   it('still rejects a same-group slot past the end', async () => {
     expect((await move({ name: 'Food', toIndex: 3 })).status).toBe(400)
     expect((await move({ name: 'Food', toIndex: 3, group: 'Home' })).status).toBe(400)
