@@ -96,17 +96,17 @@ export default function PrivacyPage() {
           <li><strong>MongoDB Atlas</strong> — where your data is stored, with the encryption described above.</li>
           <li>
             <strong>Google Gemini</strong> — receives transaction and budget context for Ask Aviary, AI briefs,
-            Insights explanations and coaching and habit notifications, and receipt photos and statements you
-            upload. Google does not use this data to train its models under our API agreement with them.
+            Insights explanations and coaching notifications, a habit&apos;s item, category and usual time for
+            habit nudges, and receipt photos and statements you upload. Google does not use this data to train its models under our API agreement with them.
           </li>
           <li><strong>PostHog</strong> — product analytics, U.S.-hosted, toggleable off as described above.</li>
           <li><strong>Expo / Google Firebase</strong> — delivers push notifications.</li>
           <li><strong>Vercel</strong> — hosts the app and its API, and stores data exports you request.</li>
           <li>
             <strong>TypeSafe AI</strong>, through Vercel&apos;s AI Gateway: receives what you type to Ask Aviary, the
-            budget and spending summary behind AI briefs, item names, amounts, categories and notes for category
-            suggestions, duplicate and one-off checks, Wrapped and the recurring-payments scan, payee names and
-            sample columns from files you import, and the title and details of bug reports. Your name and email
+            budget and spending summary behind AI briefs, item names, amounts and categories for category
+            suggestions, duplicate and one-off checks and Wrapped, those plus your notes for the recurring-payments
+            scan, payee names and sample columns from files you import, and the title and details of bug reports. Your name and email
             aren&apos;t included. Requests are set to disallow prompt training. See{' '}
             <Link href="/security#ai">what the AI sees</Link>.
           </li>
