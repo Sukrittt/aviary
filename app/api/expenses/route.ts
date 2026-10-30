@@ -317,6 +317,7 @@ export async function PUT(req: Request) {
   if (body.new_item !== undefined) rawUpdate.item = body.new_item
   if (body.new_amount_inr !== undefined) rawUpdate.amount_inr = body.new_amount_inr
   if (body.new_date !== undefined) rawUpdate.date = body.new_date
+  if (body.new_timestamp !== undefined) rawUpdate.timestamp = body.new_timestamp
   if (body.new_notes !== undefined) rawUpdate.notes = body.new_notes
   if (body.new_payment_method !== undefined) rawUpdate.payment_method = body.new_payment_method
   // A new account brings its payment method with it; '' just clears the label.
@@ -356,7 +357,11 @@ export async function PUT(req: Request) {
       // Idempotent on retry: a live name resolves to itself.
       if (update.category !== undefined) update.category = await resolveCategoryName(auth, update.category, session)
       const next: Record<string, unknown> = { ...update, ...(accountUpdate !== undefined ? { account_id: accountUpdate } : {}), version: version + 1 }
-      if (body.new_date !== undefined && found.timestamp !== undefined) {
+      // A picked time stays on the row's day: `date` and the timestamp's own date never disagree.
+      if (update.timestamp !== undefined && update.timestamp.slice(0, 10) !== String(update.date ?? found.date ?? '').slice(0, 10)) {
+        throw new ExpenseWriteError(400, 'invalid timestamp')
+      }
+      if (body.new_date !== undefined && body.new_timestamp === undefined && found.timestamp !== undefined) {
         const ts = String(found.timestamp)
         next.timestamp = `${String(body.new_date)}${ts.includes('T') ? ts.slice(ts.indexOf('T')) : ''}`
       }
