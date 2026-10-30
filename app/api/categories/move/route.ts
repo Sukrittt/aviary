@@ -38,7 +38,8 @@ export async function POST(req: Request) {
       if (group !== fromGroup && group && !(await groups.findOne({ name: group }, { session }))) {
         throw new NotFound('group not found')
       }
-      const groupDocs = await coll.find({ group }, { session }).sort({ order: 1 }).toArray()
+      // A row with no stored group lists as ungrouped (GET), so it counts here too.
+      const groupDocs = await coll.find({ group: group || { $in: ['', null] } }, { session }).sort({ order: 1 }).toArray()
       if (group === fromGroup && !groupDocs.some((d) => d.name === body.name)) throw new NotFound('category group not found')
       const rest = groupDocs.map((d) => d.name).filter((n) => n !== body.name)
       if (Number(body.toIndex) < 0 || Number(body.toIndex) > rest.length) throw new OutOfRange('toIndex out of range')

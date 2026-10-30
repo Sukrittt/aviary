@@ -220,6 +220,15 @@ describe('moving a category to another group', () => {
     expect(await rows()).toContainEqual(['Food', '', 0])
   })
 
+  it('treats a category with no stored group as ungrouped, as the list does', async () => {
+    const db = await getDb()
+    await scoped(db.collection('categories'), USER).insertMany([{ name: 'Old', order: 0 }, { name: 'Older', order: 1 }])
+    expect((await move({ name: 'Older', toIndex: 0, group: '' })).status).toBe(200)
+    expect((await move({ name: 'Food', toIndex: 1, group: '' })).status).toBe(200)
+    const ungrouped = (await state()).categories.filter((c) => !c.group)
+    expect(ungrouped.map((c) => c.name)).toEqual(['Older', 'Food', 'Old'])
+  })
+
   it('refuses a group that does not exist, and a slot past the end', async () => {
     expect((await move({ name: 'Food', toIndex: 0, group: 'Nope' })).status).toBe(404)
     expect((await move({ name: 'Food', toIndex: 3, group: 'Fun' })).status).toBe(400)
