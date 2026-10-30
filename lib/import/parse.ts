@@ -38,12 +38,17 @@ const MAX_AMOUNT = 1_000_000_000_000
 // The dot in "Rs. 1,250" or "Rp. 50.000" ends a word, it isn't one of the amount's separators.
 const WORD_DOT = /\p{L}+\./gu
 
+/**
+ * A written Dr or Cr at either end: "10 DR", "Dr. 10". The lookaround keeps
+ * currency codes out: IDR and SCR end in a marker, CRC starts with one.
+ */
+export const drCrMarker = (s: string) => s.match(/\s*(?<![a-z])(CR|DR)\.?$/i) ?? s.match(/^(CR|DR)(?![a-z])\.?\s*/i)
+
 /** A signed amount in major units, rounded to cents, or null. */
 export function parseAmount(raw: string, decimalComma: boolean): number | null {
   let s = raw.trim().replace(/[−‒–]/g, '-')
   let sign = 1
-  // Either end: "10 DR", "Dr. 10". The lookahead keeps a code like CRC out.
-  const marker = s.match(/\s*(CR|DR)\.?$/i) ?? s.match(/^(CR|DR)(?![a-z])\.?\s*/i)
+  const marker = drCrMarker(s)
   if (marker) s = s.replace(marker[0], '')
   if (/^\(.*\)$/.test(s)) {
     sign = -sign

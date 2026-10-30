@@ -196,6 +196,10 @@ describe('parseAmount, an explicit Dr or Cr', () => {
   it('doesn’t mistake a currency code for a marker', () => {
     expect(parseAmount('CRC 500', false)).toBe(500)
     expect(parseAmount('DRAM 500', false)).toBe(500)
+    expect(parseAmount('100 IDR', false)).toBe(100)
+    expect(parseAmount('100IDR', false)).toBe(100)
+    expect(parseAmount('100 SCR', false)).toBe(100)
+    expect(parseAmount('-100 IDR', false)).toBe(-100)
   })
 })
 

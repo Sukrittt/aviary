@@ -283,6 +283,30 @@ describe('bad and awkward rows', () => {
     expect(out.fileCurrency).toBe('INR')
   })
 
+  it('a written Cr is money in, even in a file that’s nearly all credits', () => {
+    const out = rowsOf([
+      ['Date', 'Item', 'Amount'],
+      ...['01', '02', '03', '04', '05'].map((d) => [`2026-09-${d}`, `Credit ${d}`, '40.00 CR']),
+      ['2026-09-06', 'Fee', '5.00 DR'],
+    ])
+    expect(out.defaultDirection).toBe('negative_spend')
+    expect(out.directionSource).toBe('column')
+    const flipped = resolveRows(out.rows, { direction: 'positive_spend', currency: 'INR', hasCurrency: false })
+    expect(flipped.map((r) => r.kind)).toEqual(['income', 'income', 'income', 'income', 'income', 'expense'])
+  })
+
+  it('a written Cr on a spending category is still a refund', () => {
+    const out = rowsOf([['Date', 'Item', 'Category', 'Amount'], ['2026-09-01', 'Shoes', 'Shopping', '100 DR'], ['2026-09-02', 'Return', 'Shopping', '30 CR']])
+    const rows = resolveRows(out.rows, { direction: out.defaultDirection, currency: 'INR', hasCurrency: false })
+    expect(rows.map((r) => [r.kind, r.amount])).toEqual([['expense', 100], ['expense', -30]])
+  })
+
+  it('names Rupiah from amounts that end in IDR, and reads them by sign', () => {
+    const out = rowsOf([['Date', 'Item', 'Amount'], ['2026-09-01', 'Kopi', '-50000 IDR'], ['2026-09-02', 'Gaji', '100 IDR']])
+    expect(out.fileCurrency).toBe('IDR')
+    expect(out.rows.map((r) => [r.kind, r.amount])).toEqual([['expense', 50000], ['income', 100]])
+  })
+
   it('one unmistakable date decides the order for every ambiguous one, and a row that then can’t be read is counted', () => {
     const out = rowsOf([['Date', 'Item', 'Amount'], ['03/04/2026', 'a', '-5'], ['04/17/2026', 'b', '-6'], ['17/04/2026', 'c', '-7']])
     expect(summary(out.rows)).toEqual([['a', 'expense', '2026-03-04', 5], ['b', 'expense', '2026-04-17', 6]])
