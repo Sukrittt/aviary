@@ -8,6 +8,7 @@ export const metadata = pageMetadata('/tools/salary-budget-planner')
 
 export default function SalaryPlannerPage() {
   return <ContentPage section="tools" path="/tools/salary-budget-planner" title="Salary budget planner" lede={<>Type your monthly take-home salary and your rent. You’ll get a month split into categories, every rupee accounted for.</>} related={[...postLinks('first-salary-budget', 'how-much-to-save-from-salary-india'), '/tools/budget-for-25000-salary', '/tools/budget-for-40000-salary', '/tools/budget-for-60000-salary', '/tools/budget-for-1-lakh-salary']}>
+    <p>Not paid in rupees? Use the <Link href="/tools/paycheck-budget-planner">paycheck budget planner</Link>, which works in any currency.</p>
     <SalaryPlanner />
 
     <h2>How the plan is built</h2>

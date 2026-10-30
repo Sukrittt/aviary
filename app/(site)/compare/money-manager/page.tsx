@@ -19,8 +19,8 @@ export default function MoneyManagerPage() {
 
     <h2>Side by side</h2>
     <CompareTable them="Money Manager" rows={[
-      ['Price', '₹199 a month after a 30-day free trial', 'Free with ads. The ad-free Android version is a one-time ₹99. On iPhone, data sync is ₹219 a month or ₹1,799 a year'],
-      ['Approach', 'Assign every rupee to a category, then spend from it', 'Double-entry bookkeeping across your accounts, with budgets and charts'],
+      ['Price', '₹199 a month in India or $4.90 a month on the web elsewhere, after a 30-day free trial', 'Free with ads. The ad-free Android version is a one-time ₹99. On iPhone, data sync is ₹219 a month or ₹1,799 a year'],
+      ['Approach', 'Assign all your money to categories, then spend from them', 'Double-entry bookkeeping across your accounts, with budgets and charts'],
       ['Bank or SMS sync', 'None', 'Not advertised on its listings'],
       ['Platforms', 'Android and web', 'Android, iPhone and iPad, plus viewing and editing on a PC over Wi-Fi'],
       ['Multiple currencies', 'One currency per budget', 'Entries in multiple currencies (iPhone)'],
@@ -42,7 +42,7 @@ export default function MoneyManagerPage() {
       <li><strong>Price.</strong> The free version is usable, and the ad-free Android version is a one-time ₹99.</li>
       <li><strong>Accounting detail.</strong> Double-entry means every transfer between your savings account, card and wallet balances out. Great if you want to see net worth and card dues.</li>
       <li><strong>More platforms.</strong> It’s on iPhone and iPad, and you can work on your data from a PC.</li>
-      <li><strong>Trust at scale.</strong> Over a crore downloads on Google Play in India and a 4.6 rating.</li>
+      <li><strong>Trust at scale.</strong> Over 10 million downloads on Google Play in India and a 4.6 rating.</li>
     </ul>
 
     <Sources checked={COMPARE_CHECKED} links={[
