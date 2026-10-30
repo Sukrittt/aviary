@@ -37,6 +37,6 @@ export function LandingFooter({ base = '', faq = `${base}#faq`, intl = false }: 
     <div><h2>Learn</h2><Link href="/help">Help</Link><a href={faq}>FAQ</a><Link href="/changelog">Changelog</Link><Link href="/blog">Blog</Link></div>
     {Object.values(CONTENT_SECTIONS).filter((section) => section.pages.length).map((section) => <FooterSection key={section.path} path={section.path} label={section.label} pages={section.pages} intl={intl} />)}
     <div><h2>Community</h2><Link href={FEEDBACK_BOARD_PATH}>Feedback board</Link><a href={GITHUB}>GitHub</a><Link href="/legal/contact">Contact</Link></div>
-    <div><h2>Legal</h2><Link href="/legal/privacy">Privacy</Link><Link href="/legal/terms">Terms</Link><Link href="/legal/refunds">Refunds</Link><Link href="/legal/delete-account">Delete account</Link></div>
+    <div><h2>Legal</h2><Link href="/security">Security</Link><Link href="/legal/privacy">Privacy</Link><Link href="/legal/terms">Terms</Link><Link href="/legal/refunds">Refunds</Link><Link href="/legal/delete-account">Delete account</Link></div>
   </nav></footer>
 }

@@ -52,7 +52,7 @@ export default async function BlogPostPage({ params }: Props) {
       <ShareLinks post={post} />
       <div className="lp-post"><Content /></div>
     </div>
-    <SoftCta title="Budget the way this post describes" placement={`blog_${post.slug}`}>Aviary gives every rupee a category and makes logging one tap. Free for 30 days, no card, no bank link.</SoftCta>
+    <SoftCta title="Budget the way this post describes" placement={`blog_${post.slug}`}>Aviary gives all your money a category and makes logging one tap. Free for 30 days, no card, no bank link.</SoftCta>
   </ContentPage>
 }
 

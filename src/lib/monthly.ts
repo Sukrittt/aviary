@@ -383,7 +383,13 @@ export function spikeFor(expenseRows: ExpenseRow[], category: string, month: str
   const inProgress = today.startsWith(month)
   const cutoffDay = inProgress ? Number(today.slice(8, 10)) : null
   if (cutoffDay != null && cutoffDay < SPIKE_MIN_DAY) return null
-  const priorMonths = priorMonthsWithData(expenseRows, month)
+  // Months before the category was first logged aren't zeros: Rent added in Sep
+  // shouldn't count Aug as a ₹0 rent month and read a flat Oct as +100%.
+  const firstLogged = expenseRows.reduce<string | null>(
+    (min, e) => (e.category === category && (min == null || e.date < min) ? e.date : min),
+    null,
+  )
+  const priorMonths = priorMonthsWithData(expenseRows, month).filter((m) => firstLogged != null && m >= firstLogged.slice(0, 7))
   if (priorMonths.length < 2) return null
 
   const inWindow = (e: ExpenseRow, m: string) =>

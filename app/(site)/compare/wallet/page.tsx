@@ -6,12 +6,12 @@ import { CompareTable, ContentPage, SoftCta, Sources } from '@/src/components/co
 export const metadata = pageMetadata('/compare/wallet')
 
 export default function WalletPage() {
-  return <ContentPage section="compare" path="/compare/wallet" title="Aviary vs Wallet by BudgetBakers" kicker={`Compare · Facts checked ${COMPARE_CHECKED}`} lede={<>Wallet by BudgetBakers is a money manager used all over the world. It tracks spending across accounts and currencies, and on Premium it syncs with your bank. Aviary is an envelope budget: you give every rupee a job first, and every spend shows what’s left for that job.</>} related={['/compare/ynab-alternative-india', '/compare/monefy', '/features/budget-without-bank-linking']}>
+  return <ContentPage section="compare" path="/compare/wallet" title="Aviary vs Wallet by BudgetBakers" kicker={`Compare · Facts checked ${COMPARE_CHECKED}`} lede={<>Wallet by BudgetBakers is a money manager used all over the world. It tracks spending across accounts and currencies, and on Premium it syncs with your bank. Aviary is an envelope budget: you give all your money a job first, and every spend shows what’s left for that job.</>} related={['/compare/ynab-alternative', '/compare/monefy', '/features/budget-without-bank-linking']}>
     <p>Wallet’s budgets are limits you set on what you spend. Aviary starts from the money you have and plans all of it. And if you’ve got years of records in Wallet, they can come with you.</p>
 
     <h2>The short version</h2>
     <ul>
-      <li><strong>A plan for all your money.</strong> A Wallet budget caps a category or a period. In Aviary, every rupee you have gets a job, and whatever’s left in an envelope rolls into next month.</li>
+      <li><strong>A plan for all your money.</strong> A Wallet budget caps a category or a period. In Aviary, all the money you have gets a job, and whatever’s left in an envelope rolls into next month.</li>
       <li><strong>No bank link, by design.</strong> In Wallet, automatic bank updates are a Premium feature. Aviary never links your bank or reads your SMS. You log spends yourself, with nudges that keep it quick.</li>
       <li><strong>Sharing on one plan.</strong> Up to 6 people share a budget in Aviary, each on their own phone.</li>
       <li><strong>Your history comes too.</strong> Export a csv from Wallet and upload it when you set up Aviary.</li>
@@ -31,8 +31,8 @@ export default function WalletPage() {
 
     <h2>Side by side</h2>
     <CompareTable them="Wallet" rows={[
-      ['Price', '₹199 a month after a 30-day free trial', 'Free for manual tracking. Premium adds bank sync, unlimited accounts and sharing. On the App Store, Premium runs from ₹199 to ₹4,999 in India ($5.99 to $49.99 in the US), including a one-time Lifetime Premium at ₹999 ($29.99)'],
-      ['Method', 'Envelope budgeting: every rupee gets a category before you spend', 'Money manager and spending tracker, with budgets as limits on a category or period: weekly, monthly or custom'],
+      ['Price', '₹199 a month in India or $4.90 a month on the web elsewhere, after a 30-day free trial', 'Free for manual tracking. Premium adds bank sync, unlimited accounts and sharing. On the App Store, Premium runs from ₹199 to ₹4,999 in India ($5.99 to $49.99 in the US), including a one-time Lifetime Premium at ₹999 ($29.99)'],
+      ['Method', 'Envelope budgeting: every bit of income gets a category before you spend', 'Money manager and spending tracker, with budgets as limits on a category or period: weekly, monthly or custom'],
       ['Bank or SMS sync', 'None. You log spends yourself, and can catch up from a CSV, Excel or PDF statement', 'Automatic bank updates on Premium, with 15,000+ institutions worldwide. The free tier is manual'],
       ['Platforms', 'Android and web. No iPhone app yet', 'Android, iPhone, iPad and web. One Premium works on all of them'],
       ['Sharing', 'Up to 6 people in a budget on one plan, each on their own phone, with who-logged-what on every spend', 'Share selected accounts with family or friends, as part of Premium'],
@@ -56,7 +56,7 @@ export default function WalletPage() {
       <li><strong>A free tier and a one-time price.</strong> Manual tracking costs nothing, and Lifetime Premium is a single payment instead of a subscription.</li>
       <li><strong>More than spending.</strong> Stocks, investments and debts sit next to your accounts for a net worth view, and it handles many currencies at once.</li>
       <li><strong>Your data in other tools.</strong> A REST API and an MCP connector let you pull your records into spreadsheets or AI assistants.</li>
-      <li><strong>Trust at scale.</strong> Over a crore downloads on Google Play, rated 4.7.</li>
+      <li><strong>Trust at scale.</strong> Over 10 million downloads on Google Play, rated 4.7.</li>
     </ul>
 
     <Sources checked={COMPARE_CHECKED} links={[
