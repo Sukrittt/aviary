@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { allowanceHit, streamSpikeExplanation } from './ai'
+import { allowanceHit, streamChat, streamSpikeExplanation } from './ai'
 import { apiFetch } from './client'
 import { track } from '@/src/lib/analytics'
 
@@ -20,6 +20,22 @@ describe('allowanceHit', () => {
     vi.mocked(track).mockClear()
     expect(await allowanceHit(json({ error: 'slow down' }, 429), 'scan')).toBe(false)
     expect(track).not.toHaveBeenCalled()
+  })
+})
+
+describe('streamChat', () => {
+  const sent = async (...capture: [] | [boolean]) => {
+    vi.mocked(apiFetch).mockResolvedValue(new Response('data: {"delta":"ok"}\n\n'))
+    await streamChat(null, [{ role: 'user', text: 'Bike to turf 42, football 150' }], () => {}, undefined, undefined, ...capture)
+    return JSON.parse(vi.mocked(apiFetch).mock.lastCall?.[1]?.body as string)
+  }
+
+  it('says when the message came from the log-spends screen, so the server reads it as spends', async () => {
+    expect((await sent(true)).capture).toBe(true)
+  })
+
+  it('leaves a normal chat for the server to route', async () => {
+    expect(await sent()).not.toHaveProperty('capture')
   })
 })
 

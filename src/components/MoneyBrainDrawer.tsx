@@ -254,6 +254,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onL
             return next
           })
         },
+        capture,
       )
       answered(true)
       setSessionId(resolved)
