@@ -208,15 +208,16 @@ export function EnvelopesPage() {
       { onError: (e) => setError(readOnlyError(e) ?? "That didn't save. Try again.") },
     ),
   );
-  const moveCategoryTo = (name: string, toIndex: number, group?: string) =>
+  // Always names the group the user sees: right after an optimistic move, the server's copy may
+  // still be in the old one, and a slot read against that would land in the wrong place.
+  const moveCategoryTo = (name: string, toIndex: number, group: string) =>
     moveCategory.mutate(
       { name, toIndex, group },
       { onError: (e) => setError(readOnlyError(e) ?? "That didn't save. Try again.") },
     );
-  const categoryDrag = useCategoryDrag(categories, (name, slot) => {
-    const current = categories.find((c) => c.name === name);
-    moveCategoryTo(name, slot.index, (current?.group || "") === slot.group ? undefined : slot.group);
-  });
+  const categoryDrag = useCategoryDrag(categories, (name, slot) =>
+    moveCategoryTo(name, slot.index, slot.group),
+  );
   // Named groups follow the drag's live order; ungrouped "Other" stays pinned last.
   const byGroupName = new Map(grouped.map((g) => [g.name, g]));
   const ungrouped = byGroupName.get("");
@@ -229,7 +230,7 @@ export function EnvelopesPage() {
     const at = orderedGroups.findIndex((g) => g.items.some((c) => c.name === name));
     if (at === -1) return;
     const to = orderedGroups[at].items.findIndex((c) => c.name === name) + by;
-    if (to >= 0 && to < orderedGroups[at].items.length) return moveCategoryTo(name, to);
+    if (to >= 0 && to < orderedGroups[at].items.length) return moveCategoryTo(name, to, orderedGroups[at].name);
     const next = orderedGroups[at + by];
     if (!next) return;
     setCollapsed((prev) => {

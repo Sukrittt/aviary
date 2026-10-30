@@ -382,7 +382,7 @@ describe('EnvelopesPage', () => {
     const list = await groupList()
     list.getByRole('button', { name: 'Move Rent' }).focus()
     await user.keyboard('{ArrowDown}')
-    await waitFor(() => expect(moveCategory).toHaveBeenCalledWith('🏠 Rent', 1, undefined))
+    await waitFor(() => expect(moveCategory).toHaveBeenCalledWith('🏠 Rent', 1, 'Home'))
   })
 
   it('moves a category into the next group when the grip passes the edge of its own', async () => {
