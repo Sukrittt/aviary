@@ -6,7 +6,7 @@ import { CompareTable, ContentPage, SoftCta, Sources } from '@/src/components/co
 export const metadata = pageMetadata('/compare/monefy')
 
 export default function MonefyPage() {
-  return <ContentPage section="compare" path="/compare/monefy" title="A Monefy alternative that plans, not just tracks" kicker={`Compare · Facts checked ${COMPARE_CHECKED}`} lede={<>Monefy is one of the quickest ways to record a spend: tap a category, type the amount, done. It’s a spending tracker. It shows where your money went. Aviary is an envelope budget: you give every rupee a job first, and every spend shows what’s left for that job.</>} related={['/compare/money-manager', '/features/shared-budgets', '/features/budget-without-bank-linking']}>
+  return <ContentPage section="compare" path="/compare/monefy" title="A Monefy alternative that plans, not just tracks" kicker={`Compare · Facts checked ${COMPARE_CHECKED}`} lede={<>Monefy is one of the quickest ways to record a spend: tap a category, type the amount, done. It’s a spending tracker. It shows where your money went. Aviary is an envelope budget: you give all your money a job first, and every spend shows what’s left for that job.</>} related={['/compare/money-manager', '/features/shared-budgets', '/features/budget-without-bank-linking']}>
     <p>Neither one links your bank or reads your SMS. The difference is what the logging is for. And if you’ve got years of records in Monefy, they can come with you.</p>
 
     <h2>The short version</h2>
@@ -30,8 +30,8 @@ export default function MonefyPage() {
 
     <h2>Side by side</h2>
     <CompareTable them="Monefy" rows={[
-      ['Price', '₹199 a month after a 30-day free trial', 'Free to use. A premium upgrade unlocks unlimited accounts, recurring transactions and advanced filters. In-app purchases on Google Play in India run from ₹149 to ₹3,900'],
-      ['Method', 'Envelope budgeting: every rupee gets a category before you spend', 'Spending tracker, with an optional single monthly budget'],
+      ['Price', '₹199 a month in India or $4.90 a month on the web elsewhere, after a 30-day free trial', 'Free to use. A premium upgrade unlocks unlimited accounts, recurring transactions and advanced filters. In-app purchases on Google Play in India run from ₹149 to ₹3,900'],
+      ['Method', 'Envelope budgeting: every bit of income gets a category before you spend', 'Spending tracker, with an optional single monthly budget'],
       ['Bank or SMS sync', 'None. You log spends yourself, and can catch up from a CSV, Excel or PDF statement', 'None. You add each record yourself'],
       ['Platforms', 'Android and web. No iPhone app yet', 'Android and iPhone. No web version'],
       ['Sharing', 'Up to 6 people in a budget on one plan, each on their own phone, with who-logged-what on every spend', 'Sync between devices through your own Google Drive or Dropbox, which you can share with a partner'],
@@ -55,7 +55,7 @@ export default function MonefyPage() {
       <li><strong>Speed of entry.</strong> Tap a category, type an amount, done. If all you want is a record, it’s hard to beat.</li>
       <li><strong>iPhone and many currencies.</strong> Monefy runs on iPhone as well as Android, and tracks in more than 150 currencies, which helps if you travel or earn in more than one.</li>
       <li><strong>Your data stays in your own cloud.</strong> Sync goes through your own Google Drive or Dropbox.</li>
-      <li><strong>Trust at scale.</strong> Over a crore downloads on Google Play.</li>
+      <li><strong>Trust at scale.</strong> Over 10 million downloads on Google Play.</li>
     </ul>
 
     <Sources checked={COMPARE_CHECKED} links={[

@@ -19,9 +19,9 @@ export default function AxioPage() {
 
     <h2>Side by side</h2>
     <CompareTable them="axio" rows={[
-      ['Price', '₹199 a month after a 30-day free trial', 'Free to install'],
+      ['Price', '₹199 a month in India or $4.90 a month on the web elsewhere, after a 30-day free trial', 'Free to install'],
       ['How spends get in', 'You log them, with nudges, one-line catch-up, bill scanning and recurring expenses', 'Reads transactional SMS. axio says it doesn’t read personal SMS'],
-      ['Budgeting', 'Assign every rupee to a category; see what’s left before you spend', 'Spending limits with alerts'],
+      ['Budgeting', 'Assign all your money to categories; see what’s left before you spend', 'Spending limits with alerts'],
       ['Credit products', 'None', 'Pay Later, no-cost EMIs, personal loans (14% to 35% a year, per its listing), fixed deposits'],
       ['Bill reminders', 'Recurring expenses and subscriptions, with renewal heads-ups', 'Yes'],
       ['Receipts', 'Scan a bill into spends', 'Attach bill photos to transactions'],
