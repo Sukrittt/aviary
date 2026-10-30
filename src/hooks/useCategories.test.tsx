@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { renderHook, waitFor } from '@testing-library/react'
 import { moveCategory } from '@/src/api/categories'
 import type { CategoryRow } from '@/src/types'
-import { useMoveCategory, useUpdateCategory } from './useCategories'
+import { placeInGroup, useMoveCategory, useUpdateCategory } from './useCategories'
 
 vi.mock('@/src/api/categories', () => ({
   getCategories: vi.fn(),
@@ -52,6 +52,28 @@ it('optimistically reorders within the group on mutate', async () => {
 
   resolveMove()
   await waitFor(() => expect(result.current.isSuccess).toBe(true))
+})
+
+it('optimistically carries a category into another group at the dropped slot', async () => {
+  ;(moveCategory as Mock).mockResolvedValue(undefined)
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  queryClient.setQueryData(key, rows)
+  const { result } = renderHook(() => useMoveCategory(), { wrapper: wrapper(queryClient) })
+
+  result.current.mutate({ name: 'Rent', toIndex: 0, group: 'Food' })
+
+  await waitFor(() => {
+    const data = queryClient.getQueryData<CategoryRow[]>(key)
+    expect(data?.map((c) => [c.name, c.group])).toEqual([['Water', 'Home'], ['Rent', 'Food'], ['Groceries', 'Food']])
+  })
+  await waitFor(() => expect(result.current.isSuccess).toBe(true))
+  expect(moveCategory).toHaveBeenLastCalledWith('Rent', 0, 'Food')
+})
+
+it('places a category at the end of a group, and into an empty one', () => {
+  expect(placeInGroup(rows, 'Rent', 1, 'Food').map((c) => c.name)).toEqual(['Water', 'Groceries', 'Rent'])
+  expect(placeInGroup(rows, 'Rent', 0, 'Empty')).toContainEqual({ name: 'Rent', group: 'Empty' })
+  expect(placeInGroup(rows, 'Nope', 0, 'Food')).toBe(rows)
 })
 
 it('rolls back to the previous list when the mutation errors', async () => {

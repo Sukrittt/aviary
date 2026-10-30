@@ -38,11 +38,12 @@ export async function deleteCategory(name: string): Promise<void> {
   if (!resp.ok) throw new Error(`Failed to delete category: ${resp.status}`)
 }
 
-export async function moveCategory(name: string, toIndex: number): Promise<void> {
+/** `group` moves it into that group ('' is ungrouped); leave it out to reorder in place. */
+export async function moveCategory(name: string, toIndex: number, group?: string): Promise<void> {
   const resp = await apiFetch('/api/categories/move', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, toIndex }),
+    body: JSON.stringify({ name, toIndex, group }),
   })
   if (!resp.ok) throw new Error(`Failed to move category: ${resp.status}`)
 }

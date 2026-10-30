@@ -75,6 +75,8 @@ beforeEach(async () => {
   controls.failBulkHalfway = false
   const db = await getDb()
   await db.collection('categories').deleteMany({})
+  await db.collection('groups').deleteMany({})
+  await scoped(db.collection('groups'), USER).insertMany([{ name: 'Home', order: 0 }, { name: 'Fun', order: 1 }])
   await db.collection('budgets').deleteMany({})
   await db.collection('expenses').deleteMany({})
   await db.collection('recurring_expenses').deleteMany({})
@@ -176,6 +178,79 @@ describe('category rename and move on a real replica set', () => {
     const orders = (await state()).categories.map((c) => c.order)
     expect(new Set(orders).size).toBe(orders.length)
     expect([...orders].sort()).toEqual([0, 1, 2])
+  })
+})
+
+describe('moving a category to another group', () => {
+  const move = (body: object) => moveCategory(request('/move', body, 'POST'))
+  const rows = async () => (await state()).categories.map((c) => [c.name, c.group, c.order])
+
+  beforeEach(async () => {
+    const db = await getDb()
+    await scoped(db.collection('categories'), USER).insertMany([
+      { name: 'Movies', group: 'Fun', order: 5 },
+      { name: 'Games', group: 'Fun', order: 6 },
+    ])
+  })
+
+  it('lands at the dropped position and renumbers the destination', async () => {
+    expect((await move({ name: 'Food', toIndex: 1, group: 'Fun' })).status).toBe(200)
+    const after = await rows()
+    expect(after).toContainEqual(['Movies', 'Fun', 5])
+    expect(after).toContainEqual(['Food', 'Fun', 6])
+    expect(after).toContainEqual(['Games', 'Fun', 7])
+    expect(after).toContainEqual(['Rent', 'Home', 0])
+    expect(after).toContainEqual(['Fuel', 'Home', 2])
+  })
+
+  it('accepts the slot just past the last row of the destination', async () => {
+    expect((await move({ name: 'Food', toIndex: 2, group: 'Fun' })).status).toBe(200)
+    expect(await rows()).toContainEqual(['Food', 'Fun', 7])
+  })
+
+  it('moves into a group with nothing in it', async () => {
+    const db = await getDb()
+    await scoped(db.collection('groups'), USER).insertOne({ name: 'Empty', order: 2 })
+    expect((await move({ name: 'Food', toIndex: 0, group: 'Empty' })).status).toBe(200)
+    expect(await rows()).toContainEqual(['Food', 'Empty', 0])
+  })
+
+  it('moves out to the ungrouped bucket', async () => {
+    expect((await move({ name: 'Food', toIndex: 0, group: '' })).status).toBe(200)
+    expect(await rows()).toContainEqual(['Food', '', 0])
+  })
+
+  it('treats a category with no stored group as ungrouped, as the list does', async () => {
+    const db = await getDb()
+    await scoped(db.collection('categories'), USER).insertMany([{ name: 'Old', order: 0 }, { name: 'Older', order: 1 }])
+    expect((await move({ name: 'Older', toIndex: 0, group: '' })).status).toBe(200)
+    expect((await move({ name: 'Food', toIndex: 1, group: '' })).status).toBe(200)
+    const ungrouped = (await state()).categories.filter((c) => !c.group)
+    expect(ungrouped.map((c) => c.name)).toEqual(['Older', 'Food', 'Old'])
+  })
+
+  it('refuses a group that does not exist, and a slot past the end', async () => {
+    expect((await move({ name: 'Food', toIndex: 0, group: 'Nope' })).status).toBe(404)
+    expect((await move({ name: 'Food', toIndex: 3, group: 'Fun' })).status).toBe(400)
+    expect(await rows()).toContainEqual(['Food', 'Home', 1])
+  })
+
+  it('reorders in place when the group named is the one it is already in', async () => {
+    expect((await move({ name: 'Fuel', toIndex: 0, group: 'Home' })).status).toBe(200)
+    expect((await state()).categories.filter((c) => c.group === 'Home').map((c) => [c.name, c.order]))
+      .toEqual([['Fuel', 0], ['Rent', 1], ['Food', 2]])
+  })
+
+  it('still rejects a same-group slot past the end', async () => {
+    expect((await move({ name: 'Food', toIndex: 3 })).status).toBe(400)
+    expect((await move({ name: 'Food', toIndex: 3, group: 'Home' })).status).toBe(400)
+  })
+
+  it('leaves the category where it was when the write fails partway', async () => {
+    controls.failBulkHalfway = true
+    await expect(move({ name: 'Food', toIndex: 0, group: 'Fun' })).rejects.toThrow()
+    expect(await rows()).toContainEqual(['Food', 'Home', 1])
+    expect(await rows()).toContainEqual(['Movies', 'Fun', 5])
   })
 })
 

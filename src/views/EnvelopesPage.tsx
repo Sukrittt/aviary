@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState, type ReactElement, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { ReceiptIcon, BellIcon, ArrowsInLineVerticalIcon, SquaresFourIcon, MoonIcon, PencilSimpleIcon, PlusIcon, SunIcon, TrashIcon, XIcon } from "@/src/components/icons";
 import { draftOf, goalOf, GoalFields, type GoalDraft } from "../components/GoalSheet";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -14,7 +15,7 @@ import { useAppearance } from "../../components/AppearanceProvider";
 import { ExpenseSidebar } from "../components/ExpenseSidebar";
 import { EnvelopesSkeleton } from "../components/TabSkeleton";
 import { EnvelopeTabbar } from "../components/EnvelopeTabbar";
-import { SpringChevron, SpringCollapse } from "../components/SpringCollapse";
+import { ENVELOPE_SPRING, SpringChevron, SpringCollapse } from "../components/SpringCollapse";
 import { AlertThresholdPicker } from "../components/AlertThresholdPicker";
 import { AddCategoryModal } from "../components/AddCategoryModal";
 import { ConfirmDialog } from "../components/ConfirmDialog";
@@ -48,6 +49,7 @@ import { EMPTY } from "../lib/constants";
 import type { CategoryGoal, CategoryRow } from "../types";
 import { BirdEmptyState } from "../components/BirdEmptyState";
 import { DragItem, DragList, useDragOrder } from "../components/DragReorder";
+import { CategoryGrip, CategoryGripShape, slotKey, useCategoryDrag, type CategoryDrag } from "../components/CategoryDrag";
 import { useReadOnlyError } from "../components/BudgetNotices";
 import { useSpaces } from "../hooks/useSpaces";
 
@@ -73,40 +75,88 @@ function sameThresholds(a: number[], b: number[]): boolean {
   return a.length === b.length && a.every((v, i) => v === b[i]);
 }
 
-/** One group's categories, draggable within the group like Mobile's DraggableCategoryList. */
+/**
+ * One group's categories. While any category is dragged, every boundary between rows can hold the
+ * gap, each with its own presence so a gap shrinks in place as the next one opens.
+ */
 function CategoryList({
+  group,
   items,
-  onMove,
+  drag,
+  onNudge,
   renderRow,
 }: {
+  group: string;
   items: CategoryRow[];
-  onMove: (name: string, toIndex: number) => void;
+  drag: CategoryDrag;
+  onNudge: (name: string, by: number) => void;
   renderRow: (category: CategoryRow, grip: ReactNode) => ReactNode;
 }) {
-  const names = useMemo(() => items.map((c) => c.name), [items]);
-  const drag = useDragOrder(names, onMove);
-  const byName = new Map(items.map((c) => [c.name, c]));
+  const reduce = useReducedMotion();
+  const active = drag.active;
+  const rows = active ? items.filter((c) => c.name !== active.name) : items;
+  const gapAt = active?.gap?.group === group ? active.gap.index : -1;
+  const gapTransition = reduce ? { duration: 0 } : ENVELOPE_SPRING;
+  const boundary = (index: number, key: string) =>
+    active && (
+      <AnimatePresence key={`gap:${key}`} initial={false}>
+        {gapAt === index && (
+          <motion.li
+            className="env-cat-gap"
+            data-cat-slot={slotKey({ group, index })}
+            initial={active.moved ? { height: 0, opacity: 0 } : false}
+            animate={{ height: active.rect.height, opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={gapTransition}
+          />
+        )}
+      </AnimatePresence>
+    );
+  const dragged = active?.from.group === group ? items.find((c) => c.name === active.name) : undefined;
   return (
-    <DragList drag={drag} className="env-cat-list">
-      {drag.order.map((name) => {
-        const category = byName.get(name);
-        if (!category) return null;
-        return (
-          <DragItem
-            key={name}
-            value={name}
-            drag={drag}
-            label={splitEmoji(name).text}
-            className="env-cat"
+    <ul className="env-cat-list">
+      {rows.flatMap((category, index) => [
+        boundary(index, category.name),
+        <li key={category.name} className="env-cat" data-cat>
+          {renderRow(
+            category,
+            <CategoryGrip
+              name={category.name}
+              group={group}
+              index={index}
+              label={splitEmoji(category.name).text}
+              drag={drag}
+              onNudge={onNudge}
+            />,
+          )}
+        </li>,
+      ])}
+      {boundary(rows.length, "end")}
+      <AnimatePresence initial={false}>
+        {rows.length === 0 && gapAt === -1 && (
+          <motion.li
+            className="env-cat-empty"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={gapTransition}
           >
-            {(grip) => renderRow(category, grip)}
-          </DragItem>
-        );
-      })}
-      {items.length === 0 && (
-        <li className="env-cat env-cat--empty">Nothing in here yet.</li>
-      )}
-    </DragList>
+            <div className="env-cat env-cat--empty">Nothing in here yet.</div>
+          </motion.li>
+        )}
+      </AnimatePresence>
+      {active && dragged &&
+        createPortal(
+          <motion.div
+            className={`env-cat env-cat-ghost${active.landing ? " is-landing" : ""}`}
+            aria-hidden="true"
+            style={{ x: drag.x, y: drag.y, width: active.rect.width, height: active.rect.height }}
+          >
+            {renderRow(dragged, <CategoryGripShape />)}
+          </motion.div>,
+          active.host,
+        )}
+    </ul>
   );
 }
 
@@ -158,11 +208,16 @@ export function EnvelopesPage() {
       { onError: (e) => setError(readOnlyError(e) ?? "That didn't save. Try again.") },
     ),
   );
-  const moveCategoryTo = (name: string, toIndex: number) =>
+  // Always names the group the user sees: right after an optimistic move, the server's copy may
+  // still be in the old one, and a slot read against that would land in the wrong place.
+  const moveCategoryTo = (name: string, toIndex: number, group: string) =>
     moveCategory.mutate(
-      { name, toIndex },
+      { name, toIndex, group },
       { onError: (e) => setError(readOnlyError(e) ?? "That didn't save. Try again.") },
     );
+  const categoryDrag = useCategoryDrag(categories, (name, slot) =>
+    moveCategoryTo(name, slot.index, slot.group),
+  );
   // Named groups follow the drag's live order; ungrouped "Other" stays pinned last.
   const byGroupName = new Map(grouped.map((g) => [g.name, g]));
   const ungrouped = byGroupName.get("");
@@ -170,6 +225,22 @@ export function EnvelopesPage() {
     ...groupDrag.order.flatMap((name) => byGroupName.get(name) ?? []),
     ...(ungrouped ? [ungrouped] : []),
   ];
+  /** Keyboard move: one slot within the group, past its edge into the next group over. */
+  function nudgeCategory(name: string, by: number) {
+    const at = orderedGroups.findIndex((g) => g.items.some((c) => c.name === name));
+    if (at === -1) return;
+    const to = orderedGroups[at].items.findIndex((c) => c.name === name) + by;
+    if (to >= 0 && to < orderedGroups[at].items.length) return moveCategoryTo(name, to, orderedGroups[at].name);
+    const next = orderedGroups[at + by];
+    if (!next) return;
+    setCollapsed((prev) => {
+      const open = new Set(prev);
+      open.delete(next.label);
+      return open;
+    });
+    categoryDrag.focusAfterMove(name, next.name);
+    moveCategoryTo(name, by < 0 ? next.items.length : 0, next.name);
+  }
   const allKeys = useMemo(() => grouped.map((g) => g.label), [grouped]);
   const allCollapsed =
     allKeys.length > 0 && allKeys.every((k) => collapsed.has(k));
@@ -456,12 +527,23 @@ export function EnvelopesPage() {
               // tall positions, so the drag never finds a swap.
               const dragging = groupDrag.active !== null;
               const isCollapsed = dragging || collapsed.has(group.label);
+              const catMove = categoryDrag.active;
+              const isDropTarget = catMove !== null && catMove.to.group === group.name && catMove.from.group !== group.name;
+              // Counts the dragged row wherever it would land, not where it came from.
+              const count = catMove
+                ? group.items.filter((c) => c.name !== catMove.name).length + (catMove.to.group === group.name ? 1 : 0)
+                : group.items.length;
+              const groupClass = isDropTarget ? "env-group is-drop-target" : "env-group";
               const text = group.name
                 ? splitEmoji(group.name).text
                 : OTHER_LABEL;
               const body = (grip: ReactNode) => (
                 <>
-                  <div className="env-group-head">
+                  <div
+                    className="env-group-head"
+                    data-cat-group={group.name}
+                    data-cat-count={group.items.length}
+                  >
                     {!readOnly && grip}
                     <button
                       type="button"
@@ -483,9 +565,7 @@ export function EnvelopesPage() {
                         <CategoryIcon kind="group" name={group.name} icon={groupIcons.get(group.name)} />
                       </Pop>
                       <span className="env-group-name">{text}</span>
-                      <span className="env-group-count">
-                        {group.items.length}
-                      </span>
+                      <span className="env-group-count">{count}</span>
                     </button>
                     {!readOnly && <div className="env-group-actions">
                       <IconTip label="Add category">
@@ -548,8 +628,10 @@ export function EnvelopesPage() {
                   {!dragging && (
                     <SpringCollapse open={!isCollapsed}>
                       <CategoryList
+                        group={group.name}
                         items={group.items}
-                        onMove={moveCategoryTo}
+                        drag={categoryDrag}
+                        onNudge={nudgeCategory}
                         renderRow={(category, catGrip) => {
                           const parts = splitEmoji(category.name);
                           const thresholds = category.alertPcts
@@ -656,7 +738,7 @@ export function EnvelopesPage() {
                   value={group.name}
                   drag={groupDrag}
                   label={text}
-                  className="env-group"
+                  className={groupClass}
                 >
                   {body}
                 </DragItem>
@@ -664,7 +746,7 @@ export function EnvelopesPage() {
                 <motion.li
                   key={group.label}
                   layout="position"
-                  className="env-group"
+                  className={groupClass}
                 >
                   {body(null)}
                 </motion.li>
