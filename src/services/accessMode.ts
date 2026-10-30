@@ -11,6 +11,10 @@ import { clearLocalPrefs } from '../lib/localPref'
 export function clearAccess(): void {
   clearLocalPrefs()
   setBudgetCookie(null)
-  localStorage.removeItem(ACTIVE_BUDGET_KEY)
+  try {
+    localStorage.removeItem(ACTIVE_BUDGET_KEY)
+  } catch {
+    // Nothing to clear if storage is unavailable.
+  }
   window.location.href = '/logout'
 }

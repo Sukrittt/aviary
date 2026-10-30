@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { ACTIVE_BUDGET_KEY, budgetCookie, setBudgetCookie } from '../api/client'
 import { clearAccess } from './accessMode'
 
@@ -11,5 +11,14 @@ describe('clearAccess', () => {
 
     expect(budgetCookie()).toBeNull()
     expect(localStorage.getItem(ACTIVE_BUDGET_KEY)).toBeNull()
+  })
+
+  it('still signs out when storage is blocked', () => {
+    const blocked = vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => { throw new Error('blocked') })
+    try {
+      expect(() => clearAccess()).not.toThrow()
+    } finally {
+      blocked.mockRestore()
+    }
   })
 })

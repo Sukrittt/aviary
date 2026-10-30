@@ -109,6 +109,8 @@ export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onL
   const count = useChatSessionsCount()
 
   const [view, setView] = useState<'chat' | 'history'>('chat')
+  // A chat reopened from history is a normal chat, even inside the log-spends drawer.
+  const reopened = useRef(false)
   // A reply cut off by closing mid-stream leaves an empty model bubble; drop it.
   const [messages, setMessages] = useState<BrainMessage[]>(() => openChat?.current.messages.filter((m) => m.text) ?? [])
   const [sessionId, setSessionId] = useState<string | null>(() => openChat?.current.sessionId ?? null)
@@ -198,6 +200,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onL
 
   function startNewChat() {
     abortRef.current?.abort()
+    reopened.current = false
     setMessages([])
     setSessionId(null)
     setInput('')
@@ -213,6 +216,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onL
       const detail = await getChatSession(id)
       setMessages(detail.messages)
       setSessionId(detail.id)
+      reopened.current = true
       setView('chat')
     } catch {
       setLoadError(true)
@@ -254,7 +258,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onL
             return next
           })
         },
-        capture,
+        capture && !reopened.current,
       )
       answered(true)
       setSessionId(resolved)
