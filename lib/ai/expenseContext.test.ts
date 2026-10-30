@@ -23,6 +23,12 @@ const input: SummarizeExpensesInput = {
 }
 
 describe('summarizeExpenses sections', () => {
+  // /security and the Ask Aviary page promise this. Change them together.
+  it('keeps saved notes out of the FACTS text', () => {
+    const { facts } = summarizeExpenses({ ...input, expenses: input.expenses.map((e) => ({ ...e, notes: 'PRIVATE-NOTE' })) })
+    expect(facts).not.toContain('PRIVATE-NOTE')
+  })
+
   it('returns one string per known section', () => {
     const { sections } = summarizeExpenses(input)
     expect(Object.keys(sections).sort()).toEqual([...FACT_SECTIONS].sort())

@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { pageMetadata } from '@/lib/seo'
 
 const SUPPORT_EMAIL = 'support@useaviary.com'
@@ -13,7 +14,7 @@ export default function PrivacyPage() {
           This policy explains what we collect, why, and how you can control or remove it. It applies to the
           Aviary Android and iOS apps and to this website.
         </p>
-        <p className="legal-updated">Last updated 14 October 2026</p>
+        <p className="legal-updated">Last updated 30 October 2026</p>
       </header>
 
       <div className="article-body">
@@ -40,7 +41,7 @@ export default function PrivacyPage() {
           <li>
             <strong>Receipt photos, for bill scanning only.</strong> If you use the scan-a-bill feature, the photo
             is sent to Google&apos;s Gemini model to read the amount and merchant off it, and is not stored by us
-            afterward.
+            afterward. Screenshots and PDF statements you upload to catch up go to Gemini the same way.
           </li>
           <li>
             <strong>Ask Aviary / AI chat.</strong> If you ask our AI assistant a question, we send it your recent
@@ -94,16 +95,20 @@ export default function PrivacyPage() {
           <li><strong>WorkOS</strong> — sign-in and account identity.</li>
           <li><strong>MongoDB Atlas</strong> — where your data is stored, with the encryption described above.</li>
           <li>
-            <strong>Google Gemini</strong> — receives transaction and budget context for Ask Aviary and AI
-            briefs, and receipt photos for bill scanning. Google does not use this data to train its models under
-            our API agreement with them.
+            <strong>Google Gemini</strong> — receives transaction and budget context for Ask Aviary, AI briefs,
+            Insights explanations and coaching and habit notifications, and receipt photos and statements you
+            upload. Google does not use this data to train its models under our API agreement with them.
           </li>
           <li><strong>PostHog</strong> — product analytics, U.S.-hosted, toggleable off as described above.</li>
           <li><strong>Expo / Google Firebase</strong> — delivers push notifications.</li>
           <li><strong>Vercel</strong> — hosts the app and its API, and stores data exports you request.</li>
           <li>
-            <strong>TypeSafe AI</strong>, through Vercel&apos;s AI Gateway: receives the title and details of a bug
-            report to sort it by area and severity. Nothing else about you or your account is sent.
+            <strong>TypeSafe AI</strong>, through Vercel&apos;s AI Gateway: receives what you type to Ask Aviary, the
+            budget and spending summary behind AI briefs, item names, amounts, categories and notes for category
+            suggestions, duplicate and one-off checks, Wrapped and the recurring-payments scan, payee names and
+            sample columns from files you import, and the title and details of bug reports. Your name and email
+            aren&apos;t included. Requests are set to disallow prompt training. See{' '}
+            <Link href="/security#ai">what the AI sees</Link>.
           </li>
           <li>
             <strong>Razorpay</strong> — takes payment when you subscribe on the website. Your card or UPI details go
