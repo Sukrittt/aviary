@@ -1,5 +1,5 @@
 import { findHeaderRow, type Table } from './read'
-import { defaultDirection, detectDateOrder, detectDecimalComma, parseAmount, parseDate, type Direction } from './parse'
+import { defaultDirection, detectDateOrder, detectDecimalComma, drCrMarker, parseAmount, parseDate, type Direction } from './parse'
 import { CURRENCIES, isCurrencyCode } from '@/src/lib/currencies'
 import { detectPreset, genericTell, headerName, headerScore, mapColumns, typeKind, type AppId, type Preset, type Role, type RowFields, type SkipReason } from './presets'
 
@@ -74,7 +74,7 @@ const SYMBOLS = new Map<string, string>([
 function symbolCurrency(cells: string[]): string {
   const found = new Set<string>()
   for (const cell of cells.slice(0, 500)) {
-    const mark = cell.replace(/\s*(CR|DR)\.?$/i, '').match(/[^\d\s.,\-+()−]+/)?.[0]
+    const mark = cell.replace(drCrMarker(cell)?.[0] ?? '', '').match(/[^\d\s.,\-+()−]+/)?.[0]
     if (!mark) continue
     const upper = mark.toUpperCase()
     found.add(SYMBOLS.get(mark) ?? (isCurrencyCode(upper) ? upper : '?'))
@@ -203,7 +203,8 @@ export function normalize(layout: Layout, today: string, roles: Record<number, R
     if (signed === 0) { skip('zero'); continue }
 
     const decided = tell?.kind ?? typed
-    const kind = decided ?? (twoColumns ? (signed > 0 ? 'income' : 'expense') : null)
+    // A written Dr or Cr says which way the money went, as a second amount column does, so no flip on review turns it around.
+    const kind = decided ?? (twoColumns || drCrMarker(at(row, 'amount')) ? (signed > 0 ? 'income' : 'expense') : null)
     const currency = at(row, 'currency').toUpperCase()
     const stored: StoredRow = {
       kind: kind ?? (signed < 0 ? 'expense' : 'income'),

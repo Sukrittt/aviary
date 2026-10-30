@@ -272,6 +272,122 @@ describe('refunds', () => {
   })
 })
 
+describe('bad and awkward rows', () => {
+  const rowsOf = (rows: string[][]) => normalize(inspect([{ name: 'x.csv', rows }]), TODAY)
+  const summary = (rows: StoredRow[]) => rows.map((r) => [r.item, r.kind, r.date, r.amount])
+
+  it('reads a whole Indian bank export whose amounts all say Rs.', () => {
+    const out = rowsOf([['Date', 'Item', 'Amount'], ['2026-09-01', 'Rent', 'Rs. 25,000.00 DR'], ['2026-09-02', 'Refund', 'Rs. 40.00 CR']])
+    expect(out.skipped).toEqual({})
+    expect(summary(out.rows)).toEqual([['Rent', 'expense', '2026-09-01', 25000], ['Refund', 'income', '2026-09-02', 40]])
+    expect(out.fileCurrency).toBe('INR')
+  })
+
+  it('a written Cr is money in, even in a file that’s nearly all credits', () => {
+    const out = rowsOf([
+      ['Date', 'Item', 'Amount'],
+      ...['01', '02', '03', '04', '05'].map((d) => [`2026-09-${d}`, `Credit ${d}`, '40.00 CR']),
+      ['2026-09-06', 'Fee', '5.00 DR'],
+    ])
+    expect(out.defaultDirection).toBe('negative_spend')
+    expect(out.directionSource).toBe('column')
+    const flipped = resolveRows(out.rows, { direction: 'positive_spend', currency: 'INR', hasCurrency: false })
+    expect(flipped.map((r) => r.kind)).toEqual(['income', 'income', 'income', 'income', 'income', 'expense'])
+  })
+
+  it('a written Cr on a spending category is still a refund', () => {
+    const out = rowsOf([['Date', 'Item', 'Category', 'Amount'], ['2026-09-01', 'Shoes', 'Shopping', '100 DR'], ['2026-09-02', 'Return', 'Shopping', '30 CR']])
+    const rows = resolveRows(out.rows, { direction: out.defaultDirection, currency: 'INR', hasCurrency: false })
+    expect(rows.map((r) => [r.kind, r.amount])).toEqual([['expense', 100], ['expense', -30]])
+  })
+
+  it('names Rupiah from amounts that end in IDR, and reads them by sign', () => {
+    const out = rowsOf([['Date', 'Item', 'Amount'], ['2026-09-01', 'Kopi', '-50000 IDR'], ['2026-09-02', 'Gaji', '100 IDR']])
+    expect(out.fileCurrency).toBe('IDR')
+    expect(out.rows.map((r) => [r.kind, r.amount])).toEqual([['expense', 50000], ['income', 100]])
+  })
+
+  it('one unmistakable date decides the order for every ambiguous one, and a row that then can’t be read is counted', () => {
+    const out = rowsOf([['Date', 'Item', 'Amount'], ['03/04/2026', 'a', '-5'], ['04/17/2026', 'b', '-6'], ['17/04/2026', 'c', '-7']])
+    expect(summary(out.rows)).toEqual([['a', 'expense', '2026-03-04', 5], ['b', 'expense', '2026-04-17', 6]])
+    expect(out.skipped).toEqual({ unparseable: 1 })
+  })
+
+  it('two amount columns: nets a row with both, ignores a stray sign, and one bad cell skips the row, not the file', () => {
+    const out = rowsOf([
+      ['Date', 'Item', 'Debit', 'Credit'],
+      ['2026-09-01', 'both', '100', '40'],
+      ['2026-09-02', 'minus', '-50', ''],
+      ['2026-09-03', 'bad', 'abc', '5'],
+      ['2026-09-04', 'none', '', ''],
+      ['2026-09-05', 'even', '5', '5'],
+      ['Total', '', '155', '45'],
+    ])
+    expect(summary(out.rows)).toEqual([['both', 'expense', '2026-09-01', 60], ['minus', 'expense', '2026-09-02', 50]])
+    expect(out.skipped).toEqual({ unparseable: 2, zero: 2 })
+  })
+
+  it('keeps today, skips tomorrow, keeps 2000 and calls anything older unreadable', () => {
+    const out = rowsOf([['Date', 'Item', 'Amount'], ['1999-12-31', 'old', '-1'], ['2000-01-01', 'edge', '-2'], [TODAY, 'today', '-3'], ['2026-10-18', 'tomorrow', '-4']])
+    expect(out.rows.map((r) => r.item)).toEqual(['edge', 'today'])
+    expect(out.skipped).toEqual({ unparseable: 1, future: 1 })
+  })
+
+  it('survives a row cut short or running long', () => {
+    const out = rowsOf([['Date', 'Item', 'Amount'], ['01/02/2026', 'cut short'], ['2026-09-01', 'a', '-5', 'extra', 'cells']])
+    expect(summary(out.rows)).toEqual([['a', 'expense', '2026-09-01', 5]])
+    expect(out.skipped).toEqual({ unparseable: 1 })
+  })
+
+  it('keeps identical rows: two coffees on one day are two coffees', () => {
+    const out = rowsOf([['Date', 'Item', 'Amount'], ['2026-09-01', 'Coffee', '-5'], ['2026-09-01', 'Coffee', '-5']])
+    expect(out.rows).toHaveLength(2)
+  })
+
+  it('sorts oldest first, keeping the file’s order within a date', () => {
+    const out = rowsOf([['Date', 'Item', 'Amount'], ['2026-09-02', 'late', '-1'], ['2026-09-01', 'first', '-1'], ['2026-09-01', 'second', '-1']])
+    expect(out.rows.map((r) => r.item)).toEqual(['first', 'second', 'late'])
+  })
+
+  it('reads three decimals for a dinar file that only says so on its amounts', () => {
+    const out = rowsOf([['Date', 'Item', 'Amount'], ['2026-09-01', 'a', '12.500 KWD'], ['2026-09-02', 'b', '-3.250 KWD']])
+    expect(out.rows.map((r) => r.amount)).toEqual([12.5, 3.25])
+  })
+
+  it('reads lakh grouping at full size', () => {
+    const out = rowsOf([['Date', 'Item', 'Amount'], ['2026-09-01', 'a', '-1,25,000.00'], ['2026-09-02', 'b', '-2,50,000']])
+    expect(out.rows.map((r) => r.amount)).toEqual([125000, 250000])
+  })
+})
+
+describe('resolveRows, refunds and currency', () => {
+  const row = (over: Partial<StoredRow>): StoredRow => ({ kind: 'expense', date: '2026-09-01', amount: 5, item: 'x', category: 'Food', subcategory: '', account: '', notes: '', currency: 'INR', byAmount: true, ...over })
+  const confirm = (rows: StoredRow[], hasCurrency = true) => resolveRows(rows, { direction: 'negative_spend', currency: 'INR', hasCurrency })
+
+  it('matches a refund to its spending category whatever the case', () => {
+    expect(confirm([row({ category: 'food' }), row({ kind: 'income', category: 'FOOD', amount: 2 })])[1]).toMatchObject({ kind: 'expense', amount: -2 })
+  })
+
+  it('spending in a skipped currency doesn’t make money in a refund', () => {
+    const out = confirm([row({ category: 'Travel', currency: 'USD' }), row({ kind: 'income', category: 'Travel', amount: 500 })])
+    expect(out.map((r) => [r.kind, r.amount])).toEqual([['skipped', 5], ['income', 500]])
+    expect(out[0].skipReason).toBe('other_currency')
+  })
+
+  it('keeps a row that names no currency', () => {
+    expect(confirm([row({ currency: '' })])[0].kind).toBe('expense')
+  })
+
+  it('never reads a typed income row as a refund', () => {
+    expect(confirm([row({}), row({ kind: 'income', amount: 2, byAmount: undefined })])[1]).toMatchObject({ kind: 'income', amount: 2 })
+  })
+
+  it('never turns a skipped row around on a flip', () => {
+    const out = resolveRows([row({ currency: 'USD', bySign: true })], { direction: 'positive_spend', currency: 'INR', hasCurrency: true })
+    expect(out[0].kind).toBe('skipped')
+  })
+})
+
 describe('YNAB plan', () => {
   it('reads a comma-decimal plan the same way as its register', () => {
     const tables: Table[] = [
