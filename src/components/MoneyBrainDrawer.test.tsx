@@ -215,3 +215,20 @@ it('heads the reply to logged spends with how many were logged', async () => {
   render(<QueryClientProvider client={new QueryClient()}><MoneyBrainDrawer initialSessionId="s1" onClose={vi.fn()} /></QueryClientProvider>)
   expect(await screen.findByText('2 spends logged')).toBeInTheDocument()
 })
+it('reads capture messages as spends, but not a chat reopened from history', async () => {
+  const { getChatSession, streamChat } = await import('@/src/api/ai')
+  vi.mocked(streamChat).mockClear()
+  vi.mocked(streamChat).mockResolvedValue('s1')
+  vi.mocked(getChatSession).mockResolvedValue({ id: 's1', messages: [{ role: 'user', text: 'How much on food?' }] } as unknown as Awaited<ReturnType<typeof getChatSession>>)
+  const drawer = (id: string | null) => <QueryClientProvider client={new QueryClient()}><MoneyBrainDrawer capture initialSessionId={id} onClose={vi.fn()} /></QueryClientProvider>
+
+  const { unmount } = render(drawer(null))
+  await type('auto 240')
+  expect(vi.mocked(streamChat).mock.lastCall?.[5]).toBe(true)
+  unmount()
+
+  render(drawer('s1'))
+  expect(await screen.findByText('How much on food?')).toBeInTheDocument()
+  await type('and on rent?')
+  expect(vi.mocked(streamChat).mock.lastCall?.[5]).toBe(false)
+})

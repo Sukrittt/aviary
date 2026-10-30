@@ -86,6 +86,7 @@ describe('date-only strings are calendar dates, in every timezone', () => {
     const before = process.env.TZ
     process.env.TZ = tz
     try {
+      expect(formatDate('2026-10-20')).toBe('20 Oct 2026')
       expect(formatDateShort('2026-10-20')).toBe('20 Oct')
       expect(formatShortDate('2026-10-20')).toBe("20 Oct '26")
     } finally {
