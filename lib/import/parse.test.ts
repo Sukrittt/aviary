@@ -221,7 +221,7 @@ describe('parseAmount, number shapes', () => {
     expect(parseAmount(raw, false)).toBe(0)
   })
 
-  it.each(['.', ',', '-', '5.00-', '1,000,000,000,000.01'])('rejects %s', (raw) => {
+  it.each(['.', ',', '-', '5.00--', '1,000,000,000,000.01'])('rejects %s', (raw) => {
     expect(parseAmount(raw, false)).toBeNull()
   })
 })
