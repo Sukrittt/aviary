@@ -196,6 +196,14 @@ describe('LogExpenseModal category suggestion', () => {
     await waitFor(() => expect(category()).toBe('Rent'))
   })
 
+  it('still predicts when a word in the name is an object builtin', async () => {
+    llm.mockResolvedValueOnce('Rent')
+    render(<LogExpenseModal onClose={vi.fn()} onSaved={vi.fn()} />)
+    type('constructor fee')
+    await waitFor(() => expect(llm).toHaveBeenCalledWith('constructor fee', ['Groceries', 'Rent', 'Eating out']))
+    await waitFor(() => expect(category()).toBe('Rent'))
+  })
+
   it('clears an earlier auto-pick while predicting a different transaction name', async () => {
     const reply = deferred<string>()
     llm.mockResolvedValueOnce('Eating out').mockReturnValueOnce(reply.promise)

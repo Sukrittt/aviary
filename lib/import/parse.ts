@@ -18,7 +18,7 @@ export function detectDecimalComma(samples: string[], threeDecimals = false): bo
   for (const raw of samples) {
     // 1.5E+03 says nothing about separators, and stripped it reads like 1.503.
     if (/\de[-+]?\d/i.test(raw)) continue
-    const t = raw.replace(/[^\d.,]/g, '')
+    const t = raw.replace(WORD_DOT, '').replace(/[^\d.,]/g, '')
     const i = Math.max(t.lastIndexOf(','), t.lastIndexOf('.'))
     if (i < 0) continue
     if (t[i] === '.') {
@@ -35,15 +35,16 @@ export function detectDecimalComma(samples: string[], threeDecimals = false): bo
 
 const MAX_AMOUNT = 1_000_000_000_000
 
+// The dot in "Rs. 1,250" or "Rp. 50.000" ends a word, it isn't one of the amount's separators.
+const WORD_DOT = /\p{L}+\./gu
+
 /** A signed amount in major units, rounded to cents, or null. */
 export function parseAmount(raw: string, decimalComma: boolean): number | null {
   let s = raw.trim().replace(/[−‒–]/g, '-')
   let sign = 1
-  const suffix = s.match(/\s*(CR|DR)\.?$/i)
-  if (suffix) {
-    if (suffix[1].toUpperCase() === 'DR') sign = -1
-    s = s.slice(0, suffix.index)
-  }
+  // Either end: "10 DR", "Dr. 10". The lookahead keeps a code like CRC out.
+  const marker = s.match(/\s*(CR|DR)\.?$/i) ?? s.match(/^(CR|DR)(?![a-z])\.?\s*/i)
+  if (marker) s = s.replace(marker[0], '')
   if (/^\(.*\)$/.test(s)) {
     sign = -sign
     s = s.slice(1, -1)
@@ -55,7 +56,7 @@ export function parseAmount(raw: string, decimalComma: boolean): number | null {
     if (!(value <= MAX_AMOUNT)) return null
     s = `${scientific[1]}${value.toFixed(2)}`
   } else if (/\de[-+]?\d/i.test(s)) return null
-  s = s.replace(/[^\d.,\-]/g, '')
+  s = s.replace(WORD_DOT, '').replace(/[^\d.,\-]/g, '')
   if (s.startsWith('-')) {
     sign = -sign
     s = s.slice(1)
@@ -69,7 +70,10 @@ export function parseAmount(raw: string, decimalComma: boolean): number | null {
   const cents = Number(`${Math.round(Number(`${s}e2`))}e-2`)
   // Past what the app stores (lib/inputValidation.ts's validMoney), or past a number at all.
   if (!Number.isFinite(cents) || cents > MAX_AMOUNT) return null
-  return cents === 0 ? 0 : sign * cents
+  if (cents === 0) return 0
+  // A written Dr or Cr says which way the money went, whatever sign it also carries.
+  if (marker) return marker[1].toUpperCase() === 'DR' ? -cents : cents
+  return sign * cents
 }
 
 const NUMERIC = /^(\d{1,2})[/.\-](\d{1,2})[/.\-](\d{4}|\d{2})(?!\d)/

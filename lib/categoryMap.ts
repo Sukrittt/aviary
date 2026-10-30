@@ -146,7 +146,8 @@ function itemWords(item: string): string[] {
 export function suggestFromMap(map: Omit<CategoryMap, 'items'>, item: string): string {
   const scores = new Map<string, number>()
   for (const word of itemWords(item)) {
-    const cat = map.words[word]
+    // Own keys only: an item called "constructor" would otherwise find Object's.
+    const cat = Object.hasOwn(map.words, word) ? map.words[word] : ''
     if (cat) scores.set(cat, (scores.get(cat) ?? 0) + 1)
   }
   let best = ''

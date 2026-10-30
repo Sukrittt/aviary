@@ -153,3 +153,118 @@ describe('defaultDirection', () => {
     expect(defaultDirection([10, 20, 30, 40, 50], true)).toBe('negative_spend')
   })
 })
+
+describe('parseAmount, currency words with a dot', () => {
+  it.each([
+    ['Rs. 50', false, 50],
+    ['Rs.1,250.00', false, 1250],
+    ['Rs. 1,250', false, 1250],
+    ['-Rs. 40.50', false, -40.5],
+    ['INR. 500', false, 500],
+    ['1,250.00 Rs.', false, 1250],
+    ['Rp. 50.000', true, 50000],
+  ])('reads %s (comma decimal: %s)', (raw, comma, expected) => {
+    expect(parseAmount(raw, comma)).toBe(expected)
+  })
+
+  it('still refuses a bare leading dot rather than guess', () => {
+    expect(parseAmount('.50', false)).toBeNull()
+  })
+
+  it('takes separators after the word as the amount’s own', () => {
+    expect(detectDecimalComma(['Rp. 50.000', 'Rp. 125.000'])).toBe(true)
+    expect(detectDecimalComma(['Rs. 1,250.00'])).toBe(false)
+    expect(detectDecimalComma(['Rs. 12,50'])).toBe(true)
+  })
+})
+
+describe('parseAmount, an explicit Dr or Cr', () => {
+  it.each([
+    ['-10 DR', -10],
+    ['(10) DR', -10],
+    ['-10 CR', 10],
+    ['(10) CR', 10],
+    ['Dr 10', -10],
+    ['Dr. 1,250.00', -1250],
+    ['DR10', -10],
+    ['Cr 10', 10],
+    ['Cr. 10', 10],
+  ])('%s is %d, whatever the sign says', (raw, expected) => {
+    expect(parseAmount(raw, false)).toBe(expected)
+  })
+
+  it('doesn’t mistake a currency code for a marker', () => {
+    expect(parseAmount('CRC 500', false)).toBe(500)
+    expect(parseAmount('DRAM 500', false)).toBe(500)
+  })
+})
+
+describe('parseAmount, number shapes', () => {
+  it.each([
+    ['1,25,000.00', 125000],
+    ['1,25,000', 125000],
+    ["1'250.50", 1250.5],
+    ['+5.00', 5],
+    ['-(5.00)', -5],
+    ['1.005', 1.01],
+    ['-1.005', -1.01],
+    ['1,000,000,000,000', 1_000_000_000_000],
+  ])('reads %s', (raw, expected) => {
+    expect(parseAmount(raw, false)).toBe(expected)
+  })
+
+  it.each(['-0.00', '0.004', '-0.004', '(0.00)', '0 DR'])('%s is plain zero, never -0', (raw) => {
+    expect(parseAmount(raw, false)).toBe(0)
+  })
+
+  it.each(['.', ',', '-', '5.00-', '1,000,000,000,000.01'])('rejects %s', (raw) => {
+    expect(parseAmount(raw, false)).toBeNull()
+  })
+})
+
+describe('parseDate, edges', () => {
+  it('knows leap years', () => {
+    expect(parseDate('29/02/2028', 'dmy')).toBe('2028-02-29')
+    expect(parseDate('29/02/2027', 'dmy')).toBeNull()
+  })
+
+  it('pivots two-digit years at 69', () => {
+    expect(parseDate('01/01/69', 'dmy')).toBe('2069-01-01')
+    expect(parseDate('01/01/70', 'dmy')).toBe('1970-01-01')
+    expect(parseDate('17 Oct 26', 'dmy')).toBe('2026-10-17')
+  })
+
+  it('reads an ambiguous date by the order it’s given', () => {
+    expect(parseDate('1/2/26', 'dmy')).toBe('2026-02-01')
+    expect(parseDate('1/2/26', 'mdy')).toBe('2026-01-02')
+  })
+
+  it('takes a dated timestamp at face value, offset or not', () => {
+    expect(parseDate('2026-10-01T23:30:00Z', 'dmy')).toBe('2026-10-01')
+    expect(parseDate('1-Sep-26 10:00 AM', 'dmy')).toBe('2026-09-01')
+  })
+
+  it('reads Excel serials only inside its sane range, dropping the time of day', () => {
+    expect(parseDate('46296.75', 'dmy')).toBe('2026-10-01')
+    expect(parseDate('19999', 'dmy')).toBeNull()
+    expect(parseDate('80001', 'dmy')).toBeNull()
+  })
+
+  it('needs enough of a month name to be sure', () => {
+    expect(parseDate('Janu 5, 2026', 'dmy')).toBe('2026-01-05')
+    expect(parseDate('Mar 5 2026', 'dmy')).toBe('2026-03-05')
+    expect(parseDate('Ma 5, 2026', 'dmy')).toBeNull()
+    expect(parseDate('Janx 5, 2026', 'dmy')).toBeNull()
+  })
+
+  it.each(['00/10/2026', '32/10/2026', 'Oct 5', '5th Oct 2026'])('rejects %s', (raw) => {
+    expect(parseDate(raw, 'dmy')).toBeNull()
+  })
+})
+
+describe('defaultDirection, edges', () => {
+  it('ignores zeros and reads an empty file as negative spend', () => {
+    expect(defaultDirection([0, 0], false)).toBe('negative_spend')
+    expect(defaultDirection([0, 0, 0, 5], false)).toBe('positive_spend')
+  })
+})

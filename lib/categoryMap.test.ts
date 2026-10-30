@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { getCachedCategoryMap, invalidateCategoryMap, buildCategoryMap, learnCategoryCorrection } from './categoryMap'
+import { getCachedCategoryMap, invalidateCategoryMap, buildCategoryMap, itemKey, learnCategoryCorrection, suggestFromMap } from './categoryMap'
 import type { ScopedCollection } from './scoped'
 
 function fakeExpensesCollection(rows: Array<{ item: string; category: string; timestamp?: string }>) {
@@ -166,5 +166,56 @@ describe('learnCategoryCorrection', () => {
     const learned = await learnCategoryCorrection({ words: {}, updatedAt: '' }, 'new thing', 'Gifts', overrides)
     expect(learned).toBe(false)
     expect(overrides.updateOne).not.toHaveBeenCalled()
+  })
+})
+
+describe('suggestFromMap', () => {
+  const map = (words: Record<string, string>) => ({ words, updatedAt: '' })
+
+  it('goes with the category most of the words point at', () => {
+    expect(suggestFromMap(map({ swiggy: 'Food', dinner: 'Food', office: 'Work' }), 'Swiggy office dinner')).toBe('Food')
+  })
+
+  it('breaks a tie by the earlier word', () => {
+    expect(suggestFromMap(map({ swiggy: 'Food', office: 'Work' }), 'office swiggy')).toBe('Work')
+  })
+
+  it('skips filler and fragments, and suggests nothing for an unknown item', () => {
+    expect(suggestFromMap(map({ the: 'Food', ab: 'Food' }), 'the ab')).toBe('')
+    expect(suggestFromMap(map({ swiggy: 'Food' }), 'zomato')).toBe('')
+    expect(suggestFromMap(map({ swiggy: 'Food' }), '')).toBe('')
+  })
+
+  it.each(['constructor', '__proto__', 'hasownproperty'])('finds nothing for an item called %s', (item) => {
+    expect(suggestFromMap(map({}), item)).toBe('')
+  })
+})
+
+describe('learnCategoryCorrection, an item named after an object builtin', () => {
+  it('writes nothing, since the map had no suggestion to correct', async () => {
+    const overrides = { updateOne: vi.fn(async () => ({})) } as unknown as ScopedCollection & { updateOne: ReturnType<typeof vi.fn> }
+    expect(await learnCategoryCorrection({ words: {}, updatedAt: '' }, 'constructor fee', 'Gifts', overrides)).toBe(false)
+    expect(overrides.updateOne).not.toHaveBeenCalled()
+  })
+})
+
+describe('buildCategoryMap, messy rows', () => {
+  it('skips rows missing an item or a category', async () => {
+    const coll = fakeExpensesCollection([{ item: '', category: 'Food' }, { item: 'Swiggy', category: '' }])
+    expect(await buildCategoryMap(coll)).toMatchObject({ words: {}, items: {} })
+  })
+
+  it('takes the first category seen when a word’s votes tie', async () => {
+    const coll = fakeExpensesCollection([{ item: 'swiggy', category: 'Food' }, { item: 'swiggy', category: 'Groceries' }])
+    expect((await buildCategoryMap(coll)).words.swiggy).toBe('Food')
+  })
+
+  it('ignores an override with no category', async () => {
+    const overrides = { find: vi.fn(() => ({ toArray: async () => [{ word: 'swiggy', category: '', source: 'user' }] })) } as unknown as ScopedCollection
+    expect((await buildCategoryMap(fakeExpensesCollection([{ item: 'swiggy', category: 'Food' }]), overrides)).words.swiggy).toBe('Food')
+  })
+
+  it('keys items without regard to case or spacing', () => {
+    expect(itemKey('  Swiggy\t  INSTAMART ')).toBe('swiggy instamart')
   })
 })

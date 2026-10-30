@@ -205,7 +205,8 @@ export function LogExpenseModal({ onClose, onBack, onSaved }: Props) {
     suggestedBy.current = null
     const words = value.toLowerCase().split(/\s+/)
     for (const word of words) {
-      const match = categoryWords[word]
+      // Own keys only: the word "constructor" would otherwise find Object's and throw below.
+      const match = Object.hasOwn(categoryWords, word) ? categoryWords[word] : ''
       if (!match) continue
       const live = categories.includes(match)
         ? match

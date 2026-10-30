@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { ClientSession } from 'mongodb'
 import type { MongoMemoryReplSet } from 'mongodb-memory-server'
 import { randomBytes } from 'node:crypto'
 import { startMongoReplSet } from '@/src/test-utils/mongo'
@@ -6,7 +7,7 @@ import { computeEnvelopeState, CREDIT_CARD_CATEGORY, INCOME_CATEGORY } from '@/s
 import type { BudgetRow, CategoryRow, ExpenseRow } from '@/src/types'
 import { getClient, getDb } from '@/lib/mongodb'
 import { scoped } from '@/lib/scoped'
-import { carryFrom, computeCarry, ROLLOVER_START } from './budgetCarry'
+import { carriedAssigned, carryFrom, computeCarry, ROLLOVER_START } from './budgetCarry'
 
 function budget(month: string, category: string, assigned: string, extra?: string, rolled_over = '0'): BudgetRow {
   return { month, category, assigned, rolled_over, ...(extra !== undefined && { extra }), version: 0 }
@@ -200,6 +201,102 @@ describe('carryFrom', () => {
     const carry = carryFrom(budgets, expenses, categories, '2026-11')
     expect(carry.rolled_over.Travel).toBe(-0.2)
     expect(carry.ready_to_assign).toBe(0.2)
+  })
+})
+
+describe('carryFrom, edges', () => {
+  const food = [{ name: 'Food', group: '' }]
+
+  it('carries nothing while the space has only income or card rows', () => {
+    const budgets = [budget('2026-10', INCOME_CATEGORY, '5000'), budget('2026-10', CREDIT_CARD_CATEGORY, '100')]
+    expect(carryFrom(budgets, [], categories, '2026-12')).toEqual({ ready_to_assign: 0, rolled_over: {} })
+  })
+
+  it('starts empty on the very first budget month', () => {
+    expect(carryFrom([budget('2026-11', 'Food', '100')], [], food, '2026-11')).toEqual({ ready_to_assign: 0, rolled_over: {} })
+  })
+
+  it('keeps carrying through months with no rows or spending at all', () => {
+    const carry = carryFrom([budget('2026-10', 'Food', '100')], [expense('2026-10-05', 'Food', '30')], food, '2027-02')
+    // 70 from October, then the carried 100 target each of Nov, Dec, Jan.
+    expect(carry.rolled_over.Food).toBe(370)
+  })
+
+  it('compounds an overspend across the year boundary', () => {
+    const budgets = [budget('2026-12', 'Food', '100')]
+    const expenses = [expense('2026-12-31', 'Food', '250'), expense('2027-01-01', 'Food', '120')]
+    expect(carryFrom(budgets, expenses, food, '2027-01').rolled_over.Food).toBe(-150)
+    expect(carryFrom(budgets, expenses, food, '2027-02').rolled_over.Food).toBe(-170)
+  })
+
+  it('counts an expense on the last and first day in the month they fall in', () => {
+    const budgets = [budget('2026-10', 'Food', '100')]
+    expect(carryFrom(budgets, [expense('2026-10-31', 'Food', '10')], food, '2026-11').rolled_over.Food).toBe(90)
+    expect(carryFrom(budgets, [expense('2026-11-01', 'Food', '10')], food, '2026-11').rolled_over.Food).toBe(100)
+  })
+
+  it('drops an envelope that lands on exactly zero from the carry', () => {
+    const carry = carryFrom([budget('2026-10', 'Food', '100')], [expense('2026-10-05', 'Food', '100')], food, '2026-11')
+    expect(carry.rolled_over).toEqual({})
+  })
+
+  it('moves a positive adjustment out of Ready to assign into the envelope', () => {
+    const budgets = [budget('2026-10', INCOME_CATEGORY, '1000'), budget('2026-10', 'Food', '100'), budget('2026-11', 'Food', '100', undefined, '250')]
+    expect(carryFrom(budgets, [], food, '2026-11')).toEqual({ ready_to_assign: 650, rolled_over: { Food: 350 } })
+  })
+
+  it('never reads an adjustment on the income row', () => {
+    const budgets = [budget('2026-10', 'Food', '100'), budget('2026-11', INCOME_CATEGORY, '0', undefined, '500')]
+    expect(carryFrom(budgets, [], food, '2026-11').ready_to_assign).toBe(-100)
+  })
+
+  it('hands an adjustment on a deleted category straight back to Ready to assign', () => {
+    const budgets = [budget('2026-10', 'Food', '100'), budget('2026-11', 'Gym', '0', undefined, '75')]
+    const carry = carryFrom(budgets, [], food, '2026-11')
+    expect(carry.rolled_over).toEqual({ Food: 100 })
+    expect(carry.ready_to_assign).toBe(-100)
+  })
+
+  it('ignores adjustments before rollover started', () => {
+    expect(carryFrom([budget('2026-09', 'Food', '100', undefined, '40')], [], food, '2026-09')).toEqual({ ready_to_assign: 0, rolled_over: {} })
+  })
+
+  it('gives a re-created category its balance from its `since` month on', () => {
+    const budgets = [budget('2026-10', 'Gym', '100')]
+    const gym = [{ name: 'Gym', group: '', since: '2026-11' }]
+    // October folds into Ready to assign; November is live and carries its target.
+    expect(carryFrom(budgets, [], gym, '2026-11').rolled_over).toEqual({})
+    expect(carryFrom(budgets, [], gym, '2026-12').rolled_over).toEqual({ Gym: 100 })
+  })
+
+  it('reads a junk amount as nothing rather than poisoning the carry with NaN', () => {
+    const carry = carryFrom([budget('2026-10', 'Food', 'oops')], [expense('2026-10-05', 'Food', 'nope')], food, '2026-11')
+    expect(carry).toEqual({ ready_to_assign: 0, rolled_over: {} })
+  })
+})
+
+describe('carriedAssigned', () => {
+  const coll = (rows: Record<string, unknown>[]) => {
+    const find = vi.fn(() => ({ toArray: async () => rows }))
+    return { find } as unknown as Parameters<typeof carriedAssigned>[0] & { find: typeof find }
+  }
+  const session = {} as ClientSession
+
+  it('takes the most recent earlier month, across a year', async () => {
+    const rows = [{ month: '2026-11', assigned: '100' }, { month: '2026-12', assigned: '250' }, { month: '2027-02', assigned: '900' }, { month: '2027-01', assigned: '700' }]
+    expect(await carriedAssigned(coll(rows), 'Food', '2027-01', session)).toBe(250)
+  })
+
+  it('is 0 with nothing earlier, and for a junk amount or month', async () => {
+    expect(await carriedAssigned(coll([{ month: '2027-01', assigned: '5' }]), 'Food', '2027-01', session)).toBe(0)
+    expect(await carriedAssigned(coll([{ month: '2026-01', assigned: 'oops' }]), 'Food', '2027-01', session)).toBe(0)
+    expect(await carriedAssigned(coll([{ assigned: '5' }]), 'Food', '2027-01', session)).toBe(0)
+  })
+
+  it('never carries the credit-card envelope', async () => {
+    const budgets = coll([{ month: '2026-01', assigned: '5' }])
+    expect(await carriedAssigned(budgets, CREDIT_CARD_CATEGORY, '2027-01', session)).toBe(0)
+    expect(budgets.find).not.toHaveBeenCalled()
   })
 })
 

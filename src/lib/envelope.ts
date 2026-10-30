@@ -219,7 +219,8 @@ export function computeEnvelopeState(
     const computedRollover = carry?.rolled_over[category] ?? 0
 
     const spent = monthSpending.get(category) ?? 0
-    const available = assigned + computedRollover - spent
+    // Rounded to paise: 3.3 assigned less 1.1 + 2.2 spent is -4e-16 in floats, which isn't overspent.
+    const available = Math.round((assigned + computedRollover - spent) * 100) / 100 || 0
 
     if (!isCC) {
       totalAssigned += assigned
