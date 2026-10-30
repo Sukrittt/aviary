@@ -382,7 +382,32 @@ describe('EnvelopesPage', () => {
     const list = await groupList()
     list.getByRole('button', { name: 'Move Rent' }).focus()
     await user.keyboard('{ArrowDown}')
-    await waitFor(() => expect(moveCategory).toHaveBeenCalledWith('🏠 Rent', 1))
+    await waitFor(() => expect(moveCategory).toHaveBeenCalledWith('🏠 Rent', 1, undefined))
+  })
+
+  it('moves a category into the next group when the grip passes the edge of its own', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    const list = await groupList()
+    ;(getCategories as Mock).mockResolvedValue([
+      { name: '🏠 Rent', group: 'Home' },
+      { name: '🚿 Water', group: '' },
+      { name: 'Odds' },
+    ])
+    list.getByRole('button', { name: 'Move Water' }).focus()
+    await user.keyboard('{ArrowDown}')
+    await waitFor(() => expect(moveCategory).toHaveBeenCalledWith('🚿 Water', 0, ''))
+    await waitFor(() => expect(list.getByRole('button', { name: 'Move Water' })).toHaveFocus())
+  })
+
+  it('stays put when the grip moves past the first group', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    const list = await groupList()
+    ;(moveCategory as Mock).mockClear()
+    list.getByRole('button', { name: 'Move Rent' }).focus()
+    await user.keyboard('{ArrowUp}')
+    expect(moveCategory).not.toHaveBeenCalled()
   })
 
   it('reorders groups but keeps Other pinned and unmovable', async () => {

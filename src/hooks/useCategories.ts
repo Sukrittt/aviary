@@ -16,32 +16,19 @@ const key = ['categories'] as const
 export const categoriesKey = key
 
 
-// Categories sharing a group are stored contiguously; toIndex is the target position
-// within that group's slice, matching how moveCategory/the backend interpret it.
-function reorderWithinGroup(categories: CategoryRow[], name: string, toIndex: number): CategoryRow[] {
+// Puts `name` at position toIndex within the group's rows, moving it into `group` when given.
+// Other rows keep their places: the list is only ever read one group at a time.
+export function placeInGroup(categories: CategoryRow[], name: string, toIndex: number, group?: string): CategoryRow[] {
   const moved = categories.find((c) => c.name === name)
   if (!moved) return categories
-  const group = moved.group || ''
-  const groupItems = categories.filter((c) => (c.group || '') === group)
-  const fromIndex = groupItems.findIndex((c) => c.name === name)
-  if (fromIndex === -1) return categories
-  const reordered = [...groupItems]
-  const [item] = reordered.splice(fromIndex, 1)
-  reordered.splice(toIndex, 0, item)
-
-  const result: CategoryRow[] = []
-  let inserted = false
-  for (const c of categories) {
-    if ((c.group || '') === group) {
-      if (!inserted) {
-        result.push(...reordered)
-        inserted = true
-      }
-    } else {
-      result.push(c)
-    }
-  }
-  return result
+  const target = group ?? (moved.group || '')
+  const rest = categories.filter((c) => c !== moved)
+  const peers = rest.filter((c) => (c.group || '') === target)
+  const next = peers[toIndex]
+  const last = peers[peers.length - 1]
+  const at = next ? rest.indexOf(next) : last ? rest.indexOf(last) + 1 : rest.length
+  rest.splice(at, 0, { ...moved, group: target })
+  return rest
 }
 
 export function useCategories({ enabled = true }: { enabled?: boolean } = {}) {
@@ -126,14 +113,15 @@ export function useDeleteCategory() {
 export function useMoveCategory() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (params: { name: string; toIndex: number }) => moveCategory(params.name, params.toIndex),
+    mutationFn: (params: { name: string; toIndex: number; group?: string }) =>
+      moveCategory(params.name, params.toIndex, params.group),
     onMutate: (params) => {
       // Don't await cancelQueries — the optimistic write must land in the same tick as the
       // drop, or the list flashes back to the old order for a frame before this applies.
       qc.cancelQueries({ queryKey: key })
       const previous = qc.getQueryData<CategoryRow[]>(key)
       if (previous) {
-        qc.setQueryData<CategoryRow[]>(key, reorderWithinGroup(previous, params.name, params.toIndex))
+        qc.setQueryData<CategoryRow[]>(key, placeInGroup(previous, params.name, params.toIndex, params.group))
       }
       return { previous }
     },

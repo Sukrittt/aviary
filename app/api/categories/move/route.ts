@@ -21,6 +21,9 @@ export async function POST(req: Request) {
   if (!body.name || typeof body.toIndex !== 'number') return error('name, toIndex required')
 
   const coll = await getCollection('categories', auth)
+  const groups = await getCollection('groups', auth)
+  // Absent means "stay in this group"; '' is the ungrouped Other bucket.
+  const toGroup = body.group === undefined ? undefined : String(body.group)
 
   // Read and renumber in one transaction: the bulkWrite rewrites every order
   // in the group, so a failure or a concurrent move partway through it would
@@ -30,20 +33,23 @@ export async function POST(req: Request) {
       const current = await coll.findOne({ name: String(body.name) }, { session })
       if (!current) throw new NotFound('category not found')
 
-      const group = current.group ?? ''
+      const fromGroup = current.group ?? ''
+      const group = toGroup ?? fromGroup
+      if (group !== fromGroup && group && !(await groups.findOne({ name: group }, { session }))) {
+        throw new NotFound('group not found')
+      }
       const groupDocs = await coll.find({ group }, { session }).sort({ order: 1 }).toArray()
-      const names = groupDocs.map((d) => d.name)
-      const fromPos = names.indexOf(String(body.name))
-      if (fromPos < 0) throw new NotFound('category group not found')
-      if (Number(body.toIndex) < 0 || Number(body.toIndex) >= names.length) throw new OutOfRange('toIndex out of range')
+      if (group === fromGroup && !groupDocs.some((d) => d.name === body.name)) throw new NotFound('category group not found')
+      const rest = groupDocs.map((d) => d.name).filter((n) => n !== body.name)
+      if (Number(body.toIndex) < 0 || Number(body.toIndex) > rest.length) throw new OutOfRange('toIndex out of range')
 
-      const rest = names.filter((n) => n !== body.name)
       rest.splice(Number(body.toIndex), 0, String(body.name))
 
-      const minOrder = Math.min(...groupDocs.map((d) => (typeof d.order === 'number' ? d.order : 0)))
+      // An empty destination has no orders to start from.
+      const minOrder = groupDocs.length ? Math.min(...groupDocs.map((d) => (typeof d.order === 'number' ? d.order : 0))) : 0
       await coll.bulkWrite(
         rest.map((name, i) => ({
-          updateOne: { filter: { name }, update: { $set: { order: minOrder + i } } },
+          updateOne: { filter: { name }, update: { $set: { order: minOrder + i, group } } },
         })),
         { session },
       )
