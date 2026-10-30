@@ -13,7 +13,7 @@ import type { Auth } from '@/lib/access'
 
 export type SubscriptionExpenseResult =
   | { ok: true; id: string; duplicate: boolean }
-  | { ok: false; reason: 'no-category' }
+  | { ok: false; reason: 'no-category' | 'failed' }
 
 export async function applySubscriptionExpense(
   auth: Auth,
@@ -24,15 +24,20 @@ export async function applySubscriptionExpense(
   const { date } = await nowForUser(auth.userId)
   const notes = sub.notes ? `Auto-added from subscription · ${sub.notes}` : 'Auto-added from subscription'
 
-  const result = await createExpense(auth, {
-    item: sub.service,
-    amount_inr: sub.amount_inr,
-    category: sub.category,
-    notes,
-    date,
-    source: 'subscription',
-    client_id: `sub:${sub.service}:${date}`,
-  })
-
-  return { ok: true, id: result.id, duplicate: result.duplicate }
+  try {
+    const result = await createExpense(auth, {
+      item: sub.service,
+      amount_inr: sub.amount_inr,
+      category: sub.category,
+      notes,
+      date,
+      source: 'subscription',
+      client_id: `sub:${sub.service}:${date}`,
+    })
+    return { ok: true, id: result.id, duplicate: result.duplicate }
+  } catch (err) {
+    // The cron walks every subscription in one pass, and there's no backfill: a throw here costs the rest today's charge.
+    console.error('subscription expense failed for', auth.spaceId, sub.service, err)
+    return { ok: false, reason: 'failed' }
+  }
 }

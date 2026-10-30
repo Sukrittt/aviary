@@ -74,3 +74,12 @@ describe('applySubscriptionExpense', () => {
     expect(result).toEqual({ ok: true, id: 'exp_1', duplicate: true })
   })
 })
+
+describe('applySubscriptionExpense with a row that can no longer be booked', () => {
+  it("reports it rather than throwing, so one bad row doesn't stop the cron's other subscriptions", async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    createExpense.mockRejectedValueOnce(new Error('amount must be a finite positive number'))
+    const result = await applySubscriptionExpense(auth, { service: 'Netflix', amount_inr: 'abc', category: 'Fun' })
+    expect(result).toEqual({ ok: false, reason: 'failed' })
+  })
+})

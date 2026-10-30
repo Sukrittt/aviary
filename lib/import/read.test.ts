@@ -194,3 +194,18 @@ describe('readTable', () => {
     await expect(readTable(Buffer.from('not a zip'), 'x.zip')).rejects.toThrow()
   })
 })
+
+describe('findHeaderRow past a long preamble', () => {
+  it('finds a header after 20 lines of account details, as bank statements have', () => {
+    const rows = [...Array.from({ length: 20 }, (_, i) => [`Account line ${i}`]), ['Date', 'Narration', 'Amount']]
+    const known = new Set(['date', 'narration', 'amount'])
+    expect(findHeaderRow(rows, (cells) => cells.filter((c) => known.has(c.trim().toLowerCase())).length)).toBe(20)
+  })
+})
+
+describe('parseCsv past a long preamble', () => {
+  it('finds a semicolon delimiter when account details fill the first lines', () => {
+    const text = [...Array.from({ length: 15 }, (_, i) => `Account detail ${i}`), 'Date;Narration;Amount', '01/09/2026;Rent;500', '02/09/2026;Tea;20'].join('\n')
+    expect(parseCsv(text).at(-1)).toEqual(['02/09/2026', 'Tea', '20'])
+  })
+})

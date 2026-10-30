@@ -11,7 +11,7 @@ export default function SharedBudgetsPage() {
 
     <h2>How it works</h2>
     <ol>
-      <li>Open You, then New budget. Name it, pick an icon and a currency, and choose whether to copy your personal categories across.</li>
+      <li>Open Account, then New budget. Name it, pick an icon and a currency, and choose whether to copy your personal categories across.</li>
       <li>Tap Invite. Aviary gives you a link and a six-letter code. Send either on WhatsApp.</li>
       <li>They tap the link, or type the code into Join with a code. They’re in, on their own phone, with their own sign-in.</li>
       <li>Everyone logs into the same categories. Groceries is one jar, and it goes down whoever paid.</li>

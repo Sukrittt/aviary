@@ -69,8 +69,14 @@ it('separates filters from date-grouped transaction rows', () => {
   expect(screen.getByRole('heading', { name: /18 September 2026/, level: 2 })).toBeInTheDocument()
   expect(screen.getByText('1 transaction', { selector: '.txn-timeline-header-count' })).toBeInTheDocument()
 
-  fireEvent.click(screen.getByRole('tab', { name: 'This month' }))
+  expect(screen.queryByRole('button', { name: 'Reset' })).toBeNull()
+  fireEvent.click(screen.getByRole('tab', { name: 'This week' }))
   expect(screen.getByRole('button', { name: 'Reset' })).toBeInTheDocument()
+})
+
+it('opens on this month, like Mobile', () => {
+  render(<TransactionsView />)
+  expect(screen.getByRole('tab', { name: 'This month' })).toHaveAttribute('aria-selected', 'true')
 })
 
 it.each([[409, 'This transaction was updated'], [404, 'This transaction is already deleted']])('opens a friendly dialog after a delete returns %s', async (status, title) => {

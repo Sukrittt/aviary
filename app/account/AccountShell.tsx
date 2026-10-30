@@ -36,7 +36,7 @@ export default function AccountShell({ children }: { children: ReactNode }) {
         <Link href="/expense" className="erd-tab"><HouseIcon size={22} aria-hidden /><span>Home</span></Link>
         <Link href="/expense/transactions" className="erd-tab"><InvoiceIcon size={22} aria-hidden /><span>Activity</span></Link>
         <InsightsTab />
-        <Link href="/account" className={`erd-tab ${pathname.startsWith('/account') ? 'is-active' : ''}`}><GearIcon size={22} weight={pathname.startsWith('/account') ? 'fill' : 'regular'} aria-hidden /><span>More</span></Link>
+        <Link href="/account" className={`erd-tab ${pathname.startsWith('/account') ? 'is-active' : ''}`}><GearIcon size={22} weight={pathname.startsWith('/account') ? 'fill' : 'regular'} aria-hidden /><span>Account</span></Link>
       </nav>
     </section>
   )

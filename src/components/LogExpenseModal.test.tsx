@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { LogExpenseModal } from './LogExpenseModal'
 import { MoneyBrainContext } from '@/components/moneyBrainContext'
 import { suggestCategoryLLM } from '../lib/autoCategory'
@@ -24,6 +24,7 @@ vi.mock('../hooks/useExpenses', () => ({
   useRecentExpenses: () => ({ data: history.rows }),
   useUploadExpensePhoto: () => ({ mutateAsync: vi.fn() }),
 }))
+import { getCategoryMap } from '../api/categoryMap'
 vi.mock('../api/categoryMap', () => ({ getCategoryMap: vi.fn(async () => ({ words: {}, updatedAt: '' })) }))
 vi.mock('../lib/autoCategory', () => ({ suggestCategoryLLM: vi.fn() }))
 vi.mock('../hooks/useUser', () => ({ useHiddenFeatures: () => [] }))
@@ -196,6 +197,14 @@ describe('LogExpenseModal category suggestion', () => {
     await waitFor(() => expect(category()).toBe('Rent'))
   })
 
+  it('still predicts when a word in the name is an object builtin', async () => {
+    llm.mockResolvedValueOnce('Rent')
+    render(<LogExpenseModal onClose={vi.fn()} onSaved={vi.fn()} />)
+    type('constructor fee')
+    await waitFor(() => expect(llm).toHaveBeenCalledWith('constructor fee', ['Groceries', 'Rent', 'Eating out']))
+    await waitFor(() => expect(category()).toBe('Rent'))
+  })
+
   it('clears an earlier auto-pick while predicting a different transaction name', async () => {
     const reply = deferred<string>()
     llm.mockResolvedValueOnce('Eating out').mockReturnValueOnce(reply.promise)
@@ -220,6 +229,15 @@ describe('LogExpenseModal category suggestion', () => {
     reply.resolve('Eating out')
     await new Promise((r) => setTimeout(r, 50))
     expect(category()).toBe('Groceries')
+  })
+
+  it('picks the category most of the words point to', async () => {
+    vi.mocked(getCategoryMap).mockResolvedValueOnce({ words: { taxi: 'Rent', dinner: 'Groceries', lunch: 'Groceries' }, updatedAt: '' })
+    render(<LogExpenseModal onClose={vi.fn()} onSaved={vi.fn()} />)
+    await waitFor(() => expect(getCategoryMap).toHaveBeenCalled())
+    await act(async () => {})
+    type('taxi dinner lunch')
+    await waitFor(() => expect(category()).toContain('Groceries'))
   })
 
   it('leaves the category empty when nothing fits, instead of defaulting to the first one', async () => {

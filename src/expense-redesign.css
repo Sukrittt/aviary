@@ -7257,10 +7257,65 @@ button.account-feature-card {
 
 /* The card colour is translucent; the lifted row lays it over the page colour so nothing shows through. */
 .env-group.is-dragging,
-.env-cat.is-dragging {
+.env-cat.env-cat-ghost {
   background:
     linear-gradient(var(--erd-card), var(--erd-card)),
     var(--erd-bg);
+}
+
+/* A category lifted out of its list. The ring is the row's own colour, padding it without moving its contents. */
+.env-cat.env-cat-ghost {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 60;
+  border-top: 0;
+  border-radius: 10px;
+  pointer-events: none;
+  box-shadow:
+    0 0 0 10px var(--erd-card),
+    0 0 0 10px var(--erd-bg),
+    0 0 0 11px var(--erd-border),
+    0 14px 32px 8px rgba(0, 0, 0, 0.28);
+  transition: box-shadow 140ms ease;
+}
+
+.env-cat.env-cat-ghost.is-landing {
+  box-shadow:
+    0 0 0 0 var(--erd-card),
+    0 0 0 0 var(--erd-bg),
+    0 0 0 0 var(--erd-border),
+    0 0 0 0 rgba(0, 0, 0, 0);
+}
+
+/* Where the lifted category would land. */
+.env-cat-gap {
+  overflow: hidden;
+  border-radius: 12px;
+  background: color-mix(in oklab, var(--erd-text) 6%, transparent);
+}
+
+.env-cat-empty {
+  overflow: hidden;
+}
+
+.env-group {
+  transition: border-color 150ms ease;
+}
+
+.env-group.is-drop-target {
+  border-color: var(--gold);
+}
+
+/* Rows stay still under a drag: no hover states, and no text to catch. */
+html.is-cat-dragging,
+html.is-cat-dragging * {
+  cursor: grabbing !important;
+  user-select: none;
+}
+
+html.is-cat-dragging .env-group-list {
+  pointer-events: none;
 }
 
 /* Rows paint their own background so a dragged one doesn't show the rows beneath. */

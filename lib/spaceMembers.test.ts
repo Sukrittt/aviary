@@ -266,6 +266,14 @@ describe('transferOwnership', () => {
     await joinBudget('user_b', (await createInvite(owner, HOME)).code)
   })
 
+  it("cancels the old owner's open invites, so a removed ex-owner can't walk back in", async () => {
+    const { code: invite } = await createInvite(owner, HOME)
+    await transferOwnership(owner, HOME, 'user_b')
+    await removeMember(jobAuth('user_b', HOME), HOME, 'user_a')
+    await expect(joinBudget('user_a', invite)).rejects.toBeInstanceOf(BudgetError)
+    expect(await resolveSpaceAccess('user_a', HOME, lookupMembership)).not.toMatchObject({ ownerId: 'user_b' })
+  })
+
   it('hands the budget to a member: they own it and pay for it, the old owner stays as a member', async () => {
     pushes.length = 0
     await transferOwnership(owner, HOME, 'user_b')

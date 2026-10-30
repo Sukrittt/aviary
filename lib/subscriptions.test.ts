@@ -155,3 +155,29 @@ describe('isSubscriptionDueToday', () => {
     ).toBe(false)
   })
 })
+
+describe('month-end subscriptions', () => {
+  const sub = { nextDueDate: '2026-01-31', billingCycle: 'monthly', timestamp: '' }
+
+  it('clamps to the end of a short month instead of skipping it', () => {
+    expect(rollForward('2026-01-31', 'monthly')).toBe('2026-02-28')
+    expect(rollForward('2028-02-29', 'yearly')).toBe('2029-02-28')
+    expect(rollForward('2026-11-30', 'quarterly')).toBe('2027-02-28')
+  })
+
+  it('comes back to the 31st after February rather than drifting', () => {
+    expect(getEffectiveDueDate(sub, '2026-02-01')).toBe('2026-02-28')
+    expect(getEffectiveDueDate(sub, '2026-03-01')).toBe('2026-03-31')
+    expect(getEffectiveDueDate(sub, '2026-04-01')).toBe('2026-04-30')
+    expect(isSubscriptionDueToday(sub, '2026-02-28')).toBe(true)
+    expect(isSubscriptionDueToday(sub, '2026-03-03')).toBe(false)
+  })
+
+  it('a monthly subscription known only by its first charge clamps too', () => {
+    expect(getEffectiveDueDate({ nextDueDate: '', billingCycle: 'monthly', timestamp: '2026-01-31' }, '2026-01-31')).toBe('2026-02-28')
+  })
+
+  it('keeps the anchor when told it', () => {
+    expect(rollForward('2026-02-28', 'monthly', 31)).toBe('2026-03-31')
+  })
+})

@@ -219,6 +219,56 @@ describe('proposeBudgets', () => {
   })
 })
 
+describe('proposeBudgets, across a new year', () => {
+  it('averages October to December in January', () => {
+    const rows = [
+      row({ date: '2026-09-30', category: 'Food', amount: 9000 }),
+      row({ date: '2026-10-10', category: 'Food', amount: 300 }),
+      row({ date: '2026-11-10', category: 'Food', amount: 300 }),
+      row({ date: '2026-12-31', category: 'Food', amount: 300 }),
+      row({ date: '2027-01-01', category: 'Food', amount: 9000 }),
+    ]
+    expect(proposeBudgets(rows, (r) => r.category, '2027-01-15', 'INR', {})).toEqual({ Food: 300 })
+  })
+
+  it('rounds an amount sitting exactly on a power of ten to itself', () => {
+    const rows = [row({ date: '2026-09-10', category: 'Rent', amount: 1000 })]
+    expect(proposeBudgets(rows, (r) => r.category, TODAY, 'INR', {})).toEqual({ Rent: 1000 })
+  })
+})
+
+describe('detectSalary, dates', () => {
+  const pay = (date: string, amount = 5) => row({ kind: 'income', date, amount, item: 'Pay' })
+
+  it('sees a last-of-the-month payday as monthly, whatever the month’s length', () => {
+    expect(detectSalary([pay('2026-07-31'), pay('2026-08-31'), pay('2026-09-30')], TODAY)).toMatchObject({ day: 30 })
+  })
+
+  it('still counts a payday exactly 62 days ago, but not 63', () => {
+    expect(detectSalary([pay('2026-07-16'), pay('2026-08-16')], TODAY)).not.toBeNull()
+    expect(detectSalary([pay('2026-07-15'), pay('2026-08-15')], TODAY)).toBeNull()
+  })
+
+  it('isn’t fooled by two rows on one day', () => {
+    expect(detectSalary([pay('2026-10-01'), pay('2026-10-01')], TODAY)).toBeNull()
+  })
+
+  it('ignores refunds booked as spends', () => {
+    expect(detectSalary([row({ date: '2026-09-01', amount: -5, item: 'Pay' }), row({ date: '2026-10-01', amount: -5, item: 'Pay' })], TODAY)).toBeNull()
+  })
+})
+
+describe('proposeCategories, refunds', () => {
+  it('nets a refund out of its category’s spend, even past zero', () => {
+    const plan = proposeCategories([
+      row({ category: 'Food', amount: 100 }),
+      row({ category: 'food', amount: -30 }),
+      row({ category: 'Travel', amount: -40 }),
+    ])
+    expect(plan.list).toEqual([{ source: 'Food', spent: 70 }, { source: 'Travel', spent: -40 }])
+  })
+})
+
 describe('incomeCounted', () => {
   const salaryRow = (date: string) => row({ kind: 'income', date, item: 'Acme Payroll' })
 

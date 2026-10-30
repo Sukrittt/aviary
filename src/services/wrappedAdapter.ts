@@ -1,5 +1,6 @@
 import type { Row } from '@/lib/models'
 import { parseLocalDate } from '@/src/lib/date'
+import { CREDIT_CARD_CATEGORY, INCOME_CATEGORY } from '@/src/lib/envelope'
 
 export interface WrappedData {
   month: string
@@ -112,7 +113,7 @@ export function computeWrapped(docs: Row[], month: string): WrappedData {
       timestamp: String(r.timestamp ?? ''),
       source: String(r.source ?? ''),
     }))
-    .filter((r) => !Number.isNaN(r.parsedDate.getTime()) && r.amountInr > 0 && r.date.slice(0, 7) === month)
+    .filter((r) => !Number.isNaN(r.parsedDate.getTime()) && r.amountInr > 0 && r.date.slice(0, 7) === month && r.category !== CREDIT_CARD_CATEGORY && r.category !== INCOME_CATEGORY)
     .sort((a, b) => a.parsedDate.getTime() - b.parsedDate.getTime())
 
   if (rows.length === 0) return emptyWrapped(month)

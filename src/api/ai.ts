@@ -213,12 +213,14 @@ export async function streamChat(
   onDelta: (text: string) => void,
   signal?: AbortSignal,
   onProposal?: (proposal: CaptureProposal) => void,
+  /** Sent from the "Log several at once" screen: the server reads every message as spends instead of guessing. */
+  capture = false,
 ): Promise<string | null> {
   const resp = await apiFetch('/api/ai/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', [CAPTURE_HEADER]: '1' },
     // Role and text only: a proposal riding on an earlier reply is the server's own data, not history to resend.
-    body: JSON.stringify({ sessionId, messages: messages.map(({ role, text }) => ({ role, text })) }),
+    body: JSON.stringify({ sessionId, messages: messages.map(({ role, text }) => ({ role, text })), ...(capture ? { capture: true } : {}) }),
     // A model streaming a long answer outruns apiFetch's 15s default, and a
     // caller-supplied signal replaces it. Without a caller's own signal the
     // stream is left untimed rather than cut off mid-answer.

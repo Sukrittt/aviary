@@ -28,7 +28,7 @@ export function landingFaqs(intl: boolean, price?: string): FaqItem[] {
     { q: 'Why not just use a spreadsheet?', a: 'A spreadsheet can do the math. The hard part is keeping it up on your phone, at the counter, every day. Aviary has the method built in, and most logs take one tap.' },
     { q: 'Does it work if my income changes every month?', a: 'Yes. You only budget money you already have. When a payment lands, give it jobs: rent first, then essentials. A slow month just fills fewer categories.' },
     { q: 'What if Aviary shuts down?', a: 'You won’t get stuck. Export your data to CSV any time, even without a subscription. And the code stays open source on GitHub.' },
-    { q: 'Can I use another currency?', a: 'Yes. Choose your display currency during setup or change it in More. One currency applies to your whole budget; changing it doesn’t convert amounts.' },
+    { q: 'Can I use another currency?', a: 'Yes. Choose your display currency during setup or change it in Account. One currency applies to your whole budget; changing it doesn’t convert amounts.' },
   ]
 }
 

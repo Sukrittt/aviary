@@ -8,7 +8,7 @@ import { currencyPrefix, resolveCurrency } from '@/src/lib/currencies'
  */
 
 /** For app questions the product guide doesn't answer. */
-export const APP_UNKNOWN = "I don't know that one yet. Help & feedback in More has the guide, and you can ask on the Feedback board there."
+export const APP_UNKNOWN = "I don't know that one yet. Help & feedback in Account has the guide, and you can ask on the Feedback board there."
 
 export const SCOPE_REFUSAL = "I can only help with your own money and with using Aviary: budgets, transactions, spending and the app's features. Try asking about those."
 

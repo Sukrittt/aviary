@@ -838,7 +838,7 @@ export function InsightsPage() {
         <InsightsTab active />
         <Link href="/account" className="erd-tab">
           <GearIcon size={22} aria-hidden />
-          <span>More</span>
+          <span>Account</span>
         </Link>
       </nav>
       <AnimatePresence>

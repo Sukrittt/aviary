@@ -12,6 +12,7 @@ import { Scrim, Sheet } from './MotionSheet'
 import { DatePicker, formatShort } from './DatePicker'
 import { getCategoryMap } from '../api/categoryMap'
 import { suggestCategoryLLM } from '../lib/autoCategory'
+import { matchCategory } from '../lib/matchCategory'
 import { MANUAL_LOG_EVENT } from '@/src/lib/captureTip'
 import { track } from '../lib/analytics'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
@@ -203,22 +204,15 @@ export function LogExpenseModal({ onClose, onBack, onSaved }: Props) {
     setCategory('')
     setAutoPicked(false)
     suggestedBy.current = null
-    const words = value.toLowerCase().split(/\s+/)
-    for (const word of words) {
-      const match = categoryWords[word]
-      if (!match) continue
-      const live = categories.includes(match)
-        ? match
-        : categories.find((c) => c.toLowerCase().includes(match.toLowerCase()))
-      if (live) {
-        gate.finish(() => {
-          suggestedBy.current = 'keyword'
-          pickMs.current = 0
-          setCategory(live)
-          setAutoPicked(true)
-        })
-        return
-      }
+    const live = matchCategory(value, categoryWords, categories)
+    if (live) {
+      gate.finish(() => {
+        suggestedBy.current = 'keyword'
+        pickMs.current = 0
+        setCategory(live)
+        setAutoPicked(true)
+      })
+      return
     }
     const key = value.trim().toLowerCase()
     if (key.length < MIN_LLM_CHARS) {

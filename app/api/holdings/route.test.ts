@@ -73,7 +73,8 @@ vi.mock('@/lib/http', async (importOriginal) => {
   }
 })
 
-const { GET, PUT } = await import('./route')
+const { GET, POST, PUT } = await import('./route')
+const { POST: ACTION } = await import('./action/route')
 
 function req(method: string, body: unknown): Request {
   return new Request('https://example.com/api/holdings', {
@@ -190,5 +191,29 @@ describe('PUT /api/holdings — recurring contribution edit', () => {
     expect(updated.recurring_day).toBe('')
     expect(updated.recurring_last_run).toBe('')
     expect(updated.version).toBe(1)
+  })
+})
+
+describe('holding amounts', () => {
+  const raw = (url: string, method: string, body: string) => new Request(`https://example.com${url}`, { method, headers: { 'content-type': 'application/json' }, body })
+
+  it('POST refuses a value or recurring amount that is not money', async () => {
+    expect((await POST(raw('/api/holdings', 'POST', '{"name":"MF","value":1e999}'))).status).toBe(400)
+    expect((await POST(raw('/api/holdings', 'POST', '{"name":"MF","value":"abc"}'))).status).toBe(400)
+    expect((await POST(raw('/api/holdings', 'POST', '{"name":"MF","value":"100","is_recurring":true,"recurring_amount":1e999}'))).status).toBe(400)
+    expect(store).toHaveLength(0)
+  })
+
+  it('PUT refuses one too', async () => {
+    store.push({ _id: new ObjectId(), name: 'MF', value: '100', version: 1 })
+    expect((await PUT(raw('/api/holdings', 'PUT', '{"name":"MF","version":1,"value":1e999}'))).status).toBe(400)
+    expect(store[0].value).toBe('100')
+  })
+
+  it('an action refuses an amount that overflows or is negative', async () => {
+    store.push({ _id: new ObjectId(), name: 'MF', value: '100', version: 1 })
+    expect((await ACTION(raw('/api/holdings/action', 'POST', '{"name":"MF","action":"contribution","amount":1e999}'))).status).toBe(400)
+    expect((await ACTION(raw('/api/holdings/action', 'POST', '{"name":"MF","action":"contribution","amount":-50}'))).status).toBe(400)
+    expect(store[0].value).toBe('100')
   })
 })

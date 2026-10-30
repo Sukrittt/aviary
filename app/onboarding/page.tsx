@@ -129,7 +129,7 @@ async function ignoreConflict(err: unknown): Promise<void> {
 const STEP_NAMES = ['currency', 'income', 'groups', 'categories', 'assign'] as const
 
 const TITLES: Record<number, [string, string]> = {
-  0: ['Choose your currency', 'The currency you use for your budget. You can change it later in More.'],
+  0: ['Choose your currency', 'The currency you use for your budget. You can change it later in Account.'],
   1: ['What lands each month?', 'Your take-home income. This becomes the pot you assign from. Not sure yet? Skip it and add it from Home later.'],
   2: ['Group your money', 'Groups are the big buckets. Accept these or rename them to fit your life.'],
   3: ['Add your categories', 'These are the buckets you actually spend from. Pick the ones you recognize.'],

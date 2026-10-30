@@ -316,6 +316,38 @@ describe('GET/PUT/DELETE /api/expenses — id-based addressing (C2)', () => {
     expect(second.category).toBe('Dining')
   })
 
+  it('PUT new_timestamp moves the time of day and leaves the date alone', async () => {
+    await POST(req('POST', { item: 'Coffee', amount_inr: '150', category: 'Food', timestamp: '2026-06-01T00:21:59-06:00', date: '2026-06-01' }))
+    const [row] = stores.expenses
+
+    const res = await PUT(req('PUT', { id: row._id.toString(), new_timestamp: '2026-06-01T20:05:00-06:00' }))
+    expect(res.status).toBe(200)
+    expect(row.timestamp).toBe('2026-06-01T20:05:00-06:00')
+    expect(row.date).toBe('2026-06-01')
+    expect(row.version).toBe(1)
+  })
+
+  it('PUT new_timestamp is refused off the row\'s day, or when it is not a timestamp', async () => {
+    await POST(req('POST', { item: 'Coffee', amount_inr: '150', category: 'Food', timestamp: '2026-06-01T00:21:59-06:00', date: '2026-06-01' }))
+    const [row] = stores.expenses
+
+    expect((await PUT(req('PUT', { id: row._id.toString(), new_timestamp: '2026-06-02T20:05:00-06:00' }))).status).toBe(400)
+    expect((await PUT(req('PUT', { id: row._id.toString(), new_timestamp: 'soon' }))).status).toBe(400)
+    expect((await PUT(req('PUT', { id: row._id.toString(), new_timestamp: 1 }))).status).toBe(400)
+    expect(row.timestamp).toBe('2026-06-01T00:21:59-06:00')
+    expect(row.version).toBe(0)
+  })
+
+  it('PUT new_date with new_timestamp takes both when they agree', async () => {
+    await POST(req('POST', { item: 'Coffee', amount_inr: '150', category: 'Food', timestamp: '2026-06-01T00:21:59-06:00', date: '2026-06-01' }))
+    const [row] = stores.expenses
+
+    const res = await PUT(req('PUT', { id: row._id.toString(), new_date: '2026-06-03', new_timestamp: '2026-06-03T20:05:00-06:00' }))
+    expect(res.status).toBe(200)
+    expect(row.date).toBe('2026-06-03')
+    expect(row.timestamp).toBe('2026-06-03T20:05:00-06:00')
+  })
+
   it('DELETE by id removes exactly that row', async () => {
     await POST(req('POST', { item: 'Coffee', amount_inr: '150', category: 'Food', date: '2026-06-01' }))
     const [row] = stores.expenses

@@ -9,6 +9,7 @@
  */
 
 import { nowIn } from '@/lib/http'
+import { CREDIT_CARD_CATEGORY, INCOME_CATEGORY } from '@/src/lib/envelope'
 
 /** Days after onboarding the recap stays due. Anyone later than this missed it for good. */
 const DUE_DAYS = 7
@@ -82,7 +83,7 @@ export function computeWeekRecap(rows: RecapRow[], start: string): WeekRecap {
   const { end } = recapWindow(start)
   const week = rows
     .map((r) => ({ ...r, item: r.item.trim(), amount: Number(r.amount_inr) }))
-    .filter((r) => r.date >= start && r.date <= end && r.amount > 0 && r.item && !AUTO_SOURCES.has(r.source ?? ''))
+    .filter((r) => r.date >= start && r.date <= end && r.amount > 0 && r.item && !AUTO_SOURCES.has(r.source ?? '') && r.category !== CREDIT_CARD_CATEGORY && r.category !== INCOME_CATEGORY)
 
   const totalSpent = week.reduce((s, r) => s + r.amount, 0)
 

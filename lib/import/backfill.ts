@@ -9,7 +9,7 @@ import { sendEmail } from '@/lib/email/resend'
 import { transactionalTemplate } from '@/lib/email/transactionalTemplate'
 import { displayName, type UserDoc } from '@/lib/users'
 import type { AppId } from './presets'
-import { importsCollection, loadImport, unpackRows, type BookingRow, type ImportDoc } from './service'
+import { assertOwner, importsCollection, loadImport, unpackRows, type BookingRow, type ImportDoc } from './service'
 
 /**
  * Books a committed import's rows, oldest first, through the same paths a
@@ -117,6 +117,7 @@ export async function runImportPass(auth: Auth, importId: string, deadlineMs: nu
  * that did land from doubling.
  */
 export async function retryImport(auth: Auth, importId: string): Promise<boolean> {
+  assertOwner(auth)
   const doc = await loadImport(auth, importId)
   if (doc.status !== 'failed') return false
   const rewound = doc.cursor - doc.streak_start

@@ -285,6 +285,8 @@ async function handOver(db: Db, space: SpaceDoc, toUserId: string, opts: { keepO
     await db.collection(SPACE_MEMBERS).updateOne({ space_id: space._id, user_id: toUserId }, { $set: { role: 'owner' } }, { session })
     if (opts.keepOldOwner) await db.collection(SPACE_MEMBERS).updateOne({ space_id: space._id, user_id: space.owner_id }, { $set: { role: 'member' } }, { session })
     else await db.collection(SPACE_MEMBERS).deleteOne({ space_id: space._id, user_id: space.owner_id }, { session })
+    // The old owner still holds any codes they made; left open they'd outlive their removal.
+    await db.collection(SPACE_INVITES).updateMany({ space_id: space._id, status: 'pending' }, { $set: { status: 'cancelled' } }, { session })
   })
   forgetMembership(space._id)
   try {

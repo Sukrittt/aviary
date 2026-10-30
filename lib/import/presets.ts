@@ -40,7 +40,7 @@ export const GENERIC_ALIASES: Record<Role, string[]> = {
   subcategory: ['subcategory', 'sub category', 'sub-category'],
   account: ['account', 'accounts', 'wallet', 'bank', 'account name'],
   note: ['note', 'notes', 'memo', 'remarks', 'comment', 'comments'],
-  type: ['type', 'transaction type', 'income/expense', 'cr/dr', 'dr/cr', 'direction'],
+  type: ['type', 'transaction type', 'income/expense', 'cr/dr', 'dr/cr', 'cr / dr', 'dr / cr', 'debit/credit', 'credit/debit', 'debit / credit', 'credit / debit', 'd/c', 'c/d', 'direction'],
   currency: ['currency', 'currency code', 'ccy'],
   transfer: ['transfer'],
 }
@@ -113,8 +113,8 @@ export function typeKind(value: string): 'expense' | 'income' | 'transfer' | nul
   const v = value.trim().toLowerCase()
   if (!v) return null
   if (v.includes('transfer')) return 'transfer'
-  if (/^(income|inc\.?|credit|cr|deposit|in|inflow|received)$/.test(v)) return 'income'
-  if (/^(expense|expenses|exp\.?|debit|dr|withdrawal|out|outflow|spent|payment)$/.test(v)) return 'expense'
+  if (/^(income|inc\.?|credit|cr\.?|c|deposit|in|inflow|received)$/.test(v)) return 'income'
+  if (/^(expense|expenses|exp\.?|debit|dr\.?|d|withdrawal|out|outflow|spent|payment)$/.test(v)) return 'expense'
   return null
 }
 

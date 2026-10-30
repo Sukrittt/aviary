@@ -1,5 +1,5 @@
 import { findHeaderRow, type Table } from './read'
-import { defaultDirection, detectDateOrder, detectDecimalComma, parseAmount, parseDate, type Direction } from './parse'
+import { defaultDirection, detectDateOrder, detectDecimalComma, drCrMarker, parseAmount, parseDate, type Direction } from './parse'
 import { CURRENCIES, isCurrencyCode } from '@/src/lib/currencies'
 import { detectPreset, genericTell, headerName, headerScore, mapColumns, typeKind, type AppId, type Preset, type Role, type RowFields, type SkipReason } from './presets'
 
@@ -74,7 +74,7 @@ const SYMBOLS = new Map<string, string>([
 function symbolCurrency(cells: string[]): string {
   const found = new Set<string>()
   for (const cell of cells.slice(0, 500)) {
-    const mark = cell.replace(/\s*(CR|DR)\.?$/i, '').match(/[^\d\s.,\-+()−]+/)?.[0]
+    const mark = cell.replace(drCrMarker(cell)?.[0] ?? '', '').match(/[^\d\s.,\-+()−]+/)?.[0]
     if (!mark) continue
     const upper = mark.toUpperCase()
     found.add(SYMBOLS.get(mark) ?? (isCurrencyCode(upper) ? upper : '?'))
@@ -170,6 +170,8 @@ export function normalize(layout: Layout, today: string, roles: Record<number, R
   const decimalComma = detectDecimalComma(amountCells, threeDecimals)
   const dateOrder = detectDateOrder(data.map((r) => at(r, 'date')))
   const twoColumns = mapping.amount === undefined
+  // Banks fill the unused side of a debit/credit pair with a dash or NA.
+  const moneyCell = (row: string[], role: Role) => (/^(?:[-–—]+|n\/?a|nil)$/i.test(at(row, role)) ? '' : at(row, role))
 
   const rows: StoredRow[] = []
   const signs: number[] = []
@@ -180,8 +182,8 @@ export function normalize(layout: Layout, today: string, roles: Record<number, R
     const date = parseDate(at(row, 'date'), dateOrder)
     let signed: number | null
     if (twoColumns) {
-      const out = at(row, 'outflow') ? parseAmount(at(row, 'outflow'), decimalComma) : 0
-      const inn = at(row, 'inflow') ? parseAmount(at(row, 'inflow'), decimalComma) : 0
+      const out = moneyCell(row, 'outflow') ? parseAmount(moneyCell(row, 'outflow'), decimalComma) : 0
+      const inn = moneyCell(row, 'inflow') ? parseAmount(moneyCell(row, 'inflow'), decimalComma) : 0
       signed = out === null || inn === null ? null : Math.round((Math.abs(inn) - Math.abs(out)) * 100) / 100
     } else {
       signed = parseAmount(at(row, 'amount'), decimalComma)
@@ -203,7 +205,8 @@ export function normalize(layout: Layout, today: string, roles: Record<number, R
     if (signed === 0) { skip('zero'); continue }
 
     const decided = tell?.kind ?? typed
-    const kind = decided ?? (twoColumns ? (signed > 0 ? 'income' : 'expense') : null)
+    // A written Dr or Cr says which way the money went, as a second amount column does, so no flip on review turns it around.
+    const kind = decided ?? (twoColumns || drCrMarker(at(row, 'amount')) ? (signed > 0 ? 'income' : 'expense') : null)
     const currency = at(row, 'currency').toUpperCase()
     const stored: StoredRow = {
       kind: kind ?? (signed < 0 ? 'expense' : 'income'),

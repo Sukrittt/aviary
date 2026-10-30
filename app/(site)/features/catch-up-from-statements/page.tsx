@@ -11,7 +11,7 @@ export default function CatchUpFromStatementsPage() {
 
     <h2>How it works</h2>
     <ol>
-      <li>Open You, then Add from statement. Pick screenshots from your gallery, or a CSV, Excel or PDF statement.</li>
+      <li>Open Account, then Add from statement. Pick screenshots from your gallery, or a CSV, Excel or PDF statement.</li>
       <li>Aviary reads each payment: who it went to, how much, and when. It matches the payee to a category from your own history.</li>
       <li>You get a list to check. Untick anything that isn’t yours, fix a category, and tap Log.</li>
       <li>The spends land on their real dates. Your categories now match what you actually spent.</li>

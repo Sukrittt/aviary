@@ -426,8 +426,9 @@ describe('POST /api/ai/chat (capture)', () => {
     buildCaptureProposalMock.mockRejectedValue(new Error('Gemini 503 UNAVAILABLE'))
     const body = await (await POST(jsonRequest({ messages: [{ role: 'user', text: 'auto 240' }] }, CAPTURE))).text()
 
-    expect(body).toContain("I couldn't read that one. Try again, or add it with the + button.")
-    expect(body).not.toContain('503')
+    // Only the error frame: the random session id in the first frame can contain '503' too.
+    const errors = frames(body).filter((f) => f.error).map((f) => f.error)
+    expect(errors).toEqual(["I couldn't read that one. Try again, or add it with the + button."])
   })
 
   it('still logs spends for a user over the AI allowance', async () => {
