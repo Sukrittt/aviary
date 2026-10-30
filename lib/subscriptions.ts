@@ -5,6 +5,8 @@
  * a route handler.
  */
 
+import { advance } from '@/lib/recurringExpense'
+
 export interface DueDateInput {
   nextDueDate: string
   billingCycle: string
@@ -36,15 +38,16 @@ export function formatReadableDate(dateStr: string): string {
   return `${day}${suffix} ${MONTH_NAMES[d.getUTCMonth()]}`
 }
 
-/** Advances `dateStr` by one billing cycle, inferred from `cycle`'s free-form text. */
-export function rollForward(dateStr: string, cycle: string): string {
+/**
+ * Advances `dateStr` by one billing cycle, inferred from `cycle`'s free-form
+ * text. A month-end date clamps to the short month, and `anchorDay` (the day
+ * the subscription bills on) brings it back after: Jan 31, Feb 28, Mar 31.
+ */
+export function rollForward(dateStr: string, cycle: string, anchorDay?: number): string {
   const d = new Date(dateStr)
   if (Number.isNaN(d.getTime())) return ''
-  if (/yearly|annual/i.test(cycle)) d.setFullYear(d.getFullYear() + 1)
-  else if (/quarterly/i.test(cycle)) d.setMonth(d.getMonth() + 3)
-  else if (/weekly/i.test(cycle)) d.setDate(d.getDate() + 7)
-  else d.setMonth(d.getMonth() + 1)
-  return d.toISOString().slice(0, 10)
+  const frequency = /yearly|annual/i.test(cycle) ? 'yearly' : /quarterly/i.test(cycle) ? 'quarterly' : /weekly/i.test(cycle) ? 'weekly' : 'monthly'
+  return advance(d.toISOString().slice(0, 10), frequency, anchorDay)
 }
 
 /** Today as 'YYYY-MM-DD', UTC. */
@@ -71,8 +74,9 @@ export function getEffectiveDueDate(sub: DueDateInput, today: string = todayUTC(
   if (sub.nextDueDate) {
     let d = new Date(sub.nextDueDate)
     if (Number.isNaN(d.getTime())) return ''
+    const anchorDay = d.getUTCDate()
     while (d.getTime() < todayMidnight) {
-      const rolled = rollForward(d.toISOString().slice(0, 10), sub.billingCycle)
+      const rolled = rollForward(d.toISOString().slice(0, 10), sub.billingCycle, anchorDay)
       if (!rolled) break
       d = new Date(rolled)
     }
