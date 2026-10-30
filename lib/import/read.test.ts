@@ -194,3 +194,11 @@ describe('readTable', () => {
     await expect(readTable(Buffer.from('not a zip'), 'x.zip')).rejects.toThrow()
   })
 })
+
+describe('findHeaderRow past a long preamble', () => {
+  it('finds a header after 20 lines of account details, as bank statements have', () => {
+    const rows = [...Array.from({ length: 20 }, (_, i) => [`Account line ${i}`]), ['Date', 'Narration', 'Amount']]
+    const known = new Set(['date', 'narration', 'amount'])
+    expect(findHeaderRow(rows, (cells) => cells.filter((c) => known.has(c.trim().toLowerCase())).length)).toBe(20)
+  })
+})

@@ -91,7 +91,7 @@ describe('parseAmount', () => {
     expect(comma(raw)).toBe(expected)
   })
 
-  it.each(['', 'abc', '1.2.3', '--5', '12-', '9'.repeat(400), '2000000000000', '-1e308', '1e3e4'])('rejects %s', (raw) => {
+  it.each(['', 'abc', '1.2.3', '--5', '12--', '9'.repeat(400), '2000000000000', '-1e308', '1e3e4'])('rejects %s', (raw) => {
     expect(dot(raw)).toBeNull()
   })
 })
@@ -270,5 +270,24 @@ describe('defaultDirection, edges', () => {
   it('ignores zeros and reads an empty file as negative spend', () => {
     expect(defaultDirection([0, 0], false)).toBe('negative_spend')
     expect(defaultDirection([0, 0, 0, 5], false)).toBe('positive_spend')
+  })
+})
+
+describe('parseAmount: how statements really write money', () => {
+  it('a currency outside the parentheses still means negative', () => {
+    expect(parseAmount('₹(500.00)', false)).toBe(-500)
+    expect(parseAmount('$(5.00)', false)).toBe(-5)
+    expect(parseAmount('Rs.(5.00)', false)).toBe(-5)
+    expect(parseAmount('(₹500.00)', false)).toBe(-500)
+  })
+  it('a trailing minus is negative, and /- only closes a rupee amount', () => {
+    expect(parseAmount('1234.00-', false)).toBe(-1234)
+    expect(parseAmount('1,000/-', false)).toBe(1000)
+  })
+  it('reads Dr in every spelling, without touching a currency code', () => {
+    for (const raw of ['500 (Dr)', 'Dr 500', 'DR. 500', '500D', '500 Dr.']) expect(parseAmount(raw, false)).toBe(-500)
+    for (const raw of ['500 (Cr)', 'Cr 500', '500C']) expect(parseAmount(raw, false)).toBe(500)
+    expect(parseAmount('500 USD', false)).toBe(500)
+    expect(parseAmount('500 CAD', false)).toBe(500)
   })
 })

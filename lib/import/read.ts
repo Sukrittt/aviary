@@ -70,11 +70,11 @@ export function parseCsv(text: string): string[][] {
   return rows
 }
 
-/** Index of the line, among the first 10, that looks most like a header. */
+/** Index of the line, among the first 50, that looks most like a header. Bank statements open with a page of account details. */
 export function findHeaderRow(rows: string[][], score: (cells: string[]) => number): number {
   let best = 0
   let bestScore = -1
-  rows.slice(0, 10).forEach((cells, i) => {
+  rows.slice(0, 50).forEach((cells, i) => {
     const s = score(cells)
     if (s > bestScore) { best = i; bestScore = s }
   })

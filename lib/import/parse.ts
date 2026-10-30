@@ -39,10 +39,10 @@ const MAX_AMOUNT = 1_000_000_000_000
 const WORD_DOT = /\p{L}+\./gu
 
 /**
- * A written Dr or Cr at either end: "10 DR", "Dr. 10". The lookaround keeps
- * currency codes out: IDR and SCR end in a marker, CRC starts with one.
+ * A written Dr or Cr at either end: "10 DR", "10 (Dr)", "10D", "Dr. 10". The
+ * lookaround keeps currency codes out: IDR, SCR and USD end in a marker, CRC starts with one.
  */
-export const drCrMarker = (s: string) => s.match(/\s*(?<![a-z])(CR|DR)\.?$/i) ?? s.match(/^(CR|DR)(?![a-z])\.?\s*/i)
+export const drCrMarker = (s: string) => s.match(/\s*(?<![a-z])\(?(CR|DR|C|D)\.?\)?$/i) ?? s.match(/^(CR|DR)(?![a-z])\.?\s*/i)
 
 /** A signed amount in major units, rounded to cents, or null. */
 export function parseAmount(raw: string, decimalComma: boolean): number | null {
@@ -50,9 +50,13 @@ export function parseAmount(raw: string, decimalComma: boolean): number | null {
   let sign = 1
   const marker = drCrMarker(s)
   if (marker) s = s.replace(marker[0], '')
-  if (/^\(.*\)$/.test(s)) {
+  // 1,000/- only closes a rupee amount.
+  s = s.replace(/\/-\s*$/, '')
+  // A currency can sit outside the brackets: ₹(500.00).
+  const bracketed = s.match(/^[^\d(]*\((.*)\)[^\d)]*$/)
+  if (bracketed) {
     sign = -sign
-    s = s.slice(1, -1)
+    s = bracketed[1]
   }
   // Excel writes big or tiny numbers as 1.5E+03. Stripping the letter would turn -1e308 into 1308.
   const scientific = s.trim().match(/^(-?)\s*(\d+(?:\.\d+)?e[-+]?\d+)$/i)
@@ -65,6 +69,9 @@ export function parseAmount(raw: string, decimalComma: boolean): number | null {
   if (s.startsWith('-')) {
     sign = -sign
     s = s.slice(1)
+  } else if (s.endsWith('-')) {
+    sign = -sign
+    s = s.slice(0, -1)
   }
   // In a comma-decimal file, 1,250 is still thousands: no money has three decimals.
   // A scientific cell was already rewritten as a dot decimal above.
@@ -77,7 +84,7 @@ export function parseAmount(raw: string, decimalComma: boolean): number | null {
   if (!Number.isFinite(cents) || cents > MAX_AMOUNT) return null
   if (cents === 0) return 0
   // A written Dr or Cr says which way the money went, whatever sign it also carries.
-  if (marker) return marker[1].toUpperCase() === 'DR' ? -cents : cents
+  if (marker) return marker[1][0].toUpperCase() === 'D' ? -cents : cents
   return sign * cents
 }
 
