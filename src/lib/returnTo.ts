@@ -15,6 +15,8 @@ export function safeReturnTo(raw: string | null | undefined): string | null {
   } catch {
     return null
   }
+  // Browsers drop tabs and newlines from a URL, so /\t/evil.com lands on //evil.com.
+  if (/[\x00-\x1f\x7f]/.test(path)) return null
   return /^\/(?![/\\])/.test(path) ? path : null
 }
 
