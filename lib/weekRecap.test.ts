@@ -126,3 +126,11 @@ describe('learningDay', () => {
     expect(learningDay(null, '2026-10-02')).toBeNull()
   })
 })
+
+describe('computeWeekRecap and card payments', () => {
+  it('a credit card payment is not spending', () => {
+    const recap = computeWeekRecap([row('2026-10-02', '10:00', 'Lunch', 'Food', 500), row('2026-10-03', '10:00', 'Card bill', '__credit_card__', 500)], '2026-10-01')
+    expect(recap.totalSpent).toBe(500)
+    expect(recap.categories.map((c) => c.category)).toEqual(['Food'])
+  })
+})

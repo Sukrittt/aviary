@@ -60,6 +60,13 @@ describe('monthRange', () => {
 const AUTH = { userId: 'u1', readOnly: false, sessionId: null, spaceId: 'u1', spaceOwnerId: 'u1', spaceRole: 'owner' as const }
 
 describe('editionStatus', () => {
+  it('a card payment does not count toward unlocking it', async () => {
+    docs = [...Array.from({ length: WRAPPED_MIN_TRANSACTIONS - 1 }, () => row(100)), { ...row(100), category: '__credit_card__' }]
+    const status = await editionStatus(AUTH, '2026-08')
+    expect(status.transactionCount).toBe(WRAPPED_MIN_TRANSACTIONS - 1)
+    expect(status.available).toBe(false)
+  })
+
   it('is unavailable one below the threshold', async () => {
     docs = Array.from({ length: WRAPPED_MIN_TRANSACTIONS - 1 }, () => row(100))
     const status = await editionStatus(AUTH, '2026-08')

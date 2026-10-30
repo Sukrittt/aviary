@@ -82,3 +82,12 @@ describe('computeWrapped', () => {
     expect(data.topCategories[1]).toMatchObject({ category: 'Food', total: 150 })
   })
 })
+
+describe('computeWrapped and card payments', () => {
+  it('a credit card payment is not spending', () => {
+    const data = computeWrapped([expense('2026-08-01', 5000), expense('2026-08-02', 5000, { category: '__credit_card__', item: 'Card bill' })], '2026-08')
+    expect(data.totalSpent).toBe(5000)
+    expect(data.totalTransactions).toBe(1)
+    expect(data.topCategories.map((c) => c.category)).toEqual(['Food'])
+  })
+})

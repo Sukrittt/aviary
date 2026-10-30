@@ -36,7 +36,7 @@ export async function editionStatus(
   const coll = await getCollection('expenses', auth)
   const docs = await coll.find({ date: { $gte: start, $lte: end } }).toArray()
   const rows = docs.map((d) => toRow(EXPENSE_HEADERS, d))
-  const transactionCount = rows.filter((r) => Number(r.amount_inr) > 0).length
+  const transactionCount = rows.filter((r) => Number(r.amount_inr) > 0 && r.category !== CREDIT_CARD_CATEGORY && r.category !== INCOME_CATEGORY).length
   return {
     month,
     transactionCount,
