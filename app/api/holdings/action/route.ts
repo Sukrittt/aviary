@@ -2,6 +2,7 @@ import { json, error, readBody } from '@/lib/http'
 import { getAuth, readOnlyGuard } from '@/lib/access'
 import { requireAccess } from '@/lib/billing/guard'
 import { applyHoldingAction } from '@/lib/holdings'
+import { validMoney } from '@/lib/inputValidation'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,6 +21,7 @@ export async function POST(req: Request) {
   }
   const action = String(body.action)
   if (!ACTIONS.has(action)) return error('invalid action', 400)
+  if (!validMoney(body.amount)) return error('invalid amount', 400)
 
   const result = await applyHoldingAction(auth, {
     name: String(body.name),

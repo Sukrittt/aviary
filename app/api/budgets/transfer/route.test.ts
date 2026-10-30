@@ -270,3 +270,19 @@ describe('POST /api/budgets/transfer', () => {
     expect(row('2026-11', 'Food')).toMatchObject({ assigned: '330', rolled_over: '20' })
   })
 })
+
+describe('POST /api/budgets/transfer — amounts that are not money', () => {
+  const raw = (body: string) => new Request('https://example.com/api/budgets/transfer', { method: 'POST', headers: { 'content-type': 'application/json' }, body })
+
+  it('rejects an amount that overflows to Infinity, leaving nothing stored', async () => {
+    const res = await POST(raw('{"month":"2026-10","to":"Food","sources":[{"category":"__ready_to_assign__","amount":1e999}]}'))
+    expect(res.status).toBe(400)
+    expect(store).toHaveLength(0)
+  })
+
+  it('rejects a month that is not one', async () => {
+    const res = await POST(req({ month: 'junk', to: 'Food', sources: [{ category: '__ready_to_assign__', amount: 10 }] }))
+    expect(res.status).toBe(400)
+    expect(store).toHaveLength(0)
+  })
+})

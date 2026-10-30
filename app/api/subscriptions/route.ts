@@ -6,6 +6,7 @@ import { SUBSCRIPTION_HEADERS, toRow } from '@/lib/models'
 import { invalidate } from '@/lib/cache'
 import { normalizeItem } from '@/lib/recurringDetection'
 import { nowForUser } from '@/lib/userCurrency'
+import { validMoney } from '@/lib/inputValidation'
 
 export const dynamic = 'force-dynamic'
 const SUGGESTED_CYCLES = new Set(['weekly', 'monthly', 'quarterly', 'yearly'])
@@ -28,6 +29,7 @@ export async function POST(req: Request) {
 
   const body = await readBody(req)
   if (!body.service || !body.amount_inr) return error('service, amount_inr required')
+  if (!validMoney(body.amount_inr)) return error('Amount must be a positive number')
 
   const coll = await getCollection('subscriptions', auth)
   const suggestionId = typeof body.suggestion_id === 'string' ? body.suggestion_id : undefined
@@ -114,6 +116,7 @@ export async function PUT(req: Request) {
 
   const body = await readBody(req)
   if (!body.service) return error('service required')
+  if (body.amount_inr !== undefined && !validMoney(body.amount_inr)) return error('Amount must be a positive number')
 
   // Case-insensitive match, consistent with the POST duplicate check and DELETE below.
   const coll = await getCollection('subscriptions', auth)

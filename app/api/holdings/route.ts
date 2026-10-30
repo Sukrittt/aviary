@@ -6,6 +6,7 @@ import { HOLDING_HEADERS, toRow } from '@/lib/models'
 import { invalidate } from '@/lib/cache'
 import { withTx } from '@/lib/mongodb'
 import { nextContributionDate } from '@/lib/holdingRecurrence'
+import { validMoney } from '@/lib/inputValidation'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,6 +24,11 @@ class HoldingWriteError extends Error {
 }
 
 const HOLDING_CHANGED = 'This holding changed on another device. Review the latest version before saving.'
+
+/** A blank recurring amount is how the forms say "none"; `Number('1e999')` past here would store Infinity. */
+function holdingAmountsValid(body: Record<string, unknown>) {
+  return (body.value === undefined || validMoney(body.value, true)) && (body.recurring_amount === undefined || body.recurring_amount === '' || validMoney(body.recurring_amount))
+}
 
 function writePrecondition(body: Record<string, unknown>) {
   if (body.version === undefined) {
@@ -66,6 +72,7 @@ export async function POST(req: Request) {
 
   const body = await readBody(req)
   if (!body.name || body.value === undefined) return error('name, value required')
+  if (!holdingAmountsValid(body)) return error('invalid amount')
 
   const coll = await getCollection('holdings', auth)
   const exists = await coll.findOne({
@@ -103,6 +110,7 @@ export async function PUT(req: Request) {
 
   const body = await readBody(req)
   if (!body.name) return error('name required')
+  if (!holdingAmountsValid(body)) return error('invalid amount')
   const precondition = writePrecondition(body)
   if (precondition) return precondition
 

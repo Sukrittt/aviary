@@ -6,6 +6,7 @@ import { requireAccess } from '@/lib/billing/guard'
 import { invalidate } from '@/lib/cache'
 import { withTx } from '@/lib/mongodb'
 import { casRetry } from '@/lib/cas'
+import { validMoney, validMonth } from '@/lib/inputValidation'
 import { reconcileThresholdLevels } from '@/lib/notifications/instant'
 
 export const dynamic = 'force-dynamic'
@@ -48,11 +49,12 @@ export async function POST(req: Request) {
   if (!month || !to || !rawSources || rawSources.length === 0) {
     return error('month, to, and sources (or from/amount) required')
   }
+  if (!validMonth(month)) return error('invalid month')
   const sources: Source[] = []
   for (const raw of rawSources as unknown[]) {
     const category = raw && typeof raw === 'object' ? (raw as Record<string, unknown>).category : undefined
     const amount = raw && typeof raw === 'object' ? (raw as Record<string, unknown>).amount : undefined
-    if (typeof category !== 'string' || typeof amount !== 'number' || !(amount > 0)) {
+    if (typeof category !== 'string' || typeof amount !== 'number' || !validMoney(amount) || !(amount > 0)) {
       return error('each source needs a category and a positive amount')
     }
     if (category === to) return error('cannot transfer a category to itself')
