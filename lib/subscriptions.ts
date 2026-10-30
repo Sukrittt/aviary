@@ -94,7 +94,8 @@ export function getEffectiveDueDate(sub: DueDateInput, today: string = todayUTC(
     const start = new Date(sub.timestamp)
     if (!Number.isNaN(start.getTime())) {
       const now = new Date(`${today}T00:00:00Z`)
-      const next = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, start.getUTCDate()))
+      const lastDay = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 2, 0)).getUTCDate()
+      const next = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, Math.min(start.getUTCDate(), lastDay)))
       if (next.getTime() <= todayMidnight) next.setUTCMonth(next.getUTCMonth() + 1)
       return next.toISOString().slice(0, 10)
     }

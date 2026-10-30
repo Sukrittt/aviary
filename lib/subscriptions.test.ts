@@ -173,6 +173,10 @@ describe('month-end subscriptions', () => {
     expect(isSubscriptionDueToday(sub, '2026-03-03')).toBe(false)
   })
 
+  it('a monthly subscription known only by its first charge clamps too', () => {
+    expect(getEffectiveDueDate({ nextDueDate: '', billingCycle: 'monthly', timestamp: '2026-01-31' }, '2026-01-31')).toBe('2026-02-28')
+  })
+
   it('keeps the anchor when told it', () => {
     expect(rollForward('2026-02-28', 'monthly', 31)).toBe('2026-03-31')
   })

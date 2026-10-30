@@ -27,7 +27,7 @@ export function decodeText(buf: Buffer): string {
  * misleads when a title line sits above the header.
  */
 function sniffDelimiter(text: string): string {
-  const lines = text.split(/\r?\n/).filter((l) => l.trim()).slice(0, 10)
+  const lines = text.split(/\r?\n/).filter((l) => l.trim()).slice(0, 50)
   let best = ','
   let bestScore = [0, 0]
   for (const d of [',', ';', '\t']) {
