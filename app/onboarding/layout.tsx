@@ -8,7 +8,6 @@ import type { UserProfile } from '@/src/api/account'
 import { CurrencyScope } from '@/src/context/CurrencyContext'
 import { currencyForCountry } from '@/src/lib/countryCurrency'
 import { GET as userGET } from '../api/user/route'
-import { CATEGORY_ICON_SPRITE } from '@/src/components/categoryIconSprite'
 
 export const metadata = pageMetadata('/onboarding')
 
@@ -25,12 +24,5 @@ export default async function Layout({ children }: { children: ReactNode }) {
     headers(),
   ])
   if (user?.onboardedAt) redirect('/expense')
-  return (
-    <CurrencyScope code={currencyForCountry(h.get('x-vercel-ip-country'))}>
-      {/* Starts the icon sprite (~200 KB) downloading on the currency step, so
-          the group and category icons are cached by the time they show. */}
-      <svg width="0" height="0" aria-hidden="true" style={{ position: 'absolute' }}><use href={`${CATEGORY_ICON_SPRITE}#Wallet`} /></svg>
-      {children}
-    </CurrencyScope>
-  )
+  return <CurrencyScope code={currencyForCountry(h.get('x-vercel-ip-country'))}>{children}</CurrencyScope>
 }
