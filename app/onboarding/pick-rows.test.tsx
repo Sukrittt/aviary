@@ -227,6 +227,13 @@ describe('onboarding pick rows', () => {
     expect(screen.queryByRole('dialog', { name: 'Choose an icon' })).toBeNull()
   })
 
+  it('lets a group pick its own icon', () => {
+    toGroupsStep()
+    fireEvent.click(screen.getByRole('button', { name: 'Icon: Basket. Change icon' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Dog' }))
+    expect(screen.getByRole('button', { name: 'Icon: Dog. Change icon' })).toBeTruthy()
+  })
+
   it('gives a new category row the icon its name suggests', () => {
     toCategoriesStep()
     fireEvent.click(screen.getAllByRole('button', { name: /Add category/ })[0])

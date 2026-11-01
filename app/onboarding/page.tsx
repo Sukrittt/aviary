@@ -28,7 +28,7 @@ import { LoadingCaption } from '../../src/components/LoadingCaption'
 import { Toast } from '../../src/components/Toast'
 import { CategoryIcon, CATEGORY_ICON_COMPONENTS } from '../../src/components/CategoryIcon'
 import { CategoryIconPicker } from '../../src/components/CategoryIconPicker'
-import { categoryIconKey, type CategoryIconKey } from '../../src/lib/categoryIcons'
+import { categoryIconKey, groupIconKey, type CategoryIconKey } from '../../src/lib/categoryIcons'
 import { avatarStyleFor } from '../../src/lib/emoji'
 
 // Twin of Mobile's app/setup.tsx: currency → income → done on a starter
@@ -45,7 +45,7 @@ const LAST_STEP_MIN_MS = 1000
 
 interface Item {
   id: string
-  /** A category's picked icon. Unset follows its name; groups always do. */
+  /** The picked icon. Unset follows the name. */
   icon?: CategoryIconKey
   name: string
   on: boolean
@@ -528,7 +528,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
       // together, matching mobile. Completion waits for every setup write.
       await Promise.all([
         (async () => {
-          for (const g of selectedGroups) await addGroup(g.name.trim()).catch(ignoreConflict).then(tick)
+          for (const g of selectedGroups) await addGroup(g.name.trim(), g.icon ? { icon: g.icon } : {}).catch(ignoreConflict).then(tick)
         })(),
         (async () => {
           for (const c of categories) await addCategory(c.name, c.group, c.icon).catch(ignoreConflict).then(tick)
@@ -768,9 +768,11 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
             {groups.map((g) => (
               <PickRow
                 key={g.id}
+                icon={groupIconKey(g.name, g.icon)}
                 name={g.name}
                 on={g.on}
                 placeholder="Group name"
+                onPickIcon={(icon) => patchGroup(g.id, { icon })}
                 incompleteHint={!g.name.trim() ? 'Name to select' : undefined}
                 onChangeName={(name) => renameGroup(g, name)}
                 onToggle={() => toggleGroup(g)}
@@ -779,7 +781,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
             <button type="button" className="setup-add-row" onClick={addGroupRow}>
               <PlusIcon size={16} aria-hidden="true" /> Add your own group
             </button>
-            <p className="setup-micro-hint">click a name to rename it</p>
+            <p className="setup-micro-hint">click a name to rename it · click the icon to pick another</p>
           </div>
         </div>
       )}
@@ -808,7 +810,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
               return (
                 <div key={g.id} className="setup-section">
                   <div className="setup-section-header">
-                    <CategoryIcon kind="group" name={g.name} />
+                    <CategoryIcon kind="group" name={g.name} icon={g.icon} />
                     <span className="setup-section-title">{g.name.toUpperCase()}</span>
                     <span className="setup-section-count">{selection.selectedCount} picked</span>
                   </div>
@@ -885,7 +887,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
               return (
                 <div key={g.id} className="setup-section">
                   <div className="setup-section-header">
-                    <CategoryIcon kind="group" name={g.name} />
+                    <CategoryIcon kind="group" name={g.name} icon={g.icon} />
                     <span className="setup-section-title">{g.name.toUpperCase()}</span>
                     <span className="setup-section-subtotal">{formatMoney(subtotal)}</span>
                   </div>
@@ -976,8 +978,7 @@ function AssignName({ name, onCommit }: { name: string; onCommit: (name: string)
   )
 }
 
-// A group or category row. Categories get the icon picker beside their name;
-// groups have no stored icon, so theirs just follows the name.
+// A group or category row, with the icon picker beside its name.
 function PickRow({
   icon,
   name,
