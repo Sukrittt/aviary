@@ -48,7 +48,7 @@ export async function GET(req: Request) {
     forecast({
       today,
       firstExpenseDate: firstDoc ? str(firstDoc.date) : undefined,
-      envelopes: envelopes.map((e) => ({ category: e.category, available: e.available, isCreditCardPayment: e.isCreditCardPayment })),
+      envelopes: envelopes.map((e) => ({ category: e.category, available: e.available, isCreditCardPayment: e.isCreditCardPayment, assigned: e.assigned, planPending: e.planPending })),
       expenses: expenseDocs.map((d) => ({
         date: str(d.date),
         amount_inr: Number(d.amount_inr ?? d.amount) || 0,

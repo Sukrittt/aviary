@@ -5,6 +5,7 @@
  * For each envelope (credit-card payment ones left out, as the widget does):
  *
  *   projected = available now
+ *             + the plan, if it's still pending and a payday is due this month
  *             − recurring expenses and subscription charges still due this month
  *             − usual daily spend × days left
  *
@@ -33,6 +34,10 @@ export interface ForecastEnvelopeIn {
   category: string
   available: number
   isCreditCardPayment: boolean
+  /** The plan. Only money yet once pay lands, when `planPending`. */
+  assigned?: number
+  /** Pay hasn't landed this month, so `assigned` isn't in `available` (Envelope.planPending). */
+  planPending?: boolean
 }
 
 export interface ForecastExpense {
@@ -233,6 +238,19 @@ function usualDaily(input: ForecastInput): { basis: Forecast['basis']; perDay: M
   return { basis: 'thisMonth', perDay: new Map([...totals].map(([c, t]) => [c, t / tracked])) }
 }
 
+/** The day this month's pending plan becomes money: the first payday still due. Overdue ones land on today, like `charges`. */
+function firstPayday({ today, recurringIncomes }: ForecastInput): string | null {
+  const month = today.slice(0, 7)
+  const paydays = recurringIncomes
+    // A schedule paying nothing posts nothing (`runRecurringIncomes`), so it can't fund the plan.
+    .filter((r) => Number(r.amount) > 0)
+    // An occurrence overdue from an earlier month posts to that month, so it doesn't fund this one.
+    .flatMap((r) => occurrencesDue(r, monthEnd(month)).filter((d) => d.startsWith(month)))
+    .sort()
+  if (!paydays[0]) return null
+  return paydays[0] < today ? today : paydays[0]
+}
+
 export function forecast(input: ForecastInput): Forecast {
   const { today } = input
   const end = monthEnd(today.slice(0, 7))
@@ -243,6 +261,7 @@ export function forecast(input: ForecastInput): Forecast {
   if (!basis) return { basis, daysLeft: left, totalLeft: null, envelopes: [], nextMonth }
 
   const due = charges(input, end, { requireCategory: true })
+  const payday = firstPayday(input)
 
   const envelopes = input.envelopes
     .filter((e) => !e.isCreditCardPayment)
@@ -251,12 +270,14 @@ export function forecast(input: ForecastInput): Forecast {
       const mine = due.filter(([, c]) => c === e.category)
       const scheduled = mine.reduce((sum, [, , amount]) => sum + amount, 0)
       const overspent = e.available < 0
+      const plan = e.planPending && payday ? e.assigned ?? 0 : 0
 
       // Walk the days left to find the first one below zero. Today carries only what's still due today.
       let runsOutOn: string | null = null
       if (!overspent) {
         let balance = e.available
         for (let d = today; d <= end && !runsOutOn; d = nextDay(d)) {
+          if (d === payday) balance += plan
           balance -= mine.filter(([on]) => on === d).reduce((sum, [, , amount]) => sum + amount, 0)
           if (d > today) balance -= daily
           if (balance < -0.005) runsOutOn = d
@@ -268,7 +289,7 @@ export function forecast(input: ForecastInput): Forecast {
         available: round2(e.available),
         scheduled: round2(scheduled),
         usualDaily: round2(daily),
-        projected: round2(e.available - scheduled - daily * left),
+        projected: round2(e.available + plan - scheduled - daily * left),
         runsOutOn,
         overspent,
       }
