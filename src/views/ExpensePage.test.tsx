@@ -478,6 +478,20 @@ it('offers to take money back when Ready to Assign is negative', async () => {
   client.clear()
 })
 
+it("before payday, a ₹0 Ready to Assign keeps saying when the plan fills up", async () => {
+  vi.mocked(getBudgets).mockResolvedValue([
+    { month, category: '__income__', assigned: '20000', extra: '800', rolled_over: '0', version: 1 },
+    { month, category: 'Food', assigned: '5000', rolled_over: '800', version: 1 },
+  ])
+  vi.mocked(getCarry).mockResolvedValue({ ready_to_assign: -800, rolled_over: { Food: 800 } })
+  const next_run_date = `${month}-28`
+  vi.mocked(getRecurringIncomes).mockResolvedValue([{ id: 'r1', label: 'Salary', amount: '20000', frequency: 'monthly', status: 'active', start_date: `${previous}-28`, end_date: '', next_run_date, account_id: '', created_at: '' }])
+  const client = renderPage()
+  expect(await screen.findByRole('button', { name: `Your plan fills up ${paydayLabel(next_run_date)}` })).toBeInTheDocument()
+  vi.mocked(getRecurringIncomes).mockResolvedValue([])
+  client.clear()
+})
+
 it('before payday, says when the plan fills up instead of asking for income', async () => {
   vi.mocked(getBudgets).mockResolvedValue([
     { month: previous, category: '__income__', assigned: '20000', rolled_over: '0', version: 1 },

@@ -300,7 +300,8 @@ export function ExpensePage() {
   // Unknown until budgets load; counting it done avoids flashing the income step.
   const incomeDone = !envelopeState || envelopeState.income > 0;
   // Same test as Mobile's Home: income is set and nothing is left to assign.
-  const rtaSettled = !!envelopeState && envelopeState.income > 0 && Math.abs(envelopeState.readyToAssign) < 0.005;
+  // Before payday a ₹0 isn't every rupee given a job: Home keeps saying when the plan fills up.
+  const rtaSettled = !!envelopeState && envelopeState.funded && envelopeState.income > 0 && Math.abs(envelopeState.readyToAssign) < 0.005;
   // Mobile's peak-end beat: Ready to Assign reaching zero while you watch (an
   // assign, a move) gets a short mint celebration on the settled row. Loading
   // in at zero doesn't count: there was no "before" to celebrate.

@@ -5006,6 +5006,8 @@
 }
 
 .setup-payday-line select {
+  width: auto;
+  min-width: 0;
   padding: 6px 10px;
   border-radius: 100px;
   border: 1px solid var(--erd-border-strong);
