@@ -92,6 +92,19 @@ it('asks to budget a category with no money assigned this month, instead of the 
   expect(handlers.onSetBudget).toHaveBeenCalledOnce()
 })
 
+it('before payday, spending past what an envelope holds offers to cover it, not to set a budget', () => {
+  budgets.income = '0'
+  try {
+    const handlers = renderAdded(expense({}))
+    expect(screen.getByText(/^Over by/)).toBeInTheDocument()
+    expect(screen.queryByText(/a budget\?/)).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cover it' }))
+    expect(handlers.onCover).toHaveBeenCalledOnce()
+  } finally {
+    budgets.income = '5000'
+  }
+})
+
 it("doesn't ask to budget an unfunded category when there's nothing left to assign", () => {
   // Assign Money only takes amounts up to Ready to Assign, so the form couldn't save.
   budgets.income = '1000'
