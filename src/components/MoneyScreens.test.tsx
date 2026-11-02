@@ -6,7 +6,7 @@ import { currentMonthKey, shiftMonthKey } from '../lib/envelope'
 import { shortMonth } from '../lib/goal'
 import { BudgetWriteError } from '../lib/budgetConflict'
 
-const mocks = vi.hoisted(() => ({ fresh: vi.fn(), update: vi.fn(), add: vi.fn(), transfer: vi.fn(), addIncome: vi.fn(), updateIncome: vi.fn(), budgetsLoading: false, carryError: false, accounts: [] as { id: string; name: string; type: string; archived: boolean; created_at: string }[], budgets: [] as {month: string; category: string; assigned: string; rolled_over: string; extra?: string; version: number}[] }))
+const mocks = vi.hoisted(() => ({ fresh: vi.fn(), update: vi.fn(), add: vi.fn(), transfer: vi.fn(), addIncome: vi.fn(), updateIncome: vi.fn(), budgetsLoading: false, carryError: false, accounts: [] as { id: string; name: string; type: string; archived: boolean; created_at: string }[], budgets: [] as {month: string; category: string; assigned: string; rolled_over: string; extra?: string; landed?: string; version: number}[] }))
 vi.mock('../hooks/useBudgets', () => ({
   useBudgets: () => (mocks.budgetsLoading ? { data: undefined, isLoading: true } : { data: mocks.budgets }),
   useFreshBudgets: () => mocks.fresh,
@@ -38,7 +38,7 @@ beforeEach(() => {
   mocks.carryError = false
   cats.rows = [{ name: 'Food', group: 'Home' }, { name: 'Rent', group: 'Home' }]
   spaces.readOnly = false
-  mocks.budgets = [['__income__', '2000'], ['Food', '100'], ['Rent', '500']].map(([category, assigned]) => ({ month: currentMonthKey(), category, assigned, rolled_over: '0', version: 3 }))
+  mocks.budgets = [['__income__', '2000'], ['Food', '100'], ['Rent', '500']].map(([category, assigned]) => ({ month: currentMonthKey(), category, assigned, rolled_over: '0', version: 3, ...(category === '__income__' ? { landed: assigned } : {}) }))
 })
 
 function typeAmount(value: string) {

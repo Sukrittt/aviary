@@ -16,7 +16,7 @@ import { useAccounts } from '../hooks/useAccounts'
 import { useHideAmounts } from '../hooks/useHideAmounts'
 import { useSpaces } from '../hooks/useSpaces'
 import { formatDateShort } from '../lib/format'
-import { currentMonthKey, monthLabel } from '../lib/envelope'
+import { countsInBudget, currentMonthKey, monthLabel } from '../lib/envelope'
 import { dueLabel, monthlyAmount } from './RecurringPage'
 import type { IncomeRow, RecurringIncomeRow } from '../types'
 
@@ -273,8 +273,8 @@ export function IncomePage() {
         {confirmDelete && (
           <ConfirmDialog
             title={`Delete ${confirmDelete.label}?`}
-            body={confirmDelete.counted === 'monthly'
-              ? 'This only removes the record. Your monthly income still counts.'
+            body={!countsInBudget(confirmDelete)
+              ? "This only removes the record. That month's income still counts."
               : `${formatCurrency(Number(confirmDelete.amount) || 0, hideAmounts)} comes off Ready to Assign for ${monthLabel(confirmDelete.date.slice(0, 7))}.`}
             cancelLabel="Cancel"
             onCancel={() => setConfirmDelete(null)}

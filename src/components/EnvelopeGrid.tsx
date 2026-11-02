@@ -77,7 +77,7 @@ function WeekBreakdown({ pace, e, money }: { pace: WeekPace; e: Envelope; money:
   const last = pace.weeks.length - 1
   return (
     <div className="env2-weeks">
-      <div className="env2-weeks-month">{money(e.spent)} of {money(e.assigned + e.rolledOver)} this month</div>
+      <div className="env2-weeks-month">{money(e.spent)} of {money(e.available + e.spent)} this month</div>
       {pace.weeks.map((w, i) => ({ w, i })).filter(({ w, i }) => w.spent !== 0 || i === last).map(({ w, i }) => {
         const isNow = i === last
         const result = weekResult(w, isNow, pace.left, money)

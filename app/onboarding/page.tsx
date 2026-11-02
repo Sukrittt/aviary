@@ -12,6 +12,9 @@ import '../../src/expense-redesign.css'
 
 import { currentMonthKey, INCOME_CATEGORY } from '../../src/lib/envelope'
 import { getBudgets, updateBudget } from '../../src/api/budgets'
+import { addRecurringIncome } from '../../src/api/incomes'
+import { todayLocal } from '../../src/lib/date'
+import { DatePicker } from '../../src/components/DatePicker'
 import { addGroup } from '../../src/api/groups'
 import { addCategory, getSplitBuckets } from '../../src/api/categories'
 import { normName, suggestSplit, unknownCategories, type BucketTags } from '../../src/lib/budgetSplit'
@@ -130,7 +133,7 @@ const STEP_NAMES = ['currency', 'income', 'groups', 'categories', 'assign'] as c
 
 const TITLES: Record<number, [string, string]> = {
   0: ['Choose your currency', 'The currency you use for your budget. You can change it later in Account.'],
-  1: ['What lands each month?', 'Your take-home income. This becomes the pot you assign from. Not sure yet? Skip it and add it from Home later.'],
+  1: ['What lands each month?', 'Your take-home income. Your plan fills up the day it lands. Not sure yet? Skip it and add it from Home later.'],
   2: ['Group your money', 'Groups are the big buckets. Accept these or rename them to fit your life.'],
   3: ['Add your categories', 'These are the buckets you actually spend from. Pick the ones you recognize.'],
   4: ['Here’s your plan', 'We split your income across your categories. Keep it, or change any amount.'],
@@ -159,6 +162,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
   // it, setup finishes from the income step on the starter budget.
   const [custom, setCustom] = useState(false)
   const [income, setIncome] = useState('')
+  const [payday, setPayday] = useState(todayLocal)
   // Drive AmountTicker's roll/flash/delta animation, same as mobile: `tick`
   // replays it, `dir` picks the roll direction, `delta` (quick-pick jumps
   // only) floats a badge.
@@ -517,6 +521,11 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
         return
       }
       const month = currentMonthKey()
+      // Before the budget rows, or the server would mint a second schedule from
+      // the income row, and because a pay already in moves that row's version.
+      if (incomeValue > 0) {
+        await addRecurringIncome({ label: 'Monthly income', amount: String(incomeValue), frequency: 'monthly', start_date: payday, client_id: 'onboarding-income' })
+      }
       const budgetVersions = new Map(
         (await getBudgets()).map((row) => [`${row.month}\u0000${row.category}`, row.version]),
       )
@@ -726,6 +735,12 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
             />
           </label>
           <p className="setup-amount-hint">{income ? '' : 'Type an amount, or pick one below'}</p>
+          {income && (
+            <div className="setup-payday">
+              <div className="erd-log-label">When&apos;s payday?</div>
+              <DatePicker mode="single" value={payday} onChange={setPayday} disableFuture={false} popover />
+            </div>
+          )}
           <div className="setup-quick-row">
             {QUICK_PICKS.map((v) => (
               <motion.button

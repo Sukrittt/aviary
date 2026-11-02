@@ -21,8 +21,10 @@ export interface EnvelopeState {
   month: string
   /** incomeBase + incomeExtra. */
   income: number
-  /** Monthly income. Carries into later months like any assignment. */
+  /** Paydays that have landed this month. Before PAYCHECK_START: the monthly income, carried like any assignment. */
   incomeBase: number
+  /** Pay has landed, so this month's plan (each envelope's `assigned`) is real money. Until then envelopes hold only what carried in. */
+  funded: boolean
   /** One-off income for this month only (a bonus, a refund, a top-up). Never
    * carries, so it can't repeat next month. Can be negative when there's less
    * than the monthly income this month. */
@@ -59,6 +61,34 @@ export interface Carry {
 
 export const CREDIT_CARD_CATEGORY = '__credit_card__'
 export const INCOME_CATEGORY = '__income__'
+
+/**
+ * The first paycheck-to-paycheck month. From here on income counts the day it
+ * lands: the income row's `landed` is the month's paydays, and nothing carries
+ * from last month's pay. An envelope's `assigned` is its plan, which only
+ * becomes money once the month's first payday lands. Until then envelopes hold
+ * what carried in. Earlier months keep the old math (monthly income counted from
+ * day 1), so nobody's history gets rewritten.
+ * ponytail: the first payday funds the whole plan, so someone paid twice a
+ * month runs negative in Ready to assign until the second lands. Fill envelopes
+ * in order if that bothers people.
+ */
+export const PAYCHECK_START = '2026-11'
+
+/** Whether pay has landed in `month`, from that month's income row. */
+export function isFunded(month: string, incomeRow: object | null | undefined): boolean {
+  return month < PAYCHECK_START || Number((incomeRow as { landed?: unknown } | null | undefined)?.landed) > 0
+}
+
+/** Whether an income row is real money in its month's budget, or only a record of a payday the old monthly income already counted. */
+export function countsInBudget(row: { counted: string; date: string }): boolean {
+  return row.counted === 'extra' || row.date.slice(0, 7) >= PAYCHECK_START
+}
+
+/** The month's base income from its own row (the rest is `extra`). */
+export function incomeBaseOf(month: string, incomeRow: { assigned?: unknown; landed?: unknown }): number {
+  return Number(month < PAYCHECK_START ? incomeRow.assigned : incomeRow.landed) || 0
+}
 
 /**
  * Where `amount` moved out of an envelope comes from: carried money first (so
@@ -183,8 +213,9 @@ export function computeEnvelopeState(
     return prior?.assigned ?? 0
   }
 
-  const incomeBase = carriedAssigned(INCOME_CATEGORY)
   const incomeRow = budgetRows.find((b) => b.month === currentMonth && b.category === INCOME_CATEGORY)
+  const funded = isFunded(currentMonth, incomeRow)
+  const incomeBase = currentMonth < PAYCHECK_START ? carriedAssigned(INCOME_CATEGORY) : Number(incomeRow?.landed) || 0
   const incomeExtra = Number(incomeRow?.extra) || 0
   const income = Math.round((incomeBase + incomeExtra) * 100) / 100
 
@@ -220,10 +251,13 @@ export function computeEnvelopeState(
 
     const spent = monthSpending.get(category) ?? 0
     // Rounded to paise: 3.3 assigned less 1.1 + 2.2 spent is -4e-16 in floats, which isn't overspent.
-    const available = Math.round((assigned + computedRollover - spent) * 100) / 100 || 0
+    // Before payday the plan isn't money yet. The card envelope's `assigned` is
+    // never a plan: it's cash already set aside for what went on the card.
+    const held = funded || isCC ? assigned : 0
+    const available = Math.round((held + computedRollover - spent) * 100) / 100 || 0
 
     if (!isCC) {
-      totalAssigned += assigned
+      totalAssigned += held
     }
 
     envelopes.push({
@@ -259,6 +293,7 @@ export function computeEnvelopeState(
     income,
     incomeBase,
     incomeExtra,
+    funded,
     totalAssigned,
     totalSpent,
     readyToAssign,

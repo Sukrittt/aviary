@@ -9,6 +9,7 @@ import { track } from '@/src/lib/analytics'
 vi.mock('@/src/lib/analytics', () => ({ track: vi.fn(), startTimer: () => () => 7 }))
 const { replace } = vi.hoisted(() => ({ replace: vi.fn() }))
 vi.mock('next/navigation', () => ({ useRouter: () => ({ replace }) }))
+vi.mock('@/src/api/incomes', () => ({ addRecurringIncome: vi.fn(async () => undefined) }))
 vi.mock('@/src/api/budgets', () => ({
   getBudgets: vi.fn(async () => []),
   updateBudget: vi.fn(async () => ({})),

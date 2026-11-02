@@ -43,7 +43,7 @@ import { useGroupIcons, useGroups } from "../hooks/useGroups";
 import { useSubscriptions, useCancelSubscription, useReactivateSubscription } from "../hooks/useSubscriptions";
 import { useHideAmounts } from "../hooks/useHideAmounts";
 import { GetStartedCard } from "../components/home/GetStartedCard";
-import { paydayLabel, startingBalanceIntro, upcomingMonthlyPay } from "@/src/lib/upcomingPay";
+import { paydayLabel, startingBalanceIntro, upcomingPayday } from "@/src/lib/upcomingPay";
 import { useBillingStatus } from "../hooks/useBillingStatus";
 import { formatDate } from "../components/billing/copy";
 import { LearningCard } from "../components/home/LearningCard";
@@ -182,7 +182,7 @@ export function ExpensePage() {
   const [assignTarget, setAssignTarget] = useState<string | null>(null);
   const [editReady, setEditReady] = useState(false);
   const [incomeScreen, setIncomeScreen] = useState<"add" | "monthly" | "starting" | null>(null);
-  // Change income edits the monthly schedule Ready to Assign counts from day 1.
+  // Change income edits the monthly schedule that funds the plan on payday.
   // With more than one, or before they've loaded (a create form then could
   // duplicate one), the Income page is the place to pick.
   const schedulesQ = useRecurringIncomes();
@@ -255,7 +255,7 @@ export function ExpensePage() {
     const today = new Date().getDate();
     for (const e of envelopeState.envelopes) {
       // Nothing to pace with no money in it: the month's own bar says it better.
-      const pot = e.assigned + e.rolledOver;
+      const pot = e.available + e.spent;
       if (!weekly.has(e.category) || e.isCreditCardPayment || pot <= 0) continue;
       map.set(e.category, weekPace(pot, spendByDay(expenseRows, e.category, thisMonth), thisMonth, today));
     }
@@ -339,7 +339,7 @@ export function ExpensePage() {
   const fundDone = !envelopeState || (incomeDone && envelopeState.readyToAssign <= 0);
   // The next empty category on screen, so each tap moves the job along.
   const nextToFund = (envelopeState?.envelopes.find((e) => e.assigned === 0) ?? envelopeState?.envelopes[0])?.category;
-  const upcomingPay = upcomingMonthlyPay(schedulesQ.data ?? [], thisMonth);
+  const upcomingPay = envelopeState && !envelopeState.funded ? upcomingPayday(schedulesQ.data ?? []) : undefined;
   const showGetStarted = !getStartedSkipped && !!user?.getStartedAt &&
     !(incomeDone && fundDone && user.manualTransactionCompletedAt && user.guidedTourCompletedAt);
   // On wide screens with Subscriptions hidden the rail holds only Recent
@@ -404,13 +404,13 @@ export function ExpensePage() {
       let returned = 0;
       const updated = current.envelopes.map((e) => {
         if (e.available <= 0) return e;
-        const { fromAssigned, fromCarry } = splitDebit(e.available, e.assigned, e.rolledOver);
+        const { fromAssigned, fromCarry } = splitDebit(e.available, current.funded || e.isCreditCardPayment ? e.assigned : 0, e.rolledOver);
         returned += fromCarry + (e.isCreditCardPayment ? 0 : fromAssigned);
         const assigned = e.assigned - fromAssigned;
         const spentPct = assigned > 0 ? Math.min(100, (e.spent / assigned) * 100) : e.spent > 0 ? 100 : 0;
         return { ...e, assigned, rolledOver: e.rolledOver - fromCarry, available: 0, spentPct };
       });
-      const totalAssigned = updated.filter((e) => !e.isCreditCardPayment).reduce((sum, e) => sum + e.assigned, 0);
+      const totalAssigned = current.funded ? updated.filter((e) => !e.isCreditCardPayment).reduce((sum, e) => sum + e.assigned, 0) : 0;
       const rta = current.readyToAssign + returned;
       const log = {
         type: "bulk-return-to-rta",
@@ -465,10 +465,9 @@ export function ExpensePage() {
   async function fundGoals() {
     if (!envelopeState) return;
     try {
-      // One versioned write per goal, same as tapping each goal's Set.
+      // Same move as Assign money, which puts the money in today even before payday.
       for (const f of goalFunding) {
-        const assigned = envelopeState.envelopes.find((e) => e.category === f.category)?.assigned ?? 0;
-        await setMonthly(f.category, Math.round((assigned + f.amount) * 100) / 100);
+        await transferBudgetM.mutateAsync({ month: thisMonth, to: f.category, sources: [{ category: "__ready_to_assign__", amount: f.amount }] });
       }
       track("rta_goals_funded", { goals: goalFunding.length });
     } catch {
@@ -480,7 +479,7 @@ export function ExpensePage() {
   // Taking back lowers what's assigned, capped at what's left, so it never just moves the hole into an envelope.
   const rtaMenu = (trigger: ReactElement) => {
     const rta = envelopeState?.readyToAssign ?? 0;
-    const picks = (envelopeState?.envelopes ?? []).filter((e) => !e.isCreditCardPayment && (rta > 0 || (e.assigned > 0 && e.available > 0)));
+    const picks = (envelopeState?.envelopes ?? []).filter((e) => !e.isCreditCardPayment && (rta > 0 || (e.assigned > 0 && e.available > 0 && envelopeState?.funded)));
     return (
       <DropdownMenu>
         <DropdownMenuTrigger render={trigger} />
@@ -567,7 +566,7 @@ export function ExpensePage() {
             incomeDone={incomeDone}
             fundDone={fundDone}
             fundHint={envelopeState && envelopeState.income > 0 ? `${formatCurrency(envelopeState.readyToAssign, hideAmounts)} still to assign` : undefined}
-            upcomingPayHint={upcomingPay ? `Your pay lands ${paydayLabel(upcomingPay.start_date)}. Budget what you have till then.` : undefined}
+            upcomingPayHint={upcomingPay ? `Your pay lands ${paydayLabel(upcomingPay.next_run_date)}. Budget what you have till then.` : undefined}
             manualTransactionDone={!!user.manualTransactionCompletedAt}
             guidedTourDone={!!user.guidedTourCompletedAt}
             onAddIncome={() => setIncomeScreen(upcomingPay ? "starting" : "monthly")}
@@ -677,7 +676,7 @@ export function ExpensePage() {
                         number comes from. With no income yet it goes straight to
                         setting it. */}
                     <div className="env-action-wrap erd-home-pill-wrap">
-                      {envelopeState.income === 0 ? (
+                      {envelopeState.income === 0 && !upcomingPay ? (
                         <button type="button" className="erd-home-income-pill is-empty" onClick={() => setIncomeScreen("monthly")}>
                           Set your income
                           <CaretRightIcon size={14} aria-hidden="true" />
@@ -685,7 +684,7 @@ export function ExpensePage() {
                       ) : (
                         incomeMenu(
                           <button type="button" className="erd-home-income-pill">
-                            {`Income · ${formatCurrency(envelopeState.income, hideAmounts)}`}
+                            {upcomingPay ? `Your plan fills up ${paydayLabel(upcomingPay.next_run_date)}` : `Income · ${formatCurrency(envelopeState.income, hideAmounts)}`}
                             <CaretRightIcon size={14} aria-hidden="true" />
                           </button>,
                           "center",
@@ -981,7 +980,7 @@ export function ExpensePage() {
             <AddIncomeScreen onClose={() => setIncomeScreen(null)} />
           )}
           {incomeScreen === "starting" && upcomingPay && (
-            <AddIncomeScreen onClose={() => setIncomeScreen(null)} defaultLabel="Starting balance" intro={startingBalanceIntro(upcomingPay.start_date)} />
+            <AddIncomeScreen onClose={() => setIncomeScreen(null)} defaultLabel="Starting balance" intro={startingBalanceIntro(upcomingPay.next_run_date)} />
           )}
           {incomeScreen === "monthly" && envelopeState && (
             <RecurringIncomeModal

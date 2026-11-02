@@ -19,7 +19,7 @@ const budgets = vi.hoisted(() => ({ income: '5000' }))
 vi.mock('@/src/hooks/useBudgets', () => ({
   useBudgets: () => ({
     data: [
-      { month, category: '__income__', assigned: budgets.income, rolled_over: '0', version: 1 },
+      { month, category: '__income__', assigned: budgets.income, landed: budgets.income, rolled_over: '0', version: 1 },
       { month, category: 'Groceries', assigned: '1000', rolled_over: '0', version: 1 },
     ],
   }),

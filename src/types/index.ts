@@ -14,6 +14,8 @@ export interface BudgetRow {
   rolled_over: string
   /** Only on the income row: one-off income for that month. See EnvelopeState.incomeExtra. */
   extra?: string
+  /** Only on the income row, from PAYCHECK_START (src/lib/envelope.ts): the paydays that have landed that month. */
+  landed?: string
   version: number
 }
 
@@ -40,7 +42,7 @@ export interface ExpenseRow {
   created_by?: string | null
 }
 
-/** One payment that came in. `counted: 'extra'` rows are part of their month's Ready to Assign; 'monthly' rows are a payday of the monthly income, already counted from day 1. */
+/** One payment that came in. `counted: 'extra'` rows are part of their month's Ready to Assign; 'monthly' rows are paydays: from PAYCHECK_START they're the month's `landed`, and before it a record of a monthly income counted from day 1. */
 export interface IncomeRow {
   id: string
   version: number

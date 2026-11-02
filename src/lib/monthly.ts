@@ -204,7 +204,7 @@ export function savingsTrend(
   currentMonth: string,
 ): SavingsTrend {
   const since = budgetRows
-    .filter((b) => b.category === INCOME_CATEGORY && Number(b.assigned) + (Number(b.extra) || 0) > 0 && b.month <= currentMonth)
+    .filter((b) => b.category === INCOME_CATEGORY && Number(b.assigned) + (Number(b.extra) || 0) + (Number(b.landed) || 0) > 0 && b.month <= currentMonth)
     .reduce<string | null>((first, b) => (first == null || b.month < first ? b.month : first), null)
   const missingIncome = [
     ...new Set(

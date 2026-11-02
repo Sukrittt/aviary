@@ -13,6 +13,11 @@ function budget(month: string, category: string, assigned: string, extra?: strin
   return { month, category, assigned, rolled_over, ...(extra !== undefined && { extra }), version: 0 }
 }
 
+/** The month's income row once pay has landed: from PAYCHECK_START, that's what funds the plan. */
+function payday(month: string, landed = '5000'): BudgetRow {
+  return { ...budget(month, INCOME_CATEGORY, landed), landed }
+}
+
 function expense(date: string, category: string, amount_inr: string): ExpenseRow {
   return { timestamp: date, date, item: 'x', amount_inr, category, notes: '', source: '', amount: amount_inr, description: '', payment_method: '' }
 }
@@ -87,7 +92,7 @@ describe('carryFrom', () => {
   })
 
   it('composes with the carried target: 100 target + 95 carried = 195 available', () => {
-    const budgets = [budget('2026-10', 'Travel', '100')]
+    const budgets = [budget('2026-10', 'Travel', '100'), payday('2026-11')]
     const expenses = [expense('2026-10-12', 'Travel', '5')]
     const carry = carryFrom(budgets, expenses, categories, '2026-11')
     const travel = computeEnvelopeState(budgets, expenses, '2026-11', categories, [], undefined, carry).envelopes.find((e) => e.category === 'Travel')!
@@ -95,7 +100,7 @@ describe('carryFrom', () => {
   })
 
   it('compounds over several months', () => {
-    const budgets = [budget('2026-10', 'Travel', '100')]
+    const budgets = [budget('2026-10', 'Travel', '100'), payday('2026-11')]
     const expenses = [expense('2026-10-12', 'Travel', '5'), expense('2026-11-02', 'Travel', '50')]
     // Oct leaves 95, Nov adds 100 - 50, so December starts with 145.
     expect(carryFrom(budgets, expenses, categories, '2026-12').rolled_over.Travel).toBe(145)
@@ -139,6 +144,8 @@ describe('carryFrom', () => {
       budget('2026-10', INCOME_CATEGORY, '5000'),
       budget('2026-10', 'Travel', '1000'),
       budget('2026-11', 'Travel', '1000', undefined, '-1000'),
+      payday('2026-11'),
+      payday('2026-12'),
     ]
     const nov = carryFrom(budgets, [], categories, '2026-11')
     expect(nov.rolled_over.Travel).toBeUndefined()
@@ -150,7 +157,7 @@ describe('carryFrom', () => {
   })
 
   it('returns a deleted category\'s final balance to Ready to assign, never its past spending', () => {
-    const budgets = [budget('2026-10', INCOME_CATEGORY, '5000'), budget('2026-10', 'Travel', '1000')]
+    const budgets = [budget('2026-10', INCOME_CATEGORY, '5000'), budget('2026-10', 'Travel', '1000'), payday('2026-11')]
     const expenses = [expense('2026-10-10', 'Travel', '800')]
     const before = carryFrom(budgets, expenses, categories, '2026-11')
     expect(before).toEqual({ ready_to_assign: 4000, rolled_over: { Travel: 200 } })
@@ -164,7 +171,7 @@ describe('carryFrom', () => {
   })
 
   it('takes a deleted category\'s spending out of Ready to assign the month it was deleted', () => {
-    const budgets = [budget('2026-11', INCOME_CATEGORY, '5000'), budget('2026-11', 'Food', '1000'), budget('2026-11', 'Gym', '1000')]
+    const budgets = [payday('2026-11'), budget('2026-11', 'Food', '1000'), budget('2026-11', 'Gym', '1000')]
     const expenses = [expense('2026-11-05', 'Gym', '800')]
     const food = [{ name: 'Food', group: '' }]
     // November with Gym deleted: its 800 is spent, so 3200 left, not 4000.
@@ -175,7 +182,7 @@ describe('carryFrom', () => {
 
   it('doesn\'t replay an old target into the months before a re-created category\'s `since`', () => {
     // Gym: 1000 a month, 700 left in October, deleted in November, re-created in February.
-    const budgets = [budget('2026-10', INCOME_CATEGORY, '5000'), budget('2026-10', 'Gym', '1000'), budget('2027-02', 'Gym', '0')]
+    const budgets = [budget('2026-10', INCOME_CATEGORY, '5000'), budget('2026-10', 'Gym', '1000'), budget('2027-02', 'Gym', '0'), payday('2026-11'), payday('2026-12'), payday('2027-01'), payday('2027-02')]
     const expenses = [expense('2026-10-05', 'Gym', '300')]
     const gym = [{ name: 'Gym', group: '', since: '2027-02' }]
     const carry = carryFrom(budgets, expenses, gym, '2027-02')
@@ -187,11 +194,25 @@ describe('carryFrom', () => {
   })
 
   it('starts the carry at the space\'s first budget month, so imported earlier months don\'t carry', () => {
-    const budgets = [budget('2026-12', INCOME_CATEGORY, '5000'), budget('2026-12', 'Food', '300')]
+    const budgets = [payday('2026-12'), budget('2026-12', 'Food', '300')]
     // An October statement imported later, before any budget existed.
     const expenses = [expense('2026-10-05', 'Food', '120'), expense('2026-10-09', 'Travel', '60')]
     expect(carryFrom(budgets, expenses, categories, '2026-12')).toEqual({ ready_to_assign: 0, rolled_over: {} })
     expect(carryFrom(budgets, expenses, categories, '2027-01')).toEqual({ ready_to_assign: 4700, rolled_over: { Food: 300 } })
+  })
+
+  it('a month with no payday hands on only what was already there, and the plan comes back when pay lands', () => {
+    const budgets = [
+      { month: '2026-10', category: 'Food', assigned: '100', rolled_over: '0', version: 1 },
+      { month: '2026-10', category: '__income__', assigned: '500', rolled_over: '0', version: 1 },
+      { month: '2026-12', category: '__income__', assigned: '500', landed: '500', rolled_over: '0', version: 1 },
+    ]
+    const cats = [{ name: 'Food', group: '' }]
+    const spend = { timestamp: '', date: '2026-11-04', item: '', amount_inr: '30', category: 'Food', notes: '', source: '', amount: '', description: '', payment_method: '' }
+    // October: 100 in Food, 400 unassigned. November: no pay, so 30 spent from the 100.
+    expect(carryFrom(budgets, [spend], cats, '2026-12')).toEqual({ ready_to_assign: 400, rolled_over: { Food: 70 } })
+    // December's pay lands: 100 more in Food, the same plan as before.
+    expect(carryFrom(budgets, [spend], cats, '2027-01')).toEqual({ ready_to_assign: 800, rolled_over: { Food: 170 } })
   })
 
   it('rounds to paise', () => {
@@ -217,13 +238,13 @@ describe('carryFrom, edges', () => {
   })
 
   it('keeps carrying through months with no rows or spending at all', () => {
-    const carry = carryFrom([budget('2026-10', 'Food', '100')], [expense('2026-10-05', 'Food', '30')], food, '2027-02')
+    const carry = carryFrom([budget('2026-10', 'Food', '100'), payday('2026-11'), payday('2026-12'), payday('2027-01')], [expense('2026-10-05', 'Food', '30')], food, '2027-02')
     // 70 from October, then the carried 100 target each of Nov, Dec, Jan.
     expect(carry.rolled_over.Food).toBe(370)
   })
 
   it('compounds an overspend across the year boundary', () => {
-    const budgets = [budget('2026-12', 'Food', '100')]
+    const budgets = [budget('2026-12', 'Food', '100'), payday('2026-12'), payday('2027-01')]
     const expenses = [expense('2026-12-31', 'Food', '250'), expense('2027-01-01', 'Food', '120')]
     expect(carryFrom(budgets, expenses, food, '2027-01').rolled_over.Food).toBe(-150)
     expect(carryFrom(budgets, expenses, food, '2027-02').rolled_over.Food).toBe(-170)
@@ -262,7 +283,7 @@ describe('carryFrom, edges', () => {
   })
 
   it('gives a re-created category its balance from its `since` month on', () => {
-    const budgets = [budget('2026-10', 'Gym', '100')]
+    const budgets = [budget('2026-10', 'Gym', '100'), payday('2026-11')]
     const gym = [{ name: 'Gym', group: '', since: '2026-11' }]
     // October folds into Ready to assign; November is live and carries its target.
     expect(carryFrom(budgets, [], gym, '2026-11').rolled_over).toEqual({})
@@ -347,6 +368,7 @@ describe('computeCarry', () => {
     await mine('categories').insertOne({ name: 'Travel', group: '', since: '2026-12' })
     await mine('budgets').insertOne({ month: '2026-10', category: 'Travel', assigned: '100', rolled_over: '0', version: 1 })
     await mine('budgets').insertOne({ month: '2026-10', category: INCOME_CATEGORY, assigned: '5000', rolled_over: '0', version: 1 })
+    await mine('budgets').insertOne({ month: '2026-11', category: INCOME_CATEGORY, assigned: '5000', landed: '5000', rolled_over: '0', version: 1 })
     // November is before Travel's `since`, so its old 100 target isn't reserved.
     expect(await computeCarry(auth, '2026-12')).toEqual({ month: '2026-12', ready_to_assign: 10000, rolled_over: {} })
   })

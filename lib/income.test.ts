@@ -5,8 +5,9 @@ import { ObjectId } from 'mongodb'
 import { randomBytes } from 'node:crypto'
 
 vi.mock('@/lib/cache', () => ({ invalidate: vi.fn() }))
+const clock = vi.hoisted(() => ({ date: '2026-10-08' }))
 vi.mock('@/lib/userCurrency', () => ({
-  nowForUser: async () => ({ date: '2026-10-08', timestamp: '2026-10-08T10:00:00.000Z' }),
+  nowForUser: async () => ({ date: clock.date, timestamp: `${clock.date}T10:00:00.000Z` }),
 }))
 
 import { getDb, getClient } from '@/lib/mongodb'
@@ -42,6 +43,7 @@ afterAll(async () => {
 beforeEach(async () => {
   const db = await getDb()
   for (const name of ['budgets', 'incomes', 'recurring_incomes']) await db.collection(name).deleteMany({})
+  clock.date = '2026-10-08'
 })
 
 async function coll(name: string) {
@@ -51,6 +53,10 @@ async function coll(name: string) {
 async function incomeRow(month: string) {
   const row = await (await coll('budgets')).findOne({ month, category: '__income__' })
   return row ? { assigned: Number(row.assigned), extra: Number(row.extra ?? 0), version: Number(row.version) } : null
+}
+
+async function landed(month: string) {
+  return Number((await (await coll('budgets')).findOne({ month, category: '__income__' }))?.landed ?? 0)
 }
 
 async function seedIncomeRow(month: string, assigned: number, extra?: number) {
@@ -212,6 +218,75 @@ describe('syncMonthlyIncome', () => {
     await (await coll('recurring_incomes')).insertOne({ label: 'Salary', amount: '42000', frequency: 'monthly', status: 'active' })
     await syncMonthlyIncome(auth, '2026-10')
     expect(await incomeRow('2026-10')).toEqual({ assigned: 42000, extra: 0, version: 1 })
+  })
+})
+
+describe('paydays from the switch on', () => {
+  beforeEach(() => { clock.date = '2026-11-02' })
+  const payday = { date: '2026-11-20', amount: 50000, label: 'Salary', source: 'recurring' as const, counted: 'monthly' as const }
+
+  it('a payday lands in the month, and a one-off stays apart from it', async () => {
+    await addIncome(auth, payday)
+    await addIncome(auth, { date: '2026-11-21', amount: 300, label: 'Refund', source: 'manual', counted: 'extra' })
+    expect(await landed('2026-11')).toBe(50000)
+    expect((await incomeRow('2026-11'))?.extra).toBe(300)
+  })
+
+  it('a payday before the switch stays only a record', async () => {
+    await addIncome(auth, { ...payday, date: '2026-10-20' })
+    expect(await landed('2026-10')).toBe(0)
+  })
+
+  it('editing or deleting a payday moves the money with it', async () => {
+    const { id } = await addIncome(auth, payday)
+    await updateIncome(auth, id, 0, { amount: 45000 })
+    expect(await landed('2026-11')).toBe(45000)
+    await updateIncome(auth, id, 1, { date: '2026-12-01' })
+    expect(await landed('2026-11')).toBe(0)
+    expect(await landed('2026-12')).toBe(45000)
+    await deleteIncome(auth, id, 2)
+    expect(await landed('2026-12')).toBe(0)
+  })
+
+  it('counts a payday already posted when the switch shipped, without a second write', async () => {
+    await (await coll('incomes')).insertOne({ date: '2026-11-01', amount: '50000', label: 'Salary', source: 'recurring', counted: 'monthly', version: 0 })
+    await runRecurringIncomes(auth, '2026-11-02')
+    expect(await landed('2026-11')).toBe(50000)
+    const version = (await incomeRow('2026-11'))?.version
+    await runRecurringIncomes(auth, '2026-11-03')
+    expect((await incomeRow('2026-11'))?.version).toBe(version)
+  })
+
+  it('a monthly schedule whose payday is later this month lands nothing until then', async () => {
+    await createRecurringIncome(auth, { label: 'Salary', amount: 50000, frequency: 'monthly', start_date: '2026-11-20' })
+    expect(await landed('2026-11')).toBe(0)
+    await runRecurringIncomes(auth, '2026-11-20')
+    expect(await landed('2026-11')).toBe(50000)
+  })
+
+  it('a monthly pay that landed earlier this month posts when you set it up', async () => {
+    await createRecurringIncome(auth, { label: 'Salary', amount: 50000, frequency: 'monthly', start_date: '2026-11-01' })
+    expect(await landed('2026-11')).toBe(50000)
+    const [schedule] = await (await coll('recurring_incomes')).find({}).toArray()
+    expect(schedule.next_run_date).toBe('2026-12-01')
+  })
+
+  it('a pay an import already brought in is not posted again', async () => {
+    await createRecurringIncome(auth, { label: 'Salary', amount: 50000, frequency: 'monthly', start_date: '2026-11-01', next_run_from: '2026-11-02' })
+    expect(await landed('2026-11')).toBe(0)
+  })
+
+  it('a weekly payday funds the month too', async () => {
+    await createRecurringIncome(auth, { label: 'Wages', amount: 10000, frequency: 'weekly', start_date: '2026-11-02' })
+    expect(await landed('2026-11')).toBe(10000)
+  })
+
+  it("an older account's monthly income posts this month's pay as it migrates", async () => {
+    await seedIncomeRow('2026-10', 45000)
+    await ensureIncomeMigrated(auth)
+    expect(await landed('2026-11')).toBe(45000)
+    const [schedule] = await (await coll('recurring_incomes')).find({}).toArray()
+    expect(schedule.next_run_date).toBe('2026-12-01')
   })
 })
 

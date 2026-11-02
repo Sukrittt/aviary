@@ -144,7 +144,7 @@ export function ExpenseAdded({
   const counted = (expensesQ.data ?? EMPTY).some((e) => e.timestamp === timestamp)
   const spent = (envelope?.spent ?? 0) + (counted ? 0 : amount)
   const left = (envelope?.available ?? 0) - (counted ? 0 : amount)
-  const funded = (envelope?.assigned ?? 0) + (envelope?.rolledOver ?? 0)
+  const funded = (envelope?.available ?? 0) + (envelope?.spent ?? 0)
   // A past-month expense doesn't move this month's envelope, so no card. An
   // unfunded one has nothing to measure against, so it asks for a budget instead,
   // but only with money to give it: Assign Money caps at Ready to Assign.
