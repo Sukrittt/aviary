@@ -71,10 +71,11 @@ function alertPctsMap(categories: CategoryDocRow[]): Map<string, number[]> {
 }
 
 /** What the envelope had to spend this month: its assigned plus whatever
- * carried in (negative for a shortfall). `spentPct` is against assigned alone,
- * which made saving up look like overspending. */
+ * carried in (negative for a shortfall), leaving out a plan pay hasn't funded
+ * yet. `spentPct` is against assigned alone, which made saving up look like
+ * overspending. */
 function funded(env: Envelope): number {
-  return env.assigned + env.rolledOver
+  return env.available + env.spent
 }
 
 /** Spent as a share of `funded`, capped at 100 like `spentPct`. */
