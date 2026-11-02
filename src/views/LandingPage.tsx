@@ -86,7 +86,7 @@ export function LandingPage({ monthlyPrice, ios = false, android = false, intl =
       {/* On iPhone the web app is the one thing they can use today, so it takes the ink pill and sits above the waitlist. */}
       <div className="lp-hero-actions">
         {!ios && <StoreLink placement="hero" />}
-        <Link href="/expense" className={`lp-button ${ios ? 'lp-button--dark' : 'lp-button--ghost'}`}><MonitorIcon size={18} aria-hidden="true" />Try it on the web</Link>
+        <Link href="/expense" className={`lp-button ${ios ? 'lp-button--dark' : 'lp-button--ghost'}`}><MonitorIcon size={18} aria-hidden="true" />Open the web app</Link>
       </div>
       <span className="lp-hero-note">Free for 30 days{afterTrial} · No card, no bank link</span>
       <LeadPitch intl={intl} placement="hero" />
