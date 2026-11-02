@@ -1,9 +1,11 @@
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { getPlanPrices } from '@/lib/billing/razorpay'
+import { track } from '@/src/lib/analytics'
 import PricingPage from './page'
 
 vi.mock('@/lib/billing/razorpay', () => ({ getPlanPrices: vi.fn() }))
+vi.mock('@/src/lib/analytics', async (importOriginal) => ({ ...(await importOriginal<object>()), track: vi.fn() }))
 let paypalOn = false
 const paypalPricesMock = vi.fn()
 vi.mock('@/lib/billing/paypal', () => ({ paypalConfig: () => (paypalOn ? {} : null), getPayPalPlanPrices: () => paypalPricesMock() }))
@@ -31,7 +33,7 @@ describe('public pricing', () => {
     expect(monthly.getByText('About ₹7 a day.')).toBeInTheDocument()
     const yearly = within(screen.getByRole('region', { name: 'Yearly' }))
     expect(yearly.getByText('₹1,999')).toBeInTheDocument()
-    expect(yearly.getByText('Save 16%')).toBeInTheDocument()
+    expect(yearly.getByText('Save 16% · ₹389')).toBeInTheDocument()
     expect(yearly.getByText('/ year')).toBeInTheDocument()
     expect(yearly.getByText('Works out to ₹167 a month.')).toBeInTheDocument()
   })
@@ -45,7 +47,7 @@ describe('public pricing', () => {
     expect(monthly.getByText('About $0.17 a day.')).toBeInTheDocument()
     const yearly = within(screen.getByRole('region', { name: 'Yearly' }))
     expect(yearly.getByText('$49.99')).toBeInTheDocument()
-    expect(yearly.getByText('Save 16%')).toBeInTheDocument()
+    expect(yearly.getByText('Save 16% · $9.89')).toBeInTheDocument()
     expect(yearly.getByText('Works out to $4.17 a month.')).toBeInTheDocument()
     expect(getPlanPrices).not.toHaveBeenCalled()
   })
@@ -56,6 +58,18 @@ describe('public pricing', () => {
     render(await PricingPage())
 
     expect(screen.getByText('₹199')).toBeInTheDocument()
+  })
+
+  it.each([['Monthly', 'pricing_card_monthly'], ['Yearly', 'pricing_card_yearly']])('lets you start the trial from the %s card, tracked per card', async (name, placement) => {
+    vi.mocked(getPlanPrices).mockResolvedValue(prices)
+    render(await PricingPage())
+
+    const cta = within(screen.getByRole('region', { name })).getByRole('link', { name: /Start your free trial/ })
+    expect(cta).toHaveAttribute('href', '/get/android')
+    cta.addEventListener('click', (e) => e.preventDefault()) // jsdom can't navigate
+    fireEvent.click(cta)
+    expect(track).toHaveBeenCalledWith('store_cta_clicked', { placement })
+    expect(screen.getByText(/You’ll pick your plan in the app when the trial ends\./)).toBeInTheDocument()
   })
 
   it('does not advertise savings when annual billing costs more', async () => {
@@ -81,7 +95,7 @@ describe('public pricing', () => {
     render(await PricingPage())
 
     expect(screen.getByRole('link', { name: 'Aviary home' })).toHaveAttribute('href', '/')
-    expect(screen.getByRole('link', { name: /Start your free trial/ })).toHaveAttribute('href', '/get/android')
+    expect(within(screen.getByRole('region', { name: /Try it for 30 days/ })).getByRole('link', { name: /Start your free trial/ })).toHaveAttribute('href', '/get/android')
     expect(screen.getByRole('heading', { name: 'Everything’s included.' })).toBeInTheDocument()
     expect(screen.getByText('Money Brain')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /What happens when my trial ends\?/ })).toBeInTheDocument()

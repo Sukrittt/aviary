@@ -72,18 +72,20 @@ export default async function PricingPage() {
             <p className="lp-plan-price"><strong>{formatPrice(monthly.amount, monthly.currency)}</strong><span>/ month</span></p>
             <p className="lp-plan-eq">About {formatPrice(perUnit(monthly.amount, 30, monthly.currency), monthly.currency)} a day.</p>
             <p className="lp-plan-billing">Billed monthly. Cancel any time.</p>
+            <TrackedLink className="lp-button lp-button--dark lp-plan-cta" href={GET_ANDROID_URL} event="store_cta_clicked" properties={{ placement: 'pricing_card_monthly' }}><DeviceMobileIcon size={18} aria-hidden="true" />Start your free trial</TrackedLink>
           </section>
           <section className="lp-plan lp-plan--yearly" aria-labelledby="yearly-plan-title">
-            <div className="lp-plan-head"><h3 id="yearly-plan-title">Yearly</h3>{saving ? <span className="lp-plan-save">Save {saving}%</span> : null}</div>
+            <div className="lp-plan-head"><h3 id="yearly-plan-title">Yearly</h3>{saving ? <span className="lp-plan-save">Save {saving}% · {formatPrice(monthly.amount * 12 - yearly.amount, yearly.currency)}</span> : null}</div>
             <p className="lp-plan-price"><strong>{formatPrice(yearly.amount, yearly.currency)}</strong><span>/ year</span></p>
             <p className="lp-plan-eq">Works out to {formatPrice(perUnit(yearly.amount, 12, yearly.currency), yearly.currency)} a month.</p>
             <p className="lp-plan-billing">Billed once a year. Cancel any time.</p>
+            <TrackedLink className="lp-button lp-button--dark lp-plan-cta" href={GET_ANDROID_URL} event="store_cta_clicked" properties={{ placement: 'pricing_card_yearly' }}><DeviceMobileIcon size={18} aria-hidden="true" />Start your free trial</TrackedLink>
           </section>
         </div>
       ) : (
         <p className="lp-plans-empty">Prices aren&apos;t loading right now. They&apos;re always shown in the app before you pay.</p>
       )}
-      <p className="lp-plans-note">Both plans include everything below. Google Play may show a slightly different local price in the Android app.</p>
+      <p className="lp-plans-note">You’ll pick your plan in the app when the trial ends. Both plans include everything below. Google Play may show a slightly different local price in the Android app.</p>
     </section>
 
     <section className="lp-section lp-center" aria-labelledby="included-title">
