@@ -766,6 +766,7 @@ html:has(.lp) { scroll-behavior: smooth; }
 .lp-plan-eq { margin-top: 14px !important; font-size: 17px; font-weight: 700; }
 .lp-plan--yearly .lp-plan-eq { color: var(--accent-ink); }
 .lp-plan-billing { margin-top: 6px !important; font-size: 14px; color: var(--muted); }
+.lp-plan-cta { width: 100%; margin-top: 22px; }
 .lp-plans-empty, .lp-plans-note { margin-top: 20px !important; font-size: 14px; color: var(--muted); text-align: center; text-wrap: pretty; }
 .lp-plans-empty { font-size: 17px; padding: 36px 24px; width: 100%; border-radius: 28px; border: 1px dashed #cfcabe; }
 .lp-includes { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; width: 100%; max-width: 1100px; margin-top: 56px !important; }
