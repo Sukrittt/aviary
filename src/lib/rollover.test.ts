@@ -34,3 +34,23 @@ describe('rolloverCard', () => {
     expect(rolloverCard(undefined, '2026-11', money)).toBeNull()
   })
 })
+
+describe('rolloverCard with this month\'s moves', () => {
+  const money = (n: number) => `₹${n}`
+  const row = (category: string, rolled_over: string) => ({ month: '2026-11', category, assigned: '0', rolled_over, version: 1 })
+
+  it('leaves out money assigned this month: nothing rolled over for a first month', () => {
+    const carry = { ready_to_assign: -1000, rolled_over: { Groceries: 1000 } }
+    expect(rolloverCard(carry, '2026-11', money, [row('Groceries', '1000')])).toBeNull()
+  })
+
+  it('still says what really rolled in after some of it moved', () => {
+    const carry = { ready_to_assign: 0, rolled_over: { Travel: 800, Food: 200 } }
+    expect(rolloverCard(carry, '2026-11', money, [row('Travel', '-200'), row('Food', '200')])).toBe('₹1000 rolled over')
+  })
+
+  it("ignores other months' moves", () => {
+    const carry = { ready_to_assign: 0, rolled_over: { Food: 300 } }
+    expect(rolloverCard(carry, '2026-11', money, [{ ...row('Food', '50'), month: '2026-10' }])).toBe('₹300 rolled over')
+  })
+})

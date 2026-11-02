@@ -237,7 +237,7 @@ export function ExpensePage() {
   const hydrated = useSyncExternalStore(noop, () => true, () => false);
   const [rolloverDismissed, setRolloverDismissed] = useDismissedRolloverBanner(`${activeSpace?.id ?? ""}:${thisMonth}`);
   const rollover = hydrated && activeSpace && !rolloverDismissed && !readOnly
-    ? rolloverCard(carryQuery.data, thisMonth, (n) => formatCurrency(n, hideAmounts))
+    ? rolloverCard(carryQuery.data, thisMonth, (n) => formatCurrency(n, hideAmounts), budgetRows)
     : null;
   // Each bump rolls the carry into the category amounts: once when the strip
   // first shows, again whenever it's tapped. Nothing to roll once it's gone.
