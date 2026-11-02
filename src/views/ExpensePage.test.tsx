@@ -422,6 +422,16 @@ it('turns Ready to Assign into a menu that funds behind goals in one tap', async
   client.clear()
 })
 
+it("opens the Income page, not a create form, from the empty pill before schedules load", async () => {
+  vi.mocked(getBudgets).mockResolvedValue([{ month, category: 'Food', assigned: '0', rolled_over: '0', version: 1 }])
+  vi.mocked(getRecurringIncomes).mockImplementation(() => new Promise(() => {}))
+  const client = renderPage()
+  fireEvent.click(await screen.findByRole('button', { name: 'Set your income' }))
+  expect(push).toHaveBeenCalledWith('/account/income')
+  vi.mocked(getRecurringIncomes).mockResolvedValue([])
+  client.clear()
+})
+
 it("takes back only what a category has left, never pushing it overspent", async () => {
   const { getCategories } = await import('@/src/api/categories')
   vi.mocked(getCategories).mockResolvedValue([{ name: 'Food', group: 'Essentials' }, { name: 'Rent', group: 'Essentials' }, { name: 'Travel', group: 'Essentials' }])

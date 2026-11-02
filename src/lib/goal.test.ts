@@ -237,3 +237,22 @@ describe('fundBehindGoals', () => {
     expect(fundBehindGoals(-50, goals)).toEqual([])
   })
 })
+
+describe('goalProgress before payday', () => {
+  const goal = { amount: 12000, by: '2027-02' }
+
+  it('counts the plan once: it reads the same before and after pay lands', () => {
+    // 500 carried in, 1000 planned. Four months to go counting this one, so 2875 a month either way.
+    const waiting = goalProgress({ goal, month: '2026-11', available: 500, assigned: 1000, spent: 0, planPending: true })
+    const landed = goalProgress({ goal, month: '2026-11', available: 1500, assigned: 1000, spent: 0 })
+    expect(waiting).toMatchObject({ status: 'behind', monthlyNeed: 2875, behindBy: 1875, saved: 500 })
+    expect(landed).toMatchObject({ status: 'behind', monthlyNeed: 2875, behindBy: 1875, saved: 1500 })
+  })
+
+  it('spreads the rest over later months as if the plan had landed', () => {
+    const waiting = goalProgress({ goal, month: '2026-11', available: 500, assigned: 3000, spent: 0, planPending: true })
+    const landed = goalProgress({ goal, month: '2026-11', available: 3500, assigned: 3000, spent: 0 })
+    expect(waiting?.status).toBe('onTrack')
+    expect(waiting?.nextNeed).toBe(landed?.nextNeed)
+  })
+})

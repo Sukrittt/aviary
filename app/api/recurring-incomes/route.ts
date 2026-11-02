@@ -46,6 +46,7 @@ function inputError(body: Record<string, unknown>, partial: boolean): string | n
   if ((body.start_date !== undefined || !partial) && !validDate(body.start_date)) return 'start_date must be YYYY-MM-DD'
   if (body.end_date !== undefined && body.end_date !== '' && !validDate(body.end_date)) return 'end_date must be YYYY-MM-DD'
   if (body.status !== undefined && !STATUSES.has(String(body.status))) return 'status must be active, paused or ended'
+  if (body.client_id !== undefined && !validText(body.client_id, 100)) return 'invalid client_id'
   return null
 }
 
@@ -80,7 +81,7 @@ export async function POST(req: Request) {
     start_date: startDate,
     end_date: endDate,
     account_id: account,
-    ...(typeof body.client_id === 'string' && body.client_id ? { client_id: body.client_id.slice(0, 100) } : {}),
+    ...(body.client_id !== undefined ? { client_id: String(body.client_id) } : {}),
   })
   return json({ ok: true, id })
 }

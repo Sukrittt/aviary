@@ -6,14 +6,14 @@ import { currentMonthKey, shiftMonthKey } from '../lib/envelope'
 import { shortMonth } from '../lib/goal'
 import { BudgetWriteError } from '../lib/budgetConflict'
 
-const mocks = vi.hoisted(() => ({ fresh: vi.fn(), update: vi.fn(), add: vi.fn(), transfer: vi.fn(), addIncome: vi.fn(), updateIncome: vi.fn(), budgetsLoading: false, carryError: false, accounts: [] as { id: string; name: string; type: string; archived: boolean; created_at: string }[], budgets: [] as {month: string; category: string; assigned: string; rolled_over: string; extra?: string; landed?: string; version: number}[] }))
+const mocks = vi.hoisted(() => ({ fresh: vi.fn(), update: vi.fn(), add: vi.fn(), transfer: vi.fn(), addIncome: vi.fn(), updateIncome: vi.fn(), budgetsLoading: false, carryError: false, carry: undefined as { ready_to_assign: number; rolled_over: Record<string, number> } | undefined, accounts: [] as { id: string; name: string; type: string; archived: boolean; created_at: string }[], budgets: [] as {month: string; category: string; assigned: string; rolled_over: string; extra?: string; landed?: string; version: number}[] }))
 vi.mock('../hooks/useBudgets', () => ({
   useBudgets: () => (mocks.budgetsLoading ? { data: undefined, isLoading: true } : { data: mocks.budgets }),
   useFreshBudgets: () => mocks.fresh,
   useUpdateBudget: () => ({ mutateAsync: mocks.update }),
   useAddBudget: () => ({ mutateAsync: mocks.add }),
   useTransferBudget: () => ({ mutateAsync: mocks.transfer }),
-  useCarry: () => (mocks.carryError ? { data: undefined, isError: true } : { data: undefined }),
+  useCarry: () => (mocks.carryError ? { data: undefined, isError: true } : { data: mocks.carry }),
 }))
 const spaces = vi.hoisted(() => ({ readOnly: false }))
 vi.mock('../hooks/useSpaces', () => ({ useSpaces: () => ({ readOnly: spaces.readOnly, active: undefined }) }))
@@ -36,6 +36,7 @@ beforeEach(() => {
   mocks.accounts = []
   mocks.budgetsLoading = false
   mocks.carryError = false
+  mocks.carry = undefined
   cats.rows = [{ name: 'Food', group: 'Home' }, { name: 'Rent', group: 'Home' }]
   spaces.readOnly = false
   mocks.budgets = [['__income__', '2000'], ['Food', '100'], ['Rent', '500']].map(([category, assigned]) => ({ month: currentMonthKey(), category, assigned, rolled_over: '0', version: 3, ...(category === '__income__' ? { landed: assigned } : {}) }))
@@ -266,6 +267,18 @@ describe('money screens', () => {
     expect(close).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(mocks.update).toHaveBeenCalledTimes(2))
+  })
+
+  it("counts last month's carry in the latest Ready to Assign after a conflict", async () => {
+    mocks.carry = { ready_to_assign: 1000, rolled_over: {} }
+    mocks.update.mockRejectedValueOnce(new BudgetWriteError(409, 'changed', {
+      month: currentMonthKey(), category: '__income__', assigned: '2500', landed: '2500', rolled_over: '0', version: 4,
+    }))
+    render(<EditReadyToAssignScreen onClose={vi.fn()} />)
+    typeAmount('50')
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    // 2500 landed + 1000 carried - 600 assigned.
+    expect(await screen.findByText('₹2,900')).toBeInTheDocument()
   })
 
   it('preserves a stale draft and requires a second save after rebasing it', async () => {

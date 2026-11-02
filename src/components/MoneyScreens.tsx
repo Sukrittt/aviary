@@ -748,7 +748,7 @@ export function EditAssignedScreen({ category, onClose, assign = false, takeBack
   const envelope = state.envelopes.find((e) => e.category === category)
   const budget = data.budgets.find((b) => b.month === month && b.category === category)
   const row = data.categories.find((c) => c.name === category)
-  const goal = row?.goal && envelope ? goalProgress({ goal: row.goal, month, available: envelope.available, assigned: envelope.assigned, spent: envelope.spent, since: row.since }) : null
+  const goal = row?.goal && envelope ? goalProgress({ goal: row.goal, month, available: envelope.available, assigned: envelope.assigned, spent: envelope.spent, since: row.since, planPending: envelope.planPending }) : null
 
   return (
     <EditAssignedBody
@@ -1198,7 +1198,7 @@ function EditReadyToAssignBody({
     setIncomeBase(latestBase)
     setBaseIncome(latestIncome)
     setExpectedVersion(conflict.version)
-    if (!keepDraft) setAmountText(String(Math.max(0, latestIncome - totalAssigned)))
+    if (!keepDraft) setAmountText(String(Math.max(0, cents(latestIncome + carried - totalAssigned))))
     setConflict(null)
     setError('')
   }
@@ -1219,7 +1219,7 @@ function EditReadyToAssignBody({
           heading="Ready to Assign was updated"
           description="A newer amount was saved elsewhere. Your amount is still here."
           label="Ready to Assign"
-          saved={formatCurrency(incomeBaseOf(month, conflict) + (Number(conflict.extra) || 0) - totalAssigned, hideAmounts)}
+          saved={formatCurrency(incomeBaseOf(month, conflict) + (Number(conflict.extra) || 0) + carried - totalAssigned, hideAmounts)}
           next={formatCurrency(value, hideAmounts)}
           guidance="Continue with your amount or use the latest saved value. You can review it before saving."
           onContinue={() => reviewLatest(true)}

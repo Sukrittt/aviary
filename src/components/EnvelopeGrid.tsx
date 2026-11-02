@@ -192,7 +192,7 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
     // Home keeps the month for every row; a weekly row adds a pace tick and
     // tones bar and pill by month pace. The weeks live in the row's menu.
     const row = isCC ? undefined : categoryByName.get(e.category)
-    const goal = row?.goal ? goalProgress({ goal: row.goal, month: goalMonth, available: e.available, assigned: e.assigned, spent: e.spent, since: row.since }) : null
+    const goal = row?.goal ? goalProgress({ goal: row.goal, month: goalMonth, available: e.available, assigned: e.assigned, spent: e.spent, since: row.since, planPending: e.planPending }) : null
     // A goal row is about filling up, so its bar and line say that instead of spending or pace.
     const pace = isCC || goal ? undefined : paces?.get(e.category)
     const todo = row?.note ? checklistCount(row.note) : null

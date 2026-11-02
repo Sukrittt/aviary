@@ -78,12 +78,13 @@ export async function POST(req: Request) {
   // included. Moving carried money adjusts only this month's carry (the row's
   // `rolled_over`), so the recurring `assigned` target never absorbs it.
   const carry = (await computeCarry(auth, month)).rolled_over
-  // Before payday an envelope's `assigned` is only its plan, so everything
-  // moved is carried money and the plan stays whole for payday.
-  const funded = isFunded(month, await budgetColl.findOne({ month, category: INCOME_CATEGORY }))
-  const held = (category: string, assigned: number) => (funded || category === CREDIT_CARD_CATEGORY ? assigned : 0)
 
   await withTx(async (session) => {
+    // Before payday an envelope's `assigned` is only its plan, so everything
+    // moved is carried money and the plan stays whole for payday.
+    const funded = isFunded(month, await budgetColl.findOne({ month, category: INCOME_CATEGORY }, { session }))
+    const held = (category: string, assigned: number) => (funded || category === CREDIT_CARD_CATEGORY ? assigned : 0)
+
     // Debit every non-RTA source. A concurrent insert for the same
     // month+category (the no-row-yet branch below) is caught via the unique
     // partial index and retried as an update — same pattern as the target

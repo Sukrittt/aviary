@@ -189,6 +189,10 @@ export function ExpensePage() {
   // Warms the accounts cache so Log expense has them on its first open.
   useAccounts();
   const monthlySchedules = (schedulesQ.data ?? []).filter((r) => r.frequency === "monthly" && r.status === "active");
+  const openMonthlyIncome = () => {
+    if (!schedulesQ.data || monthlySchedules.length > 1) router.push("/account/income");
+    else setIncomeScreen("monthly");
+  };
   // The pencil and the income pill open the same menu, each under itself.
   const incomeMenu = (trigger: ReactElement, align: "start" | "center" | "end") => (
     <DropdownMenu>
@@ -196,10 +200,7 @@ export function ExpensePage() {
       <DropdownMenuContent align={align} sideOffset={6} className={MENU_POPUP}>
         <DropdownMenuItem
           className={MENU_ITEM}
-          onClick={() => {
-            if (!schedulesQ.data || monthlySchedules.length > 1) router.push("/account/income");
-            else setIncomeScreen("monthly");
-          }}
+          onClick={openMonthlyIncome}
         >
           Change income
         </DropdownMenuItem>
@@ -289,11 +290,12 @@ export function ExpensePage() {
     const rows = new Map(categoryRows.map((c) => [c.name, c]));
     const behind = envelopeState.envelopes.flatMap((e) => {
       const row = e.isCreditCardPayment ? undefined : rows.get(e.category);
-      const p = row?.goal ? goalProgress({ goal: row.goal, month: thisMonth, available: e.available, assigned: e.assigned, spent: e.spent, since: row.since }) : null;
+      const p = row?.goal ? goalProgress({ goal: row.goal, month: thisMonth, available: e.available, assigned: e.assigned, spent: e.spent, since: row.since, planPending: e.planPending }) : null;
       return p?.status === "behind" && p.by && p.behindBy ? [{ category: e.category, by: p.by, behindBy: p.behindBy }] : [];
     });
     return fundBehindGoals(envelopeState.readyToAssign, behind);
   }, [envelopeState, onThisMonth, readOnly, categoryRows, thisMonth]);
+  const fundingGoals = useRef(false);
   const goalFundingTotal = goalFunding.reduce((sum, f) => sum + f.amount, 0);
   // Unknown until budgets load; counting it done avoids flashing the income step.
   const incomeDone = !envelopeState || envelopeState.income > 0;
@@ -463,7 +465,9 @@ export function ExpensePage() {
   }
 
   async function fundGoals() {
-    if (!envelopeState) return;
+    // Each transfer adds, so a second tap before budgets refetch would fund it twice.
+    if (!envelopeState || fundingGoals.current) return;
+    fundingGoals.current = true;
     try {
       // Same move as Assign money, which puts the money in today even before payday.
       for (const f of goalFunding) {
@@ -472,6 +476,8 @@ export function ExpensePage() {
       track("rta_goals_funded", { goals: goalFunding.length });
     } catch {
       setActionError("Couldn't fund your goals. Check your connection and try again.");
+    } finally {
+      fundingGoals.current = false;
     }
   }
 
@@ -569,7 +575,7 @@ export function ExpensePage() {
             upcomingPayHint={upcomingPay ? `Your pay lands ${paydayLabel(upcomingPay.next_run_date)}. Budget what you have till then.` : undefined}
             manualTransactionDone={!!user.manualTransactionCompletedAt}
             guidedTourDone={!!user.guidedTourCompletedAt}
-            onAddIncome={() => setIncomeScreen(upcomingPay ? "starting" : "monthly")}
+            onAddIncome={() => (upcomingPay ? setIncomeScreen("starting") : openMonthlyIncome())}
             onFund={() => (nextToFund ? setAssignTarget(nextToFund) : router.push("/expense/envelopes"))}
             onAddTransaction={() => setShowLogModal(true)}
             onTakeTour={() => router.push('/account/guided-tour')}
@@ -677,7 +683,7 @@ export function ExpensePage() {
                         setting it. */}
                     <div className="env-action-wrap erd-home-pill-wrap">
                       {envelopeState.income === 0 && !upcomingPay ? (
-                        <button type="button" className="erd-home-income-pill is-empty" onClick={() => setIncomeScreen("monthly")}>
+                        <button type="button" className="erd-home-income-pill is-empty" onClick={openMonthlyIncome}>
                           Set your income
                           <CaretRightIcon size={14} aria-hidden="true" />
                         </button>

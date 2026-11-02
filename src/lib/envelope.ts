@@ -15,6 +15,8 @@ export interface Envelope {
   spentPct: number
   isCreditCardPayment: boolean
   lastSpentDate?: string
+  /** Pay hasn't landed this month, so `assigned` is the plan and isn't in `available` yet. */
+  planPending?: boolean
 }
 
 export interface EnvelopeState {
@@ -271,6 +273,7 @@ export function computeEnvelopeState(
       spentPct: assigned > 0 ? Math.min(100, (spent / assigned) * 100) : spent > 0 ? 100 : 0,
       isCreditCardPayment: isCC,
       lastSpentDate: lastSpentByCat.get(category),
+      ...(funded || isCC ? {} : { planPending: true }),
     })
   }
 

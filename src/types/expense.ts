@@ -16,6 +16,7 @@ export interface Envelope {
   spentPct: number
   isCreditCardPayment?: boolean
   lastSpentDate?: string
+  planPending?: boolean
 }
 
 export interface EnvelopeState {
