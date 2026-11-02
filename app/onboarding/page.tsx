@@ -5,7 +5,7 @@ import { CurrencyScope, useCurrency } from '@/src/context/CurrencyContext'
 
 import { useEffect, useId, useRef, useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { ArrowLeftIcon, CheckIcon, CopyIcon, FolderOpenIcon, MoneyWavyIcon, PencilSimpleIcon, PlusIcon, TagIcon, CardholderIcon } from '@/src/components/icons'
+import { ArrowLeftIcon, CaretDownIcon, CheckIcon, CopyIcon, FolderOpenIcon, MoneyWavyIcon, PencilSimpleIcon, PlusIcon, TagIcon, CardholderIcon } from '@/src/components/icons'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import '../../src/expense-redesign.css'
@@ -753,9 +753,14 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
             <div className="setup-payday">
               <label className="setup-payday-line">
                 Lands on the
-                <select aria-label="Payday" value={payday} onChange={(e) => setPayday(Number(e.target.value))}>
-                  {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => <option key={d} value={d}>{ordinal(d)}</option>)}
-                </select>
+                <span className="setup-payday-pill">
+                  {ordinal(payday)}
+                  <CaretDownIcon size={12} weight="bold" aria-hidden="true" />
+                  {/* Invisible on top of the pill: the native list, keyboard and screen reader support stay. */}
+                  <select aria-label="Payday" value={payday} onChange={(e) => setPayday(Number(e.target.value))}>
+                    {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => <option key={d} value={d}>{ordinal(d)}</option>)}
+                  </select>
+                </span>
               </label>
               <p className="setup-amount-hint">{paydayHint(payday, todayLocal())}</p>
             </div>
