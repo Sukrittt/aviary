@@ -4,7 +4,7 @@ import { withTx } from '@/lib/mongodb'
 import { invalidate } from '@/lib/cache'
 import { invalidateCategoryMap } from '@/lib/categoryMap'
 import { adjustCreditCardEnvelope } from '@/lib/createExpense'
-import { bumpExtra } from '@/lib/income'
+import { bumpExtra, syncLandedIn } from '@/lib/income'
 import { ImportError } from './normalize'
 import type { AppId } from './presets'
 import { assertOwner, importsCollection, loadImport } from './service'
@@ -63,12 +63,14 @@ export async function undoImport(auth: Auth, importId: string): Promise<void> {
     if (flipped.matchedCount !== 1) throw new ImportError('busy')
     const spends = await expenses.find({ import_id: importId }, { projection: { date: 1, amount_inr: 1, payment_method: 1 }, session }).toArray()
     const pays = await incomes.find({ import_id: importId, counted: 'extra' }, { projection: { date: 1, amount: 1 }, session }).toArray()
+    const paydays = await incomes.find({ import_id: importId, counted: 'monthly' }, { projection: { date: 1 }, session }).toArray()
     await expenses.deleteMany({ import_id: importId }, { session })
     await incomes.deleteMany({ import_id: importId }, { session })
     const card = sumBy(spends.filter((e) => e.payment_method === 'credit_card').map((e) => ({ month: String(e.date).slice(0, 7), amount: Number(e.amount_inr) || 0 })))
     for (const [month, amount] of card) await adjustCreditCardEnvelope(auth, month, -amount, session)
     const extra = sumBy(pays.map((i) => ({ month: String(i.date).slice(0, 7), amount: Number(i.amount) || 0 })))
     for (const [month, amount] of extra) await bumpExtra(auth, month, -amount, session)
+    await syncLandedIn(auth, new Set(paydays.map((i) => String(i.date).slice(0, 7))), session)
   })
   for (const tag of ['expenses', 'wrapped', 'incomes', 'budgets']) invalidate(tag, auth.spaceId)
   invalidateCategoryMap(auth.spaceId)

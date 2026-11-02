@@ -38,6 +38,7 @@ import { previewFile, recomputePreview } from './service'
 import { commitImport, parseEdits, type CommitEdits } from './commit'
 import { chainPass, passAndChain, retryImport, runImportPass } from './backfill'
 import { listImports, undoImport } from './undo'
+import { addIncome } from '@/lib/income'
 import type { Review } from './service'
 
 const USER = 'import-test'
@@ -523,6 +524,16 @@ describe('later import, from Settings', () => {
     await commitImport(auth, review.importId, editsFrom(review))
     expect(await runImportPass(auth, review.importId, Date.now() + 30_000)).toBe('done')
     expect(await budget('2026-09', '__income__')).toMatchObject({ extra: '85000' })
+  })
+
+  it('undo takes an imported payday back out of what landed', async () => {
+    const review = await previewFile(auth, fixture('money-manager.csv'), 'mm.csv')
+    await commitImport(auth, review.importId, editsFrom(review))
+    await runImportPass(auth, review.importId, Date.now() + 30_000)
+    await addIncome(auth, { date: '2026-11-20', amount: 50000, label: 'Salary', source: 'import', counted: 'monthly', import_id: review.importId })
+    expect(await budget('2026-11', '__income__')).toMatchObject({ landed: '50000' })
+    await undoImport(auth, review.importId)
+    expect(await budget('2026-11', '__income__')).toMatchObject({ landed: '0' })
   })
 
   it('undo archives only that import’s rows and backs out what they moved', async () => {

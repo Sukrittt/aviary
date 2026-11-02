@@ -41,6 +41,7 @@ const PLACES = [
   'Recurring expense (rent, an EMI): Account, then Recurring expenses, then Add a recurring expense. Web: Account, then Recurring expenses, then Add recurring.',
   'Subscription: Account, then Subscriptions, then Add. Web: Account, then Subscriptions, then Add subscription. Each shows its price, how often it renews and the next due date, with monthly and yearly totals. Aviary nudges you a few days before a renewal, and suggests a recurring expense or subscription when you log the same thing at the same amount a few months running.',
   'Income (salary, a refund): on Home tap Income, then Add income, or use Add income in the + menu, or Account, then Income, then One-off. Web: Account, then Income, then One-off. It lands in Ready to Assign.',
+  'Payday: income counts the day it lands, not on the 1st. Until the month\'s first payday, categories hold only what carried over from last month. When pay lands, every category gets its usual amount automatically, and whatever\'s left goes to Ready to Assign. A one-off lands in Ready to Assign and doesn\'t trigger that. Set your payday in Account, then Income.',
   'Cover an overspent category: tap the category, then Pull money from categories, then Cover overspend. Web: the category\'s menu, then Pull money from categories.',
   'Currency: Account, then Currency. In a shared budget only the owner can change it.',
   'Turn Ask Aviary off: Account, then Features.',

@@ -3,6 +3,7 @@ import { render, screen, fireEvent, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import SetupWizardPage from './page'
 
+vi.mock('@/src/api/incomes', () => ({ addRecurringIncome: vi.fn(async () => undefined) }))
 vi.mock('next/navigation', () => ({ useRouter: () => ({ replace: vi.fn() }) }))
 
 function toGroupsStep() {

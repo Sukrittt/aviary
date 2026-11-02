@@ -19,7 +19,7 @@ const budgets = vi.hoisted(() => ({ income: '5000' }))
 vi.mock('@/src/hooks/useBudgets', () => ({
   useBudgets: () => ({
     data: [
-      { month, category: '__income__', assigned: budgets.income, rolled_over: '0', version: 1 },
+      { month, category: '__income__', assigned: budgets.income, landed: budgets.income, rolled_over: '0', version: 1 },
       { month, category: 'Groceries', assigned: '1000', rolled_over: '0', version: 1 },
     ],
   }),
@@ -90,6 +90,19 @@ it('asks to budget a category with no money assigned this month, instead of the 
   expect(screen.getByText("Nothing's assigned to it this month.")).toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: 'Set a budget' }))
   expect(handlers.onSetBudget).toHaveBeenCalledOnce()
+})
+
+it('before payday, spending past what an envelope holds offers to cover it, not to set a budget', () => {
+  budgets.income = '0'
+  try {
+    const handlers = renderAdded(expense({}))
+    expect(screen.getByText(/^Over by/)).toBeInTheDocument()
+    expect(screen.queryByText(/a budget\?/)).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cover it' }))
+    expect(handlers.onCover).toHaveBeenCalledOnce()
+  } finally {
+    budgets.income = '5000'
+  }
 })
 
 it("doesn't ask to budget an unfunded category when there's nothing left to assign", () => {

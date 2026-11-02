@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { computeEnvelopeState, currentMonthKey, prevMonthKey, extraForReadyToAssign, shiftMonthKey, splitDebit, CREDIT_CARD_CATEGORY, INCOME_CATEGORY } from './envelope'
+import { computeEnvelopeState, countsInBudget, currentMonthKey, prevMonthKey, extraForReadyToAssign, shiftMonthKey, splitDebit, CREDIT_CARD_CATEGORY, INCOME_CATEGORY } from './envelope'
 import type { BudgetRow, CategoryRow, ExpenseRow } from '@/src/types'
 
 function budget(month: string, category: string, assigned: string, rolled_over = '0'): BudgetRow {
@@ -79,7 +79,7 @@ describe('computeEnvelopeState', () => {
   })
 
   it('leaves a re-created category out of the months before its `since`', () => {
-    const budgets = [budget('2026-12', INCOME_CATEGORY, '20000'), budget('2026-12', 'Gym', '1000'), budget('2027-02', 'Gym', '0')]
+    const budgets = [{ ...budget('2027-01', INCOME_CATEGORY, '20000'), landed: '20000' }, budget('2026-12', 'Gym', '1000'), budget('2027-02', 'Gym', '0')]
     const cats: CategoryRow[] = [{ name: 'Gym', group: '', since: '2027-02' }]
     const jan = computeEnvelopeState(budgets, [], '2027-01', cats, [])
     expect(jan.envelopes).toEqual([])
@@ -313,7 +313,7 @@ describe('an imported history', () => {
 
 describe('computeEnvelopeState with a carry', () => {
   const categories: CategoryRow[] = [{ name: 'Travel', group: '' }, { name: 'Food', group: '' }]
-  const budgets = [budget('2026-10', INCOME_CATEGORY, '1000'), budget('2026-10', 'Travel', '100'), budget('2026-10', 'Food', '300')]
+  const budgets = [{ ...budget('2026-11', INCOME_CATEGORY, '1000'), landed: '1000' }, budget('2026-10', 'Travel', '100'), budget('2026-10', 'Food', '300')]
 
   it('adds each envelope\'s carry to what it has available', () => {
     const state = computeEnvelopeState(budgets, [expense('2026-11-02', 'Food', '10')], '2026-11', categories, [], undefined, {
@@ -406,5 +406,67 @@ describe('extraForReadyToAssign, with a carry', () => {
   it('nets out what Ready to assign already carried in', () => {
     expect(extraForReadyToAssign(1000, 400, 700, 200)).toBe(-100)
     expect(extraForReadyToAssign(1000, 400, 700, -200)).toBe(300)
+  })
+})
+
+describe('paycheck months: income counts when it lands', () => {
+  const NOV = '2026-11'
+  const plan = [budget('2026-10', 'Food', '5000'), budget('2026-10', 'Rent', '20000')]
+  const cats: CategoryRow[] = [{ name: 'Food', group: '' }, { name: 'Rent', group: '' }]
+  const carry = { ready_to_assign: 1000, rolled_over: { Food: 700 } }
+  const incomeRow = (fields: Partial<BudgetRow>): BudgetRow => ({ ...budget(NOV, INCOME_CATEGORY, '50000'), ...fields })
+
+  it('before payday, envelopes hold only what carried in and the plan waits', () => {
+    const state = computeEnvelopeState([...plan, incomeRow({})], [expense('2026-11-03', 'Food', '200')], NOV, cats, [], undefined, carry)
+    expect(state.funded).toBe(false)
+    expect(state.income).toBe(0)
+    expect(state.totalAssigned).toBe(0)
+    expect(state.readyToAssign).toBe(1000)
+    const food = state.envelopes.find((e) => e.category === 'Food')!
+    expect(food.assigned).toBe(5000) // the plan, still there for payday
+    expect(food.available).toBe(500)
+  })
+
+  it('on payday the whole plan is assigned out of what landed', () => {
+    const state = computeEnvelopeState([...plan, incomeRow({ landed: '50000' })], [expense('2026-11-03', 'Food', '200')], NOV, cats, [], undefined, carry)
+    expect(state.funded).toBe(true)
+    expect(state.income).toBe(50000)
+    expect(state.totalAssigned).toBe(25000)
+    expect(state.readyToAssign).toBe(26000)
+    expect(state.envelopes.find((e) => e.category === 'Food')!.available).toBe(5500)
+  })
+
+  it('a one-off lands in Ready to assign and leaves the plan waiting', () => {
+    const state = computeEnvelopeState([...plan, incomeRow({ extra: '300' })], [], NOV, cats, [], undefined, carry)
+    expect(state.funded).toBe(false)
+    expect(state.readyToAssign).toBe(1300)
+    expect(state.envelopes.find((e) => e.category === 'Rent')!.available).toBe(0)
+  })
+
+  it("last month's pay doesn't carry into this month", () => {
+    const state = computeEnvelopeState([...plan, budget('2026-10', INCOME_CATEGORY, '50000')], [], NOV, cats, [])
+    expect(state.incomeBase).toBe(0)
+    expect(state.readyToAssign).toBe(0)
+  })
+
+  it('keeps the credit card envelope funded before payday: that money is already set aside', () => {
+    const rows = [...plan, budget(NOV, CREDIT_CARD_CATEGORY, '400')]
+    const state = computeEnvelopeState(rows, [], NOV, cats, [])
+    expect(state.envelopes.find((e) => e.isCreditCardPayment)!.available).toBe(400)
+  })
+
+  it('leaves months before the switch on the old math', () => {
+    const state = computeEnvelopeState([...plan, budget('2026-10', INCOME_CATEGORY, '50000')], [], '2026-10', cats, [])
+    expect(state.funded).toBe(true)
+    expect(state.income).toBe(50000)
+    expect(state.totalAssigned).toBe(25000)
+  })
+})
+
+describe('countsInBudget', () => {
+  it('counts one-offs always, and paydays from the switch on', () => {
+    expect(countsInBudget({ counted: 'extra', date: '2026-09-05' })).toBe(true)
+    expect(countsInBudget({ counted: 'monthly', date: '2026-10-25' })).toBe(false)
+    expect(countsInBudget({ counted: 'monthly', date: '2026-11-25' })).toBe(true)
   })
 })

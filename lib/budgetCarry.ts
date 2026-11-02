@@ -131,6 +131,7 @@ export async function computeCarry(auth: Auth, month: string): Promise<Carry & {
     assigned: String(d.assigned ?? 0),
     rolled_over: String(d.rolled_over ?? 0),
     extra: String(d.extra ?? 0),
+    landed: String(d.landed ?? 0),
     version: 0,
   }))
   const expenses = expenseDocs.map((d): ExpenseRow => ({

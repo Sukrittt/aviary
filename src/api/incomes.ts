@@ -19,6 +19,8 @@ export interface RecurringIncomeInput {
   start_date: string
   end_date?: string
   account_id?: string
+  /** Names the intent, so a retried create returns the schedule it already made. */
+  client_id?: string
 }
 
 export class IncomeWriteError extends Error {

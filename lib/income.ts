@@ -8,24 +8,24 @@ import { casRetry } from '@/lib/cas'
 import { nowForUser } from '@/lib/userCurrency'
 import { validDate, validMoney, validText } from '@/lib/inputValidation'
 import { isDuplicateKeyError } from '@/lib/createExpense'
+import { PAYCHECK_START } from '@/src/lib/envelope'
 import { advance, firstRunOnOrAfter, occurrencesDue, type Frequency } from '@/lib/recurringExpense'
 
 /**
- * The income ledger. Income used to live only on the `__income__` budget row:
- * `assigned` is the monthly income (carried into later months like any
- * assignment) and `extra` is this month's one-offs. That row is still what
- * Ready to Assign reads, on both clients, and nothing here changes its math.
- * What's new is a record of each payment that came in (`incomes`) and the
- * schedules that post them (`recurring_incomes`).
+ * The income ledger: each payment that came in (`incomes`) and the schedules
+ * that post them (`recurring_incomes`). The `__income__` budget row is what
+ * Ready to Assign reads, on both clients: `extra` is the month's one-offs,
+ * `landed` its paydays, and `assigned` the monthly income you expect, which no
+ * longer counts as money from PAYCHECK_START on (src/lib/envelope.ts).
  *
  * Every income row says how it is counted, so the two can't drift:
  *
- * - `extra`: a one-off, a weekly/daily/yearly payday, or money in found by the
- *   balance check. Adding, editing or deleting it moves the month's `extra` by
- *   the same amount, in the same transaction.
- * - `monthly`: the payday of a monthly recurring income. The month's
- *   `assigned` already counts it from day 1 (see `syncMonthlyIncome`), so the
- *   row is only a record and never touches the budget.
+ * - `extra`: a one-off, or money in found by the balance check. Adding, editing
+ *   or deleting it moves the month's `extra` by the same amount, in the same
+ *   transaction. It lands in Ready to Assign and leaves the plan alone.
+ * - `monthly`: a payday. From PAYCHECK_START the month's `landed` is the sum of
+ *   these rows, and the first one funds the month's plan. Before it, the row
+ *   is only a record: that month's `assigned` already counted it from day 1.
  */
 
 export const INCOME_CATEGORY = '__income__'
@@ -78,6 +78,12 @@ function carriedFrom(rows: Record<string, unknown>[], month: string): number {
   return prior ? Number(prior.assigned) || 0 : 0
 }
 
+interface IncomeBudget {
+  assigned: number
+  extra: number
+  landed: number
+}
+
 /**
  * Writes the month's `__income__` row through `change`, creating it from the
  * carried monthly income when the month doesn't have one yet (an unedited
@@ -87,25 +93,25 @@ function carriedFrom(rows: Record<string, unknown>[], month: string): number {
 async function writeIncomeRow(
   auth: Auth,
   month: string,
-  change: (row: { assigned: number; extra: number }) => { assigned: number; extra: number },
+  change: (row: IncomeBudget) => IncomeBudget,
   session: ClientSession,
 ) {
   const budgets = await getCollection('budgets', auth)
   await casRetry<'done'>(async () => {
     const existing = await budgets.findOne({ month, category: INCOME_CATEGORY }, { session })
     if (existing) {
-      const next = change({ assigned: Number(existing.assigned) || 0, extra: Number(existing.extra) || 0 })
+      const next = change({ assigned: Number(existing.assigned) || 0, extra: Number(existing.extra) || 0, landed: Number(existing.landed) || 0 })
       await budgets.updateOne(
         { _id: existing._id },
-        { $set: { assigned: String(round2(next.assigned)), extra: String(round2(next.extra)) }, $inc: { version: 1 } } as never,
+        { $set: { assigned: String(round2(next.assigned)), extra: String(round2(next.extra)), landed: String(round2(next.landed)) }, $inc: { version: 1 } } as never,
         { session },
       )
       return 'done'
     }
-    const next = change({ assigned: await carriedIncome(month, budgets, session), extra: 0 })
+    const next = change({ assigned: await carriedIncome(month, budgets, session), extra: 0, landed: 0 })
     try {
       await budgets.insertOne(
-        { month, category: INCOME_CATEGORY, assigned: String(round2(next.assigned)), rolled_over: '0', extra: String(round2(next.extra)), version: 1 },
+        { month, category: INCOME_CATEGORY, assigned: String(round2(next.assigned)), rolled_over: '0', extra: String(round2(next.extra)), landed: String(round2(next.landed)), version: 1 },
         { session },
       )
       return 'done'
@@ -119,6 +125,34 @@ async function writeIncomeRow(
 export async function bumpExtra(auth: Auth, month: string, delta: number, session: ClientSession) {
   if (!month || delta === 0) return
   await writeIncomeRow(auth, month, (row) => ({ ...row, extra: row.extra + delta }), session)
+}
+
+/**
+ * Sets the month's `landed` to the sum of its paydays in the ledger. Summed
+ * rather than bumped, so paydays posted before PAYCHECK_START's code shipped
+ * count too, and every path that adds or removes one lands on the same figure.
+ * Leaves the row alone when it's already right. Returns whether it wrote.
+ */
+async function syncLanded(auth: Auth, month: string, session: ClientSession): Promise<boolean> {
+  if (!month || month < PAYCHECK_START) return false
+  const incomes = await getCollection('incomes', auth)
+  const paydays = await incomes.find({ counted: 'monthly', date: { $gte: `${month}-01`, $lte: `${month}-31` } }, { session }).toArray()
+  const landed = round2(paydays.reduce((sum, r) => sum + (Number(r.amount) || 0), 0))
+  const row = await (await getCollection('budgets', auth)).findOne({ month, category: INCOME_CATEGORY }, { session })
+  if ((Number(row?.landed) || 0) === landed) return false
+  await writeIncomeRow(auth, month, (r) => ({ ...r, landed }), session)
+  return true
+}
+
+/** syncLanded in its own transaction, for a caller with nothing else to write. Whoever reads budgets next sees it. */
+export async function settleLanded(auth: Auth, month: string): Promise<void> {
+  if (auth.readOnly) return
+  if (await withTx((session) => syncLanded(auth, month, session))) invalidate('budgets', auth.spaceId)
+}
+
+/** The same, for the months an import undo just took paydays out of. */
+export async function syncLandedIn(auth: Auth, months: Iterable<string>, session: ClientSession): Promise<void> {
+  for (const month of months) await syncLanded(auth, month, session)
 }
 
 export interface AddIncomeInput {
@@ -188,6 +222,7 @@ export async function addIncome(auth: Auth, input: AddIncomeInput): Promise<{ id
         { session },
       )
       if (input.counted === 'extra') await bumpExtra(auth, monthOf(input.date), amount, session)
+      else await syncLanded(auth, monthOf(input.date), session)
       return inserted.insertedId
     })
   } catch (err) {
@@ -223,7 +258,7 @@ export interface IncomePatch {
   account_id?: string
 }
 
-/** Edits a row; a one-off's change in amount or month moves `extra` with it. Returns the new version. */
+/** Edits a row; a change in amount or month moves its month's `extra` or `landed` with it. Returns the new version. */
 export async function updateIncome(auth: Auth, id: string, version: number, patch: IncomePatch): Promise<number> {
   if (!ObjectId.isValid(id)) throw new IncomeWriteError(400, 'invalid id')
   const invalid = incomeInputError(patch, true)
@@ -251,6 +286,8 @@ export async function updateIncome(auth: Auth, id: string, version: number, patc
         await bumpExtra(auth, oldMonth, -oldAmount, session)
         await bumpExtra(auth, newMonth, newAmount, session)
       }
+    } else {
+      await syncLandedIn(auth, new Set([monthOf(String(found.date)), monthOf(String(set.date ?? found.date))]), session)
     }
     return version + 1
   })
@@ -258,7 +295,7 @@ export async function updateIncome(auth: Auth, id: string, version: number, patc
   return next
 }
 
-/** Soft-deletes a row; a one-off comes back out of its month's `extra`. */
+/** Soft-deletes a row; it comes back out of its month's `extra` or `landed`. */
 export async function deleteIncome(auth: Auth, id: string, version: number): Promise<void> {
   if (!ObjectId.isValid(id)) throw new IncomeWriteError(400, 'invalid id')
   const coll = await getCollection('incomes', auth)
@@ -268,6 +305,7 @@ export async function deleteIncome(auth: Auth, id: string, version: number): Pro
     const result = await coll.deleteOne({ _id: found._id, version: found.version }, { session })
     if (result.deletedCount !== 1) throw new IncomeWriteError(409, 'This income changed. Refresh and review it before deleting.')
     if (found.counted === 'extra') await bumpExtra(auth, monthOf(String(found.date)), -(Number(found.amount) || 0), session)
+    else await syncLanded(auth, monthOf(String(found.date)), session)
   })
   invalidateIncome(auth)
 }
@@ -296,8 +334,8 @@ function countsIn(r: Record<string, unknown>, month: string): boolean {
 /**
  * Sets `month`'s monthly income to the sum of the active monthly recurring
  * incomes that have started by then, keeping its `extra`. Run after any change
- * to a monthly schedule, so Ready to Assign counts the new figure from day 1
- * and later months carry it. A schedule starting in a later month joins when
+ * to a monthly schedule, so later months carry the new figure as the income
+ * you expect (from PAYCHECK_START that isn't money until it lands). A schedule starting in a later month joins when
  * that month arrives (see `runRecurringIncomes`).
  */
 export async function syncMonthlyIncome(auth: Auth, month: string): Promise<void> {
@@ -335,6 +373,8 @@ export async function ensureIncomeMigrated(auth: Auth): Promise<void> {
   const month = monthOf(today)
   const amount = await carriedIncome(month, await getCollection('budgets', auth))
   const startDate = `${month}-01`
+  // This month's pay on the 1st has landed. From the switch on it has to post to count.
+  const postsFirst = month >= PAYCHECK_START && amount > 0
   try {
     await rec.insertOne({
       client_id: MIGRATED_CLIENT_ID,
@@ -343,7 +383,7 @@ export async function ensureIncomeMigrated(auth: Auth): Promise<void> {
       frequency: 'monthly',
       start_date: startDate,
       end_date: '',
-      next_run_date: firstRunOnOrAfter(startDate, 'monthly', today),
+      next_run_date: postsFirst ? startDate : firstRunOnOrAfter(startDate, 'monthly', today),
       account_id: '',
       created_at: timestamp,
       // Nothing to migrate still leaves the (deleted) marker, so it's never asked again.
@@ -355,6 +395,7 @@ export async function ensureIncomeMigrated(auth: Auth): Promise<void> {
   }
   if (amount <= 0) await rec.deleteOne({ client_id: MIGRATED_CLIENT_ID })
   invalidate('recurring_incomes', auth.spaceId)
+  if (postsFirst) await runRecurringIncomes(auth, today)
 }
 
 /**
@@ -403,7 +444,8 @@ export async function runRecurringIncomes(auth: Auth, today: string): Promise<nu
         amount,
         label: String(s.label || 'Income'),
         source: 'recurring',
-        counted: schedule.frequency === 'monthly' ? 'monthly' : 'extra',
+        // Every payday funds the plan from the switch on, weekly ones included.
+        counted: schedule.frequency === 'monthly' || monthOf(date) >= PAYCHECK_START ? 'monthly' : 'extra',
         account_id: String(s.account_id ?? '') || undefined,
         recurring_id: id,
         client_id: `recur-income:${id}:${date}`,
@@ -416,12 +458,14 @@ export async function runRecurringIncomes(auth: Auth, today: string): Promise<nu
     await rec.updateOne({ _id: s._id }, { $set: { next_run_date: nextRun, ...(ended ? { status: 'ended' } : {}) } })
   }
   if (posted > 0) invalidate('recurring_incomes', auth.spaceId)
+  // Catches paydays posted before `landed` existed. Nothing to do on most nights.
+  await settleLanded(auth, month)
   return posted
 }
 
 /**
- * After any schedule change: Ready to Assign counts the monthly ones from day
- * 1 of this month, and anything due today posts now rather than tomorrow.
+ * After any schedule change: the month's expected income follows it, and
+ * anything due today posts now rather than tomorrow.
  * The schedule is already saved. Failing the request here would make the
  * client retry and save it twice, so a failed follow-up is logged instead:
  * the next schedule write or the nightly pass catches up.
@@ -453,6 +497,10 @@ export interface RecurringIncomeInput {
   next_run_from?: string
 }
 
+function landedThisMonth(input: RecurringIncomeInput, today: string): boolean {
+  return !input.next_run_from && input.frequency === 'monthly' && monthOf(today) >= PAYCHECK_START && monthOf(input.start_date) === monthOf(today)
+}
+
 /**
  * The one way a recurring income is created. Lifted out of
  * `POST /api/recurring-incomes` so the import commit shares it. Migrates an
@@ -475,8 +523,10 @@ export async function createRecurringIncome(auth: Auth, input: RecurringIncomeIn
       start_date: input.start_date,
       end_date: input.end_date ?? '',
       // Same rule as recurring expenses: a backdated first payday schedules
-      // forward rather than backfilling paydays nobody asked to record.
-      next_run_date: firstRunOnOrAfter(input.start_date, input.frequency, input.next_run_from && input.next_run_from > today ? input.next_run_from : today, input.anchor_day),
+      // forward rather than backfilling paydays nobody asked to record. The
+      // exception is a monthly pay that landed earlier this month: it's the
+      // money this month's plan runs on, so it posts now.
+      next_run_date: landedThisMonth(input, today) ? input.start_date : firstRunOnOrAfter(input.start_date, input.frequency, input.next_run_from && input.next_run_from > today ? input.next_run_from : today, input.anchor_day),
       ...(input.anchor_day ? { anchor_day: input.anchor_day } : {}),
       account_id: input.account_id ?? '',
       status: 'active',

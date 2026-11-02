@@ -6,7 +6,7 @@ import { nowForUser } from '@/lib/userCurrency'
 import { validDate, validText } from '@/lib/inputValidation'
 import { FREQUENCIES, firstRunOnOrAfter, type Frequency } from '@/lib/recurringExpense'
 import { AccountError, liveAccount } from '@/lib/accounts'
-import { createRecurringIncome, validIncomeAmount, ensureIncomeMigrated, RECURRING_INCOME_HEADERS, settleRecurringIncomes } from '@/lib/income'
+import { createRecurringIncome, validIncomeAmount, ensureIncomeMigrated, RECURRING_INCOME_HEADERS, settleLanded, settleRecurringIncomes } from '@/lib/income'
 import { toRow } from '@/lib/models'
 
 export const dynamic = 'force-dynamic'
@@ -27,6 +27,7 @@ export async function GET(req: Request) {
   const gate = await requireAccess(auth)
   if (gate) return gate
   await ensureIncomeMigrated(auth)
+  await settleLanded(auth, (await nowForUser(auth.userId)).date.slice(0, 7))
   const coll = await getCollection('recurring_incomes', auth)
   const docs = await coll.find({}).sort({ created_at: 1 }).toArray()
   return json({ headers: RECURRING_INCOME_HEADERS, rows: docs.map(row) })
@@ -45,13 +46,15 @@ function inputError(body: Record<string, unknown>, partial: boolean): string | n
   if ((body.start_date !== undefined || !partial) && !validDate(body.start_date)) return 'start_date must be YYYY-MM-DD'
   if (body.end_date !== undefined && body.end_date !== '' && !validDate(body.end_date)) return 'end_date must be YYYY-MM-DD'
   if (body.status !== undefined && !STATUSES.has(String(body.status))) return 'status must be active, paused or ended'
+  if (body.client_id !== undefined && !validText(body.client_id, 100)) return 'invalid client_id'
   return null
 }
 
-/** `POST /api/recurring-incomes` `{ label, amount, frequency, start_date, end_date?, account_id? }`. `start_date` is the first payday. */
+/** `POST /api/recurring-incomes` `{ label, amount, frequency, start_date, end_date?, account_id?, client_id? }`. `start_date` is the first payday. */
 export async function POST(req: Request) {
   const auth = await getAuth(req)
-  const gate = await requireAccess(auth)
+  // Onboarding sets up the pay schedule, so this admits an unfinished setup.
+  const gate = await requireAccess(auth, { setup: true })
   if (gate) return gate
   const guard = readOnlyGuard(auth, 'POST')
   if (guard) return guard
@@ -78,6 +81,7 @@ export async function POST(req: Request) {
     start_date: startDate,
     end_date: endDate,
     account_id: account,
+    ...(body.client_id !== undefined ? { client_id: String(body.client_id) } : {}),
   })
   return json({ ok: true, id })
 }
@@ -131,7 +135,7 @@ export async function PUT(req: Request) {
     const frequency = update.frequency ?? String(existing.frequency)
     update.next_run_date = firstRunOnOrAfter(startDate, frequency, today, update.start_date === undefined ? Number(existing.anchor_day) || undefined : undefined)
   }
-  // Pausing keeps this month's pay counted and stops it from next month (see countsIn).
+  // Pausing leaves pay that already landed alone, and the expected income stops from next month (see countsIn).
   if (update.status === 'paused' && String(existing.status) === 'active') update.stops_after = today.slice(0, 7)
   if (resuming) update.stops_after = ''
 
@@ -140,7 +144,7 @@ export async function PUT(req: Request) {
   return json({ ok: true })
 }
 
-/** `DELETE /api/recurring-incomes` `{ id }`. Paydays already posted stay in the ledger, and this month keeps counting it. */
+/** `DELETE /api/recurring-incomes` `{ id }`. Paydays already posted stay in the ledger and keep counting. */
 export async function DELETE(req: Request) {
   const auth = await getAuth(req)
   const gate = await requireAccess(auth)
@@ -154,8 +158,8 @@ export async function DELETE(req: Request) {
   const coll = await getCollection('recurring_incomes', auth)
   const existing = await coll.findOne({ _id: new ObjectId(id) })
   if (!existing) return error('recurring income not found', 404)
-  // Like pausing, deleting keeps this month's pay counted and stops it from next
-  // month. A paused one already stopped, so it keeps its own month.
+  // Like pausing, deleting leaves pay that already landed alone and stops from
+  // next month. A paused one already stopped, so it keeps its own month.
   if (String(existing.status) === 'active') {
     await coll.updateOne({ _id: existing._id }, { $set: { stops_after: (await nowForUser(auth.userId)).date.slice(0, 7) } })
   }

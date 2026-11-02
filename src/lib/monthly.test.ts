@@ -339,6 +339,24 @@ describe('leftoverFor', () => {
 })
 
 describe('savingsTrend', () => {
+  describe('from the first paycheck month', () => {
+    const food = [{ name: 'Food', group: 'Home' }]
+    const spend = [{ timestamp: '', date: '2026-12-04', item: 'x', amount_inr: '200', category: 'Food', notes: '', source: '', amount: '', description: '', payment_method: '' }]
+    const income = (month: string, assigned: string, landed?: string) => ({ month, category: '__income__', assigned, rolled_over: '0', version: 1, ...(landed ? { landed } : {}) })
+
+    it('a finished month that only expected pay has no income, so Insights offers to add it', () => {
+      const result = savingsTrend([income('2026-12', '50000'), income('2027-01', '50000', '50000')], spend, food, ['Home'], '2027-01')
+      expect(result.since).toBe('2027-01')
+      expect(result.missingIncome).toEqual(['2026-12'])
+    })
+
+    it("doesn't ask this month, while the pay it expects can still land", () => {
+      const result = savingsTrend([income('2026-12', '50000')], spend, food, ['Home'], '2026-12')
+      expect(result.since).toBe('2026-12')
+      expect(result.missingIncome).toEqual([])
+    })
+  })
+
   const categories: CategoryRow[] = [{ name: '🍔 Food', group: 'Living' }]
   const groups = ['Living']
 

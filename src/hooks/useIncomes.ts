@@ -23,7 +23,18 @@ export function useIncomes() {
 }
 
 export function useRecurringIncomes() {
-  return useQuery({ queryKey: recurringIncomesKey, queryFn: getRecurringIncomes, staleTime: 30_000 })
+  const qc = useQueryClient()
+  return useQuery({
+    queryKey: recurringIncomesKey,
+    queryFn: async () => {
+      const rows = await getRecurringIncomes()
+      // Loading schedules can post a pay on the server (an older account's first
+      // schedule), and budgets may have loaded just before that landed.
+      qc.invalidateQueries({ queryKey: budgetsKey })
+      return rows
+    },
+    staleTime: 30_000,
+  })
 }
 
 /**

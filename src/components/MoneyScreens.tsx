@@ -35,6 +35,9 @@ import {
   INCOME_CATEGORY,
   monthLabel,
   prevMonthKey,
+  PAYCHECK_START,
+  countsInBudget,
+  incomeBaseOf,
 } from '../lib/envelope'
 
 /**
@@ -745,7 +748,7 @@ export function EditAssignedScreen({ category, onClose, assign = false, takeBack
   const envelope = state.envelopes.find((e) => e.category === category)
   const budget = data.budgets.find((b) => b.month === month && b.category === category)
   const row = data.categories.find((c) => c.name === category)
-  const goal = row?.goal && envelope ? goalProgress({ goal: row.goal, month, available: envelope.available, assigned: envelope.assigned, spent: envelope.spent, since: row.since }) : null
+  const goal = row?.goal && envelope ? goalProgress({ goal: row.goal, month, available: envelope.available, assigned: envelope.assigned, spent: envelope.spent, since: row.since, planPending: envelope.planPending }) : null
 
   return (
     <EditAssignedBody
@@ -760,6 +763,7 @@ export function EditAssignedScreen({ category, onClose, assign = false, takeBack
       isCreditCardPayment={!!envelope?.isCreditCardPayment}
       lastMonthAssigned={prevState.envelopes.find((e) => e.category === category)?.assigned}
       readyToAssign={state.readyToAssign}
+      moneyNow={state.funded || !!envelope?.isCreditCardPayment}
       takeBack={takeBack}
       onClose={onClose}
     />
@@ -782,11 +786,14 @@ function EditAssignedBody({
   lastMonthAssigned,
   readyToAssign,
   goalNeed,
+  moneyNow,
   takeBack,
   onClose,
 }: {
   category: string
   assign: boolean
+  /** False before payday: a new amount is the plan for when pay lands, so no money moves today. */
+  moneyNow: boolean
   takeBack?: number
   /** A goal's monthly amount to make its deadline (src/lib/goal.ts), offered as a pick. */
   goalNeed?: { amount: number; by: string }
@@ -819,7 +826,8 @@ function EditAssignedBody({
 
   const value = Number(amountText) || 0
   const delta = assign ? value : cents(value - baseAssigned)
-  const projectedRTA = cents(baseReadyToAssign - delta)
+  const planOnly = !assign && !moneyNow
+  const projectedRTA = planOnly ? baseReadyToAssign : cents(baseReadyToAssign - delta)
   const valid = !assign || (value > 0 && value <= baseReadyToAssign)
 
   async function submit() {
@@ -852,7 +860,7 @@ function EditAssignedBody({
   function reviewLatest(keepDraft: boolean) {
     if (!conflict) return
     const latest = Number(conflict.assigned) || 0
-    setBaseReadyToAssign(cents(baseReadyToAssign - (latest - baseAssigned)))
+    if (moneyNow) setBaseReadyToAssign(cents(baseReadyToAssign - (latest - baseAssigned)))
     setBaseAssigned(latest)
     setExpectedVersion(conflict.version)
     if (!keepDraft) setAmountText(String(latest))
@@ -862,10 +870,12 @@ function EditAssignedBody({
 
   const over = value > 0 && projectedRTA < 0
   const hint =
-    delta === 0
+    delta !== 0 && planOnly
+      ? 'Goes in when your pay lands'
+      : delta === 0
       ? rolledOver !== 0
         // With money carried in, what's available is the number that matters, and the carry says why.
-        ? `${formatCurrency(cents(baseAssigned + rolledOver - spent), hideAmounts)} available · ${rolledOverLine(rolledOver, month, (n) => formatCurrency(n, hideAmounts))}`
+        ? `${formatCurrency(cents((moneyNow ? baseAssigned : 0) + rolledOver - spent), hideAmounts)} available · ${rolledOverLine(rolledOver, month, (n) => formatCurrency(n, hideAmounts))}`
         : `${formatCurrency(spent, hideAmounts)} spent · ${formatCurrency(baseAssigned, hideAmounts)} assigned`
       : delta > 0
         ? `Pulls ${formatCurrency(delta, hideAmounts)} from Ready to Assign${over ? ` · ${formatCurrency(-projectedRTA, hideAmounts)} over` : ''}`
@@ -926,15 +936,13 @@ function EditAssignedBody({
 // ─── Income for a past month ─────────────────────────────────────────────────
 
 /** Opened from Insights' Saved view on a month with spending but no income, so
- * that month can be counted. Later months carry it forward until one has its
- * own income, same as income set anywhere else. */
+ * that month can be counted. Before PAYCHECK_START later months carry it
+ * forward; from then on it's one month's money, like a one-off. */
 export function EditMonthIncomeScreen({ month, onClose, initial }: { month: string; onClose: () => void; initial?: number }) {
   const budgets = useBudgets().data ?? EMPTY
   const updateBudget = useUpdateBudget()
   const phase = useButtonPhase()
   const busy = phase.saving || phase.success
-  // The current month's income is the monthly figure later months carry.
-  const isCurrent = month === currentMonthKey()
   const [amountText, setAmountText] = useState(initial ? String(initial) : '')
   const [error, setError] = useState('')
   const value = Number(amountText) || 0
@@ -946,7 +954,7 @@ export function EditMonthIncomeScreen({ month, onClose, initial }: { month: stri
     try {
       // A zero-income row can already exist; PUT needs its version, or 0 to create one.
       const version = budgets.find((b) => b.month === month && b.category === INCOME_CATEGORY)?.version ?? 0
-      await updateBudget.mutateAsync({ month, category: INCOME_CATEGORY, version, updates: { assigned: String(value) } })
+      await updateBudget.mutateAsync({ month, category: INCOME_CATEGORY, version, updates: month < PAYCHECK_START ? { assigned: String(value) } : { extra: String(value) } })
       phase.succeed(onClose)
     } catch {
       phase.fail()
@@ -955,7 +963,7 @@ export function EditMonthIncomeScreen({ month, onClose, initial }: { month: stri
   }
 
   return (
-    <Screen title={isCurrent ? 'Monthly income' : `Income for ${monthLabel(month)}`} onClose={onClose} busy={busy} showHeader={false}>
+    <Screen title={`Income for ${monthLabel(month)}`} onClose={onClose} busy={busy} showHeader={false}>
       <div className="money-body">
         <div className="money-month-row">
           <span className="money-label">{monthLabel(month).toUpperCase()}</span>
@@ -963,13 +971,9 @@ export function EditMonthIncomeScreen({ month, onClose, initial }: { month: stri
             <XIcon size={16} />
           </button>
         </div>
-        {isCurrent ? (
-          <SubjectCard icon={<MoneyWavyIcon />} label="EDITING" name="Monthly income" detail="What comes in every month, like your salary" />
-        ) : (
-          <SubjectCard icon={<MoneyWavyIcon />} label="ADDING" name="Income" detail={`What came in during ${monthLabel(month)}`} />
-        )}
+        <SubjectCard icon={<MoneyWavyIcon />} label="ADDING" name="Income" detail={`What came in during ${monthLabel(month)}`} />
         <HeroAmount amountText={amountText} onChange={setAmountText}>
-          <p className="money-hint">{isCurrent ? 'Carries into next month until you change it' : 'Counts toward what you saved that month'}</p>
+          <p className="money-hint">Counts toward what you saved that month</p>
         </HeroAmount>
         {error !== '' && <p role="alert" className="money-error">{error}</p>}
       </div>
@@ -1042,16 +1046,16 @@ export function AddIncomeScreen({ onClose, existing, defaultLabel, intro }: { on
     }
   }
 
-  // A payday on the monthly schedule is already counted by the monthly income, so editing it moves nothing.
-  const countsAsExtra = !existing || existing.counted === 'extra'
+  // A payday from before paycheck months was already counted by the monthly income, so editing it moves nothing.
+  const countsAsExtra = !existing || countsInBudget(existing)
   const change = value - (existing ? Number(existing.amount) || 0 : 0)
   const hint = !countsAsExtra
-    ? 'This only changes the record. Your monthly income still counts.'
+    ? "This only changes the record. That month's income still counts."
     : value > 0
       ? state
         ? `Ready to Assign ${formatCurrency(state.readyToAssign + change, hideAmounts)} · This month only`
         : 'Adds to Ready to Assign · This month only'
-      : intro ?? 'What came in on top of your monthly income'
+      : intro ?? 'What came in on top of your pay'
 
   return (
     <FormSheet
@@ -1173,7 +1177,7 @@ function EditReadyToAssignBody({
     try {
       // ponytail: a transfer landing between this read and the PUT still slips through; an atomic server-side set-RTA would close it.
       const extra = extraForReadyToAssign(incomeBase, await latestTotalAssigned(), value, carried)
-      // PUT upserts, so this creates the month's income row (keeping the carried monthly income) when there isn't one yet.
+      // PUT upserts, so this creates the month's income row when there isn't one yet.
       await updateBudget.mutateAsync({ month, category: INCOME_CATEGORY, version: expectedVersion, updates: { extra: String(extra) } })
       phase.succeed(onClose)
     } catch (err) {
@@ -1189,12 +1193,12 @@ function EditReadyToAssignBody({
 
   function reviewLatest(keepDraft: boolean) {
     if (!conflict) return
-    const latestBase = Number(conflict.assigned) || 0
+    const latestBase = incomeBaseOf(month, conflict)
     const latestIncome = cents(latestBase + (Number(conflict.extra) || 0))
     setIncomeBase(latestBase)
     setBaseIncome(latestIncome)
     setExpectedVersion(conflict.version)
-    if (!keepDraft) setAmountText(String(Math.max(0, latestIncome - totalAssigned)))
+    if (!keepDraft) setAmountText(String(Math.max(0, cents(latestIncome + carried - totalAssigned))))
     setConflict(null)
     setError('')
   }
@@ -1215,7 +1219,7 @@ function EditReadyToAssignBody({
           heading="Ready to Assign was updated"
           description="A newer amount was saved elsewhere. Your amount is still here."
           label="Ready to Assign"
-          saved={formatCurrency((Number(conflict.assigned) || 0) + (Number(conflict.extra) || 0) - totalAssigned, hideAmounts)}
+          saved={formatCurrency(incomeBaseOf(month, conflict) + (Number(conflict.extra) || 0) + carried - totalAssigned, hideAmounts)}
           next={formatCurrency(value, hideAmounts)}
           guidance="Continue with your amount or use the latest saved value. You can review it before saving."
           onContinue={() => reviewLatest(true)}

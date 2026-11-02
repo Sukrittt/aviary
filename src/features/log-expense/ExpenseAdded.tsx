@@ -144,16 +144,18 @@ export function ExpenseAdded({
   const counted = (expensesQ.data ?? EMPTY).some((e) => e.timestamp === timestamp)
   const spent = (envelope?.spent ?? 0) + (counted ? 0 : amount)
   const left = (envelope?.available ?? 0) - (counted ? 0 : amount)
-  const funded = (envelope?.assigned ?? 0) + (envelope?.rolledOver ?? 0)
+  const funded = (envelope?.available ?? 0) + (envelope?.spent ?? 0)
   // A past-month expense doesn't move this month's envelope, so no card. An
   // unfunded one has nothing to measure against, so it asks for a budget instead,
   // but only with money to give it: Assign Money caps at Ready to Assign.
   const isCurrentMonth = date.slice(0, 7) === currentMonthKey()
-  const showEnvelope = isCurrentMonth && envelope != null && funded > 0
-  const askForBudget = isCurrentMonth && envelope != null && funded === 0 && readyToAssign > 0
+  // Before payday the plan isn't money yet, so an envelope can run out with a plan
+  // in place: that's an overspend to cover, not a missing budget.
+  const showEnvelope = isCurrentMonth && envelope != null && (funded > 0 || (!!envelope.planPending && left < 0))
+  const askForBudget = isCurrentMonth && envelope != null && !showEnvelope && funded === 0 && readyToAssign > 0
   // Over budget reads as "Over by", never a negative "left" or per-day pace.
   const over = left < 0
-  const spentPct = funded > 0 ? Math.min(100, (spent / funded) * 100) : 0
+  const spentPct = funded > 0 ? Math.min(100, (spent / funded) * 100) : 100
   const prevPct = funded > 0 ? Math.min(100, ((spent - amount) / funded) * 100) : 0
   const preLeft = left + amount
   const daysLeft = daysLeftInMonth()

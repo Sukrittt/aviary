@@ -6,6 +6,7 @@ import { getSplitBuckets } from '@/src/api/categories'
 
 vi.mock('@/src/lib/analytics', () => ({ track: vi.fn(), startTimer: () => () => 7 }))
 vi.mock('next/navigation', () => ({ useRouter: () => ({ replace: vi.fn() }) }))
+vi.mock('@/src/api/incomes', () => ({ addRecurringIncome: vi.fn(async () => undefined) }))
 vi.mock('@/src/api/budgets', () => ({ getBudgets: vi.fn(async () => []), updateBudget: vi.fn(async () => ({})) }))
 vi.mock('@/src/api/groups', () => ({ addGroup: vi.fn(async () => ({})) }))
 vi.mock('@/src/api/categories', () => ({ addCategory: vi.fn(async () => ({})), getSplitBuckets: vi.fn(async () => ({})) }))
