@@ -37,10 +37,28 @@ describe('log playground', () => {
     render(<Playground />)
     await run(4800)
     expect(screen.getByDisplayValue('Coffee with Sam')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Category: Outings' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Category: Snacks' })).toBeInTheDocument()
     await run(4500)
     expect(screen.getByText('Added')).toBeInTheDocument()
     expect(play).not.toHaveBeenCalled()
+  })
+
+  it('files a logged chai under Snacks with the same balance the lesson shows', async () => {
+    vi.useFakeTimers()
+    const { container } = render(<Playground />)
+    fireEvent.click(screen.getByRole('button', { name: 'Try it yourself' }))
+    await run(600)
+    fireEvent.click(screen.getByRole('button', { name: 'Chai' }))
+    await run(3000)
+    expect(screen.getByRole('button', { name: 'Category: Snacks' })).toBeInTheDocument()
+
+    for (const k of ['2', '0']) fireEvent.click(container.querySelector(`button.m-key[aria-label="${k}"]`)!)
+    fireEvent.click(screen.getByRole('button', { name: 'Log expense' }))
+    await run(2500)
+    expect(screen.getByText('Added')).toBeInTheDocument()
+    expect(screen.getByText('left of ₹600')).toBeInTheDocument()
+    await run(2500) // the balance rolls down on its own beat
+    expect(screen.getByLabelText('₹220')).toBeInTheDocument()
   })
 
   it('starts the take over on a clean screen after a pause', async () => {
