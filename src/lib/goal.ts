@@ -34,6 +34,8 @@ export interface GoalInput {
   spent: number
   /** A re-created category's first month. Before it, there's no envelope and no goal. */
   since?: string
+  /** Pay hasn't landed yet, so `assigned` isn't in `available` (Envelope.planPending). */
+  planPending?: boolean
 }
 
 function monthsBetween(from: string, to: string): number {
@@ -48,7 +50,7 @@ export function nextGoalMonth(by: string, month: string): string {
   return shiftMonthKey(by, Math.max(1, years) * 12)
 }
 
-export function goalProgress({ goal, month, available, assigned, spent, since }: GoalInput): GoalProgress | null {
+export function goalProgress({ goal, month, available, assigned, spent, since, planPending }: GoalInput): GoalProgress | null {
   if (since && since > month) return null
   const target = goal.amount
   // A yearly goal's deadline rolls a year on once its month is over.
@@ -63,7 +65,7 @@ export function goalProgress({ goal, month, available, assigned, spent, since }:
 
   // What was there before this month's assigned, so assigning the suggestion
   // doesn't move the suggestion.
-  const before = available - assigned
+  const before = planPending ? available : available - assigned
   if (!by) {
     return { ...out, status: 'saving', paceMonth: assigned > 0 ? shiftMonthKey(month, Math.ceil((target - before) / assigned) - 1) : null }
   }
@@ -72,7 +74,7 @@ export function goalProgress({ goal, month, available, assigned, spent, since }:
   const monthlyNeed = Math.max(0, Math.ceil((target - before) / (left + 1)))
   if (assigned < monthlyNeed) return { ...out, status: 'behind', monthlyNeed, behindBy: Math.round((monthlyNeed - assigned) * 100) / 100 }
   // On track: the rest, spread over the months still to come. Not funded, so there is at least one.
-  return { ...out, status: 'onTrack', monthlyNeed, nextMonth: shiftMonthKey(month, 1), nextNeed: Math.max(0, Math.ceil((target - available) / Math.max(1, left))) }
+  return { ...out, status: 'onTrack', monthlyNeed, nextMonth: shiftMonthKey(month, 1), nextNeed: Math.max(0, Math.ceil((target - (before + assigned)) / Math.max(1, left))) }
 }
 
 /**

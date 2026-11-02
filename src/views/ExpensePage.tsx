@@ -43,7 +43,7 @@ import { useGroupIcons, useGroups } from "../hooks/useGroups";
 import { useSubscriptions, useCancelSubscription, useReactivateSubscription } from "../hooks/useSubscriptions";
 import { useHideAmounts } from "../hooks/useHideAmounts";
 import { GetStartedCard } from "../components/home/GetStartedCard";
-import { paydayLabel, startingBalanceIntro, upcomingMonthlyPay } from "@/src/lib/upcomingPay";
+import { paydayLabel, startingBalanceIntro, upcomingPayday } from "@/src/lib/upcomingPay";
 import { useBillingStatus } from "../hooks/useBillingStatus";
 import { formatDate } from "../components/billing/copy";
 import { LearningCard } from "../components/home/LearningCard";
@@ -182,13 +182,17 @@ export function ExpensePage() {
   const [assignTarget, setAssignTarget] = useState<string | null>(null);
   const [editReady, setEditReady] = useState(false);
   const [incomeScreen, setIncomeScreen] = useState<"add" | "monthly" | "starting" | null>(null);
-  // Change income edits the monthly schedule Ready to Assign counts from day 1.
+  // Change income edits the monthly schedule that funds the plan on payday.
   // With more than one, or before they've loaded (a create form then could
   // duplicate one), the Income page is the place to pick.
   const schedulesQ = useRecurringIncomes();
   // Warms the accounts cache so Log expense has them on its first open.
   useAccounts();
   const monthlySchedules = (schedulesQ.data ?? []).filter((r) => r.frequency === "monthly" && r.status === "active");
+  const openMonthlyIncome = () => {
+    if (!schedulesQ.data || monthlySchedules.length > 1) router.push("/account/income");
+    else setIncomeScreen("monthly");
+  };
   // The pencil and the income pill open the same menu, each under itself.
   const incomeMenu = (trigger: ReactElement, align: "start" | "center" | "end") => (
     <DropdownMenu>
@@ -196,10 +200,7 @@ export function ExpensePage() {
       <DropdownMenuContent align={align} sideOffset={6} className={MENU_POPUP}>
         <DropdownMenuItem
           className={MENU_ITEM}
-          onClick={() => {
-            if (!schedulesQ.data || monthlySchedules.length > 1) router.push("/account/income");
-            else setIncomeScreen("monthly");
-          }}
+          onClick={openMonthlyIncome}
         >
           Change income
         </DropdownMenuItem>
@@ -236,7 +237,7 @@ export function ExpensePage() {
   const hydrated = useSyncExternalStore(noop, () => true, () => false);
   const [rolloverDismissed, setRolloverDismissed] = useDismissedRolloverBanner(`${activeSpace?.id ?? ""}:${thisMonth}`);
   const rollover = hydrated && activeSpace && !rolloverDismissed && !readOnly
-    ? rolloverCard(carryQuery.data, thisMonth, (n) => formatCurrency(n, hideAmounts))
+    ? rolloverCard(carryQuery.data, thisMonth, (n) => formatCurrency(n, hideAmounts), budgetRows)
     : null;
   // Each bump rolls the carry into the category amounts: once when the strip
   // first shows, again whenever it's tapped. Nothing to roll once it's gone.
@@ -255,7 +256,7 @@ export function ExpensePage() {
     const today = new Date().getDate();
     for (const e of envelopeState.envelopes) {
       // Nothing to pace with no money in it: the month's own bar says it better.
-      const pot = e.assigned + e.rolledOver;
+      const pot = e.available + e.spent;
       if (!weekly.has(e.category) || e.isCreditCardPayment || pot <= 0) continue;
       map.set(e.category, weekPace(pot, spendByDay(expenseRows, e.category, thisMonth), thisMonth, today));
     }
@@ -289,16 +290,18 @@ export function ExpensePage() {
     const rows = new Map(categoryRows.map((c) => [c.name, c]));
     const behind = envelopeState.envelopes.flatMap((e) => {
       const row = e.isCreditCardPayment ? undefined : rows.get(e.category);
-      const p = row?.goal ? goalProgress({ goal: row.goal, month: thisMonth, available: e.available, assigned: e.assigned, spent: e.spent, since: row.since }) : null;
+      const p = row?.goal ? goalProgress({ goal: row.goal, month: thisMonth, available: e.available, assigned: e.assigned, spent: e.spent, since: row.since, planPending: e.planPending }) : null;
       return p?.status === "behind" && p.by && p.behindBy ? [{ category: e.category, by: p.by, behindBy: p.behindBy }] : [];
     });
     return fundBehindGoals(envelopeState.readyToAssign, behind);
   }, [envelopeState, onThisMonth, readOnly, categoryRows, thisMonth]);
+  const fundingGoals = useRef(false);
   const goalFundingTotal = goalFunding.reduce((sum, f) => sum + f.amount, 0);
   // Unknown until budgets load; counting it done avoids flashing the income step.
   const incomeDone = !envelopeState || envelopeState.income > 0;
   // Same test as Mobile's Home: income is set and nothing is left to assign.
-  const rtaSettled = !!envelopeState && envelopeState.income > 0 && Math.abs(envelopeState.readyToAssign) < 0.005;
+  // Before payday a ₹0 isn't every rupee given a job: Home keeps saying when the plan fills up.
+  const rtaSettled = !!envelopeState && envelopeState.funded && envelopeState.income > 0 && Math.abs(envelopeState.readyToAssign) < 0.005;
   // Mobile's peak-end beat: Ready to Assign reaching zero while you watch (an
   // assign, a move) gets a short mint celebration on the settled row. Loading
   // in at zero doesn't count: there was no "before" to celebrate.
@@ -339,7 +342,7 @@ export function ExpensePage() {
   const fundDone = !envelopeState || (incomeDone && envelopeState.readyToAssign <= 0);
   // The next empty category on screen, so each tap moves the job along.
   const nextToFund = (envelopeState?.envelopes.find((e) => e.assigned === 0) ?? envelopeState?.envelopes[0])?.category;
-  const upcomingPay = upcomingMonthlyPay(schedulesQ.data ?? [], thisMonth);
+  const upcomingPay = envelopeState && !envelopeState.funded ? upcomingPayday(schedulesQ.data ?? []) : undefined;
   const showGetStarted = !getStartedSkipped && !!user?.getStartedAt &&
     !(incomeDone && fundDone && user.manualTransactionCompletedAt && user.guidedTourCompletedAt);
   // On wide screens with Subscriptions hidden the rail holds only Recent
@@ -404,13 +407,13 @@ export function ExpensePage() {
       let returned = 0;
       const updated = current.envelopes.map((e) => {
         if (e.available <= 0) return e;
-        const { fromAssigned, fromCarry } = splitDebit(e.available, e.assigned, e.rolledOver);
+        const { fromAssigned, fromCarry } = splitDebit(e.available, current.funded || e.isCreditCardPayment ? e.assigned : 0, e.rolledOver);
         returned += fromCarry + (e.isCreditCardPayment ? 0 : fromAssigned);
         const assigned = e.assigned - fromAssigned;
         const spentPct = assigned > 0 ? Math.min(100, (e.spent / assigned) * 100) : e.spent > 0 ? 100 : 0;
         return { ...e, assigned, rolledOver: e.rolledOver - fromCarry, available: 0, spentPct };
       });
-      const totalAssigned = updated.filter((e) => !e.isCreditCardPayment).reduce((sum, e) => sum + e.assigned, 0);
+      const totalAssigned = current.funded ? updated.filter((e) => !e.isCreditCardPayment).reduce((sum, e) => sum + e.assigned, 0) : 0;
       const rta = current.readyToAssign + returned;
       const log = {
         type: "bulk-return-to-rta",
@@ -463,16 +466,19 @@ export function ExpensePage() {
   }
 
   async function fundGoals() {
-    if (!envelopeState) return;
+    // Each transfer adds, so a second tap before budgets refetch would fund it twice.
+    if (!envelopeState || fundingGoals.current) return;
+    fundingGoals.current = true;
     try {
-      // One versioned write per goal, same as tapping each goal's Set.
+      // Same move as Assign money, which puts the money in today even before payday.
       for (const f of goalFunding) {
-        const assigned = envelopeState.envelopes.find((e) => e.category === f.category)?.assigned ?? 0;
-        await setMonthly(f.category, Math.round((assigned + f.amount) * 100) / 100);
+        await transferBudgetM.mutateAsync({ month: thisMonth, to: f.category, sources: [{ category: "__ready_to_assign__", amount: f.amount }] });
       }
       track("rta_goals_funded", { goals: goalFunding.length });
     } catch {
       setActionError("Couldn't fund your goals. Check your connection and try again.");
+    } finally {
+      fundingGoals.current = false;
     }
   }
 
@@ -480,7 +486,7 @@ export function ExpensePage() {
   // Taking back lowers what's assigned, capped at what's left, so it never just moves the hole into an envelope.
   const rtaMenu = (trigger: ReactElement) => {
     const rta = envelopeState?.readyToAssign ?? 0;
-    const picks = (envelopeState?.envelopes ?? []).filter((e) => !e.isCreditCardPayment && (rta > 0 || (e.assigned > 0 && e.available > 0)));
+    const picks = (envelopeState?.envelopes ?? []).filter((e) => !e.isCreditCardPayment && (rta > 0 || (e.assigned > 0 && e.available > 0 && envelopeState?.funded)));
     return (
       <DropdownMenu>
         <DropdownMenuTrigger render={trigger} />
@@ -567,10 +573,10 @@ export function ExpensePage() {
             incomeDone={incomeDone}
             fundDone={fundDone}
             fundHint={envelopeState && envelopeState.income > 0 ? `${formatCurrency(envelopeState.readyToAssign, hideAmounts)} still to assign` : undefined}
-            upcomingPayHint={upcomingPay ? `Your pay lands ${paydayLabel(upcomingPay.start_date)}. Budget what you have till then.` : undefined}
+            upcomingPayHint={upcomingPay ? `Your pay lands ${paydayLabel(upcomingPay.next_run_date)}. Budget what you have till then.` : undefined}
             manualTransactionDone={!!user.manualTransactionCompletedAt}
             guidedTourDone={!!user.guidedTourCompletedAt}
-            onAddIncome={() => setIncomeScreen(upcomingPay ? "starting" : "monthly")}
+            onAddIncome={() => (upcomingPay ? setIncomeScreen("starting") : openMonthlyIncome())}
             onFund={() => (nextToFund ? setAssignTarget(nextToFund) : router.push("/expense/envelopes"))}
             onAddTransaction={() => setShowLogModal(true)}
             onTakeTour={() => router.push('/account/guided-tour')}
@@ -677,15 +683,15 @@ export function ExpensePage() {
                         number comes from. With no income yet it goes straight to
                         setting it. */}
                     <div className="env-action-wrap erd-home-pill-wrap">
-                      {envelopeState.income === 0 ? (
-                        <button type="button" className="erd-home-income-pill is-empty" onClick={() => setIncomeScreen("monthly")}>
+                      {envelopeState.income === 0 && !upcomingPay ? (
+                        <button type="button" className="erd-home-income-pill is-empty" onClick={openMonthlyIncome}>
                           Set your income
                           <CaretRightIcon size={14} aria-hidden="true" />
                         </button>
                       ) : (
                         incomeMenu(
                           <button type="button" className="erd-home-income-pill">
-                            {`Income · ${formatCurrency(envelopeState.income, hideAmounts)}`}
+                            {upcomingPay ? `Your plan fills up ${paydayLabel(upcomingPay.next_run_date)}` : `Income · ${formatCurrency(envelopeState.income, hideAmounts)}`}
                             <CaretRightIcon size={14} aria-hidden="true" />
                           </button>,
                           "center",
@@ -981,7 +987,7 @@ export function ExpensePage() {
             <AddIncomeScreen onClose={() => setIncomeScreen(null)} />
           )}
           {incomeScreen === "starting" && upcomingPay && (
-            <AddIncomeScreen onClose={() => setIncomeScreen(null)} defaultLabel="Starting balance" intro={startingBalanceIntro(upcomingPay.start_date)} />
+            <AddIncomeScreen onClose={() => setIncomeScreen(null)} defaultLabel="Starting balance" intro={startingBalanceIntro(upcomingPay.next_run_date)} />
           )}
           {incomeScreen === "monthly" && envelopeState && (
             <RecurringIncomeModal

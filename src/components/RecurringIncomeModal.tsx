@@ -91,8 +91,8 @@ export function RecurringIncomeModal({ id, initial, onClose }: Props) {
 
   const hint =
     frequency === 'monthly'
-      ? "Counts toward Ready to Assign from the 1st of every month. We'll record it on payday."
-      : 'Lands in Ready to Assign on every payday.'
+      ? 'Lands on payday, and your plan fills up right then.'
+      : 'Lands on every payday. The first one each month fills up your plan.'
 
   return (
     <Scrim className="erd-modal-overlay" onClick={busy ? undefined : onClose}>
@@ -167,7 +167,7 @@ export function RecurringIncomeModal({ id, initial, onClose }: Props) {
             <div className="recurring-danger-zone">
               {confirmingDelete ? (
                 <div className="account-confirm-panel">
-                  <div className="account-confirm-copy">Remove &quot;{existing.label}&quot;? It still counts this month and stops from next month.</div>
+                  <div className="account-confirm-copy">Remove &quot;{existing.label}&quot;? Pay that already landed stays, and nothing new lands.</div>
                   <div className="account-confirm-actions">
                     <button type="button" className="account-confirm-cancel" disabled={busy} onClick={() => setConfirmingDelete(false)}>Back</button>
                     <button type="button" className="account-danger-btn" disabled={busy} onClick={() => runAction('delete')}>

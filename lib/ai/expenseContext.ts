@@ -60,6 +60,7 @@ export interface BudgetDocRow {
   assigned: number
   rolled_over: number
   extra?: number
+  landed?: number
 }
 
 export interface CategoryDocRow {
@@ -242,6 +243,7 @@ export function summarizeExpenses(input: SummarizeExpensesInput): SummarizeExpen
     assigned: String(b.assigned ?? 0),
     rolled_over: String(b.rolled_over ?? 0),
     extra: String(b.extra ?? 0),
+    landed: String(b.landed ?? 0),
     version: 0,
   }))
 
@@ -281,7 +283,8 @@ export function summarizeExpenses(input: SummarizeExpensesInput): SummarizeExpen
     '',
     envelopeState.incomeExtra === 0
       ? `INCOME: ${round(income)}`
-      : `INCOME: ${round(income)} (monthly ${round(envelopeState.incomeBase)}, recurs; plus one-off ${round(envelopeState.incomeExtra)} this month only)`,
+      : `INCOME: ${round(income)} (paydays ${round(envelopeState.incomeBase)}; plus one-off ${round(envelopeState.incomeExtra)} this month only)`,
+    ...(envelopeState.funded ? [] : ['PAY: no payday has landed yet this month. Categories hold only what carried from last month. Their assigned amounts are the plan, and become money when pay lands.']),
     `ASSIGNED THIS MONTH: ${round(envelopeState.totalAssigned)}`,
     `READY TO ASSIGN: ${round(envelopeState.readyToAssign)} (income not given to any category yet, including ${round(envelopeState.carriedReadyToAssign)} carried from last month; whatever is left carries into next month)`,
     ccEnvelope
@@ -289,7 +292,7 @@ export function summarizeExpenses(input: SummarizeExpensesInput): SummarizeExpen
       : 'CREDIT CARD: no activity',
   ]
 
-  const envelopeLines = ['CATEGORIES (category|group|assigned|carried from last month|spent|available|overspent; available = assigned + carried - spent, and carries into next month):']
+  const envelopeLines = ['CATEGORIES (category|group|assigned|carried from last month|spent|available|overspent; available = assigned + carried - spent once pay has landed, and carries into next month):']
   for (const e of envelopeState.envelopes) {
     if (e.isCreditCardPayment) continue // reported separately in the header, not a spending envelope
     envelopeLines.push(
@@ -558,6 +561,7 @@ export async function buildExpenseContext(
     assigned: Number(d.assigned) || 0,
     rolled_over: Number(d.rolled_over) || 0,
     extra: Number(d.extra) || 0,
+    landed: Number(d.landed) || 0,
   }))
 
   const categories: CategoryDocRow[] = categoryDocs

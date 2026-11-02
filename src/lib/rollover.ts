@@ -3,7 +3,8 @@
  * the server (GET /api/budgets/carry, see lib/budgetCarry.ts); this only says
  * them. Twin of Mobile's src/lib/rollover.ts: keep the copy identical.
  */
-import { prevMonthKey, type Carry } from './envelope'
+import { INCOME_CATEGORY, prevMonthKey, type Carry } from './envelope'
+import type { BudgetRow } from '@/src/types'
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -31,9 +32,20 @@ export function rolledOverLine(rolledOver: number, month: string, money: Money):
  * Null when nothing rolled (including every month up to the rollover start,
  * where the server returns an empty carry).
  */
-export function rolloverCard(carry: Carry | undefined, month: string, money: Money): string | null {
+export function rolloverCard(carry: Carry | undefined, month: string, money: Money, budgets: BudgetRow[] = []): string | null {
   if (!carry) return null
-  const amounts = [...Object.values(carry.rolled_over), carry.ready_to_assign]
+  // The carry includes this month's moves (a row's `rolled_over`). Those aren't
+  // what rolled in, so they come back out: money assigned before payday from a
+  // one-off would otherwise read as rolled over and short at once.
+  const rolled = { ...carry.rolled_over }
+  let ready = carry.ready_to_assign
+  for (const b of budgets) {
+    const moved = b.month === month && b.category !== INCOME_CATEGORY ? Number(b.rolled_over) || 0 : 0
+    if (!moved) continue
+    rolled[b.category] = (rolled[b.category] ?? 0) - moved
+    ready += moved
+  }
+  const amounts = [...Object.values(rolled), ready]
   const round = (n: number) => Math.round(n * 100) / 100
   const ahead = round(amounts.filter((n) => n > 0).reduce((s, n) => s + n, 0))
   const short = round(-amounts.filter((n) => n < 0).reduce((s, n) => s + n, 0))

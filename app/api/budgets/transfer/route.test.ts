@@ -233,6 +233,7 @@ describe('POST /api/budgets/transfer', () => {
   it('moving carried money takes it from this month\'s carry, never below a 0 target', async () => {
     // Travel: 1000 a month, 1000 carried from October, so 2000 available.
     store.push({ _id: 1, month: '2026-10', category: 'Travel', assigned: '1000', rolled_over: '0' })
+    store.push({ _id: 2, month: '2026-11', category: '__income__', assigned: '5000', landed: '5000', rolled_over: '0' })
     carryRolledOver = { Travel: 1000 }
 
     const res = await POST(req({ month: '2026-11', to: 'Food', from: 'Travel', amount: 2000 }))
@@ -262,6 +263,7 @@ describe('POST /api/budgets/transfer', () => {
 
   it('covering last month\'s shortfall fixes this month only, not the monthly target', async () => {
     store.push({ _id: 1, month: '2026-10', category: 'Food', assigned: '300', rolled_over: '0' })
+    store.push({ _id: 2, month: '2026-11', category: '__income__', assigned: '5000', landed: '5000', rolled_over: '0' })
     carryRolledOver = { Food: -20 }
 
     await POST(req({ month: '2026-11', to: 'Food', from: '__ready_to_assign__', amount: 50 }))
@@ -273,6 +275,25 @@ describe('POST /api/budgets/transfer', () => {
 
 describe('POST /api/budgets/transfer — amounts that are not money', () => {
   const raw = (body: string) => new Request('https://example.com/api/budgets/transfer', { method: 'POST', headers: { 'content-type': 'application/json' }, body })
+
+  it('before payday, a move only shifts carried money and leaves both plans whole', async () => {
+    store.push({ _id: 1, month: '2026-10', category: 'Travel', assigned: '1000', rolled_over: '0' })
+    store.push({ _id: 2, month: '2026-10', category: 'Food', assigned: '300', rolled_over: '0' })
+    carryRolledOver = { Travel: 500 }
+
+    await POST(req({ month: '2026-11', to: 'Food', from: 'Travel', amount: 200 }))
+
+    expect(row('2026-11', 'Travel')).toMatchObject({ assigned: '1000', rolled_over: '-200' })
+    expect(row('2026-11', 'Food')).toMatchObject({ assigned: '300', rolled_over: '200' })
+  })
+
+  it('before payday, assigning from Ready to Assign puts the money in now without raising the plan', async () => {
+    store.push({ _id: 1, month: '2026-10', category: 'Food', assigned: '300', rolled_over: '0' })
+
+    await POST(req({ month: '2026-11', to: 'Food', from: '__ready_to_assign__', amount: 50 }))
+
+    expect(row('2026-11', 'Food')).toMatchObject({ assigned: '300', rolled_over: '50' })
+  })
 
   it('rejects an amount that overflows to Infinity, leaving nothing stored', async () => {
     const res = await POST(raw('{"month":"2026-10","to":"Food","sources":[{"category":"__ready_to_assign__","amount":1e999}]}'))

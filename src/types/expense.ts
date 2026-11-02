@@ -16,12 +16,14 @@ export interface Envelope {
   spentPct: number
   isCreditCardPayment?: boolean
   lastSpentDate?: string
+  planPending?: boolean
 }
 
 export interface EnvelopeState {
   month: string
   income: number
   incomeBase: number
+  funded: boolean
   incomeExtra: number
   totalAssigned: number
   totalSpent: number

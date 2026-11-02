@@ -1,6 +1,6 @@
 import { json, error, readBody, getCollection } from '@/lib/http'
 import { carriedAssigned, computeCarry } from '@/lib/budgetCarry'
-import { splitDebit } from '@/src/lib/envelope'
+import { CREDIT_CARD_CATEGORY, INCOME_CATEGORY, isFunded, splitDebit } from '@/src/lib/envelope'
 import { getAuth, readOnlyGuard } from '@/lib/access'
 import { requireAccess } from '@/lib/billing/guard'
 import { invalidate } from '@/lib/cache'
@@ -80,6 +80,11 @@ export async function POST(req: Request) {
   const carry = (await computeCarry(auth, month)).rolled_over
 
   await withTx(async (session) => {
+    // Before payday an envelope's `assigned` is only its plan, so everything
+    // moved is carried money and the plan stays whole for payday.
+    const funded = isFunded(month, await budgetColl.findOne({ month, category: INCOME_CATEGORY }, { session }))
+    const held = (category: string, assigned: number) => (funded || category === CREDIT_CARD_CATEGORY ? assigned : 0)
+
     // Debit every non-RTA source. A concurrent insert for the same
     // month+category (the no-row-yet branch below) is caught via the unique
     // partial index and retried as an update — same pattern as the target
@@ -94,7 +99,7 @@ export async function POST(req: Request) {
         const carried = carry[source.category] ?? 0
         if (existing) {
           const current = Number(existing.assigned) || 0
-          const { fromAssigned, fromCarry } = splitDebit(source.amount, current, carried)
+          const { fromAssigned, fromCarry } = splitDebit(source.amount, held(source.category, current), carried)
           await budgetColl.updateOne(
             { _id: existing._id },
             {
@@ -111,7 +116,7 @@ export async function POST(req: Request) {
         // src/lib/envelope.ts::carriedAssigned). Materialize that row now so
         // debiting it here matches what was on screen instead of 404ing.
         const target = await carriedAssigned(budgetColl, source.category, month, session)
-        const { fromAssigned, fromCarry } = splitDebit(source.amount, target, carried)
+        const { fromAssigned, fromCarry } = splitDebit(source.amount, held(source.category, target), carried)
         try {
           await budgetColl.insertOne(
             { month, category: source.category, assigned: String(round2(target - fromAssigned)), rolled_over: String(-fromCarry), version: 1 },
@@ -131,7 +136,7 @@ export async function POST(req: Request) {
     // returning money there intentionally has no target row to credit. Money
     // covering a shortfall carried from last month fixes this month's carry
     // only; the rest tops up `assigned`.
-    const toCarry = round2(Math.min(totalAmount, Math.max(-(carry[to] ?? 0), 0)))
+    const toCarry = funded || to === CREDIT_CARD_CATEGORY ? round2(Math.min(totalAmount, Math.max(-(carry[to] ?? 0), 0))) : totalAmount
     const toAssigned = round2(totalAmount - toCarry)
     if (to !== RTA_SENTINEL) await casRetry<'done'>(async () => {
       const existing = await budgetColl.findOne({ month, category: to }, { session })

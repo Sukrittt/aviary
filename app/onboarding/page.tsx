@@ -5,13 +5,16 @@ import { CurrencyScope, useCurrency } from '@/src/context/CurrencyContext'
 
 import { useEffect, useId, useRef, useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { ArrowLeftIcon, CheckIcon, CopyIcon, FolderOpenIcon, MoneyWavyIcon, PencilSimpleIcon, PlusIcon, TagIcon, CardholderIcon } from '@/src/components/icons'
+import { ArrowLeftIcon, CaretDownIcon, CheckIcon, CopyIcon, FolderOpenIcon, MoneyWavyIcon, PencilSimpleIcon, PlusIcon, TagIcon, CardholderIcon } from '@/src/components/icons'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import '../../src/expense-redesign.css'
 
 import { currentMonthKey, INCOME_CATEGORY } from '../../src/lib/envelope'
 import { getBudgets, updateBudget } from '../../src/api/budgets'
+import { addRecurringIncome } from '../../src/api/incomes'
+import { todayLocal } from '../../src/lib/date'
+import { ordinal, paydayHint, paydayInMonth } from '../../src/lib/upcomingPay'
 import { addGroup } from '../../src/api/groups'
 import { addCategory, getSplitBuckets } from '../../src/api/categories'
 import { normName, suggestSplit, unknownCategories, type BucketTags } from '../../src/lib/budgetSplit'
@@ -130,7 +133,7 @@ const STEP_NAMES = ['currency', 'income', 'groups', 'categories', 'assign'] as c
 
 const TITLES: Record<number, [string, string]> = {
   0: ['Choose your currency', 'The currency you use for your budget. You can change it later in Account.'],
-  1: ['What lands each month?', 'Your take-home income. This becomes the pot you assign from. Not sure yet? Skip it and add it from Home later.'],
+  1: ['What lands each month?', 'Your take-home income. Your plan fills up the day it lands. Not sure yet? Skip it and add it from Home later.'],
   2: ['Group your money', 'Groups are the big buckets. Accept these or rename them to fit your life.'],
   3: ['Add your categories', 'These are the buckets you actually spend from. Pick the ones you recognize.'],
   4: ['Here’s your plan', 'We split your income across your categories. Keep it, or change any amount.'],
@@ -159,6 +162,8 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
   // it, setup finishes from the income step on the starter budget.
   const [custom, setCustom] = useState(false)
   const [income, setIncome] = useState('')
+  // The day of the month pay lands. Today unless they say otherwise, so a pay already in counts.
+  const [payday, setPayday] = useState(() => Number(todayLocal().slice(8, 10)))
   // Drive AmountTicker's roll/flash/delta animation, same as mobile: `tick`
   // replays it, `dir` picks the roll direction, `delta` (quick-pick jumps
   // only) floats a badge.
@@ -517,6 +522,11 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
         return
       }
       const month = currentMonthKey()
+      // Before the budget rows, or the server would mint a second schedule from
+      // the income row, and because a pay already in moves that row's version.
+      if (incomeValue > 0) {
+        await addRecurringIncome({ label: 'Monthly income', amount: String(incomeValue), frequency: 'monthly', start_date: paydayInMonth(payday, todayLocal()), anchor_day: payday, client_id: 'onboarding-income' })
+      }
       const budgetVersions = new Map(
         (await getBudgets()).map((row) => [`${row.month}\u0000${row.category}`, row.version]),
       )
@@ -739,6 +749,22 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
               </motion.button>
             ))}
           </div>
+          {income && (
+            <div className="setup-payday">
+              <label className="setup-payday-line">
+                Lands on the
+                <span className="setup-payday-pill">
+                  {ordinal(payday)}
+                  <CaretDownIcon size={12} weight="bold" aria-hidden="true" />
+                  {/* Invisible on top of the pill: the native list, keyboard and screen reader support stay. */}
+                  <select aria-label="Payday" value={payday} onChange={(e) => setPayday(Number(e.target.value))}>
+                    {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => <option key={d} value={d}>{ordinal(d)}</option>)}
+                  </select>
+                </span>
+              </label>
+              <p className="setup-amount-hint">{paydayHint(payday, todayLocal())}</p>
+            </div>
+          )}
         </div>
       )}
 

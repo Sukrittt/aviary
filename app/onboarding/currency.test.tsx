@@ -6,6 +6,7 @@ import { updateUser } from '@/src/api/account'
 import { completeOnboarding } from '@/src/api/billing'
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ replace: vi.fn() }) }))
+vi.mock('@/src/api/incomes', () => ({ addRecurringIncome: vi.fn(async () => undefined) }))
 vi.mock('@/src/api/budgets', () => ({
   getBudgets: vi.fn(async () => []),
   updateBudget: vi.fn(async () => ({})),

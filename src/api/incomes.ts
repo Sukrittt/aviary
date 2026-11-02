@@ -19,6 +19,10 @@ export interface RecurringIncomeInput {
   start_date: string
   end_date?: string
   account_id?: string
+  /** The day later paydays fall on, when `start_date` was clamped short of it. */
+  anchor_day?: number
+  /** Names the intent, so a retried create returns the schedule it already made. */
+  client_id?: string
 }
 
 export class IncomeWriteError extends Error {

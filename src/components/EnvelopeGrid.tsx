@@ -77,7 +77,7 @@ function WeekBreakdown({ pace, e, money }: { pace: WeekPace; e: Envelope; money:
   const last = pace.weeks.length - 1
   return (
     <div className="env2-weeks">
-      <div className="env2-weeks-month">{money(e.spent)} of {money(e.assigned + e.rolledOver)} this month</div>
+      <div className="env2-weeks-month">{money(e.spent)} of {money(e.available + e.spent)} this month</div>
       {pace.weeks.map((w, i) => ({ w, i })).filter(({ w, i }) => w.spent !== 0 || i === last).map(({ w, i }) => {
         const isNow = i === last
         const result = weekResult(w, isNow, pace.left, money)
@@ -192,7 +192,7 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
     // Home keeps the month for every row; a weekly row adds a pace tick and
     // tones bar and pill by month pace. The weeks live in the row's menu.
     const row = isCC ? undefined : categoryByName.get(e.category)
-    const goal = row?.goal ? goalProgress({ goal: row.goal, month: goalMonth, available: e.available, assigned: e.assigned, spent: e.spent, since: row.since }) : null
+    const goal = row?.goal ? goalProgress({ goal: row.goal, month: goalMonth, available: e.available, assigned: e.assigned, spent: e.spent, since: row.since, planPending: e.planPending }) : null
     // A goal row is about filling up, so its bar and line say that instead of spending or pace.
     const pace = isCC || goal ? undefined : paces?.get(e.category)
     const todo = row?.note ? checklistCount(row.note) : null
