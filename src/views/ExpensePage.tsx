@@ -305,7 +305,7 @@ export function ExpensePage() {
   const rtaSettled = !!envelopeState && (envelopeState.income > 0 || !!upcomingPay) && Math.abs(envelopeState.readyToAssign) < 0.005;
   // Once per space and payday, so next month's strip starts undismissed on its own.
   const [planFillsDismissed, setPlanFillsDismissed] = useDismissedRolloverBanner(`plan-fills-${activeSpace?.id ?? ""}:${upcomingPay?.next_run_date ?? ""}`);
-  const planFills = hydrated && !planFillsDismissed ? upcomingPay : undefined;
+  const planFills = hydrated && activeSpace && !planFillsDismissed ? upcomingPay : undefined;
   // Mobile's peak-end beat: Ready to Assign reaching zero while you watch (an
   // assign, a move) gets a short mint celebration on the settled row. Loading
   // in at zero doesn't count: there was no "before" to celebrate.
