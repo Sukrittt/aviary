@@ -1,5 +1,5 @@
 import { beforeEach, expect, it, vi } from 'vitest'
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { renderToString } from 'react-dom/server'
@@ -478,21 +478,30 @@ it('offers to take money back when Ready to Assign is negative', async () => {
   client.clear()
 })
 
-it("before payday, a ₹0 Ready to Assign keeps saying when the plan fills up", async () => {
+it("before payday, a ₹0 Ready to Assign is still the slim row, and an Okay puts the payday strip away", async () => {
+  // Nothing has landed, so income reads 0 too: the screenshot's case.
   vi.mocked(getBudgets).mockResolvedValue([
-    { month, category: '__income__', assigned: '20000', extra: '800', rolled_over: '0', version: 1 },
-    { month, category: 'Food', assigned: '5000', rolled_over: '800', version: 1 },
+    { month, category: '__income__', assigned: '20000', rolled_over: '0', version: 1 },
+    { month, category: 'Food', assigned: '5000', rolled_over: '0', version: 1 },
   ])
-  vi.mocked(getCarry).mockResolvedValue({ ready_to_assign: -800, rolled_over: { Food: 800 } })
+  vi.mocked(getCarry).mockResolvedValue({ ready_to_assign: 0, rolled_over: {} })
   const next_run_date = `${month}-28`
   vi.mocked(getRecurringIncomes).mockResolvedValue([{ id: 'r1', label: 'Salary', amount: '20000', frequency: 'monthly', status: 'active', start_date: `${previous}-28`, end_date: '', next_run_date, account_id: '', created_at: '' }])
+  const user = userEvent.setup()
   const client = renderPage()
-  expect(await screen.findByRole('button', { name: `Your plan fills up ${paydayLabel(next_run_date)}` })).toBeInTheDocument()
+  const strip = `Your plan fills up ${paydayLabel(next_run_date)}.`
+  expect(await screen.findByText(strip)).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Ready to Assign options' })).toBeInTheDocument()
+  expect(screen.queryByText('READY TO ASSIGN')).not.toBeInTheDocument()
+
+  await user.click(within(screen.getByText(strip).closest('.home-forecast-warning') as HTMLElement).getByRole('button', { name: 'Okay' }))
+  await waitFor(() => expect(screen.queryByText(strip)).not.toBeInTheDocument())
+  expect(screen.getByRole('button', { name: 'Ready to Assign options' })).toBeInTheDocument()
   vi.mocked(getRecurringIncomes).mockResolvedValue([])
   client.clear()
 })
 
-it('before payday, says when the plan fills up instead of asking for income', async () => {
+it('before payday, the income pill leaves the payday to the strip instead of asking for income', async () => {
   vi.mocked(getBudgets).mockResolvedValue([
     { month: previous, category: '__income__', assigned: '20000', rolled_over: '0', version: 1 },
     { month: previous, category: 'Food', assigned: '5000', rolled_over: '0', version: 1 },
@@ -501,7 +510,8 @@ it('before payday, says when the plan fills up instead of asking for income', as
   const next_run_date = `${month}-28`
   vi.mocked(getRecurringIncomes).mockResolvedValue([{ id: 'r1', label: 'Salary', amount: '20000', frequency: 'monthly', status: 'active', start_date: `${previous}-28`, end_date: '', next_run_date, account_id: '', created_at: '' }])
   const client = renderPage()
-  expect(await screen.findByRole('button', { name: `Your plan fills up ${paydayLabel(next_run_date)}` })).toBeInTheDocument()
+  // A schedule's set, so nothing to set: the pill opens the income options, and the strip says when.
+  expect(await screen.findByRole('button', { name: 'Manage income' })).toBeInTheDocument()
   // Only what carried in: the 5000 for Food waits for payday.
   expect(screen.getByLabelText('₹800')).toBeInTheDocument()
   expect(screen.queryByText('Set your income')).not.toBeInTheDocument()

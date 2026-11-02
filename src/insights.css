@@ -1048,7 +1048,8 @@
 /* Home's run-out heads-up: the slim Ready to Assign row, with the line linking
    to Insights and Okay dismissing it, like the savings strip's Nice. */
 .expense-redesign .home-forecast-warning { gap: 16px; cursor: default; }
-.expense-redesign .home-forecast-warning a { flex: 1; display: flex; align-items: center; color: inherit; text-decoration: none; }
+.expense-redesign .home-forecast-warning a,
+.expense-redesign .home-forecast-warning > span { flex: 1; display: flex; align-items: center; color: inherit; text-decoration: none; }
 .expense-redesign .home-forecast-warning .erd-rta-icon { flex: none; }
 .expense-redesign .home-forecast-warning button {
   border: 0;

@@ -8,7 +8,7 @@ import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "motion/r
 import { AmountText, CheckIcon } from "../components/landing/mobile/kit";
 import { track } from "../lib/analytics";
 import { currencyUnit } from "../lib/currencies";
-import { CaretRightIcon, GearIcon, HouseIcon, InvoiceIcon, MoneyWavyIcon, MoonIcon, PencilSimpleIcon, SunIcon } from "@/src/components/icons";
+import { CalendarBlankIcon, CaretRightIcon, GearIcon, HouseIcon, InvoiceIcon, MoneyWavyIcon, MoonIcon, PencilSimpleIcon, SunIcon } from "@/src/components/icons";
 import { useAppearance } from "../../components/AppearanceProvider";
 
 import { FluidDemo } from "../components/FluidDemo";
@@ -300,8 +300,12 @@ export function ExpensePage() {
   // Unknown until budgets load; counting it done avoids flashing the income step.
   const incomeDone = !envelopeState || envelopeState.income > 0;
   // Same test as Mobile's Home: income is set and nothing is left to assign.
-  // Before payday a ₹0 isn't every rupee given a job: Home keeps saying when the plan fills up.
-  const rtaSettled = !!envelopeState && envelopeState.funded && envelopeState.income > 0 && Math.abs(envelopeState.readyToAssign) < 0.005;
+  // Before payday income can still read 0, but a coming pay means it's set: the plan-fills strip says when.
+  const upcomingPay = envelopeState && !envelopeState.funded ? upcomingPayday(schedulesQ.data ?? []) : undefined;
+  const rtaSettled = !!envelopeState && (envelopeState.income > 0 || !!upcomingPay) && Math.abs(envelopeState.readyToAssign) < 0.005;
+  // Once per space and payday, so next month's strip starts undismissed on its own.
+  const [planFillsDismissed, setPlanFillsDismissed] = useDismissedRolloverBanner(`plan-fills-${activeSpace?.id ?? ""}:${upcomingPay?.next_run_date ?? ""}`);
+  const planFills = hydrated && !planFillsDismissed ? upcomingPay : undefined;
   // Mobile's peak-end beat: Ready to Assign reaching zero while you watch (an
   // assign, a move) gets a short mint celebration on the settled row. Loading
   // in at zero doesn't count: there was no "before" to celebrate.
@@ -342,7 +346,6 @@ export function ExpensePage() {
   const fundDone = !envelopeState || (incomeDone && envelopeState.readyToAssign <= 0);
   // The next empty category on screen, so each tap moves the job along.
   const nextToFund = (envelopeState?.envelopes.find((e) => e.assigned === 0) ?? envelopeState?.envelopes[0])?.category;
-  const upcomingPay = envelopeState && !envelopeState.funded ? upcomingPayday(schedulesQ.data ?? []) : undefined;
   const showGetStarted = !getStartedSkipped && !!user?.getStartedAt &&
     !(incomeDone && fundDone && user.manualTransactionCompletedAt && user.guidedTourCompletedAt);
   // On wide screens with Subscriptions hidden the rail holds only Recent
@@ -691,7 +694,7 @@ export function ExpensePage() {
                       ) : (
                         incomeMenu(
                           <button type="button" className="erd-home-income-pill">
-                            {upcomingPay ? `Your plan fills up ${paydayLabel(upcomingPay.next_run_date)}` : `Income · ${formatCurrency(envelopeState.income, hideAmounts)}`}
+                            {envelopeState.income === 0 ? "Manage income" : `Income · ${formatCurrency(envelopeState.income, hideAmounts)}`}
                             <CaretRightIcon size={14} aria-hidden="true" />
                           </button>,
                           "center",
@@ -781,6 +784,32 @@ export function ExpensePage() {
                     }}
                   >
                     <RolloverCard text={rollover} onReplay={() => setRollReplays((n) => n + 1)} onDone={() => setRolloverDismissed(true)} />
+                  </motion.div>
+                ) : planFills ? (
+                  <motion.div
+                    key="plan-fills"
+                    className="home-leftover-slot"
+                    initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.22, ease: "easeOut" }}
+                    exit={reduceMotion ? { opacity: 0 } : {
+                      x: "100%", opacity: 0, height: 0, marginBottom: -20,
+                      transition: {
+                        x: { duration: 0.3, ease: [0.4, 0, 1, 1] },
+                        opacity: { duration: 0.3 },
+                        height: { delay: 0.22, duration: 0.32, ease: [0.22, 1, 0.36, 1] },
+                        marginBottom: { delay: 0.22, duration: 0.32, ease: [0.22, 1, 0.36, 1] },
+                      },
+                    }}
+                  >
+                    {/* Same shape and Okay as the forecast strip. */}
+                    <div className="erd-card erd-home-rta-slim home-forecast-warning">
+                      <span>
+                        <span className="erd-rta-icon" aria-hidden="true"><CalendarBlankIcon size={18} /></span>
+                        {`Your plan fills up ${paydayLabel(planFills.next_run_date)}.`}
+                      </span>
+                      <button type="button" onClick={() => setPlanFillsDismissed(true)}>Okay</button>
+                    </div>
                   </motion.div>
                 ) : recap ? (
                   <motion.div
