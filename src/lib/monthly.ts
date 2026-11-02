@@ -4,6 +4,7 @@
 import {
   computeEnvelopeState,
   currentMonthKey,
+  incomeBaseOf,
   shiftMonthKey,
   CREDIT_CARD_CATEGORY,
   INCOME_CATEGORY,
@@ -203,8 +204,11 @@ export function savingsTrend(
   groupNames: string[],
   currentMonth: string,
 ): SavingsTrend {
+  // A finished month's expected pay isn't income: it never landed. This month's
+  // still counts, or Insights would ask you to add pay that's on its way, and
+  // that would count twice once it lands.
   const since = budgetRows
-    .filter((b) => b.category === INCOME_CATEGORY && Number(b.assigned) + (Number(b.extra) || 0) + (Number(b.landed) || 0) > 0 && b.month <= currentMonth)
+    .filter((b) => b.category === INCOME_CATEGORY && b.month <= currentMonth && incomeBaseOf(b.month, b) + (Number(b.extra) || 0) + (b.month === currentMonth ? Number(b.assigned) || 0 : 0) > 0)
     .reduce<string | null>((first, b) => (first == null || b.month < first ? b.month : first), null)
   const missingIncome = [
     ...new Set(
