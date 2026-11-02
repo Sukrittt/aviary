@@ -47,6 +47,7 @@ function inputError(body: Record<string, unknown>, partial: boolean): string | n
   if (body.end_date !== undefined && body.end_date !== '' && !validDate(body.end_date)) return 'end_date must be YYYY-MM-DD'
   if (body.status !== undefined && !STATUSES.has(String(body.status))) return 'status must be active, paused or ended'
   if (body.client_id !== undefined && !validText(body.client_id, 100)) return 'invalid client_id'
+  if (body.anchor_day !== undefined && !(Number.isInteger(body.anchor_day) && Number(body.anchor_day) >= 1 && Number(body.anchor_day) <= 31)) return 'anchor_day must be a day of the month'
   return null
 }
 
@@ -82,6 +83,7 @@ export async function POST(req: Request) {
     end_date: endDate,
     account_id: account,
     ...(body.client_id !== undefined ? { client_id: String(body.client_id) } : {}),
+    ...(body.anchor_day !== undefined ? { anchor_day: Number(body.anchor_day) } : {}),
   })
   return json({ ok: true, id })
 }

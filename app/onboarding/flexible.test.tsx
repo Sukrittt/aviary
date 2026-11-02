@@ -9,6 +9,7 @@ import { track } from '@/src/lib/analytics'
 import { addRecurringIncome } from '@/src/api/incomes'
 import { INCOME_CATEGORY } from '@/src/lib/envelope'
 import { todayLocal } from '@/src/lib/date'
+import { paydayHint, paydayInMonth } from '@/src/lib/upcomingPay'
 
 vi.mock('@/src/api/incomes', () => ({ addRecurringIncome: vi.fn(async () => undefined) }))
 vi.mock('@/src/lib/analytics', () => ({ track: vi.fn(), startTimer: () => () => 7 }))
@@ -61,13 +62,25 @@ describe('flexible setup', () => {
     const rows = assigned()
     expect(rows[INCOME_CATEGORY]).toBe(50000)
     // The pay schedule goes first, so the income row can't mint a second one.
-    expect(addRecurringIncome).toHaveBeenCalledWith({ label: 'Monthly income', amount: '50000', frequency: 'monthly', start_date: todayLocal(), client_id: 'onboarding-income' })
+    expect(addRecurringIncome).toHaveBeenCalledWith({ label: 'Monthly income', amount: '50000', frequency: 'monthly', start_date: todayLocal(), anchor_day: Number(todayLocal().slice(8, 10)), client_id: 'onboarding-income' })
     expect(vi.mocked(addRecurringIncome).mock.invocationCallOrder[0]).toBeLessThan(vi.mocked(updateBudget).mock.invocationCallOrder[0])
     const envelopes = Object.entries(rows).filter(([k]) => k !== INCOME_CATEGORY)
     expect(envelopes).toHaveLength(5)
     expect(envelopes.reduce((n, [, v]) => n + v, 0)).toBe(50000)
     expect(completed()[0]).toMatchObject({ groups_count: 2, categories_count: 5, customized: false, skipped_income: false })
     expect(screen.queryByRole('heading', { name: 'Group your money' })).toBeNull()
+    client.clear()
+  })
+
+  it('asks which day pay lands, and sets the schedule up from it', async () => {
+    const client = start()
+    expect(screen.queryByRole('combobox', { name: 'Payday' })).toBeNull()
+    fireEvent.click(button(/50,000/))
+    fireEvent.change(screen.getByRole('combobox', { name: 'Payday' }), { target: { value: '31' } })
+    expect(screen.getByText(paydayHint(31, todayLocal()))).toBeTruthy()
+    fireEvent.click(button('Finish setup'))
+    await waitFor(() => expect(completed()).toHaveLength(1), { timeout: 3000 })
+    expect(addRecurringIncome).toHaveBeenCalledWith(expect.objectContaining({ start_date: paydayInMonth(31, todayLocal()), anchor_day: 31 }))
     client.clear()
   })
 

@@ -14,7 +14,7 @@ import { currentMonthKey, INCOME_CATEGORY } from '../../src/lib/envelope'
 import { getBudgets, updateBudget } from '../../src/api/budgets'
 import { addRecurringIncome } from '../../src/api/incomes'
 import { todayLocal } from '../../src/lib/date'
-import { DatePicker } from '../../src/components/DatePicker'
+import { ordinal, paydayHint, paydayInMonth } from '../../src/lib/upcomingPay'
 import { addGroup } from '../../src/api/groups'
 import { addCategory, getSplitBuckets } from '../../src/api/categories'
 import { normName, suggestSplit, unknownCategories, type BucketTags } from '../../src/lib/budgetSplit'
@@ -162,7 +162,8 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
   // it, setup finishes from the income step on the starter budget.
   const [custom, setCustom] = useState(false)
   const [income, setIncome] = useState('')
-  const [payday, setPayday] = useState(todayLocal)
+  // The day of the month pay lands. Today unless they say otherwise, so a pay already in counts.
+  const [payday, setPayday] = useState(() => Number(todayLocal().slice(8, 10)))
   // Drive AmountTicker's roll/flash/delta animation, same as mobile: `tick`
   // replays it, `dir` picks the roll direction, `delta` (quick-pick jumps
   // only) floats a badge.
@@ -524,7 +525,7 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
       // Before the budget rows, or the server would mint a second schedule from
       // the income row, and because a pay already in moves that row's version.
       if (incomeValue > 0) {
-        await addRecurringIncome({ label: 'Monthly income', amount: String(incomeValue), frequency: 'monthly', start_date: payday, client_id: 'onboarding-income' })
+        await addRecurringIncome({ label: 'Monthly income', amount: String(incomeValue), frequency: 'monthly', start_date: paydayInMonth(payday, todayLocal()), anchor_day: payday, client_id: 'onboarding-income' })
       }
       const budgetVersions = new Map(
         (await getBudgets()).map((row) => [`${row.month}\u0000${row.category}`, row.version]),
@@ -735,12 +736,6 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
             />
           </label>
           <p className="setup-amount-hint">{income ? '' : 'Type an amount, or pick one below'}</p>
-          {income && (
-            <div className="setup-payday">
-              <div className="erd-log-label">When&apos;s payday?</div>
-              <DatePicker mode="single" value={payday} onChange={setPayday} disableFuture={false} popover />
-            </div>
-          )}
           <div className="setup-quick-row">
             {QUICK_PICKS.map((v) => (
               <motion.button
@@ -754,6 +749,17 @@ function CurrencyWizard({ currencyCode, onCurrencyChange }: { currencyCode: stri
               </motion.button>
             ))}
           </div>
+          {income && (
+            <div className="setup-payday">
+              <label className="setup-payday-line">
+                Lands on the
+                <select aria-label="Payday" value={payday} onChange={(e) => setPayday(Number(e.target.value))}>
+                  {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => <option key={d} value={d}>{ordinal(d)}</option>)}
+                </select>
+              </label>
+              <p className="setup-amount-hint">{paydayHint(payday, todayLocal())}</p>
+            </div>
+          )}
         </div>
       )}
 
