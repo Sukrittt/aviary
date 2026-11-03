@@ -16,6 +16,7 @@ export const CONTENT_SECTIONS = {
       ['/compare/money-manager', 'Aviary vs Money Manager'],
       ['/compare/monefy', 'Monefy alternative'],
       ['/compare/wallet', 'Aviary vs Wallet'],
+      ['/compare/spendee', 'Aviary vs Spendee'],
       ['/compare/goodbudget', 'Aviary vs Goodbudget'],
       ['/compare/axio', 'Aviary vs Axio'],
       ['/compare/budget-spreadsheet', 'Aviary vs a budget spreadsheet'],

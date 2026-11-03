@@ -4,13 +4,14 @@ import type { Envelope } from '@/src/types/expense'
 import type { SummarizeExpensesMeta } from '@/lib/ai/expenseContext'
 
 function envelope(overrides: Partial<Envelope> = {}): Envelope {
+  const { assigned = 1000, rolledOver = 0, spent = 500 } = overrides
   return {
     category: 'Food',
     group: 'Living',
-    assigned: 1000,
-    spent: 500,
-    available: 500,
-    rolledOver: 0,
+    assigned,
+    spent,
+    available: assigned + rolledOver - spent,
+    rolledOver,
     isOverspent: false,
     spentPct: 50,
     ...overrides,
@@ -51,6 +52,21 @@ const MONTH = '2026-08'
 const TODAY = '2026-08-15'
 
 describe('buildNotifications — thresholds', () => {
+  it('before payday, measures against the money held and not the plan (#333)', () => {
+    const notifs = buildNotifications({
+      envelopes: [envelope({ assigned: 5000, rolledOver: 1000, spent: 800, available: 200, planPending: true })],
+      subscriptions: [],
+      categories: [],
+      meta: meta(),
+      prefs: prefs({ bills: false, coach: false }),
+      today: TODAY,
+      month: MONTH,
+    })
+    const [alert] = notifs.filter((n) => n.kind === 'threshold')
+    expect(alert).toMatchObject({ key: `thr:${MONTH}:Food:50`, title: 'Food is at 80%' })
+    expect(alert.body).toContain('800 of ₹1,000')
+  })
+
   it('does not fire below any configured threshold', () => {
     const notifs = buildNotifications({
       envelopes: [envelope({ spentPct: 40, spent: 400 })],

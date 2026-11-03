@@ -3,14 +3,13 @@ import { describe, expect, it, vi } from 'vitest'
 vi.mock('@/lib/access', () => ({ getAuth: vi.fn(async () => ({ userId: 'user_a', readOnly: false, sessionId: null })) }))
 vi.mock('@/lib/billing/guard', () => ({ requireAccess: vi.fn(async () => null) }))
 vi.mock('@/lib/userCurrency', () => ({ nowForUser: async () => ({ date: '2026-10-19', timestamp: '' }) }))
-vi.mock('@/lib/ai/expenseContext', () => ({
-  buildExpenseContext: async () => ({
-    envelopes: [
-      { category: 'Food', available: 5000, isCreditCardPayment: false },
-      { category: 'Card', available: 900, isCreditCardPayment: true },
-    ],
-  }),
+const context = vi.hoisted(() => ({
+  envelopes: [
+    { category: 'Food', available: 5000, isCreditCardPayment: false } as Record<string, unknown>,
+    { category: 'Card', available: 900, isCreditCardPayment: true },
+  ],
 }))
+vi.mock('@/lib/ai/expenseContext', () => ({ buildExpenseContext: async () => context }))
 
 // Mongo hands back strings for encrypted numbers; the route has to coerce them.
 const docs: Record<string, Record<string, unknown>[]> = {
@@ -45,5 +44,12 @@ describe('GET /api/forecast', () => {
       { category: 'Food', available: 5000, scheduled: 400, usualDaily: 100, projected: 3400, runsOutOn: null, overspent: false },
     ])
     expect(body.nextMonth).toEqual({ month: '2026-11', income: 80000, spokenFor: 400, free: 79600 })
+  })
+
+  it('passes the pending plan through, so payday counts in the forecast', async () => {
+    context.envelopes[0] = { category: 'Food', available: 5000, assigned: 6000, planPending: true, isCreditCardPayment: false }
+    docs.recurring_incomes[0].next_run_date = '2026-10-25'
+    const body = await (await GET(new Request('https://example.com/api/forecast'))).json()
+    expect(body.envelopes[0]).toMatchObject({ available: 5000, projected: 9400, runsOutOn: null })
   })
 })

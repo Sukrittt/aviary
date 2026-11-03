@@ -328,3 +328,73 @@ describe('forecast', () => {
     })
   })
 })
+
+describe('forecast before payday', () => {
+  const NOV_3 = { today: '2026-11-03', firstExpenseDate: '2026-01-01' }
+  /** Usually 5,400 after the 3rd: 200 a day over November's 27 days left. */
+  const usual = ['08', '09', '10'].map((m) => ({ date: `2026-${m}-25`, amount_inr: 5400, category: 'Food' }))
+  const pending = (available: number, assigned = 6000) => ({ ...env('Food', available), assigned, planPending: true })
+  const payday = (next_run_date: string, over: Partial<ForecastInput['recurringIncomes'][number]> = {}) => ({
+    amount: 80000,
+    frequency: 'monthly',
+    start_date: '2026-01-20',
+    end_date: '',
+    next_run_date,
+    status: 'active',
+    ...over,
+  })
+
+  it('counts the plan that fills the envelope on payday, so it doesn’t run out (#332)', () => {
+    const f = forecast(input({ ...NOV_3, envelopes: [pending(5000)], expenses: usual, recurringIncomes: [payday('2026-11-20')] }))
+    expect(f.envelopes[0]).toMatchObject({ available: 5000, usualDaily: 200, projected: 5600, runsOutOn: null, overspent: false })
+    expect(f.totalLeft).toBe(5600)
+  })
+
+  it('still warns about a run-out dated before payday, and that’s not undone by the plan', () => {
+    const f = forecast(input({ ...NOV_3, envelopes: [pending(100)], expenses: usual, recurringIncomes: [payday('2026-11-20')] }))
+    expect(f.envelopes[0]).toMatchObject({ runsOutOn: '2026-11-04', projected: 700 })
+  })
+
+  it('warns when even the plan doesn’t last the month', () => {
+    const f = forecast(input({ ...NOV_3, envelopes: [pending(4000, 500)], expenses: usual, recurringIncomes: [payday('2026-11-20')] }))
+    // 500 lands on the 20th, then 4,500 - 200 x 23 days = -100 on the 26th.
+    expect(f.envelopes[0]).toMatchObject({ runsOutOn: '2026-11-26', projected: -900 })
+  })
+
+  it('adds the plan before that day’s charges', () => {
+    const recurringExpenses = [{ category: 'Food', amount_inr: 5000, frequency: 'monthly', start_date: '2026-01-20', end_date: '', next_run_date: '2026-11-20', status: 'active' }]
+    const elsewhere = usual.map((e) => ({ ...e, category: 'Fun' }))
+    const f = forecast(input({ ...NOV_3, envelopes: [pending(0)], expenses: elsewhere, recurringExpenses, recurringIncomes: [payday('2026-11-20')] }))
+    expect(f.envelopes[0]).toMatchObject({ scheduled: 5000, runsOutOn: null, projected: 1000 })
+  })
+
+  it.each([
+    ['no payday is scheduled', []],
+    ['the next payday is next month', [payday('2026-12-20')]],
+    ['the schedule ends before payday', [payday('2026-11-20', { end_date: '2026-11-10' })]],
+    ['the payday pays nothing', [payday('2026-11-20', { amount: 0 })]],
+  ])('leaves the plan out when %s', (_, recurringIncomes) => {
+    const f = forecast(input({ ...NOV_3, envelopes: [pending(5000)], expenses: usual, recurringIncomes }))
+    expect(f.envelopes[0]).toMatchObject({ projected: -400, runsOutOn: '2026-11-29' })
+  })
+
+  it('counts a payday the cron hasn’t posted yet as landing today', () => {
+    const f = forecast(input({ ...NOV_3, envelopes: [pending(0)], expenses: usual, recurringIncomes: [payday('2026-11-01')] }))
+    expect(f.envelopes[0]).toMatchObject({ projected: 600, runsOutOn: null })
+  })
+
+  it('skips a payday overdue from last month, which posts to that month, for this month’s', () => {
+    const f = forecast(input({ ...NOV_3, envelopes: [pending(100)], expenses: usual, recurringIncomes: [payday('2026-10-20')] }))
+    expect(f.envelopes[0]).toMatchObject({ runsOutOn: '2026-11-04', projected: 700 })
+  })
+
+  it('adds the plan once when two schedules pay this month, on the first of them', () => {
+    const f = forecast(input({ ...NOV_3, envelopes: [pending(1000)], expenses: usual, recurringIncomes: [payday('2026-11-25'), payday('2026-11-05')] }))
+    expect(f.envelopes[0]).toMatchObject({ projected: 1600, runsOutOn: null })
+  })
+
+  it('doesn’t add the plan twice once pay has landed', () => {
+    const f = forecast(input({ ...NOV_3, envelopes: [{ ...env('Food', 5000), assigned: 6000 }], expenses: usual, recurringIncomes: [payday('2026-11-20')] }))
+    expect(f.envelopes[0]).toMatchObject({ projected: -400, runsOutOn: '2026-11-29' })
+  })
+})
