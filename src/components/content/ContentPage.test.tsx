@@ -9,6 +9,7 @@ import YnabPage from '@/app/(site)/compare/ynab-alternative-india/page'
 import YnabGlobalPage from '@/app/(site)/compare/ynab-alternative/page'
 import SpreadsheetPage from '@/app/(site)/compare/budget-spreadsheet/page'
 import WalletPage from '@/app/(site)/compare/wallet/page'
+import SpendeePage from '@/app/(site)/compare/spendee/page'
 import Budget15kPage from '@/app/(site)/tools/budget-for-15000-salary/page'
 import Budget25kPage from '@/app/(site)/tools/budget-for-25000-salary/page'
 import Budget30kPage from '@/app/(site)/tools/budget-for-30000-salary/page'
@@ -72,7 +73,7 @@ describe('content pages', () => {
   })
 
   it('have em-dash-free copy', () => {
-    for (const Page of [YnabPage, YnabGlobalPage, SpreadsheetPage, WalletPage, Budget15kPage, Budget25kPage, Budget30kPage, Budget50kPage, Budget80kPage, SinkingFundPage]) expect(renderToStaticMarkup(<Page />)).not.toContain('—')
+    for (const Page of [YnabPage, YnabGlobalPage, SpreadsheetPage, WalletPage, SpendeePage, Budget15kPage, Budget25kPage, Budget30kPage, Budget50kPage, Budget80kPage, SinkingFundPage]) expect(renderToStaticMarkup(<Page />)).not.toContain('—')
   })
 
   it('link a spreadsheet template whose envelopes add up to the ₹45,000 salary', () => {

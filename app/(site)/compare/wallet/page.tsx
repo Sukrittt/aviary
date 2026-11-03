@@ -6,7 +6,7 @@ import { CompareTable, ContentPage, SoftCta, Sources } from '@/src/components/co
 export const metadata = pageMetadata('/compare/wallet')
 
 export default function WalletPage() {
-  return <ContentPage section="compare" path="/compare/wallet" title="Aviary vs Wallet by BudgetBakers" kicker={`Compare · Facts checked ${COMPARE_CHECKED}`} lede={<>Wallet by BudgetBakers is a money manager used all over the world. It tracks spending across accounts and currencies, and on Premium it syncs with your bank. Aviary is an envelope budget: you give all your money a job first, and every spend shows what’s left for that job.</>} related={['/compare/ynab-alternative', '/compare/monefy', '/features/budget-without-bank-linking']}>
+  return <ContentPage section="compare" path="/compare/wallet" title="Aviary vs Wallet by BudgetBakers" kicker={`Compare · Facts checked ${COMPARE_CHECKED}`} lede={<>Wallet by BudgetBakers is a money manager used all over the world. It tracks spending across accounts and currencies, and on Premium it syncs with your bank. Aviary is an envelope budget: you give all your money a job first, and every spend shows what’s left for that job.</>} related={['/compare/ynab-alternative', '/compare/monefy', '/compare/spendee', '/features/budget-without-bank-linking']}>
     <p>Wallet’s budgets are limits you set on what you spend. Aviary starts from the money you have and plans all of it. And if you’ve got years of records in Wallet, they can come with you.</p>
 
     <h2>The short version</h2>

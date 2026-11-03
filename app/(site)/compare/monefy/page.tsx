@@ -6,7 +6,7 @@ import { CompareTable, ContentPage, SoftCta, Sources } from '@/src/components/co
 export const metadata = pageMetadata('/compare/monefy')
 
 export default function MonefyPage() {
-  return <ContentPage section="compare" path="/compare/monefy" title="A Monefy alternative that plans, not just tracks" kicker={`Compare · Facts checked ${COMPARE_CHECKED}`} lede={<>Monefy is one of the quickest ways to record a spend: tap a category, type the amount, done. It’s a spending tracker. It shows where your money went. Aviary is an envelope budget: you give all your money a job first, and every spend shows what’s left for that job.</>} related={['/compare/money-manager', '/features/shared-budgets', '/features/budget-without-bank-linking']}>
+  return <ContentPage section="compare" path="/compare/monefy" title="A Monefy alternative that plans, not just tracks" kicker={`Compare · Facts checked ${COMPARE_CHECKED}`} lede={<>Monefy is one of the quickest ways to record a spend: tap a category, type the amount, done. It’s a spending tracker. It shows where your money went. Aviary is an envelope budget: you give all your money a job first, and every spend shows what’s left for that job.</>} related={['/compare/money-manager', '/compare/spendee', '/features/shared-budgets', '/features/budget-without-bank-linking']}>
     <p>Neither one links your bank or reads your SMS. The difference is what the logging is for. And if you’ve got years of records in Monefy, they can come with you.</p>
 
     <h2>The short version</h2>
