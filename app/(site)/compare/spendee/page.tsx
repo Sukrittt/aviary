@@ -31,7 +31,7 @@ export default function SpendeePage() {
 
     <h2>Side by side</h2>
     <CompareTable them="Spendee" rows={[
-      ['Price', '₹199 a month in India or $4.99 a month elsewhere, after a 30-day free trial with no card', 'Free for one cash wallet and one budget. Plus is $1.99 a month or $14.99 a year, and Premium is $5.99 a month or $35.99 a year, with local prices that vary by country. On the App Store in India, in-app purchases run from ₹249 to ₹9,900, including Lifetime Premium at ₹9,900. Paid plans have a 7-day trial'],
+      ['Price', '₹199 a month in India or $4.90 a month on the web elsewhere, after a 30-day free trial with no card', 'Free for one cash wallet and one budget. Plus is $1.99 a month or $14.99 a year, and Premium is $5.99 a month or $35.99 a year, with local prices that vary by country. On the App Store in India, in-app purchases run from ₹249 to ₹9,900, including Lifetime Premium at ₹9,900. Paid plans have a 7-day trial'],
       ['Method', 'Envelope budgeting: every bit of income gets a category before you spend', 'Money tracker with budgets as limits on chosen categories and wallets, with a daily amount you can spend to stay on track'],
       ['Bank or SMS sync', 'None. You log spends yourself, and can catch up from a CSV, Excel or PDF statement', 'Bank, e-wallet and crypto sync on Premium, with 2,500+ providers listed. Free and Plus are manual'],
       ['Platforms', 'Android and web. No iPhone app yet', 'Android, iPhone and web. Plans are bought in the phone app'],
