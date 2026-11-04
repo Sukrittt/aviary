@@ -172,6 +172,31 @@ describe('goalLine', () => {
     expect(line({ ...base, goal: { amount: 24000, by: '2027-01' }, available: 9000, assigned: 3000 })).toBe('Behind by ₹1,500 · ₹4,500/mo to make it by Jan 2027')
   })
 
+  it('in the deadline month, asks only for what is still missing, not a monthly total', () => {
+    // Nov is the last month: 6,017 assigned, 1,501 still short of 10,000.
+    const p = goalProgress({ ...base, month: '2026-11', goal: { amount: 10000, by: '2026-11' }, available: 8499, assigned: 6017 })!
+    expect(p).toMatchObject({ status: 'behind', behindBy: 1501, lastMonth: true })
+    expect(goalLine(p, money)).toBe('Behind by ₹1,501 · Add it to make it by Nov 2026')
+  })
+
+  it('in the deadline month, asks for the exact rupees and paise still missing', () => {
+    // 4,127.50 saved, nothing assigned: 5,872.50 short, not a rounded-up 5,873.
+    const p = goalProgress({ ...base, month: '2026-11', goal: { amount: 10000, by: '2026-11' }, available: 4127.5 })!
+    expect(p).toMatchObject({ monthlyNeed: 5872.5, behindBy: 5872.5 })
+  })
+
+  it('in the deadline month, a negative assigned asks only for the real gap', () => {
+    // 12,000 carried in, 3,000 moved out: 9,000 saved, 1,000 short.
+    const p = goalProgress({ ...base, month: '2026-11', goal: { amount: 10000, by: '2026-11' }, available: 9000, assigned: -3000 })!
+    expect(p).toMatchObject({ status: 'behind', behindBy: 1000, lastMonth: true })
+  })
+
+  it('in the deadline month before pay lands, counts the planned amount as on its way', () => {
+    // 4,000 saved, 5,000 planned but not landed: 1,000 still short.
+    const p = goalProgress({ ...base, month: '2026-11', goal: { amount: 10000, by: '2026-11' }, available: 4000, assigned: 5000, planPending: true })!
+    expect(p).toMatchObject({ status: 'behind', behindBy: 1000 })
+  })
+
   it('says on track once the monthly amount is assigned', () => {
     expect(line({ ...base, goal: { amount: 24000, by: '2027-01' }, available: 10500, assigned: 4500 })).toBe('On track · ₹4,500/mo from Nov to make it by Jan 2027')
     expect(line({ ...base, goal: { amount: 7400, by: '2026-11' }, available: 7200, assigned: 7200 })).toBe('On track · ₹200 more in Nov makes it')
