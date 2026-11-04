@@ -75,7 +75,9 @@ export function goalProgress({ goal, month, available, assigned, spent, since, p
   const left = monthsBetween(month, by)
   // The deadline's own month takes the exact rest, paise and all; earlier months round up to whole rupees.
   const monthlyNeed = Math.max(0, left === 0 ? Math.round((target - before) * 100) / 100 : Math.ceil((target - before) / (left + 1)))
-  if (assigned < monthlyNeed) return { ...out, status: 'behind', monthlyNeed, behindBy: Math.round((monthlyNeed - assigned) * 100) / 100, ...(left === 0 && { lastMonth: true }) }
+  // The deadline's own month: short by exactly what the balance is short, whatever moved in or out.
+  if (left === 0 && assigned < monthlyNeed) return { ...out, status: 'behind', monthlyNeed, behindBy: Math.round((target - before - assigned) * 100) / 100, lastMonth: true }
+  if (assigned < monthlyNeed) return { ...out, status: 'behind', monthlyNeed, behindBy: Math.round((monthlyNeed - assigned) * 100) / 100 }
   // On track: the rest, spread over the months still to come. Not funded, so there is at least one.
   return { ...out, status: 'onTrack', monthlyNeed, nextMonth: shiftMonthKey(month, 1), nextNeed: Math.max(0, Math.ceil((target - (before + assigned)) / Math.max(1, left))) }
 }
