@@ -30,7 +30,7 @@ export default function MonefyPage() {
 
     <h2>Side by side</h2>
     <CompareTable them="Monefy" rows={[
-      ['Price', '₹199 a month in India or $4.90 a month on the web elsewhere, after a 30-day free trial', 'Free to use. A premium upgrade unlocks unlimited accounts, recurring transactions and advanced filters. In-app purchases on Google Play in India run from ₹149 to ₹3,900'],
+      ['Price', '₹199 a month in India or $4.99 a month on the web elsewhere, after a 30-day free trial', 'Free to use. A premium upgrade unlocks unlimited accounts, recurring transactions and advanced filters. In-app purchases on Google Play in India run from ₹149 to ₹3,900'],
       ['Method', 'Envelope budgeting: every bit of income gets a category before you spend', 'Spending tracker, with an optional single monthly budget'],
       ['Bank or SMS sync', 'None. You log spends yourself, and can catch up from a CSV, Excel or PDF statement', 'None. You add each record yourself'],
       ['Platforms', 'Android and web. No iPhone app yet', 'Android and iPhone. No web version'],

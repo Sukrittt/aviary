@@ -31,7 +31,7 @@ export default function WalletPage() {
 
     <h2>Side by side</h2>
     <CompareTable them="Wallet" rows={[
-      ['Price', '₹199 a month in India or $4.90 a month on the web elsewhere, after a 30-day free trial', 'Free for manual tracking. Premium adds bank sync, unlimited accounts and sharing. On the App Store, Premium runs from ₹199 to ₹4,999 in India ($5.99 to $49.99 in the US), including a one-time Lifetime Premium at ₹999 ($29.99)'],
+      ['Price', '₹199 a month in India or $4.99 a month on the web elsewhere, after a 30-day free trial', 'Free for manual tracking. Premium adds bank sync, unlimited accounts and sharing. On the App Store, Premium runs from ₹199 to ₹4,999 in India ($5.99 to $49.99 in the US), including a one-time Lifetime Premium at ₹999 ($29.99)'],
       ['Method', 'Envelope budgeting: every bit of income gets a category before you spend', 'Money manager and spending tracker, with budgets as limits on a category or period: weekly, monthly or custom'],
       ['Bank or SMS sync', 'None. You log spends yourself, and can catch up from a CSV, Excel or PDF statement', 'Automatic bank updates on Premium, with 15,000+ institutions worldwide. The free tier is manual'],
       ['Platforms', 'Android and web. No iPhone app yet', 'Android, iPhone, iPad and web. One Premium works on all of them'],
