@@ -19,6 +19,8 @@ export interface GoalProgress {
   monthlyNeed?: number
   /** How far this month's assigned falls short of monthlyNeed. */
   behindBy?: number
+  /** Behind in the deadline's own month: there is no "per month" left, only behindBy to add. */
+  lastMonth?: boolean
   /** On track: what each month from `nextMonth` on needs, now this month's is in. Overfund this month and it drops. */
   nextNeed?: number
   nextMonth?: string
@@ -71,7 +73,10 @@ export function goalProgress({ goal, month, available, assigned, spent, since, p
   }
   // Never below 0: a negative assigned can hide carry that already covers it.
   const left = monthsBetween(month, by)
-  const monthlyNeed = Math.max(0, Math.ceil((target - before) / (left + 1)))
+  // The deadline's own month takes the exact rest, paise and all; earlier months round up to whole rupees.
+  const monthlyNeed = Math.max(0, left === 0 ? Math.round((target - before) * 100) / 100 : Math.ceil((target - before) / (left + 1)))
+  // The deadline's own month: short by exactly what the balance is short, whatever moved in or out.
+  if (left === 0 && assigned < monthlyNeed) return { ...out, status: 'behind', monthlyNeed, behindBy: Math.round((target - before - assigned) * 100) / 100, lastMonth: true }
   if (assigned < monthlyNeed) return { ...out, status: 'behind', monthlyNeed, behindBy: Math.round((monthlyNeed - assigned) * 100) / 100 }
   // On track: the rest, spread over the months still to come. Not funded, so there is at least one.
   return { ...out, status: 'onTrack', monthlyNeed, nextMonth: shiftMonthKey(month, 1), nextNeed: Math.max(0, Math.ceil((target - (before + assigned)) / Math.max(1, left))) }
@@ -112,7 +117,7 @@ export function goalLine(p: GoalProgress, money: (n: number) => string): string 
         ? `On track · ${money(p.nextNeed)} more in ${monthAbbrev(p.by)} makes it`
         : `On track · ${money(p.nextNeed)}/mo from ${monthAbbrev(p.nextMonth)} to make it by ${shortMonth(p.by)}`
     }
-    case 'behind': return `Behind by ${money(p.behindBy ?? 0)} · ${make}`
+    case 'behind': return `Behind by ${money(p.behindBy ?? 0)} · ${p.lastMonth && p.by ? `Add it to make it by ${shortMonth(p.by)}` : make}`
     case 'saving': return p.paceMonth ? `At this pace, by ${shortMonth(p.paceMonth)}` : 'Assign a monthly amount to see when'
   }
 }

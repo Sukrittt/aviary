@@ -170,7 +170,8 @@ export function GoalLine({ category, goal, progress, money, month, onPull }: {
     const short = progress.behindBy
     line = <>Behind by {money(short)} · <button type="button" className="env2-goal-link" disabled={!!busy} onClick={() => onPull(category, short)}>
       {/* The shimmer comes back every few seconds: Set is something the user still has to do. */}
-      <span className="text-shimmer text-shimmer--nudge">Set {money(progress.monthlyNeed)}/mo</span>
+      {/* The deadline's own month has no "/mo": the button adds what's short, so say that. */}
+      <span className="text-shimmer text-shimmer--nudge">{progress.lastMonth ? 'Add it' : `Set ${money(progress.monthlyNeed)}/mo`}</span>
     </button> to make it by {shortMonth(progress.by)}</>
   } else if (onPull && progress.status === 'done') {
     line = <>
