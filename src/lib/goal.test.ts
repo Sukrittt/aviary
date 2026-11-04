@@ -172,6 +172,13 @@ describe('goalLine', () => {
     expect(line({ ...base, goal: { amount: 24000, by: '2027-01' }, available: 9000, assigned: 3000 })).toBe('Behind by ₹1,500 · ₹4,500/mo to make it by Jan 2027')
   })
 
+  it('in the deadline month, asks only for what is still missing, not a monthly total', () => {
+    // Nov is the last month: 6,017 assigned, 1,501 still short of 10,000.
+    const p = goalProgress({ ...base, month: '2026-11', goal: { amount: 10000, by: '2026-11' }, available: 8499, assigned: 6017 })!
+    expect(p).toMatchObject({ status: 'behind', behindBy: 1501, lastMonth: true })
+    expect(goalLine(p, money)).toBe('Behind by ₹1,501 · Add it to make it by Nov 2026')
+  })
+
   it('says on track once the monthly amount is assigned', () => {
     expect(line({ ...base, goal: { amount: 24000, by: '2027-01' }, available: 10500, assigned: 4500 })).toBe('On track · ₹4,500/mo from Nov to make it by Jan 2027')
     expect(line({ ...base, goal: { amount: 7400, by: '2026-11' }, available: 7200, assigned: 7200 })).toBe('On track · ₹200 more in Nov makes it')

@@ -19,6 +19,8 @@ export interface GoalProgress {
   monthlyNeed?: number
   /** How far this month's assigned falls short of monthlyNeed. */
   behindBy?: number
+  /** Behind in the deadline's own month: there is no "per month" left, only behindBy to add. */
+  lastMonth?: boolean
   /** On track: what each month from `nextMonth` on needs, now this month's is in. Overfund this month and it drops. */
   nextNeed?: number
   nextMonth?: string
@@ -72,7 +74,7 @@ export function goalProgress({ goal, month, available, assigned, spent, since, p
   // Never below 0: a negative assigned can hide carry that already covers it.
   const left = monthsBetween(month, by)
   const monthlyNeed = Math.max(0, Math.ceil((target - before) / (left + 1)))
-  if (assigned < monthlyNeed) return { ...out, status: 'behind', monthlyNeed, behindBy: Math.round((monthlyNeed - assigned) * 100) / 100 }
+  if (assigned < monthlyNeed) return { ...out, status: 'behind', monthlyNeed, behindBy: Math.round((monthlyNeed - assigned) * 100) / 100, ...(left === 0 && { lastMonth: true }) }
   // On track: the rest, spread over the months still to come. Not funded, so there is at least one.
   return { ...out, status: 'onTrack', monthlyNeed, nextMonth: shiftMonthKey(month, 1), nextNeed: Math.max(0, Math.ceil((target - (before + assigned)) / Math.max(1, left))) }
 }
@@ -112,7 +114,7 @@ export function goalLine(p: GoalProgress, money: (n: number) => string): string 
         ? `On track · ${money(p.nextNeed)} more in ${monthAbbrev(p.by)} makes it`
         : `On track · ${money(p.nextNeed)}/mo from ${monthAbbrev(p.nextMonth)} to make it by ${shortMonth(p.by)}`
     }
-    case 'behind': return `Behind by ${money(p.behindBy ?? 0)} · ${make}`
+    case 'behind': return `Behind by ${money(p.behindBy ?? 0)} · ${p.lastMonth && p.by ? `Add it to make it by ${shortMonth(p.by)}` : make}`
     case 'saving': return p.paceMonth ? `At this pace, by ${shortMonth(p.paceMonth)}` : 'Assign a monthly amount to see when'
   }
 }

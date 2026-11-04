@@ -246,6 +246,14 @@ describe('EnvelopeGrid goals', () => {
     expect(onSetMonthly).not.toHaveBeenCalled()
   })
 
+  it('in the deadline month, offers to add what is short instead of a monthly total', async () => {
+    // October is the deadline: 4,000 assigned, 8,000 saved, 2,000 short of 10,000.
+    const { onMoveMoney } = goalSetup({ amount: 10000, by: '2026-10' }, { ...saver, assigned: 4000, available: 8000 })
+    expect(document.querySelector('.env2-goal-line')?.textContent).toBe('Behind by ₹2000 · Add it to make it by Oct 2026')
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Add it' }))
+    expect(onMoveMoney).toHaveBeenCalledWith('Diwali', 2000)
+  })
+
   it('rolls the Left pill from the old balance to the new one once money lands, then splashes', async () => {
     motion.inView = true
     cats.rows = [{ name: 'Diwali', group: 'Essentials', goal: { amount: 24000, by: '2027-01' } }]
