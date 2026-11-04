@@ -11,7 +11,7 @@ export default function YnabAlternativeGlobalPage() {
 
     <h2>The short version</h2>
     <ul>
-      <li><strong>About a third of the price.</strong> $4.90 a month on the web, against $14.99 a month or $109 a year for YNAB.</li>
+      <li><strong>About a third of the price.</strong> $4.99 a month on the web, against $14.99 a month or $109 a year for YNAB.</li>
       <li><strong>Less to manage.</strong> There are no bank connections to keep alive and no imported transactions to approve. You log a spend in a line, and Aviary nudges you around the times you usually spend.</li>
       <li><strong>The same method.</strong> Every dollar gets a job before you spend it, with unassigned money waiting in Ready to Assign. There’s nothing to relearn.</li>
       <li><strong>Your history comes too.</strong> Export your plan from YNAB and upload the zip when you set up Aviary.</li>
@@ -30,7 +30,7 @@ export default function YnabAlternativeGlobalPage() {
 
     <h2>Side by side</h2>
     <CompareTable them="YNAB" rows={[
-      ['Price', '$4.90 a month on the web after a 30-day free trial, or less on a yearly plan', '$14.99 a month or $109 a year, plus tax where applicable'],
+      ['Price', '$4.99 a month on the web after a 30-day free trial, or less on a yearly plan', '$14.99 a month or $109 a year, plus tax where applicable'],
       ['Free trial', '30 days, no card', '34 days, no card when you sign up on its website'],
       ['Bank import', 'No bank connection. You log spends yourself, and can catch up from a CSV, Excel or PDF statement', 'Direct import for select US, Canadian, UK and EU banks. Elsewhere, file import'],
       ['Platforms', 'Android and web. No iPhone app yet', 'Web, iPhone, iPad, Android and Apple Watch'],
@@ -41,7 +41,7 @@ export default function YnabAlternativeGlobalPage() {
 
     <h2>Where Aviary is stronger</h2>
     <ul>
-      <li><strong>Price.</strong> $4.90 a month against $14.99 a month for YNAB, and a yearly plan that costs less again.</li>
+      <li><strong>Price.</strong> $4.99 a month against $14.99 a month for YNAB, and a yearly plan that costs less again.</li>
       <li><strong>Built for logging by hand.</strong> Aviary never asks for your bank login. It learns your routine and nudges you while a spend is fresh, and if you fall behind you can catch up by typing “uber 12, lunch 15” in one go.</li>
       <li><strong>Bill scanning.</strong> Snap a receipt and every line lands in your budget, split if you shared it. See <Link href="/features/bill-scanning">bill scanning</Link>.</li>
       <li><strong>Sharing on one plan.</strong> Invite your partner or roommates with a link. They join free, and every spend shows who logged it. See <Link href="/features/shared-budgets">shared budgets</Link>.</li>

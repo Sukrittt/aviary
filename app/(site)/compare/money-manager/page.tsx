@@ -19,7 +19,7 @@ export default function MoneyManagerPage() {
 
     <h2>Side by side</h2>
     <CompareTable them="Money Manager" rows={[
-      ['Price', '₹199 a month in India or $4.90 a month on the web elsewhere, after a 30-day free trial', 'Free with ads. The ad-free Android version is a one-time ₹99. On iPhone, data sync is ₹219 a month or ₹1,799 a year'],
+      ['Price', '₹199 a month in India or $4.99 a month on the web elsewhere, after a 30-day free trial', 'Free with ads. The ad-free Android version is a one-time ₹99. On iPhone, data sync is ₹219 a month or ₹1,799 a year'],
       ['Approach', 'Assign all your money to categories, then spend from them', 'Double-entry bookkeeping across your accounts, with budgets and charts'],
       ['Bank or SMS sync', 'None', 'Not advertised on its listings'],
       ['Platforms', 'Android and web', 'Android, iPhone and iPad, plus viewing and editing on a PC over Wi-Fi'],
