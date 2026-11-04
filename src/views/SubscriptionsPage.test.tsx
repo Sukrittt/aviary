@@ -109,6 +109,7 @@ it('lists active subscriptions soonest due first, not by cost', () => {
           row({ service: 'Fancode', amount_inr: '199', next_due_date: '2026-11-06' }),
           row({ service: 'Netflix', amount_inr: '199', next_due_date: '2026-11-05' }),
           row({ service: 'Uber One', amount_inr: '149', next_due_date: '2026-11-18' }),
+          row({ service: 'Course', amount_inr: '999', billing_cycle: 'one-time', next_due_date: '2026-10-01' }),
         ]).active}
         cancelled={[]}
         hideAmounts={false}
@@ -120,7 +121,7 @@ it('lists active subscriptions soonest due first, not by cost', () => {
       />,
     )
     const names = screen.getAllByTitle('Edit subscription').map((el) => el.querySelector('strong')?.textContent)
-    expect(names).toEqual(['Netflix', 'Fancode', 'Uber One', 'Whisper Flow'])
+    expect(names).toEqual(['Netflix', 'Fancode', 'Uber One', 'Whisper Flow', 'Course'])
   } finally {
     vi.useRealTimers()
   }
