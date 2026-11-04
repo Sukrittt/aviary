@@ -269,6 +269,9 @@
   font-size: 13px;
   line-height: 1;
 }
+.money-search input:focus-visible {
+  outline: none;
+}
 .money-search:focus-within {
   border-color: var(--tk-accent);
 }
