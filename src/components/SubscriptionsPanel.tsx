@@ -4,7 +4,7 @@ import { useCurrency } from "@/src/context/CurrencyContext";
 import { useState } from "react";
 import { CaretRightIcon, PlusIcon } from "@/src/components/icons";
 import { AnimatePresence, motion } from "motion/react";
-import { getEffectiveDueDate } from "@/lib/subscriptions";
+import { getEffectiveDueDate, renewalDays } from "@/lib/subscriptions";
 import { AllocationBar, type AllocationSegment } from "./charts/AllocationBar";
 import { CHART_COLORS } from "../theme/chartColors";
 import { formatDateShort } from "../lib/format";
@@ -100,6 +100,8 @@ export function SubscriptionsPanel({
     hideAmounts ? "---" : formatCurrency(Math.round(v));
 
   const sorted = [...active].sort((a, b) => monthlyEq(b) - monthlyEq(a));
+  // List reads soonest-due first; the bar and colors keep the spend order above.
+  const byDue = [...sorted].sort((a, b) => renewalDays(a) - renewalDays(b));
   const totalRaw = sorted.reduce((s, sub) => s + monthlyEq(sub), 0);
   const totalMonthly = Math.round(totalRaw);
 
@@ -235,7 +237,7 @@ export function SubscriptionsPanel({
               <p className="subp-empty">No active subscriptions.</p>
             ) : (
               <ul className="subp-list">
-                {sorted.map((sub, i) => row(sub, i, true))}
+                {byDue.map((sub) => row(sub, sorted.indexOf(sub), true))}
               </ul>
             )}
 
