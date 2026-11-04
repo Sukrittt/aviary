@@ -264,9 +264,16 @@
   padding: 0;
   border: 0;
   background: transparent;
+  outline: none;
   color: var(--tk-text);
   font-size: 13px;
   line-height: 1;
+}
+.money-search input:focus-visible {
+  outline: none;
+}
+.money-search:focus-within {
+  border-color: var(--tk-accent);
 }
 .money-search input::placeholder {
   color: var(--tk-text3);
