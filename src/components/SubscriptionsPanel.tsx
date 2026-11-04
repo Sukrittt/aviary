@@ -100,6 +100,9 @@ export function SubscriptionsPanel({
     hideAmounts ? "---" : formatCurrency(Math.round(v));
 
   const sorted = [...active].sort((a, b) => monthlyEq(b) - monthlyEq(a));
+  // List reads soonest-due first; the bar and colors keep the spend order above.
+  const dueKey = (sub: SubscriptionPanelItem) => getEffectiveDueDate(sub) || "9999";
+  const byDue = [...sorted].sort((a, b) => dueKey(a).localeCompare(dueKey(b)));
   const totalRaw = sorted.reduce((s, sub) => s + monthlyEq(sub), 0);
   const totalMonthly = Math.round(totalRaw);
 
@@ -235,7 +238,7 @@ export function SubscriptionsPanel({
               <p className="subp-empty">No active subscriptions.</p>
             ) : (
               <ul className="subp-list">
-                {sorted.map((sub, i) => row(sub, i, true))}
+                {byDue.map((sub) => row(sub, sorted.indexOf(sub), true))}
               </ul>
             )}
 

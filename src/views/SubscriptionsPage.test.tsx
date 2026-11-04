@@ -97,3 +97,31 @@ it('shows the Add control inside the home subscriptions rail', () => {
   fireEvent.click(screen.getByRole('button', { name: 'Add' }))
   expect(onAdd).toHaveBeenCalledOnce()
 })
+
+it('lists active subscriptions soonest due first, not by cost', () => {
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(new Date('2026-11-04T12:00:00Z'))
+  try {
+    render(
+      <SubscriptionsPanel
+        active={splitSubscriptions([
+          row({ service: 'Whisper Flow', amount_inr: '3840', billing_cycle: 'yearly', next_due_date: '2027-03-05' }),
+          row({ service: 'Fancode', amount_inr: '199', next_due_date: '2026-11-06' }),
+          row({ service: 'Netflix', amount_inr: '199', next_due_date: '2026-11-05' }),
+          row({ service: 'Uber One', amount_inr: '149', next_due_date: '2026-11-18' }),
+        ]).active}
+        cancelled={[]}
+        hideAmounts={false}
+        busyService={null}
+        onAdd={vi.fn()}
+        onEdit={vi.fn()}
+        onCancel={vi.fn()}
+        onReactivate={vi.fn()}
+      />,
+    )
+    const names = screen.getAllByTitle('Edit subscription').map((el) => el.querySelector('strong')?.textContent)
+    expect(names).toEqual(['Netflix', 'Fancode', 'Uber One', 'Whisper Flow'])
+  } finally {
+    vi.useRealTimers()
+  }
+})
