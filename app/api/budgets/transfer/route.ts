@@ -1,5 +1,5 @@
 import { json, error, readBody, getCollection } from '@/lib/http'
-import { carriedAssigned, computeCarry } from '@/lib/budgetCarry'
+import { carriedAssigned, computeCarry, ROLLOVER_START } from '@/lib/budgetCarry'
 import { CREDIT_CARD_CATEGORY, INCOME_CATEGORY, isFunded, splitDebit } from '@/src/lib/envelope'
 import { getAuth, readOnlyGuard } from '@/lib/access'
 import { requireAccess } from '@/lib/billing/guard'
@@ -59,6 +59,12 @@ export async function POST(req: Request) {
     }
     if (category === to) return error('cannot transfer a category to itself')
     sources.push({ category, amount })
+  }
+
+  // Card money moves through the card envelope's carry (see `viaCarry` below),
+  // and nothing carries before rollover started, so there it would appear or vanish.
+  if (month < ROLLOVER_START && [to, ...sources.map((s) => s.category)].includes(CREDIT_CARD_CATEGORY)) {
+    return error('card money can only move from the month rollover started')
   }
 
   const totalAmount = sources.reduce((sum, s) => sum + s.amount, 0)

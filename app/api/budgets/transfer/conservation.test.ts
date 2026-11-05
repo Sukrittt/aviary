@@ -175,3 +175,22 @@ describe.each([{ funded: true }, { funded: false }])('Move money and the card en
     expect(nextMonthTotal()).toBe(totalBefore)
   })
 })
+
+describe('Move money and the card envelope before rollover started', () => {
+  // Before ROLLOVER_START nothing carries, so the card envelope has no carry to
+  // move through, and its `assigned` sits outside Ready to assign. No write
+  // there can move card money without creating or losing some.
+  it.each([
+    { to: CREDIT_CARD_CATEGORY, sources: [{ category: 'Food', amount: 100 }] },
+    { to: 'Food', sources: [{ category: CREDIT_CARD_CATEGORY, amount: 100 }] },
+  ])('refuses a move to $to and leaves every row alone', async ({ to, sources }) => {
+    store = [budget('2026-09', 'Food', 3000), budget('2026-09', CREDIT_CARD_CATEGORY, 900)]
+    expenses = []
+    const before = JSON.stringify(store)
+    const res = await POST(new Request('https://example.com/api/budgets/transfer', {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ month: '2026-09', to, sources }),
+    }))
+    expect(res.status).toBe(400)
+    expect(JSON.stringify(store)).toBe(before)
+  })
+})
