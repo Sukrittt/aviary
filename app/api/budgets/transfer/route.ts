@@ -82,8 +82,14 @@ export async function POST(req: Request) {
   await withTx(async (session) => {
     // Before payday an envelope's `assigned` is only its plan, so everything
     // moved is carried money and the plan stays whole for payday.
+    // The card envelope's `assigned` is card spending set aside
+    // (lib/createExpense.ts) and sits outside Ready to assign
+    // (computeEnvelopeState), so a move in or out of it goes through its carry,
+    // which does balance against Ready to assign. Through `assigned` the money
+    // would appear from nowhere or vanish.
     const funded = isFunded(month, await budgetColl.findOne({ month, category: INCOME_CATEGORY }, { session }))
-    const held = (category: string, assigned: number) => (funded || category === CREDIT_CARD_CATEGORY ? assigned : 0)
+    const viaCarry = (category: string) => !funded || category === CREDIT_CARD_CATEGORY
+    const held = (category: string, assigned: number) => (viaCarry(category) ? 0 : assigned)
 
     // Debit every non-RTA source. A concurrent insert for the same
     // month+category (the no-row-yet branch below) is caught via the unique
@@ -136,7 +142,7 @@ export async function POST(req: Request) {
     // returning money there intentionally has no target row to credit. Money
     // covering a shortfall carried from last month fixes this month's carry
     // only; the rest tops up `assigned`.
-    const toCarry = funded || to === CREDIT_CARD_CATEGORY ? round2(Math.min(totalAmount, Math.max(-(carry[to] ?? 0), 0))) : totalAmount
+    const toCarry = viaCarry(to) ? totalAmount : round2(Math.min(totalAmount, Math.max(-(carry[to] ?? 0), 0)))
     const toAssigned = round2(totalAmount - toCarry)
     if (to !== RTA_SENTINEL) await casRetry<'done'>(async () => {
       const existing = await budgetColl.findOne({ month, category: to }, { session })
