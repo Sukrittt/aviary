@@ -75,3 +75,48 @@ it('sends two monthly rent payments forward for evaluation', () => {
   expect(candidates[0].payments.map(p => p.amount)).toEqual([5000, 5000])
   expect(candidates[0].timing.deterministicCadence).toBe('monthly')
 })
+
+describe('month-end billing', () => {
+  it('reads a bill on the last day of every month as monthly', () => {
+    expect(analyzeCadence(['2026-01-31', '2026-02-28', '2026-03-31', '2026-04-30']).deterministicCadence).toBe('monthly')
+  })
+
+  it('reads a yearly charge on Feb 29 then Feb 28 as yearly', () => {
+    expect(analyzeCadence(['2024-02-29', '2025-02-28']).deterministicCadence).toBe('yearly')
+  })
+
+  it('ignores impossible dates and repeats of the same day', () => {
+    const timing = analyzeCadence(['2026-02-30', '2026-01-05', '2026-01-05', '2026-02-05', 'soon'])
+    expect(timing.sortedDates).toEqual(['2026-01-05', '2026-02-05'])
+    expect(timing.deterministicCadence).toBe('monthly')
+  })
+
+  // ponytail: needs `anchor_day` on recurring expenses (only recurring incomes store one), so it's a schema call.
+  it.skip('suggests the next month-end, not the 28th, after a bill on Jan 31 and Feb 28', () => {
+    expect(nextSuggestedDate('2026-02-28', 'monthly', '2026-03-01')).toBe('2026-03-31')
+  })
+})
+
+describe('buildCandidates and the product rules', () => {
+  const row = (date: string, extra: Record<string, unknown> = {}) => ({ _id: date, date, item: 'Home loan EMI', amount_inr: '12500', category: 'Loans', payment_method: 'bank', ...extra })
+
+  it('offers a monthly EMI as recurring', () => {
+    const [candidate] = buildCandidates([row('2026-07-05'), row('2026-08-05'), row('2026-09-05')], [], 'INR')
+    expect(candidate.timing.deterministicCadence).toBe('monthly')
+    expect(candidate.payments).toHaveLength(3)
+  })
+
+  it('never offers refunds, a negative amount or zero as recurring: a refund is one-off income', () => {
+    expect(buildCandidates([row('2026-07-05', { source: 'refund' }), row('2026-08-05', { source: 'Refund' })], [], 'INR')).toEqual([])
+    expect(buildCandidates([row('2026-07-05', { amount_inr: '-12500' }), row('2026-08-05', { amount_inr: '-12500' })], [], 'INR')).toEqual([])
+    expect(buildCandidates([row('2026-07-05', { amount_inr: '0' }), row('2026-08-05', { amount_inr: '0' })], [], 'INR')).toEqual([])
+  })
+
+  it('skips rows the app logged itself from a recurrence or subscription', () => {
+    expect(buildCandidates([row('2026-07-05', { source: 'recurring' }), row('2026-08-05', { source: 'subscription' })], [], 'INR')).toEqual([])
+  })
+
+  it('matches a tracked name whatever its case and punctuation', () => {
+    expect(buildCandidates([row('2026-07-05'), row('2026-08-05')], ['home-loan  emi'], 'INR')).toEqual([])
+  })
+})
