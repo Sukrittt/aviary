@@ -142,4 +142,17 @@ describe('parity: weekly pace', () => {
     expect(last.monthStatus).toBe('onTrack')
     expect(weeks.reduce((n, w) => n + w.days, 0)).toBe(days)
   })
+
+  it('splits October 2026 into these exact weeks and allowances, and shrinks the next week after an overspend', () => {
+    expect(monthWeeks('2026-10').map((w) => [w.from, w.to])).toEqual([[1, 4], [5, 11], [12, 18], [19, 25], [26, 31]])
+    const spend = new Array<number>(31).fill(0)
+    const allowances = monthWeeks('2026-10').map((w) => {
+      const allowance = weekPace(10000.55, spend, '2026-10', w.from).current.allowance
+      spend[w.from - 1] = allowance
+      return allowance
+    })
+    expect(allowances).toEqual([1290, 2258, 2258, 2259, 1935.55])
+    const after = weekPace(10000.55, [500, 0, 0, 2000], '2026-10', 8)
+    expect([after.current.allowance, after.current.usual, after.left]).toEqual([1945, 2258.19, 1945])
+  })
 })
