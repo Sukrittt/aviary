@@ -1,5 +1,5 @@
 import { useReducedMotion, motion, type HTMLMotionProps } from 'motion/react'
-import { useLayoutEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 
 type MotionSheetProps = {
@@ -79,13 +79,79 @@ function useResizeEase(ref: React.RefObject<HTMLDivElement | null>, enabled: boo
       observer.disconnect()
       running?.cancel()
     }
-  }, [ref, enabled])
+  }, [ref])
+}
+
+const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+
+/**
+ * Keyboard behaviour every dialog needs, in one place: focus moves into the
+ * sheet, Tab stays inside it, Escape closes it (by clicking its scrim, which
+ * already owns the close logic and any "can't close while saving" guard), and
+ * focus returns to whatever opened it.
+ */
+const SCRIMS = '.erd-modal-overlay, .money-overlay, .move-money-overlay, .category-manager-overlay, .date-picker-scrim, .modal-overlay'
+
+function useDialogKeys(ref: React.RefObject<HTMLDivElement | null>) {
+  useEffect(() => {
+    const el = ref.current
+    // Only sheets that are dialogs (on a scrim, or marked as one): some are inline cards.
+    if (!el || !(el.parentElement?.matches(SCRIMS) || el.matches('[role="dialog"], [role="alertdialog"], [aria-modal="true"]'))) return
+    el.setAttribute('data-dialog-sheet', '')
+    const opener = document.activeElement as HTMLElement | null
+    if (!el.contains(document.activeElement)) {
+      const first = el.querySelector<HTMLElement>('[autofocus]') ?? el.querySelector<HTMLElement>(FOCUSABLE)
+      if (first) first.focus({ preventScroll: true })
+      else {
+        el.tabIndex = -1
+        el.focus({ preventScroll: true })
+      }
+    }
+    // Only the newest open sheet reacts, so a confirm on top of a sheet closes alone.
+    const isTop = () => {
+      const sheets = document.querySelectorAll('[data-dialog-sheet]')
+      return sheets[sheets.length - 1] === el
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (!isTop()) return
+      if (e.key === 'Escape') {
+        // data-own-escape: the dialog handles Escape itself (e.g. steps back instead of closing).
+        if (el.hasAttribute('data-own-escape')) return
+        const scrim = el.parentElement
+        if (scrim && scrim !== document.body) {
+          e.preventDefault()
+          scrim.click()
+        }
+        return
+      }
+      if (e.key !== 'Tab') return
+      const items = [...el.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((n) => n.offsetParent !== null)
+      if (!items.length) return
+      const first = items[0]
+      const last = items[items.length - 1]
+      if (e.shiftKey && (document.activeElement === first || !el.contains(document.activeElement))) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && (document.activeElement === last || !el.contains(document.activeElement))) {
+        e.preventDefault()
+        first.focus()
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      // Give focus back unless the close moved it somewhere on purpose.
+      const active = document.activeElement
+      if (opener?.isConnected && (!active || active === document.body || el.contains(active))) opener.focus({ preventScroll: true })
+    }
+  }, [ref])
 }
 
 export function Sheet({ children, className, initial, animate, exit, ...rest }: MotionSheetProps) {
   const reduce = useReducedMotion()
   const ref = useRef<HTMLDivElement>(null)
   useResizeEase(ref, !reduce)
+  useDialogKeys(ref)
   const variants = reduce
     ? {
         initial: { opacity: 0 },

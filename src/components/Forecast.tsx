@@ -63,7 +63,8 @@ export function ForecastLine() {
 
 function rowMeta(e: ForecastEnvelope, money: (n: number) => string): string {
   // Framed as what's still fine, with the fix one tap away on the right.
-  if (e.overspent) return 'Spent past the plan'
+  // available < 0 can be carried over from last month, so say where it stands, not that it was spent.
+  if (e.overspent) return `Short ${money(-e.available)} right now`
   if (e.runsOutOn) return `Covered till ${formatDateShort(e.runsOutOn)}`
   if (e.scheduled > 0) return `${money(e.scheduled)} in bills still to come`
   if (e.usualDaily > 0) return `Usually ${money(e.usualDaily)} a day`

@@ -128,6 +128,11 @@ export function InsightsPage() {
     expensesQuery.isLoading ||
     categoriesQuery.isLoading ||
     groupsQuery.isLoading;
+  const loadError =
+    budgetsQuery.isError || expensesQuery.isError || categoriesQuery.isError || groupsQuery.isError;
+  const retry = () => {
+    for (const q of [budgetsQuery, expensesQuery, categoriesQuery, groupsQuery]) if (q.isError) void q.refetch();
+  };
   const earliestMonth = useMemo(() => {
     if (expenses.length === 0) return currentMonth;
     return expenses.reduce(
@@ -522,6 +527,15 @@ export function InsightsPage() {
 
           {loading ? (
             <InsightsSkeleton forecast={isCurrent && (forecast.isPending || !!forecast.data)} />
+          ) : loadError ? (
+            // A failed fetch must not fall through to "Nothing spent yet": that tells the user something false.
+            <BirdEmptyState
+              subject="insights"
+              mood="searching"
+              title="Couldn't load your insights"
+              description="Check your connection and try again."
+              action={{ label: "Try again", onClick: retry }}
+            />
           ) : (
             <div className="insights-grid">
               <article

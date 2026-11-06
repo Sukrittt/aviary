@@ -4148,6 +4148,24 @@
   .expense-redesign .txn-filter-label {
     display: none;
   }
+  /* One segmented row of equal presets instead of wrapping "Custom" onto its own line. */
+  .expense-redesign .txn-filter-row-period .mc-filter-chips {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 6px;
+    width: 100%;
+    overflow: visible;
+  }
+  .expense-redesign .txn-filter-row-period .mc-filter-chips .action-button {
+    flex: 1 1 0;
+    min-width: 0;
+    margin: 0;
+    justify-content: center;
+    padding-inline: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
   .expense-redesign .mc-filter-chips {
     max-width: 100%;
     overflow-x: auto;
@@ -4237,9 +4255,18 @@
 
 @media (max-width: 520px) {
   .expense-redesign .txn-page-actions,
-  .expense-redesign .txn-page-log-btn,
   .expense-redesign .txn-page-duplicates-btn {
     width: 100%;
+  }
+  /* Secondary actions (Select, Feed) share one row with Log expense, which takes the rest. */
+  .expense-redesign .txn-page-actions {
+    flex-wrap: nowrap;
+  }
+  .expense-redesign .txn-page-log-btn {
+    flex: 1;
+  }
+  .expense-redesign .txn-page-actions:has(.txn-page-duplicates-btn) {
+    flex-wrap: wrap;
   }
   .expense-redesign .txn-page-duplicates-btn {
     justify-content: center;
@@ -6093,6 +6120,29 @@
   min-width: 0;
   width: 100%;
 }
+/* Settings pages read as a column: full-width buttons and rows stop at a readable width. */
+.account-panel.is-settings {
+  max-width: 880px;
+  margin-inline: auto;
+}
+.expense-redesign .account-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  margin-bottom: -10px;
+  padding: 4px 8px 4px 4px;
+  border-radius: 8px;
+  color: var(--erd-text2);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 150ms ease, background-color 150ms ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .expense-redesign .account-back:hover { color: var(--erd-text); background: var(--erd-input-bg); }
+}
+.expense-redesign .account-back:focus-visible { outline: 2px solid var(--tk-accent); outline-offset: 2px; }
 
 .account-section-label {
   font-size: 12px;
@@ -10581,6 +10631,10 @@ span.env-cat-alerts:hover {
 .recurring-list .recurring-due {
   color: var(--gold-ink);
   font-weight: 600;
+}
+/* Money coming in is good news, not a warning. */
+.recurring-list .recurring-due.is-income {
+  color: var(--mint);
 }
 .recurring-hint {
   margin: 6px 0 0;

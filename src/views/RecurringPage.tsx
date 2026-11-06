@@ -153,12 +153,14 @@ export function RecurringPage() {
           <p className="account-row-meta">Couldn&apos;t load your recurring expenses. Check your connection and try again.</p>
         </div>
       ) : rows.length === 0 ? (
-        <BirdEmptyState
-          subject="recurring"
-          title="Set it once, forget it"
-          description="Rent, the gym, your phone bill. Add it here and we’ll log it for you on every due date."
-          action={{ label: 'Add a recurring expense', onClick: () => setEditing('') }}
-        />
+        // Same card as Subscriptions' empty state; the header's Add button is the one action.
+        <div className="account-card">
+          <BirdEmptyState
+            subject="recurring"
+            title="Set it once, forget it"
+            description="Rent, the gym, your phone bill. Add it here and we’ll log it for you on every due date."
+          />
+        </div>
       ) : (
         <>
           <div className="account-card recurring-hero">

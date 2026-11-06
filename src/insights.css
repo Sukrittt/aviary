@@ -747,6 +747,12 @@
   font-size: 12px;
 }
 
+.ins-trend-label-short { display: none; }
+@media (max-width: 600px) {
+  .ins-trend-label-long { display: none; }
+  .ins-trend-label-short { display: inline; }
+}
+
 .ins-trend-label.is-selected,
 .ins-trend-value {
   fill: var(--erd-text);

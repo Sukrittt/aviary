@@ -187,19 +187,20 @@ export function InvestmentsPage() {
       <div className="erd-main">
         <ExpenseSidebar />
         <div className="erd-content inv-page">
-          <div className="erd-panel-head">
-            <div>
-              <div className="erd-panel-title">Investments</div>
-              <div className="erd-panel-head-sub">
+          <header className="txn-page-header account-header">
+            <div className="txn-page-heading">
+              <span className="txn-page-eyebrow">What you own</span>
+              <h1>Investments</h1>
+              <p>
                 {holdings.length}{" "}
                 {holdings.length === 1 ? "holding" : "holdings"}
-              </div>
+              </p>
             </div>
-            <div className="erd-panel-tools">
+            <div className="txn-page-actions">
               {!readOnly && (
                 <button
                   type="button"
-                  className="erd-log-btn"
+                  className="erd-log-btn txn-page-log-btn"
                   onClick={() => setEditing("")}
                 >
                   <PlusIcon size={14} aria-hidden="true" />
@@ -207,17 +208,31 @@ export function InvestmentsPage() {
                 </button>
               )}
             </div>
-          </div>
+          </header>
 
-          {(error || loadError) && (
+          {error && (
             <div className="erd-action-error" role="alert">
-              {error ??
-                "Couldn't load your investments. Check your connection and try again."}
+              {error}
             </div>
           )}
 
           {isLoading ? (
             <LoadingCaption feature="investments" placement="page" />
+          ) : loadError ? (
+            // Not a ₹0 net worth: that would tell the user something false.
+            <BirdEmptyState
+              subject="holdings"
+              mood="searching"
+              title="Couldn't load your investments"
+              description="Check your connection and try again."
+              action={{
+                label: "Try again",
+                onClick: () => {
+                  void holdingsQuery.refetch();
+                  void eventsQuery.refetch();
+                },
+              }}
+            />
           ) : (
             <>
               <div className="erd-card inv-hero">
