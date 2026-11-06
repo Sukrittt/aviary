@@ -53,7 +53,7 @@ import { FeatureNudge } from "../components/home/FeatureNudge";
 import { WeekRecapGate } from "../components/wrapped/WeekRecap";
 import { usePersistentState } from "../hooks/usePersistentState";
 import { useDismissedRolloverBanner } from "../hooks/useDismissedRolloverBanner";
-import { rolloverCard } from "../lib/rollover";
+import { rolloverCard, rolloverDetail } from "../lib/rollover";
 import { splitEmoji } from "../lib/emoji";
 import { fundBehindGoals, goalProgress } from "../lib/goal";
 import { RolloverCard } from "../components/home/RolloverCard";
@@ -238,6 +238,9 @@ export function ExpensePage() {
   const [rolloverDismissed, setRolloverDismissed] = useDismissedRolloverBanner(`${activeSpace?.id ?? ""}:${thisMonth}`);
   const rollover = hydrated && activeSpace && !rolloverDismissed && !readOnly
     ? rolloverCard(carryQuery.data, thisMonth, (n) => formatCurrency(n, hideAmounts), budgetRows)
+    : null;
+  const rolloverNote = rollover
+    ? rolloverDetail(carryQuery.data, thisMonth, (n) => formatCurrency(n, hideAmounts), budgetRows, new Set((categoriesQuery.data ?? []).filter((c) => c.goal).map((c) => c.name)))
     : null;
   // Each bump rolls the carry into the category amounts: once when the strip
   // first shows, again whenever it's tapped. Nothing to roll once it's gone.
@@ -784,7 +787,7 @@ export function ExpensePage() {
                       },
                     }}
                   >
-                    <RolloverCard text={rollover} onReplay={() => setRollReplays((n) => n + 1)} onDone={() => setRolloverDismissed(true)} />
+                    <RolloverCard text={rollover} detail={rolloverNote} onReplay={() => setRollReplays((n) => n + 1)} onDone={() => setRolloverDismissed(true)} />
                   </motion.div>
                 ) : planFills ? (
                   <motion.div
@@ -809,7 +812,7 @@ export function ExpensePage() {
                         <span className="erd-rta-icon" aria-hidden="true"><CalendarBlankIcon size={18} /></span>
                         {`Your plan fills up ${paydayLabel(planFills.next_run_date)}.`}
                       </span>
-                      <button type="button" onClick={() => setPlanFillsDismissed(true)}>Okay</button>
+                      <button type="button" onClick={() => setPlanFillsDismissed(true)}>Got it</button>
                     </div>
                   </motion.div>
                 ) : recap ? (
@@ -925,7 +928,10 @@ export function ExpensePage() {
           {payCreditCardAmount !== null && !readOnly && envelopeState && (
             <Scrim
               className="modal-overlay"
-              onClick={() => setPayCreditCardAmount(null)}
+              onClick={() => {
+                // Escape and outside taps close through here; not mid-payment.
+                if (!payPhase.saving && !payPhase.success) setPayCreditCardAmount(null);
+              }}
             >
               <Sheet
                 className="modal-content move-money-modal"

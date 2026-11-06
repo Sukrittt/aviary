@@ -100,3 +100,25 @@ export function formatDateTimeLong(ts: string): string {
   const year = String(d.getFullYear()).slice(-2)
   return `${d.getDate()} ${MONTHS[d.getMonth()]} '${year}, ${hours12}:${minutes} ${ampm}`
 }
+
+/** "Chrome on macOS" from a raw user-agent string, for session lists. */
+export function describeUserAgent(ua: string): string {
+  if (/okhttp|Dalvik|Expo|CFNetwork/i.test(ua)) return 'Aviary app'
+  const browser =
+    /Edg\//.test(ua) ? 'Edge'
+    : /OPR\//.test(ua) ? 'Opera'
+    : /Firefox\/|FxiOS\//.test(ua) ? 'Firefox'
+    : /Chrome\/|CriOS\//.test(ua) ? 'Chrome'
+    : /Safari\//.test(ua) ? 'Safari'
+    : null
+  const os =
+    /Android/.test(ua) ? 'Android'
+    : /iPhone|iPad|iPod/.test(ua) ? 'iOS'
+    : /Mac OS X|Macintosh/.test(ua) ? 'macOS'
+    : /Windows/.test(ua) ? 'Windows'
+    : /CrOS/.test(ua) ? 'ChromeOS'
+    : /Linux/.test(ua) ? 'Linux'
+    : null
+  if (browser && os) return `${browser} on ${os}`
+  return browser ?? os ?? 'Unknown device'
+}

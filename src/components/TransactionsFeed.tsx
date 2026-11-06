@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { BankIcon, CalendarBlankIcon, ClockIcon, PencilSimpleIcon, TagIcon, TrashIcon, XIcon } from './icons'
 import { CategoryIcon } from './CategoryIcon'
 import { DeletingRow } from './DeletingRow'
-import { Scrim } from './MotionSheet'
+import { DialogKeys, Scrim } from './MotionSheet'
 import { useExpensesFeed } from '../hooks/useExpenses'
 import { useCategoryIcons, useCategoryStyle } from '../hooks/useCategories'
 import { useCurrency } from '../context/CurrencyContext'
@@ -209,14 +209,10 @@ function TransactionDetailDialog({ txn, layoutKey, hideAmounts, icon, tint, acco
   const photo = txn.photoUrl ? stablePhotoUrl(txn.photoUrl) : null
   const close = useRef<HTMLButtonElement>(null)
 
+  const dialog = useRef<HTMLDivElement>(null)
   useEffect(() => {
     close.current?.focus()
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  }, [])
 
   const logged = new Date(txn.timestamp)
   // A backdated expense was logged on another day; its time is when it was
@@ -237,6 +233,7 @@ function TransactionDetailDialog({ txn, layoutKey, hideAmounts, icon, tint, acco
   return (
     <Scrim className="erd-modal-overlay" onClick={onClose}>
       <motion.div
+        ref={dialog}
         layoutId={`feed-${layoutKey}`}
         className="feed-detail"
         role="dialog"
@@ -244,6 +241,7 @@ function TransactionDetailDialog({ txn, layoutKey, hideAmounts, icon, tint, acco
         aria-label={txn.item}
         onClick={(e) => e.stopPropagation()}
       >
+        <DialogKeys target={dialog} onEscape={onClose} />
         <header className="feed-card-head">
           <span className="txn-timeline-icon" style={tint} aria-hidden="true">
             <CategoryIcon name={txn.category} icon={icon} />

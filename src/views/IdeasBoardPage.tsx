@@ -80,8 +80,7 @@ export function IdeasBoardPage() {
   return (
     <div className="ideas-board">
       <div>
-        <h1 className="account-row-label">Feedback board</h1>
-        <p className="account-help-copy">Post an idea or vote on what we build next. Found a bug? <Link href="/account/feedback">Report it privately</Link>.</p>
+        <p className="account-help-copy">Found a bug? <Link href="/account/feedback">Report it privately</Link>.</p>
       </div>
 
       <div className="ideas-toolbar">

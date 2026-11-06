@@ -538,14 +538,13 @@
     grid-template-rows: auto;
     align-items: start;
   }
-  /* Without a viewport-bound column the envelopes panel would collapse to
-     its min-height; let it grow with its rows, capped so a long list still
-     scrolls inside the card. */
+  /* The page scrolls while Get started shows, so the envelopes panel grows
+     with every row instead of clipping them in a scroll inside the card. */
   .erd-home[data-get-started="true"] .erd-envelopes-panel {
     flex: 0 0 auto;
   }
   .erd-home[data-get-started="true"] .erd-envelopes-panel .env2-list {
-    max-height: min(60vh, 600px);
+    overflow: visible;
   }
   .erd-envelopes-panel {
     display: flex;
@@ -952,6 +951,11 @@
 }
 .env2-pace.is-over > span:first-child { color: var(--tk-pill-over); }
 .env2-reset { color: var(--tk-text); white-space: nowrap; }
+/* Each part stays whole where it fits; a narrow row wraps between parts first,
+   and inside a part only when that part alone is too wide. */
+/* Shared by Home's row sub-lines and the rollover strip. */
+.env2-meta-part { display: inline-block; max-width: 100%; }
+.env2-meta-line { flex: 1; min-width: 0; }
 .env2-weeks {
   display: grid;
   gap: 2px;
@@ -1019,7 +1023,7 @@
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: var(--tk-on-accent);
+  background: var(--tk-switch-thumb);
   transition: transform 0.15s ease;
 }
 .env2-switch[data-on] { background: var(--tk-accent); }
@@ -2388,7 +2392,7 @@
   }
   .erd-mobile-page {
     overflow: hidden;
-    max-width: 108px;
+    max-width: 140px;
     padding: 6px 10px;
     border: 1px solid var(--erd-border);
     border-radius: 999px;
@@ -2396,7 +2400,7 @@
     background: var(--erd-pill-bg);
     font-size: 12px;
     font-weight: 700;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.02em;
     text-overflow: ellipsis;
     text-transform: uppercase;
     white-space: nowrap;
@@ -2994,7 +2998,7 @@
   width: fit-content;
 }
 .erd-log-card .erd-log-label.is-missing {
-  color: var(--tk-accent);
+  color: var(--tk-accent-ink);
 }
 .erd-log-card .erd-log-input.is-missing,
 .erd-amount-field.is-missing {
@@ -3624,6 +3628,7 @@
 .expense-redesign .txn-page-actions .action-button {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   min-height: 44px;
   padding-inline: 18px;
@@ -4025,7 +4030,7 @@
   border: 0;
   border-radius: 100px;
   background: var(--coral);
-  color: var(--erd-on-accent);
+  color: var(--tk-on-strong);
   font: 600 13px var(--font-display);
   cursor: pointer;
   transition: opacity 140ms, scale var(--dur-press) var(--ease-press);
@@ -4114,7 +4119,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 4px 18px;
+  /* Right padding keeps "Total" clear of the floating feedback button. */
+  padding: 16px 72px 18px 4px;
   font-size: 12px;
   color: var(--erd-text2);
 }
@@ -4122,6 +4128,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  white-space: nowrap;
 }
 
 @media (max-width: 900px) {
@@ -4129,8 +4136,15 @@
     justify-content: flex-end;
     padding: 0 0 14px;
   }
-  .expense-redesign .txn-page-heading {
-    display: none;
+  /* The top bar names the page on phones; keep the h1 for screen readers.
+     Account pages have no other title, so they keep theirs visible. */
+  .expense-redesign .txn-page-header:not(.account-header) .txn-page-heading {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
   .expense-redesign .txn-page-log-btn,
   .expense-redesign .txn-page-actions .action-button {
@@ -4146,6 +4160,24 @@
   }
   .expense-redesign .txn-filter-label {
     display: none;
+  }
+  /* One segmented row of equal presets instead of wrapping "Custom" onto its own line. */
+  .expense-redesign .txn-filter-row-period .mc-filter-chips {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 6px;
+    width: 100%;
+    overflow: visible;
+  }
+  .expense-redesign .txn-filter-row-period .mc-filter-chips .action-button {
+    flex: 1 1 0;
+    min-width: 0;
+    margin: 0;
+    justify-content: center;
+    padding-inline: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .expense-redesign .mc-filter-chips {
     max-width: 100%;
@@ -4191,7 +4223,7 @@
   .expense-redesign .txn-timeline-footer {
     flex-wrap: wrap;
     gap: 10px 18px;
-    padding-inline: 0;
+    padding-inline: 0 64px;
   }
   .expense-redesign .modal-overlay,
   .expense-redesign .move-money-overlay,
@@ -4236,9 +4268,18 @@
 
 @media (max-width: 520px) {
   .expense-redesign .txn-page-actions,
-  .expense-redesign .txn-page-log-btn,
   .expense-redesign .txn-page-duplicates-btn {
     width: 100%;
+  }
+  /* Secondary actions (Select, Feed) share one row with Log expense, which takes the rest. */
+  .expense-redesign .txn-page-actions {
+    flex-wrap: nowrap;
+  }
+  .expense-redesign .txn-page-log-btn {
+    flex: 1;
+  }
+  .expense-redesign .txn-page-actions:has(.txn-page-duplicates-btn) {
+    flex-wrap: wrap;
   }
   .expense-redesign .txn-page-duplicates-btn {
     justify-content: center;
@@ -6092,6 +6133,29 @@
   min-width: 0;
   width: 100%;
 }
+/* Settings pages read as a column: full-width buttons and rows stop at a readable width. */
+.account-panel.is-settings {
+  max-width: 880px;
+  margin-inline: auto;
+}
+.expense-redesign .account-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  margin-bottom: -10px;
+  padding: 4px 8px 4px 4px;
+  border-radius: 8px;
+  color: var(--erd-text2);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 150ms ease, background-color 150ms ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .expense-redesign .account-back:hover { color: var(--erd-text); background: var(--erd-input-bg); }
+}
+.expense-redesign .account-back:focus-visible { outline: 2px solid var(--tk-accent); outline-offset: 2px; }
 
 .account-section-label {
   font-size: 12px;
@@ -6189,7 +6253,7 @@ button.account-row:hover {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: var(--erd-on-accent);
+  background: var(--tk-switch-thumb);
   transition: transform 0.15s ease;
 }
 
@@ -6477,7 +6541,7 @@ button.account-feature-card {
   border-radius: 100px;
   border: none;
   background: var(--coral);
-  color: var(--erd-on-accent);
+  color: var(--tk-on-strong);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -7539,16 +7603,30 @@ span.env-cat-alerts:hover {
     padding-block: 10px;
   }
   .env-cat-icon {
-    grid-row: span 2;
+    grid-column: -4;
+    grid-row: 1 / span 2;
     width: 38px;
     height: 38px;
     border-radius: 12px;
   }
+  /* The drag handle is a grid child too: give it its own column so it
+     doesn't take row 1 alone and push the icon and name down. */
+  .env-cat:has(> .env-drag-handle) {
+    grid-template-columns: 14px 38px minmax(0, 1fr) auto;
+  }
+  .env-cat > .env-drag-handle {
+    grid-row: 1 / span 2;
+    align-self: center;
+    width: 14px;
+    margin-left: -4px;
+  }
   .env-cat-name {
-    grid-column: 2;
+    grid-column: -3;
+    grid-row: 1;
+    align-self: end;
   }
   .env-cat-alerts {
-    grid-column: 2;
+    grid-column: -3;
     grid-row: 2;
     align-items: center;
     justify-self: start;
@@ -7570,7 +7648,7 @@ span.env-cat-alerts:hover {
     color: var(--erd-text2);
   }
   .env-cat-actions {
-    grid-column: 3;
+    grid-column: -2;
     grid-row: 1 / span 2;
     margin-left: 0;
     padding-left: 6px;
@@ -8297,10 +8375,14 @@ span.env-cat-alerts:hover {
   --insight-color: var(--violet);
   --insight-soft: var(--tk-violet-soft);
 }
-.brain-insight--coral,
-.brain-insight--warn {
+.brain-insight--coral {
   --insight-color: var(--coral);
   --insight-soft: var(--tk-coral-soft);
+}
+/* Caution, not over: red stays for money already past its budget. */
+.brain-insight--warn {
+  --insight-color: var(--gold-ink);
+  --insight-soft: var(--gold-soft);
 }
 
 .brain-chips {
@@ -8806,6 +8888,15 @@ span.env-cat-alerts:hover {
   .week-recap-blob {
     animation: none;
   }
+}
+.expense-redesign.wrapped-shell {
+  /* Full-bleed story: escape the app shell's padding and the row flex that
+     shrank the cover to its content width. */
+  position: fixed;
+  inset: 0;
+  display: block;
+  height: auto;
+  overflow-y: auto;
 }
 .wrapped-shell {
   min-height: 100dvh;
@@ -10434,7 +10525,7 @@ span.env-cat-alerts:hover {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: var(--erd-on-accent);
+  background: var(--tk-switch-thumb);
   transition: transform 0.15s ease;
 }
 
@@ -10518,7 +10609,7 @@ span.env-cat-alerts:hover {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: var(--erd-on-accent);
+  background: var(--tk-switch-thumb);
   transition: transform 0.15s ease;
 }
 
@@ -10557,6 +10648,10 @@ span.env-cat-alerts:hover {
 .recurring-list .recurring-due {
   color: var(--gold-ink);
   font-weight: 600;
+}
+/* Money coming in is good news, not a warning. */
+.recurring-list .recurring-due.is-income {
+  color: var(--mint);
 }
 .recurring-hint {
   margin: 6px 0 0;
@@ -11004,11 +11099,11 @@ span.env-cat-alerts:hover {
 .ideas-score { min-width: 24px; text-align: center; font-weight: 700; font-size: 14px; font-variant-numeric: tabular-nums; color: var(--erd-text); }
 .ideas-vote.is-up { background: var(--gold-soft); }
 .ideas-vote.is-up button:first-child, .ideas-vote.is-up .ideas-score { color: var(--gold-hover); }
-.ideas-vote.is-down button:last-child, .ideas-vote.is-down .ideas-score { color: #6a5acd; }
-.ideas-status.is-planned { background: rgba(80, 140, 255, 0.16); color: #3a6fd8; }
-.ideas-status.is-in_progress { background: rgba(240, 170, 40, 0.18); color: #b97a00; }
-.ideas-status.is-shipped { background: rgba(60, 180, 120, 0.18); color: #23935c; }
-.ideas-status.is-declined { background: rgba(220, 80, 80, 0.14); color: #c24646; }
+.ideas-vote.is-down button:last-child, .ideas-vote.is-down .ideas-score { color: var(--violet); }
+.ideas-status.is-planned { background: var(--blue-soft); color: var(--blue); }
+.ideas-status.is-in_progress { background: var(--gold-soft); color: var(--gold-ink); }
+.ideas-status.is-shipped { background: var(--mint-soft); color: var(--mint); }
+.ideas-status.is-declined { background: var(--coral-soft); color: var(--coral); }
 
 /* Scan a bill */
 .expense-redesign .erd-modal-card.scan-modal {
@@ -12317,7 +12412,7 @@ span.env-cat-alerts:hover {
 /* Mobile's month-end heads-up and optional onboarding milestones. */
 /* Clips the strip as "Nice" slides it off to the right. */
 .expense-redesign .home-leftover-slot { overflow: hidden; flex-shrink: 0; }
-/* Same size and green as the settled Ready to Assign row above it. */
+/* Same padding and green as the settled Ready to Assign row above it; the detail line can make it taller. */
 .expense-redesign .home-leftover-notice {
   display: flex;
   align-items: center;
@@ -12331,10 +12426,13 @@ span.env-cat-alerts:hover {
   font-weight: 500;
 }
 .expense-redesign .home-leftover-notice p { flex: 1; margin: 0; color: var(--erd-text); }
+.expense-redesign .home-leftover-detail { display: block; margin-top: 2px; color: var(--erd-text2); font-size: 13px; font-weight: 500; }
 /* Monday's weekly recap: the rollover strip with a title and one short line. */
 .expense-redesign .home-weekly-recap-text { flex: 1; display: grid; gap: 2px; color: var(--erd-text); }
 .expense-redesign .home-weekly-recap-text > span { font-size: 13px; color: var(--erd-text2); }
-.expense-redesign .home-weekly-recap.is-calm { background: var(--erd-card); border-color: var(--erd-border); }
+.expense-redesign .home-weekly-recap.is-calm,
+.expense-redesign .home-leftover-notice.is-short { background: var(--erd-card); border-color: var(--erd-border); }
+.expense-redesign .home-leftover-notice.is-short button:not(.home-leftover-replay) { color: var(--gold-ink); }
 .expense-redesign .home-weekly-recap.is-calm button { color: var(--accent-ink, var(--erd-text)); }
 .expense-redesign .home-leftover-notice button {
   border: 0;
@@ -12422,7 +12520,7 @@ span.env-cat-alerts:hover {
 .home-learning-days li.is-on span {
   border-color: var(--gold);
   background: var(--gold);
-  color: #fff;
+  color: var(--erd-on-accent);
 }
 .home-learning-days li.is-today span {
   outline: 2px solid var(--gold);
@@ -12538,7 +12636,7 @@ span.env-cat-alerts:hover {
 .expense-redesign .get-started-step.is-next { border-color: var(--gold); background: var(--gold-soft); }
 .expense-redesign .get-started-step.is-done { border-color: transparent; color: var(--erd-text3); cursor: default; }
 .expense-redesign .get-started-icon { display: grid; place-items: center; width: 32px; height: 32px; flex-shrink: 0; border-radius: 50%; background: var(--erd-input-bg); }
-.expense-redesign .is-next .get-started-icon { background: var(--gold-ink); color: var(--erd-on-accent); }
+.expense-redesign .is-next .get-started-icon { background: var(--gold-ink); color: var(--tk-on-strong); }
 .expense-redesign .is-done .get-started-icon { background: var(--mint-soft); color: var(--mint); }
 .expense-redesign .get-started-step-copy { display: grid; gap: 1px; flex: 1; min-width: 0; }
 .expense-redesign .get-started-step-copy strong { font-size: 13px; font-weight: 700; }
@@ -14549,6 +14647,10 @@ span.env-cat-alerts:hover {
   align-items: center;
   gap: 14px;
 }
+/* Keep the title clear of the absolutely placed "Easiest" chip. */
+.gap-hero-top > span:last-child {
+  padding-right: 64px;
+}
 .gap-chip {
   position: absolute;
   top: 14px;
@@ -15583,6 +15685,7 @@ span.env-cat-alerts:hover {
 }
 
 .referral-code-label {
+  color: var(--erd-text2);
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.08em;
@@ -15639,7 +15742,7 @@ span.env-cat-alerts:hover {
 .env2-goal-line {
   flex-basis: 100%;
   /* Lines up with the name, past the icon. */
-  padding-left: 25px;
+  padding-left: 0;
   margin-top: -4px;
 }
 .env2-goal-line.is-behind { color: var(--tk-pill-low); }

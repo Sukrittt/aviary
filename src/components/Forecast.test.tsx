@@ -29,7 +29,7 @@ it('frames a shortfall kindly and tops it up with the rounded gap', () => {
   const onTopUp = renderCard()
   expect(screen.getByText('Covered till 30 Oct')).toBeTruthy()
   expect(screen.getByText("There's enough elsewhere to cover the gap.")).toBeTruthy()
-  fireEvent.click(screen.getByRole('button', { name: 'Top up Food' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Top up Food by ₹200 to last the month' }))
   expect(onTopUp).toHaveBeenCalledWith('Food', 200)
 })
 
@@ -76,7 +76,7 @@ describe('ForecastLine', () => {
 
   it('goes away on Okay and stays gone for that envelope and date', async () => {
     const first = render(<ForecastLine />)
-    fireEvent.click(screen.getByRole('button', { name: 'Okay' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Got it' }))
     // Leaves through its fold-up exit rather than snapping out.
     await waitFor(() => expect(first.container.innerHTML).toBe(''))
     first.unmount()
@@ -85,7 +85,7 @@ describe('ForecastLine', () => {
 
   it('comes back once the forecast names a new date', () => {
     const first = render(<ForecastLine />)
-    fireEvent.click(screen.getByRole('button', { name: 'Okay' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Got it' }))
     first.unmount()
     mocks.forecast = { ...base, envelopes: [env('Food', -200, { runsOutOn: '2026-10-27' })] }
     render(<ForecastLine />)

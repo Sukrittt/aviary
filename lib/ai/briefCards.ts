@@ -1,5 +1,6 @@
 import type { Experimental_EvaluationQuestion } from 'ai'
 import { resolveCurrency } from '@/src/lib/currencies'
+import { balanceLabel } from '@/src/lib/envelope'
 import { runJev } from './jev'
 import type { AiCaller } from './usage'
 import type { SummarizeExpensesResult } from './expenseContext'
@@ -39,10 +40,11 @@ export function buildBriefCandidates(ctx: SummarizeExpensesResult, currencyCode:
     cards.push({
       icon: '🚨',
       title: worstOverspent.category,
-      subtitle: "You've gone past this budget",
+      // Same rule as Home's row label: a deficit carried in isn't "gone past" this month.
+      subtitle: balanceLabel(worstOverspent) === 'Short' ? 'Short after last month' : "You've gone past this budget",
       valueLabel,
       amount: Math.round(Math.abs(worstOverspent.available)),
-      tone: 'warn',
+      tone: 'coral',
     })
     used.add(worstOverspent.category)
   }
@@ -60,14 +62,17 @@ export function buildBriefCandidates(ctx: SummarizeExpensesResult, currencyCode:
     used.add(heaviest.category)
   }
 
-  const remaining = Math.round(meta.totalAssigned - meta.totalSpent)
+  // What Home's spending envelopes add up to (carry included), so both screens
+  // agree on "left". Goals are saved money, not spendable, so they stay out.
+  const goals = new Set(ctx.categories.filter((c) => c.isGoal).map((c) => c.name))
+  const remaining = Math.round(spending.filter((e) => !goals.has(e.category)).reduce((sum, e) => sum + e.available, 0))
   cards.push({
     icon: '⏳',
-    title: 'Left to spend',
+    title: remaining < 0 ? 'Over by' : 'Left to spend',
     subtitle: `${meta.daysLeft} days left in the month`,
     valueLabel,
     amount: Math.abs(remaining),
-    tone: remaining < 0 ? 'warn' : 'mint',
+    tone: remaining < 0 ? 'coral' : 'mint',
   })
 
   if (highlights.topItem && highlights.topItem.amount > 0) {
@@ -77,7 +82,7 @@ export function buildBriefCandidates(ctx: SummarizeExpensesResult, currencyCode:
       subtitle: `Biggest single spend · ${highlights.topItem.category}`,
       valueLabel,
       amount: highlights.topItem.amount,
-      tone: 'coral',
+      tone: 'violet',
     })
   }
 
@@ -88,7 +93,7 @@ export function buildBriefCandidates(ctx: SummarizeExpensesResult, currencyCode:
       subtitle: `Up from a ${highlights.riser.priorAverage} average`,
       valueLabel,
       amount: highlights.riser.thisMonth,
-      tone: 'coral',
+      tone: 'warn',
     })
     used.add(highlights.riser.category)
   }
@@ -105,7 +110,7 @@ export function buildBriefCandidates(ctx: SummarizeExpensesResult, currencyCode:
   }
 
   const lightest = [...spending]
-    .filter((e) => e.assigned > 0 && !e.isOverspent && !used.has(e.category))
+    .filter((e) => e.assigned > 0 && e.spent > 0 && !e.isOverspent && !used.has(e.category))
     .sort((a, b) => a.available - b.available)[0]
   if (lightest) {
     cards.push({
@@ -114,7 +119,7 @@ export function buildBriefCandidates(ctx: SummarizeExpensesResult, currencyCode:
       subtitle: 'Closest to empty without going over',
       valueLabel,
       amount: Math.round(lightest.available),
-      tone: 'coral',
+      tone: 'warn',
     })
   }
 

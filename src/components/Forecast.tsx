@@ -53,7 +53,7 @@ export function ForecastLine() {
               <span className="erd-rta-icon" aria-hidden="true"><ChartLineIcon size={18} /></span>
               {warning.text}
             </Link>
-            <button type="button" onClick={() => setDismissed(true)}>Okay</button>
+            <button type="button" onClick={() => setDismissed(true)}>Got it</button>
           </div>
         </motion.div>
       )}
@@ -63,7 +63,8 @@ export function ForecastLine() {
 
 function rowMeta(e: ForecastEnvelope, money: (n: number) => string): string {
   // Framed as what's still fine, with the fix one tap away on the right.
-  if (e.overspent) return 'Spent past the plan'
+  // available < 0 can be carried over from last month, so say where it stands, not that it was spent.
+  if (e.overspent) return `Short ${money(-e.available)} right now`
   if (e.runsOutOn) return `Covered till ${formatDateShort(e.runsOutOn)}`
   if (e.scheduled > 0) return `${money(e.scheduled)} in bills still to come`
   if (e.usualDaily > 0) return `Usually ${money(e.usualDaily)} a day`
@@ -110,7 +111,12 @@ export function ForecastCard({ hideAmounts, icon, onTopUp }: {
             </p>
           )}
         </div>
-        {data.totalLeft !== null && <span className="ins-top-amount">{money(data.totalLeft)}</span>}
+        {data.totalLeft !== null && (
+          <span className="ins-top-amount" title="Left across your categories at month end">
+            {money(data.totalLeft)}
+            <small className="ins-top-amount-label">left at month end</small>
+          </span>
+        )}
       </div>
       {!data.basis ? (
         <BirdEmptyState
@@ -132,13 +138,17 @@ export function ForecastCard({ hideAmounts, icon, onTopUp }: {
                 <button
                   type="button"
                   className="ins-forecast-topup"
-                  aria-label={`Top up ${splitEmoji(e.category).text}`}
+                  aria-label={`Top up ${splitEmoji(e.category).text} by ${money(-e.projected)} to last the month`}
+                  title="What it needs to last to month-end"
                   onClick={() => onTopUp(e.category, Math.round(-e.projected))}
                 >
                   Top up {money(-e.projected)}
                 </button>
               ) : (
-                <span className="ins-top-amount">{money(e.projected)}</span>
+                <span className="ins-top-amount">
+                  {money(e.projected)}
+                  <small className="ins-top-amount-label">spare</small>
+                </span>
               )}
             </div>
           ))}

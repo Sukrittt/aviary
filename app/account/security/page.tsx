@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from 'react'
 import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
 import { clearLocalPrefs } from '../../../src/lib/localPref'
+import { describeUserAgent, formatShortDate } from '../../../src/lib/format'
 import { DeleteAccount } from './DeleteAccount'
 
 interface UserDoc {
@@ -17,6 +18,7 @@ interface UserDoc {
 interface SessionRow {
   id: string
   userAgent: string | null
+  ipAddress?: string | null
   authMethod: string
   createdAt: string
   current: boolean
@@ -34,10 +36,19 @@ function daysUntil(ts: string): number {
   return Math.max(0, Math.ceil((d.getTime() - Date.now()) / (24 * 60 * 60 * 1000)))
 }
 
+const methodName = (m: string) => (m === 'oauth' ? 'Google' : m === 'magic_code' ? 'email code' : m)
+
 function sessionLabel(s: SessionRow): string {
-  if (s.userAgent) return s.userAgent
-  const method = s.authMethod === 'oauth' ? 'Google' : s.authMethod === 'magic_code' ? 'Email code' : s.authMethod
-  return `Signed in with ${method}`
+  if (s.userAgent) return describeUserAgent(s.userAgent)
+  return `Signed in with ${methodName(s.authMethod)}`
+}
+
+/** Date, method and IP: enough to tell five "Chrome on macOS" rows apart. */
+function sessionMeta(s: SessionRow): string {
+  const parts = [`Signed in ${formatShortDate(s.createdAt)}`]
+  if (s.userAgent) parts[0] += ` with ${methodName(s.authMethod)}`
+  if (s.ipAddress) parts.push(s.ipAddress)
+  return parts.join(' · ')
 }
 
 function SecurityContent() {
@@ -48,6 +59,7 @@ function SecurityContent() {
   const [googleLinked, setGoogleLinked] = useState<boolean | null>(null)
   const [proof, setProof] = useState<ProofDoc | null>(null)
   const [showProof, setShowProof] = useState(false)
+  const [allSessions, setAllSessions] = useState(false)
 
   const [editingName, setEditingName] = useState(false)
   const [nameDraft, setNameDraft] = useState('')
@@ -236,7 +248,7 @@ function SecurityContent() {
           <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
             <div>
               <div style={{ fontSize: 14, fontWeight: 600 }}>{doc?.email}</div>
-              <div style={{ marginTop: 6, fontSize: 12, color: doc?.emailVerified ? 'var(--mint)' : 'var(--gold)' }}>
+              <div style={{ marginTop: 6, fontSize: 12, color: doc?.emailVerified ? 'var(--mint)' : 'var(--gold-ink)' }}>
                 {doc?.emailVerified ? '✓ Verified' : 'Unverified'}
               </div>
             </div>
@@ -299,13 +311,17 @@ function SecurityContent() {
           Active sessions
         </div>
         <div className="account-card">
-          {(sessions ?? []).map((s) => (
+          {(() => {
+            // Current session first, then the rest as returned; long lists collapse to 5.
+            const rows = [...(sessions ?? [])].sort((a, b) => Number(b.current) - Number(a.current))
+            return allSessions ? rows : rows.slice(0, 5)
+          })().map((s) => (
             <div className="account-row" key={s.id} style={{ cursor: 'default' }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="account-row-label" style={{ fontWeight: 600 }}>
                   {sessionLabel(s)}
                 </div>
-                <div className="account-row-meta">{new Date(s.createdAt).toLocaleDateString()}</div>
+                <div className="account-row-meta">{sessionMeta(s)}</div>
               </div>
               {s.current ? (
                 <span className="account-badge">Current</span>
@@ -316,6 +332,11 @@ function SecurityContent() {
               )}
             </div>
           ))}
+          {!allSessions && (sessions?.length ?? 0) > 5 && (
+            <button type="button" className="account-row" onClick={() => setAllSessions(true)}>
+              <span className="account-row-label">Show all {sessions?.length} sessions</span>
+            </button>
+          )}
           {sessions?.length === 0 && (
             <div style={{ padding: 16, fontSize: 12, color: 'var(--erd-text2)' }}>No active sessions.</div>
           )}
@@ -394,7 +415,7 @@ function SecurityContent() {
           <button
             type="button"
             className="account-row account-card"
-            style={{ color: 'var(--gold)' }}
+            style={{ color: 'var(--gold-ink)' }}
             onClick={() => setConfirmingSignOutAll(true)}
           >
             <span className="account-row-label">Sign out everywhere</span>

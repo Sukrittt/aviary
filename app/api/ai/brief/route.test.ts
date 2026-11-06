@@ -69,7 +69,7 @@ describe('GET /api/ai/brief', () => {
     expect(body.cards).toHaveLength(3)
     expect(body.questions).toHaveLength(4)
     expect(body.meta.txnCountThisMonth).toBe(24)
-    expect(body.cards.find((c: { title: string }) => c.title === 'Travel')).toMatchObject({ amount: 2400, tone: 'warn' })
+    expect(body.cards.find((c: { title: string }) => c.title === 'Travel')).toMatchObject({ amount: 2400, tone: 'coral' })
     expect(body.cards.every((c: { valueLabel: string }) => c.valueLabel === 'INR')).toBe(true)
   })
 

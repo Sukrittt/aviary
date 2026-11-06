@@ -31,7 +31,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { MENU_ITEM, MENU_POPUP } from "./menuStyles";
 import { splitEmoji } from "../lib/emoji";
 import { CategoryIcon } from "./CategoryIcon";
-import { formatShortDate } from "../lib/format";
+import { formatDateShort, formatShortDate } from "../lib/format";
 import { parseLocalDate, toLocalDateString } from "../lib/date";
 import { BirdEmptyState } from "./BirdEmptyState";
 import { useIncomes } from "../hooks/useIncomes";
@@ -211,6 +211,25 @@ export function TransactionsView({
   );
 
   const latestDate = useMemo(() => anchorDate ?? new Date(), [anchorDate]);
+
+  // The presets anchor on the newest entry, so after a gap "This month" would
+  // show an older month. Name that month (and week) instead of claiming "this".
+  const periodLabels = useMemo(() => {
+    const today = new Date();
+    const mondayOf = (d: Date) => {
+      const m = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      m.setDate(m.getDate() - ((m.getDay() + 6) % 7));
+      return toLocalDateString(m);
+    };
+    const anchorMonday = mondayOf(latestDate);
+    const sameMonth =
+      latestDate.getFullYear() === today.getFullYear() &&
+      latestDate.getMonth() === today.getMonth();
+    return {
+      week: anchorMonday === mondayOf(today) ? "This week" : `Week of ${formatDateShort(anchorMonday)}`,
+      month: sameMonth ? "This month" : latestDate.toLocaleDateString("en-IN", { month: "long" }),
+    };
+  }, [latestDate]);
 
   // The date window sent to the server — same week/month/custom math the old
   // client-side filter used, now producing a `from`/`to` pair instead of
@@ -558,9 +577,9 @@ export function TransactionsView({
                 onClick={() => setPeriod(key)}
               >
                 {key === "week"
-                  ? "This week"
+                  ? periodLabels.week
                   : key === "month"
-                    ? "This month"
+                    ? periodLabels.month
                     : "Custom"}
               </button>
             ))}
@@ -889,8 +908,9 @@ export function TransactionsView({
 
       {!feedView && !loading && !error && (
         <div className="txn-timeline-footer">
+          {/* One line for the whole filter, so the total can't be read as this page's. */}
           <span>
-            {totalCount} transaction{totalCount !== 1 ? "s" : ""}
+            {totalCount.toLocaleString("en-IN")} transaction{totalCount !== 1 ? "s" : ""} · {hideAmounts ? "---" : formatCurrency(totalSpend)} in all
           </span>
           {totalPages > 1 && (
             <div className="txn-timeline-pagination">
@@ -915,7 +935,6 @@ export function TransactionsView({
               </button>
             </div>
           )}
-          <span>Total: {hideAmounts ? "---" : formatCurrency(totalSpend)}</span>
         </div>
       )}
 

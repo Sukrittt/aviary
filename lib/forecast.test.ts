@@ -40,6 +40,12 @@ describe('forecast', () => {
   // so the usual rest of the month is 3500 / 3 and usual daily is that over Oct's 12 days left.
   const REST = 3500 / 3
 
+  it('leaves savings goals out: their money is saved, not left to spend', () => {
+    const f = forecast(input({ envelopes: [env('Food', 5000), { ...env('Emergency fund', 33000), isGoal: true }], expenses: threeMonths('Food', 100) }))
+    expect(f.envelopes.map((e) => e.category)).toEqual(['Food'])
+    expect(f.totalLeft).toBe(round2(5000 - REST))
+  })
+
   it('subtracts what prior months usually spent from tomorrow to month end (Oct 19: 12 days left)', () => {
     const f = forecast(input({ envelopes: [env('Food', 5000)], expenses: threeMonths('Food', 100) }))
     expect(f.basis).toBe('history')

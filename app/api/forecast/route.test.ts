@@ -7,7 +7,10 @@ const context = vi.hoisted(() => ({
   envelopes: [
     { category: 'Food', available: 5000, isCreditCardPayment: false } as Record<string, unknown>,
     { category: 'Card', available: 900, isCreditCardPayment: true },
+    // A savings goal: saved money, so the forecast leaves it out like the card.
+    { category: 'Holiday', available: 9000, isCreditCardPayment: false },
   ],
+  categories: [{ name: 'Holiday', isGoal: true }] as { name: string; isGoal?: boolean }[],
 }))
 vi.mock('@/lib/ai/expenseContext', () => ({ buildExpenseContext: async () => context }))
 
@@ -36,7 +39,7 @@ vi.mock('@/lib/http', async (importOriginal) => ({
 const { GET } = await import('./route')
 
 describe('GET /api/forecast', () => {
-  it('forecasts from the stored rows, card envelopes left out', async () => {
+  it('forecasts from the stored rows, card and goal envelopes left out', async () => {
     const body = await (await GET(new Request('https://example.com/api/forecast'))).json()
     expect(body.basis).toBe('history')
     // Usually 1200 after the 19th = 100/day over 12 days; 5000 − 300 − 100 − 1200.

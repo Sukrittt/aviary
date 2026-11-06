@@ -1,5 +1,5 @@
 import { useCurrency } from '@/src/context/CurrencyContext'
-import { useMemo, useRef, useState } from 'react'
+import { Fragment, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowsInLineVerticalIcon, NoteIcon } from '@/src/components/icons'
 import { SpringChevron, SpringCollapse } from './SpringCollapse'
@@ -17,7 +17,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { rolledOverLine } from '../lib/rollover'
 import { allowanceNote, paceLine, resetChip, weekResult, type PaceStatus, type WeekPace } from '../lib/weekly'
 import { goalProgress } from '../lib/goal'
-import { currentMonthKey } from '../lib/envelope'
+import { balanceLabel, currentMonthKey } from '../lib/envelope'
 import { AnimatePresence } from 'motion/react'
 import { GoalLine, GoalSheet } from './GoalSheet'
 import { NoteSheet } from './NoteSheet'
@@ -131,10 +131,29 @@ function lastSpentLabel(iso: string | undefined): string {
   return new Date(spent).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'UTC' })
 }
 
+/** A row's sub-line: " · "-joined parts that each stay whole, so a narrow row breaks between them, not mid-phrase. */
+function MetaLine({ parts }: { parts: (string | null)[] }) {
+  // A part may carry its own " · " (pace lines do): split it so it can break there too.
+  const shown = parts.filter((p): p is string => !!p).flatMap((p) => p.split(' · '))
+  return (
+    <span className="env2-meta-line">
+      {shown.map((part, i) => (
+        // The separator sits outside the unbreakable part, so the line can break there.
+        <Fragment key={i}>
+          {i > 0 && ' · '}
+          <span className="env2-meta-part">{part}</span>
+        </Fragment>
+      ))}
+    </span>
+  )
+}
+
 export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveMoney, onAssignFromRTA, onSetAssigned, onPayCreditCard, categoryIcons, groupIcons, rollPlay = 0, month, paces, weekly, onToggleWeekly, onSetMonthly }: Props) {
   const styleOf = useCategoryStyle()
   const { formatCurrency } = useCurrency()
   const money = (n: number) => (hideAmounts ? '---' : formatCurrency(n))
+  // What carried in, in the row itself: the pill's tooltip never opens on touch.
+  const carryLine = (e: Envelope) => (month && !hideAmounts && e.rolledOver ? rolledOverLine(e.rolledOver, month, formatCurrency) : null)
 
   const router = useRouter()
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
@@ -263,7 +282,7 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
                 {pace.monthTickPct < 100 && <span className="env2-tick" style={{ left: `${pace.monthTickPct}%` }} />}
               </span>
               <span className={`env2-meta env2-pace ${pace.status === 'over' ? 'is-over' : ''}`}>
-                <span>{paceLine(pace, money)}</span>
+                <MetaLine parts={[carryLine(e), paceLine(pace, money)]} />
                 <span className="env2-reset">{resetChip(pace)}</span>
               </span>
             </>
@@ -274,7 +293,7 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
           )}
           {!isCC && !pace && !goal && (
             <span className="env2-meta">
-              {unbudgeted ? 'Not budgeted · ' : ''}Last spent {lastSpentLabel(e.lastSpentDate)}
+              <MetaLine parts={[carryLine(e), unbudgeted ? 'Not budgeted' : null, `Last spent ${lastSpentLabel(e.lastSpentDate)}`]} />
             </span>
           )}
         </DropdownMenuTrigger>
@@ -339,7 +358,7 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
         </DropdownMenuContent>
         </DropdownMenu>
         <span className="env2-available">
-          <span className="env2-balance-label">{e.isOverspent ? 'Overspent' : 'Left'}</span>
+          <span className="env2-balance-label">{goal ? 'Saved' : balanceLabel(e)}</span>
           {(() => {
             // Keyed by month: a month switch swaps the amount, it doesn't raise it.
             const pill = (

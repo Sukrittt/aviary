@@ -128,6 +128,13 @@ export function InsightsPage() {
     expensesQuery.isLoading ||
     categoriesQuery.isLoading ||
     groupsQuery.isLoading;
+  // Only a failed first load: a background refetch that fails keeps the data it had.
+  const loadError = [budgetsQuery, expensesQuery, categoriesQuery, groupsQuery].some(
+    (q) => q.isError && q.data === undefined,
+  );
+  const retry = () => {
+    for (const q of [budgetsQuery, expensesQuery, categoriesQuery, groupsQuery]) if (q.isError) void q.refetch();
+  };
   const earliestMonth = useMemo(() => {
     if (expenses.length === 0) return currentMonth;
     return expenses.reduce(
@@ -196,7 +203,9 @@ export function InsightsPage() {
     return done.length >= 2 ? done.reduce((sum, point) => sum + point.value, 0) / done.length : null;
   }, [savedData, currentMonth]);
   const showSaved = trendView === "saved" && !selectedBreakdownKey;
-  // A selection's own average: its finished months in view, like savedBaseline.
+  // The chart's average line: mean of the finished months in view, like
+  // savedBaseline. Not monthComparison's baseline, which is the first N days of
+  // past months and sat under every full-month bar.
   const selectionBaseline = useMemo(() => {
     const done = trendData.filter((point) => point.date < currentMonth);
     return done.length >= 2 ? done.reduce((sum, point) => sum + point.value, 0) / done.length : null;
@@ -522,6 +531,15 @@ export function InsightsPage() {
 
           {loading ? (
             <InsightsSkeleton forecast={isCurrent && (forecast.isPending || !!forecast.data)} />
+          ) : loadError ? (
+            // A failed fetch must not fall through to "Nothing spent yet": that tells the user something false.
+            <BirdEmptyState
+              subject="insights"
+              mood="searching"
+              title="Couldn't load your insights"
+              description="Check your connection and try again."
+              action={{ label: "Try again", onClick: retry }}
+            />
           ) : (
             <div className="insights-grid">
               <article
@@ -632,7 +650,7 @@ export function InsightsPage() {
                 ) : (
                   <TrendChart
                     data={trendData}
-                    baseline={selectedBreakdownKey ? selectionBaseline : comparison.baseline}
+                    baseline={selectionBaseline}
                     selectedKey={insightMonth}
                     hideAmounts={hideAmounts}
                     onSelect={setInsightMonth}
@@ -777,16 +795,19 @@ export function InsightsPage() {
                       {selectedLabel ?? monthLabel(insightMonth)}
                     </p>
                   </div>
-                  <Link href="/expense/transactions" className="erd-manage-btn ins-view-all">
-                    View all
-                  </Link>
+                  {topSpends.length > 0 && (
+                    <Link href="/expense/transactions" className="erd-manage-btn ins-view-all">
+                      View all
+                    </Link>
+                  )}
                 </div>
                 {topSpends.length === 0 ? (
+                  // Same words as "Where it went" for the same empty month.
                   <BirdEmptyState
                     compact
                     subject="expenses"
-                    title="Nothing logged yet"
-                    description="Your biggest spends will line up here once you start logging."
+                    title="Nothing spent yet"
+                    description="Log an expense and it'll land here."
                   />
                 ) : (
                   <div className="ins-top-list">

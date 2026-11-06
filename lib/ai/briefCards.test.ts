@@ -34,13 +34,26 @@ function ctx(over: Partial<SummarizeExpensesResult> = {}): SummarizeExpensesResu
 }
 
 describe('buildBriefCandidates', () => {
+  it('says a carried-in deficit is short, not overspent, like Home', () => {
+    const carried = [{ category: 'Eating out', group: 'Wants', assigned: 5000, spent: 0, available: -3704, rolledOver: -8704, isOverspent: true }]
+    const { cards } = buildBriefCandidates(ctx({ envelopes: carried as unknown as SummarizeExpensesResult['envelopes'] }), 'INR')
+    expect(cards.find((c) => c.title === 'Eating out')?.subtitle).toBe('Short after last month')
+  })
+
+  it('counts left to spend from the envelope balances, carry included, goals left out', () => {
+    const { cards } = buildBriefCandidates(ctx(), 'INR')
+    expect(cards.find((c) => c.title === 'Left to spend')?.amount).toBe(1600 - 2400 + 3100)
+    const withGoal = buildBriefCandidates(ctx({ categories: [{ name: 'Bills', isGoal: true }] }), 'INR')
+    expect(withGoal.cards.find((c) => c.title === 'Over by')?.amount).toBe(800)
+  })
+
   it('builds cards straight from the numbers, never inventing one', () => {
     const { cards } = buildBriefCandidates(ctx(), 'INR')
     const byTitle = Object.fromEntries(cards.map((c) => [c.title, c]))
 
     expect(byTitle.Food.amount).toBe(6400)
     expect(byTitle.Travel.amount).toBe(2400) // overspend is reported as a positive figure
-    expect(byTitle.Travel.tone).toBe('warn')
+    expect(byTitle.Travel.tone).toBe('coral')
     expect(byTitle['Flight to Goa'].amount).toBe(7400)
     expect(byTitle.Subscriptions.amount).toBe(1290)
     expect(byTitle.Investments.amount).toBe(120000)
@@ -60,10 +73,11 @@ describe('buildBriefCandidates', () => {
     expect(cards.map((c) => c.title)).not.toContain('Investments')
   })
 
-  it('flags the pace card as a warning only when spending is ahead of the assigned budget', () => {
-    const ahead = buildBriefCandidates(ctx({ meta: { ...ctx().meta, totalSpent: 33000 } }), 'INR')
+  it('flags the left-to-spend card red only when the envelopes add up below zero', () => {
+    const over = [{ category: 'Travel', group: 'Wants', assigned: 5000, spent: 9000, available: -4000, rolledOver: 0, isOverspent: true }]
+    const ahead = buildBriefCandidates(ctx({ envelopes: over as unknown as SummarizeExpensesResult['envelopes'] }), 'INR')
     const behind = buildBriefCandidates(ctx(), 'INR')
-    expect(ahead.cards.find((c) => c.title === 'Left to spend')?.tone).toBe('warn')
+    expect(ahead.cards.find((c) => c.title === 'Over by')?.tone).toBe('coral')
     expect(behind.cards.find((c) => c.title === 'Left to spend')?.tone).toBe('mint')
   })
 

@@ -208,22 +208,22 @@ it('says once per budget and month what rolled in, and adds it to Ready to Assig
   vi.mocked(getCarry).mockResolvedValue({ ready_to_assign: 5000, rolled_over: { Food: 95, Rent: -20 } })
   const title = '₹5,095 rolled over · ₹20 short'
   const first = renderPage()
-  expect(await screen.findByText(title)).toBeInTheDocument()
+  expect(await screen.findByRole('button', { name: /rolled over/ })).toHaveTextContent(title)
   // Last month's ₹15,000 plan carries as before; the ₹5,000 left unassigned comes on top.
   expect(screen.getByLabelText('₹20,000')).toBeInTheDocument()
   // The strip says it all, so the hero has no separate carried line.
   expect(screen.queryByText(/includes ₹/)).not.toBeInTheDocument()
 
-  fireEvent.click(screen.getByRole('button', { name: 'Nice' }))
-  expect(screen.getByRole('button', { name: 'Nice' })).toBeDisabled()
-  await waitFor(() => expect(screen.queryByText(title)).not.toBeInTheDocument(), { timeout: 4000 })
+  fireEvent.click(screen.getByRole('button', { name: 'Got it' }))
+  expect(screen.getByRole('button', { name: 'Got it' })).toBeDisabled()
+  await waitFor(() => expect(screen.queryByRole('button', { name: /rolled over/ })).not.toBeInTheDocument(), { timeout: 4000 })
   first.clear()
   cleanup()
 
   // Dismissed stays dismissed for this budget and month.
   const second = renderPage()
   await screen.findByLabelText('₹20,000')
-  expect(screen.queryByText(title)).not.toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: /rolled over/ })).not.toBeInTheDocument()
   second.clear()
 })
 
@@ -494,7 +494,7 @@ it("before payday, a ₹0 Ready to Assign is still the slim row, and an Okay put
   expect(screen.getByRole('button', { name: 'Ready to Assign options' })).toBeInTheDocument()
   expect(screen.queryByText('READY TO ASSIGN')).not.toBeInTheDocument()
 
-  await user.click(within(screen.getByText(strip).closest('.home-forecast-warning') as HTMLElement).getByRole('button', { name: 'Okay' }))
+  await user.click(within(screen.getByText(strip).closest('.home-forecast-warning') as HTMLElement).getByRole('button', { name: 'Got it' }))
   await waitFor(() => expect(screen.queryByText(strip)).not.toBeInTheDocument())
   expect(screen.getByRole('button', { name: 'Ready to Assign options' })).toBeInTheDocument()
   vi.mocked(getRecurringIncomes).mockResolvedValue([])

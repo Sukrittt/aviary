@@ -71,3 +71,20 @@
   .feedback-fab { right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); width: 48px; height: 48px; font-size: 24px; }
   .feedback-fab-menu { inset: auto 16px calc(76px + env(safe-area-inset-bottom, 0px)) auto; }
 }
+
+/* Dialogs portal into .expense-redesign, whose isolation traps them under this button.
+   Hide the button while any dialog is open instead of floating it over the scrim.
+   Sheet marks every open dialog with data-dialog-sheet (src/components/MotionSheet.tsx). */
+body:has([data-dialog-sheet], [aria-modal="true"]) .feedback-fab {
+  display: none;
+}
+
+/* Room at the end of every scrolling page so the last row isn't under the button. */
+.erd-content::after { content: ''; flex: 0 0 24px; }
+@media (max-width: 900px) {
+  .erd-content::after { flex-basis: 56px; }
+}
+@media (min-width: 1280px) {
+  /* Home fits the viewport and scrolls inside its cards. */
+  .erd-content:has(> .erd-home)::after { content: none; }
+}

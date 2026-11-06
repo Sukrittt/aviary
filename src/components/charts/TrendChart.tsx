@@ -150,7 +150,9 @@ export function TrendChart({
                 </motion.text>
               )}
               <text x={x + barWidth / 2} y={HEIGHT - 8} textAnchor="middle" className={selected ? 'ins-trend-label is-selected' : 'ins-trend-label'}>
-                {label}
+                {/* Full month on wide screens, its initial on phones where 12 labels can't fit. */}
+                <tspan className="ins-trend-label-long">{label}</tspan>
+                <tspan className="ins-trend-label-short">{label.slice(0, 1)}{point.date === partialKey ? '*' : ''}</tspan>
               </text>
             </g>
           )

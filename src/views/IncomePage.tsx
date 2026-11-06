@@ -117,7 +117,7 @@ export function IncomePage() {
                       </span>
                     </span>
                     <span className="account-row-meta recurring-meta">
-                      <span className={isActive && row.next_run_date ? 'recurring-due' : ''}>{payLabel(row)}</span>
+                      <span className={isActive && row.next_run_date ? 'recurring-due is-income' : ''}>{payLabel(row)}</span>
                       {account ? ` · ${account}` : ''}
                     </span>
                   </span>

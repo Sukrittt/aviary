@@ -2,7 +2,7 @@
 
 import { useCurrency } from '@/src/context/CurrencyContext'
 
-import { useEffect, useMemo, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import Link from 'next/link'
 import { AnimatePresence, motion } from 'motion/react'
 import { CheckIcon, FunnelSimpleIcon, TrendDownIcon, TrendUpIcon, XIcon } from '@/src/components/icons'
@@ -13,7 +13,7 @@ import { useGroupColors } from '@/src/hooks/useGroups'
 import { DonutChart, type DonutSegment } from './DonutChart'
 import { AutoHeight, PopIn, ease } from '@/src/components/landing/mobile/kit'
 import { BirdEmptyState } from '../BirdEmptyState'
-import { Scrim } from '../MotionSheet'
+import { DialogKeys, Scrim } from '../MotionSheet'
 import { CategoryIcon } from '../CategoryIcon'
 
 interface Props {
@@ -115,6 +115,7 @@ export function CategoryBreakdown({ rows, categoryRows, groupRows, categoryGroup
   const [expanded, setExpanded] = useState(false)
   const [sortBy, setSortBy] = useState<'spend' | 'budget'>('spend')
   const [filterOpen, setFilterOpen] = useState(false)
+  const filterRef = useRef<HTMLElement>(null)
   const [filterTab, setFilterTab] = useState<'category' | 'group'>('category')
   const [excludedCategoryKeys, setExcludedCategoryKeys] = useState<Set<string>>(() => new Set())
   const [excludedGroupKeys, setExcludedGroupKeys] = useState<Set<string>>(() => new Set())
@@ -371,7 +372,7 @@ export function CategoryBreakdown({ rows, categoryRows, groupRows, categoryGroup
       )}
 
       <div className="ins-leftover">
-        <span>Income left in {monthLabel}</span>
+        <span>Income not yet spent, {monthLabel}</span>
         <strong>{formatCurrency(leftover, hideAmounts)}</strong>
       </div>
 
@@ -388,6 +389,7 @@ export function CategoryBreakdown({ rows, categoryRows, groupRows, categoryGroup
           onMouseDown={(event) => event.target === event.currentTarget && setFilterOpen(false)}
         >
           <motion.section
+            ref={filterRef}
             className="ins-filter-dialog"
             role="dialog"
             aria-modal="true"
@@ -397,6 +399,7 @@ export function CategoryBreakdown({ rows, categoryRows, groupRows, categoryGroup
             exit={{ opacity: 0, y: 12, scale: 0.98 }}
             transition={{ duration: 0.22, ease: ease.outCubic }}
           >
+            <DialogKeys target={filterRef} onEscape={() => setFilterOpen(false)} />
             <AutoHeight transition={LIST_SPRING} innerStyle={{ padding: 24 }}>
             <div className="ins-filter-head">
               <div>

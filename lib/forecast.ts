@@ -38,6 +38,8 @@ export interface ForecastEnvelopeIn {
   assigned?: number
   /** Pay hasn't landed this month, so `assigned` isn't in `available` (Envelope.planPending). */
   planPending?: boolean
+  /** A savings goal: its money is saved, not spendable, so it stays out of the forecast. */
+  isGoal?: boolean
 }
 
 export interface ForecastExpense {
@@ -264,7 +266,7 @@ export function forecast(input: ForecastInput): Forecast {
   const payday = firstPayday(input)
 
   const envelopes = input.envelopes
-    .filter((e) => !e.isCreditCardPayment)
+    .filter((e) => !e.isCreditCardPayment && !e.isGoal)
     .map((e): ForecastEnvelope => {
       const daily = perDay.get(e.category) ?? 0
       const mine = due.filter(([, c]) => c === e.category)
