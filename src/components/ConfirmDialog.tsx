@@ -37,7 +37,7 @@ export function ConfirmDialog({
   )
 }
 
-/** Shared by the sidebar's Log out and the account page's Sign out. */
+/** Shared by the sidebar's and the account page's Sign out. */
 export function SignOutDialog({ onCancel }: { onCancel: () => void }) {
   const [signingOut, setSigningOut] = useState(false)
   function signOut() {

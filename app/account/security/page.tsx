@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from 'react'
 import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
 import { clearLocalPrefs } from '../../../src/lib/localPref'
+import { describeUserAgent, formatShortDate } from '../../../src/lib/format'
 import { DeleteAccount } from './DeleteAccount'
 
 interface UserDoc {
@@ -35,7 +36,7 @@ function daysUntil(ts: string): number {
 }
 
 function sessionLabel(s: SessionRow): string {
-  if (s.userAgent) return s.userAgent
+  if (s.userAgent) return describeUserAgent(s.userAgent)
   const method = s.authMethod === 'oauth' ? 'Google' : s.authMethod === 'magic_code' ? 'Email code' : s.authMethod
   return `Signed in with ${method}`
 }
@@ -48,6 +49,7 @@ function SecurityContent() {
   const [googleLinked, setGoogleLinked] = useState<boolean | null>(null)
   const [proof, setProof] = useState<ProofDoc | null>(null)
   const [showProof, setShowProof] = useState(false)
+  const [allSessions, setAllSessions] = useState(false)
 
   const [editingName, setEditingName] = useState(false)
   const [nameDraft, setNameDraft] = useState('')
@@ -299,13 +301,17 @@ function SecurityContent() {
           Active sessions
         </div>
         <div className="account-card">
-          {(sessions ?? []).map((s) => (
+          {(() => {
+            // Current session first, then the rest as returned; long lists collapse to 5.
+            const rows = [...(sessions ?? [])].sort((a, b) => Number(b.current) - Number(a.current))
+            return allSessions ? rows : rows.slice(0, 5)
+          })().map((s) => (
             <div className="account-row" key={s.id} style={{ cursor: 'default' }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="account-row-label" style={{ fontWeight: 600 }}>
                   {sessionLabel(s)}
                 </div>
-                <div className="account-row-meta">{new Date(s.createdAt).toLocaleDateString()}</div>
+                <div className="account-row-meta">{`Signed in ${formatShortDate(s.createdAt)}`}</div>
               </div>
               {s.current ? (
                 <span className="account-badge">Current</span>
@@ -316,6 +322,11 @@ function SecurityContent() {
               )}
             </div>
           ))}
+          {!allSessions && (sessions?.length ?? 0) > 5 && (
+            <button type="button" className="account-row" onClick={() => setAllSessions(true)}>
+              <span className="account-row-label">Show all {sessions?.length} sessions</span>
+            </button>
+          )}
           {sessions?.length === 0 && (
             <div style={{ padding: 16, fontSize: 12, color: 'var(--erd-text2)' }}>No active sessions.</div>
           )}

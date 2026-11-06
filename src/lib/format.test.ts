@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatINR, formatCurrency, formatDateTime, formatDate, formatDateShort, formatShortDate, formatOrdinalDate } from './format'
+import { formatINR, formatCurrency, formatDateTime, formatDate, formatDateShort, formatShortDate, formatOrdinalDate, describeUserAgent } from './format'
 
 describe('formatINR', () => {
   it('groups digits using Indian lakh/crore placement', () => {
@@ -92,5 +92,15 @@ describe('date-only strings are calendar dates, in every timezone', () => {
     } finally {
       process.env.TZ = before
     }
+  })
+})
+
+describe('describeUserAgent', () => {
+  it('names browser and OS', () => {
+    expect(describeUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36')).toBe('Chrome on macOS')
+    expect(describeUserAgent('Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1')).toBe('Safari on iOS')
+    expect(describeUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/141.0 Safari/537.36 Edg/141.0')).toBe('Edge on Windows')
+    expect(describeUserAgent('okhttp/4.12.0')).toBe('Aviary app')
+    expect(describeUserAgent('curl/8')).toBe('Unknown device')
   })
 })
