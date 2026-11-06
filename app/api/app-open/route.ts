@@ -63,7 +63,8 @@ export type AppOpenSlice = { status: number; body: unknown }
  * 401, 402 or 403 is still handled where it always was.
  */
 export async function GET(req: Request) {
-  const paths = new URL(req.url).searchParams.getAll('p')
+  // Deduped: one request can't run the same read many times over.
+  const paths = [...new Set(new URL(req.url).searchParams.getAll('p'))]
   if (paths.length === 0 || paths.length > MAX_PATHS) return error(`1 to ${MAX_PATHS} p values required`)
   const slices = await Promise.all(paths.map(async (p) => [p, await run(req, p)] as const))
   return json(Object.fromEntries(slices), { headers: { 'Cache-Control': 'private, no-store' } })

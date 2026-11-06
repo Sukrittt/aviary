@@ -75,6 +75,12 @@ describe('GET /api/app-open', () => {
 
   it('needs at least one path and caps how many', async () => {
     expect((await call()).status).toBe(400)
-    expect((await call(...Array(31).fill('/api/user'))).status).toBe(400)
+    expect((await call(...Array.from({ length: 31 }, (_, i) => `/api/user?n=${i}`))).status).toBe(400)
+  })
+
+  it('runs a repeated path once', async () => {
+    handlers.user = answer({ id: 'u' })
+    expect(await (await call('/api/user', '/api/user', '/api/user')).json()).toEqual({ '/api/user': { status: 200, body: { id: 'u' } } })
+    expect(handlers.user).toHaveBeenCalledTimes(1)
   })
 })
