@@ -133,7 +133,8 @@ export function ForecastCard({ hideAmounts, icon, onTopUp }: {
                 <button
                   type="button"
                   className="ins-forecast-topup"
-                  aria-label={`Top up ${splitEmoji(e.category).text}`}
+                  aria-label={`Top up ${splitEmoji(e.category).text} by ${money(-e.projected)} to last the month`}
+                  title="What it needs to last to month-end"
                   onClick={() => onTopUp(e.category, Math.round(-e.projected))}
                 >
                   Top up {money(-e.projected)}

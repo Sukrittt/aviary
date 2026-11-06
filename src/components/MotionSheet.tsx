@@ -79,7 +79,7 @@ function useResizeEase(ref: React.RefObject<HTMLDivElement | null>, enabled: boo
       observer.disconnect()
       running?.cancel()
     }
-  }, [ref])
+  }, [ref, enabled])
 }
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
@@ -92,13 +92,34 @@ const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]):not([t
  */
 const SCRIMS = '.erd-modal-overlay, .money-overlay, .move-money-overlay, .category-manager-overlay, .date-picker-scrim, .modal-overlay'
 
+/**
+ * Keyboard and screen-reader behaviour every dialog needs, in one place: the
+ * sheet is announced as a modal dialog, focus moves into it, Tab stays inside
+ * it, Escape closes it (by clicking its scrim, which already owns the close
+ * logic and any "can't close while saving" guard), and focus returns to
+ * whatever opened it.
+ */
 function useDialogKeys(ref: React.RefObject<HTMLDivElement | null>) {
+  // Read during render, before children commit: an autoFocus input inside the
+  // sheet takes focus in the commit, so an effect would record that input.
+  const opener = useRef<HTMLElement | null>(null)
+  if (opener.current === null && typeof document !== 'undefined') {
+    opener.current = (document.activeElement as HTMLElement | null) ?? document.body
+  }
   useEffect(() => {
     const el = ref.current
     // Only sheets that are dialogs (on a scrim, or marked as one): some are inline cards.
     if (!el || !(el.parentElement?.matches(SCRIMS) || el.matches('[role="dialog"], [role="alertdialog"], [aria-modal="true"]'))) return
     el.setAttribute('data-dialog-sheet', '')
-    const opener = document.activeElement as HTMLElement | null
+    if (!el.hasAttribute('role')) el.setAttribute('role', 'dialog')
+    if (!el.hasAttribute('aria-modal')) el.setAttribute('aria-modal', 'true')
+    if (!el.hasAttribute('aria-label') && !el.hasAttribute('aria-labelledby')) {
+      const heading = el.querySelector<HTMLElement>('h1, h2, h3, h4')
+      if (heading) {
+        heading.id ||= `sheet-title-${Math.random().toString(36).slice(2, 8)}`
+        el.setAttribute('aria-labelledby', heading.id)
+      }
+    }
     if (!el.contains(document.activeElement)) {
       const first = el.querySelector<HTMLElement>('[autofocus]') ?? el.querySelector<HTMLElement>(FOCUSABLE)
       if (first) first.focus({ preventScroll: true })
@@ -125,7 +146,7 @@ function useDialogKeys(ref: React.RefObject<HTMLDivElement | null>) {
         return
       }
       if (e.key !== 'Tab') return
-      const items = [...el.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((n) => n.offsetParent !== null)
+      const items = [...el.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((n) => !n.closest('[inert], [hidden], [aria-hidden="true"]'))
       if (!items.length) return
       const first = items[0]
       const last = items[items.length - 1]
@@ -138,11 +159,15 @@ function useDialogKeys(ref: React.RefObject<HTMLDivElement | null>) {
       }
     }
     document.addEventListener('keydown', onKey)
+    const back = opener.current
     return () => {
       document.removeEventListener('keydown', onKey)
+      el.removeAttribute('data-dialog-sheet')
       // Give focus back unless the close moved it somewhere on purpose.
       const active = document.activeElement
-      if (opener?.isConnected && (!active || active === document.body || el.contains(active))) opener.focus({ preventScroll: true })
+      if (back && back !== document.body && back.isConnected && (!active || active === document.body || el.contains(active))) {
+        back.focus({ preventScroll: true })
+      }
     }
   }, [ref])
 }

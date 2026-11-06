@@ -40,7 +40,7 @@ describe('buildBriefCandidates', () => {
 
     expect(byTitle.Food.amount).toBe(6400)
     expect(byTitle.Travel.amount).toBe(2400) // overspend is reported as a positive figure
-    expect(byTitle.Travel.tone).toBe('warn')
+    expect(byTitle.Travel.tone).toBe('coral')
     expect(byTitle['Flight to Goa'].amount).toBe(7400)
     expect(byTitle.Subscriptions.amount).toBe(1290)
     expect(byTitle.Investments.amount).toBe(120000)
@@ -63,7 +63,7 @@ describe('buildBriefCandidates', () => {
   it('flags the pace card as a warning only when spending is ahead of the assigned budget', () => {
     const ahead = buildBriefCandidates(ctx({ meta: { ...ctx().meta, totalSpent: 33000 } }), 'INR')
     const behind = buildBriefCandidates(ctx(), 'INR')
-    expect(ahead.cards.find((c) => c.title === 'Left to spend')?.tone).toBe('warn')
+    expect(ahead.cards.find((c) => c.title === 'Left to spend')?.tone).toBe('coral')
     expect(behind.cards.find((c) => c.title === 'Left to spend')?.tone).toBe('mint')
   })
 

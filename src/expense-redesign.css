@@ -538,14 +538,13 @@
     grid-template-rows: auto;
     align-items: start;
   }
-  /* Without a viewport-bound column the envelopes panel would collapse to
-     its min-height; let it grow with its rows, capped so a long list still
-     scrolls inside the card. */
+  /* The page scrolls while Get started shows, so the envelopes panel grows
+     with every row instead of clipping them in a scroll inside the card. */
   .erd-home[data-get-started="true"] .erd-envelopes-panel {
     flex: 0 0 auto;
   }
   .erd-home[data-get-started="true"] .erd-envelopes-panel .env2-list {
-    max-height: min(60vh, 600px);
+    overflow: visible;
   }
   .erd-envelopes-panel {
     display: flex;
@@ -2388,7 +2387,7 @@
   }
   .erd-mobile-page {
     overflow: hidden;
-    max-width: 108px;
+    max-width: 140px;
     padding: 6px 10px;
     border: 1px solid var(--erd-border);
     border-radius: 999px;
@@ -2396,7 +2395,7 @@
     background: var(--erd-pill-bg);
     font-size: 12px;
     font-weight: 700;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.02em;
     text-overflow: ellipsis;
     text-transform: uppercase;
     white-space: nowrap;
@@ -3624,6 +3623,7 @@
 .expense-redesign .txn-page-actions .action-button {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   min-height: 44px;
   padding-inline: 18px;
@@ -4025,7 +4025,7 @@
   border: 0;
   border-radius: 100px;
   background: var(--coral);
-  color: var(--erd-on-accent);
+  color: #fff;
   font: 600 13px var(--font-display);
   cursor: pointer;
   transition: opacity 140ms, scale var(--dur-press) var(--ease-press);
@@ -4123,6 +4123,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  white-space: nowrap;
 }
 
 @media (max-width: 900px) {
@@ -6528,7 +6529,7 @@ button.account-feature-card {
   border-radius: 100px;
   border: none;
   background: var(--coral);
-  color: var(--erd-on-accent);
+  color: #fff;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -8362,10 +8363,14 @@ span.env-cat-alerts:hover {
   --insight-color: var(--violet);
   --insight-soft: var(--tk-violet-soft);
 }
-.brain-insight--coral,
-.brain-insight--warn {
+.brain-insight--coral {
   --insight-color: var(--coral);
   --insight-soft: var(--tk-coral-soft);
+}
+/* Caution, not over: red stays for money already past its budget. */
+.brain-insight--warn {
+  --insight-color: var(--gold-ink);
+  --insight-soft: var(--gold-soft);
 }
 
 .brain-chips {
@@ -12412,7 +12417,9 @@ span.env-cat-alerts:hover {
 /* Monday's weekly recap: the rollover strip with a title and one short line. */
 .expense-redesign .home-weekly-recap-text { flex: 1; display: grid; gap: 2px; color: var(--erd-text); }
 .expense-redesign .home-weekly-recap-text > span { font-size: 13px; color: var(--erd-text2); }
-.expense-redesign .home-weekly-recap.is-calm { background: var(--erd-card); border-color: var(--erd-border); }
+.expense-redesign .home-weekly-recap.is-calm,
+.expense-redesign .home-leftover-notice.is-short { background: var(--erd-card); border-color: var(--erd-border); }
+.expense-redesign .home-leftover-notice.is-short button:not(.home-leftover-replay) { color: var(--gold-ink); }
 .expense-redesign .home-weekly-recap.is-calm button { color: var(--accent-ink, var(--erd-text)); }
 .expense-redesign .home-leftover-notice button {
   border: 0;
@@ -12616,7 +12623,7 @@ span.env-cat-alerts:hover {
 .expense-redesign .get-started-step.is-next { border-color: var(--gold); background: var(--gold-soft); }
 .expense-redesign .get-started-step.is-done { border-color: transparent; color: var(--erd-text3); cursor: default; }
 .expense-redesign .get-started-icon { display: grid; place-items: center; width: 32px; height: 32px; flex-shrink: 0; border-radius: 50%; background: var(--erd-input-bg); }
-.expense-redesign .is-next .get-started-icon { background: var(--gold-ink); color: var(--erd-on-accent); }
+.expense-redesign .is-next .get-started-icon { background: var(--gold-ink); color: #fff; }
 .expense-redesign .is-done .get-started-icon { background: var(--mint-soft); color: var(--mint); }
 .expense-redesign .get-started-step-copy { display: grid; gap: 1px; flex: 1; min-width: 0; }
 .expense-redesign .get-started-step-copy strong { font-size: 13px; font-weight: 700; }

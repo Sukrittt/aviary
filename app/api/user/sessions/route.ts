@@ -14,6 +14,7 @@ export async function GET(req: Request) {
     .map((s) => ({
       id: s.id,
       userAgent: s.userAgent,
+      ipAddress: s.ipAddress,
       authMethod: s.authMethod,
       createdAt: s.createdAt,
       current: s.id === auth.sessionId,

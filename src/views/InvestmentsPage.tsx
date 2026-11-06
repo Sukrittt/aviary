@@ -104,7 +104,10 @@ export function InvestmentsPage() {
   const holdings = holdingsQuery.data ?? EMPTY;
   const events = eventsQuery.data ?? EMPTY;
   const isLoading = holdingsQuery.isLoading || eventsQuery.isLoading;
-  const loadError = holdingsQuery.error ?? eventsQuery.error;
+  // Only a failed first load: a background refetch that fails keeps the data it had.
+  const loadError =
+    (holdingsQuery.data === undefined ? holdingsQuery.error : null) ??
+    (eventsQuery.data === undefined ? eventsQuery.error : null);
 
   const [menuHolding, setMenuHolding] = useState<HoldingRow | null>(null);
   const [action, setAction] = useState<{
@@ -192,8 +195,9 @@ export function InvestmentsPage() {
               <span className="txn-page-eyebrow">What you own</span>
               <h1>Investments</h1>
               <p>
-                {holdings.length}{" "}
-                {holdings.length === 1 ? "holding" : "holdings"}
+                {loadError || isLoading
+                  ? "Net worth, allocation, and holdings"
+                  : `${holdings.length} ${holdings.length === 1 ? "holding" : "holdings"}`}
               </p>
             </div>
             <div className="txn-page-actions">
@@ -270,12 +274,14 @@ export function InvestmentsPage() {
                   Holdings
                 </div>
                 {shownHoldings.length === 0 ? (
-                  <BirdEmptyState
-                    subject="holdings"
-                    title="Room to grow"
-                    description="No holdings yet. Add one to start watching your future take shape."
-                    action={{ label: 'Add a holding', onClick: () => setEditing('') }}
-                  />
+                  // Inside a card like Recurring's; the header's Add holding is the one action.
+                  <div className="account-card">
+                    <BirdEmptyState
+                      subject="holdings"
+                      title="Room to grow"
+                      description="No holdings yet. Add one to start watching your future take shape."
+                    />
+                  </div>
                 ) : (
                   <ul
                     className="account-card recurring-list"

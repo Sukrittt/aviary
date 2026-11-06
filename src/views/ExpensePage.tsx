@@ -925,7 +925,10 @@ export function ExpensePage() {
           {payCreditCardAmount !== null && !readOnly && envelopeState && (
             <Scrim
               className="modal-overlay"
-              onClick={() => setPayCreditCardAmount(null)}
+              onClick={() => {
+                // Escape and outside taps close through here; not mid-payment.
+                if (!payPhase.saving && !payPhase.success) setPayCreditCardAmount(null);
+              }}
             >
               <Sheet
                 className="modal-content move-money-modal"

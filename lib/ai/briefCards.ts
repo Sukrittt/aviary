@@ -42,7 +42,7 @@ export function buildBriefCandidates(ctx: SummarizeExpensesResult, currencyCode:
       subtitle: "You've gone past this budget",
       valueLabel,
       amount: Math.round(Math.abs(worstOverspent.available)),
-      tone: 'warn',
+      tone: 'coral',
     })
     used.add(worstOverspent.category)
   }
@@ -67,7 +67,7 @@ export function buildBriefCandidates(ctx: SummarizeExpensesResult, currencyCode:
     subtitle: `${meta.daysLeft} days left in the month`,
     valueLabel,
     amount: Math.abs(remaining),
-    tone: remaining < 0 ? 'warn' : 'mint',
+    tone: remaining < 0 ? 'coral' : 'mint',
   })
 
   if (highlights.topItem && highlights.topItem.amount > 0) {
@@ -77,7 +77,7 @@ export function buildBriefCandidates(ctx: SummarizeExpensesResult, currencyCode:
       subtitle: `Biggest single spend · ${highlights.topItem.category}`,
       valueLabel,
       amount: highlights.topItem.amount,
-      tone: 'coral',
+      tone: 'violet',
     })
   }
 
@@ -88,7 +88,7 @@ export function buildBriefCandidates(ctx: SummarizeExpensesResult, currencyCode:
       subtitle: `Up from a ${highlights.riser.priorAverage} average`,
       valueLabel,
       amount: highlights.riser.thisMonth,
-      tone: 'coral',
+      tone: 'warn',
     })
     used.add(highlights.riser.category)
   }
@@ -114,7 +114,7 @@ export function buildBriefCandidates(ctx: SummarizeExpensesResult, currencyCode:
       subtitle: 'Closest to empty without going over',
       valueLabel,
       amount: Math.round(lightest.available),
-      tone: 'coral',
+      tone: 'warn',
     })
   }
 

@@ -128,8 +128,10 @@ export function InsightsPage() {
     expensesQuery.isLoading ||
     categoriesQuery.isLoading ||
     groupsQuery.isLoading;
-  const loadError =
-    budgetsQuery.isError || expensesQuery.isError || categoriesQuery.isError || groupsQuery.isError;
+  // Only a failed first load: a background refetch that fails keeps the data it had.
+  const loadError = [budgetsQuery, expensesQuery, categoriesQuery, groupsQuery].some(
+    (q) => q.isError && q.data === undefined,
+  );
   const retry = () => {
     for (const q of [budgetsQuery, expensesQuery, categoriesQuery, groupsQuery]) if (q.isError) void q.refetch();
   };
@@ -791,16 +793,19 @@ export function InsightsPage() {
                       {selectedLabel ?? monthLabel(insightMonth)}
                     </p>
                   </div>
-                  <Link href="/expense/transactions" className="erd-manage-btn ins-view-all">
-                    View all
-                  </Link>
+                  {topSpends.length > 0 && (
+                    <Link href="/expense/transactions" className="erd-manage-btn ins-view-all">
+                      View all
+                    </Link>
+                  )}
                 </div>
                 {topSpends.length === 0 ? (
+                  // Same words as "Where it went" for the same empty month.
                   <BirdEmptyState
                     compact
                     subject="expenses"
-                    title="Nothing logged yet"
-                    description="Your biggest spends will line up here once you start logging."
+                    title="Nothing spent yet"
+                    description="Log an expense and it'll land here."
                   />
                 ) : (
                   <div className="ins-top-list">

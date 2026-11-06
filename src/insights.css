@@ -703,11 +703,12 @@
   gap: 8px;
 }
 
-.ins-trend-bar.is-dimmed { opacity: 0.42; }
+.ins-trend-bar.is-dimmed { opacity: 0.55; }
 
-/* A faded orange reads as brown on the dark surface, so past months go neutral there. */
+/* A faded orange reads as brown on the dark surface, so past months go neutral
+   there, light enough to stand off the card (about 3:1). */
 .theme-dark .ins-trend-bar.is-dimmed:not(.is-missing, .is-negative) {
-  fill: var(--tk-chip-active-bg);
+  fill: color-mix(in oklab, var(--erd-text3) 72%, var(--erd-card-solid));
   opacity: 1;
 }
 
@@ -994,6 +995,10 @@
   border-radius: 10px;
 }
 
+/* An empty breakdown shouldn't stretch to the calendar's height beside it. */
+.insights-grid > .erd-card:has(.ins-breakdown-empty) {
+  align-self: start;
+}
 .ins-breakdown-empty {
   display: flex;
   flex: 1;

@@ -10,17 +10,18 @@ import { InsightsTab } from '@/src/components/InsightsTab'
 import { CaretLeftIcon, GearIcon, HouseIcon, InvoiceIcon, MoonIcon, SunIcon } from '@/src/components/icons'
 
 /** Settings pages reached from the Account hub: they get a way back to it. The
- *  planning pages (Recurring, Subscriptions, Income) are sidebar destinations and don't. */
-const SETTINGS_PAGES = ['accounts', 'archive', 'bill-scans', 'changelog', 'chat-history', 'data', 'features', 'feedback', 'help', 'ideas', 'import', 'refer', 'security', 'guided-tour']
+ *  planning pages (Recurring, Subscriptions, Income) are sidebar destinations, and
+ *  Import and the guided tour are full flows with their own back control. */
+const SETTINGS_PAGES = ['accounts', 'archive', 'bill-scans', 'changelog', 'chat-history', 'data', 'features', 'feedback', 'help', 'ideas', 'refer', 'security']
 
 /** Headers for the settings pages that render none of their own. */
 const HEADERS: Record<string, { eyebrow: string; title: string; subtitle: string }> = {
-  security: { eyebrow: 'Account', title: 'Profile & security', subtitle: 'Your name, how you sign in, and where you are signed in.' },
+  security: { eyebrow: 'Account', title: 'Account & security', subtitle: 'Your name, how you sign in, and where you are signed in.' },
   data: { eyebrow: 'Account', title: 'Your data', subtitle: 'Download everything you have logged, and choose what we measure.' },
   features: { eyebrow: 'Account', title: 'Features', subtitle: 'Hide the parts of Aviary you do not use.' },
   help: { eyebrow: 'Support', title: 'Help & feedback', subtitle: 'How Aviary works, and how to reach us.' },
   feedback: { eyebrow: 'Support', title: 'Report a bug', subtitle: 'Tell us what went wrong. It goes straight to us, not the public board.' },
-  changelog: { eyebrow: 'Support', title: "What's new", subtitle: 'New features, improvements, and fixes for the web app.' },
+  changelog: { eyebrow: 'Support', title: 'Changelog', subtitle: 'New features, improvements, and fixes for the web app.' },
   ideas: { eyebrow: 'Support', title: 'Feedback board', subtitle: 'Post an idea or vote on what we build next.' },
 }
 
