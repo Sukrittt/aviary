@@ -3,7 +3,7 @@
  * the server (GET /api/budgets/carry, see lib/budgetCarry.ts); this only says
  * them. Twin of Mobile's src/lib/rollover.ts: keep the copy identical.
  */
-import { INCOME_CATEGORY, prevMonthKey, type Carry } from './envelope'
+import { CREDIT_CARD_CATEGORY, INCOME_CATEGORY, prevMonthKey, type Carry } from './envelope'
 import type { BudgetRow } from '@/src/types'
 
 const MONTH_NAMES = [
@@ -50,15 +50,29 @@ function rolledIn(carry: Carry, month: string, budgets: BudgetRow[]) {
 }
 
 /**
- * Web's line under the strip: the part of "rolled over" that went to Ready to
- * Assign, which no category row shows, so the strip can be checked against the
- * rows. Null when none did.
+ * Web's line under the strip: the parts of "rolled over" that no spending row
+ * shows (goals, the card bill, money left unassigned), so the strip can be
+ * checked against the rows. Null when every rolled amount is on a row.
  */
-export function rolloverReadyLine(carry: Carry | undefined, month: string, money: Money, budgets: BudgetRow[] = []): string | null {
+export function rolloverDetail(
+  carry: Carry | undefined,
+  month: string,
+  money: Money,
+  budgets: BudgetRow[] = [],
+  goals: ReadonlySet<string> = new Set(),
+): string | null {
   if (!carry) return null
-  const { ready } = rolledIn(carry, month, budgets)
-  const amount = Math.round(ready * 100) / 100
-  return amount > 0 ? `${money(amount)} of it went to Ready to Assign` : null
+  const { rolled, ready } = rolledIn(carry, month, budgets)
+  const round = (n: number) => Math.round(n * 100) / 100
+  const sum = (keep: (category: string) => boolean) =>
+    round(Object.entries(rolled).filter(([c, n]) => keep(c) && n > 0).reduce((s, [, n]) => s + n, 0))
+  const parts = [
+    [sum((c) => goals.has(c)), 'in goals'],
+    [sum((c) => c === CREDIT_CARD_CATEGORY), 'for the card bill'],
+    [round(ready), 'back in Ready to Assign'],
+  ] as const
+  const shown = parts.filter(([n]) => n > 0).map(([n, what]) => `${money(n)} ${what}`)
+  return shown.length ? `Includes ${shown.join(' · ')}` : null
 }
 
 export function rolloverCard(carry: Carry | undefined, month: string, money: Money, budgets: BudgetRow[] = []): string | null {

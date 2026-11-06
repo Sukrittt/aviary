@@ -27,7 +27,16 @@ export function RolloverCard({ text, detail, onReplay, onDone }: { text: string;
           </Fragment>
         ))}
         {/* What no category row shows, so the total can be checked against them. */}
-        {detail && <small className="home-leftover-detail">{detail}</small>}
+        {detail && (
+          <small className="home-leftover-detail">
+            {detail.split(' · ').map((part, i) => (
+              <Fragment key={i}>
+                {i > 0 && ' · '}
+                <span style={{ display: 'inline-block' }}>{part}</span>
+              </Fragment>
+            ))}
+          </small>
+        )}
       </button>
       <button type="button" aria-label={label} disabled={phase.success} onClick={() => phase.succeed(onDone)}>
         {phase.success ? <CheckIcon color="var(--mint)" size={18} /> : label}

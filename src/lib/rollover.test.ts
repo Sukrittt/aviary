@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { monthName, rolledOverLine, rolloverCard, rolloverReadyLine } from './rollover'
+import { monthName, rolledOverLine, rolloverCard, rolloverDetail } from './rollover'
 import type { BudgetRow } from '@/src/types'
 
 const money = (n: number) => `₹${n.toLocaleString('en-IN')}`
@@ -56,16 +56,21 @@ describe('rolloverCard with this month\'s moves', () => {
   })
 })
 
-describe('rolloverReadyLine', () => {
-  it('says how much of the rollover went to Ready to Assign, so the strip adds up against the rows', () => {
-    expect(rolloverReadyLine({ ready_to_assign: 5000, rolled_over: { Food: 95, Rent: -20 } }, '2026-11', money)).toBe('₹5,000 of it went to Ready to Assign')
+describe('rolloverDetail', () => {
+  const carry = { ready_to_assign: 0, rolled_over: { Groceries: 666, 'Emergency fund': 16667, 'GTA 6': 3700, __credit_card__: 11426, Transport: -823 } }
+  const goals = new Set(['Emergency fund', 'GTA 6'])
+  it('names the parts of the rollover that no spending row shows, so the strip adds up against the rows', () => {
+    expect(rolloverDetail(carry, '2026-11', money, [], goals)).toBe('Includes ₹20,367 in goals · ₹11,426 for the card bill')
   })
-  it('is null when nothing went to Ready to Assign', () => {
-    expect(rolloverReadyLine({ ready_to_assign: 0, rolled_over: { Food: 95 } }, '2026-11', money)).toBeNull()
-    expect(rolloverReadyLine(undefined, '2026-11', money)).toBeNull()
+  it('counts money left unassigned too', () => {
+    expect(rolloverDetail({ ready_to_assign: 5000, rolled_over: { Food: 95 } }, '2026-11', money)).toBe('Includes ₹5,000 back in Ready to Assign')
   })
-  it('takes this month\'s moves back out, like the strip', () => {
+  it('is null when every rolled amount is on a row', () => {
+    expect(rolloverDetail({ ready_to_assign: 0, rolled_over: { Food: 95, Rent: -20 } }, '2026-11', money)).toBeNull()
+    expect(rolloverDetail(undefined, '2026-11', money)).toBeNull()
+  })
+  it("takes this month's moves back out, like the strip", () => {
     const budgets = [{ month: '2026-11', category: 'Food', assigned: '0', rolled_over: '1000' }] as unknown as BudgetRow[]
-    expect(rolloverReadyLine({ ready_to_assign: 4000, rolled_over: { Food: 1095 } }, '2026-11', money, budgets)).toBe('₹5,000 of it went to Ready to Assign')
+    expect(rolloverDetail({ ready_to_assign: 4000, rolled_over: { Food: 1095 } }, '2026-11', money, budgets)).toBe('Includes ₹5,000 back in Ready to Assign')
   })
 })
