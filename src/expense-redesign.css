@@ -951,8 +951,9 @@
 }
 .env2-pace.is-over > span:first-child { color: var(--tk-pill-over); }
 .env2-reset { color: var(--tk-text); white-space: nowrap; }
-/* Each part stays whole; a narrow row wraps between parts. */
-.env2-meta-part { white-space: nowrap; }
+/* Each part stays whole where it fits; a narrow row wraps between parts first,
+   and inside a part only when that part alone is too wide. */
+.env2-meta-part { display: inline-block; max-width: 100%; }
 .env2-meta-line { flex: 1; min-width: 0; }
 .env2-weeks {
   display: grid;
@@ -12424,6 +12425,7 @@ span.env-cat-alerts:hover {
   font-weight: 500;
 }
 .expense-redesign .home-leftover-notice p { flex: 1; margin: 0; color: var(--erd-text); }
+.expense-redesign .home-leftover-detail { display: block; margin-top: 2px; color: var(--erd-text2); font-size: 12px; font-weight: 500; }
 /* Monday's weekly recap: the rollover strip with a title and one short line. */
 .expense-redesign .home-weekly-recap-text { flex: 1; display: grid; gap: 2px; color: var(--erd-text); }
 .expense-redesign .home-weekly-recap-text > span { font-size: 13px; color: var(--erd-text2); }

@@ -10,7 +10,7 @@ import { useButtonPhase } from '@/src/components/SuccessButton'
  * Nothing to decide, so "Nice" just plays the shared check and `onDone` hides
  * it for good.
  */
-export function RolloverCard({ text, onReplay, onDone }: { text: string; onReplay: () => void; onDone: () => void }) {
+export function RolloverCard({ text, detail, onReplay, onDone }: { text: string; detail?: string | null; onReplay: () => void; onDone: () => void }) {
   const phase = useButtonPhase()
   // "· ₹X short" (src/lib/rollover.ts): mixed news, so a calm card and "Got it", not green "Nice".
   const short = / short\b/.test(text)
@@ -26,6 +26,8 @@ export function RolloverCard({ text, onReplay, onDone }: { text: string; onRepla
             <span style={{ whiteSpace: 'nowrap' }}>{part}</span>
           </Fragment>
         ))}
+        {/* What no category row shows, so the total can be checked against them. */}
+        {detail && <small className="home-leftover-detail">{detail}</small>}
       </button>
       <button type="button" aria-label={label} disabled={phase.success} onClick={() => phase.succeed(onDone)}>
         {phase.success ? <CheckIcon color="var(--mint)" size={18} /> : label}

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { monthName, rolledOverLine, rolloverCard } from './rollover'
+import { monthName, rolledOverLine, rolloverCard, rolloverReadyLine } from './rollover'
+import type { BudgetRow } from '@/src/types'
 
 const money = (n: number) => `₹${n.toLocaleString('en-IN')}`
 
@@ -52,5 +53,19 @@ describe('rolloverCard with this month\'s moves', () => {
   it("ignores other months' moves", () => {
     const carry = { ready_to_assign: 0, rolled_over: { Food: 300 } }
     expect(rolloverCard(carry, '2026-11', money, [{ ...row('Food', '50'), month: '2026-10' }])).toBe('₹300 rolled over')
+  })
+})
+
+describe('rolloverReadyLine', () => {
+  it('says how much of the rollover went to Ready to Assign, so the strip adds up against the rows', () => {
+    expect(rolloverReadyLine({ ready_to_assign: 5000, rolled_over: { Food: 95, Rent: -20 } }, '2026-11', money)).toBe('₹5,000 of it went to Ready to Assign')
+  })
+  it('is null when nothing went to Ready to Assign', () => {
+    expect(rolloverReadyLine({ ready_to_assign: 0, rolled_over: { Food: 95 } }, '2026-11', money)).toBeNull()
+    expect(rolloverReadyLine(undefined, '2026-11', money)).toBeNull()
+  })
+  it('takes this month\'s moves back out, like the strip', () => {
+    const budgets = [{ month: '2026-11', category: 'Food', assigned: '0', rolled_over: '1000' }] as unknown as BudgetRow[]
+    expect(rolloverReadyLine({ ready_to_assign: 4000, rolled_over: { Food: 1095 } }, '2026-11', money, budgets)).toBe('₹5,000 of it went to Ready to Assign')
   })
 })

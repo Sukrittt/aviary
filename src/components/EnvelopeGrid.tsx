@@ -133,7 +133,8 @@ function lastSpentLabel(iso: string | undefined): string {
 
 /** A row's sub-line: " · "-joined parts that each stay whole, so a narrow row breaks between them, not mid-phrase. */
 function MetaLine({ parts }: { parts: (string | null)[] }) {
-  const shown = parts.filter((p): p is string => !!p)
+  // A part may carry its own " · " (pace lines do): split it so it can break there too.
+  const shown = parts.filter((p): p is string => !!p).flatMap((p) => p.split(' · '))
   return (
     <span className="env2-meta-line">
       {shown.map((part, i) => (

@@ -32,11 +32,12 @@ export function rolledOverLine(rolledOver: number, month: string, money: Money):
  * Null when nothing rolled (including every month up to the rollover start,
  * where the server returns an empty carry).
  */
-export function rolloverCard(carry: Carry | undefined, month: string, money: Money, budgets: BudgetRow[] = []): string | null {
-  if (!carry) return null
-  // The carry includes this month's moves (a row's `rolled_over`). Those aren't
-  // what rolled in, so they come back out: money assigned before payday from a
-  // one-off would otherwise read as rolled over and short at once.
+/**
+ * The carry with this month's moves (a row's `rolled_over`) taken back out:
+ * those aren't what rolled in, and money assigned before payday from a one-off
+ * would otherwise read as rolled over and short at once.
+ */
+function rolledIn(carry: Carry, month: string, budgets: BudgetRow[]) {
   const rolled = { ...carry.rolled_over }
   let ready = carry.ready_to_assign
   for (const b of budgets) {
@@ -45,6 +46,24 @@ export function rolloverCard(carry: Carry | undefined, month: string, money: Mon
     rolled[b.category] = (rolled[b.category] ?? 0) - moved
     ready += moved
   }
+  return { rolled, ready }
+}
+
+/**
+ * Web's line under the strip: the part of "rolled over" that went to Ready to
+ * Assign, which no category row shows, so the strip can be checked against the
+ * rows. Null when none did.
+ */
+export function rolloverReadyLine(carry: Carry | undefined, month: string, money: Money, budgets: BudgetRow[] = []): string | null {
+  if (!carry) return null
+  const { ready } = rolledIn(carry, month, budgets)
+  const amount = Math.round(ready * 100) / 100
+  return amount > 0 ? `${money(amount)} of it went to Ready to Assign` : null
+}
+
+export function rolloverCard(carry: Carry | undefined, month: string, money: Money, budgets: BudgetRow[] = []): string | null {
+  if (!carry) return null
+  const { rolled, ready } = rolledIn(carry, month, budgets)
   const amounts = [...Object.values(rolled), ready]
   const round = (n: number) => Math.round(n * 100) / 100
   const ahead = round(amounts.filter((n) => n > 0).reduce((s, n) => s + n, 0))
