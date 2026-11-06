@@ -131,10 +131,24 @@ function lastSpentLabel(iso: string | undefined): string {
   return new Date(spent).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'UTC' })
 }
 
+/** A row's sub-line: " · "-joined parts that each stay whole, so a narrow row breaks between them, not mid-phrase. */
+function MetaLine({ parts }: { parts: (string | null)[] }) {
+  const shown = parts.filter((p): p is string => !!p)
+  return (
+    <span className="env2-meta-line">
+      {shown.map((part, i) => (
+        <span key={i} className="env2-meta-part">{i > 0 ? ' · ' : ''}{part}</span>
+      ))}
+    </span>
+  )
+}
+
 export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveMoney, onAssignFromRTA, onSetAssigned, onPayCreditCard, categoryIcons, groupIcons, rollPlay = 0, month, paces, weekly, onToggleWeekly, onSetMonthly }: Props) {
   const styleOf = useCategoryStyle()
   const { formatCurrency } = useCurrency()
   const money = (n: number) => (hideAmounts ? '---' : formatCurrency(n))
+  // What carried in, in the row itself: the pill's tooltip never opens on touch.
+  const carryLine = (e: Envelope) => (month && !hideAmounts && e.rolledOver ? rolledOverLine(e.rolledOver, month, formatCurrency) : null)
 
   const router = useRouter()
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
@@ -263,10 +277,7 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
                 {pace.monthTickPct < 100 && <span className="env2-tick" style={{ left: `${pace.monthTickPct}%` }} />}
               </span>
               <span className={`env2-meta env2-pace ${pace.status === 'over' ? 'is-over' : ''}`}>
-                <span>
-                  {month && !hideAmounts && e.rolledOver ? `${rolledOverLine(e.rolledOver, month, formatCurrency)} · ` : ''}
-                  {paceLine(pace, money)}
-                </span>
+                <MetaLine parts={[carryLine(e), paceLine(pace, money)]} />
                 <span className="env2-reset">{resetChip(pace)}</span>
               </span>
             </>
@@ -277,9 +288,7 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
           )}
           {!isCC && !pace && !goal && (
             <span className="env2-meta">
-              {/* What carried in, in the row itself: the tooltip never opens on touch. */}
-              {month && !hideAmounts && e.rolledOver ? `${rolledOverLine(e.rolledOver, month, formatCurrency)} · ` : ''}
-              {unbudgeted ? 'Not budgeted · ' : ''}Last spent {lastSpentLabel(e.lastSpentDate)}
+              <MetaLine parts={[carryLine(e), unbudgeted ? 'Not budgeted' : null, `Last spent ${lastSpentLabel(e.lastSpentDate)}`]} />
             </span>
           )}
         </DropdownMenuTrigger>

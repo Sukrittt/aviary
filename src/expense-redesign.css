@@ -951,6 +951,9 @@
 }
 .env2-pace.is-over > span:first-child { color: var(--tk-pill-over); }
 .env2-reset { color: var(--tk-text); white-space: nowrap; }
+/* Each part stays whole; a narrow row wraps between parts. */
+.env2-meta-part { white-space: nowrap; }
+.env2-meta-line { min-width: 0; }
 .env2-weeks {
   display: grid;
   gap: 2px;
@@ -4131,8 +4134,9 @@
     justify-content: flex-end;
     padding: 0 0 14px;
   }
-  /* The top bar names the page on phones; keep the h1 for screen readers. */
-  .expense-redesign .txn-page-heading {
+  /* The top bar names the page on phones; keep the h1 for screen readers.
+     Account pages have no other title, so they keep theirs visible. */
+  .expense-redesign .txn-page-header:not(.account-header) .txn-page-heading {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -13227,12 +13231,6 @@ span.env-cat-alerts:hover {
     justify-content: space-between;
   }
   .expense-redesign .account-header .txn-page-heading {
-    position: static;
-    width: auto;
-    height: auto;
-    overflow: visible;
-    clip-path: none;
-    white-space: normal;
     display: block;
   }
 }
@@ -15684,6 +15682,7 @@ span.env-cat-alerts:hover {
 }
 
 .referral-code-label {
+  color: var(--erd-text2);
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.08em;

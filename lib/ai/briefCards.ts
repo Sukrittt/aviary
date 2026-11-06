@@ -110,7 +110,7 @@ export function buildBriefCandidates(ctx: SummarizeExpensesResult, currencyCode:
   }
 
   const lightest = [...spending]
-    .filter((e) => e.assigned > 0 && !e.isOverspent && !used.has(e.category))
+    .filter((e) => e.assigned > 0 && e.spent > 0 && !e.isOverspent && !used.has(e.category))
     .sort((a, b) => a.available - b.available)[0]
   if (lightest) {
     cards.push({

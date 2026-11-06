@@ -41,13 +41,13 @@ export default function ReferPage() {
   return (
     <div className="referral-page">
       <div className="account-card referral-hero">
-        <h1 className="referral-title">Give a month, get a month</h1>
+        <h2 className="referral-title">Give a month, get a month</h2>
         <p className="account-help-copy">
           Share your link. When a friend sets up Aviary and logs expenses on three different days, you both get a month of Pro.
         </p>
         {q.isError && <p className="referral-error">Couldn&apos;t load your code. Check your connection and try again.</p>}
         <div className="referral-code" aria-busy={!data}>
-          <span className="adm-muted referral-code-label">Your code</span>
+          <span className="referral-code-label">Your code</span>
           <strong className="referral-code-value">{data?.code ?? '······'}</strong>
         </div>
         <div className="referral-actions">
