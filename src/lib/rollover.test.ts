@@ -63,14 +63,18 @@ describe('rolloverDetail', () => {
     expect(rolloverDetail(carry, '2026-11', money, [], goals)).toBe('Includes ₹20,367 in goals · ₹11,426 for the card bill')
   })
   it('counts money left unassigned too', () => {
-    expect(rolloverDetail({ ready_to_assign: 5000, rolled_over: { Food: 95 } }, '2026-11', money)).toBe('Includes ₹5,000 back in Ready to Assign')
+    expect(rolloverDetail({ ready_to_assign: 5000, rolled_over: { Food: 95 } }, '2026-11', money)).toBe('Includes ₹5,000 that went to Ready to Assign')
   })
+  it('names an over-assigned month, which counts in the short total but sits on no row', () => {
+    expect(rolloverDetail({ ready_to_assign: -1200, rolled_over: { Food: 95 } }, '2026-11', money)).toBe('Includes ₹1,200 over-assigned in October')
+  })
+
   it('is null when every rolled amount is on a row', () => {
     expect(rolloverDetail({ ready_to_assign: 0, rolled_over: { Food: 95, Rent: -20 } }, '2026-11', money)).toBeNull()
     expect(rolloverDetail(undefined, '2026-11', money)).toBeNull()
   })
   it("takes this month's moves back out, like the strip", () => {
     const budgets = [{ month: '2026-11', category: 'Food', assigned: '0', rolled_over: '1000' }] as unknown as BudgetRow[]
-    expect(rolloverDetail({ ready_to_assign: 4000, rolled_over: { Food: 1095 } }, '2026-11', money, budgets)).toBe('Includes ₹5,000 back in Ready to Assign')
+    expect(rolloverDetail({ ready_to_assign: 4000, rolled_over: { Food: 1095 } }, '2026-11', money, budgets)).toBe('Includes ₹5,000 that went to Ready to Assign')
   })
 })

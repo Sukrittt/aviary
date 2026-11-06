@@ -23,7 +23,7 @@ export function RolloverCard({ text, detail, onReplay, onDone }: { text: string;
         {text.split(' · ').map((part, i) => (
           <Fragment key={i}>
             {i > 0 && ' · '}
-            <span style={{ whiteSpace: 'nowrap' }}>{part}</span>
+            <span className="env2-meta-part">{part}</span>
           </Fragment>
         ))}
         {/* What no category row shows, so the total can be checked against them. */}
@@ -32,7 +32,7 @@ export function RolloverCard({ text, detail, onReplay, onDone }: { text: string;
             {detail.split(' · ').map((part, i) => (
               <Fragment key={i}>
                 {i > 0 && ' · '}
-                <span style={{ display: 'inline-block' }}>{part}</span>
+                <span className="env2-meta-part">{part}</span>
               </Fragment>
             ))}
           </small>
