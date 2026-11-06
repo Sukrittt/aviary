@@ -809,7 +809,7 @@ export function ExpensePage() {
                         <span className="erd-rta-icon" aria-hidden="true"><CalendarBlankIcon size={18} /></span>
                         {`Your plan fills up ${paydayLabel(planFills.next_run_date)}.`}
                       </span>
-                      <button type="button" onClick={() => setPlanFillsDismissed(true)}>Okay</button>
+                      <button type="button" onClick={() => setPlanFillsDismissed(true)}>Got it</button>
                     </div>
                   </motion.div>
                 ) : recap ? (

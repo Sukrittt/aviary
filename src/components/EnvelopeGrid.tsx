@@ -263,7 +263,10 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
                 {pace.monthTickPct < 100 && <span className="env2-tick" style={{ left: `${pace.monthTickPct}%` }} />}
               </span>
               <span className={`env2-meta env2-pace ${pace.status === 'over' ? 'is-over' : ''}`}>
-                <span>{paceLine(pace, money)}</span>
+                <span>
+                  {month && !hideAmounts && e.rolledOver ? `${rolledOverLine(e.rolledOver, month, formatCurrency)} · ` : ''}
+                  {paceLine(pace, money)}
+                </span>
                 <span className="env2-reset">{resetChip(pace)}</span>
               </span>
             </>
@@ -341,7 +344,7 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
         </DropdownMenuContent>
         </DropdownMenu>
         <span className="env2-available">
-          <span className="env2-balance-label">{balanceLabel(e)}</span>
+          <span className="env2-balance-label">{goal ? 'Saved' : balanceLabel(e)}</span>
           {(() => {
             // Keyed by month: a month switch swaps the amount, it doesn't raise it.
             const pill = (

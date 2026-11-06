@@ -53,7 +53,7 @@ export function ForecastLine() {
               <span className="erd-rta-icon" aria-hidden="true"><ChartLineIcon size={18} /></span>
               {warning.text}
             </Link>
-            <button type="button" onClick={() => setDismissed(true)}>Okay</button>
+            <button type="button" onClick={() => setDismissed(true)}>Got it</button>
           </div>
         </motion.div>
       )}
@@ -145,7 +145,10 @@ export function ForecastCard({ hideAmounts, icon, onTopUp }: {
                   Top up {money(-e.projected)}
                 </button>
               ) : (
-                <span className="ins-top-amount">{money(e.projected)}</span>
+                <span className="ins-top-amount">
+                  {money(e.projected)}
+                  <small className="ins-top-amount-label">spare</small>
+                </span>
               )}
             </div>
           ))}

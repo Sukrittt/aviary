@@ -1018,7 +1018,7 @@
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: var(--tk-on-strong);
+  background: var(--tk-switch-thumb);
   transition: transform 0.15s ease;
 }
 .env2-switch[data-on] { background: var(--tk-accent); }
@@ -4131,8 +4131,14 @@
     justify-content: flex-end;
     padding: 0 0 14px;
   }
+  /* The top bar names the page on phones; keep the h1 for screen readers. */
   .expense-redesign .txn-page-heading {
-    display: none;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
   .expense-redesign .txn-page-log-btn,
   .expense-redesign .txn-page-actions .action-button {
@@ -6241,7 +6247,7 @@ button.account-row:hover {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: var(--tk-on-strong);
+  background: var(--tk-switch-thumb);
   transition: transform 0.15s ease;
 }
 
@@ -10513,7 +10519,7 @@ span.env-cat-alerts:hover {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: var(--tk-on-strong);
+  background: var(--tk-switch-thumb);
   transition: transform 0.15s ease;
 }
 
@@ -10597,7 +10603,7 @@ span.env-cat-alerts:hover {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: var(--tk-on-strong);
+  background: var(--tk-switch-thumb);
   transition: transform 0.15s ease;
 }
 
@@ -11087,11 +11093,11 @@ span.env-cat-alerts:hover {
 .ideas-score { min-width: 24px; text-align: center; font-weight: 700; font-size: 14px; font-variant-numeric: tabular-nums; color: var(--erd-text); }
 .ideas-vote.is-up { background: var(--gold-soft); }
 .ideas-vote.is-up button:first-child, .ideas-vote.is-up .ideas-score { color: var(--gold-hover); }
-.ideas-vote.is-down button:last-child, .ideas-vote.is-down .ideas-score { color: #6a5acd; }
-.ideas-status.is-planned { background: rgba(80, 140, 255, 0.16); color: #3a6fd8; }
-.ideas-status.is-in_progress { background: rgba(240, 170, 40, 0.18); color: #b97a00; }
-.ideas-status.is-shipped { background: rgba(60, 180, 120, 0.18); color: #23935c; }
-.ideas-status.is-declined { background: rgba(220, 80, 80, 0.14); color: #c24646; }
+.ideas-vote.is-down button:last-child, .ideas-vote.is-down .ideas-score { color: var(--violet); }
+.ideas-status.is-planned { background: var(--blue-soft); color: var(--blue); }
+.ideas-status.is-in_progress { background: var(--gold-soft); color: var(--gold-ink); }
+.ideas-status.is-shipped { background: var(--mint-soft); color: var(--mint); }
+.ideas-status.is-declined { background: var(--coral-soft); color: var(--coral); }
 
 /* Scan a bill */
 .expense-redesign .erd-modal-card.scan-modal {
@@ -13221,6 +13227,12 @@ span.env-cat-alerts:hover {
     justify-content: space-between;
   }
   .expense-redesign .account-header .txn-page-heading {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip-path: none;
+    white-space: normal;
     display: block;
   }
 }
@@ -15728,7 +15740,7 @@ span.env-cat-alerts:hover {
 .env2-goal-line {
   flex-basis: 100%;
   /* Lines up with the name, past the icon. */
-  padding-left: 25px;
+  padding-left: 0;
   margin-top: -4px;
 }
 .env2-goal-line.is-behind { color: var(--tk-pill-low); }

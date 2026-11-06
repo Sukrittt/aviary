@@ -339,7 +339,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onL
           <div className="brain-heading">
             <h2>{view === 'history' ? 'Chat history' : 'Ask Aviary'}</h2>
             <p>{view === 'history' ? 'Pick up where you left off' : capture ? 'Type what you spent. Several at once is fine.' : (
-              <span className="text-shimmer">{brief.data
+              <span className={brief.data && !brief.data.meta.txnCountThisMonth ? undefined : 'text-shimmer'}>{brief.data
                 ? brief.data.meta.txnCountThisMonth
                   ? `Reading this month's ${brief.data.meta.txnCountThisMonth} ${brief.data.meta.txnCountThisMonth === 1 ? 'entry' : 'entries'}`
                   : 'Nothing logged this month yet'
@@ -413,7 +413,12 @@ export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onL
               {!capture && (<>
               <motion.section className="brain-summary-card" {...popIn(STAGGER.mount)}>
                 <span className="brain-kicker">This month so far</span>
-                <strong>{formatCurrency(envelope.totalSpent, hideAmounts)} spent of {formatCurrency(envelope.totalAssigned, hideAmounts)} assigned</strong>
+                {/* Not "₹0 of ₹0" while the budget loads: that reads as an empty budget. */}
+                {budgets.data && expenses.data ? (
+                  <strong>{formatCurrency(envelope.totalSpent, hideAmounts)} spent of {formatCurrency(envelope.totalAssigned, hideAmounts)} assigned</strong>
+                ) : (
+                  <i className="brain-skel" role="status" aria-label="Loading this month" />
+                )}
                 <div className="brain-progress" aria-label={`${Math.round(spentPct)}% of assigned money spent`}>
                   <i style={{ transform: `scaleX(${spentPct / 100})` }} />
                 </div>

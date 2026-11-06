@@ -40,9 +40,11 @@ describe('buildBriefCandidates', () => {
     expect(cards.find((c) => c.title === 'Eating out')?.subtitle).toBe('Short after last month')
   })
 
-  it('counts left to spend from the envelope balances, carry included', () => {
+  it('counts left to spend from the envelope balances, carry included, goals left out', () => {
     const { cards } = buildBriefCandidates(ctx(), 'INR')
     expect(cards.find((c) => c.title === 'Left to spend')?.amount).toBe(1600 - 2400 + 3100)
+    const withGoal = buildBriefCandidates(ctx({ categories: [{ name: 'Bills', isGoal: true }] }), 'INR')
+    expect(withGoal.cards.find((c) => c.title === 'Over by')?.amount).toBe(800)
   })
 
   it('builds cards straight from the numbers, never inventing one', () => {
@@ -75,7 +77,7 @@ describe('buildBriefCandidates', () => {
     const over = [{ category: 'Travel', group: 'Wants', assigned: 5000, spent: 9000, available: -4000, rolledOver: 0, isOverspent: true }]
     const ahead = buildBriefCandidates(ctx({ envelopes: over as unknown as SummarizeExpensesResult['envelopes'] }), 'INR')
     const behind = buildBriefCandidates(ctx(), 'INR')
-    expect(ahead.cards.find((c) => c.title === 'Left to spend')?.tone).toBe('coral')
+    expect(ahead.cards.find((c) => c.title === 'Over by')?.tone).toBe('coral')
     expect(behind.cards.find((c) => c.title === 'Left to spend')?.tone).toBe('mint')
   })
 

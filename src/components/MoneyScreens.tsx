@@ -8,7 +8,7 @@ import { useEffect, useMemo, useRef, useState, type ComponentProps, type ReactNo
 import { AnimatePresence, LayoutGroup, MotionConfig, motion, useReducedMotion } from 'motion/react'
 import { ArrowLeftIcon, ArrowRightIcon, ArrowClockwiseIcon, MagnifyingGlassIcon, MoneyWavyIcon, TrashIcon, XIcon } from '@/src/components/icons'
 import { CategoryIcon } from './CategoryIcon'
-import { Scrim } from './MotionSheet'
+import { DialogKeys, Scrim } from './MotionSheet'
 import { AmountField, AmountSheet } from './AmountSheet'
 import { SuccessButton, useButtonPhase } from './SuccessButton'
 import { LoadingCaption } from './LoadingCaption'
@@ -38,6 +38,7 @@ import {
   PAYCHECK_START,
   countsInBudget,
   incomeBaseOf,
+  balanceLabel,
 } from '../lib/envelope'
 
 /**
@@ -111,39 +112,12 @@ function Screen({
   const { readOnly } = useSpaces()
   const dialogRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
-    const previous = document.activeElement as HTMLElement | null
     const overflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-    dialogRef.current?.focus()
     return () => {
       document.body.style.overflow = overflow
-      previous?.focus()
     }
   }, [])
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Tab') {
-        const controls = dialogRef.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), [tabindex="0"]')
-        if (controls?.length) {
-          const first = controls[0], last = controls[controls.length - 1]
-          if (e.shiftKey && (document.activeElement === first || document.activeElement === dialogRef.current)) {
-            e.preventDefault(); last.focus()
-          } else if (!e.shiftKey && (document.activeElement === last || document.activeElement === dialogRef.current)) {
-            e.preventDefault(); first.focus()
-          }
-        } else e.preventDefault()
-        return
-      }
-      if (e.metaKey || e.ctrlKey || e.altKey) return
-      if (e.key === 'Escape') {
-        if (!busy) (onBack ?? onClose)()
-        return
-      }
-
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [busy, onBack, onClose])
 
   const motionProps = reduce
     ? { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } }
@@ -166,6 +140,8 @@ function Screen({
         onClick={(e) => e.stopPropagation()}
         {...motionProps}
       >
+        {/* Shared trap, focus return and Escape; Escape steps back, and waits while saving. */}
+        <DialogKeys target={dialogRef} onEscape={() => { if (!busy) (onBack ?? onClose)() }} />
         {showHeader && <header className="money-head">
           <button
             type="button"
@@ -395,6 +371,9 @@ function MoveMoneyBody({
   const target = envelopeState.envelopes.find((e) => e.category === targetCategoryName)
   const targetAvail = target?.available ?? 0
   const isOverspent = targetAvail < 0
+  // Home's word for it: a deficit carried in is "short", not "overspent".
+  const gapWord = target && balanceLabel(target) === 'Short' ? 'short' : 'overspent'
+  const gapNoun = gapWord === 'short' ? 'shortfall' : 'overspend'
   const shortfall = isOverspent ? Math.abs(targetAvail) : 0
   const readyToAssign = envelopeState.readyToAssign
   const targetName = splitEmoji(targetCategoryName).text
@@ -540,12 +519,12 @@ function MoveMoneyBody({
           hint={
             amount === 0
               ? isOverspent
-                ? `${formatCurrency(shortfall, hideAmounts)} overspent`
+                ? `${formatCurrency(shortfall, hideAmounts)} ${gapWord}`
                 : `${formatCurrency(targetAvail, hideAmounts)} available now`
               : isOverspent && amount >= shortfall
                 ? amount > shortfall
-                  ? `Clears the overspend, ${formatCurrency(amount - shortfall, hideAmounts)} extra`
-                  : 'Clears the overspend exactly'
+                  ? `Clears the ${gapNoun}, ${formatCurrency(amount - shortfall, hideAmounts)} extra`
+                  : `Clears the ${gapNoun} exactly`
                 : isOverspent
                   ? `${formatCurrency(shortfall - amount, hideAmounts)} more needed to clear it`
                   : `Adds to ${targetName}`
@@ -554,7 +533,7 @@ function MoveMoneyBody({
           <div className="erd-sub-picks">
             {isOverspent && shortfall > 0 && (
               <QuickChip
-                label={`Cover overspend · ${formatCurrency(shortfall, hideAmounts)}`}
+                label={`Cover ${gapNoun} · ${formatCurrency(shortfall, hideAmounts)}`}
                 active={amount === cents(shortfall)}
                 onPress={() => {
                   setAmountStr(String(cents(shortfall)))
