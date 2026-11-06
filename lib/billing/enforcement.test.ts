@@ -69,6 +69,7 @@ const OPEN: Record<string, string> = {
   'ideas/[id]/vote': 'feedback board; no budgeting content',
   'privacy/proof': 'shows how their data is stored; no budgeting content',
   'system/status': 'public; maintenance banner and update prompt',
+  'app-open': "only runs other routes' own GETs, each behind its own gate, and passes their 402s through",
   'changelog': 'signed-in release list; no budgeting content',
   'changelog/latest': 'signed-in release notes; no budgeting content',
   'changelog/[id]/seen': 'account-level release announcement tracking, available while expired',
