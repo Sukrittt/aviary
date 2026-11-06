@@ -953,7 +953,7 @@
 .env2-reset { color: var(--tk-text); white-space: nowrap; }
 /* Each part stays whole; a narrow row wraps between parts. */
 .env2-meta-part { white-space: nowrap; }
-.env2-meta-line { min-width: 0; }
+.env2-meta-line { flex: 1; min-width: 0; }
 .env2-weeks {
   display: grid;
   gap: 2px;

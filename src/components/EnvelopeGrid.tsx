@@ -1,5 +1,5 @@
 import { useCurrency } from '@/src/context/CurrencyContext'
-import { useMemo, useRef, useState } from 'react'
+import { Fragment, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowsInLineVerticalIcon, NoteIcon } from '@/src/components/icons'
 import { SpringChevron, SpringCollapse } from './SpringCollapse'
@@ -137,7 +137,11 @@ function MetaLine({ parts }: { parts: (string | null)[] }) {
   return (
     <span className="env2-meta-line">
       {shown.map((part, i) => (
-        <span key={i} className="env2-meta-part">{i > 0 ? ' · ' : ''}{part}</span>
+        // The separator sits outside the unbreakable part, so the line can break there.
+        <Fragment key={i}>
+          {i > 0 && ' · '}
+          <span className="env2-meta-part">{part}</span>
+        </Fragment>
       ))}
     </span>
   )
