@@ -27,13 +27,6 @@ export function rolledOverLine(rolledOver: number, month: string, money: Money):
 }
 
 /**
- * The month-start strip: what rolled in, in one short line. Money left
- * unassigned counts as rolled over too (it's in Ready to Assign), and an
- * over-assigned month as short, so the line accounts for everything on its own.
- * Null when nothing rolled (including every month up to the rollover start,
- * where the server returns an empty carry).
- */
-/**
  * The carry with this month's moves (a row's `rolled_over`) taken back out:
  * those aren't what rolled in, and money assigned before payday from a one-off
  * would otherwise read as rolled over and short at once.
@@ -66,20 +59,28 @@ export function rolloverDetail(
   if (!carry) return null
   const { rolled, ready } = rolledIn(carry, month, budgets)
   const round = (n: number) => Math.round(n * 100) / 100
-  const sum = (keep: (category: string) => boolean) =>
-    round(Object.entries(rolled).filter(([c, n]) => keep(c) && n > 0).reduce((s, [, n]) => s + n, 0))
+  const sum = (keep: (category: string) => boolean, sign = 1) =>
+    round(Object.entries(rolled).filter(([c, n]) => keep(c) && n * sign > 0).reduce((s, [, n]) => s + n * sign, 0))
   // Past tense for Ready to Assign: it may well be assigned out again by now.
   const parts = [
     [sum((c) => goals.has(c)), 'in goals'],
     [sum((c) => c === CREDIT_CARD_CATEGORY), 'for the card bill'],
     [round(ready), 'that went to Ready to Assign'],
-    // The short side's one part no row shows.
+    // The short side's parts no row shows: goal rows carry no "short from" line.
+    [sum((c) => goals.has(c), -1), 'short in goals'],
     [round(-ready), `over-assigned in ${monthName(prevMonthKey(month))}`],
   ] as const
   const shown = parts.filter(([n]) => n > 0).map(([n, what]) => `${money(n)} ${what}`)
   return shown.length ? `Includes ${shown.join(' · ')}` : null
 }
 
+/**
+ * The month-start strip: what rolled in, in one short line. Money left
+ * unassigned counts as rolled over too (it's in Ready to Assign), and an
+ * over-assigned month as short, so the line accounts for everything on its own.
+ * Null when nothing rolled (including every month up to the rollover start,
+ * where the server returns an empty carry).
+ */
 export function rolloverCard(carry: Carry | undefined, month: string, money: Money, budgets: BudgetRow[] = []): string | null {
   if (!carry) return null
   const { rolled, ready } = rolledIn(carry, month, budgets)

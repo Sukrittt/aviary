@@ -65,6 +65,10 @@ describe('rolloverDetail', () => {
   it('counts money left unassigned too', () => {
     expect(rolloverDetail({ ready_to_assign: 5000, rolled_over: { Food: 95 } }, '2026-11', money)).toBe('Includes ₹5,000 that went to Ready to Assign')
   })
+  it("names a goal's shortfall, which counts in the short total but no goal row shows", () => {
+    expect(rolloverDetail({ ready_to_assign: 0, rolled_over: { Food: 95, Holiday: -400 } }, '2026-11', money, [], new Set(['Holiday']))).toBe('Includes ₹400 short in goals')
+  })
+
   it('names an over-assigned month, which counts in the short total but sits on no row', () => {
     expect(rolloverDetail({ ready_to_assign: -1200, rolled_over: { Food: 95 } }, '2026-11', money)).toBe('Includes ₹1,200 over-assigned in October')
   })
