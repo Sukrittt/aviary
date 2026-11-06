@@ -25,7 +25,7 @@ export async function GET(req: Request) {
     getCollection('recurring_incomes', auth),
     getCollection('subscriptions', auth),
   ])
-  const [{ envelopes }, expenseDocs, firstDoc, recurringDocs, incomeDocs, subDocs] = await Promise.all([
+  const [{ envelopes, categories }, expenseDocs, firstDoc, recurringDocs, incomeDocs, subDocs] = await Promise.all([
     buildExpenseContext(auth, { monthOnly: true }),
     // Indexed by { user_id: 1, date: -1 } (scripts/ensure-indexes.mjs).
     expensesColl.find({ date: { $gte: historyStart } }, { projection: { date: 1, amount_inr: 1, amount: 1, category: 1, notes: 1, source: 1, client_id: 1 } }).toArray(),
@@ -44,11 +44,14 @@ export async function GET(req: Request) {
     anchor_day: Number(d.anchor_day) || undefined,
   })
 
+  // Same rule as Ask Aviary's Left to spend: goals are saved money.
+  const goals = new Set(categories.filter((c) => c.isGoal).map((c) => c.name))
+
   return json(
     forecast({
       today,
       firstExpenseDate: firstDoc ? str(firstDoc.date) : undefined,
-      envelopes: envelopes.map((e) => ({ category: e.category, available: e.available, isCreditCardPayment: e.isCreditCardPayment, assigned: e.assigned, planPending: e.planPending })),
+      envelopes: envelopes.map((e) => ({ category: e.category, available: e.available, isCreditCardPayment: e.isCreditCardPayment, assigned: e.assigned, planPending: e.planPending, isGoal: goals.has(e.category) })),
       expenses: expenseDocs.map((d) => ({
         date: str(d.date),
         amount_inr: Number(d.amount_inr ?? d.amount) || 0,

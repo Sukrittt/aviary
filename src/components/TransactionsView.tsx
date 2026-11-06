@@ -934,7 +934,8 @@ export function TransactionsView({
               </button>
             </div>
           )}
-          <span>Total: {hideAmounts ? "---" : formatCurrency(totalSpend)}</span>
+          {/* The server's total for the whole filter, so say so when it spans pages. */}
+          <span>{totalPages > 1 ? `Total, all ${totalCount}` : "Total"}: {hideAmounts ? "---" : formatCurrency(totalSpend)}</span>
         </div>
       )}
 

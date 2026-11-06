@@ -705,8 +705,6 @@
 
 .ins-trend-bar.is-dimmed { opacity: 0.55; }
 
-/* A faded orange reads as brown on the dark surface, so past months go neutral
-   there, light enough to stand off the card (about 3:1). */
 .theme-dark .ins-trend-bar.is-dimmed:not(.is-missing, .is-negative) {
   /* Brand orange, deep enough to clear ~3:1 against the card. */
   fill: color-mix(in oklab, var(--tk-accent) 62%, var(--erd-card-solid));

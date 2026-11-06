@@ -339,9 +339,9 @@ export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onL
           <div className="brain-heading">
             <h2>{view === 'history' ? 'Chat history' : 'Ask Aviary'}</h2>
             <p>{view === 'history' ? 'Pick up where you left off' : capture ? 'Type what you spent. Several at once is fine.' : (
-              <span className={brief.data && !brief.data.meta.txnCountThisMonth ? undefined : 'text-shimmer'}>{brief.data
+              <span className={brief.data ? undefined : 'text-shimmer'}>{brief.data
                 ? brief.data.meta.txnCountThisMonth
-                  ? `Reading this month's ${brief.data.meta.txnCountThisMonth} ${brief.data.meta.txnCountThisMonth === 1 ? 'entry' : 'entries'}`
+                  ? `${brief.data.meta.txnCountThisMonth} ${brief.data.meta.txnCountThisMonth === 1 ? 'entry' : 'entries'} this month`
                   : 'Nothing logged this month yet'
                 : 'Reading your budget…'}</span>
             )}</p>
