@@ -11,6 +11,15 @@ describe('RolloverCard', () => {
     await userEvent.click(screen.getByRole('button', { name: /rolled over/ }))
     expect(onReplay).toHaveBeenCalledTimes(1)
     expect(onDone).not.toHaveBeenCalled()
-    expect(screen.getByRole('button', { name: 'Nice' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Got it' })).toBeEnabled()
+  })
+
+  it('celebrates only when nothing came in short', () => {
+    const { rerender, container } = render(<RolloverCard text="₹21,700 rolled over" onReplay={vi.fn()} onDone={vi.fn()} />)
+    expect(screen.getByRole('button', { name: 'Nice' })).toBeInTheDocument()
+    expect(container.querySelector('.is-short')).toBeNull()
+    rerender(<RolloverCard text="₹21,700 rolled over · ₹550 short" onReplay={vi.fn()} onDone={vi.fn()} />)
+    expect(screen.getByRole('button', { name: 'Got it' })).toBeInTheDocument()
+    expect(container.querySelector('.is-short')).not.toBeNull()
   })
 })

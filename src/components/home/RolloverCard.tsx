@@ -11,13 +11,16 @@ import { useButtonPhase } from '@/src/components/SuccessButton'
  */
 export function RolloverCard({ text, onReplay, onDone }: { text: string; onReplay: () => void; onDone: () => void }) {
   const phase = useButtonPhase()
+  // "· ₹X short" (src/lib/rollover.ts): mixed news, so a calm card and "Got it", not green "Nice".
+  const short = / short\b/.test(text)
+  const label = short ? 'Got it' : 'Nice'
   return (
-    <article className="erd-card home-leftover-notice">
+    <article className={`erd-card home-leftover-notice${short ? ' is-short' : ''}`}>
       <button type="button" className="home-leftover-replay" onClick={onReplay} title="Show it again">
         <PlantIcon size={18} aria-hidden="true" style={{ verticalAlign: '-3px', marginRight: 6 }} />{text}
       </button>
-      <button type="button" aria-label="Nice" disabled={phase.success} onClick={() => phase.succeed(onDone)}>
-        {phase.success ? <CheckIcon color="var(--mint)" size={18} /> : 'Nice'}
+      <button type="button" aria-label={label} disabled={phase.success} onClick={() => phase.succeed(onDone)}>
+        {phase.success ? <CheckIcon color="var(--mint)" size={18} /> : label}
       </button>
     </article>
   )

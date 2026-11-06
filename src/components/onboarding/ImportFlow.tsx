@@ -831,6 +831,7 @@ function ReviewDialog({ title, onClose, done = true, children }: { title: string
   return (
     <Scrim className="erd-modal-overlay" onClick={onClose}>
       <Sheet
+        data-own-escape
         className="erd-modal-card import-dialog"
         role="dialog"
         aria-modal="true"

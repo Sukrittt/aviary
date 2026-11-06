@@ -22,8 +22,7 @@ export function FeedbackDialog({ kind, onClose }: { kind: FeedbackKind; onClose:
   const title = kind === 'idea' ? 'Share an idea' : 'Report a bug'
   return (
     <Scrim className="erd-modal-overlay" onClick={onClose}>
-      <Sheet className="erd-modal-card feedback-dialog" role="dialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()}
-        onKeyDown={(e) => { if (e.key === 'Escape') onClose() }}>
+      <Sheet className="erd-modal-card feedback-dialog" role="dialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()}>
         <h3 className="archive-confirm-title">{title}</h3>
         {kind === 'idea' ? (
           <>

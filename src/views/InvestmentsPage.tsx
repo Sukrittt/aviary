@@ -104,7 +104,10 @@ export function InvestmentsPage() {
   const holdings = holdingsQuery.data ?? EMPTY;
   const events = eventsQuery.data ?? EMPTY;
   const isLoading = holdingsQuery.isLoading || eventsQuery.isLoading;
-  const loadError = holdingsQuery.error ?? eventsQuery.error;
+  // Only a failed first load: a background refetch that fails keeps the data it had.
+  const loadError =
+    (holdingsQuery.data === undefined ? holdingsQuery.error : null) ??
+    (eventsQuery.data === undefined ? eventsQuery.error : null);
 
   const [menuHolding, setMenuHolding] = useState<HoldingRow | null>(null);
   const [action, setAction] = useState<{
@@ -187,19 +190,21 @@ export function InvestmentsPage() {
       <div className="erd-main">
         <ExpenseSidebar />
         <div className="erd-content inv-page">
-          <div className="erd-panel-head">
-            <div>
-              <div className="erd-panel-title">Investments</div>
-              <div className="erd-panel-head-sub">
-                {holdings.length}{" "}
-                {holdings.length === 1 ? "holding" : "holdings"}
-              </div>
+          <header className="txn-page-header account-header">
+            <div className="txn-page-heading">
+              <span className="txn-page-eyebrow">What you own</span>
+              <h1>Investments</h1>
+              <p>
+                {loadError || isLoading
+                  ? "Net worth, allocation, and holdings"
+                  : `${holdings.length} ${holdings.length === 1 ? "holding" : "holdings"}`}
+              </p>
             </div>
-            <div className="erd-panel-tools">
+            <div className="txn-page-actions">
               {!readOnly && (
                 <button
                   type="button"
-                  className="erd-log-btn"
+                  className="erd-log-btn txn-page-log-btn"
                   onClick={() => setEditing("")}
                 >
                   <PlusIcon size={14} aria-hidden="true" />
@@ -207,17 +212,31 @@ export function InvestmentsPage() {
                 </button>
               )}
             </div>
-          </div>
+          </header>
 
-          {(error || loadError) && (
+          {error && (
             <div className="erd-action-error" role="alert">
-              {error ??
-                "Couldn't load your investments. Check your connection and try again."}
+              {error}
             </div>
           )}
 
           {isLoading ? (
             <LoadingCaption feature="investments" placement="page" />
+          ) : loadError ? (
+            // Not a ₹0 net worth: that would tell the user something false.
+            <BirdEmptyState
+              subject="holdings"
+              mood="searching"
+              title="Couldn't load your investments"
+              description="Check your connection and try again."
+              action={{
+                label: "Try again",
+                onClick: () => {
+                  void holdingsQuery.refetch();
+                  void eventsQuery.refetch();
+                },
+              }}
+            />
           ) : (
             <>
               <div className="erd-card inv-hero">
@@ -255,12 +274,14 @@ export function InvestmentsPage() {
                   Holdings
                 </div>
                 {shownHoldings.length === 0 ? (
-                  <BirdEmptyState
-                    subject="holdings"
-                    title="Room to grow"
-                    description="No holdings yet. Add one to start watching your future take shape."
-                    action={{ label: 'Add a holding', onClick: () => setEditing('') }}
-                  />
+                  // Inside a card like Recurring's; the header's Add holding is the one action.
+                  <div className="account-card">
+                    <BirdEmptyState
+                      subject="holdings"
+                      title="Room to grow"
+                      description="No holdings yet. Add one to start watching your future take shape."
+                    />
+                  </div>
                 ) : (
                   <ul
                     className="account-card recurring-list"

@@ -29,7 +29,7 @@ it('frames a shortfall kindly and tops it up with the rounded gap', () => {
   const onTopUp = renderCard()
   expect(screen.getByText('Covered till 30 Oct')).toBeTruthy()
   expect(screen.getByText("There's enough elsewhere to cover the gap.")).toBeTruthy()
-  fireEvent.click(screen.getByRole('button', { name: 'Top up Food' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Top up Food by ₹200 to last the month' }))
   expect(onTopUp).toHaveBeenCalledWith('Food', 200)
 })
 

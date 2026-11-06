@@ -28,7 +28,7 @@ export function AmountSheet({ title, onClose, onBack, busy, footer, className = 
   }, [busy, onBack, onClose])
   return (
     <Scrim className="erd-modal-overlay" onClick={busy ? undefined : onClose}>
-      <Sheet className={`erd-modal-card erd-sub-card erd-one-off-card ${className}`} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={title}>
+      <Sheet data-own-escape className={`erd-modal-card erd-sub-card erd-one-off-card ${className}`} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={title}>
         <div className="erd-modal-head">
           <h3>{title}</h3>
           <button type="button" className="erd-modal-close" onClick={onClose} aria-label="Close" disabled={busy}>

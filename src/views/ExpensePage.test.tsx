@@ -214,8 +214,8 @@ it('says once per budget and month what rolled in, and adds it to Ready to Assig
   // The strip says it all, so the hero has no separate carried line.
   expect(screen.queryByText(/includes ₹/)).not.toBeInTheDocument()
 
-  fireEvent.click(screen.getByRole('button', { name: 'Nice' }))
-  expect(screen.getByRole('button', { name: 'Nice' })).toBeDisabled()
+  fireEvent.click(screen.getByRole('button', { name: 'Got it' }))
+  expect(screen.getByRole('button', { name: 'Got it' })).toBeDisabled()
   await waitFor(() => expect(screen.queryByText(title)).not.toBeInTheDocument(), { timeout: 4000 })
   first.clear()
   cleanup()

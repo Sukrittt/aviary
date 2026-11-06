@@ -95,7 +95,7 @@ export function BalanceCheckModal({ onClose: close }: { onClose: () => void }) {
 
   return (
     <Scrim className="erd-modal-overlay" onClick={onClose}>
-      <Sheet className="erd-modal-card balance-card" role="dialog" aria-modal="true" aria-label="Balance check" onClick={(e) => e.stopPropagation()}>
+      <Sheet data-own-escape className="erd-modal-card balance-card" role="dialog" aria-modal="true" aria-label="Balance check" onClick={(e) => e.stopPropagation()}>
         <div className="erd-modal-head">
           <h3>Balance check</h3>
           <button type="button" className="erd-modal-close" onClick={onClose} aria-label="Close" disabled={reviewing}>

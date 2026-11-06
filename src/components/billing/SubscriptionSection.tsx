@@ -166,6 +166,7 @@ export function SubscriptionSection() {
         {canBuy && plansOpen && (
           <Scrim className="erd-modal-overlay" onClick={closePlans}>
             <Sheet
+              data-own-escape
               className="erd-modal-card"
               role="dialog"
               aria-modal="true"

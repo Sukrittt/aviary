@@ -18,6 +18,7 @@ interface UserDoc {
 interface SessionRow {
   id: string
   userAgent: string | null
+  ipAddress?: string | null
   authMethod: string
   createdAt: string
   current: boolean
@@ -35,10 +36,19 @@ function daysUntil(ts: string): number {
   return Math.max(0, Math.ceil((d.getTime() - Date.now()) / (24 * 60 * 60 * 1000)))
 }
 
+const methodName = (m: string) => (m === 'oauth' ? 'Google' : m === 'magic_code' ? 'email code' : m)
+
 function sessionLabel(s: SessionRow): string {
   if (s.userAgent) return describeUserAgent(s.userAgent)
-  const method = s.authMethod === 'oauth' ? 'Google' : s.authMethod === 'magic_code' ? 'Email code' : s.authMethod
-  return `Signed in with ${method}`
+  return `Signed in with ${methodName(s.authMethod)}`
+}
+
+/** Date, method and IP: enough to tell five "Chrome on macOS" rows apart. */
+function sessionMeta(s: SessionRow): string {
+  const parts = [`Signed in ${formatShortDate(s.createdAt)}`]
+  if (s.userAgent) parts[0] += ` with ${methodName(s.authMethod)}`
+  if (s.ipAddress) parts.push(s.ipAddress)
+  return parts.join(' · ')
 }
 
 function SecurityContent() {
@@ -311,7 +321,7 @@ function SecurityContent() {
                 <div className="account-row-label" style={{ fontWeight: 600 }}>
                   {sessionLabel(s)}
                 </div>
-                <div className="account-row-meta">{`Signed in ${formatShortDate(s.createdAt)}`}</div>
+                <div className="account-row-meta">{sessionMeta(s)}</div>
               </div>
               {s.current ? (
                 <span className="account-badge">Current</span>

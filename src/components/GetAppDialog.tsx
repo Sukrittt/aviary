@@ -10,8 +10,7 @@ import { track } from '../lib/analytics'
 export function GetAppDialog({ email, onClose }: { email?: string; onClose: () => void }) {
   return (
     <Scrim className="erd-modal-overlay" onClick={onClose}>
-      <Sheet className="erd-modal-card archive-confirm get-app-dialog" role="dialog" aria-modal="true" aria-label="Get the app" onClick={(e) => e.stopPropagation()}
-        onKeyDown={(e) => { if (e.key === 'Escape') onClose() }}>
+      <Sheet className="erd-modal-card archive-confirm get-app-dialog" role="dialog" aria-modal="true" aria-label="Get the app" onClick={(e) => e.stopPropagation()}>
         <h3 className="archive-confirm-title">Get the app</h3>
         <p className="account-row-meta">Alerts, the home-screen widget and Wrapped all live in the phone app.</p>
         <div className="archive-confirm-actions">

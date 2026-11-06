@@ -134,7 +134,7 @@ export const lightTokens: ThemeTokens = {
   text: '#060606',
   text2: '#424242',
   text3: '#717171',
-  onAccent: '#ffffff',
+  onAccent: '#1a0500',
   card: '#ffffff',
   cardSolid: '#ffffff',
   sidebarBox: 'rgba(242, 238, 232, 0.7)',

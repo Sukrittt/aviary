@@ -215,7 +215,6 @@ export function SubscriptionsPanel({
           subject="subscriptions"
           title="Keep tabs on your repeats"
           description="Track renewals so bills never surprise you."
-          action={{ label: 'Add a subscription', onClick: onAdd }}
         />
       ) : (
         <>

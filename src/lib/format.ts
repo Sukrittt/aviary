@@ -107,8 +107,8 @@ export function describeUserAgent(ua: string): string {
   const browser =
     /Edg\//.test(ua) ? 'Edge'
     : /OPR\//.test(ua) ? 'Opera'
-    : /Firefox\//.test(ua) ? 'Firefox'
-    : /Chrome\//.test(ua) ? 'Chrome'
+    : /Firefox\/|FxiOS\//.test(ua) ? 'Firefox'
+    : /Chrome\/|CriOS\//.test(ua) ? 'Chrome'
     : /Safari\//.test(ua) ? 'Safari'
     : null
   const os =
