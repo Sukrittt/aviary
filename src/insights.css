@@ -764,6 +764,8 @@
   margin: -6px 5px 0;
   color: var(--erd-text3);
   font-size: 12px;
+  /* Under the in-progress month it explains, which is always the last bar. */
+  text-align: right;
 }
 
 .ins-chart-empty {
@@ -818,8 +820,10 @@
 }
 
 .ins-heatmap-cell rect {
-  fill: var(--erd-chip-active-bg);
-  stroke: transparent;
+  /* A past day with no spending: a quiet outline, so it can't read as a small spend. */
+  fill: var(--erd-card);
+  stroke: var(--erd-border-strong);
+  stroke-width: 1;
   transform-box: fill-box;
   transform-origin: center;
   transition: filter 150ms ease, transform 150ms ease;
@@ -828,7 +832,7 @@
 .ins-heatmap-cell.is-interactive { cursor: pointer; outline: none; }
 .ins-heatmap-cell.is-interactive:hover rect,
 .ins-heatmap-cell.is-interactive:focus-visible rect { filter: brightness(1.16); transform: scale(.94); }
-.ins-heatmap-cell rect.is-today { stroke: var(--mint); stroke-width: 2; }
+.ins-heatmap-cell rect.is-today { stroke: var(--erd-text); stroke-width: 2; }
 .ins-heatmap-cell rect.is-future { fill: var(--erd-card); stroke: var(--erd-border-strong); stroke-width: 1; stroke-dasharray: 3 3; }
 
 .ins-heatmap-legend {
@@ -845,7 +849,8 @@
   width: 10px;
   height: 10px;
   border-radius: 3px;
-  background: var(--erd-chip-active-bg);
+  background: var(--erd-card);
+  box-shadow: inset 0 0 0 1px var(--erd-border-strong);
 }
 
 .ins-filter-overlay {
@@ -1033,7 +1038,8 @@
   border: 0;
   border-radius: 999px;
   background: var(--accent-soft);
-  color: var(--accent);
+  /* Ink, not the fill orange: 12px text needs 4.5:1. */
+  color: var(--gold-ink);
   font: inherit;
   font-size: 12px;
   font-weight: 600;
@@ -1048,7 +1054,7 @@
   border: 0;
   border-top: 1px solid var(--erd-border);
   background: none;
-  color: var(--accent);
+  color: var(--gold-ink);
   font: inherit;
   font-size: 12px;
   font-weight: 600;
@@ -1281,3 +1287,12 @@
 }
 
 .ins-spike-explain:hover { background: var(--erd-input-bg); }
+
+/* What the forecast's headline figure is. */
+.ins-top-amount-label {
+  display: block;
+  color: var(--erd-text3);
+  font-size: 11px;
+  font-weight: 500;
+  text-align: right;
+}

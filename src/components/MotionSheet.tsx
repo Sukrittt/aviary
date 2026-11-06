@@ -1,5 +1,5 @@
 import { useReducedMotion, motion, type HTMLMotionProps } from 'motion/react'
-import { useEffect, useLayoutEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 
 type MotionSheetProps = {
@@ -84,12 +84,6 @@ function useResizeEase(ref: React.RefObject<HTMLDivElement | null>, enabled: boo
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
-/**
- * Keyboard behaviour every dialog needs, in one place: focus moves into the
- * sheet, Tab stays inside it, Escape closes it (by clicking its scrim, which
- * already owns the close logic and any "can't close while saving" guard), and
- * focus returns to whatever opened it.
- */
 const SCRIMS = '.erd-modal-overlay, .money-overlay, .move-money-overlay, .category-manager-overlay, .date-picker-scrim, .modal-overlay'
 
 /**
@@ -99,10 +93,19 @@ const SCRIMS = '.erd-modal-overlay, .money-overlay, .move-money-overlay, .catego
  * logic and any "can't close while saving" guard), and focus returns to
  * whatever opened it.
  */
-function useDialogKeys(ref: React.RefObject<HTMLDivElement | null>) {
+export function useDialogKeys(
+  ref: React.RefObject<HTMLElement | null>,
+  /** For dialogs whose scrim doesn't close on click (it closes on mousedown, or there is none). */
+  onEscape?: () => void,
+) {
   // Read during render, before children commit: an autoFocus input inside the
   // sheet takes focus in the commit, so an effect would record that input.
   const opener = useRef<HTMLElement | null>(null)
+  const headingId = useId()
+  const escapeRef = useRef(onEscape)
+  useEffect(() => {
+    escapeRef.current = onEscape
+  })
   if (opener.current === null && typeof document !== 'undefined') {
     opener.current = (document.activeElement as HTMLElement | null) ?? document.body
   }
@@ -116,7 +119,7 @@ function useDialogKeys(ref: React.RefObject<HTMLDivElement | null>) {
     if (!el.hasAttribute('aria-label') && !el.hasAttribute('aria-labelledby')) {
       const heading = el.querySelector<HTMLElement>('h1, h2, h3, h4')
       if (heading) {
-        heading.id ||= `sheet-title-${Math.random().toString(36).slice(2, 8)}`
+        heading.id ||= headingId
         el.setAttribute('aria-labelledby', heading.id)
       }
     }
@@ -138,6 +141,11 @@ function useDialogKeys(ref: React.RefObject<HTMLDivElement | null>) {
       if (e.key === 'Escape') {
         // data-own-escape: the dialog handles Escape itself (e.g. steps back instead of closing).
         if (el.hasAttribute('data-own-escape')) return
+        if (escapeRef.current) {
+          e.preventDefault()
+          escapeRef.current()
+          return
+        }
         const scrim = el.parentElement
         if (scrim && scrim !== document.body) {
           e.preventDefault()
@@ -169,7 +177,13 @@ function useDialogKeys(ref: React.RefObject<HTMLDivElement | null>) {
         back.focus({ preventScroll: true })
       }
     }
-  }, [ref])
+  }, [ref, headingId])
+}
+
+/** The same dialog behaviour for a dialog that isn't a Sheet: mount it inside the dialog while it's open. */
+export function DialogKeys({ target, onEscape }: { target: React.RefObject<HTMLElement | null>; onEscape?: () => void }) {
+  useDialogKeys(target, onEscape)
+  return null
 }
 
 export function Sheet({ children, className, initial, animate, exit, ...rest }: MotionSheetProps) {

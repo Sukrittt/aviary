@@ -308,3 +308,14 @@ export function computeEnvelopeState(
 }
 
 
+
+/**
+ * The word above an envelope's balance. Below zero is "Overspent" only when this
+ * month's spending went past what the envelope had (plan plus any carry-in);
+ * a deficit carried in from last month with nothing overspent since is "Short",
+ * the same word Insights' forecast uses.
+ */
+export function balanceLabel(e: { assigned: number; spent: number; available: number; rolledOver: number }): 'Left' | 'Overspent' | 'Short' {
+  if (e.available >= 0) return 'Left'
+  return e.spent > e.assigned + Math.max(0, e.rolledOver || 0) ? 'Overspent' : 'Short'
+}

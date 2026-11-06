@@ -60,6 +60,7 @@
   --tk-pill-over-bg: #fee2e2;
   --tk-success-bg: #bbf7d0;
   --tk-on-success: #166534;
+  --tk-on-strong: #ffffff;
   --tk-chart-soften: 15%;
 }
 
@@ -115,6 +116,7 @@
   --tk-pill-over-bg: #fee2e2;
   --tk-success-bg: #bbf7d0;
   --tk-on-success: #166534;
+  --tk-on-strong: #ffffff;
   --tk-chart-soften: 15%;
 }
 
@@ -170,5 +172,6 @@
   --tk-pill-over-bg: rgba(255, 107, 116, 0.16);
   --tk-success-bg: #3ed68a;
   --tk-on-success: #1a0500;
+  --tk-on-strong: #ffffff;
   --tk-chart-soften: 0%;
 }

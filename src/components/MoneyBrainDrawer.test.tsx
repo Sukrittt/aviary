@@ -174,7 +174,7 @@ it('opens straight to typing spends in capture mode, without the money brief', (
 
 it('shimmers the subtitle while it reads the budget', () => {
   render(<QueryClientProvider client={new QueryClient()}><MoneyBrainDrawer onClose={vi.fn()} /></QueryClientProvider>)
-  expect(screen.getByText('Reading 58 transactions')).toHaveClass('text-shimmer')
+  expect(screen.getByText("Reading this month's 58 entries")).toHaveClass('text-shimmer')
 })
 
 it('records an outcome picked mid-stream once the chat exists, retrying while the reply saves', async () => {

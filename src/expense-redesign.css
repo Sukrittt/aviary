@@ -1018,7 +1018,7 @@
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: var(--tk-on-accent);
+  background: var(--tk-on-strong);
   transition: transform 0.15s ease;
 }
 .env2-switch[data-on] { background: var(--tk-accent); }
@@ -2993,7 +2993,7 @@
   width: fit-content;
 }
 .erd-log-card .erd-log-label.is-missing {
-  color: var(--tk-accent);
+  color: var(--tk-accent-ink);
 }
 .erd-log-card .erd-log-input.is-missing,
 .erd-amount-field.is-missing {
@@ -4025,7 +4025,7 @@
   border: 0;
   border-radius: 100px;
   background: var(--coral);
-  color: #fff;
+  color: var(--tk-on-strong);
   font: 600 13px var(--font-display);
   cursor: pointer;
   transition: opacity 140ms, scale var(--dur-press) var(--ease-press);
@@ -6241,7 +6241,7 @@ button.account-row:hover {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: var(--erd-on-accent);
+  background: var(--tk-on-strong);
   transition: transform 0.15s ease;
 }
 
@@ -6529,7 +6529,7 @@ button.account-feature-card {
   border-radius: 100px;
   border: none;
   background: var(--coral);
-  color: #fff;
+  color: var(--tk-on-strong);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -10513,7 +10513,7 @@ span.env-cat-alerts:hover {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: var(--erd-on-accent);
+  background: var(--tk-on-strong);
   transition: transform 0.15s ease;
 }
 
@@ -10597,7 +10597,7 @@ span.env-cat-alerts:hover {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: var(--erd-on-accent);
+  background: var(--tk-on-strong);
   transition: transform 0.15s ease;
 }
 
@@ -12507,7 +12507,7 @@ span.env-cat-alerts:hover {
 .home-learning-days li.is-on span {
   border-color: var(--gold);
   background: var(--gold);
-  color: #fff;
+  color: var(--erd-on-accent);
 }
 .home-learning-days li.is-today span {
   outline: 2px solid var(--gold);
@@ -12623,7 +12623,7 @@ span.env-cat-alerts:hover {
 .expense-redesign .get-started-step.is-next { border-color: var(--gold); background: var(--gold-soft); }
 .expense-redesign .get-started-step.is-done { border-color: transparent; color: var(--erd-text3); cursor: default; }
 .expense-redesign .get-started-icon { display: grid; place-items: center; width: 32px; height: 32px; flex-shrink: 0; border-radius: 50%; background: var(--erd-input-bg); }
-.expense-redesign .is-next .get-started-icon { background: var(--gold-ink); color: #fff; }
+.expense-redesign .is-next .get-started-icon { background: var(--gold-ink); color: var(--tk-on-strong); }
 .expense-redesign .is-done .get-started-icon { background: var(--mint-soft); color: var(--mint); }
 .expense-redesign .get-started-step-copy { display: grid; gap: 1px; flex: 1; min-width: 0; }
 .expense-redesign .get-started-step-copy strong { font-size: 13px; font-weight: 700; }

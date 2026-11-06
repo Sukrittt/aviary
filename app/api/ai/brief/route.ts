@@ -15,6 +15,8 @@ import { aiDisabledResponse } from '@/lib/systemSettings'
 import { aiAllowanceResponse } from '@/lib/ai/allowance'
 
 export const dynamic = 'force-dynamic'
+
+const BRIEF_VERSION = 2
 export const maxDuration = 30
 
 const RATE_WINDOW_MS = 60 * 60 * 1000
@@ -90,7 +92,8 @@ export async function GET(req: Request) {
   try {
     const [currencyCode, { date }] = await Promise.all([getBudgetCurrency(auth), nowForUser(auth.userId)])
     const cache = await getCollection(BRIEF_CACHE_COLLECTION, auth)
-    const _id = briefCacheId(auth.spaceId, `${currencyCode}|${date}`)
+    // Bump BRIEF_VERSION when card copy or tones change, so a deploy doesn't serve old cards for a day.
+    const _id = briefCacheId(auth.spaceId, `${BRIEF_VERSION}|${currencyCode}|${date}`)
 
     const cached = await cache.findOne({ _id })
     if (cached?.builtAt instanceof Date && Date.now() - cached.builtAt.getTime() < CACHE_TTL_MS) {

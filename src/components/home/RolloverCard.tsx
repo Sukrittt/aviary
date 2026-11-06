@@ -17,7 +17,11 @@ export function RolloverCard({ text, onReplay, onDone }: { text: string; onRepla
   return (
     <article className={`erd-card home-leftover-notice${short ? ' is-short' : ''}`}>
       <button type="button" className="home-leftover-replay" onClick={onReplay} title="Show it again">
-        <PlantIcon size={18} aria-hidden="true" style={{ verticalAlign: '-3px', marginRight: 6 }} />{text}
+        <PlantIcon size={18} aria-hidden="true" style={{ verticalAlign: '-3px', marginRight: 6 }} />
+        {/* Each half stays whole, so a narrow screen breaks the line at the dot. */}
+        {text.split(' · ').map((part, i) => (
+          <span key={i} style={{ whiteSpace: 'nowrap' }}>{i > 0 ? ' · ' : ''}{part}</span>
+        ))}
       </button>
       <button type="button" aria-label={label} disabled={phase.success} onClick={() => phase.succeed(onDone)}>
         {phase.success ? <CheckIcon color="var(--mint)" size={18} /> : label}

@@ -1,5 +1,6 @@
 import type { Experimental_EvaluationQuestion } from 'ai'
 import { resolveCurrency } from '@/src/lib/currencies'
+import { balanceLabel } from '@/src/lib/envelope'
 import { runJev } from './jev'
 import type { AiCaller } from './usage'
 import type { SummarizeExpensesResult } from './expenseContext'
@@ -39,7 +40,8 @@ export function buildBriefCandidates(ctx: SummarizeExpensesResult, currencyCode:
     cards.push({
       icon: '🚨',
       title: worstOverspent.category,
-      subtitle: "You've gone past this budget",
+      // Same rule as Home's row label: a deficit carried in isn't "gone past" this month.
+      subtitle: balanceLabel(worstOverspent) === 'Short' ? 'Short after last month' : "You've gone past this budget",
       valueLabel,
       amount: Math.round(Math.abs(worstOverspent.available)),
       tone: 'coral',
@@ -60,7 +62,8 @@ export function buildBriefCandidates(ctx: SummarizeExpensesResult, currencyCode:
     used.add(heaviest.category)
   }
 
-  const remaining = Math.round(meta.totalAssigned - meta.totalSpent)
+  // What Home's envelopes add up to (carry included), so both screens agree on "left".
+  const remaining = Math.round(spending.reduce((sum, e) => sum + e.available, 0))
   cards.push({
     icon: '⏳',
     title: 'Left to spend',
