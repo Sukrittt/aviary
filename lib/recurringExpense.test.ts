@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { advance, occurrencesDue, isExpired, firstRunOnOrAfter, MAX_BACKFILL } from './recurringExpense'
+import { advance, occurrencesDue, isExpired, firstRunOnOrAfter, paymentMethodOf, MAX_BACKFILL } from './recurringExpense'
 
 const base = {
   frequency: 'monthly',
@@ -116,5 +116,52 @@ describe('firstRunOnOrAfter', () => {
   it('walks a backdated start forward so creating a recurrence never backfills history', () => {
     expect(firstRunOnOrAfter('2026-01-15', 'monthly', '2026-09-07')).toBe('2026-09-15')
     expect(firstRunOnOrAfter('2026-08-18', 'weekly', '2026-09-07')).toBe('2026-09-08')
+  })
+})
+
+describe('month-end and leap-year schedules', () => {
+  it('walks a backdated 31st start to the next month-end, clamping only the short month', () => {
+    expect(firstRunOnOrAfter('2026-01-31', 'monthly', '2026-02-27')).toBe('2026-02-28')
+    expect(firstRunOnOrAfter('2026-01-31', 'monthly', '2026-03-15')).toBe('2026-03-31')
+  })
+
+  it('a stored anchor_day beats a start date that had to clamp (a 31st starting in November)', () => {
+    expect(occurrencesDue({ ...base, start_date: '2026-11-30', next_run_date: '2026-11-30', anchor_day: 31 }, '2027-03-01'))
+      .toEqual(['2026-11-30', '2026-12-31', '2027-01-31', '2027-02-28'])
+  })
+
+  it('a yearly Feb 29 lands on Feb 28 in common years and back on the 29th in the next leap year', () => {
+    const due = occurrencesDue({ ...base, frequency: 'yearly', start_date: '2024-02-29', next_run_date: '2024-02-29' }, '2028-03-01')
+    expect(due).toEqual(['2024-02-29', '2025-02-28', '2026-02-28', '2027-02-28', '2028-02-29'])
+  })
+
+  it('a weekly run crosses a year boundary on the right weekday', () => {
+    expect(occurrencesDue({ ...base, frequency: 'weekly', start_date: '2026-12-24', next_run_date: '2026-12-24' }, '2027-01-08'))
+      .toEqual(['2026-12-24', '2026-12-31', '2027-01-07'])
+  })
+
+  it('a daily run counts Feb 29 in a leap year', () => {
+    expect(occurrencesDue({ ...base, frequency: 'daily', start_date: '2028-02-28', next_run_date: '2028-02-28' }, '2028-03-01'))
+      .toEqual(['2028-02-28', '2028-02-29', '2028-03-01'])
+  })
+
+  it('stops the backfill at end_date even when today is long past it', () => {
+    expect(occurrencesDue({ ...base, next_run_date: '2026-01-15', end_date: '2026-03-20' }, '2026-12-01'))
+      .toEqual(['2026-01-15', '2026-02-15', '2026-03-15'])
+  })
+
+  it('a quarterly 31st clamps without drifting', () => {
+    expect(occurrencesDue({ ...base, frequency: 'quarterly', start_date: '2026-01-31', next_run_date: '2026-01-31' }, '2026-12-31'))
+      .toEqual(['2026-01-31', '2026-04-30', '2026-07-31', '2026-10-31'])
+  })
+})
+
+describe('paymentMethodOf', () => {
+  it('reads every spelling of credit card as the card, so an EMI on a card still fills the card envelope', () => {
+    for (const v of ['credit_card', 'Credit Card', 'credit-card', 'CREDIT CARD', ' creditcard ']) expect(paymentMethodOf(v)).toBe('credit_card')
+  })
+
+  it('reads anything else, missing included, as bank rather than failing the run', () => {
+    for (const v of ['bank', 'Debit Card', 'Bank Transfer', 'card', '', null, undefined, 42]) expect(paymentMethodOf(v)).toBe('bank')
   })
 })

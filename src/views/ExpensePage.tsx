@@ -404,14 +404,15 @@ export function ExpensePage() {
         to: "__ready_to_assign__",
         sources: positive.map((e) => ({ category: e.category, amount: e.available })),
       });
-      // Same split as the server: carried money first, then assigned. Carried
-      // money always lands in Ready to Assign; assigned only does outside
-      // Credit Card Payment, which stays out of totalAssigned (computeEnvelopeState).
+      // Same split as the server: carried money first, then assigned. Before
+      // payday, and always for Credit Card Payment (whose assigned stays out of
+      // totalAssigned), it all comes out of the carry. Either way all of it
+      // lands in Ready to Assign.
       let returned = 0;
       const updated = current.envelopes.map((e) => {
         if (e.available <= 0) return e;
-        const { fromAssigned, fromCarry } = splitDebit(e.available, current.funded || e.isCreditCardPayment ? e.assigned : 0, e.rolledOver);
-        returned += fromCarry + (e.isCreditCardPayment ? 0 : fromAssigned);
+        const { fromAssigned, fromCarry } = splitDebit(e.available, current.funded && !e.isCreditCardPayment ? e.assigned : 0, e.rolledOver);
+        returned += fromCarry + fromAssigned;
         const assigned = e.assigned - fromAssigned;
         const spentPct = assigned > 0 ? Math.min(100, (e.spent / assigned) * 100) : e.spent > 0 ? 100 : 0;
         return { ...e, assigned, rolledOver: e.rolledOver - fromCarry, available: 0, spentPct };

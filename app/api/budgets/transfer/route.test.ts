@@ -219,15 +219,15 @@ describe('POST /api/budgets/transfer', () => {
   })
 
   it('never carries forward the credit-card envelope', async () => {
-    store.push({ _id: 1, month: '2026-02', category: '__credit_card__', assigned: '500', rolled_over: '0' })
-    store.push({ _id: 2, month: '2026-03', category: 'Shopping', assigned: '1000', rolled_over: '0' })
+    store.push({ _id: 1, month: '2026-11', category: '__credit_card__', assigned: '500', rolled_over: '0' })
+    store.push({ _id: 2, month: '2026-12', category: 'Shopping', assigned: '1000', rolled_over: '0' })
 
-    const res = await POST(req({ month: '2026-03', to: 'Shopping', from: '__credit_card__', amount: 100 }))
+    const res = await POST(req({ month: '2026-12', to: 'Shopping', from: '__credit_card__', amount: 100 }))
     expect(res.status).toBe(200)
 
     // Its 0 target stays 0; the 100 came out of carried cash.
-    expect(row('2026-03', '__credit_card__')?.assigned).toBe('0')
-    expect(row('2026-03', '__credit_card__')?.rolled_over).toBe('-100')
+    expect(row('2026-12', '__credit_card__')?.assigned).toBe('0')
+    expect(row('2026-12', '__credit_card__')?.rolled_over).toBe('-100')
   })
 
   it('moving carried money takes it from this month\'s carry, never below a 0 target', async () => {
