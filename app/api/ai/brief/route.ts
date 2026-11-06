@@ -16,7 +16,7 @@ import { aiAllowanceResponse } from '@/lib/ai/allowance'
 
 export const dynamic = 'force-dynamic'
 
-const BRIEF_VERSION = 3
+const BRIEF_VERSION = 4
 export const maxDuration = 30
 
 const RATE_WINDOW_MS = 60 * 60 * 1000

@@ -908,8 +908,9 @@ export function TransactionsView({
 
       {!feedView && !loading && !error && (
         <div className="txn-timeline-footer">
+          {/* One line for the whole filter, so the total can't be read as this page's. */}
           <span>
-            {totalCount} transaction{totalCount !== 1 ? "s" : ""}
+            {totalCount.toLocaleString("en-IN")} transaction{totalCount !== 1 ? "s" : ""} · {hideAmounts ? "---" : formatCurrency(totalSpend)} in all
           </span>
           {totalPages > 1 && (
             <div className="txn-timeline-pagination">
@@ -934,8 +935,6 @@ export function TransactionsView({
               </button>
             </div>
           )}
-          {/* The server's total for the whole filter, so say so when it spans pages. */}
-          <span>{totalPages > 1 ? `Total, all ${totalCount}` : "Total"}: {hideAmounts ? "---" : formatCurrency(totalSpend)}</span>
         </div>
       )}
 

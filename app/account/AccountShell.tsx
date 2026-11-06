@@ -23,7 +23,7 @@ const HEADERS: Record<string, { eyebrow: string; title: string; subtitle: string
   features: { eyebrow: 'Account', title: 'Features', subtitle: 'Hide the parts of Aviary you do not use.' },
   help: { eyebrow: 'Support', title: 'Help & feedback', subtitle: 'How Aviary works, and how to reach us.' },
   feedback: { eyebrow: 'Support', title: 'Report a bug', subtitle: 'Tell us what went wrong. It goes straight to us, not the public board.' },
-  refer: { eyebrow: 'Account', title: 'Refer a friend', subtitle: 'Share Aviary and you both get a month of Pro.' },
+  refer: { eyebrow: 'Account', title: 'Refer a friend', subtitle: 'Give a month of Pro, get a month.' },
   changelog: { eyebrow: 'Support', title: 'Changelog', subtitle: 'New features, improvements, and fixes for the web app.' },
   ideas: { eyebrow: 'Support', title: 'Feedback board', subtitle: 'Post an idea or vote on what we build next.' },
 }

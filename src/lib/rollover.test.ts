@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { monthName, rolledOverLine, rolloverCard } from './rollover'
+import { monthName, rolledOverLine, rolloverCard, rolloverDetail } from './rollover'
+import type { BudgetRow } from '@/src/types'
 
 const money = (n: number) => `₹${n.toLocaleString('en-IN')}`
 
@@ -52,5 +53,32 @@ describe('rolloverCard with this month\'s moves', () => {
   it("ignores other months' moves", () => {
     const carry = { ready_to_assign: 0, rolled_over: { Food: 300 } }
     expect(rolloverCard(carry, '2026-11', money, [{ ...row('Food', '50'), month: '2026-10' }])).toBe('₹300 rolled over')
+  })
+})
+
+describe('rolloverDetail', () => {
+  const carry = { ready_to_assign: 0, rolled_over: { Groceries: 666, 'Emergency fund': 16667, 'GTA 6': 3700, __credit_card__: 11426, Transport: -823 } }
+  const goals = new Set(['Emergency fund', 'GTA 6'])
+  it('names the parts of the rollover that no spending row shows, so the strip adds up against the rows', () => {
+    expect(rolloverDetail(carry, '2026-11', money, [], goals)).toBe('Includes ₹20,367 in goals · ₹11,426 for the card bill')
+  })
+  it('counts money left unassigned too', () => {
+    expect(rolloverDetail({ ready_to_assign: 5000, rolled_over: { Food: 95 } }, '2026-11', money)).toBe('Includes ₹5,000 that went to Ready to Assign')
+  })
+  it("names a goal's shortfall, which counts in the short total but no goal row shows", () => {
+    expect(rolloverDetail({ ready_to_assign: 0, rolled_over: { Food: 95, Holiday: -400 } }, '2026-11', money, [], new Set(['Holiday']))).toBe('Includes ₹400 short in goals')
+  })
+
+  it('names an over-assigned month, which counts in the short total but sits on no row', () => {
+    expect(rolloverDetail({ ready_to_assign: -1200, rolled_over: { Food: 95 } }, '2026-11', money)).toBe('Includes ₹1,200 over-assigned in October')
+  })
+
+  it('is null when every rolled amount is on a row', () => {
+    expect(rolloverDetail({ ready_to_assign: 0, rolled_over: { Food: 95, Rent: -20 } }, '2026-11', money)).toBeNull()
+    expect(rolloverDetail(undefined, '2026-11', money)).toBeNull()
+  })
+  it("takes this month's moves back out, like the strip", () => {
+    const budgets = [{ month: '2026-11', category: 'Food', assigned: '0', rolled_over: '1000' }] as unknown as BudgetRow[]
+    expect(rolloverDetail({ ready_to_assign: 4000, rolled_over: { Food: 1095 } }, '2026-11', money, budgets)).toBe('Includes ₹5,000 that went to Ready to Assign')
   })
 })
