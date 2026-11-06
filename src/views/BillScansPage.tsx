@@ -58,7 +58,7 @@ export function BillScansPage() {
         <BirdEmptyState
           subject="scans"
           title="No scans yet"
-          description="Scan a bill from the sidebar and it’ll show up here, photo and all."
+          description="Bills you scan show up here, photo and all."
         />
       ) : (
         <>

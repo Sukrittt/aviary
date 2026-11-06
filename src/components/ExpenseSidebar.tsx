@@ -264,7 +264,7 @@ function ExpenseSidebarNav({ onBulkReturn }: Props) {
               icon={theme === "light" ? MoonIcon : SunIcon}
               onClick={() => setTheme(theme === "light" ? "dark" : "light")}
             />
-            <NavItem label="Log out" icon={SignOutIcon} onClick={() => { closeMobile(); setConfirmSignOut(true); }} />
+            <NavItem label="Sign out" icon={SignOutIcon} onClick={() => { closeMobile(); setConfirmSignOut(true); }} />
           </SidebarMenu>
         </SidebarFooter>
         </nav>

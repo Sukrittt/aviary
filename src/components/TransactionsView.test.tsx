@@ -40,6 +40,24 @@ vi.mock('../hooks/useExpenses', () => ({
   useUploadExpensePhoto: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }))
 
+// The fixture's newest row is 18 Sep 2026; pin "today" to that month so the
+// presets read "This week" / "This month".
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(new Date('2026-09-20T12:00:00'))
+})
+afterEach(() => {
+  vi.useRealTimers()
+})
+
+it('names the month instead of "This month" when the newest entry is from an earlier month', () => {
+  vi.setSystemTime(new Date('2026-11-06T12:00:00'))
+  render(<TransactionsView />)
+  expect(screen.queryByRole('tab', { name: 'This month' })).toBeNull()
+  expect(screen.getByRole('tab', { name: 'September' })).toHaveAttribute('aria-selected', 'true')
+  expect(screen.getByRole('tab', { name: 'Week of 14 Sep' })).toBeInTheDocument()
+})
+
 it('opens the transaction actions when the row is clicked', () => {
   render(<TransactionsView />)
   expect(screen.getByText('₹100', { selector: '.txn-timeline-amount' })).not.toHaveClass('is-expense')

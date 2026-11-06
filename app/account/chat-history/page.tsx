@@ -98,7 +98,7 @@ export default function ChatHistoryPage() {
     <>
       <header className="txn-page-header account-header">
         <div className="txn-page-heading">
-          <span className="txn-page-eyebrow">Money brain</span>
+          <span className="txn-page-eyebrow">Ask Aviary</span>
           <h1>Chat history</h1>
           <p>Pick up any past conversation.</p>
         </div>
