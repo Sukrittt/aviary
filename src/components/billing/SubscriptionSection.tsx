@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState, type KeyboardEvent } from 'react'
+import { useRef, useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { ArrowSquareOutIcon, ArrowsClockwiseIcon, CaretRightIcon, XCircleIcon, XIcon } from '@/src/components/icons'
 import { ConfirmDialog } from '@/src/components/ConfirmDialog'
@@ -166,13 +166,11 @@ export function SubscriptionSection() {
         {canBuy && plansOpen && (
           <Scrim className="erd-modal-overlay" onClick={closePlans}>
             <Sheet
-              data-own-escape
               className="erd-modal-card"
               role="dialog"
               aria-modal="true"
               aria-label="Aviary Pro plans"
               onClick={(e) => e.stopPropagation()}
-              onKeyDown={(e) => trapKeys(e, closePlans)}
               style={{ position: 'relative', width: 760, maxWidth: 'calc(100vw - 24px)', maxHeight: 'calc(100dvh - 24px)', padding: '56px 28px 28px' }}
             >
               <button type="button" className="account-pill-btn" autoFocus onClick={closePlans} aria-label="Close" style={{ position: 'absolute', top: 14, right: 14, width: 34, height: 34, padding: 0, display: 'grid', placeItems: 'center' }}>
@@ -209,22 +207,6 @@ export function SubscriptionSection() {
       </AnimatePresence>
     </div>
   )
-}
-
-/** Escape closes; Tab and Shift+Tab wrap inside the dialog instead of walking out behind the backdrop. */
-function trapKeys(e: KeyboardEvent<HTMLDivElement>, close: () => void) {
-  if (e.key === 'Escape') return close()
-  if (e.key !== 'Tab') return
-  const items = e.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled), a[href]')
-  const first = items[0]
-  const last = items[items.length - 1]
-  if (e.shiftKey && document.activeElement === first) {
-    e.preventDefault()
-    last?.focus()
-  } else if (!e.shiftKey && document.activeElement === last) {
-    e.preventDefault()
-    first?.focus()
-  }
 }
 
 function describePlan(data: { mode: string; trialStartedAt?: string | null; trialEndsAt: string | null; paidExpiresAt: string | null; autoRenew: boolean; basePlanId: string | null; renewalState: string | null; gifted?: boolean }): string {

@@ -494,7 +494,7 @@ it("before payday, a ₹0 Ready to Assign is still the slim row, and an Okay put
   expect(screen.getByRole('button', { name: 'Ready to Assign options' })).toBeInTheDocument()
   expect(screen.queryByText('READY TO ASSIGN')).not.toBeInTheDocument()
 
-  await user.click(within(screen.getByText(strip).closest('.home-forecast-warning') as HTMLElement).getByRole('button', { name: 'Okay' }))
+  await user.click(within(screen.getByText(strip).closest('.home-forecast-warning') as HTMLElement).getByRole('button', { name: 'Got it' }))
   await waitFor(() => expect(screen.queryByText(strip)).not.toBeInTheDocument())
   expect(screen.getByRole('button', { name: 'Ready to Assign options' })).toBeInTheDocument()
   vi.mocked(getRecurringIncomes).mockResolvedValue([])

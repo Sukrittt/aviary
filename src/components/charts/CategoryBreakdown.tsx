@@ -372,7 +372,7 @@ export function CategoryBreakdown({ rows, categoryRows, groupRows, categoryGroup
       )}
 
       <div className="ins-leftover">
-        <span>Income left in {monthLabel}</span>
+        <span>Income not yet spent, {monthLabel}</span>
         <strong>{formatCurrency(leftover, hideAmounts)}</strong>
       </div>
 

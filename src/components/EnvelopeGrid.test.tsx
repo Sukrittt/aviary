@@ -300,7 +300,13 @@ describe('EnvelopeGrid goals', () => {
 
   it('sums a group of goals as saved of target', () => {
     goalSetup({ amount: 24000, by: '2027-01' })
-    expect(screen.getByText('Saved').parentElement?.textContent).toBe('Saved₹6000 of ₹24000')
+    expect(screen.getAllByText('Saved')[0].parentElement?.textContent).toBe('Saved₹6000 of ₹24000')
+  })
+
+  it("labels a goal's balance Saved, like its group", () => {
+    goalSetup({ amount: 24000, by: '2027-01' })
+    expect(screen.getAllByText('Saved')).toHaveLength(2)
+    expect(screen.queryByText('Left')).toBeNull()
   })
 
   it('keeps Left in group when the group has spending categories too', () => {

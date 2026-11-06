@@ -62,11 +62,13 @@ export function buildBriefCandidates(ctx: SummarizeExpensesResult, currencyCode:
     used.add(heaviest.category)
   }
 
-  // What Home's envelopes add up to (carry included), so both screens agree on "left".
-  const remaining = Math.round(spending.reduce((sum, e) => sum + e.available, 0))
+  // What Home's spending envelopes add up to (carry included), so both screens
+  // agree on "left". Goals are saved money, not spendable, so they stay out.
+  const goals = new Set(ctx.categories.filter((c) => c.isGoal).map((c) => c.name))
+  const remaining = Math.round(spending.filter((e) => !goals.has(e.category)).reduce((sum, e) => sum + e.available, 0))
   cards.push({
     icon: '⏳',
-    title: 'Left to spend',
+    title: remaining < 0 ? 'Over by' : 'Left to spend',
     subtitle: `${meta.daysLeft} days left in the month`,
     valueLabel,
     amount: Math.abs(remaining),
