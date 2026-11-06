@@ -111,7 +111,12 @@ export function ForecastCard({ hideAmounts, icon, onTopUp }: {
             </p>
           )}
         </div>
-        {data.totalLeft !== null && <span className="ins-top-amount">{money(data.totalLeft)}</span>}
+        {data.totalLeft !== null && (
+          <span className="ins-top-amount" title="Left across your categories at month end">
+            {money(data.totalLeft)}
+            <small className="ins-top-amount-label">left at month end</small>
+          </span>
+        )}
       </div>
       {!data.basis ? (
         <BirdEmptyState

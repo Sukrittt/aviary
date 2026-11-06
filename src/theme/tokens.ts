@@ -69,6 +69,8 @@ export interface ThemeTokens {
   /** Success-tick CTA flood. Light uses a soft pillGood-style chip pair. */
   successBg: string
   onSuccess: string
+  /** Label on a red (coral) or deep-orange (accentInk) fill, and a switch's thumb: white in both themes. */
+  onStrong: string
   /** How far chart fills (donut wedges, budget bars) mix toward white. Light's
    *  inks read loud as big wedges on a white card; dark's pass through. */
   chartSoften: string
@@ -126,6 +128,7 @@ export const darkTokens: ThemeTokens = {
   pillOverBg: 'rgba(255, 107, 116, 0.16)',
   successBg: '#3ed68a',
   onSuccess: '#1a0500',
+  onStrong: '#ffffff',
   chartSoften: '0%',
 }
 
@@ -181,5 +184,6 @@ export const lightTokens: ThemeTokens = {
   pillOverBg: '#fee2e2',
   successBg: '#bbf7d0',
   onSuccess: '#166534',
+  onStrong: '#ffffff',
   chartSoften: '15%',
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { computeEnvelopeState, countsInBudget, currentMonthKey, prevMonthKey, extraForReadyToAssign, shiftMonthKey, splitDebit, CREDIT_CARD_CATEGORY, INCOME_CATEGORY } from './envelope'
+import { computeEnvelopeState, countsInBudget, currentMonthKey, prevMonthKey, extraForReadyToAssign, shiftMonthKey, splitDebit, CREDIT_CARD_CATEGORY, INCOME_CATEGORY, balanceLabel } from './envelope'
 import type { BudgetRow, CategoryRow, ExpenseRow } from '@/src/types'
 
 function budget(month: string, category: string, assigned: string, rolled_over = '0'): BudgetRow {
@@ -468,5 +468,21 @@ describe('countsInBudget', () => {
     expect(countsInBudget({ counted: 'extra', date: '2026-09-05' })).toBe(true)
     expect(countsInBudget({ counted: 'monthly', date: '2026-10-25' })).toBe(false)
     expect(countsInBudget({ counted: 'monthly', date: '2026-11-25' })).toBe(true)
+  })
+})
+
+describe('balanceLabel', () => {
+  const env = (o: Partial<{ assigned: number; spent: number; available: number; rolledOver: number }>) => ({ assigned: 5000, spent: 0, available: 5000, rolledOver: 0, ...o })
+  it('says Left while money remains', () => {
+    expect(balanceLabel(env({}))).toBe('Left')
+    expect(balanceLabel(env({ available: 0, spent: 5000 }))).toBe('Left')
+  })
+  it('says Overspent only when this month spent past what it had', () => {
+    expect(balanceLabel(env({ spent: 6000, available: -1000 }))).toBe('Overspent')
+    expect(balanceLabel(env({ spent: 6000, rolledOver: 500, available: -500 }))).toBe('Overspent')
+  })
+  it('says Short when a deficit carried in and nothing was overspent this month', () => {
+    expect(balanceLabel(env({ rolledOver: -8704, available: -3704 }))).toBe('Short')
+    expect(balanceLabel(env({ rolledOver: -8704, spent: 2000, available: -5704 }))).toBe('Short')
   })
 })

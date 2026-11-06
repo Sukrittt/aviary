@@ -203,7 +203,9 @@ export function InsightsPage() {
     return done.length >= 2 ? done.reduce((sum, point) => sum + point.value, 0) / done.length : null;
   }, [savedData, currentMonth]);
   const showSaved = trendView === "saved" && !selectedBreakdownKey;
-  // A selection's own average: its finished months in view, like savedBaseline.
+  // The chart's average line: mean of the finished months in view, like
+  // savedBaseline. Not monthComparison's baseline, which is the first N days of
+  // past months and sat under every full-month bar.
   const selectionBaseline = useMemo(() => {
     const done = trendData.filter((point) => point.date < currentMonth);
     return done.length >= 2 ? done.reduce((sum, point) => sum + point.value, 0) / done.length : null;
@@ -648,7 +650,7 @@ export function InsightsPage() {
                 ) : (
                   <TrendChart
                     data={trendData}
-                    baseline={selectedBreakdownKey ? selectionBaseline : comparison.baseline}
+                    baseline={selectionBaseline}
                     selectedKey={insightMonth}
                     hideAmounts={hideAmounts}
                     onSelect={setInsightMonth}

@@ -30,6 +30,7 @@ import { BirdMark, BirdThinking } from './BirdMark'
 import { ChatMarkdown } from './ChatMarkdown'
 import { BirdEmptyState } from './BirdEmptyState'
 import { CaptureReview } from './CaptureReview'
+import { DialogKeys } from './MotionSheet'
 
 /** Brief cards carry an emoji `icon` (lib/ai/briefCards.ts, shared with Mobile); Web draws the Phosphor match. */
 const BRIEF_ICONS: Record<string, PhosphorIcon> = {
@@ -128,6 +129,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onL
   const streamingRef = useRef(false)
   const bodyRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const drawerRef = useRef<HTMLElement>(null)
 
   const history = useChatSessions(view === 'history', { page, query: debouncedQuery })
   const historySessions = history.data?.sessions ?? []
@@ -157,15 +159,10 @@ export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onL
   useEffect(() => {
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
     inputRef.current?.focus()
     return () => {
       abortRef.current?.abort()
       document.body.style.overflow = previousOverflow
-      window.removeEventListener('keydown', onKey)
     }
   }, [onClose])
 
@@ -322,6 +319,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onL
       onMouseDown={(event) => event.target === event.currentTarget && onClose()}
     >
       <motion.aside
+        ref={drawerRef}
         className="brain-drawer"
         role="dialog"
         aria-modal="true"
@@ -331,6 +329,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onL
         exit={{ x: '100%' }}
         transition={{ type: 'spring', damping: 34, stiffness: 320 }}
       >
+        <DialogKeys target={drawerRef} onEscape={onClose} />
         <header className="brain-head">
           {view === 'history' ? (
             <button className="brain-icon-btn" type="button" onClick={() => setView('chat')} aria-label="Back to chat">
@@ -340,7 +339,11 @@ export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onL
           <div className="brain-heading">
             <h2>{view === 'history' ? 'Chat history' : 'Ask Aviary'}</h2>
             <p>{view === 'history' ? 'Pick up where you left off' : capture ? 'Type what you spent. Several at once is fine.' : (
-              <span className="text-shimmer">{brief.data ? `Reading ${brief.data.meta.txnCountThisMonth} transactions` : 'Reading your budget…'}</span>
+              <span className="text-shimmer">{brief.data
+                ? brief.data.meta.txnCountThisMonth
+                  ? `Reading this month's ${brief.data.meta.txnCountThisMonth} ${brief.data.meta.txnCountThisMonth === 1 ? 'entry' : 'entries'}`
+                  : 'Nothing logged this month yet'
+                : 'Reading your budget…'}</span>
             )}</p>
           </div>
           <div className="brain-head-actions">
@@ -410,7 +413,7 @@ export function MoneyBrainDrawer({ initialSessionId = null, capture = false, onL
               {!capture && (<>
               <motion.section className="brain-summary-card" {...popIn(STAGGER.mount)}>
                 <span className="brain-kicker">This month so far</span>
-                <strong>{formatCurrency(envelope.totalSpent, hideAmounts)} of {formatCurrency(envelope.totalAssigned, hideAmounts)} assigned</strong>
+                <strong>{formatCurrency(envelope.totalSpent, hideAmounts)} spent of {formatCurrency(envelope.totalAssigned, hideAmounts)} assigned</strong>
                 <div className="brain-progress" aria-label={`${Math.round(spentPct)}% of assigned money spent`}>
                   <i style={{ transform: `scaleX(${spentPct / 100})` }} />
                 </div>

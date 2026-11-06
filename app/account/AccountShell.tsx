@@ -14,6 +14,8 @@ import { CaretLeftIcon, GearIcon, HouseIcon, InvoiceIcon, MoonIcon, SunIcon } fr
  *  Import and the guided tour are full flows with their own back control. */
 const SETTINGS_PAGES = ['accounts', 'archive', 'bill-scans', 'changelog', 'chat-history', 'data', 'features', 'feedback', 'help', 'ideas', 'refer', 'security']
 
+const HUB_HEADER = { eyebrow: 'Settings', title: 'Account', subtitle: 'Your plan, your budgets, and how Aviary works for you.' }
+
 /** Headers for the settings pages that render none of their own. */
 const HEADERS: Record<string, { eyebrow: string; title: string; subtitle: string }> = {
   security: { eyebrow: 'Account', title: 'Account & security', subtitle: 'Your name, how you sign in, and where you are signed in.' },
@@ -29,7 +31,8 @@ export default function AccountShell({ children }: { children: ReactNode }) {
   const pathname = usePathname() ?? ''
   const { theme, setTheme } = useAppearance()
   const sub = pathname.match(/^\/account\/([^/]+)/)?.[1] ?? ''
-  const header = HEADERS[sub]
+  // The hub itself gets the same header as its pages.
+  const header = pathname === '/account' ? HUB_HEADER : HEADERS[sub]
 
   return (
     <section className="expense-redesign">

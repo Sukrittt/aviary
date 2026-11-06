@@ -248,7 +248,7 @@ function SecurityContent() {
           <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
             <div>
               <div style={{ fontSize: 14, fontWeight: 600 }}>{doc?.email}</div>
-              <div style={{ marginTop: 6, fontSize: 12, color: doc?.emailVerified ? 'var(--mint)' : 'var(--gold)' }}>
+              <div style={{ marginTop: 6, fontSize: 12, color: doc?.emailVerified ? 'var(--mint)' : 'var(--gold-ink)' }}>
                 {doc?.emailVerified ? '✓ Verified' : 'Unverified'}
               </div>
             </div>
@@ -415,7 +415,7 @@ function SecurityContent() {
           <button
             type="button"
             className="account-row account-card"
-            style={{ color: 'var(--gold)' }}
+            style={{ color: 'var(--gold-ink)' }}
             onClick={() => setConfirmingSignOutAll(true)}
           >
             <span className="account-row-label">Sign out everywhere</span>

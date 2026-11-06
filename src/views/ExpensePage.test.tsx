@@ -208,7 +208,7 @@ it('says once per budget and month what rolled in, and adds it to Ready to Assig
   vi.mocked(getCarry).mockResolvedValue({ ready_to_assign: 5000, rolled_over: { Food: 95, Rent: -20 } })
   const title = '₹5,095 rolled over · ₹20 short'
   const first = renderPage()
-  expect(await screen.findByText(title)).toBeInTheDocument()
+  expect(await screen.findByRole('button', { name: /rolled over/ })).toHaveTextContent(title)
   // Last month's ₹15,000 plan carries as before; the ₹5,000 left unassigned comes on top.
   expect(screen.getByLabelText('₹20,000')).toBeInTheDocument()
   // The strip says it all, so the hero has no separate carried line.
@@ -216,14 +216,14 @@ it('says once per budget and month what rolled in, and adds it to Ready to Assig
 
   fireEvent.click(screen.getByRole('button', { name: 'Got it' }))
   expect(screen.getByRole('button', { name: 'Got it' })).toBeDisabled()
-  await waitFor(() => expect(screen.queryByText(title)).not.toBeInTheDocument(), { timeout: 4000 })
+  await waitFor(() => expect(screen.queryByRole('button', { name: /rolled over/ })).not.toBeInTheDocument(), { timeout: 4000 })
   first.clear()
   cleanup()
 
   // Dismissed stays dismissed for this budget and month.
   const second = renderPage()
   await screen.findByLabelText('₹20,000')
-  expect(screen.queryByText(title)).not.toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: /rolled over/ })).not.toBeInTheDocument()
   second.clear()
 })
 

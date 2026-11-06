@@ -17,7 +17,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { rolledOverLine } from '../lib/rollover'
 import { allowanceNote, paceLine, resetChip, weekResult, type PaceStatus, type WeekPace } from '../lib/weekly'
 import { goalProgress } from '../lib/goal'
-import { currentMonthKey } from '../lib/envelope'
+import { balanceLabel, currentMonthKey } from '../lib/envelope'
 import { AnimatePresence } from 'motion/react'
 import { GoalLine, GoalSheet } from './GoalSheet'
 import { NoteSheet } from './NoteSheet'
@@ -274,6 +274,8 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
           )}
           {!isCC && !pace && !goal && (
             <span className="env2-meta">
+              {/* What carried in, in the row itself: the tooltip never opens on touch. */}
+              {month && !hideAmounts && e.rolledOver ? `${rolledOverLine(e.rolledOver, month, formatCurrency)} · ` : ''}
               {unbudgeted ? 'Not budgeted · ' : ''}Last spent {lastSpentLabel(e.lastSpentDate)}
             </span>
           )}
@@ -339,7 +341,7 @@ export function EnvelopeGrid({ envelopes, groups, hideAmounts, onManage, onMoveM
         </DropdownMenuContent>
         </DropdownMenu>
         <span className="env2-available">
-          <span className="env2-balance-label">{e.isOverspent ? 'Overspent' : 'Left'}</span>
+          <span className="env2-balance-label">{balanceLabel(e)}</span>
           {(() => {
             // Keyed by month: a month switch swaps the amount, it doesn't raise it.
             const pill = (
