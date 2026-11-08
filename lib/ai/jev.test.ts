@@ -67,10 +67,13 @@ describe('pickCategory', () => {
     expect(await scoreCategory('thali', ['Food', 'Travel'], caller)).toEqual({ choice: '', probability: 0.95 })
   })
 
-  it('falls back to the probability bar alone when the fit answer is missing', async () => {
+  it('asks for the stricter probability bar when the fit answer is missing', async () => {
     evaluate.mockResolvedValue(answer('Food', { Food: 0.95, Travel: 0.05 }))
     expect(await pickCategory('thali', ['Food', 'Travel'], caller)).toBe('Food')
-    evaluate.mockResolvedValue(answer('Food', { Food: 0.65, Travel: 0.35 }))
+    // 0.75 clears the 0.7 bar only when the fit answer backs it.
+    evaluate.mockResolvedValue(answer('Food', { Food: 0.75, Travel: 0.25 }, 0.9))
+    expect(await pickCategory('thali', ['Food', 'Travel'], caller)).toBe('Food')
+    evaluate.mockResolvedValue(answer('Food', { Food: 0.75, Travel: 0.25 }))
     expect(await pickCategory('thali', ['Food', 'Travel'], caller)).toBe('')
   })
 

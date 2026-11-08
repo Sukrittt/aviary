@@ -131,6 +131,7 @@ const FIT_INSTRUCTIONS = {
   question: 'Is one of the budget categories in `categories` meant for the spending described in `expenseItem`?',
   notes: [
     'Read the item as the user meant it: Hindi, Hinglish and regional words, brand and shop names, and typos are common.',
+    'Insurance goes by its type: LIC and term plans are life insurance, not health; health insurance is health.',
     'Yes when the user would file it under one of the categories without hesitating, judged by what each name means to the user. A category the user named for a person, place or purpose fits whatever is plainly for that person, place or purpose. A broad name ("Bills", "Essentials", "Lifestyle", "Home") fits everything of its kind.',
     'No when the nearest category is only loosely related (an RD deposit is not rent, a plumber is not a utility bill), when nothing on the list is meant for it, or when the words are too vague to tell what was bought ("paid", "given to Amit", "stuff").',
   ],
@@ -172,14 +173,16 @@ export async function categoryAnswer(item: string, categories: string[], caller:
 
 /**
  * Whether a pick is sure enough to show. A missing probability or fit answer
- * doesn't block the pick: the other bar still applies.
+ * doesn't block the pick on its own; with no fit answer the choice needs MIN_CONFIDENCE.
  */
 export function clearsCategoryBars(
   { probability, fit }: Pick<CategoryAnswer, 'probability' | 'fit'>,
   minProbability = MIN_CATEGORY_CONFIDENCE,
   minFit = MIN_CATEGORY_FIT,
 ): boolean {
-  return (fit === null || fit >= minFit) && (probability === null || probability >= minProbability)
+  // The choice bar sits below MIN_CONFIDENCE only because the fit bar also guards the pick.
+  if (fit === null) return probability === null || probability >= Math.max(minProbability, MIN_CONFIDENCE)
+  return fit >= minFit && (probability === null || probability >= minProbability)
 }
 
 /** Picks the best-fit category for an expense item from the user's own list, or '' when unsure. */

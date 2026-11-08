@@ -14,7 +14,7 @@ describe('categoryHint', () => {
     expect(categoryHint('Rashan')).toBe(categoryHint('Groceries'))
     expect(categoryHint('Kapde')).toBe(categoryHint('Clothes'))
     expect(categoryHint('Bahar ka Khana')).toBe(categoryHint('Eating out'))
-    expect(categoryHint('Bijli-Paani')).toBe(categoryHint('Utilities'))
+    expect(categoryHint('Bijli-Paani')).toMatch(/^Household utility bills/)
     expect(categoryHint('Ghar ka Saman')).toBeNull()
   })
 
@@ -43,6 +43,26 @@ describe('categoryHint', () => {
     expect(categoryHint('Drinks')).toBeNull()
     // A model name is one vehicle; the generic hint would pull the family car's FASTag into the scooter.
     expect(categoryHint('Activa')).toBeNull()
+  })
+
+  it('gives a one-thing name only its own meaning', () => {
+    // "Gaming" with the entertainment hint took "movie with frnds" at p 0.97.
+    expect(categoryHint('Gaming')).not.toMatch(/movie|PVR/i)
+    expect(categoryHint('Movies')).not.toMatch(/gaming/i)
+    expect(categoryHint('Temple')).not.toMatch(/church|mosque/i)
+    expect(categoryHint('Maid')).not.toMatch(/driver|car/i)
+    expect(categoryHint('Fal')).not.toMatch(/vegetable/i)
+    expect(categoryHint('Mobile Recharge')).not.toMatch(/broadband|DTH/i)
+    for (const name of ['Books', 'Train', 'Metro', 'Amazon', 'Stocks', 'LIC', 'SIP', 'Coffee', 'Chai', 'Uber', 'Swiggy', 'Data', 'Recharge', 'Lunch', 'Salon']) {
+      expect(categoryHint(name), name).toBeNull()
+    }
+  })
+
+  it('gives a broad name its whole kind', () => {
+    expect(categoryHint('Bills')).toMatch(/mobile/i)
+    expect(categoryHint('Bills & Utilities')).toMatch(/mobile/i)
+    expect(categoryHint('Utilities')).not.toMatch(/mobile/i)
+    expect(categoryHint('📱 Mobile & Internet')).toMatch(/broadband/i)
   })
 
   it('gives no hint when the name has a word it does not know', () => {
