@@ -110,7 +110,7 @@ const CATEGORY_INSTRUCTIONS = {
   ],
   rules: [
     'Work out what the money actually paid for, then pick the category meant for that kind of spending.',
-    'Category names are the user\'s own and may be Hindi or Hinglish ("Safar" is travel, "Tyohar" festivals, "Khana-Peena" food): read each name for what it means.',
+    'Category names are the user\'s own and may be Hindi, Hinglish or another Indian language such as Tamil, Bengali, Marathi or Kannada ("Safar" is travel, "Tyohar" festivals, "Khana-Peena" food): read each name for what it means.',
     'A category named for a specific person, place, vehicle, event or occasion ("Mom\'s medicines", "Goa trip", "Wedding 2026") is the right home for anything plainly for it, ahead of a general category.',
     'Judge by meaning, not shared words: "phone cover" is shopping, not a phone bill; "OYO" is a hotel stay, not rent.',
     'A festival or occasion word (Diwali, Eid, Holi, wedding) says when, not what: file by what was bought. "Diwali shopping" is shopping; "Diwali sweets for neighbours" is gifts. Festival items themselves (crackers, diyas, rangoli, decorations, puja items) go to a festival category if there is one, otherwise shopping or household items. A category named after one festival ("Ganapati Expense", "Diwali 2025") is that festival\'s category and takes everything bought for it.',
@@ -134,7 +134,7 @@ const FIT_INSTRUCTIONS = {
   rules: CATEGORY_INSTRUCTIONS.rules,
   answer: [
     'Yes when the user would file it under one of the categories without hesitating, judged by what each name means to the user. A category the user named for a person, place, event or purpose fits whatever is plainly for it. A broad name ("Bills", "Essentials", "Lifestyle", "Home") fits everything of its kind.',
-    'When the list has only one category for a kind of spending (health, savings, transport, food), that category is meant for all of it, even when its name is short, narrow or in Hindi.',
+    'When the list has only one health category, it is meant for all health spending (medicines, doctor, tests); when it has only one savings or investment category, it is meant for all money set aside. That holds even when the name is short, narrow or not in English, but not for a neighbouring kind (groceries are not meals out).',
     'No when the nearest category is only loosely related (an RD deposit is not rent), when nothing on the list is meant for it, or when the words are too vague to tell what was bought ("paid", "given to Amit", "stuff").',
   ],
 }

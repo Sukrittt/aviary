@@ -31,10 +31,25 @@ export interface Hint {
  * all of it: a lone "Dawai" takes doctor's fees too, a lone "Internet" the
  * phone recharge, a lone "Bachat" the mutual fund.
  */
+const HEALTH = 'Health care: medicines (dawai, chemist, Apollo Pharmacy, Tata 1mg, PharmEasy, Netmeds), doctor and dentist fees, Practo, lab tests and scans, hospital bills.'
+const INTERNET = 'Internet: Wi-Fi and broadband bills (ACT, JioFiber, Airtel Xstream, Hathway) and mobile data recharges.'
+const TELECOM = 'Phone, internet and TV connections: prepaid recharge or postpaid bill (Jio, Airtel, Vi, BSNL), Wi-Fi and broadband (ACT, JioFiber, Airtel Xstream), DTH (Tata Play, Dish TV, Airtel DTH).'
+
 const BROAD = {
-  health: 'Health care: medicines (dawai, chemist, Apollo Pharmacy, Tata 1mg, PharmEasy, Netmeds), doctor and dentist fees, Practo, lab tests and scans, hospital bills.',
-  telecom: 'Phone, internet and TV connections: prepaid recharge or postpaid bill (Jio, Airtel, Vi, BSNL), Wi-Fi and broadband (ACT, JioFiber, Airtel Xstream), DTH (Tata Play, Dish TV, Airtel DTH).',
-  money: 'Money set aside: savings, emergency fund, FD, RD, SIP, mutual funds, stocks (Zerodha, Groww), PPF, NPS.',
+  health: HEALTH,
+  telecom: TELECOM,
+  money: 'Money set aside and invested: savings, FD, RD, SIP, mutual funds, stocks (Zerodha, Groww), PPF, NPS.',
+}
+
+/**
+ * Words that mark a category name as one of a kind even when it gets no hint
+ * itself ("Wi-Fi", "SIP", "Lab tests"). A list with one of these beside a
+ * hinted category of that kind keeps the narrow hint: the user split the kind.
+ */
+const KIND_WORDS: Record<keyof typeof BROAD, string[]> = {
+  health: ['doctor', 'doctors', 'dr', 'hospital', 'clinic', 'lab', 'labs', 'test', 'tests', 'medicine', 'medicines', 'meds', 'pharmacy', 'chemist', 'dawai', 'dawa', 'health', 'medical', 'dental', 'dentist', 'checkup'],
+  telecom: ['wi', 'fi', 'wifi', 'recharge', 'recharges', 'mobile', 'phone', 'internet', 'broadband', 'jio', 'airtel', 'data', 'dth', 'tv', 'cable', 'postpaid', 'prepaid'],
+  money: ['sip', 'sips', 'stocks', 'stock', 'shares', 'mutual', 'fd', 'rd', 'ppf', 'nps', 'invest', 'investment', 'investments', 'saving', 'savings', 'bachat', 'deposit', 'deposits'],
 }
 
 export const HINTS: Hint[] = [
@@ -79,13 +94,15 @@ export const HINTS: Hint[] = [
   { kind: 'telecom', core: ['mobile', 'phone', 'phones', 'cellphone'], extra: ['recharge', 'recharges', 'bill', 'bills', 'postpaid', 'prepaid'],
     hint: 'Mobile phone recharge or postpaid bill: Jio, Airtel, Vi, BSNL.' },
   { kind: 'telecom', core: ['internet', 'wifi', 'broadband', 'fiber', 'fibre'], extra: ['bill', 'bills', 'home'],
-    hint: 'Internet: Wi-Fi and broadband bills (ACT, JioFiber, Airtel Xstream, Hathway) and mobile data recharges.' },
-  { kind: 'telecom', core: ['dth', 'tv', 'cable'], extra: ['recharge', 'bill', 'bills'],
+    hint: INTERNET },
+  { kind: 'telecom', all: ['wi', 'fi'], extra: ['bill', 'bills', 'home'],
+    hint: INTERNET },
+  { core: ['dth', 'tv', 'cable'], extra: ['recharge', 'bill', 'bills'],
     hint: 'TV connection: DTH or cable recharge (Tata Play, Dish TV, Airtel DTH, Sun Direct).' },
-  { kind: 'telecom', core: ['mobile', 'phone', 'internet', 'wifi', 'broadband', 'telecom'], extra: ['bill', 'bills', 'recharge', 'recharges', 'data'],
+  { kind: 'telecom', core: ['mobile', 'phone', 'internet', 'wifi', 'broadband', 'telecom'], extra: ['bill', 'bills', 'recharge', 'recharges', 'data', 'wi', 'fi'],
     hint: 'Phone and internet: mobile recharge or postpaid bill (Jio, Airtel, Vi, BSNL), Wi-Fi and broadband (ACT, JioFiber, Airtel Xstream).' },
   { kind: 'telecom', all: ['dth'], core: ['mobile', 'phone', 'internet', 'wifi', 'broadband'], extra: ['bill', 'bills', 'recharge', 'recharges', 'tv', 'data'],
-    hint: 'Phone, internet and TV connections: prepaid recharge or postpaid bill (Jio, Airtel, Vi, BSNL), Wi-Fi and broadband (ACT, JioFiber, Airtel Xstream), DTH (Tata Play, Dish TV, Airtel DTH).' },
+    hint: TELECOM },
   { core: ['rent', 'housing', 'pg', 'hostel', 'accommodation', 'lease', 'kiraya', 'kiraaya'], extra: ['house', 'home', 'flat', 'room', 'apartment', 'monthly'],
     hint: 'Rent for where you live: house, flat, room, PG or hostel rent.' },
   { core: ['household', 'homeware'], extra: ['items', 'supplies', 'essentials', 'needs', 'things', 'goods', 'home', 'house'],
@@ -144,10 +161,12 @@ export const HINTS: Hint[] = [
   // Health and self
   { kind: 'health', core: ['medicine', 'medicines', 'meds', 'pharmacy', 'chemist', 'dawai', 'dawa', 'dava'],
     hint: 'Medicines: chemist and pharmacy bills (Apollo Pharmacy, Tata 1mg, PharmEasy, Netmeds), dawai.' },
-  { kind: 'health', core: ['doctor', 'doctors', 'hospital', 'clinic', 'consultation', 'dentist'], extra: ['visits', 'fees'],
+  { kind: 'health', core: ['doctor', 'doctors', 'dr', 'hospital', 'clinic', 'consultation', 'dentist'], extra: ['visits', 'fees'],
     hint: 'Doctor and hospital visits: consultation fees, dentist, Practo, lab tests and scans, hospital bills.' },
   { kind: 'health', core: ['health', 'healthcare', 'medical'], extra: ['care'],
-    hint: 'Health care: medicines (dawai, chemist, Apollo Pharmacy, Tata 1mg, PharmEasy, Netmeds), doctor and dentist fees, Practo, lab tests and scans, hospital bills.' },
+    hint: HEALTH },
+  { kind: 'health', core: ['medicine', 'medicines', 'meds', 'pharmacy', 'chemist', 'dawai', 'dawa', 'dava', 'doctor', 'doctors', 'dr', 'hospital', 'clinic'], extra: ['fees', 'visits', 'care'],
+    hint: HEALTH },
   { core: ['fitness', 'workout', 'exercise'],
     hint: 'Fitness: gym or Cult.fit membership, yoga or dance classes, sports court bookings (badminton, turf), protein and supplements, sports gear.' },
   { core: ['gym'], extra: ['membership', 'fees'],
@@ -189,8 +208,12 @@ export const HINTS: Hint[] = [
 // Words that never change what a category is for.
 const NEUTRAL = new Set(['and', 'n', 'the', 'my', 'of', 'for', 'to', 'expense', 'expenses', 'spend', 'spends', 'spending', 'cost', 'costs', 'ka', 'ki', 'ke', 'ko', 'aur', 'kharcha', 'kharche'])
 
+function nameWords(name: string): string[] {
+  return name.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter((w) => w && !/^\d+$/.test(w) && !NEUTRAL.has(w))
+}
+
 function matchHint(name: string): Hint | null {
-  const words = name.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter((w) => w && !/^\d+$/.test(w) && !NEUTRAL.has(w))
+  const words = nameWords(name)
   if (!words.length) return null
   const has = (list: string[] | undefined, w: string) => !!list && list.includes(w)
   for (const entry of HINTS) {
@@ -210,6 +233,9 @@ export function categoryHint(name: string): string | null {
 export function categoryHints(names: string[]): (string | null)[] {
   const entries = names.map(matchHint)
   const kindCount = new Map<string, number>()
-  for (const e of entries) if (e?.kind) kindCount.set(e.kind, (kindCount.get(e.kind) ?? 0) + 1)
+  names.forEach((name, i) => {
+    const kind = entries[i]?.kind ?? (Object.keys(KIND_WORDS) as Array<keyof typeof BROAD>).find((k) => nameWords(name).some((w) => KIND_WORDS[k].includes(w)))
+    if (kind) kindCount.set(kind, (kindCount.get(kind) ?? 0) + 1)
+  })
   return entries.map((e) => (e?.kind && kindCount.get(e.kind) === 1 ? BROAD[e.kind] : e?.hint ?? null))
 }

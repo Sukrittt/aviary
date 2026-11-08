@@ -95,4 +95,20 @@ describe('categoryHint', () => {
     expect(categoryHints(['Bachat'])[0]).toMatch(/mutual funds/)
     expect(categoryHints(['Furniture Rent'])[0]).toBeNull()
   })
+
+  it('keeps the narrow hint when the user split the kind, even with an unhinted name', () => {
+    expect(categoryHints(['Wi-Fi', 'Mobile'])[1]).not.toMatch(/broadband/i)
+    expect(categoryHints(['SIP', 'Savings'])[1]).not.toMatch(/SIP|mutual/)
+    expect(categoryHints(['Lab tests', 'Medicines'])[1]).not.toMatch(/lab tests|doctor/i)
+    expect(categoryHints(['Investments', 'Emergency fund'])[0]).not.toMatch(/emergency/i)
+    // A TV category is never stretched to phone bills.
+    expect(categoryHints(['TV', 'Rent'])[0]).not.toMatch(/Jio/)
+  })
+
+  it('reads split and mixed names', () => {
+    expect(categoryHint('Wi-Fi')).toMatch(/broadband/i)
+    expect(categoryHint('Mobile & Wi-Fi')).toMatch(/broadband/i)
+    expect(categoryHint('Doctor & Medicines')).toMatch(/doctor/i)
+    expect(categoryHint('Dr fees')).toMatch(/consultation/i)
+  })
 })

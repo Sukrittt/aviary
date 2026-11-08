@@ -441,7 +441,7 @@ describe.skipIf(!process.env.CATEGORY_EVAL)('category predictor (live Jev)', () 
       `right ${right} (${((right / results.length) * 100).toFixed(1)}%), wrong ${wrong}, miss ${miss}`,
       `precision when it picks: ${(((picked - wrong) / Math.max(picked, 1)) * 100).toFixed(1)}%`,
       // "right" above also counts a no-pick on an item with no clear home; these count picks alone.
-      `picks: ${picked - wrong} correct, ${wrong} wrong; no pick: ${results.length - picked}`,
+      `picks: ${picked - wrong} correct (${results.filter((r) => r.pick && r.strict.includes(r.pick)).length} on a clearly right category), ${wrong} wrong; no pick: ${results.length - picked}`,
       '',
       `Jev call ms (16 in flight): median ${ms[Math.floor(ms.length / 2)]}, p95 ${ms[Math.floor(ms.length * 0.95)]}`,
       '',
