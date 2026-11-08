@@ -129,11 +129,12 @@ const CATEGORY_INSTRUCTIONS = {
  */
 const FIT_INSTRUCTIONS = {
   question: 'Is one of the budget categories in `categories` meant for the spending described in `expenseItem`?',
-  notes: [
-    'Read the item as the user meant it: Hindi, Hinglish and regional words, brand and shop names, and typos are common.',
-    'Insurance goes by its type: LIC and term plans are life insurance, not health; health insurance is health.',
-    'Yes when the user would file it under one of the categories without hesitating, judged by what each name means to the user. A category the user named for a person, place or purpose fits whatever is plainly for that person, place or purpose. A broad name ("Bills", "Essentials", "Lifestyle", "Home") fits everything of its kind.',
-    'No when the nearest category is only loosely related (an RD deposit is not rent, a plumber is not a utility bill), when nothing on the list is meant for it, or when the words are too vague to tell what was bought ("paid", "given to Amit", "stuff").',
+  // The same reading of the item as the choice question, so the two don't disagree about what it is.
+  context: CATEGORY_INSTRUCTIONS.context,
+  rules: CATEGORY_INSTRUCTIONS.rules,
+  answer: [
+    'Yes when the user would file it under one of the categories without hesitating, judged by what each name means to the user. A category the user named for a person, place, event or purpose fits whatever is plainly for it. A broad name ("Bills", "Essentials", "Lifestyle", "Home") fits everything of its kind.',
+    'No when the nearest category is only loosely related (an RD deposit is not rent), when nothing on the list is meant for it, or when the words are too vague to tell what was bought ("paid", "given to Amit", "stuff").',
   ],
 }
 

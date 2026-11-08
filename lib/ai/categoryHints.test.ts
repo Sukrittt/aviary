@@ -58,6 +58,17 @@ describe('categoryHint', () => {
     }
   })
 
+  it('leaves mixed or narrower names to Jev', () => {
+    // Each of these had a one-part hint that cost real picks on a blind set.
+    for (const name of ['Home & Bills', 'Household Bills', 'Petrol Gaadi', 'Car Fuel', 'Driver', 'Nanny', 'Emergency', 'Birthday Gifts', 'Misc']) {
+      expect(categoryHint(name), name).toBeNull()
+    }
+    expect(categoryHint('🍿 Snacks')).not.toMatch(/coffee|Starbucks/i)
+    expect(categoryHint('☕ Coffee & Snacks')).toMatch(/Starbucks/)
+    expect(categoryHint('Household')).not.toMatch(/puja|festival/i)
+    expect(categoryHint('🛟 Emergency fund')).toMatch(/emergency fund/i)
+  })
+
   it('gives a broad name its whole kind', () => {
     expect(categoryHint('Bills')).toMatch(/mobile/i)
     expect(categoryHint('Bills & Utilities')).toMatch(/mobile/i)
