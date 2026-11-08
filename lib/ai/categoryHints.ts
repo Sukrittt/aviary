@@ -18,10 +18,23 @@
  * `extra`. The first matching entry wins.
  */
 export interface Hint {
+  /** Entries of one kind of spending; a list's only category of that kind gets the kind's broad hint. */
+  kind?: keyof typeof BROAD
   core?: string[]
   all?: string[]
   extra?: string[]
   hint: string
+}
+
+/**
+ * When a list has only one category of a kind, that category is the home for
+ * all of it: a lone "Dawai" takes doctor's fees too, a lone "Internet" the
+ * phone recharge, a lone "Bachat" the mutual fund.
+ */
+const BROAD = {
+  health: 'Health care: medicines (dawai, chemist, Apollo Pharmacy, Tata 1mg, PharmEasy, Netmeds), doctor and dentist fees, Practo, lab tests and scans, hospital bills.',
+  telecom: 'Phone, internet and TV connections: prepaid recharge or postpaid bill (Jio, Airtel, Vi, BSNL), Wi-Fi and broadband (ACT, JioFiber, Airtel Xstream), DTH (Tata Play, Dish TV, Airtel DTH).',
+  money: 'Money set aside: savings, emergency fund, FD, RD, SIP, mutual funds, stocks (Zerodha, Groww), PPF, NPS.',
 }
 
 export const HINTS: Hint[] = [
@@ -51,7 +64,7 @@ export const HINTS: Hint[] = [
   // Bills and home
   { core: ['electricity', 'electric', 'power', 'bijli', 'light'], extra: ['bill', 'bills'],
     hint: 'Electricity bill: BESCOM, MSEB/Mahavitaran, Tata Power, Adani Electricity, BSES, TNEB, prepaid meter recharge.' },
-  { core: ['water', 'paani', 'pani'], extra: ['bill', 'bills', 'can', 'cans'],
+  { core: ['water', 'paani', 'pani'], extra: ['bill', 'bills'],
     hint: 'Water bill, water cans or tanker.' },
   { core: ['lpg', 'cylinder'], extra: ['gas', 'cooking', 'bill'],
     hint: 'Cooking gas: LPG cylinder (Indane, HP Gas, Bharat Gas) or piped gas bill.' },
@@ -63,13 +76,15 @@ export const HINTS: Hint[] = [
     hint: 'Household utility bills: electricity (BESCOM, MSEB, Tata Power, BSES), water, LPG cylinder or piped gas, society maintenance.' },
   { all: ['bijli'], core: ['paani', 'pani', 'gas'], extra: ['bill', 'bills'],
     hint: 'Household utility bills: electricity, water, LPG cylinder or piped gas.' },
-  { core: ['mobile', 'phone', 'phones', 'cellphone'], extra: ['recharge', 'recharges', 'bill', 'bills', 'postpaid', 'prepaid'],
+  { kind: 'telecom', core: ['mobile', 'phone', 'phones', 'cellphone'], extra: ['recharge', 'recharges', 'bill', 'bills', 'postpaid', 'prepaid'],
     hint: 'Mobile phone recharge or postpaid bill: Jio, Airtel, Vi, BSNL.' },
-  { core: ['internet', 'wifi', 'broadband', 'fiber', 'fibre'], extra: ['bill', 'bills', 'home'],
+  { kind: 'telecom', core: ['internet', 'wifi', 'broadband', 'fiber', 'fibre'], extra: ['bill', 'bills', 'home'],
     hint: 'Internet: Wi-Fi and broadband bills (ACT, JioFiber, Airtel Xstream, Hathway) and mobile data recharges.' },
-  { core: ['dth', 'tv', 'cable'], extra: ['recharge', 'bill', 'bills'],
+  { kind: 'telecom', core: ['dth', 'tv', 'cable'], extra: ['recharge', 'bill', 'bills'],
     hint: 'TV connection: DTH or cable recharge (Tata Play, Dish TV, Airtel DTH, Sun Direct).' },
-  { core: ['mobile', 'phone', 'internet', 'wifi', 'broadband', 'telecom', 'dth'], extra: ['bill', 'bills', 'recharge', 'recharges', 'tv', 'data'],
+  { kind: 'telecom', core: ['mobile', 'phone', 'internet', 'wifi', 'broadband', 'telecom'], extra: ['bill', 'bills', 'recharge', 'recharges', 'data'],
+    hint: 'Phone and internet: mobile recharge or postpaid bill (Jio, Airtel, Vi, BSNL), Wi-Fi and broadband (ACT, JioFiber, Airtel Xstream).' },
+  { kind: 'telecom', all: ['dth'], core: ['mobile', 'phone', 'internet', 'wifi', 'broadband'], extra: ['bill', 'bills', 'recharge', 'recharges', 'tv', 'data'],
     hint: 'Phone, internet and TV connections: prepaid recharge or postpaid bill (Jio, Airtel, Vi, BSNL), Wi-Fi and broadband (ACT, JioFiber, Airtel Xstream), DTH (Tata Play, Dish TV, Airtel DTH).' },
   { core: ['rent', 'housing', 'pg', 'hostel', 'accommodation', 'lease', 'kiraya', 'kiraaya'], extra: ['house', 'home', 'flat', 'room', 'apartment', 'monthly'],
     hint: 'Rent for where you live: house, flat, room, PG or hostel rent.' },
@@ -123,15 +138,15 @@ export const HINTS: Hint[] = [
     hint: 'Movies: cinema tickets (PVR, INOX, BookMyShow) and snacks at the cinema.' },
   { core: ['gaming', 'games'],
     hint: 'Gaming: video games, consoles, in-game purchases, gaming cafes.' },
-  { core: ['shopping', 'shop', 'purchase', 'purchases'], extra: ['online'],
+  { core: ['shopping', 'shop', 'purchase', 'purchases'],
     hint: 'Things bought for yourself or the home: Amazon, Flipkart, Myntra, Ajio, Meesho, Croma, electronics, gadgets, accessories, home items, and festival purchases (Diwali crackers, diyas, rangoli, lights, decorations).' },
 
   // Health and self
-  { core: ['medicine', 'medicines', 'meds', 'pharmacy', 'chemist', 'dawai', 'dawa', 'dava'],
+  { kind: 'health', core: ['medicine', 'medicines', 'meds', 'pharmacy', 'chemist', 'dawai', 'dawa', 'dava'],
     hint: 'Medicines: chemist and pharmacy bills (Apollo Pharmacy, Tata 1mg, PharmEasy, Netmeds), dawai.' },
-  { core: ['doctor', 'doctors', 'hospital', 'clinic', 'consultation', 'dentist'], extra: ['visits', 'fees'],
+  { kind: 'health', core: ['doctor', 'doctors', 'hospital', 'clinic', 'consultation', 'dentist'], extra: ['visits', 'fees'],
     hint: 'Doctor and hospital visits: consultation fees, dentist, Practo, lab tests and scans, hospital bills.' },
-  { core: ['health', 'healthcare', 'medical', 'wellness'], extra: ['care'],
+  { kind: 'health', core: ['health', 'healthcare', 'medical'], extra: ['care'],
     hint: 'Health care: medicines (dawai, chemist, Apollo Pharmacy, Tata 1mg, PharmEasy, Netmeds), doctor and dentist fees, Practo, lab tests and scans, hospital bills.' },
   { core: ['fitness', 'workout', 'exercise'],
     hint: 'Fitness: gym or Cult.fit membership, yoga or dance classes, sports court bookings (badminton, turf), protein and supplements, sports gear.' },
@@ -143,9 +158,9 @@ export const HINTS: Hint[] = [
     hint: 'Personal care and grooming: haircut, barber, salon, parlour, facial, spa, skincare, cosmetics (Nykaa, Purplle), toiletries.' },
   { core: ['education', 'study', 'studies', 'learning', 'padhai', 'padhaai'], extra: ['fees', 'fee', 'bachchon', 'bacchon', 'kids'],
     hint: 'Learning: school or college fees, tuition, coaching, online courses (Udemy, Coursera, Unacademy), books, stationery, exam fees.' },
-  { core: ['pet', 'pets'], extra: ['care', 'food'],
+  { core: ['pet', 'pets'], extra: ['care'],
     hint: 'Pets: pet food, vet visits, grooming, pet supplies.' },
-  { core: ['kids', 'kid', 'child', 'children', 'baby', 'babies'], extra: ['care'],
+  { core: ['kids', 'kid', 'child', 'children', 'baby', 'babies'],
     hint: 'Children: diapers, baby food, toys, kids\' clothes, school supplies.' },
   { core: ['family', 'parents', 'relatives'], extra: ['money', 'support', 'home'],
     hint: 'Spending on or for family: money sent to parents (maa, papa), relatives, family needs.' },
@@ -155,9 +170,9 @@ export const HINTS: Hint[] = [
   // Money
   { core: ['gold', 'jewellery', 'jewelry'],
     hint: 'Gold and jewellery: digital gold, gold coins, jewellery purchases.' },
-  { core: ['investment', 'investments', 'invest'], extra: ['fund', 'funds', 'sip', 'sips', 'mutual'],
+  { kind: 'money', core: ['investment', 'investments', 'invest'], extra: ['fund', 'funds', 'sip', 'sips', 'mutual'],
     hint: 'Investments: SIP, mutual funds, stocks (Zerodha, Groww, Upstox, Kite), digital gold, PPF, NPS, fixed and recurring deposits (FD, RD).' },
-  { core: ['saving', 'savings', 'bachat'], extra: ['fund', 'funds', 'emergency'],
+  { kind: 'money', core: ['saving', 'savings', 'bachat'], extra: ['fund', 'funds', 'emergency'],
     hint: 'Money set aside: savings transfers, emergency fund, fixed deposit (FD), recurring deposit (RD).' },
   { all: ['emergency', 'fund'],
     hint: 'Money set aside: savings transfers, emergency fund, fixed deposit (FD), recurring deposit (RD).' },
@@ -174,14 +189,27 @@ export const HINTS: Hint[] = [
 // Words that never change what a category is for.
 const NEUTRAL = new Set(['and', 'n', 'the', 'my', 'of', 'for', 'to', 'expense', 'expenses', 'spend', 'spends', 'spending', 'cost', 'costs', 'ka', 'ki', 'ke', 'ko', 'aur', 'kharcha', 'kharche'])
 
-/** The usual contents of a category, from its name, or null when the name has a word we don't know. */
-export function categoryHint(name: string): string | null {
+function matchHint(name: string): Hint | null {
   const words = name.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter((w) => w && !/^\d+$/.test(w) && !NEUTRAL.has(w))
   if (!words.length) return null
   const has = (list: string[] | undefined, w: string) => !!list && list.includes(w)
-  for (const { core, all, extra, hint } of HINTS) {
+  for (const entry of HINTS) {
+    const { core, all, extra } = entry
     const named = (!all || all.every((w) => words.includes(w))) && (!core || words.some((w) => has(core, w)))
-    if (named && words.every((w) => has(all, w) || has(core, w) || has(extra, w))) return hint
+    if (named && words.every((w) => has(all, w) || has(core, w) || has(extra, w))) return entry
   }
   return null
+}
+
+/** The usual contents of a category, from its name, or null when the name has a word we don't know. */
+export function categoryHint(name: string): string | null {
+  return matchHint(name)?.hint ?? null
+}
+
+/** Hints for a whole list: as categoryHint, except a list's only category of a kind gets the kind's broad hint. */
+export function categoryHints(names: string[]): (string | null)[] {
+  const entries = names.map(matchHint)
+  const kindCount = new Map<string, number>()
+  for (const e of entries) if (e?.kind) kindCount.set(e.kind, (kindCount.get(e.kind) ?? 0) + 1)
+  return entries.map((e) => (e?.kind && kindCount.get(e.kind) === 1 ? BROAD[e.kind] : e?.hint ?? null))
 }

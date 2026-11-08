@@ -2,7 +2,7 @@ import { experimental_evaluate as evaluate, type Experimental_EvaluationQuestion
 import { after } from 'next/server'
 import { logAiUsage, type AiCaller } from './usage'
 import { AI_DISABLED_MESSAGE, getSystemSettings } from '../systemSettings'
-import { categoryHint } from './categoryHints'
+import { categoryHints } from './categoryHints'
 
 /**
  * Jev (TypeSafe AI, via Vercel AI Gateway) answers typed choice/score/boolean
@@ -134,6 +134,7 @@ const FIT_INSTRUCTIONS = {
   rules: CATEGORY_INSTRUCTIONS.rules,
   answer: [
     'Yes when the user would file it under one of the categories without hesitating, judged by what each name means to the user. A category the user named for a person, place, event or purpose fits whatever is plainly for it. A broad name ("Bills", "Essentials", "Lifestyle", "Home") fits everything of its kind.',
+    'When the list has only one category for a kind of spending (health, savings, transport, food), that category is meant for all of it, even when its name is short, narrow or in Hindi.',
     'No when the nearest category is only loosely related (an RD deposit is not rent), when nothing on the list is meant for it, or when the words are too vague to tell what was bought ("paid", "given to Amit", "stuff").',
   ],
 }
@@ -153,9 +154,11 @@ export interface CategoryAnswer extends ScoredChoice {
 
 /** Jev's top category for `item`, the probability behind it, and how likely any category fits, before any bar. */
 export async function categoryAnswer(item: string, categories: string[], caller: AiCaller): Promise<CategoryAnswer> {
-  const hints = categories.map((c) => categoryHint(c))
+  const hints = categoryHints(categories)
   // The fit question reads the list from state, so it gets the same descriptions the choice's options carry.
   // Sending them twice is deliberate: about 3.4k input tokens and ~100 ms more than the old question at 16 categories.
+  // ponytail: grows with the list, roughly 20k tokens at the 100 categories the route allows; send names only
+  // in state past ~40 categories if a long list ever shows up slow.
   const listed = categories.map((c, i) => (hints[i] ? `${c} (${hints[i]})` : c))
   const answers = await runJev({ expenseItem: item, categories: listed }, {
     category: {

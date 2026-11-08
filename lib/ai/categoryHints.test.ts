@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { categoryHint } from './categoryHints'
+import { categoryHint, categoryHints } from './categoryHints'
 
 describe('categoryHint', () => {
   it('describes common category names, emoji and joiners ignored', () => {
@@ -60,7 +60,7 @@ describe('categoryHint', () => {
 
   it('leaves mixed or narrower names to Jev', () => {
     // Each of these had a one-part hint that cost real picks on a blind set.
-    for (const name of ['Home & Bills', 'Household Bills', 'Petrol Gaadi', 'Car Fuel', 'Driver', 'Nanny', 'Emergency', 'Birthday Gifts', 'Misc']) {
+    for (const name of ['Home & Bills', 'Household Bills', 'Petrol Gaadi', 'Car Fuel', 'Driver', 'Nanny', 'Emergency', 'Birthday Gifts', 'Misc', 'Pet Food', 'Child Care', 'Water Cans', 'Wellness', 'Online Shopping']) {
       expect(categoryHint(name), name).toBeNull()
     }
     expect(categoryHint('🍿 Snacks')).not.toMatch(/coffee|Starbucks/i)
@@ -74,6 +74,8 @@ describe('categoryHint', () => {
     expect(categoryHint('Bills & Utilities')).toMatch(/mobile/i)
     expect(categoryHint('Utilities')).not.toMatch(/mobile/i)
     expect(categoryHint('📱 Mobile & Internet')).toMatch(/broadband/i)
+    expect(categoryHint('Phone & Internet')).not.toMatch(/DTH/)
+    expect(categoryHint('Mobile, Internet & DTH')).toMatch(/DTH/)
   })
 
   it('gives no hint when the name has a word it does not know', () => {
@@ -83,5 +85,14 @@ describe('categoryHint', () => {
     expect(categoryHint('Mummy cloths')).toBeNull()
     expect(categoryHint('Ganapati Expense 25')).toBeNull()
     expect(categoryHint('🎉')).toBeNull()
+  })
+
+  it('gives a list\'s only category of a kind the whole kind', () => {
+    // A lone "Dawai" is where the doctor's fees go too.
+    expect(categoryHints(['💊 Dawai', 'Rashan'])[0]).toMatch(/doctor/i)
+    expect(categoryHints(['💊 Dawai', '🏥 Doctor'])[0]).not.toMatch(/doctor/i)
+    expect(categoryHints(['Internet', 'Rent'])[0]).toMatch(/Jio/)
+    expect(categoryHints(['Bachat'])[0]).toMatch(/mutual funds/)
+    expect(categoryHints(['Furniture Rent'])[0]).toBeNull()
   })
 })
