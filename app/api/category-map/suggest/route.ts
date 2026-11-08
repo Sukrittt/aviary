@@ -49,7 +49,7 @@ export async function POST(req: Request) {
 
   // The rate-limit check (two database round trips) runs alongside the model
   // call rather than before it. A limited request still spends one Jev call
-  // (~$0.00002), which the gateway key's spend cap bounds.
+  // (~$0.0001), which the gateway key's spend cap bounds.
   const [limited, category] = await Promise.all([
     isRateLimited(`category-suggest:${auth.userId}`, [
       { windowMs: BURST_WINDOW_MS, limit: BURST_LIMIT },
