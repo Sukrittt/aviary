@@ -155,7 +155,7 @@ export interface CategoryAnswer extends ScoredChoice {
 export async function categoryAnswer(item: string, categories: string[], caller: AiCaller): Promise<CategoryAnswer> {
   const hints = categories.map((c) => categoryHint(c))
   // The fit question reads the list from state, so it gets the same descriptions the choice's options carry.
-  // Sending them twice is deliberate: about 1.9k input tokens at 16 categories, 10.5k at the 100 the route allows.
+  // Sending them twice is deliberate: about 3.4k input tokens and ~100 ms more than the old question at 16 categories.
   const listed = categories.map((c, i) => (hints[i] ? `${c} (${hints[i]})` : c))
   const answers = await runJev({ expenseItem: item, categories: listed }, {
     category: {
