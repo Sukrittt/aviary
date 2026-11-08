@@ -15,8 +15,10 @@ const { pickCategory, pickHoldingType, pickBudgetBuckets, scoreCategory } = awai
 const caller = { userId: 'user_1', feature: 'suggest' as const }
 const usage = { inputTokens: 40, outputTokens: 1, totalTokens: 41 }
 
-function answer(choice: string, probabilities?: Record<string, number>) {
-  return { answers: { category: { type: 'choice', choice, probabilities } }, usage }
+/** A category answer; `fit` is Jev's chance that some category fits (omitted: the fit question didn't answer). */
+function answer(choice: string, probabilities?: Record<string, number>, fit?: number) {
+  const fits = fit === undefined ? undefined : { type: 'boolean', probability: fit }
+  return { answers: { category: { type: 'choice', choice, probabilities }, fits }, usage }
 }
 
 function typeAnswer(choice: string, probabilities?: Record<string, number>) {
@@ -33,6 +35,8 @@ describe('pickCategory', () => {
     expect(model).toBe('typesafe-ai/jev')
     expect(questions.category.type).toBe('choice')
     expect(Object.keys(questions.category.criteria)).toEqual(['Food', 'Travel'])
+    // Whether anything fits is a separate yes/no in the same call, not a fake option.
+    expect(questions.fits.type).toBe('boolean')
     // Zero Data Retention needs Vercel Pro; the gateway 403s every call on Hobby.
     expect(evaluate.mock.calls[0][0].providerOptions).toEqual({ gateway: { disallowPromptTraining: true } })
   })
@@ -40,6 +44,42 @@ describe('pickCategory', () => {
   it('returns the choice when it is confident', async () => {
     evaluate.mockResolvedValue(answer('Food', { Food: 0.9, Travel: 0.1 }))
     expect(await pickCategory('swiggy dinner', ['Food', 'Travel'], caller)).toBe('Food')
+  })
+
+  it('describes the categories it knows and leaves custom names to Jev', async () => {
+    evaluate.mockResolvedValue(answer('🛒 Groceries', { '🛒 Groceries': 1 }))
+    await pickCategory('sabzi', ['🛒 Groceries', 'Furniture Rent'], caller)
+    const { criteria } = evaluate.mock.calls[0][0].questions.category
+    expect(criteria['🛒 Groceries']).toMatch(/kirana/)
+    expect(criteria['Furniture Rent']).toBeNull()
+  })
+
+  it('returns empty when Jev says no category on the list fits', async () => {
+    evaluate.mockResolvedValue(answer('Food', { Food: 0.95, Travel: 0.05 }, 0.2))
+    expect(await pickCategory('given to Amit', ['Food', 'Travel'], caller)).toBe('')
+  })
+
+  it('shows a pick right at the fit bar and drops one just under it', async () => {
+    evaluate.mockResolvedValue(answer('Food', { Food: 0.95, Travel: 0.05 }, 0.65))
+    expect(await pickCategory('thali', ['Food', 'Travel'], caller)).toBe('Food')
+    evaluate.mockResolvedValue(answer('Food', { Food: 0.95, Travel: 0.05 }, 0.64))
+    // Chat capture keeps the probability even when the pick is dropped.
+    expect(await scoreCategory('thali', ['Food', 'Travel'], caller)).toEqual({ choice: '', probability: 0.95 })
+  })
+
+  it('falls back to the probability bar alone when the fit answer is missing', async () => {
+    evaluate.mockResolvedValue(answer('Food', { Food: 0.95, Travel: 0.05 }))
+    expect(await pickCategory('thali', ['Food', 'Travel'], caller)).toBe('Food')
+    evaluate.mockResolvedValue(answer('Food', { Food: 0.7, Travel: 0.3 }))
+    expect(await pickCategory('thali', ['Food', 'Travel'], caller)).toBe('')
+  })
+
+  it('shows the fit question the same descriptions the options carry', async () => {
+    evaluate.mockResolvedValue(answer('🛒 Groceries', { '🛒 Groceries': 1 }, 0.9))
+    await pickCategory('sabzi', ['🛒 Groceries', 'Furniture Rent'], caller)
+    const { state } = evaluate.mock.calls[0][0]
+    expect(state.categories[0]).toMatch(/^🛒 Groceries \(.*kirana/)
+    expect(state.categories[1]).toBe('Furniture Rent')
   })
 
   it('returns empty when no option clears the confidence bar', async () => {
