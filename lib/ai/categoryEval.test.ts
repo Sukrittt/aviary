@@ -462,6 +462,8 @@ describe.skipIf(!process.env.CATEGORY_EVAL)('category predictor (live Jev)', () 
     ]
     const out = process.env.CATEGORY_EVAL_OUT ?? '/tmp/category-eval.md'
     fs.writeFileSync(out, lines.join('\n'))
+    // Raw answers, so other bar settings can be scored without new Jev calls.
+    fs.writeFileSync(`${out}.json`, JSON.stringify(raw.map(({ list, item, strict, ok, top, answer }) => ({ list, item, strict, ok, top, ...answer }))))
     console.log(lines.slice(0, 20).join('\n'))
   }, 600_000)
 })
