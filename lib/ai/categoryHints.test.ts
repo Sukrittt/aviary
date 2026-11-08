@@ -41,6 +41,8 @@ describe('categoryHint', () => {
     expect(categoryHint('Home Loan')).toBeNull()
     expect(categoryHint('Staff Salary')).toBeNull()
     expect(categoryHint('Drinks')).toBeNull()
+    // A model name is one vehicle; the generic hint would pull the family car's FASTag into the scooter.
+    expect(categoryHint('Activa')).toBeNull()
   })
 
   it('gives no hint when the name has a word it does not know', () => {

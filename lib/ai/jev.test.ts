@@ -70,7 +70,7 @@ describe('pickCategory', () => {
   it('falls back to the probability bar alone when the fit answer is missing', async () => {
     evaluate.mockResolvedValue(answer('Food', { Food: 0.95, Travel: 0.05 }))
     expect(await pickCategory('thali', ['Food', 'Travel'], caller)).toBe('Food')
-    evaluate.mockResolvedValue(answer('Food', { Food: 0.7, Travel: 0.3 }))
+    evaluate.mockResolvedValue(answer('Food', { Food: 0.65, Travel: 0.35 }))
     expect(await pickCategory('thali', ['Food', 'Travel'], caller)).toBe('')
   })
 

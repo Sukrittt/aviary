@@ -131,13 +131,16 @@ const FIT_INSTRUCTIONS = {
   question: 'Is one of the budget categories in `categories` meant for the spending described in `expenseItem`?',
   notes: [
     'Read the item as the user meant it: Hindi, Hinglish and regional words, brand and shop names, and typos are common.',
-    'Yes when the user would file it under one of the categories without hesitating, judged by what each name means to the user. A category the user named for a person, place or purpose fits whatever is plainly for that person, place or purpose.',
+    'Yes when the user would file it under one of the categories without hesitating, judged by what each name means to the user. A category the user named for a person, place or purpose fits whatever is plainly for that person, place or purpose. A broad name ("Bills", "Essentials", "Lifestyle", "Home") fits everything of its kind.',
     'No when the nearest category is only loosely related (an RD deposit is not rent, a plumber is not a utility bill), when nothing on the list is meant for it, or when the words are too vague to tell what was bought ("paid", "given to Amit", "stuff").',
   ],
 }
 
-/** Below this, a category pick isn't shown: a wrong pick costs the user more than no pick. */
-export const MIN_CATEGORY_CONFIDENCE = MIN_CONFIDENCE
+/**
+ * Below this, a category pick isn't shown: a wrong pick costs the user more than no pick.
+ * Lower than MIN_CONFIDENCE because the fit bar below guards the pick too; set from the eval sweep.
+ */
+export const MIN_CATEGORY_CONFIDENCE = 0.7
 /** Below this chance that the list has a home for the item, no pick is shown. */
 export const MIN_CATEGORY_FIT = 0.65
 
