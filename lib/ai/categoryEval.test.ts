@@ -416,7 +416,9 @@ describe.skipIf(!process.env.CATEGORY_EVAL)('category predictor (live Jev)', () 
       }
     })
     const judge = (threshold: number, fitBar = MIN_CATEGORY_FIT) => raw.map((c) => {
-      const pick = clearsCategoryBars(c.answer, threshold, fitBar) ? c.top : ''
+      // A failed call shows no pick in the app; the header counts these errors separately.
+      const failed = c.top.startsWith('ERROR')
+      const pick = !failed && clearsCategoryBars(c.answer, threshold, fitBar) ? c.top : ''
       const p = c.answer.probability ?? 1
       const fit = c.answer.fit ?? 1
       // A catch-all pick is fine only when nothing else fits: the client shows it as a pick, with its badge.
@@ -433,7 +435,8 @@ describe.skipIf(!process.env.CATEGORY_EVAL)('category predictor (live Jev)', () 
     const results = judge(MIN_CATEGORY_CONFIDENCE)
     const count = (v: string) => results.filter((r) => r.verdict === v).length
     const right = count('right'), wrong = count('wrong'), miss = count('miss')
-    const picked = results.filter((r) => r.pick && !/misc/i.test(r.pick)).length
+    // Every shown pick, catch-alls included, so `wrong` (which counts wrong catch-all picks) shares its denominator.
+    const picked = results.filter((r) => r.pick).length
     const errors = results.filter((r) => r.top.startsWith('ERROR')).length
     const ms = raw.map((r) => r.ms).filter(Boolean).sort((x, y) => x - y)
     const lines = [
