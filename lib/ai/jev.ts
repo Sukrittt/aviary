@@ -110,11 +110,14 @@ const CATEGORY_INSTRUCTIONS = {
   ],
   rules: [
     'Work out what the money actually paid for, then pick the category meant for that kind of spending.',
+    'Category names are the user\'s own and may be Hindi or Hinglish ("Safar" is travel, "Tyohar" festivals, "Khana-Peena" food): read each name for what it means.',
+    'A category named for a specific person, place, vehicle, event or occasion ("Mom\'s medicines", "Goa trip", "Wedding 2026") is the right home for anything plainly for it, ahead of a general category.',
     'Judge by meaning, not shared words: "phone cover" is shopping, not a phone bill; "OYO" is a hotel stay, not rent.',
     'A festival or occasion word (Diwali, Eid, Holi, wedding) says when, not what: file by what was bought. "Diwali shopping" is shopping; "Diwali sweets for neighbours" is gifts. Festival items themselves (crackers, diyas, rangoli, decorations, puja items) go to a festival category if there is one, otherwise shopping or household items. A category named after one festival ("Ganapati Expense", "Diwali 2025") is that festival\'s category and takes everything bought for it.',
     'A puja, ceremony or ritual itself (naamkaran, mundan, kirtan) is not shopping: file it under a festival, religion or donation category.',
     '"wala" or "wali" after a thing or task means the person who provides it, so it is pay for a service: "doodh wala" is the milkman, "kachra wala" the garbage collector, "jhadu wali" the cleaning help.',
-    'Quick-commerce and grocery apps (Blinkit, Zepto, Swiggy Instamart, BigBasket, JioMart, DMart) are groceries unless the words name something else.',
+    'Quick-commerce and grocery apps (Blinkit, Zepto, Instamart, BigBasket, JioMart, DMart) are groceries unless the words name something else. Swiggy or Zomato on its own is restaurant food delivery.',
+    'Insurance goes by its type: LIC and term plans are life insurance, not health; health insurance is health; vehicle insurance belongs with the vehicle.',
     'An unfamiliar word is often Hindi or a regional language (Tamil, Bengali, Marathi, Kannada, Telugu), a brand, or a typo ("grocries", "medcine"): read it that way before deciding.',
   ],
 }
@@ -147,6 +150,7 @@ export interface CategoryAnswer extends ScoredChoice {
 export async function categoryAnswer(item: string, categories: string[], caller: AiCaller): Promise<CategoryAnswer> {
   const hints = categories.map((c) => categoryHint(c))
   // The fit question reads the list from state, so it gets the same descriptions the choice's options carry.
+  // Sending them twice is deliberate: about 1.9k input tokens at 16 categories, 10.5k at the 100 the route allows.
   const listed = categories.map((c, i) => (hints[i] ? `${c} (${hints[i]})` : c))
   const answers = await runJev({ expenseItem: item, categories: listed }, {
     category: {

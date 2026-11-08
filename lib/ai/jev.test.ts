@@ -74,6 +74,11 @@ describe('pickCategory', () => {
     expect(await pickCategory('thali', ['Food', 'Travel'], caller)).toBe('')
   })
 
+  it('reads no inherited value for a category named like an Object method', async () => {
+    evaluate.mockResolvedValue(answer('constructor', { Food: 0.6 }, 0.9))
+    expect(await pickCategory('odd', ['Food', 'constructor'], caller)).toBe('')
+  })
+
   it('shows the fit question the same descriptions the options carry', async () => {
     evaluate.mockResolvedValue(answer('🛒 Groceries', { '🛒 Groceries': 1 }, 0.9))
     await pickCategory('sabzi', ['🛒 Groceries', 'Furniture Rent'], caller)

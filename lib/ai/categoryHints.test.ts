@@ -10,10 +10,18 @@ describe('categoryHint', () => {
     expect(categoryHint('Petrol/Gas')).toMatch(/petrol/)
   })
 
+  it('reads Hindi and Hinglish names like their English twins', () => {
+    expect(categoryHint('Rashan')).toBe(categoryHint('Groceries'))
+    expect(categoryHint('Kapde')).toBe(categoryHint('Clothes'))
+    expect(categoryHint('Bahar ka Khana')).toBe(categoryHint('Eating out'))
+    expect(categoryHint('Bijli-Paani')).toBe(categoryHint('Utilities'))
+    expect(categoryHint('Ghar ka Saman')).toBeNull()
+  })
+
   it('picks the narrower meaning first', () => {
     expect(categoryHint('🍕 Food delivery')).toMatch(/^Restaurant food ordered/)
     expect(categoryHint('Food')).toMatch(/^Anything to eat/)
-    expect(categoryHint('Car EMI')).toMatch(/^Loan repayments/)
+    expect(categoryHint('Loans & EMI')).toMatch(/^Loan repayments/)
   })
 
   it('keeps two neighbouring categories apart', () => {
@@ -28,6 +36,11 @@ describe('categoryHint', () => {
     expect(categoryHint('Personal')).toBeNull()
     expect(categoryHint('Outings')).toBeNull()
     expect(categoryHint('Cooking')).toBeNull()
+    expect(categoryHint('Society Maintenance')).toBeNull()
+    expect(categoryHint('Car Maintenance')).toBeNull()
+    expect(categoryHint('Home Loan')).toBeNull()
+    expect(categoryHint('Staff Salary')).toBeNull()
+    expect(categoryHint('Drinks')).toBeNull()
   })
 
   it('gives no hint when the name has a word it does not know', () => {

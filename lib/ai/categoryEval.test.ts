@@ -333,6 +333,19 @@ const LISTS: Array<{ name: string; map: Record<Concept, string[]> }> = [
     },
   },
   {
+    // Hindi names, as many Indian users set them up.
+    name: 'hindi',
+    map: {
+      groceries: ['Rashan'], milk: ['Doodh', '~Rashan'], rent: ['Kiraya'],
+      electricity: ['Bijli-Paani'], utilities: ['Bijli-Paani'], health: ['Dawai-Doctor'], fitness: ['~Dawai-Doctor'],
+      clothing: ['Kapde'], shopping: ['~Kapde'], education: ['Bachchon ki Padhai'], travel: ['Safar'], transit: ['~Safar'], cab: ['~Safar'],
+      festival: ['Tyohar'], donation: ['~Tyohar'], house_help: ['Kaamwali Bai'], cook: ['Kaamwali Bai'], laundry: ['~Kaamwali Bai'],
+      fuel: ['Gaadi Petrol'], vehicle: ['~Gaadi Petrol'], car: ['~Gaadi Petrol'], bike: ['~Gaadi Petrol'],
+      mobile_internet: ['Mobile Recharge'], eating_out: ['Bahar ka Khana'], food_delivery: ['Bahar ka Khana'], coffee_snacks: ['~Bahar ka Khana'],
+      gifts: ['Lena-Dena'], birthday: ['~Lena-Dena'],
+    },
+  },
+  {
     name: 'custom',
     map: {
       fuel: ['Petrol'], milk: ['Milk', 'Kirana'], groceries: ['Kirana'], emi: ['EMI', 'Loan'],
@@ -406,8 +419,11 @@ describe.skipIf(!process.env.CATEGORY_EVAL)('category predictor (live Jev)', () 
       const pick = clearsCategoryBars(c.answer, threshold, fitBar) ? c.top : ''
       const p = c.answer.probability ?? 1
       const fit = c.answer.fit ?? 1
-      const none = pick === '' || /misc/i.test(pick)
-      const verdict = c.ok.includes(pick) ? 'right' : none ? (c.strict.length ? 'miss' : 'right') : 'wrong'
+      // A catch-all pick is fine only when nothing else fits: the client shows it as a pick, with its badge.
+      const catchAll = /misc/i.test(pick)
+      const verdict = c.ok.includes(pick) ? 'right'
+        : pick === '' ? (c.strict.length ? 'miss' : 'right')
+        : catchAll && !c.strict.length ? 'right' : 'wrong'
       return { ...c, pick, p, fit, verdict }
     })
     const sweep = [0.2, 0.35, 0.5, 0.65].flatMap((f) => [0.5, 0.6, 0.7, 0.8, 0.9].map((t) => {
