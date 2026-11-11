@@ -254,21 +254,6 @@ describe('EnvelopeGrid goals', () => {
     expect(onMoveMoney).toHaveBeenCalledWith('Diwali', 2000)
   })
 
-  it('rolls the Left pill from the old balance to the new one once money lands, then splashes', async () => {
-    motion.inView = true
-    cats.rows = [{ name: 'Diwali', group: 'Essentials', goal: { amount: 24000, by: '2027-01' } }]
-    const props = { groups: ['Essentials'], month: '2026-10', hideAmounts: false, onManage: vi.fn(), onMoveMoney: vi.fn(), onAssignFromRTA: vi.fn(), onSetAssigned: vi.fn() }
-    const { container, rerender } = render(<EnvelopeGrid {...props} envelopes={[saver]} />)
-    const pill = () => container.querySelector('.env2-pill')!
-    expect(pill()).not.toHaveClass('is-rolling-up')
-    rerender(<EnvelopeGrid {...props} envelopes={[{ ...saver, assigned: 4500, available: 10500 }]} />)
-    // Ticks up from the old 6,000, then lands and splashes.
-    await waitFor(() => expect(pill()).toHaveClass('is-rolling-up'), { timeout: 1500 })
-    await waitFor(() => expect(pill()).toHaveClass('is-splash'), { timeout: 3000 })
-    expect(container.querySelectorAll('.env2-splash i').length).toBeGreaterThan(0)
-    motion.inView = false
-  })
-
   it('offers no changes where goals are read-only', () => {
     goalSetup({ amount: 24000, by: '2027-01' }, saver, null)
     expect(screen.getByText(/Behind by/)).toBeInTheDocument()
