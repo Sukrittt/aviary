@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest'
 import { ACTIVE_BUDGET_KEY, budgetCookie, setBudgetCookie } from '../api/client'
 import { clearAccess } from './accessMode'
