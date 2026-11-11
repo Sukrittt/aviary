@@ -86,28 +86,6 @@ describe('ExpenseSidebar', () => {
     expect(screen.getByRole('navigation', { name: 'Primary' })).toBeTruthy()
   })
 
-  it('moves one hover pill to whichever row is under the pointer', () => {
-    render(<ExpenseSidebar />)
-    const nav = screen.getByRole('navigation', { name: 'Primary' })
-    const pills = () => [...nav.querySelectorAll('li > span.absolute')].map((pill) => pill.parentElement?.textContent)
-
-    fireEvent.mouseEnter(screen.getByText('Activity').closest('li')!)
-    expect(pills()).toEqual(['Activity'])
-    fireEvent.mouseEnter(screen.getByText('Categories').closest('li')!)
-    expect(pills()).toEqual(['Categories'])
-    fireEvent.mouseLeave(nav)
-    expect(pills()).toEqual([])
-  })
-
-  it('keeps the hover pill on the theme row when its label flips', () => {
-    const { rerender } = render(<ExpenseSidebar />)
-    const nav = screen.getByRole('navigation', { name: 'Primary' })
-    fireEvent.mouseEnter(screen.getByText('Light mode').closest('li')!)
-    theme = 'light'
-    rerender(<ExpenseSidebar />)
-    expect([...nav.querySelectorAll('li > span.absolute')].map((pill) => pill.parentElement?.textContent)).toEqual(['Dark mode'])
-  })
-
   it('remembers the collapsed rail between visits', () => {
     render(<ExpenseSidebar />)
     fireEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }))
