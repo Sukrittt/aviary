@@ -15,7 +15,7 @@ function safeEqual(a: string, b: string): boolean {
 }
 
 /**
- * Hourly (24 daily Hobby crons): end-of-day push for users with nothing
+ * Hourly (one Vercel Pro cron): end-of-day push for users with nothing
  * logged today (lib/notifications/eveningCheck.ts), then a backfill pass for
  * any history import whose last pass let go (lib/import/backfill.ts). The
  * sweep is its own query, not part of the evening check: that only visits

@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { ACTIVE_BUDGET_KEY, BUDGET_READ_ONLY_EVENT, LOST_BUDGET_KEY, apiFetch, budgetCookie, setBudgetCookie } from './client'
 

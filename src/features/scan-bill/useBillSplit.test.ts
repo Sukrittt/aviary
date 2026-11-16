@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { it, expect } from 'vitest'
 import { act, renderHook } from '@testing-library/react'
 import { useBillSplit } from './useBillSplit'

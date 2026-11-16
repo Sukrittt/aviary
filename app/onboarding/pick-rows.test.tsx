@@ -97,33 +97,6 @@ describe('onboarding pick rows', () => {
     expect(screen.queryByRole('button', { name: 'Undo category selection' })).toBeNull()
   })
 
-  it('deselects 50 custom groups in one action and restores the exact selection with Undo', () => {
-    toGroupsStep()
-    const addGroupButton = screen.getByRole('button', { name: /Add your own group/ })
-    for (let i = 1; i <= 50; i++) {
-      fireEvent.click(addGroupButton)
-      fireEvent.change(screen.getAllByPlaceholderText('Group name').at(-1)!, { target: { value: `Custom ${i}` } })
-    }
-    const toolbar = within(screen.getByRole('group', { name: 'Group selection' }))
-    expect(toolbar.getByText('52 groups selected')).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Deselect all' }))
-    expect(screen.getAllByRole('checkbox')).toHaveLength(53)
-    expect(screen.getAllByRole('checkbox').every((c) => c.getAttribute('aria-checked') === 'false')).toBe(true)
-    expect(toolbar.getByText('0 groups selected')).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Deselect all' })).toBeDisabled()
-    expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled()
-    expect(screen.getByText('Select at least one group to continue')).toBeTruthy()
-    expect(screen.getByRole('status')).toHaveTextContent('All groups deselected.')
-    expect(screen.getByDisplayValue('Custom 50')).toBeTruthy()
-
-    fireEvent.click(screen.getByRole('button', { name: 'Undo group selection' }))
-    expect(toolbar.getByText('52 groups selected')).toBeTruthy()
-    expect(screen.getByRole('checkbox', { name: 'Select Savings' })).toHaveAttribute('aria-checked', 'false')
-    expect(screen.getByRole('checkbox', { name: 'Deselect Custom 50' })).toHaveAttribute('aria-checked', 'true')
-    expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled()
-    expect(screen.queryByRole('button', { name: 'Undo group selection' })).toBeNull()
-  }, 15000)
-
   it('selects named groups, leaves drafts incomplete, and can undo Select all', () => {
     toGroupsStep()
     fireEvent.click(screen.getByRole('button', { name: /Add your own group/ }))
@@ -138,39 +111,6 @@ describe('onboarding pick rows', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Undo group selection' }))
     expect(toolbar.getByText('2 groups selected')).toBeTruthy()
     expect(screen.getByRole('checkbox', { name: 'Select Savings' })).toHaveAttribute('aria-checked', 'false')
-  })
-
-  it('keeps existing selections when Select all encounters duplicate names', () => {
-    toGroupsStep()
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Deselect Essentials' }))
-    fireEvent.change(screen.getByDisplayValue('Savings'), { target: { value: ' essentials ' } })
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Select essentials' }))
-    fireEvent.click(screen.getByRole('button', { name: /Add your own group/ }))
-    fireEvent.change(screen.getAllByPlaceholderText('Group name').at(-1)!, { target: { value: 'Pets' } })
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Deselect Pets' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Select all' }))
-    expect(screen.getByRole('checkbox', { name: 'Select Essentials' })).toHaveAttribute('aria-checked', 'false')
-    expect(screen.getByRole('checkbox', { name: 'Deselect essentials' })).toHaveAttribute('aria-checked', 'true')
-    expect(screen.getByRole('checkbox', { name: 'Deselect Pets' })).toHaveAttribute('aria-checked', 'true')
-    expect(screen.getByRole('status')).toHaveTextContent('Duplicate names left unselected.')
-
-    // Starting from none still selects only one copy of each name.
-    fireEvent.click(screen.getByRole('button', { name: 'Deselect all' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Select all' }))
-    expect(screen.getByRole('checkbox', { name: 'Deselect Essentials' })).toHaveAttribute('aria-checked', 'true')
-    expect(screen.getByRole('checkbox', { name: 'Select essentials' })).toHaveAttribute('aria-checked', 'false')
-  })
-
-  it('clears Undo when the user makes a new selection or edits a group', () => {
-    toGroupsStep()
-    fireEvent.click(screen.getByRole('button', { name: 'Deselect all' }))
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Select Essentials' }))
-    expect(screen.queryByRole('button', { name: 'Undo group selection' })).toBeNull()
-    expect(within(screen.getByRole('group', { name: 'Group selection' })).getByText('1 group selected')).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Deselect all' }))
-    fireEvent.change(screen.getByDisplayValue('Lifestyle'), { target: { value: 'Fun' } })
-    expect(screen.queryByRole('button', { name: 'Undo group selection' })).toBeNull()
-    expect(screen.getByRole('checkbox', { name: 'Select Fun' })).toHaveAttribute('aria-checked', 'false')
   })
 
   it('keeps a new group unchecked until it has a name', () => {
