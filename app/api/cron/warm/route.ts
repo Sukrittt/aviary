@@ -4,7 +4,8 @@ import { getDb } from '@/lib/mongodb'
 export const dynamic = 'force-dynamic'
 
 /**
- * Pinged every 5 minutes by .github/workflows/keep-warm.yml so the function
+ * Pinged every 5 minutes by a Vercel cron (vercel.json), and by
+ * .github/workflows/keep-warm.yml right after each prod deploy, so the function
  * serving the core API stays booted, with its Mongo pool connected. Without it
  * the first request after ~10 idle minutes paid a 1.9s cold start.
  *

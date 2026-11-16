@@ -1,29 +1,26 @@
 # Keeps the API's functions booted so users don't wait on a cold start (1.9s
-# measured after ~10 idle minutes; a warm request is ~110ms). Vercel Hobby
-# crons run once a day, so the 5-minute timer lives here.
+# measured after ~10 idle minutes; a warm request is ~110ms). The 5-minute
+# timer is a Vercel cron now (vercel.json, Pro). This workflow only pings
+# right after a prod deploy, which a Vercel cron can't react to.
 #
 # Vercel bundles the API into one function per maxDuration (see
 # `vercel build`, .vercel/output/functions). Each ping warms one:
-#   /api/cron/warm          the core API (every route without a maxDuration),
-#                           plus its Mongo pool
-#   OPTIONS /api/ai/brief   maxDuration 30: brief, category suggest, feedback,
-#                           holdings predict-type, habit nudges, split buckets
-#   OPTIONS /api/expenses/scan  maxDuration 60: scan, chat, bills,
-#                           recurring suggestions
-# OPTIONS is answered by Next itself after loading the route module: no AI
-# call, no auth, no side effects. Add a ping if a new maxDuration value
+#   /api/cron/warm     the core API (every route without a maxDuration),
+#                      plus its Mongo pool
+#   /api/cron/warm/30  maxDuration 30: brief, category suggest, feedback,
+#                      holdings predict-type, habit nudges, split buckets
+#   /api/cron/warm/60  maxDuration 60: scan, chat, bills, recurring
+#                      suggestions, imports
+# Add a warm route (and a cron in vercel.json) if a new maxDuration value
 # creates a new function.
 #
-# ponytail: GitHub runs schedules best-effort (often 5 to 20 minutes late,
-# occasionally skipped), and only from the default branch (main). Move this
-# to a Vercel cron on Pro if gaps show up as cold starts again.
+# ponytail: if we drop back to Vercel Hobby (crons once a day), revert the PR
+# that moved the timer off this workflow's `schedule:`.
 name: Keep API warm
 
 on:
-  schedule:
-    - cron: '*/5 * * * *'
   workflow_dispatch:
-  # Each production deploy starts every function cold, and the 5-minute timer
+  # Each production deploy starts every function cold, and the 5-minute cron
   # can leave the first users on the new build waiting up to 5 minutes for it.
   # Vercel reports deploys to GitHub, so ping as soon as one goes live.
   deployment_status:
@@ -42,5 +39,5 @@ jobs:
         run: |
           ping() { curl -sS -o /dev/null --max-time 30 -w "%{http_code} %{time_total}s $*\n" "$@" || echo "failed $*"; }
           ping "$BASE/api/cron/warm"
-          ping -X OPTIONS "$BASE/api/ai/brief"
-          ping -X OPTIONS "$BASE/api/expenses/scan"
+          ping "$BASE/api/cron/warm/30"
+          ping "$BASE/api/cron/warm/60"
